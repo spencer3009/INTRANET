@@ -6,6 +6,79 @@ import { Separator } from "@/components/ui/separator";
 import { studentInfo, gradesData, behaviorData, calcularPromedio, getGradeClass } from "@/data/studentData";
 import { toast } from "sonner";
 
+const GradeRow = ({ criterio, areaIndex, criterioIndex }) => {
+  return (
+    <tr className="criteria-row">
+      <td className="text-slate-600 text-xs pl-6">
+        • {criterio.nombre}
+      </td>
+      <td className="grade-cell text-xs">{criterio.bim1}</td>
+      <td className="grade-cell text-xs">{criterio.bim2}</td>
+      <td className="grade-cell text-xs">{criterio.bim3}</td>
+      <td className="grade-cell text-xs">{criterio.bim4}</td>
+      <td className="grade-cell text-xs">
+        {calcularPromedio([criterio.bim1, criterio.bim2, criterio.bim3, criterio.bim4])}
+      </td>
+      <td className="grade-cell text-xs">-</td>
+    </tr>
+  );
+};
+
+const AreaRow = ({ area, areaIndex }) => {
+  const promediosBim = {
+    bim1: calcularPromedio(area.criterios.map(c => c.bim1)),
+    bim2: calcularPromedio(area.criterios.map(c => c.bim2)),
+    bim3: calcularPromedio(area.criterios.map(c => c.bim3)),
+    bim4: calcularPromedio(area.criterios.map(c => c.bim4))
+  };
+  const promedioFinal = calcularPromedio([
+    promediosBim.bim1, promediosBim.bim2, promediosBim.bim3, promediosBim.bim4
+  ]);
+  const necesitaRecuperacion = promedioFinal < 11;
+
+  return (
+    <tr className="area-row">
+      <td className="font-semibold text-slate-800">
+        {area.area}
+      </td>
+      <td className="grade-cell">
+        <span className={getGradeClass(promediosBim.bim1)}>
+          {promediosBim.bim1}
+        </span>
+      </td>
+      <td className="grade-cell">
+        <span className={getGradeClass(promediosBim.bim2)}>
+          {promediosBim.bim2}
+        </span>
+      </td>
+      <td className="grade-cell">
+        <span className={getGradeClass(promediosBim.bim3)}>
+          {promediosBim.bim3}
+        </span>
+      </td>
+      <td className="grade-cell">
+        <span className={getGradeClass(promediosBim.bim4)}>
+          {promediosBim.bim4}
+        </span>
+      </td>
+      <td className="grade-cell">
+        <span className={`font-bold ${getGradeClass(promedioFinal)}`}>
+          {promedioFinal}
+        </span>
+      </td>
+      <td className="grade-cell">
+        {necesitaRecuperacion ? (
+          <Badge variant="destructive" className="text-xs">
+            REQ
+          </Badge>
+        ) : (
+          <span className="text-slate-400">-</span>
+        )}
+      </td>
+    </tr>
+  );
+};
+
 export default function BoletaNotas() {
   const handlePrint = () => {
     window.print();
@@ -16,7 +89,6 @@ export default function BoletaNotas() {
     toast.success("Descargando boleta en PDF...");
   };
 
-  // Calcular promedio general
   const calcularPromedioGeneral = () => {
     let totalPromedios = 0;
     gradesData.forEach(area => {
@@ -28,9 +100,28 @@ export default function BoletaNotas() {
     return Math.round(totalPromedios / gradesData.length);
   };
 
+  const renderGradesRows = () => {
+    const rows = [];
+    gradesData.forEach((area, areaIndex) => {
+      rows.push(
+        <AreaRow key={`area-${areaIndex}`} area={area} areaIndex={areaIndex} />
+      );
+      area.criterios.forEach((criterio, criterioIndex) => {
+        rows.push(
+          <GradeRow 
+            key={`criterio-${areaIndex}-${criterioIndex}`}
+            criterio={criterio}
+            areaIndex={areaIndex}
+            criterioIndex={criterioIndex}
+          />
+        );
+      });
+    });
+    return rows;
+  };
+
   return (
     <div className="space-y-6 animate-fade-in" data-testid="boleta-notas-page">
-      {/* Header Actions */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 no-print">
         <div>
           <h1 className="font-heading text-2xl font-bold text-slate-900">
@@ -59,12 +150,9 @@ export default function BoletaNotas() {
         </div>
       </div>
 
-      {/* Report Card */}
       <Card className="card-elevated overflow-hidden" data-testid="report-card">
-        {/* Header with Student Info */}
         <CardHeader className="bg-slate-50 border-b border-slate-200 print:bg-white">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            {/* Student Photo and Info */}
             <div className="flex items-center gap-6">
               <img 
                 src={studentInfo.foto}
@@ -109,7 +197,6 @@ export default function BoletaNotas() {
               </div>
             </div>
 
-            {/* Year Badge */}
             <div className="flex flex-col items-center">
               <div className="w-20 h-20 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg">
                 <FileText className="w-10 h-10 text-white" />
@@ -121,7 +208,6 @@ export default function BoletaNotas() {
           </div>
         </CardHeader>
 
-        {/* Grades Table */}
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="report-card-table" data-testid="grades-table">
@@ -137,81 +223,8 @@ export default function BoletaNotas() {
                 </tr>
               </thead>
               <tbody>
-                {gradesData.map((area, areaIndex) => {
-                  const promediosBim = {
-                    bim1: calcularPromedio(area.criterios.map(c => c.bim1)),
-                    bim2: calcularPromedio(area.criterios.map(c => c.bim2)),
-                    bim3: calcularPromedio(area.criterios.map(c => c.bim3)),
-                    bim4: calcularPromedio(area.criterios.map(c => c.bim4))
-                  };
-                  const promedioFinal = calcularPromedio([
-                    promediosBim.bim1, promediosBim.bim2, promediosBim.bim3, promediosBim.bim4
-                  ]);
-                  const necesitaRecuperacion = promedioFinal < 11;
+                {renderGradesRows()}
 
-                  return (
-                    <>
-                      {/* Area Header Row */}
-                      <tr key={`area-${areaIndex}`} className="area-row">
-                        <td className="font-semibold text-slate-800">
-                          {area.area}
-                        </td>
-                        <td className="grade-cell">
-                          <span className={getGradeClass(promediosBim.bim1)}>
-                            {promediosBim.bim1}
-                          </span>
-                        </td>
-                        <td className="grade-cell">
-                          <span className={getGradeClass(promediosBim.bim2)}>
-                            {promediosBim.bim2}
-                          </span>
-                        </td>
-                        <td className="grade-cell">
-                          <span className={getGradeClass(promediosBim.bim3)}>
-                            {promediosBim.bim3}
-                          </span>
-                        </td>
-                        <td className="grade-cell">
-                          <span className={getGradeClass(promediosBim.bim4)}>
-                            {promediosBim.bim4}
-                          </span>
-                        </td>
-                        <td className="grade-cell">
-                          <span className={`font-bold ${getGradeClass(promedioFinal)}`}>
-                            {promedioFinal}
-                          </span>
-                        </td>
-                        <td className="grade-cell">
-                          {necesitaRecuperacion ? (
-                            <Badge variant="destructive" className="text-xs">
-                              REQ
-                            </Badge>
-                          ) : (
-                            <span className="text-slate-400">-</span>
-                          )}
-                        </td>
-                      </tr>
-                      {/* Criteria Rows */}
-                      {area.criterios.map((criterio, criterioIndex) => (
-                        <tr key={`criterio-${areaIndex}-${criterioIndex}`} className="criteria-row">
-                          <td className="text-slate-600 text-xs pl-6">
-                            • {criterio.nombre}
-                          </td>
-                          <td className="grade-cell text-xs">{criterio.bim1}</td>
-                          <td className="grade-cell text-xs">{criterio.bim2}</td>
-                          <td className="grade-cell text-xs">{criterio.bim3}</td>
-                          <td className="grade-cell text-xs">{criterio.bim4}</td>
-                          <td className="grade-cell text-xs">
-                            {calcularPromedio([criterio.bim1, criterio.bim2, criterio.bim3, criterio.bim4])}
-                          </td>
-                          <td className="grade-cell text-xs">-</td>
-                        </tr>
-                      ))}
-                    </>
-                  );
-                })}
-
-                {/* Behavior Row */}
                 <tr className="area-row">
                   <td className="font-semibold text-slate-800">COMPORTAMIENTO</td>
                   <td className="grade-cell">
@@ -240,7 +253,6 @@ export default function BoletaNotas() {
                   <td className="grade-cell">-</td>
                 </tr>
 
-                {/* General Average Row */}
                 <tr className="average-row">
                   <td className="font-bold text-blue-800">PROMEDIO GENERAL</td>
                   <td className="grade-cell" colSpan={4}></td>
@@ -257,7 +269,6 @@ export default function BoletaNotas() {
         </CardContent>
       </Card>
 
-      {/* Legend */}
       <Card className="card-elevated no-print" data-testid="legend-card">
         <CardHeader>
           <CardTitle className="font-heading text-base font-semibold">
