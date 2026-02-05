@@ -16,17 +16,12 @@ import { Progress } from "@/components/ui/progress";
 import { studentInfo, gradesData, attendanceData, comunicadosData, calcularPromedio } from "@/data/studentData";
 
 export default function Dashboard() {
-  // Calcular promedio general
   const promedioGeneral = () => {
-    let totalNotas = 0;
-    let cantidadNotas = 0;
+    let total = 0;
     gradesData.forEach(area => {
-      area.criterios.forEach(criterio => {
-        totalNotas += calcularPromedio([criterio.bim1, criterio.bim2, criterio.bim3, criterio.bim4]);
-        cantidadNotas++;
-      });
+      total += calcularPromedio([area.b1, area.b2, area.b3, area.b4]);
     });
-    return Math.round(totalNotas / cantidadNotas);
+    return Math.round(total / gradesData.length);
   };
 
   const promedio = promedioGeneral();
@@ -34,7 +29,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-8 animate-fade-in" data-testid="dashboard-page">
-      {/* Welcome Section */}
       <div className="student-profile-card" data-testid="student-profile-card">
         <img 
           src={studentInfo.foto}
@@ -67,9 +61,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Promedio General */}
         <Card className="stat-card border-l-4 border-l-blue-500" data-testid="stat-promedio">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
@@ -88,7 +80,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Asistencia */}
         <Card className="stat-card border-l-4 border-l-emerald-500" data-testid="stat-asistencia">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
@@ -104,7 +95,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Comunicados */}
         <Card className="stat-card border-l-4 border-l-orange-500" data-testid="stat-comunicados">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
@@ -120,7 +110,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Áreas Curriculares */}
         <Card className="stat-card border-l-4 border-l-purple-500" data-testid="stat-areas">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
@@ -137,9 +126,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Grades */}
         <Card className="lg:col-span-2 card-elevated" data-testid="recent-grades-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="font-heading text-lg font-semibold">
@@ -155,9 +142,7 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {gradesData.slice(0, 5).map((area, index) => {
-                const promedioArea = calcularPromedio(
-                  area.criterios.flatMap(c => [c.bim1, c.bim2, c.bim3, c.bim4])
-                );
+                const promedioArea = calcularPromedio([area.b1, area.b2, area.b3, area.b4]);
                 return (
                   <div key={index} className="flex items-center gap-4">
                     <div className="flex-1">
@@ -183,7 +168,6 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        {/* Upcoming Events */}
         <Card className="card-elevated" data-testid="upcoming-events-card">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="font-heading text-lg font-semibold">
@@ -232,7 +216,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Quick Access */}
       <Card className="card-elevated" data-testid="quick-access-card">
         <CardHeader>
           <CardTitle className="font-heading text-lg font-semibold">

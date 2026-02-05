@@ -12,85 +12,69 @@ export const studentInfo = {
   anio: "2024"
 };
 
-// Datos de calificaciones por área
+// Datos de calificaciones simplificados
 export const gradesData = [
-  {
-    area: "MATEMÁTICA",
-    criterios: [
-      { nombre: "Resuelve problemas de cantidad", bim1: 15, bim2: 16, bim3: 17, bim4: 16 },
-      { nombre: "Resuelve problemas de regularidad, equivalencia y cambio", bim1: 14, bim2: 15, bim3: 16, bim4: 15 },
-      { nombre: "Resuelve problemas de forma, movimiento y localización", bim1: 16, bim2: 17, bim3: 16, bim4: 17 },
-      { nombre: "Resuelve problemas de gestión de datos e incertidumbre", bim1: 15, bim2: 14, bim3: 15, bim4: 16 }
-    ]
-  },
-  {
-    area: "COMUNICACIÓN",
-    criterios: [
-      { nombre: "Se comunica oralmente en su lengua materna", bim1: 16, bim2: 17, bim3: 17, bim4: 18 },
-      { nombre: "Lee diversos tipos de textos escritos", bim1: 15, bim2: 16, bim3: 17, bim4: 17 },
-      { nombre: "Escribe diversos tipos de textos", bim1: 14, bim2: 15, bim3: 16, bim4: 16 }
-    ]
-  },
-  {
-    area: "INGLÉS",
-    criterios: [
-      { nombre: "Se comunica oralmente en inglés", bim1: 14, bim2: 15, bim3: 15, bim4: 16 },
-      { nombre: "Lee diversos tipos de textos en inglés", bim1: 15, bim2: 15, bim3: 16, bim4: 16 },
-      { nombre: "Escribe diversos tipos de textos en inglés", bim1: 13, bim2: 14, bim3: 15, bim4: 15 }
-    ]
-  },
-  {
-    area: "ARTE Y CULTURA",
-    criterios: [
-      { nombre: "Aprecia de manera crítica manifestaciones artístico-culturales", bim1: 17, bim2: 17, bim3: 18, bim4: 18 },
-      { nombre: "Crea proyectos desde los lenguajes artísticos", bim1: 16, bim2: 17, bim3: 17, bim4: 18 }
-    ]
-  },
-  {
-    area: "CIENCIAS SOCIALES",
-    criterios: [
-      { nombre: "Construye interpretaciones históricas", bim1: 15, bim2: 16, bim3: 16, bim4: 17 },
-      { nombre: "Gestiona responsablemente el espacio y el ambiente", bim1: 16, bim2: 16, bim3: 17, bim4: 17 },
-      { nombre: "Gestiona responsablemente los recursos económicos", bim1: 14, bim2: 15, bim3: 16, bim4: 16 }
-    ]
-  },
-  {
-    area: "DESARROLLO PERSONAL, CIUDADANÍA Y CÍVICA",
-    criterios: [
-      { nombre: "Construye su identidad", bim1: 17, bim2: 17, bim3: 18, bim4: 18 },
-      { nombre: "Convive y participa democráticamente", bim1: 16, bim2: 17, bim3: 17, bim4: 18 }
-    ]
-  },
-  {
-    area: "EDUCACIÓN FÍSICA",
-    criterios: [
-      { nombre: "Se desenvuelve de manera autónoma a través de su motricidad", bim1: 18, bim2: 18, bim3: 19, bim4: 19 },
-      { nombre: "Asume una vida saludable", bim1: 17, bim2: 18, bim3: 18, bim4: 18 },
-      { nombre: "Interactúa a través de sus habilidades sociomotrices", bim1: 17, bim2: 17, bim3: 18, bim4: 18 }
-    ]
-  },
-  {
-    area: "EDUCACIÓN RELIGIOSA",
-    criterios: [
-      { nombre: "Construye su identidad como persona humana", bim1: 16, bim2: 16, bim3: 17, bim4: 17 },
-      { nombre: "Asume la experiencia del encuentro personal y comunitario con Dios", bim1: 15, bim2: 16, bim3: 16, bim4: 17 }
-    ]
-  },
-  {
-    area: "CIENCIA Y TECNOLOGÍA",
-    criterios: [
-      { nombre: "Indaga mediante métodos científicos", bim1: 15, bim2: 16, bim3: 16, bim4: 17 },
-      { nombre: "Explica el mundo físico basándose en conocimientos científicos", bim1: 14, bim2: 15, bim3: 16, bim4: 16 },
-      { nombre: "Diseña y construye soluciones tecnológicas", bim1: 16, bim2: 16, bim3: 17, bim4: 17 }
-    ]
-  },
-  {
-    area: "EDUCACIÓN PARA EL TRABAJO",
-    criterios: [
-      { nombre: "Gestiona proyectos de emprendimiento económico o social", bim1: 15, bim2: 16, bim3: 17, bim4: 17 }
-    ]
-  }
+  { area: "MATEMÁTICA", b1: 15, b2: 16, b3: 16, b4: 16 },
+  { area: "COMUNICACIÓN", b1: 15, b2: 16, b3: 17, b4: 17 },
+  { area: "INGLÉS", b1: 14, b2: 15, b3: 15, b4: 16 },
+  { area: "ARTE Y CULTURA", b1: 17, b2: 17, b3: 18, b4: 18 },
+  { area: "CIENCIAS SOCIALES", b1: 15, b2: 16, b3: 16, b4: 17 },
+  { area: "DESARROLLO PERSONAL, CIUDADANÍA Y CÍVICA", b1: 17, b2: 17, b3: 18, b4: 18 },
+  { area: "EDUCACIÓN FÍSICA", b1: 18, b2: 18, b3: 18, b4: 19 },
+  { area: "EDUCACIÓN RELIGIOSA", b1: 16, b2: 16, b3: 17, b4: 17 },
+  { area: "CIENCIA Y TECNOLOGÍA", b1: 15, b2: 16, b3: 16, b4: 17 },
+  { area: "EDUCACIÓN PARA EL TRABAJO", b1: 15, b2: 16, b3: 17, b4: 17 }
 ];
+
+// Criterios de evaluación por área
+export const criteriosData = {
+  "MATEMÁTICA": [
+    "Resuelve problemas de cantidad",
+    "Resuelve problemas de regularidad, equivalencia y cambio",
+    "Resuelve problemas de forma, movimiento y localización",
+    "Resuelve problemas de gestión de datos e incertidumbre"
+  ],
+  "COMUNICACIÓN": [
+    "Se comunica oralmente en su lengua materna",
+    "Lee diversos tipos de textos escritos",
+    "Escribe diversos tipos de textos"
+  ],
+  "INGLÉS": [
+    "Se comunica oralmente en inglés",
+    "Lee diversos tipos de textos en inglés",
+    "Escribe diversos tipos de textos en inglés"
+  ],
+  "ARTE Y CULTURA": [
+    "Aprecia de manera crítica manifestaciones artístico-culturales",
+    "Crea proyectos desde los lenguajes artísticos"
+  ],
+  "CIENCIAS SOCIALES": [
+    "Construye interpretaciones históricas",
+    "Gestiona responsablemente el espacio y el ambiente",
+    "Gestiona responsablemente los recursos económicos"
+  ],
+  "DESARROLLO PERSONAL, CIUDADANÍA Y CÍVICA": [
+    "Construye su identidad",
+    "Convive y participa democráticamente"
+  ],
+  "EDUCACIÓN FÍSICA": [
+    "Se desenvuelve de manera autónoma a través de su motricidad",
+    "Asume una vida saludable",
+    "Interactúa a través de sus habilidades sociomotrices"
+  ],
+  "EDUCACIÓN RELIGIOSA": [
+    "Construye su identidad como persona humana",
+    "Asume la experiencia del encuentro personal y comunitario con Dios"
+  ],
+  "CIENCIA Y TECNOLOGÍA": [
+    "Indaga mediante métodos científicos",
+    "Explica el mundo físico basándose en conocimientos científicos",
+    "Diseña y construye soluciones tecnológicas"
+  ],
+  "EDUCACIÓN PARA EL TRABAJO": [
+    "Gestiona proyectos de emprendimiento económico o social"
+  ]
+};
 
 // Datos de comportamiento
 export const behaviorData = {
@@ -118,20 +102,21 @@ export const attendanceData = {
   faltas: 5,
   tardanzas: 3,
   justificadas: 2,
-  porcentaje: 95.6,
-  mensual: [
-    { mes: "Marzo", asistencias: 20, faltas: 0, tardanzas: 0 },
-    { mes: "Abril", asistencias: 18, faltas: 1, tardanzas: 1 },
-    { mes: "Mayo", asistencias: 20, faltas: 0, tardanzas: 0 },
-    { mes: "Junio", asistencias: 19, faltas: 1, tardanzas: 0 },
-    { mes: "Julio", asistencias: 14, faltas: 0, tardanzas: 1 },
-    { mes: "Agosto", asistencias: 20, faltas: 1, tardanzas: 0 },
-    { mes: "Septiembre", asistencias: 19, faltas: 1, tardanzas: 0 },
-    { mes: "Octubre", asistencias: 21, faltas: 0, tardanzas: 1 },
-    { mes: "Noviembre", asistencias: 21, faltas: 1, tardanzas: 0 },
-    { mes: "Diciembre", asistencias: 0, faltas: 0, tardanzas: 0 }
-  ]
+  porcentaje: 95.6
 };
+
+export const attendanceMensual = [
+  { mes: "Marzo", asistencias: 20, faltas: 0, tardanzas: 0 },
+  { mes: "Abril", asistencias: 18, faltas: 1, tardanzas: 1 },
+  { mes: "Mayo", asistencias: 20, faltas: 0, tardanzas: 0 },
+  { mes: "Junio", asistencias: 19, faltas: 1, tardanzas: 0 },
+  { mes: "Julio", asistencias: 14, faltas: 0, tardanzas: 1 },
+  { mes: "Agosto", asistencias: 20, faltas: 1, tardanzas: 0 },
+  { mes: "Septiembre", asistencias: 19, faltas: 1, tardanzas: 0 },
+  { mes: "Octubre", asistencias: 21, faltas: 0, tardanzas: 1 },
+  { mes: "Noviembre", asistencias: 21, faltas: 1, tardanzas: 0 },
+  { mes: "Diciembre", asistencias: 0, faltas: 0, tardanzas: 0 }
+];
 
 // Comunicados
 export const comunicadosData = [
@@ -190,6 +175,7 @@ export const calendarEvents = [
 
 // Función helper para calcular promedio
 export const calcularPromedio = (notas) => {
+  if (!notas || notas.length === 0) return 0;
   const suma = notas.reduce((acc, nota) => acc + nota, 0);
   return Math.round(suma / notas.length);
 };

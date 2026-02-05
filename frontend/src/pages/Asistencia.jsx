@@ -2,12 +2,11 @@ import { CheckCircle, XCircle, Clock, AlertTriangle, TrendingUp } from "lucide-r
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { attendanceData } from "@/data/studentData";
+import { attendanceData, attendanceMensual } from "@/data/studentData";
 
 export default function Asistencia() {
   return (
     <div className="space-y-6 animate-fade-in" data-testid="asistencia-page">
-      {/* Header */}
       <div>
         <h1 className="font-heading text-2xl font-bold text-slate-900">
           Registro de Asistencia
@@ -15,9 +14,7 @@ export default function Asistencia() {
         <p className="text-slate-500 mt-1">Año Escolar 2024</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {/* Asistencias */}
         <Card className="stat-card border-l-4 border-l-emerald-500" data-testid="stat-asistencias">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
@@ -33,7 +30,6 @@ export default function Asistencia() {
           </CardContent>
         </Card>
 
-        {/* Faltas */}
         <Card className="stat-card border-l-4 border-l-red-500" data-testid="stat-faltas">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
@@ -49,7 +45,6 @@ export default function Asistencia() {
           </CardContent>
         </Card>
 
-        {/* Tardanzas */}
         <Card className="stat-card border-l-4 border-l-orange-500" data-testid="stat-tardanzas">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
@@ -65,7 +60,6 @@ export default function Asistencia() {
           </CardContent>
         </Card>
 
-        {/* Porcentaje */}
         <Card className="stat-card border-l-4 border-l-blue-500" data-testid="stat-porcentaje">
           <CardContent className="p-5">
             <div className="flex items-start justify-between">
@@ -85,20 +79,11 @@ export default function Asistencia() {
         </Card>
       </div>
 
-      {/* Progress Overview */}
       <Card className="card-elevated" data-testid="progress-overview">
         <CardHeader>
           <CardTitle className="font-heading text-lg font-semibold flex items-center justify-between">
             <span>Progreso de Asistencia</span>
-            <Badge className={`${
-              attendanceData.porcentaje >= 95 ? 'bg-emerald-600' :
-              attendanceData.porcentaje >= 85 ? 'bg-blue-600' :
-              attendanceData.porcentaje >= 70 ? 'bg-orange-600' : 'bg-red-600'
-            }`}>
-              {attendanceData.porcentaje >= 95 ? 'Excelente' :
-               attendanceData.porcentaje >= 85 ? 'Bueno' :
-               attendanceData.porcentaje >= 70 ? 'Regular' : 'Necesita Mejorar'}
-            </Badge>
+            <Badge className="bg-emerald-600">Excelente</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -112,24 +97,10 @@ export default function Asistencia() {
               </div>
               <Progress value={attendanceData.porcentaje} className="h-3" />
             </div>
-            
-            {attendanceData.porcentaje < 95 && (
-              <div className="flex items-start gap-3 p-4 bg-amber-50 rounded-xl border border-amber-200">
-                <AlertTriangle className="w-5 h-5 text-amber-600 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-amber-800">Recordatorio</p>
-                  <p className="text-xs text-amber-700 mt-1">
-                    El porcentaje mínimo de asistencia requerido es del 70%. 
-                    Mantén una buena asistencia para asegurar tu evaluación.
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Monthly Breakdown */}
       <Card className="card-elevated" data-testid="monthly-breakdown">
         <CardHeader>
           <CardTitle className="font-heading text-lg font-semibold">
@@ -149,7 +120,7 @@ export default function Asistencia() {
                 </tr>
               </thead>
               <tbody>
-                {attendanceData.mensual.map((mes, index) => {
+                {attendanceMensual.map((mes, index) => {
                   const total = mes.asistencias + mes.faltas;
                   const porcentaje = total > 0 ? (mes.asistencias / total) * 100 : 0;
                   

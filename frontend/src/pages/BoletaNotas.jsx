@@ -3,81 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { studentInfo, gradesData, behaviorData, calcularPromedio, getGradeClass } from "@/data/studentData";
+import { studentInfo, gradesData, criteriosData, behaviorData, calcularPromedio, getGradeClass } from "@/data/studentData";
 import { toast } from "sonner";
-
-const GradeRow = ({ criterio, areaIndex, criterioIndex }) => {
-  return (
-    <tr className="criteria-row">
-      <td className="text-slate-600 text-xs pl-6">
-        • {criterio.nombre}
-      </td>
-      <td className="grade-cell text-xs">{criterio.bim1}</td>
-      <td className="grade-cell text-xs">{criterio.bim2}</td>
-      <td className="grade-cell text-xs">{criterio.bim3}</td>
-      <td className="grade-cell text-xs">{criterio.bim4}</td>
-      <td className="grade-cell text-xs">
-        {calcularPromedio([criterio.bim1, criterio.bim2, criterio.bim3, criterio.bim4])}
-      </td>
-      <td className="grade-cell text-xs">-</td>
-    </tr>
-  );
-};
-
-const AreaRow = ({ area, areaIndex }) => {
-  const promediosBim = {
-    bim1: calcularPromedio(area.criterios.map(c => c.bim1)),
-    bim2: calcularPromedio(area.criterios.map(c => c.bim2)),
-    bim3: calcularPromedio(area.criterios.map(c => c.bim3)),
-    bim4: calcularPromedio(area.criterios.map(c => c.bim4))
-  };
-  const promedioFinal = calcularPromedio([
-    promediosBim.bim1, promediosBim.bim2, promediosBim.bim3, promediosBim.bim4
-  ]);
-  const necesitaRecuperacion = promedioFinal < 11;
-
-  return (
-    <tr className="area-row">
-      <td className="font-semibold text-slate-800">
-        {area.area}
-      </td>
-      <td className="grade-cell">
-        <span className={getGradeClass(promediosBim.bim1)}>
-          {promediosBim.bim1}
-        </span>
-      </td>
-      <td className="grade-cell">
-        <span className={getGradeClass(promediosBim.bim2)}>
-          {promediosBim.bim2}
-        </span>
-      </td>
-      <td className="grade-cell">
-        <span className={getGradeClass(promediosBim.bim3)}>
-          {promediosBim.bim3}
-        </span>
-      </td>
-      <td className="grade-cell">
-        <span className={getGradeClass(promediosBim.bim4)}>
-          {promediosBim.bim4}
-        </span>
-      </td>
-      <td className="grade-cell">
-        <span className={`font-bold ${getGradeClass(promedioFinal)}`}>
-          {promedioFinal}
-        </span>
-      </td>
-      <td className="grade-cell">
-        {necesitaRecuperacion ? (
-          <Badge variant="destructive" className="text-xs">
-            REQ
-          </Badge>
-        ) : (
-          <span className="text-slate-400">-</span>
-        )}
-      </td>
-    </tr>
-  );
-};
 
 export default function BoletaNotas() {
   const handlePrint = () => {
@@ -90,34 +17,11 @@ export default function BoletaNotas() {
   };
 
   const calcularPromedioGeneral = () => {
-    let totalPromedios = 0;
+    let total = 0;
     gradesData.forEach(area => {
-      const promedioArea = calcularPromedio(
-        area.criterios.flatMap(c => [c.bim1, c.bim2, c.bim3, c.bim4])
-      );
-      totalPromedios += promedioArea;
+      total += calcularPromedio([area.b1, area.b2, area.b3, area.b4]);
     });
-    return Math.round(totalPromedios / gradesData.length);
-  };
-
-  const renderGradesRows = () => {
-    const rows = [];
-    gradesData.forEach((area, areaIndex) => {
-      rows.push(
-        <AreaRow key={`area-${areaIndex}`} area={area} areaIndex={areaIndex} />
-      );
-      area.criterios.forEach((criterio, criterioIndex) => {
-        rows.push(
-          <GradeRow 
-            key={`criterio-${areaIndex}-${criterioIndex}`}
-            criterio={criterio}
-            areaIndex={areaIndex}
-            criterioIndex={criterioIndex}
-          />
-        );
-      });
-    });
-    return rows;
+    return Math.round(total / gradesData.length);
   };
 
   return (
@@ -223,7 +127,48 @@ export default function BoletaNotas() {
                 </tr>
               </thead>
               <tbody>
-                {renderGradesRows()}
+                {gradesData.map((area, idx) => {
+                  const prom = calcularPromedio([area.b1, area.b2, area.b3, area.b4]);
+                  const needsRecovery = prom < 11;
+                  const criterios = criteriosData[area.area] || [];
+                  
+                  return (
+                    <tr key={idx} className="area-row">
+                      <td className="font-semibold text-slate-800">
+                        <div>{area.area}</div>
+                        <div className="mt-2 space-y-1">
+                          {criterios.map((c, i) => (
+                            <div key={i} className="text-xs text-slate-500 font-normal pl-2">
+                              • {c}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="grade-cell">
+                        <span className={getGradeClass(area.b1)}>{area.b1}</span>
+                      </td>
+                      <td className="grade-cell">
+                        <span className={getGradeClass(area.b2)}>{area.b2}</span>
+                      </td>
+                      <td className="grade-cell">
+                        <span className={getGradeClass(area.b3)}>{area.b3}</span>
+                      </td>
+                      <td className="grade-cell">
+                        <span className={getGradeClass(area.b4)}>{area.b4}</span>
+                      </td>
+                      <td className="grade-cell">
+                        <span className={`font-bold ${getGradeClass(prom)}`}>{prom}</span>
+                      </td>
+                      <td className="grade-cell">
+                        {needsRecovery ? (
+                          <Badge variant="destructive" className="text-xs">REQ</Badge>
+                        ) : (
+                          <span className="text-slate-400">-</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 <tr className="area-row">
                   <td className="font-semibold text-slate-800">COMPORTAMIENTO</td>

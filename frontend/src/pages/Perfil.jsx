@@ -6,24 +6,18 @@ import { Progress } from "@/components/ui/progress";
 import { studentInfo, gradesData, attendanceData, calcularPromedio } from "@/data/studentData";
 
 export default function Perfil() {
-  // Calcular estadísticas
   const promedioGeneral = () => {
-    let totalNotas = 0;
-    let cantidadNotas = 0;
+    let total = 0;
     gradesData.forEach(area => {
-      area.criterios.forEach(criterio => {
-        totalNotas += calcularPromedio([criterio.bim1, criterio.bim2, criterio.bim3, criterio.bim4]);
-        cantidadNotas++;
-      });
+      total += calcularPromedio([area.b1, area.b2, area.b3, area.b4]);
     });
-    return Math.round(totalNotas / cantidadNotas);
+    return Math.round(total / gradesData.length);
   };
 
   const promedio = promedioGeneral();
 
   return (
     <div className="space-y-6 animate-fade-in" data-testid="perfil-page">
-      {/* Header */}
       <div>
         <h1 className="font-heading text-2xl font-bold text-slate-900">
           Mi Perfil
@@ -32,7 +26,6 @@ export default function Perfil() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Profile Card */}
         <Card className="lg:col-span-1 card-elevated" data-testid="profile-card">
           <CardContent className="pt-6">
             <div className="text-center">
@@ -102,7 +95,6 @@ export default function Perfil() {
           </CardContent>
         </Card>
 
-        {/* Academic Stats */}
         <Card className="lg:col-span-2 card-elevated" data-testid="academic-stats">
           <CardHeader>
             <CardTitle className="font-heading text-lg font-semibold flex items-center gap-2">
@@ -112,7 +104,6 @@ export default function Perfil() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              {/* Promedio General */}
               <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl">
                 <p className="text-4xl font-bold text-blue-700 font-mono">{promedio}</p>
                 <p className="text-sm text-blue-600 mt-1">Promedio General</p>
@@ -127,14 +118,12 @@ export default function Perfil() {
                 </Badge>
               </div>
 
-              {/* Asistencia */}
               <div className="text-center p-6 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-2xl">
                 <p className="text-4xl font-bold text-emerald-700 font-mono">{attendanceData.porcentaje}%</p>
                 <p className="text-sm text-emerald-600 mt-1">Asistencia</p>
                 <Badge className="mt-2 bg-emerald-600">Excelente</Badge>
               </div>
 
-              {/* Áreas */}
               <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl">
                 <p className="text-4xl font-bold text-purple-700 font-mono">{gradesData.length}</p>
                 <p className="text-sm text-purple-600 mt-1">Áreas Curriculares</p>
@@ -142,13 +131,10 @@ export default function Perfil() {
               </div>
             </div>
 
-            {/* Progress by Area */}
             <h4 className="font-semibold text-slate-800 mb-4">Rendimiento por Área</h4>
             <div className="space-y-4">
               {gradesData.slice(0, 6).map((area, index) => {
-                const promedioArea = calcularPromedio(
-                  area.criterios.flatMap(c => [c.bim1, c.bim2, c.bim3, c.bim4])
-                );
+                const promedioArea = calcularPromedio([area.b1, area.b2, area.b3, area.b4]);
                 return (
                   <div key={index}>
                     <div className="flex items-center justify-between mb-1">
@@ -173,9 +159,7 @@ export default function Perfil() {
         </Card>
       </div>
 
-      {/* Additional Info */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Contact Info (Simulated) */}
         <Card className="card-elevated" data-testid="contact-info">
           <CardHeader>
             <CardTitle className="font-heading text-base font-semibold">
@@ -213,7 +197,6 @@ export default function Perfil() {
           </CardContent>
         </Card>
 
-        {/* Academic History (Simulated) */}
         <Card className="card-elevated" data-testid="academic-history">
           <CardHeader>
             <CardTitle className="font-heading text-base font-semibold">
@@ -222,28 +205,51 @@ export default function Perfil() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {[
-                { year: "2024", grade: "5to Secundaria", status: "En curso", avg: promedio },
-                { year: "2023", grade: "4to Secundaria", status: "Aprobado", avg: 15 },
-                { year: "2022", grade: "3ro Secundaria", status: "Aprobado", avg: 14 },
-                { year: "2021", grade: "2do Secundaria", status: "Aprobado", avg: 14 },
-              ].map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <span className="text-sm font-bold text-blue-600">{item.year}</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-800">{item.grade}</p>
-                      <p className="text-xs text-slate-500">{item.status}</p>
-                    </div>
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-sm font-bold text-blue-600">2024</span>
                   </div>
-                  <div className="text-right">
-                    <p className="font-mono font-bold text-lg text-slate-800">{item.avg}</p>
-                    <p className="text-xs text-slate-500">Promedio</p>
+                  <div>
+                    <p className="font-medium text-slate-800">5to Secundaria</p>
+                    <p className="text-xs text-slate-500">En curso</p>
                   </div>
                 </div>
-              ))}
+                <div className="text-right">
+                  <p className="font-mono font-bold text-lg text-slate-800">{promedio}</p>
+                  <p className="text-xs text-slate-500">Promedio</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-sm font-bold text-blue-600">2023</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-800">4to Secundaria</p>
+                    <p className="text-xs text-slate-500">Aprobado</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono font-bold text-lg text-slate-800">15</p>
+                  <p className="text-xs text-slate-500">Promedio</p>
+                </div>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-sm font-bold text-blue-600">2022</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-800">3ro Secundaria</p>
+                    <p className="text-xs text-slate-500">Aprobado</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="font-mono font-bold text-lg text-slate-800">14</p>
+                  <p className="text-xs text-slate-500">Promedio</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
