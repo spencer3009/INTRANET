@@ -167,6 +167,153 @@ class SchoolAPITester:
                     print("   Warning: Missing required fields in enrollment data")
         return success
 
+    # ── School Registration Tests ──
+    
+    def test_school_register_success(self):
+        """Test new school registration"""
+        form_data = {
+            "school_name": "Test School EduNet",
+            "contact_name": "Test Director",
+            "role": "Director(a)",
+            "email": self.test_email,
+            "password": "password123",
+            "phone": "+51987654321"
+        }
+        
+        success, response = self.run_test(
+            "School Registration", "POST", "schools/register", 200, data=form_data
+        )
+        
+        if success:
+            # Store verification code for next test
+            self.verification_code = response.get('verification_code')
+            required_fields = ["message", "school_id", "verification_code", "email"]
+            for field in required_fields:
+                if field not in response:
+                    print(f"   Warning: Missing field '{field}' in registration response")
+                    return False
+            print(f"   School ID: {response.get('school_id')}")
+            print(f"   Verification code: {response.get('verification_code')}")
+            
+        return success
+    
+    def test_school_register_duplicate_email(self):
+        """Test registration with duplicate email"""
+        form_data = {
+            "school_name": "Another School",
+            "contact_name": "Another Director",
+            "role": "Director(a)",
+            "email": self.test_email,  # Same email as previous test
+            "password": "password123"
+        }
+        
+        success, response = self.run_test(
+            "Duplicate Email Registration", "POST", "schools/register", 400, data=form_data
+        )
+        return success
+    
+    def test_email_verification_success(self):
+        """Test email verification with correct code"""
+        if not self.verification_code:
+            print("   ❌ Skipping: No verification code from previous test")
+            return False
+            
+        verification_data = {
+            "email": self.test_email,
+            "code": self.verification_code
+        }
+        
+        success, response = self.run_test(
+            "Email Verification Success", "POST", "schools/verify-email", 200, data=verification_data
+        )
+        
+        if success:
+            required_fields = ["message", "verified", "token", "user"]
+            for field in required_fields:
+                if field not in response:
+                    print(f"   Warning: Missing field '{field}' in verification response")
+                    return False
+            
+            if response.get('verified') == True and response.get('token'):
+                self.token = response['token']  # Update token for onboarding test
+                print(f"   Email verified successfully")
+                print(f"   Token obtained: {self.token[:50]}...")
+            else:
+                print("   Warning: Email verification did not return proper verified status or token")
+                
+        return success
+    
+    def test_email_verification_wrong_code(self):
+        """Test email verification with wrong code"""
+        verification_data = {
+            "email": self.test_email,
+            "code": "WRONG1"
+        }
+        
+        success, response = self.run_test(
+            "Email Verification Wrong Code", "POST", "schools/verify-email", 400, data=verification_data
+        )
+        return success
+    
+    def test_subdomain_check_available(self):
+        """Test subdomain availability check"""
+        success, response = self.run_test(
+            "Subdomain Check Available", "GET", f"schools/check-subdomain/{self.test_subdomain}", 200
+        )
+        
+        if success:
+            if response.get('available') != True:
+                print(f"   Warning: Expected subdomain '{self.test_subdomain}' to be available")
+                return False
+            print(f"   Subdomain '{self.test_subdomain}' is available")
+        
+        return success
+    
+    def test_subdomain_check_reserved(self):
+        """Test subdomain check with reserved name"""
+        success, response = self.run_test(
+            "Subdomain Check Reserved", "GET", "schools/check-subdomain/admin", 200
+        )
+        
+        if success:
+            if response.get('available') != False:
+                print(f"   Warning: Expected 'admin' subdomain to be unavailable")
+                return False
+            print(f"   Reserved subdomain correctly rejected: {response.get('reason')}")
+        
+        return success
+    
+    def test_onboarding_completion(self):
+        """Test onboarding completion"""
+        if not self.token:
+            print("   ❌ Skipping: No token from email verification")
+            return False
+        
+        onboarding_data = {
+            "subdomain": self.test_subdomain,
+            "school_name": "Test School EduNet Updated"
+        }
+        
+        success, response = self.run_test(
+            "Onboarding Completion", "POST", "schools/onboarding", 200, 
+            data=onboarding_data, require_token=True
+        )
+        
+        if success:
+            required_fields = ["message", "subdomain", "url"]
+            for field in required_fields:
+                if field not in response:
+                    print(f"   Warning: Missing field '{field}' in onboarding response")
+                    return False
+            
+            expected_url = f"{self.test_subdomain}.edunet.pe"
+            if response.get('url') != expected_url:
+                print(f"   Warning: Expected URL '{expected_url}', got '{response.get('url')}'")
+            
+            print(f"   Intranet created at: {response.get('url')}")
+        
+        return success
+
 def main():
     """Run all backend API tests"""
     print("🚀 Starting Colegio El Roble Backend API Tests")
