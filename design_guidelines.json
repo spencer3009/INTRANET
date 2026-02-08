@@ -1,0 +1,162 @@
+{
+  "typography": {
+    "font_family": {
+      "headings": "Manrope, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "regular": 400,
+      "medium": 500,
+      "semibold": 600,
+      "bold": 700,
+      "extrabold": 800
+    },
+    "scale": {
+      "h1": "text-4xl md:text-5xl font-extrabold tracking-tight",
+      "h2": "text-3xl font-bold tracking-tight",
+      "h3": "text-2xl font-semibold tracking-tight",
+      "h4": "text-xl font-semibold",
+      "body_lg": "text-lg leading-relaxed",
+      "body_base": "text-base leading-relaxed",
+      "body_sm": "text-sm leading-relaxed text-muted-foreground",
+      "caption": "text-xs font-medium text-muted-foreground uppercase tracking-wider"
+    },
+    "import_url": "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap"
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#001f4b",
+        "foreground": "#ffffff",
+        "50": "#f0f5ff",
+        "100": "#e0ebff",
+        "200": "#c2d6ff",
+        "300": "#94b8ff",
+        "400": "#5c85d6",
+        "500": "#3b66ff",
+        "600": "#1a40ff",
+        "700": "#001f4b",
+        "800": "#001636",
+        "900": "#000d21"
+      },
+      "secondary": {
+        "DEFAULT": "#e1b82c",
+        "foreground": "#001f4b",
+        "50": "#fffdf0",
+        "100": "#fffacc",
+        "200": "#fff499",
+        "300": "#ffe666",
+        "400": "#f1c40f",
+        "500": "#e1b82c",
+        "600": "#a67c00",
+        "700": "#805f00",
+        "800": "#594200",
+        "900": "#332600"
+      },
+      "accent": {
+        "DEFAULT": "#5c85d6",
+        "foreground": "#ffffff"
+      },
+      "background": "#F8FAFC",
+      "foreground": "#0f172a",
+      "card": {
+        "DEFAULT": "#ffffff",
+        "foreground": "#0f172a"
+      },
+      "muted": {
+        "DEFAULT": "#f1f5f9",
+        "foreground": "#64748b"
+      },
+      "border": "#e2e8f0",
+      "input": "#e2e8f0"
+    },
+    "usage": {
+      "sidebar_bg": "bg-primary-700",
+      "sidebar_text": "text-white",
+      "sidebar_text_muted": "text-blue-200",
+      "active_nav_item": "bg-white/10 text-secondary-400",
+      "action_button": "bg-secondary-500 hover:bg-secondary-400 text-primary-900",
+      "card_surface": "bg-white border border-border/60 shadow-sm hover:shadow-md transition-all duration-300"
+    }
+  },
+  "visual_enhancers": {
+    "rounded": {
+      "card": "rounded-xl",
+      "button": "rounded-lg",
+      "input": "rounded-lg",
+      "avatar": "rounded-full"
+    },
+    "shadows": {
+      "card": "shadow-[0_2px_8px_rgba(0,0,0,0.04)]",
+      "card_hover": "shadow-[0_8px_24px_rgba(0,0,0,0.08)]",
+      "dropdown": "shadow-[0_12px_32px_rgba(0,0,0,0.12)]"
+    },
+    "borders": {
+      "subtle": "border border-slate-200",
+      "focus": "ring-2 ring-primary-400/20 ring-offset-2"
+    },
+    "glass": "backdrop-blur-md bg-white/80 border-b border-white/20"
+  },
+  "layout": {
+    "dashboard_grid": "grid grid-cols-1 md:grid-cols-12 gap-6 p-6 md:p-8",
+    "bento_grid": {
+      "hero": "col-span-1 md:col-span-12 lg:col-span-8 row-span-2",
+      "profile": "col-span-1 md:col-span-6 lg:col-span-4 row-span-2",
+      "stats_row": "col-span-1 md:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-4",
+      "chart": "col-span-1 md:col-span-12 lg:col-span-8",
+      "events": "col-span-1 md:col-span-6 lg:col-span-4"
+    },
+    "sidebar": "fixed inset-y-0 left-0 z-50 w-64 bg-[#001f4b] text-white transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto md:flex md:w-64 md:flex-col",
+    "main_content": "flex-1 overflow-y-auto bg-slate-50"
+  },
+  "components": {
+    "button": {
+      "primary": "bg-[#001f4b] text-white hover:bg-[#001f4b]/90",
+      "secondary": "bg-[#e1b82c] text-[#001f4b] hover:bg-[#e1b82c]/90 font-semibold",
+      "ghost": "hover:bg-slate-100 text-slate-700",
+      "outline": "border-2 border-[#001f4b] text-[#001f4b] hover:bg-[#001f4b]/5"
+    },
+    "card": {
+      "base": "bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden",
+      "header": "p-6 border-b border-slate-100",
+      "content": "p-6"
+    }
+  },
+  "media": {
+    "assets": {
+      "logo": "https://socioscreativos.com/wp-content/uploads/2026/02/roble.jpg",
+      "banner": "https://socioscreativos.com/wp-content/uploads/2026/02/000372773w.jpg",
+      "admin_avatar": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200",
+      "placeholders": {
+        "student_chart": "Use Recharts for dynamic rendering",
+        "calendar": "Use shadcn/ui Calendar component"
+      }
+    }
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-out hover:-translate-y-1",
+    "fade_in": "animate-in fade-in duration-500",
+    "slide_in": "animate-in slide-in-from-right-4 duration-500"
+  },
+  "instructions_to_main_agent": [
+    "Language: ALL USER FACING TEXT MUST BE IN SPANISH.",
+    "Icons: Use 'lucide-react' for all icons (Home, Users, BookOpen, Calendar, Settings, LogOut, Menu, Bell, Search).",
+    "Charts: Use 'recharts' library. Create a 'StudentEnrollmentChart' component using a BarChart or AreaChart.",
+    "Data: Create a 'mockData.js' file for dashboard metrics (grades, attendance, tasks).",
+    "Auth: Create a professional Login page with the school logo centered, a clean form card, and the navy blue background.",
+    "Dashboard Header: Include a 'Bienvenido, [Admin Name]' message and the date.",
+    "Sidebar: Must be responsive. Hidden on mobile with a hamburger menu trigger.",
+    "Theme: Force LIGHT MODE. Do not implement dark mode toggle unless strictly requested (schools prefer light/paper feel).",
+    "Accessibility: Ensure contrast ratios are met. Navy text on White is excellent. Gold on White is poor for text, use Gold for backgrounds or large graphical elements only.",
+    "Router: Use 'react-router-dom' for navigation (Login -> Dashboard).",
+    "Backend: Ensure FastAPI backend serves the frontend and has basic endpoints mock-up."
+  ],
+  "universal_guidelines": [
+    "Do not use gradients for text.",
+    "Use 'sonner' for toast notifications.",
+    "Interactive elements must have 'data-testid'.",
+    "Avoid 'Inter' for Headings -> Use 'Manrope'.",
+    "Use 'p-6' or 'p-8' for padding inside cards to avoid cramping."
+  ]
+}
