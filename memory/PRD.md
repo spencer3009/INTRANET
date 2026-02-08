@@ -31,6 +31,7 @@ Transformar un dashboard HTML estático de intranet escolar en una aplicación f
 ## Implementado - 8 Feb 2026
 - Backend completo con auth JWT, endpoints de dashboard, seed data
 - Frontend con 9 componentes: LoginPage, DashboardPage, Sidebar, DashboardHeader, MetricCards, HeroBanner, QuickAccess, EventsList, MiniCalendar, ProfileCard, StudentChart
+- **Nuevo**: Panel de Asistencia del Mes (donut chart) + Noticias y Avisos para llenar espacio vacío del dashboard
 - Credenciales de prueba: admin@elroble.edu / admin123
 
 ## Backlog
