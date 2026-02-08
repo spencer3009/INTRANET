@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, GraduationCap } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
