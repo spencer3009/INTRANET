@@ -25,7 +25,12 @@ JWT_ALGORITHM = "HS256"
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
+
+async def require_auth(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    if credentials is None:
+        raise HTTPException(status_code=401, detail="No autorizado")
+    return credentials
 
 # ── Models ──
 
