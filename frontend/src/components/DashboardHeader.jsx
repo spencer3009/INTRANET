@@ -23,7 +23,7 @@ export default function DashboardHeader({ user, onMenuClick, onLogout }) {
           <img
             src="https://socioscreativos.com/wp-content/uploads/2026/02/roble.jpg"
             alt="Logo Colegio El Roble"
-            className="h-10 w-auto object-contain"
+            className="h-14 w-auto object-contain"
             data-testid="header-logo"
             onError={(e) => { e.target.src = 'https://via.placeholder.com/40?text=ER'; }}
           />
