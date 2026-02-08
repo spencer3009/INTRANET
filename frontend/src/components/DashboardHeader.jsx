@@ -20,6 +20,13 @@ export default function DashboardHeader({ user, onMenuClick, onLogout }) {
           >
             <Menu className="w-5 h-5" />
           </button>
+          <img
+            src="https://socioscreativos.com/wp-content/uploads/2026/02/roble.jpg"
+            alt="Logo Colegio El Roble"
+            className="h-10 w-auto object-contain"
+            data-testid="header-logo"
+            onError={(e) => { e.target.src = 'https://via.placeholder.com/40?text=ER'; }}
+          />
           <div>
             <h2 className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }} data-testid="header-welcome">
               Bienvenido, {user?.name || "Admin"}
