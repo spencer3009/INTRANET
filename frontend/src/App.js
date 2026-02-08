@@ -1,7 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import "@/App.css";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
+import RegisterPage from "@/pages/RegisterPage";
+import VerifyEmailPage from "@/pages/VerifyEmailPage";
+import WelcomePage from "@/pages/WelcomePage";
+import OnboardingPage from "@/pages/OnboardingPage";
 import DashboardPage from "@/pages/DashboardPage";
 
 function App() {
@@ -28,14 +33,17 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage onLogin={handleLogin} />} />
+        <Route path="/welcome" element={token ? <WelcomePage user={user} /> : <Navigate to="/login" replace />} />
+        <Route path="/onboarding" element={token ? <OnboardingPage token={token} user={user} /> : <Navigate to="/login" replace />} />
         <Route
           path="/login"
-          element={
-            token ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} />
-          }
+          element={token ? <Navigate to="/dashboard" replace /> : <LoginPage onLogin={handleLogin} />}
         />
         <Route
-          path="/*"
+          path="/dashboard/*"
           element={
             token ? (
               <DashboardPage user={user} token={token} onLogout={handleLogout} />
