@@ -33,19 +33,20 @@ export default function LoginPage({ onLogin }) {
       <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-[#e1b82c]/10 blur-3xl" />
 
       <div className="login-card w-full max-w-md p-10 relative z-10" data-testid="login-card">
-        {/* Logo */}
+        {/* Brand */}
         <div className="flex flex-col items-center mb-8">
-          <img
-            src="https://socioscreativos.com/wp-content/uploads/2026/02/roble.jpg"
-            alt="Colegio El Roble"
-            className="h-20 w-auto object-contain mb-4"
-            data-testid="login-logo"
-            onError={(e) => { e.target.src = 'https://via.placeholder.com/80x80?text=Logo'; }}
-          />
+          <Link to="/" className="flex items-center gap-2.5 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-[#001f4b] flex items-center justify-center">
+              <GraduationCap className="w-5 h-5 text-[#e1b82c]" />
+            </div>
+            <span className="text-xl font-extrabold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>
+              EduNet
+            </span>
+          </Link>
           <h1 className="text-2xl font-extrabold text-[#001f4b] tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            Colegio El Roble
+            Inicia Sesión
           </h1>
-          <p className="text-sm text-slate-500 mt-1">Intranet Escolar</p>
+          <p className="text-sm text-slate-500 mt-1">Accede a tu intranet escolar</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
