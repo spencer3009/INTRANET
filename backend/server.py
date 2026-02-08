@@ -175,6 +175,123 @@ async def get_enrollment(current_user=Depends(get_current_user)):
     data = await db.enrollment.find({}, {"_id": 0}).to_list(100)
     return data
 
+# ── School Registration Routes ──
+
+@api_router.post("/schools/register")
+async def register_school(data: SchoolRegister):
+    existing = await db.schools.find_one({"email": data.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Este correo ya está registrado")
+
+    school_id = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())
+    verification_code = str(uuid.uuid4())[:6].upper()
+
+    school_doc = {
+        "id": school_id,
+        "school_name": data.school_name,
+        "contact_name": data.contact_name,
+        "role": data.role,
+        "email": data.email,
+        "phone": data.phone,
+        "password": hash_password(data.password),
+        "email_verified": False,
+        "verification_code": verification_code,
+        "onboarding_complete": False,
+        "subdomain": None,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.schools.insert_one(school_doc)
+
+    # Also create user record for login
+    user_doc = {
+        "id": user_id,
+        "email": data.email,
+        "password": hash_password(data.password),
+        "name": data.contact_name,
+        "role": data.role,
+        "school_id": school_id,
+        "avatar": "",
+        "email_verified": False,
+        "onboarding_complete": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.users.insert_one(user_doc)
+
+    logger.info(f"School registered: {data.school_name}, verification code: {verification_code}")
+
+    return {
+        "message": "Cuenta creada exitosamente",
+        "school_id": school_id,
+        "verification_code": verification_code,
+        "email": data.email
+    }
+
+@api_router.post("/schools/verify-email")
+async def verify_email(data: VerifyEmailRequest):
+    school = await db.schools.find_one({"email": data.email})
+    if not school:
+        raise HTTPException(status_code=404, detail="Cuenta no encontrada")
+
+    if school.get("email_verified"):
+        return {"message": "Email ya verificado", "verified": True}
+
+    if school["verification_code"] != data.code.upper():
+        raise HTTPException(status_code=400, detail="Código de verificación incorrecto")
+
+    await db.schools.update_one({"email": data.email}, {"$set": {"email_verified": True}})
+    await db.users.update_one({"email": data.email}, {"$set": {"email_verified": True}})
+
+    user = await db.users.find_one({"email": data.email}, {"_id": 0, "password": 0})
+    token = create_token(user["id"], user["email"], user["name"], user["role"])
+
+    return {
+        "message": "Email verificado correctamente",
+        "verified": True,
+        "token": token,
+        "user": {"id": user["id"], "email": user["email"], "name": user["name"], "role": user["role"], "avatar": user.get("avatar", "")}
+    }
+
+@api_router.get("/schools/check-subdomain/{subdomain}")
+async def check_subdomain(subdomain: str):
+    subdomain = subdomain.lower().strip()
+    if len(subdomain) < 3:
+        return {"available": False, "reason": "El subdominio debe tener al menos 3 caracteres"}
+    if not re.match(r'^[a-z0-9][a-z0-9-]*[a-z0-9]$', subdomain) and len(subdomain) >= 3:
+        if not re.match(r'^[a-z0-9]+$', subdomain):
+            return {"available": False, "reason": "Solo letras minúsculas, números y guiones"}
+
+    reserved = ["admin", "www", "api", "app", "mail", "support", "help", "edunet"]
+    if subdomain in reserved:
+        return {"available": False, "reason": "Este subdominio está reservado"}
+
+    existing = await db.schools.find_one({"subdomain": subdomain})
+    if existing:
+        return {"available": False, "reason": "Este subdominio ya está en uso"}
+
+    return {"available": True, "subdomain": subdomain}
+
+@api_router.post("/schools/onboarding")
+async def complete_onboarding(data: OnboardingRequest, current_user=Depends(get_current_user)):
+    subdomain = data.subdomain.lower().strip()
+
+    existing = await db.schools.find_one({"subdomain": subdomain})
+    if existing:
+        raise HTTPException(status_code=400, detail="Subdominio no disponible")
+
+    update_data = {"subdomain": subdomain, "onboarding_complete": True}
+    if data.school_name:
+        update_data["school_name"] = data.school_name
+
+    await db.schools.update_one({"email": current_user["email"]}, {"$set": update_data})
+    await db.users.update_one({"email": current_user["email"]}, {"$set": {"onboarding_complete": True}})
+
+    return {
+        "message": "Intranet creada exitosamente",
+        "subdomain": subdomain,
+        "url": f"{subdomain}.edunet.pe"
+    }
+
 # ── Seed Data ──
 
 @api_router.post("/seed")
