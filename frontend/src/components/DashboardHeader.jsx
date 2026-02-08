@@ -1,6 +1,11 @@
-import { Search, Bell, Menu } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Search, Bell, Menu, X } from "lucide-react";
 
 export default function DashboardHeader({ user, onMenuClick, onLogout }) {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const inputRef = useRef(null);
+
   const today = new Date().toLocaleDateString("es-ES", {
     weekday: "long",
     year: "numeric",
@@ -8,10 +13,25 @@ export default function DashboardHeader({ user, onMenuClick, onLogout }) {
     day: "numeric",
   });
 
+  useEffect(() => {
+    if (searchOpen && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [searchOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "Escape") setSearchOpen(false);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   return (
     <header className="glass-header sticky top-0 z-30 px-4 md:px-6 lg:px-8" data-testid="dashboard-header">
       <div className="flex items-center justify-between h-24">
-        {/* Left: Hamburger + Welcome */}
+        {/* Left: Hamburger + Logo + Welcome */}
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
@@ -37,12 +57,38 @@ export default function DashboardHeader({ user, onMenuClick, onLogout }) {
 
         {/* Right: Search + Notifications + Avatar */}
         <div className="flex items-center gap-3">
-          <button
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#001f4b] hover:bg-slate-100 transition-colors"
-            data-testid="header-search-button"
-          >
-            <Search className="w-5 h-5" />
-          </button>
+          {/* Search bar */}
+          <div className="relative flex items-center" data-testid="header-search-container">
+            {searchOpen ? (
+              <div className="flex items-center bg-slate-100 rounded-xl overflow-hidden animate-fade-in-up">
+                <Search className="w-4 h-4 text-slate-400 ml-3 flex-shrink-0" />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar alumnos, cursos, eventos..."
+                  className="w-56 md:w-72 px-3 py-2.5 bg-transparent text-sm text-slate-700 placeholder-slate-400 focus:outline-none"
+                  data-testid="header-search-input"
+                />
+                <button
+                  onClick={() => { setSearchOpen(false); setSearchQuery(""); }}
+                  className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 mr-1"
+                  data-testid="header-search-close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#001f4b] hover:bg-slate-100 transition-colors"
+                data-testid="header-search-button"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+            )}
+          </div>
 
           <button
             className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#001f4b] hover:bg-slate-100 transition-colors relative"
