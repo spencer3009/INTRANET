@@ -9,6 +9,7 @@ import EventsList from "@/components/EventsList";
 import MiniCalendar from "@/components/MiniCalendar";
 import ProfileCard from "@/components/ProfileCard";
 import StudentChart from "@/components/StudentChart";
+import AttendanceAndNews from "@/components/AttendanceAndNews";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
