@@ -71,6 +71,24 @@ class EnrollmentData(BaseModel):
     month: str
     students: int
 
+# ── School Registration Models ──
+
+class SchoolRegister(BaseModel):
+    school_name: str
+    contact_name: str
+    role: str
+    email: str
+    password: str
+    phone: Optional[str] = None
+
+class VerifyEmailRequest(BaseModel):
+    email: str
+    code: str
+
+class OnboardingRequest(BaseModel):
+    subdomain: str
+    school_name: Optional[str] = None
+
 # ── Auth helpers ──
 
 def hash_password(password: str) -> str:
