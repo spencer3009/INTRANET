@@ -316,13 +316,14 @@ class SchoolAPITester:
 
 def main():
     """Run all backend API tests"""
-    print("🚀 Starting Colegio El Roble Backend API Tests")
-    print("=" * 50)
+    print("🚀 Starting EduNet School Registration & Dashboard Backend API Tests")
+    print("=" * 70)
     
     tester = SchoolAPITester()
     
-    # Test sequence
+    # Test sequence - includes both existing and new school registration tests
     tests = [
+        # Original dashboard tests
         ("Seed Data", tester.test_seed_data),
         ("Login Success", tester.test_login_success), 
         ("Login Failure", tester.test_login_failure),
@@ -330,20 +331,36 @@ def main():
         ("Dashboard Metrics", tester.test_dashboard_metrics),
         ("Dashboard Events", tester.test_dashboard_events),
         ("Dashboard Enrollment", tester.test_dashboard_enrollment),
+        
+        # New school registration flow tests
+        ("School Registration", tester.test_school_register_success),
+        ("Duplicate Email Registration", tester.test_school_register_duplicate_email),
+        ("Email Verification Success", tester.test_email_verification_success),
+        ("Email Verification Wrong Code", tester.test_email_verification_wrong_code),
+        ("Subdomain Check Available", tester.test_subdomain_check_available),
+        ("Subdomain Check Reserved", tester.test_subdomain_check_reserved),
+        ("Onboarding Completion", tester.test_onboarding_completion),
     ]
     
     for test_name, test_func in tests:
-        print(f"\n{'='*20} {test_name} {'='*20}")
+        print(f"\n{'='*25} {test_name} {'='*25}")
         try:
             test_func()
         except Exception as e:
             print(f"❌ Test '{test_name}' crashed: {str(e)}")
 
     # Print final results
-    print(f"\n{'='*50}")
+    print(f"\n{'='*70}")
     print(f"📊 FINAL RESULTS")
     print(f"Tests passed: {tester.tests_passed}/{tester.tests_run}")
     print(f"Success rate: {(tester.tests_passed/tester.tests_run*100):.1f}%")
+    
+    # Print failed tests details
+    failed_tests = [r for r in tester.test_results if not r.get('success')]
+    if failed_tests:
+        print(f"\n❌ FAILED TESTS ({len(failed_tests)}):")
+        for test in failed_tests:
+            print(f"   • {test['test_name']}: Expected {test['expected_status']}, got {test['actual_status']}")
     
     if tester.tests_passed == tester.tests_run:
         print("🎉 All backend tests passed!")
