@@ -76,6 +76,7 @@ export default function DashboardPage({ user, token, onLogout }) {
               <HeroBanner user={user} />
               <QuickAccess />
               <StudentChart data={enrollment} />
+              <AttendanceAndNews />
             </div>
 
             {/* Right column */}
