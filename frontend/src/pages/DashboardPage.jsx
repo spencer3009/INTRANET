@@ -86,6 +86,53 @@ export default function DashboardPage({ user, token, onLogout }) {
               <MiniCalendar />
             </div>
           </div>
+
+          {/* Footer */}
+          <footer className="mt-10 bg-[#001f4b] rounded-xl p-8 text-white" data-testid="dashboard-footer">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <img
+                    src="https://socioscreativos.com/wp-content/uploads/2026/02/roble.jpg"
+                    alt="Logo"
+                    className="h-10 w-auto object-contain brightness-0 invert"
+                    onError={(e) => { e.target.src = 'https://via.placeholder.com/40?text=ER'; }}
+                  />
+                  <div>
+                    <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase">Colegio</p>
+                    <p className="text-sm font-extrabold tracking-wide" style={{ fontFamily: 'Manrope, sans-serif' }}>EL ROBLE</p>
+                  </div>
+                </div>
+                <p className="text-xs text-white/50 leading-relaxed max-w-xs">
+                  Formando líderes con valores desde 1985. Educación integral para un futuro brillante.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#e1b82c] mb-3">Contacto</h4>
+                <div className="space-y-2 text-xs text-white/60">
+                  <p>Av. Los Robles 1234, Lima, Perú</p>
+                  <p>Tel: (01) 555-0100</p>
+                  <p>info@colegioelroble.edu.pe</p>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#e1b82c] mb-3">Enlaces</h4>
+                <div className="space-y-2 text-xs text-white/60">
+                  <p className="hover:text-white cursor-pointer transition-colors">Portal de Padres</p>
+                  <p className="hover:text-white cursor-pointer transition-colors">Reglamento Interno</p>
+                  <p className="hover:text-white cursor-pointer transition-colors">Política de Privacidad</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p className="text-[11px] text-white/40">Colegio El Roble &copy; 2026 — Todos los derechos reservados</p>
+              <p className="text-[11px] text-white/40">Intranet v1.0</p>
+            </div>
+          </footer>
+
         </main>
       </div>
     </div>
