@@ -21,14 +21,20 @@ Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con landing 
 
 ## Implementado - 8 Feb 2026
 
-### Landing Page (/)
-- [x] Navbar con marca EduNet + CTAs (Ingresar / Crear cuenta)
-- [x] Hero section con título, descripción, dos botones principales
-- [x] Preview de dashboard mini como visual
-- [x] Sección de funcionalidades (6 cards)
-- [x] Sección de testimonios (3 cards)
-- [x] CTA final con fondo navy
-- [x] Footer
+## Landing Page (/) — REDISEÑADA
+- [x] Navbar fija con navegación por secciones (5 links + 2 CTAs)
+- [x] Hero centrado con badge "#1 en Perú", título destacado, descripción, 2 CTAs, trust badges
+- [x] Preview de dashboard en frame de navegador (con sidebar, métricas, gráfico)
+- [x] Barra de social proof (8 nombres de colegios)
+- [x] Estadísticas: 120+ colegios, 45K+ usuarios, 99.9% uptime, 4.9/5 satisfacción
+- [x] 6 Feature cards con highlights y hover effects
+- [x] "Cómo funciona" en 4 pasos con líneas conectoras
+- [x] Testimonios (3) con fotos, estrellas, nombre/cargo/colegio (fondo navy)
+- [x] Pricing (3 planes): Básico gratis, Profesional S/.149/mes, Enterprise
+- [x] Sección de seguridad/confianza (encriptación, LGPDP, uptime, soporte)
+- [x] FAQ interactivo (5 preguntas con acordeón)
+- [x] CTA final con gradiente navy
+- [x] Footer con 4 columnas (marca, producto, soporte, legal)
 
 ### Registro (/register)
 - [x] Split layout: panel izquierdo marketing + panel derecho formulario
