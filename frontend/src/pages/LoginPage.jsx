@@ -110,8 +110,15 @@ export default function LoginPage({ onLogin }) {
           </button>
         </form>
 
-        <p className="text-center text-xs text-slate-400 mt-6">
-          Colegio El Roble &copy; 2026 — Todos los derechos reservados
+        <p className="text-center text-sm text-slate-500 mt-6">
+          ¿No tienes cuenta?{" "}
+          <Link to="/register" className="font-semibold text-[#001f4b] hover:underline" data-testid="login-register-link">
+            Crea una gratis
+          </Link>
+        </p>
+
+        <p className="text-center text-xs text-slate-400 mt-4">
+          EduNet &copy; 2026 — Intranet para colegios
         </p>
       </div>
     </div>
