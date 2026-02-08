@@ -234,7 +234,11 @@ async def verify_email(data: VerifyEmailRequest):
         raise HTTPException(status_code=404, detail="Cuenta no encontrada")
 
     if school.get("email_verified"):
-        return {"message": "Email ya verificado", "verified": True}
+        if school["verification_code"] != data.code.upper():
+            raise HTTPException(status_code=400, detail="Código de verificación incorrecto")
+        user = await db.users.find_one({"email": data.email}, {"_id": 0, "password": 0})
+        token = create_token(user["id"], user["email"], user["name"], user["role"])
+        return {"message": "Email ya verificado", "verified": True, "token": token, "user": {"id": user["id"], "email": user["email"], "name": user["name"], "role": user["role"], "avatar": user.get("avatar", "")}}
 
     if school["verification_code"] != data.code.upper():
         raise HTTPException(status_code=400, detail="Código de verificación incorrecto")
