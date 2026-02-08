@@ -1,6 +1,7 @@
 import requests
 import sys
 from datetime import datetime
+import uuid
 
 class SchoolAPITester:
     def __init__(self, base_url="https://school-hub-dash.preview.emergentagent.com/api"):
@@ -9,6 +10,9 @@ class SchoolAPITester:
         self.tests_run = 0
         self.tests_passed = 0
         self.test_results = []
+        self.test_email = f"test_{uuid.uuid4().hex[:8]}@example.com"
+        self.verification_code = None
+        self.test_subdomain = f"test-school-{uuid.uuid4().hex[:6]}"
 
     def run_test(self, name, method, endpoint, expected_status, data=None, require_token=False):
         """Run a single API test"""
