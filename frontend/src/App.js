@@ -56,8 +56,9 @@ function ProtectedRoute({ children, token, user, requireSchool = false, requireE
     return <Navigate to="/verify-email" replace />;
   }
   
-  // School required but user has no school_id -> redirect to onboarding
-  if (requireSchool && user && !user.school_id) {
+  // School required but user has no subdomain -> redirect to onboarding
+  // IMPORTANT: Check for subdomain, not just school_id (legacy users may have school_id but no subdomain)
+  if (requireSchool && user && !user.subdomain) {
     // User must create subdomain first
     return <Navigate to="/onboarding" replace />;
   }
