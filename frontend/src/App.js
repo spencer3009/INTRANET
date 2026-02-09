@@ -232,6 +232,21 @@ function App() {
           />
           
           {/* ════════════════════════════════════════════════════════════════════
+              SCHOOL-SPECIFIC LOGIN (Branded login page)
+              Pattern: /school/:subdomain/login
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/school/:subdomain/login"
+            element={
+              isLoggedIn && hasSubdomain ? (
+                <Navigate to={getDashboardPath()} replace />
+              ) : (
+                <SchoolLoginPage onLogin={handleLogin} />
+              )
+            }
+          />
+          
+          {/* ════════════════════════════════════════════════════════════════════
               EMAIL VERIFICATION
           ════════════════════════════════════════════════════════════════════ */}
           <Route path="/verify-email" element={<VerifyEmailPage onLogin={handleLogin} />} />
