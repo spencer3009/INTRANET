@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { GraduationCap, Globe, Check, X, Loader2, ArrowRight, Sparkles } from "lucide-react";
+import { GraduationCap, Globe, Check, X, Loader2, ArrowRight, Sparkles, LogOut } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
@@ -15,7 +15,7 @@ function sanitizeSubdomain(text) {
     .slice(0, 30);
 }
 
-export default function OnboardingPage({ token, user, onLogin }) {
+export default function OnboardingPage({ token, user, onLogin, onLogout }) {
   const navigate = useNavigate();
   const [subdomain, setSubdomain] = useState("");
   const [available, setAvailable] = useState(null);
