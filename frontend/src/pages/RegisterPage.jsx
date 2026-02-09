@@ -12,6 +12,10 @@ import {
   ChevronDown,
   ArrowLeft,
   UserPlus,
+  CheckCircle,
+  Clock,
+  Zap,
+  Globe,
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -21,6 +25,13 @@ const valueProps = [
   { icon: BarChart3, title: "Reportes Inteligentes", desc: "Métricas de asistencia y calificaciones" },
   { icon: MessageSquare, title: "Comunicación Eficaz", desc: "Sin depender de WhatsApp ni correos" },
   { icon: Shield, title: "Datos Seguros", desc: "Encriptación y control de acceso por roles" },
+];
+
+const benefits = [
+  "Configuración en menos de 5 minutos",
+  "Sin necesidad de conocimientos técnicos",
+  "Soporte en español disponible 24/7",
+  "Prueba gratuita sin compromiso",
 ];
 
 const roles = ["Director(a)", "Administrador(a)", "Coordinador(a)", "Otro"];
@@ -99,15 +110,15 @@ export default function RegisterPage() {
       {/* ═══════════════════════════════════════════════════════════════════════
           LEFT PANEL - Informative content
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#001636] via-[#001f4b] to-[#0a3068] relative overflow-hidden flex-col justify-between p-12">
+      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#001636] via-[#001f4b] to-[#0a3068] relative overflow-hidden flex-col p-10 xl:p-12">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-[#5c85d6]/10 blur-3xl" />
         <div className="absolute bottom-20 left-10 w-60 h-60 rounded-full bg-[#e1b82c]/10 blur-3xl" />
         <div className="absolute top-1/2 right-20 w-40 h-40 rounded-full bg-white/5 blur-2xl" />
 
-        {/* Brand & Title */}
+        {/* Brand */}
         <div className="relative z-10">
-          <Link to="/" className="flex items-center gap-2.5 mb-16">
+          <Link to="/" className="flex items-center gap-2.5 mb-10">
             <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
               <GraduationCap className="w-5 h-5 text-[#e1b82c]" />
             </div>
@@ -116,25 +127,62 @@ export default function RegisterPage() {
             </span>
           </Link>
 
-          <h2 className="text-4xl font-extrabold text-white leading-tight mb-4" style={{ fontFamily: "Manrope, sans-serif" }}>
+          <h2 className="text-3xl xl:text-4xl font-extrabold text-white leading-tight mb-4" style={{ fontFamily: "Manrope, sans-serif" }}>
             Digitaliza la gestión de tu colegio
           </h2>
-          <p className="text-blue-200/70 text-base leading-relaxed max-w-md">
+          <p className="text-blue-200/70 text-base leading-relaxed max-w-md mb-8">
             Crea tu intranet escolar y conecta a toda la comunidad educativa en un solo lugar seguro y organizado.
           </p>
+
+          {/* Benefits list */}
+          <div className="space-y-3 mb-8">
+            {benefits.map((benefit, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full bg-[#e1b82c]/20 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="w-3.5 h-3.5 text-[#e1b82c]" />
+                </div>
+                <span className="text-sm text-blue-100/80">{benefit}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Quick stats */}
+          <div className="grid grid-cols-3 gap-3 mb-8">
+            <div className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <Zap className="w-4 h-4 text-[#e1b82c]" />
+                <span className="text-xl font-bold text-white">5</span>
+              </div>
+              <p className="text-[10px] text-blue-200/50 uppercase tracking-wide">Min. setup</p>
+            </div>
+            <div className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <Clock className="w-4 h-4 text-[#e1b82c]" />
+                <span className="text-xl font-bold text-white">24/7</span>
+              </div>
+              <p className="text-[10px] text-blue-200/50 uppercase tracking-wide">Soporte</p>
+            </div>
+            <div className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
+              <div className="flex items-center justify-center gap-1.5 mb-1">
+                <Globe className="w-4 h-4 text-[#e1b82c]" />
+                <span className="text-xl font-bold text-white">100%</span>
+              </div>
+              <p className="text-[10px] text-blue-200/50 uppercase tracking-wide">En la nube</p>
+            </div>
+          </div>
         </div>
 
         {/* Value prop cards */}
-        <div className="relative z-10 grid grid-cols-2 gap-4 my-12">
+        <div className="relative z-10 grid grid-cols-2 gap-3 mb-8">
           {valueProps.map((v) => {
             const Icon = v.icon;
             return (
               <div
                 key={v.title}
-                className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors group"
+                className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors group"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#e1b82c]/20 flex items-center justify-center mb-3 group-hover:bg-[#e1b82c]/30 transition-colors">
-                  <Icon className="w-5 h-5 text-[#e1b82c]" />
+                <div className="w-9 h-9 rounded-lg bg-[#e1b82c]/20 flex items-center justify-center mb-3 group-hover:bg-[#e1b82c]/30 transition-colors">
+                  <Icon className="w-4 h-4 text-[#e1b82c]" />
                 </div>
                 <p className="text-sm font-bold text-white mb-1">{v.title}</p>
                 <p className="text-xs text-blue-200/50 leading-relaxed">{v.desc}</p>
@@ -144,26 +192,33 @@ export default function RegisterPage() {
         </div>
 
         {/* Social proof */}
-        <div className="relative z-10 flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="flex -space-x-2">
-              {[1,2,3,4].map((i) => (
-                <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-[#001f4b] flex items-center justify-center text-[10px] font-bold text-white">
-                  {["M", "C", "A", "J"][i-1]}
-                </div>
-              ))}
+        <div className="relative z-10 mt-auto pt-6 border-t border-white/10">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex -space-x-2">
+                {[1,2,3,4].map((i) => (
+                  <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-[#001f4b] flex items-center justify-center text-[10px] font-bold text-white">
+                    {["M", "C", "A", "J"][i-1]}
+                  </div>
+                ))}
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-white">+120 colegios</span>
+                <p className="text-xs text-blue-200/50">confían en EduNet</p>
+              </div>
             </div>
-            <span className="text-sm font-semibold text-white ml-2">+120 colegios</span>
-          </div>
-          <div className="h-4 w-px bg-white/20" />
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-bold text-[#e1b82c]">4.9</span>
-            <div className="flex gap-0.5">
-              {[1,2,3,4,5].map((i) => (
-                <svg key={i} className="w-3.5 h-3.5 fill-[#e1b82c] text-[#e1b82c]" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-              ))}
+            <div className="text-right">
+              <div className="flex items-center gap-1 justify-end">
+                <span className="text-lg font-bold text-[#e1b82c]">4.9</span>
+                <div className="flex gap-0.5">
+                  {[1,2,3,4,5].map((i) => (
+                    <svg key={i} className="w-3.5 h-3.5 fill-[#e1b82c] text-[#e1b82c]" viewBox="0 0 24 24">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                  ))}
+                </div>
+              </div>
+              <p className="text-xs text-blue-200/50">valoración promedio</p>
             </div>
           </div>
         </div>
