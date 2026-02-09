@@ -543,8 +543,6 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
         school_id, subdomain, True
     )
 
-    logger.info(f"School created: {subdomain}.{BASE_DOMAIN} for user {user['email']}")
-
     return {
         "message": "¡Tu intranet ha sido creada!",
         "school_id": school_id,
