@@ -91,10 +91,13 @@ function App() {
   };
 
   // Determine user state
+  // IMPORTANT: A user has completed onboarding ONLY if they have BOTH school_id AND subdomain
+  // Having school_id but no subdomain means they have a legacy/pending school record
   const isLoggedIn = !!token;
   const emailVerified = user?.email_verified || false;
-  const hasSchool = !!user?.school_id;
   const hasSubdomain = !!user?.subdomain;
+  // hasSchool = true ONLY if user has completed onboarding (has subdomain)
+  const hasSchool = hasSubdomain;
 
   return (
     <BrowserRouter>
