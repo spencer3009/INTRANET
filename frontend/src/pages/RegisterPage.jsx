@@ -50,7 +50,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/schools/register`, {
+      const res = await axios.post(`${API}/auth/register`, {
         school_name: form.school_name,
         email: form.email,
         password: form.password,
