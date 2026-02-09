@@ -203,7 +203,7 @@ export default function RegisterPage() {
             <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 p-8 xl:p-10 border border-slate-100">
               {/* Icon */}
               <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1e40af] to-[#3b82f6] flex items-center justify-center shadow-lg shadow-blue-500/25">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#001f4b] to-[#0a3068] flex items-center justify-center shadow-lg shadow-blue-900/25">
                   <UserPlus className="w-8 h-8 text-white" />
                 </div>
               </div>
