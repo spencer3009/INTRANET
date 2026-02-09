@@ -19,22 +19,37 @@ Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con landing 
 1. Landing → Registro → Verificación email → Bienvenida → Onboarding (subdominio) → Dashboard
 2. Login directo → Dashboard (usuarios existentes)
 
-## Implementado - 8 Feb 2026
+## Implementado
 
-## Landing Page (/) — REDISEÑADA
-- [x] Navbar fija con navegación por secciones (5 links + 2 CTAs)
-- [x] Hero centrado con badge "#1 en Perú", título destacado, descripción, 2 CTAs, trust badges
-- [x] Preview de dashboard en frame de navegador (con sidebar, métricas, gráfico)
-- [x] Barra de social proof (8 nombres de colegios)
-- [x] Estadísticas: 120+ colegios, 45K+ usuarios, 99.9% uptime, 4.9/5 satisfacción
-- [x] 6 Feature cards con highlights y hover effects
-- [x] "Cómo funciona" en 4 pasos con líneas conectoras
-- [x] Testimonios (3) con fotos, estrellas, nombre/cargo/colegio (fondo navy)
-- [x] Pricing (3 planes): Básico gratis, Profesional S/.149/mes, Enterprise
-- [x] Sección de seguridad/confianza (encriptación, LGPDP, uptime, soporte)
-- [x] FAQ interactivo (5 preguntas con acordeón)
-- [x] CTA final con gradiente navy
-- [x] Footer con 4 columnas (marca, producto, soporte, legal)
+### Landing Page (/) — REDISEÑADA v2 (Diciembre 2025)
+**Diseño Premium SaaS - Estilo Stripe/Linear/Notion**
+- [x] Tema oscuro (#0a0f1a) como base - elimina el look "muy blanco"
+- [x] Gradientes mesh (azul/púrpura/dorado) como fondo principal
+- [x] Glassmorphism (backdrop-blur) en cards y navbar
+- [x] Navbar fija con navegación (4 links + 2 CTAs con gradiente dorado)
+- [x] Hero impactante:
+  - Badge "Plataforma #1 en Perú" con ícono Sparkles
+  - Título con gradiente dorado "transforma"
+  - 2 CTAs con hover effects
+  - Trust badges (Sin tarjeta, 5 min setup, Soporte español)
+- [x] Preview de dashboard estilo app:
+  - Frame con botones de navegador
+  - 4 stats coloridas (azul, verde, violeta, ámbar)
+  - Gráfico de barras mini
+  - Tarjetas flotantes animadas (float animation)
+- [x] Estadísticas: 4 cards con gradientes vibrantes (azul, violeta, verde, naranja)
+- [x] Features: 6 cards con íconos en gradientes coloridos
+- [x] "Cómo funciona": Fondo gradiente azul/púrpura, 4 pasos con iconos dorados
+- [x] "Por qué EduNet": Visual abstracto CSS (formas geométricas), lista de beneficios
+- [x] Testimonios: 3 cards con avatares de iniciales, estrellas doradas
+- [x] Pricing: 3 planes con highlight dorado en "Profesional"
+- [x] Seguridad: 4 badges (encriptación, LGPDP, uptime, soporte)
+- [x] FAQ: 4 preguntas expandibles
+- [x] CTA final: Gradiente púrpura/azul impactante
+- [x] Footer oscuro con 4 columnas
+- [x] 100% responsive (móvil y desktop)
+- [x] Sin imágenes pesadas - solo CSS gradients y placeholders
+- [x] Testing: 60/60 tests pasados
 
 ### Registro (/register)
 - [x] Split layout: panel izquierdo marketing + panel derecho formulario
