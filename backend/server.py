@@ -672,9 +672,24 @@ async def get_school_info(current_user=Depends(require_school)):
 async def seed_data():
     """Seed initial data for demo"""
     
-    # Create unique index on subdomain
-    await db.schools.create_index("subdomain", unique=True, sparse=True)
-    await db.users.create_index("email", unique=True)
+    # Create unique indexes (if they don't exist)
+    try:
+        # Drop existing index if it exists to recreate properly
+        existing_indexes = await db.schools.index_information()
+        if 'subdomain_1' in existing_indexes:
+            await db.schools.drop_index('subdomain_1')
+        await db.schools.create_index("subdomain", unique=True, sparse=True)
+    except Exception as e:
+        logger.warning(f"Index creation warning: {e}")
+    
+    try:
+        existing_indexes = await db.users.index_information()
+        if 'email_1' in existing_indexes:
+            pass  # Index already exists
+        else:
+            await db.users.create_index("email", unique=True)
+    except Exception as e:
+        logger.warning(f"User index warning: {e}")
     
     # Seed default events (global - no tenant_id)
     await db.events.delete_many({"tenant_id": {"$exists": False}})
