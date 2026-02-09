@@ -282,7 +282,7 @@ export default function RegisterPage() {
                           key={r}
                           type="button"
                           onClick={() => { update("role", r); setRoleOpen(false); }}
-                          className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${form.role === r ? "bg-blue-50 font-medium text-blue-600" : "text-slate-700"}`}
+                          className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${form.role === r ? "bg-[#001f4b]/5 font-medium text-[#001f4b]" : "text-slate-700"}`}
                           data-testid={`role-option-${r}`}
                         >
                           {r}
