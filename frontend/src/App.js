@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import "@/App.css";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import LandingPage from "@/pages/LandingPage";
 import LoginPage from "@/pages/LoginPage";
 import RegisterPage from "@/pages/RegisterPage";
@@ -8,9 +8,42 @@ import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import WelcomePage from "@/pages/WelcomePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import DashboardPage from "@/pages/DashboardPage";
+import NotFoundPage from "@/pages/NotFoundPage";
 
-// Component to protect routes and enforce onboarding
-function ProtectedRoute({ children, token, user, requireOnboarding = true }) {
+const BASE_DOMAIN = "edunet.pe";
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SHOPIFY RULE: Redirect to subdomain if user has one
+// ══════════════════════════════════════════════════════════════════════════════
+
+function ShopifyRedirect({ user }) {
+  const location = useLocation();
+  
+  useEffect(() => {
+    // If user has subdomain and we're on main domain, redirect to subdomain
+    if (user?.subdomain) {
+      const currentHost = window.location.hostname.toLowerCase();
+      const isMainDomain = currentHost === BASE_DOMAIN || 
+                           currentHost === `www.${BASE_DOMAIN}` ||
+                           currentHost.includes('preview.emergentagent.com');
+      
+      // In production, would redirect to actual subdomain
+      // For now in preview, we'll handle it via routing
+      if (isMainDomain && !location.pathname.startsWith('/dashboard')) {
+        console.log(`[Shopify Rule] User has subdomain: ${user.subdomain}`);
+        // In production: window.location.href = `https://${user.subdomain}.${BASE_DOMAIN}`;
+      }
+    }
+  }, [user, location]);
+  
+  return null;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Protected Route Component
+// ══════════════════════════════════════════════════════════════════════════════
+
+function ProtectedRoute({ children, token, user, requireSchool = false, requireEmailVerified = true }) {
   const location = useLocation();
   
   // Not logged in -> redirect to login
@@ -18,17 +51,23 @@ function ProtectedRoute({ children, token, user, requireOnboarding = true }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
   
-  // Logged in but hasn't completed onboarding -> redirect to onboarding
-  // (except if we're already on onboarding or welcome page)
-  if (requireOnboarding && user && !user.onboarding_complete) {
-    const allowedPaths = ['/onboarding', '/welcome', '/verify-email'];
-    if (!allowedPaths.includes(location.pathname)) {
-      return <Navigate to="/welcome" replace />;
-    }
+  // Email not verified -> redirect to verify
+  if (requireEmailVerified && user && !user.email_verified) {
+    return <Navigate to="/verify-email" replace />;
+  }
+  
+  // School required but user has no school_id -> redirect to onboarding
+  if (requireSchool && user && !user.school_id) {
+    // User must create subdomain first
+    return <Navigate to="/onboarding" replace />;
   }
   
   return children;
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// Main App Component
+// ══════════════════════════════════════════════════════════════════════════════
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token") || "");
@@ -51,26 +90,48 @@ function App() {
     setUser(null);
   };
 
-  // Check if user needs to complete onboarding
-  const needsOnboarding = token && user && !user.onboarding_complete;
+  // Determine user state
+  const isLoggedIn = !!token;
+  const emailVerified = user?.email_verified || false;
+  const hasSchool = !!user?.school_id;
+  const hasSubdomain = !!user?.subdomain;
 
   return (
     <BrowserRouter>
+      {/* Shopify Rule: Auto-redirect to subdomain */}
+      <ShopifyRedirect user={user} />
+      
       <Routes>
-        {/* Public routes */}
+        {/* ════════════════════════════════════════════════════════════════════
+            PUBLIC ROUTES
+        ════════════════════════════════════════════════════════════════════ */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/verify-email" element={<VerifyEmailPage onLogin={handleLogin} />} />
+        <Route path="/register" element={
+          isLoggedIn ? (
+            hasSchool ? <Navigate to="/dashboard" replace /> :
+            emailVerified ? <Navigate to="/onboarding" replace /> :
+            <Navigate to="/verify-email" replace />
+          ) : <RegisterPage />
+        } />
         
-        {/* Login - redirect to appropriate place based on onboarding status */}
+        {/* ════════════════════════════════════════════════════════════════════
+            LOGIN - With Shopify redirect logic
+        ════════════════════════════════════════════════════════════════════ */}
         <Route
           path="/login"
           element={
-            token ? (
-              needsOnboarding ? (
-                <Navigate to="/welcome" replace />
-              ) : (
+            isLoggedIn ? (
+              // SHOPIFY RULE: If user has subdomain, they should be on their subdomain
+              hasSubdomain ? (
+                // In production: redirect to subdomain
+                // For preview: go to dashboard
                 <Navigate to="/dashboard" replace />
+              ) : hasSchool ? (
+                <Navigate to="/dashboard" replace />
+              ) : emailVerified ? (
+                <Navigate to="/onboarding" replace />
+              ) : (
+                <Navigate to="/verify-email" replace />
               )
             ) : (
               <LoginPage onLogin={handleLogin} />
@@ -78,38 +139,64 @@ function App() {
           }
         />
         
-        {/* Welcome - requires auth but not onboarding */}
+        {/* ════════════════════════════════════════════════════════════════════
+            EMAIL VERIFICATION
+        ════════════════════════════════════════════════════════════════════ */}
+        <Route
+          path="/verify-email"
+          element={<VerifyEmailPage onLogin={handleLogin} />}
+        />
+        
+        {/* ════════════════════════════════════════════════════════════════════
+            WELCOME (After email verification, before onboarding)
+        ════════════════════════════════════════════════════════════════════ */}
         <Route
           path="/welcome"
           element={
-            <ProtectedRoute token={token} user={user} requireOnboarding={false}>
-              <WelcomePage user={user} />
+            <ProtectedRoute token={token} user={user} requireSchool={false} requireEmailVerified={true}>
+              {hasSchool ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <WelcomePage user={user} />
+              )}
             </ProtectedRoute>
           }
         />
         
-        {/* Onboarding - requires auth but not onboarding completion */}
+        {/* ════════════════════════════════════════════════════════════════════
+            ONBOARDING - MANDATORY before dashboard
+            User CANNOT skip this if school_id is null
+        ════════════════════════════════════════════════════════════════════ */}
         <Route
           path="/onboarding"
           element={
-            <ProtectedRoute token={token} user={user} requireOnboarding={false}>
-              <OnboardingPage token={token} user={user} onLogin={handleLogin} />
+            <ProtectedRoute token={token} user={user} requireSchool={false} requireEmailVerified={true}>
+              {hasSchool ? (
+                <Navigate to="/dashboard" replace />
+              ) : (
+                <OnboardingPage token={token} user={user} onLogin={handleLogin} />
+              )}
             </ProtectedRoute>
           }
         />
         
-        {/* Dashboard - requires auth AND completed onboarding */}
+        {/* ════════════════════════════════════════════════════════════════════
+            DASHBOARD - REQUIRES school_id
+            User CANNOT access if school_id is null
+        ════════════════════════════════════════════════════════════════════ */}
         <Route
           path="/dashboard/*"
           element={
-            <ProtectedRoute token={token} user={user} requireOnboarding={true}>
+            <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
               <DashboardPage user={user} token={token} onLogout={handleLogout} />
             </ProtectedRoute>
           }
         />
         
-        {/* Catch-all redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* ════════════════════════════════════════════════════════════════════
+            404 / CATCH-ALL
+        ════════════════════════════════════════════════════════════════════ */}
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </BrowserRouter>
   );
