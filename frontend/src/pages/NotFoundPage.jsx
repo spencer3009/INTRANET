@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { GraduationCap, Home, ArrowLeft } from "lucide-react";
 
-export default function NotFoundPage() {
+export default function NotFoundPage({ message }) {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#001636] via-[#001f4b] to-[#0a3068] px-6" data-testid="not-found-page">
       {/* Decorative elements */}
@@ -32,7 +32,7 @@ export default function NotFoundPage() {
         </h1>
 
         <p className="text-base text-blue-200/60 mb-10">
-          La página que buscas no existe o el colegio ha sido desactivado.
+          {message || "La página que buscas no existe o el colegio ha sido desactivado."}
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
