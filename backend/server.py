@@ -22,7 +22,7 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-JWT_SECRET = os.environ.get('JWT_SECRET', 'edunet-saas-secret-key-2026')
+JWT_SECRET = os.environ.get('JWT_SECRET', 'edunet-saas-secret-key-2026-dev-only')
 JWT_ALGORITHM = "HS256"
 BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'edunet.pe')
 
