@@ -365,15 +365,21 @@ async def get_me(current_user=Depends(get_current_user)):
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # Get school info
+    # Get school info - only if school has a subdomain (completed onboarding)
     subdomain = None
-    if user.get("school_id"):
-        school = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0})
-        if school:
+    school_id = user.get("school_id")
+    
+    if school_id:
+        school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+        if school and school.get("subdomain"):
             subdomain = school.get("subdomain")
+        else:
+            # Legacy user - treat as not onboarded
+            school_id = None
     
     return {
         **user,
+        "school_id": school_id,
         "subdomain": subdomain
     }
 
