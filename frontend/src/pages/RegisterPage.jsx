@@ -113,7 +113,7 @@ export default function RegisterPage() {
           {/* Brand logo */}
           <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-3 mb-16">
             <div className="w-10 h-10 rounded-xl bg-[#e1b82c] flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-[#1e40af]" />
+              <GraduationCap className="w-5 h-5 text-[#001f4b]" />
             </div>
             <span className="text-xl font-extrabold text-white tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>
               EduNet
