@@ -99,7 +99,7 @@ export default function RegisterPage() {
       {/* ═══════════════════════════════════════════════════════════════════════
           LEFT PANEL - Wider, gradient background, glass cards
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-[55%] bg-gradient-to-br from-[#1e40af] via-[#3b82f6] to-[#6366f1] relative overflow-hidden flex-col justify-between p-12 xl:p-16">
+      <div className="hidden lg:flex lg:w-[55%] bg-gradient-to-br from-[#001636] via-[#001f4b] to-[#0a3068] relative overflow-hidden flex-col justify-between p-12 xl:p-16">
         {/* Decorative blurs */}
         <div className="absolute top-20 right-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
         <div className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-[#e1b82c]/20 blur-3xl" />
