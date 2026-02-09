@@ -1,220 +1,322 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Shield, Users, BarChart3, Calendar, MessageSquare, BookOpen,
   ChevronRight, CheckCircle, Star, ArrowRight, GraduationCap,
   Lock, Zap, Globe, Phone, Mail, Clock, Award, TrendingUp,
-  ChevronDown, Play,
+  ChevronDown, Sparkles, Play, ArrowUpRight, Check,
 } from "lucide-react";
 
 const stats = [
   { value: "120+", label: "Colegios activos", icon: GraduationCap },
-  { value: "45,000+", label: "Usuarios conectados", icon: Users },
+  { value: "45K+", label: "Usuarios conectados", icon: Users },
   { value: "99.9%", label: "Uptime garantizado", icon: TrendingUp },
   { value: "4.9/5", label: "Satisfacción", icon: Star },
 ];
 
 const features = [
-  { icon: Users, title: "Gestión de Comunidad", desc: "Conecta a padres, docentes y directivos en un solo lugar seguro y organizado.", img: "https://images.unsplash.com/photo-1577896851231-70ef18881754?auto=format&fit=crop&q=80&w=400" },
-  { icon: BarChart3, title: "Reportes en Tiempo Real", desc: "Métricas de asistencia, calificaciones y desempeño académico al instante.", img: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=400" },
-  { icon: Calendar, title: "Calendario Integrado", desc: "Eventos, reuniones y actividades académicas sincronizadas.", img: "https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=400" },
-  { icon: MessageSquare, title: "Comunicación Directa", desc: "Mensajería institucional sin depender de WhatsApp.", img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=400" },
-  { icon: BookOpen, title: "Recursos Académicos", desc: "Biblioteca digital, tareas y materiales centralizados.", img: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?auto=format&fit=crop&q=80&w=400" },
-  { icon: Shield, title: "Seguridad Total", desc: "Encriptación de datos y control de acceso por roles.", img: "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&q=80&w=400" },
+  { icon: Users, title: "Gestión de Comunidad", desc: "Conecta padres, docentes y directivos en un solo lugar seguro.", color: "from-blue-500 to-cyan-400" },
+  { icon: BarChart3, title: "Reportes en Tiempo Real", desc: "Métricas de asistencia, calificaciones y desempeño al instante.", color: "from-violet-500 to-purple-400" },
+  { icon: Calendar, title: "Calendario Integrado", desc: "Eventos, reuniones y actividades académicas sincronizadas.", color: "from-amber-500 to-orange-400" },
+  { icon: MessageSquare, title: "Comunicación Directa", desc: "Mensajería institucional sin depender de WhatsApp.", color: "from-emerald-500 to-teal-400" },
+  { icon: BookOpen, title: "Recursos Académicos", desc: "Biblioteca digital, tareas y materiales centralizados.", color: "from-rose-500 to-pink-400" },
+  { icon: Shield, title: "Seguridad Total", desc: "Encriptación de datos y control de acceso por roles.", color: "from-slate-600 to-slate-400" },
 ];
 
 const steps = [
-  { num: "01", title: "Crea tu cuenta", desc: "Regístrate en menos de 60 segundos con los datos básicos de tu colegio.", icon: Zap },
-  { num: "02", title: "Configura tu intranet", desc: "Elige tu subdominio personalizado y personaliza la plataforma.", icon: Globe },
-  { num: "03", title: "Invita a tu comunidad", desc: "Agrega docentes, personal y padres con invitaciones simples.", icon: Users },
-  { num: "04", title: "¡Listo para gestionar!", desc: "Empieza a usar todas las herramientas desde el primer día.", icon: Award },
+  { num: "01", title: "Crea tu cuenta", desc: "Regístrate en menos de 60 segundos.", icon: Zap },
+  { num: "02", title: "Configura tu intranet", desc: "Elige tu subdominio personalizado.", icon: Globe },
+  { num: "03", title: "Invita a tu comunidad", desc: "Agrega docentes, personal y padres.", icon: Users },
+  { num: "04", title: "¡Listo!", desc: "Empieza a usar todas las herramientas.", icon: Award },
 ];
 
 const testimonials = [
-  { name: "María Torres Gutiérrez", role: "Directora General", school: "Colegio San Martín de Porres, Lima", text: "EduNet transformó completamente la comunicación en nuestro colegio. Los padres ahora están informados en tiempo real. En 3 meses redujimos las quejas por falta de información en un 80%.", stars: 5, avatar: "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=100" },
-  { name: "Carlos Mendoza Rivera", role: "Administrador", school: "I.E. Los Andes, Arequipa", text: "La plataforma es increíblemente intuitiva. En una semana ya teníamos todo funcionando sin capacitación técnica. El soporte es excepcional.", stars: 5, avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=100" },
-  { name: "Ana Flores Castillo", role: "Coordinadora Académica", school: "Colegio Santa Rosa, Trujillo", text: "Los reportes automáticos nos ahorran más de 15 horas semanales. Calificaciones, asistencias y comunicados ahora centralizados y accesibles desde el celular.", stars: 5, avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100" },
+  { name: "María Torres Gutiérrez", role: "Directora General", school: "Colegio San Martín de Porres, Lima", text: "EduNet transformó la comunicación en nuestro colegio. Los padres ahora están informados en tiempo real. Redujimos quejas en un 80%.", stars: 5 },
+  { name: "Carlos Mendoza Rivera", role: "Administrador", school: "I.E. Los Andes, Arequipa", text: "La plataforma es increíblemente intuitiva. En una semana ya teníamos todo funcionando. El soporte es excepcional.", stars: 5 },
+  { name: "Ana Flores Castillo", role: "Coordinadora Académica", school: "Colegio Santa Rosa, Trujillo", text: "Los reportes automáticos nos ahorran 15+ horas semanales. Calificaciones y asistencias ahora centralizadas.", stars: 5 },
 ];
 
 const plans = [
   { name: "Básico", price: "Gratis", period: "Para empezar", desc: "Ideal para colegios pequeños.", features: ["Hasta 200 alumnos", "Comunicados y eventos", "Calendario escolar", "1 administrador", "Soporte por email"], cta: "Empezar gratis", popular: false },
-  { name: "Profesional", price: "S/. 149", period: "/mes", desc: "Herramientas completas de gestión.", features: ["Alumnos ilimitados", "Reportes avanzados", "Calificaciones y asistencia", "Roles personalizados", "Soporte prioritario", "Subdominio personalizado", "Integración WhatsApp"], cta: "Iniciar prueba gratuita", popular: true },
-  { name: "Enterprise", price: "Consultar", period: "", desc: "Para redes de colegios.", features: ["Multi-sede", "API personalizada", "Onboarding dedicado", "SLA garantizado", "Capacitación presencial", "Personalización completa", "Manager de cuenta"], cta: "Contactar ventas", popular: false },
+  { name: "Profesional", price: "S/. 149", period: "/mes", desc: "Herramientas completas.", features: ["Alumnos ilimitados", "Reportes avanzados", "Calificaciones y asistencia", "Roles personalizados", "Soporte prioritario", "Subdominio personalizado", "Integración WhatsApp"], cta: "Iniciar prueba", popular: true },
+  { name: "Enterprise", price: "Consultar", period: "", desc: "Para redes de colegios.", features: ["Multi-sede", "API personalizada", "Onboarding dedicado", "SLA garantizado", "Capacitación presencial", "Personalización completa", "Manager de cuenta"], cta: "Contactar", popular: false },
 ];
 
 const faqs = [
-  { q: "¿Cuánto tiempo toma implementar EduNet?", a: "La configuración inicial toma menos de 5 minutos. El onboarding completo se puede completar en 1-2 días hábiles con nuestro soporte." },
+  { q: "¿Cuánto tiempo toma implementar EduNet?", a: "La configuración inicial toma menos de 5 minutos. El onboarding completo se puede completar en 1-2 días hábiles." },
   { q: "¿Mis datos están seguros?", a: "Usamos encriptación AES-256, servidores con certificación SOC 2, y cumplimos con las normativas de protección de datos de Perú." },
-  { q: "¿Los padres necesitan descargar alguna app?", a: "No. EduNet funciona 100% desde el navegador web, en computadoras y celulares. No requiere descarga." },
+  { q: "¿Los padres necesitan descargar alguna app?", a: "No. EduNet funciona 100% desde el navegador web, en computadoras y celulares." },
   { q: "¿Puedo migrar desde mi sistema actual?", a: "Sí. Nuestro equipo te ayuda con la migración de datos sin costo adicional en el plan Profesional." },
-  { q: "¿Qué pasa si cancelo mi suscripción?", a: "Puedes exportar todos tus datos en cualquier momento. No hay penalidades ni contratos de permanencia." },
 ];
 
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-    <div className="min-h-screen overflow-hidden" data-testid="landing-page">
+    <div className="min-h-screen bg-[#0a0f1a] overflow-x-hidden" data-testid="landing-page">
 
-      {/* ═══ Navbar ═══ */}
-      <nav className="fixed top-0 w-full z-50 bg-[#001f4b]/95 backdrop-blur-xl border-b border-white/5">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          NAVBAR - Glassmorphism sticky
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <nav className={`fixed top-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-[#0a0f1a]/80 backdrop-blur-xl border-b border-white/5" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-[72px]">
-          <Link to="/" className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-[#e1b82c] flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-[#001f4b]" />
+          <Link to="/" className="flex items-center gap-3 group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#e1b82c] to-amber-400 rounded-xl blur-md opacity-60 group-hover:opacity-100 transition-opacity" />
+              <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-[#e1b82c] to-amber-500 flex items-center justify-center shadow-lg">
+                <GraduationCap className="w-5 h-5 text-[#0a0f1a]" />
+              </div>
             </div>
-            <span className="text-xl font-extrabold text-white tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }} data-testid="landing-brand">EduNet</span>
+            <span className="text-xl font-extrabold text-white tracking-tight" data-testid="landing-brand">EduNet</span>
           </Link>
-          <div className="hidden lg:flex items-center gap-8 text-[13px] font-medium text-white/60">
-            <a href="#features" className="hover:text-white transition-colors">Funcionalidades</a>
-            <a href="#how-it-works" className="hover:text-white transition-colors">Cómo funciona</a>
-            <a href="#testimonials" className="hover:text-white transition-colors">Testimonios</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Planes</a>
+
+          <div className="hidden lg:flex items-center gap-8">
+            <a href="#features" className="text-sm font-medium text-white/50 hover:text-white transition-colors">Funcionalidades</a>
+            <a href="#how-it-works" className="text-sm font-medium text-white/50 hover:text-white transition-colors">Cómo funciona</a>
+            <a href="#testimonials" className="text-sm font-medium text-white/50 hover:text-white transition-colors">Testimonios</a>
+            <a href="#pricing" className="text-sm font-medium text-white/50 hover:text-white transition-colors">Planes</a>
           </div>
+
           <div className="flex items-center gap-3">
-            <Link to="/login" className="text-sm font-semibold text-white/80 hover:text-white transition-colors px-4 py-2.5" data-testid="landing-login-btn">Ingresar</Link>
-            <Link to="/register" className="text-sm font-semibold bg-[#e1b82c] text-[#001f4b] px-6 py-2.5 rounded-xl hover:bg-[#e1b82c]/90 transition-all hover:-translate-y-0.5 shadow-lg shadow-[#e1b82c]/20" data-testid="landing-register-btn">Crear cuenta gratis</Link>
+            <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white transition-colors px-4 py-2.5" data-testid="landing-login-btn">
+              Ingresar
+            </Link>
+            <Link to="/register" className="group relative text-sm font-bold px-6 py-2.5 rounded-xl overflow-hidden" data-testid="landing-register-btn">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#e1b82c] to-amber-400 transition-transform group-hover:scale-105" />
+              <span className="relative text-[#0a0f1a]">Crear cuenta</span>
+            </Link>
           </div>
         </div>
       </nav>
 
-      {/* ═══ Hero — Full navy with image ═══ */}
-      <section className="relative bg-[#001f4b] pt-[72px] overflow-hidden">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          HERO - Full immersive dark with gradient mesh
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section className="relative min-h-screen flex items-center pt-[72px] overflow-hidden">
+        {/* Gradient mesh background */}
         <div className="absolute inset-0">
-          <img src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1920" alt="" className="w-full h-full object-cover opacity-15" />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#001f4b] via-[#001f4b]/90 to-[#001f4b]" />
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#1e40af]/30 rounded-full blur-[120px]" />
+          <div className="absolute top-1/3 right-0 w-[500px] h-[500px] bg-[#7c3aed]/20 rounded-full blur-[100px]" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-[#e1b82c]/10 rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-[#0ea5e9]/10 rounded-full blur-[150px]" />
         </div>
 
-        <div className="absolute top-40 right-[5%] w-[400px] h-[400px] rounded-full bg-[#e1b82c]/10 blur-[100px]" />
-        <div className="absolute bottom-20 left-[10%] w-[300px] h-[300px] rounded-full bg-[#5c85d6]/15 blur-[80px]" />
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 
-        <div className="relative z-10 max-w-7xl mx-auto px-6 py-24 lg:py-32">
-          <div className="flex flex-col lg:flex-row items-center gap-16">
-            {/* Left text */}
-            <div className="flex-1 max-w-2xl">
-              <div className="inline-flex items-center gap-2.5 bg-white/10 border border-white/10 px-4 py-2 rounded-full mb-8 backdrop-blur-sm">
-                <span className="w-2 h-2 bg-[#e1b82c] rounded-full animate-pulse" />
-                <span className="text-xs font-bold text-[#e1b82c] uppercase tracking-wider">Plataforma #1 en Perú</span>
+        <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 lg:py-32">
+          <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-20">
+            {/* Left - Text Content */}
+            <div className="flex-1 text-center lg:text-left">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2.5 bg-white/[0.05] border border-white/10 px-4 py-2 rounded-full mb-8 backdrop-blur-sm">
+                <Sparkles className="w-4 h-4 text-[#e1b82c]" />
+                <span className="text-xs font-bold text-white/70 uppercase tracking-wider">Plataforma #1 en Perú</span>
               </div>
 
-              <h1 className="text-5xl lg:text-6xl font-extrabold text-white leading-[1.08] mb-6" style={{ fontFamily: "Manrope, sans-serif" }} data-testid="landing-hero-title">
-                La plataforma que{" "}
-                <span className="text-[#e1b82c]">transforma</span>{" "}
-                la gestión escolar
+              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-white leading-[1.05] mb-6" data-testid="landing-hero-title">
+                La intranet que
+                <span className="relative inline-block ml-3">
+                  <span className="relative z-10 bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400 bg-clip-text text-transparent">transforma</span>
+                  <div className="absolute -bottom-2 left-0 right-0 h-3 bg-gradient-to-r from-[#e1b82c]/40 to-orange-400/40 blur-lg" />
+                </span>
+                <br />tu colegio
               </h1>
 
-              <p className="text-lg text-blue-100/70 leading-relaxed mb-10 max-w-lg">
-                Conecta a toda tu comunidad educativa en un solo lugar. Comunicaciones, calificaciones, asistencia y más — todo seguro y fácil de usar.
+              <p className="text-lg sm:text-xl text-white/50 leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0">
+                Conecta a toda tu comunidad educativa en un solo lugar. 
+                Comunicaciones, calificaciones, asistencia y más — todo seguro y fácil de usar.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 mb-8">
-                <Link to="/register" className="group inline-flex items-center justify-center gap-3 bg-[#e1b82c] text-[#001f4b] font-bold px-8 py-4 rounded-2xl text-base transition-all hover:-translate-y-1 shadow-xl shadow-[#e1b82c]/20" data-testid="hero-register-btn">
-                  Crear mi cuenta gratis
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
+                <Link to="/register" className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold text-base overflow-hidden" data-testid="hero-register-btn">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-[#e1b82c] opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <span className="relative text-[#0a0f1a]">Crear mi cuenta gratis</span>
+                  <ArrowRight className="relative w-5 h-5 text-[#0a0f1a] group-hover:translate-x-1 transition-transform" />
                 </Link>
-                <Link to="/login" className="group inline-flex items-center justify-center gap-3 bg-white/10 border border-white/20 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all hover:bg-white/20 backdrop-blur-sm" data-testid="hero-login-btn">
+                <Link to="/login" className="group inline-flex items-center justify-center gap-3 bg-white/[0.05] border border-white/10 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all hover:bg-white/10 hover:border-white/20 backdrop-blur-sm" data-testid="hero-login-btn">
+                  <Play className="w-5 h-5 fill-white/50" />
                   Ingresar a mi Intranet
-                  <ChevronRight className="w-5 h-5" />
                 </Link>
               </div>
 
-              <div className="flex items-center gap-5 text-sm text-blue-200/50">
-                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-[#e1b82c]" /> Sin tarjeta</span>
-                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-[#e1b82c]" /> 5 min setup</span>
-                <span className="flex items-center gap-1.5"><CheckCircle className="w-4 h-4 text-[#e1b82c]" /> Soporte español</span>
+              {/* Trust badges */}
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-6 text-sm text-white/40">
+                <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400" /> Sin tarjeta</span>
+                <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400" /> 5 min setup</span>
+                <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-400" /> Soporte español</span>
               </div>
             </div>
 
-            {/* Right — Hero Image + Floating Cards */}
-            <div className="flex-1 max-w-xl w-full relative">
-              <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-black/30 border border-white/10">
-                <img src="https://images.unsplash.com/photo-1580582932707-520aed937b7b?auto=format&fit=crop&q=80&w=600&h=450" alt="Estudiantes en clase" className="w-full h-[400px] object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#001f4b]/80 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-6">
-                  <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 shadow-xl">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-8 h-8 rounded-lg bg-[#001f4b] flex items-center justify-center">
-                        <GraduationCap className="w-4 h-4 text-[#e1b82c]" />
+            {/* Right - Dashboard Preview */}
+            <div className="flex-1 max-w-xl w-full">
+              <div className="relative">
+                {/* Glow effect */}
+                <div className="absolute -inset-4 bg-gradient-to-r from-[#1e40af]/50 via-[#7c3aed]/30 to-[#e1b82c]/30 rounded-3xl blur-2xl opacity-60" />
+                
+                {/* Main card */}
+                <div className="relative bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 p-6 shadow-2xl">
+                  {/* Browser bar */}
+                  <div className="flex items-center gap-2 mb-5">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-red-400/80" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
+                      <div className="w-3 h-3 rounded-full bg-green-400/80" />
+                    </div>
+                    <div className="flex-1 bg-white/5 rounded-lg px-4 py-1.5 mx-4">
+                      <span className="text-xs text-white/40">micolegio.edunet.pe/dashboard</span>
+                    </div>
+                  </div>
+
+                  {/* Dashboard content */}
+                  <div className="space-y-4">
+                    {/* Header */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e1b82c] to-amber-500 flex items-center justify-center">
+                          <GraduationCap className="w-5 h-5 text-[#0a0f1a]" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">Dashboard EduNet</p>
+                          <p className="text-xs text-white/40">Colegio San Martín</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs font-bold text-[#001f4b]">Dashboard EduNet</p>
-                        <p className="text-[10px] text-slate-400">micolegio.edunet.pe</p>
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-xs text-emerald-400">En línea</span>
                       </div>
                     </div>
-                    <div className="grid grid-cols-4 gap-2">
-                      <div className="bg-[#001f4b] rounded-xl p-2.5 text-center"><p className="text-lg font-extrabold text-white" style={{ fontFamily: "Manrope" }}>456</p><p className="text-[9px] text-white/60">Alumnos</p></div>
-                      <div className="bg-[#5c85d6] rounded-xl p-2.5 text-center"><p className="text-lg font-extrabold text-white" style={{ fontFamily: "Manrope" }}>98%</p><p className="text-[9px] text-white/60">Asistencia</p></div>
-                      <div className="bg-emerald-500 rounded-xl p-2.5 text-center"><p className="text-lg font-extrabold text-white" style={{ fontFamily: "Manrope" }}>15.2</p><p className="text-[9px] text-white/60">Promedio</p></div>
-                      <div className="bg-[#e1b82c] rounded-xl p-2.5 text-center"><p className="text-lg font-extrabold text-[#001f4b]" style={{ fontFamily: "Manrope" }}>24</p><p className="text-[9px] text-[#001f4b]/60">Docentes</p></div>
+
+                    {/* Stats grid */}
+                    <div className="grid grid-cols-4 gap-3">
+                      <div className="bg-gradient-to-br from-blue-600/20 to-blue-600/5 rounded-xl p-3 border border-blue-500/20">
+                        <p className="text-2xl font-extrabold text-white">456</p>
+                        <p className="text-[10px] text-blue-300/60">Alumnos</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-600/5 rounded-xl p-3 border border-emerald-500/20">
+                        <p className="text-2xl font-extrabold text-white">98%</p>
+                        <p className="text-[10px] text-emerald-300/60">Asistencia</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-violet-600/20 to-violet-600/5 rounded-xl p-3 border border-violet-500/20">
+                        <p className="text-2xl font-extrabold text-white">15.2</p>
+                        <p className="text-[10px] text-violet-300/60">Promedio</p>
+                      </div>
+                      <div className="bg-gradient-to-br from-amber-600/20 to-amber-600/5 rounded-xl p-3 border border-amber-500/20">
+                        <p className="text-2xl font-extrabold text-white">24</p>
+                        <p className="text-[10px] text-amber-300/60">Docentes</p>
+                      </div>
+                    </div>
+
+                    {/* Mini chart placeholder */}
+                    <div className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-semibold text-white/60">Asistencia semanal</span>
+                        <span className="text-xs text-emerald-400">+2.5%</span>
+                      </div>
+                      <div className="flex items-end gap-1.5 h-12">
+                        {[65, 72, 68, 82, 75, 88, 92].map((h, i) => (
+                          <div key={i} className="flex-1 bg-gradient-to-t from-blue-500/40 to-blue-400/60 rounded-sm" style={{ height: `${h}%` }} />
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Floating notification */}
-              <div className="absolute -left-6 top-16 bg-white rounded-2xl p-3 shadow-xl shadow-black/10 border border-slate-100 flex items-center gap-3 animate-fade-in-up">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center"><CheckCircle className="w-5 h-5 text-emerald-600" /></div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800">Asistencia registrada</p>
-                  <p className="text-[10px] text-slate-400">3ero A — Hace 2 min</p>
+                {/* Floating notification cards */}
+                <div className="absolute -left-8 top-20 bg-white/[0.08] backdrop-blur-xl rounded-2xl p-3 border border-white/10 shadow-xl animate-float">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">Asistencia registrada</p>
+                      <p className="text-[10px] text-white/40">3ero A — Hace 2 min</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {/* Floating rating */}
-              <div className="absolute -right-4 top-8 bg-white rounded-2xl p-3 shadow-xl shadow-black/10 border border-slate-100 animate-fade-in-up stagger-2">
-                <div className="flex gap-0.5 mb-1">{[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-[#e1b82c] text-[#e1b82c]" />)}</div>
-                <p className="text-[10px] font-bold text-slate-700">4.9 de 120+ colegios</p>
+                <div className="absolute -right-6 bottom-24 bg-white/[0.08] backdrop-blur-xl rounded-2xl p-3 border border-white/10 shadow-xl animate-float-delayed">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-[#e1b82c] text-[#e1b82c]" />)}
+                  </div>
+                  <p className="text-[10px] font-bold text-white/70">4.9 de 120+ colegios</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Wave divider */}
-        <div className="relative -mb-1">
-          <svg viewBox="0 0 1440 80" fill="none" className="w-full"><path d="M0 40C240 80 480 0 720 40C960 80 1200 0 1440 40V80H0V40Z" fill="#f8fafc" /></svg>
+        {/* Bottom gradient fade */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#0a0f1a] to-transparent" />
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          STATS - Floating cards with gradients
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {stats.map((s, i) => {
+              const Icon = s.icon;
+              const colors = ["from-blue-600 to-cyan-500", "from-violet-600 to-purple-500", "from-emerald-600 to-teal-500", "from-amber-500 to-orange-500"];
+              return (
+                <div key={s.label} className="group relative">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${colors[i]} rounded-2xl blur-xl opacity-20 group-hover:opacity-40 transition-opacity`} />
+                  <div className="relative bg-white/[0.03] backdrop-blur-sm rounded-2xl p-6 border border-white/5 hover:border-white/10 transition-colors">
+                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colors[i]} flex items-center justify-center mb-4 shadow-lg`}>
+                      <Icon className="w-5 h-5 text-white" />
+                    </div>
+                    <p className="text-3xl sm:text-4xl font-extrabold text-white mb-1">{s.value}</p>
+                    <p className="text-sm text-white/40">{s.label}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
-      {/* ═══ Stats ═══ */}
-      <section className="py-16 px-6 bg-[#f8fafc]">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
-          {stats.map((s) => {
-            const Icon = s.icon;
-            return (
-              <div key={s.label} className="bg-white rounded-2xl p-6 text-center border border-slate-100 shadow-sm">
-                <div className="w-10 h-10 rounded-xl bg-[#001f4b]/5 flex items-center justify-center mx-auto mb-3"><Icon className="w-5 h-5 text-[#001f4b]" /></div>
-                <p className="text-3xl font-extrabold text-[#001f4b] mb-1" style={{ fontFamily: "Manrope" }}>{s.value}</p>
-                <p className="text-xs text-slate-500 font-medium">{s.label}</p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FEATURES - Bento grid with colorful icons
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section id="features" className="relative py-24 px-6 overflow-hidden">
+        {/* Background accents */}
+        <div className="absolute top-1/2 left-0 w-[400px] h-[400px] bg-[#1e40af]/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-[#e1b82c]/10 rounded-full blur-[100px]" />
 
-      {/* ═══ Features with images ═══ */}
-      <section id="features" className="py-24 px-6 bg-[#f8fafc]">
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
-            <span className="inline-block text-xs font-bold text-[#e1b82c] uppercase tracking-widest bg-[#e1b82c]/10 px-4 py-1.5 rounded-full mb-4">Funcionalidades</span>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-[#001f4b] mb-5" style={{ fontFamily: "Manrope" }}>Todo lo que tu colegio necesita</h2>
-            <p className="text-lg text-slate-500 max-w-2xl mx-auto">Una plataforma completa para digitalizar la gestión escolar.</p>
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10 px-4 py-2 rounded-full mb-6">
+              <Sparkles className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Funcionalidades</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-5">
+              Todo lo que tu colegio <span className="bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">necesita</span>
+            </h2>
+            <p className="text-lg text-white/40 max-w-2xl mx-auto">Una plataforma completa para digitalizar la gestión escolar.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {features.map((f) => {
               const Icon = f.icon;
               return (
-                <div key={f.title} className="group bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-                  <div className="h-44 overflow-hidden relative">
-                    <img src={f.img} alt={f.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onError={(e) => { e.target.src = 'https://via.placeholder.com/400x200?text=EduNet'; }} />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#001f4b]/60 to-transparent" />
-                    <div className="absolute bottom-3 left-3 w-10 h-10 rounded-xl bg-white/90 backdrop-blur-sm flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-[#001f4b]" />
+                <div key={f.title} className="group relative">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${f.color} rounded-2xl opacity-0 group-hover:opacity-10 blur-xl transition-opacity duration-500`} />
+                  <div className="relative h-full bg-gradient-to-br from-white/[0.05] to-transparent backdrop-blur-sm rounded-2xl p-7 border border-white/5 hover:border-white/10 transition-all duration-300">
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${f.color} flex items-center justify-center mb-5 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-6 h-6 text-white" />
                     </div>
-                  </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-bold text-[#001f4b] mb-2" style={{ fontFamily: "Manrope" }}>{f.title}</h3>
-                    <p className="text-sm text-slate-500 leading-relaxed">{f.desc}</p>
+                    <h3 className="text-lg font-bold text-white mb-2">{f.title}</h3>
+                    <p className="text-sm text-white/40 leading-relaxed">{f.desc}</p>
                   </div>
                 </div>
               );
@@ -223,29 +325,42 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ How It Works — with background ═══ */}
-      <section id="how-it-works" className="py-24 px-6 relative bg-[#001f4b]">
-        <div className="absolute inset-0">
-          <img src="https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=1920" alt="" className="w-full h-full object-cover opacity-10" />
-        </div>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          HOW IT WORKS - Horizontal timeline with gradient
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section id="how-it-works" className="relative py-24 px-6 overflow-hidden">
+        {/* Animated gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1e3a8a] via-[#1e40af] to-[#3b0764]" />
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=%2230%22 height=%2230%22 viewBox=%220 0 30 30%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cpath d=%22M0 0h30v30H0z%22 fill=%22none%22/%3E%3Ccircle cx=%221%22 cy=%221%22 r=%221%22 fill=%22rgba(255,255,255,0.03)%22/%3E%3C/svg%3E')]" />
+
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
-            <span className="inline-block text-xs font-bold text-[#e1b82c] uppercase tracking-widest bg-[#e1b82c]/10 px-4 py-1.5 rounded-full mb-4">Cómo funciona</span>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-5" style={{ fontFamily: "Manrope" }}>Tu intranet lista en 4 pasos</h2>
-            <p className="text-lg text-blue-200/60 max-w-xl mx-auto">Sin complicaciones técnicas. Sin necesidad de un equipo de IT.</p>
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 px-4 py-2 rounded-full mb-6">
+              <Zap className="w-4 h-4 text-[#e1b82c]" />
+              <span className="text-xs font-bold text-white/70 uppercase tracking-wider">Cómo funciona</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-5">
+              Tu intranet lista en <span className="text-[#e1b82c]">4 pasos</span>
+            </h2>
+            <p className="text-lg text-blue-200/50 max-w-xl mx-auto">Sin complicaciones técnicas. Sin necesidad de un equipo de IT.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {steps.map((s) => {
+            {steps.map((s, i) => {
               const Icon = s.icon;
               return (
-                <div key={s.num} className="bg-white/[0.07] backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/10 transition-colors text-center">
-                  <div className="w-16 h-16 rounded-2xl bg-[#e1b82c] flex items-center justify-center mx-auto mb-5 shadow-lg shadow-[#e1b82c]/20">
-                    <Icon className="w-7 h-7 text-[#001f4b]" />
+                <div key={s.num} className="relative group">
+                  {/* Connection line */}
+                  {i < 3 && <div className="hidden lg:block absolute top-12 left-full w-full h-0.5 bg-gradient-to-r from-white/20 to-transparent z-0" />}
+                  
+                  <div className="relative bg-white/[0.05] backdrop-blur-sm border border-white/10 rounded-2xl p-8 hover:bg-white/[0.08] transition-all hover:-translate-y-1">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#e1b82c] to-amber-500 flex items-center justify-center mb-6 shadow-xl shadow-[#e1b82c]/20 group-hover:scale-110 transition-transform">
+                      <Icon className="w-7 h-7 text-[#0a0f1a]" />
+                    </div>
+                    <span className="text-xs font-extrabold text-[#e1b82c] tracking-widest">PASO {s.num}</span>
+                    <h3 className="text-lg font-bold text-white mt-2 mb-3">{s.title}</h3>
+                    <p className="text-sm text-blue-200/50 leading-relaxed">{s.desc}</p>
                   </div>
-                  <span className="text-xs font-extrabold text-[#e1b82c] tracking-widest">PASO {s.num}</span>
-                  <h3 className="text-lg font-bold text-white mt-2 mb-3" style={{ fontFamily: "Manrope" }}>{s.title}</h3>
-                  <p className="text-sm text-blue-200/60 leading-relaxed">{s.desc}</p>
                 </div>
               );
             })}
@@ -253,196 +368,349 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ═══ Big Image + Text Section ═══ */}
-      <section className="py-24 px-6 bg-white">
-        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-16">
-          <div className="flex-1">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
-              <img src="https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&q=80&w=700&h=500" alt="Profesor con alumnos" className="w-full h-[420px] object-cover" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#001f4b]/30 to-transparent" />
-            </div>
-          </div>
-          <div className="flex-1 max-w-lg">
-            <span className="inline-block text-xs font-bold text-[#e1b82c] uppercase tracking-widest bg-[#e1b82c]/10 px-4 py-1.5 rounded-full mb-4">¿Por qué EduNet?</span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-[#001f4b] mb-6 leading-tight" style={{ fontFamily: "Manrope" }}>
-              Diseñado por educadores, para educadores
-            </h2>
-            <p className="text-slate-500 leading-relaxed mb-8">
-              Entendemos los desafíos diarios de gestionar un colegio. EduNet nació de la colaboración directa con directores y coordinadores en Perú para crear la herramienta que realmente necesitan.
-            </p>
-            <div className="space-y-4">
-              {["Reduce el tiempo administrativo en un 60%", "Mejora la comunicación con padres al instante", "Reportes automáticos sin trabajo manual", "Accesible desde cualquier dispositivo"].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-[#e1b82c]/20 flex items-center justify-center flex-shrink-0"><CheckCircle className="w-4 h-4 text-[#e1b82c]" /></div>
-                  <span className="text-sm font-medium text-slate-700">{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Testimonials — with photos ═══ */}
-      <section id="testimonials" className="py-24 px-6 relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#001636] via-[#001f4b] to-[#0a3068]" />
-        <div className="absolute inset-0">
-          <img src="https://images.unsplash.com/photo-1546410531-bb4caa6b424d?auto=format&fit=crop&q=80&w=1920" alt="" className="w-full h-full object-cover opacity-8" />
-        </div>
-
-        <div className="max-w-7xl mx-auto relative z-10">
-          <div className="text-center mb-16">
-            <span className="inline-block text-xs font-bold text-[#e1b82c] uppercase tracking-widest bg-[#e1b82c]/10 px-4 py-1.5 rounded-full mb-4">Testimonios</span>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-5" style={{ fontFamily: "Manrope" }}>Lo que dicen nuestros clientes</h2>
-            <p className="text-lg text-blue-200/60">Colegios reales que ya transformaron su gestión.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {testimonials.map((t) => (
-              <div key={t.name} className="bg-white rounded-2xl p-8 shadow-xl">
-                <div className="flex gap-0.5 mb-5">{Array.from({ length: t.stars }).map((_, i) => <Star key={i} className="w-4 h-4 fill-[#e1b82c] text-[#e1b82c]" />)}</div>
-                <p className="text-sm text-slate-600 leading-relaxed mb-6">"{t.text}"</p>
-                <div className="flex items-center gap-3 pt-5 border-t border-slate-100">
-                  <img src={t.avatar} alt={t.name} className="w-12 h-12 rounded-full object-cover border-2 border-[#e1b82c]/30" onError={(e) => { e.target.src = 'https://via.placeholder.com/48'; }} />
-                  <div>
-                    <p className="text-sm font-bold text-[#001f4b]">{t.name}</p>
-                    <p className="text-[11px] text-slate-400">{t.role}</p>
-                    <p className="text-[11px] text-[#e1b82c] font-medium">{t.school}</p>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          WHY EDUNET - Split section with gradient placeholder
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section className="relative py-24 px-6 overflow-hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex flex-col lg:flex-row items-center gap-16">
+            {/* Left - Visual */}
+            <div className="flex-1 w-full max-w-lg">
+              <div className="relative">
+                <div className="absolute -inset-4 bg-gradient-to-br from-blue-600/30 via-purple-600/20 to-amber-500/20 rounded-3xl blur-2xl" />
+                <div className="relative aspect-[4/3] rounded-3xl bg-gradient-to-br from-[#1e40af] via-[#3b0764] to-[#0a0f1a] overflow-hidden border border-white/10">
+                  {/* Abstract shapes */}
+                  <div className="absolute top-8 left-8 w-20 h-20 rounded-2xl bg-gradient-to-br from-[#e1b82c] to-amber-500 opacity-80" />
+                  <div className="absolute top-16 left-20 w-32 h-32 rounded-full bg-gradient-to-br from-blue-500/50 to-cyan-400/50 blur-sm" />
+                  <div className="absolute bottom-12 right-12 w-24 h-24 rounded-2xl bg-gradient-to-br from-emerald-500/60 to-teal-400/60 rotate-12" />
+                  <div className="absolute bottom-8 left-16 w-16 h-16 rounded-xl bg-gradient-to-br from-violet-500/70 to-purple-400/70 -rotate-6" />
+                  
+                  {/* Central icon */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-xl border border-white/20 flex items-center justify-center">
+                      <GraduationCap className="w-12 h-12 text-white" />
+                    </div>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+
+            {/* Right - Content */}
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-white/10 px-4 py-2 rounded-full mb-6">
+                <Award className="w-4 h-4 text-emerald-400" />
+                <span className="text-xs font-bold text-white/60 uppercase tracking-wider">¿Por qué EduNet?</span>
+              </div>
+              
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-white mb-6 leading-tight">
+                Diseñado por educadores,<br />
+                <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">para educadores</span>
+              </h2>
+              
+              <p className="text-white/40 leading-relaxed mb-8 max-w-md">
+                Entendemos los desafíos diarios de gestionar un colegio. EduNet nació de la colaboración directa con directores y coordinadores en Perú.
+              </p>
+              
+              <div className="space-y-4">
+                {[
+                  "Reduce el tiempo administrativo en un 60%",
+                  "Mejora la comunicación con padres al instante",
+                  "Reportes automáticos sin trabajo manual",
+                  "Accesible desde cualquier dispositivo"
+                ].map((item) => (
+                  <div key={item} className="flex items-center gap-3 group">
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <Check className="w-3.5 h-3.5 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-white/70">{item}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ Pricing ═══ */}
-      <section id="pricing" className="py-24 px-6 bg-[#f8fafc]">
-        <div className="max-w-7xl mx-auto">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          TESTIMONIALS - Cards with gradient accents
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section id="testimonials" className="relative py-24 px-6 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0f172a] via-[#1e1b4b] to-[#0f172a]" />
+        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-[#7c3aed]/20 rounded-full blur-[150px]" />
+
+        <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center mb-16">
-            <span className="inline-block text-xs font-bold text-[#e1b82c] uppercase tracking-widest bg-[#e1b82c]/10 px-4 py-1.5 rounded-full mb-4">Planes</span>
-            <h2 className="text-4xl md:text-5xl font-extrabold text-[#001f4b] mb-5" style={{ fontFamily: "Manrope" }}>Un plan para cada colegio</h2>
-            <p className="text-lg text-slate-500">Sin contratos. Cancela cuando quieras.</p>
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-violet-500/10 to-purple-500/10 border border-white/10 px-4 py-2 rounded-full mb-6">
+              <Star className="w-4 h-4 text-violet-400 fill-violet-400" />
+              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Testimonios</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-5">
+              Lo que dicen <span className="bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">nuestros clientes</span>
+            </h2>
+            <p className="text-lg text-white/40">Colegios reales que ya transformaron su gestión.</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {plans.map((p) => (
-              <div key={p.name} className={`relative rounded-2xl p-8 border transition-all hover:-translate-y-1 hover:shadow-xl ${p.popular ? "bg-[#001f4b] text-white border-[#001f4b] shadow-2xl shadow-[#001f4b]/20 scale-[1.03]" : "bg-white border-slate-200 shadow-sm"}`}>
-                {p.popular && <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#e1b82c] text-[#001f4b] text-[10px] font-extrabold uppercase tracking-widest px-4 py-1 rounded-full">Más popular</div>}
-                <h3 className={`text-lg font-bold mb-1 ${p.popular ? "text-white" : "text-[#001f4b]"}`} style={{ fontFamily: "Manrope" }}>{p.name}</h3>
-                <div className="flex items-baseline gap-1 mb-2">
-                  <span className={`text-4xl font-extrabold ${p.popular ? "text-white" : "text-[#001f4b]"}`} style={{ fontFamily: "Manrope" }}>{p.price}</span>
-                  {p.period && <span className={`text-sm ${p.popular ? "text-blue-200/60" : "text-slate-400"}`}>{p.period}</span>}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {testimonials.map((t, i) => {
+              const accents = ["from-blue-500/20 to-cyan-500/20", "from-violet-500/20 to-purple-500/20", "from-amber-500/20 to-orange-500/20"];
+              return (
+                <div key={t.name} className="group relative">
+                  <div className={`absolute inset-0 bg-gradient-to-br ${accents[i]} rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity`} />
+                  <div className="relative bg-white/[0.03] backdrop-blur-sm rounded-2xl p-8 border border-white/5 hover:border-white/10 transition-all h-full">
+                    <div className="flex gap-1 mb-5">
+                      {Array.from({ length: t.stars }).map((_, j) => (
+                        <Star key={j} className="w-4 h-4 fill-[#e1b82c] text-[#e1b82c]" />
+                      ))}
+                    </div>
+                    <p className="text-sm text-white/60 leading-relaxed mb-6">"{t.text}"</p>
+                    <div className="pt-5 border-t border-white/5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                          {t.name.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-white">{t.name}</p>
+                          <p className="text-xs text-white/40">{t.role}</p>
+                          <p className="text-xs text-[#e1b82c]">{t.school}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <p className={`text-sm mb-6 ${p.popular ? "text-blue-200/60" : "text-slate-500"}`}>{p.desc}</p>
-                <ul className="space-y-3 mb-8">
-                  {p.features.map((feat) => <li key={feat} className="flex items-center gap-2.5"><CheckCircle className={`w-4 h-4 flex-shrink-0 ${p.popular ? "text-[#e1b82c]" : "text-emerald-500"}`} /><span className={`text-sm ${p.popular ? "text-blue-100/80" : "text-slate-600"}`}>{feat}</span></li>)}
-                </ul>
-                <Link to="/register" className={`block text-center font-semibold py-3.5 rounded-xl transition-all ${p.popular ? "bg-[#e1b82c] text-[#001f4b] hover:bg-[#e1b82c]/90 shadow-lg" : "bg-[#001f4b] text-white hover:bg-[#001f4b]/90"}`}>{p.cta}</Link>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          PRICING - Clean cards with highlight
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section id="pricing" className="relative py-24 px-6 overflow-hidden">
+        <div className="absolute bottom-0 left-1/3 w-[400px] h-[400px] bg-[#e1b82c]/10 rounded-full blur-[120px]" />
+
+        <div className="max-w-6xl mx-auto relative z-10">
+          <div className="text-center mb-16">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-white/10 px-4 py-2 rounded-full mb-6">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Planes</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-5">
+              Un plan para <span className="bg-gradient-to-r from-[#e1b82c] to-amber-400 bg-clip-text text-transparent">cada colegio</span>
+            </h2>
+            <p className="text-lg text-white/40">Sin contratos. Cancela cuando quieras.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {plans.map((p) => (
+              <div key={p.name} className={`relative rounded-2xl transition-all hover:-translate-y-2 ${p.popular ? "z-10" : ""}`}>
+                {p.popular && (
+                  <>
+                    <div className="absolute -inset-[2px] bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400 rounded-2xl" />
+                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] text-[10px] font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
+                      Más popular
+                    </div>
+                  </>
+                )}
+                <div className={`relative h-full rounded-2xl p-8 ${p.popular ? "bg-[#0a0f1a]" : "bg-white/[0.03] border border-white/5"}`}>
+                  <h3 className="text-lg font-bold text-white mb-2">{p.name}</h3>
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="text-4xl font-extrabold text-white">{p.price}</span>
+                    {p.period && <span className="text-sm text-white/40">{p.period}</span>}
+                  </div>
+                  <p className="text-sm text-white/40 mb-6">{p.desc}</p>
+                  
+                  <ul className="space-y-3 mb-8">
+                    {p.features.map((feat) => (
+                      <li key={feat} className="flex items-center gap-3">
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${p.popular ? "bg-[#e1b82c]/20" : "bg-emerald-500/20"}`}>
+                          <Check className={`w-3 h-3 ${p.popular ? "text-[#e1b82c]" : "text-emerald-400"}`} />
+                        </div>
+                        <span className="text-sm text-white/60">{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <Link 
+                    to="/register" 
+                    className={`block text-center font-bold py-3.5 rounded-xl transition-all ${
+                      p.popular 
+                        ? "bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] hover:shadow-lg hover:shadow-[#e1b82c]/30" 
+                        : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
+                    }`}
+                  >
+                    {p.cta}
+                  </Link>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ Security ═══ */}
-      <section className="py-16 px-6 bg-white border-y border-slate-100">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-          {[{ icon: Lock, title: "Encriptación AES-256", sub: "Datos protegidos" }, { icon: Shield, title: "Cumplimiento LGPDP", sub: "Normativa peruana" }, { icon: Clock, title: "99.9% Uptime", sub: "Siempre disponible" }, { icon: Phone, title: "Soporte en español", sub: "Respuesta < 1 hora" }].map((item) => {
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SECURITY BADGES
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section className="py-16 px-6 border-y border-white/5">
+        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[
+            { icon: Lock, title: "Encriptación AES-256", sub: "Datos protegidos" },
+            { icon: Shield, title: "Cumplimiento LGPDP", sub: "Normativa peruana" },
+            { icon: Clock, title: "99.9% Uptime", sub: "Siempre disponible" },
+            { icon: Phone, title: "Soporte español", sub: "Respuesta < 1 hora" }
+          ].map((item) => {
             const Icon = item.icon;
             return (
-              <div key={item.title} className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-xl bg-[#001f4b] flex items-center justify-center mb-3 shadow-lg shadow-[#001f4b]/10"><Icon className="w-5 h-5 text-[#e1b82c]" /></div>
-                <p className="text-xs font-bold text-[#001f4b]">{item.title}</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{item.sub}</p>
+              <div key={item.title} className="flex flex-col items-center text-center group">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-white/[0.05] to-transparent border border-white/10 flex items-center justify-center mb-3 group-hover:border-white/20 transition-colors">
+                  <Icon className="w-6 h-6 text-[#e1b82c]" />
+                </div>
+                <p className="text-sm font-bold text-white">{item.title}</p>
+                <p className="text-xs text-white/40 mt-0.5">{item.sub}</p>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* ═══ FAQ ═══ */}
-      <section id="faq" className="py-24 px-6 bg-white">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FAQ
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section id="faq" className="py-24 px-6">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
-            <span className="inline-block text-xs font-bold text-[#e1b82c] uppercase tracking-widest bg-[#e1b82c]/10 px-4 py-1.5 rounded-full mb-4">FAQ</span>
-            <h2 className="text-4xl font-extrabold text-[#001f4b]" style={{ fontFamily: "Manrope" }}>Preguntas frecuentes</h2>
+            <div className="inline-flex items-center gap-2 bg-white/[0.03] border border-white/10 px-4 py-2 rounded-full mb-6">
+              <MessageSquare className="w-4 h-4 text-blue-400" />
+              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">FAQ</span>
+            </div>
+            <h2 className="text-4xl font-extrabold text-white">Preguntas frecuentes</h2>
           </div>
+          
           <div className="space-y-3">
             {faqs.map((faq, i) => (
-              <div key={i} className="bg-slate-50 rounded-2xl border border-slate-100 overflow-hidden">
-                <button onClick={() => setOpenFaq(openFaq === i ? null : i)} className="w-full flex items-center justify-between p-6 text-left" data-testid={`faq-${i}`}>
-                  <span className="text-sm font-semibold text-[#001f4b] pr-4">{faq.q}</span>
-                  <ChevronDown className={`w-5 h-5 text-slate-400 flex-shrink-0 transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
+              <div key={i} className="bg-white/[0.02] rounded-2xl border border-white/5 overflow-hidden hover:border-white/10 transition-colors">
+                <button 
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)} 
+                  className="w-full flex items-center justify-between p-6 text-left"
+                  data-testid={`faq-${i}`}
+                >
+                  <span className="text-sm font-semibold text-white pr-4">{faq.q}</span>
+                  <ChevronDown className={`w-5 h-5 text-white/40 flex-shrink-0 transition-transform ${openFaq === i ? "rotate-180" : ""}`} />
                 </button>
-                {openFaq === i && <div className="px-6 pb-6 -mt-2"><p className="text-sm text-slate-500 leading-relaxed">{faq.a}</p></div>}
+                {openFaq === i && (
+                  <div className="px-6 pb-6 -mt-2">
+                    <p className="text-sm text-white/40 leading-relaxed">{faq.a}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ Final CTA with Image ═══ */}
-      <section className="py-24 px-6 relative overflow-hidden">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FINAL CTA
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <section className="relative py-24 px-6 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1e40af] via-[#3b0764] to-[#1e3a8a]" />
         <div className="absolute inset-0">
-          <img src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?auto=format&fit=crop&q=80&w=1920" alt="" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-[#001f4b]/90" />
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-[#e1b82c]/20 rounded-full blur-[150px]" />
+          <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-blue-500/30 rounded-full blur-[120px]" />
         </div>
+
         <div className="max-w-3xl mx-auto text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-5" style={{ fontFamily: "Manrope" }}>El futuro de tu colegio empieza hoy</h2>
-          <p className="text-lg text-blue-200/70 mb-10 max-w-xl mx-auto">Únete a más de 120 colegios que ya transformaron su gestión con EduNet.</p>
+          <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-6">
+            El futuro de tu colegio<br />
+            <span className="bg-gradient-to-r from-[#e1b82c] to-amber-400 bg-clip-text text-transparent">empieza hoy</span>
+          </h2>
+          <p className="text-lg text-blue-100/50 mb-10 max-w-xl mx-auto">
+            Únete a más de 120 colegios que ya transformaron su gestión con EduNet.
+          </p>
+          
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register" className="group inline-flex items-center justify-center gap-2 bg-[#e1b82c] text-[#001f4b] font-bold px-10 py-4 rounded-2xl text-base transition-all hover:-translate-y-1 shadow-xl shadow-[#e1b82c]/20" data-testid="cta-register-btn">Crear mi cuenta gratis <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" /></Link>
-            <Link to="/login" className="inline-flex items-center justify-center gap-2 border-2 border-white/20 text-white font-semibold px-10 py-4 rounded-2xl text-base hover:bg-white/10 transition-all" data-testid="cta-login-btn">Ingresar a mi Intranet</Link>
+            <Link to="/register" className="group relative inline-flex items-center justify-center gap-2 px-10 py-4 rounded-2xl font-bold text-base overflow-hidden" data-testid="cta-register-btn">
+              <div className="absolute inset-0 bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400" />
+              <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-[#e1b82c] opacity-0 group-hover:opacity-100 transition-opacity" />
+              <span className="relative text-[#0a0f1a]">Crear mi cuenta gratis</span>
+              <ArrowRight className="relative w-5 h-5 text-[#0a0f1a] group-hover:translate-x-1 transition-transform" />
+            </Link>
+            <Link to="/login" className="inline-flex items-center justify-center gap-2 border-2 border-white/20 text-white font-semibold px-10 py-4 rounded-2xl text-base hover:bg-white/10 hover:border-white/30 transition-all" data-testid="cta-login-btn">
+              Ingresar a mi Intranet
+            </Link>
           </div>
-          <p className="text-xs text-blue-200/30 mt-8">Sin tarjeta de crédito · Sin contratos · Cancela cuando quieras</p>
+          
+          <p className="text-xs text-blue-200/30 mt-10">Sin tarjeta de crédito · Sin contratos · Cancela cuando quieras</p>
         </div>
       </section>
 
-      {/* ═══ Footer ═══ */}
-      <footer className="py-12 px-6 bg-[#001636] text-white">
+      {/* ═══════════════════════════════════════════════════════════════════════
+          FOOTER
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <footer className="py-12 px-6 bg-[#050810] border-t border-white/5">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             <div>
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-[#e1b82c] flex items-center justify-center"><GraduationCap className="w-4 h-4 text-[#001f4b]" /></div>
-                <span className="text-base font-extrabold" style={{ fontFamily: "Manrope" }}>EduNet</span>
+              <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#e1b82c] to-amber-500 flex items-center justify-center">
+                  <GraduationCap className="w-4 h-4 text-[#0a0f1a]" />
+                </div>
+                <span className="text-base font-extrabold text-white">EduNet</span>
               </div>
-              <p className="text-xs text-blue-200/40 leading-relaxed">La plataforma de intranet escolar más confiable de Perú.</p>
+              <p className="text-xs text-white/30 leading-relaxed">La plataforma de intranet escolar más confiable de Perú.</p>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#e1b82c] mb-3">Producto</p>
-              <div className="space-y-2 text-xs text-blue-200/50">
+              <p className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4">Producto</p>
+              <div className="space-y-2.5 text-sm text-white/30">
                 <p className="hover:text-white cursor-pointer transition-colors">Funcionalidades</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Planes y precios</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Seguridad</p>
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#e1b82c] mb-3">Soporte</p>
-              <div className="space-y-2 text-xs text-blue-200/50">
+              <p className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4">Soporte</p>
+              <div className="space-y-2.5 text-sm text-white/30">
                 <p className="hover:text-white cursor-pointer transition-colors">Centro de ayuda</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Contacto</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Estado del servicio</p>
               </div>
             </div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-[#e1b82c] mb-3">Legal</p>
-              <div className="space-y-2 text-xs text-blue-200/50">
+              <p className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4">Legal</p>
+              <div className="space-y-2.5 text-sm text-white/30">
                 <p className="hover:text-white cursor-pointer transition-colors">Términos de servicio</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Privacidad</p>
                 <p className="hover:text-white cursor-pointer transition-colors">Protección de datos</p>
               </div>
             </div>
           </div>
-          <div className="pt-6 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-[11px] text-blue-200/30">EduNet &copy; 2026 — Todos los derechos reservados. Lima, Perú.</p>
+          <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-xs text-white/20">EduNet © 2026 — Todos los derechos reservados. Lima, Perú.</p>
             <div className="flex items-center gap-4">
-              <Mail className="w-4 h-4 text-blue-200/30 hover:text-[#e1b82c] cursor-pointer transition-colors" />
-              <Phone className="w-4 h-4 text-blue-200/30 hover:text-[#e1b82c] cursor-pointer transition-colors" />
+              <Mail className="w-4 h-4 text-white/20 hover:text-[#e1b82c] cursor-pointer transition-colors" />
+              <Phone className="w-4 h-4 text-white/20 hover:text-[#e1b82c] cursor-pointer transition-colors" />
             </div>
           </div>
         </div>
       </footer>
+
+      {/* Custom animations */}
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes float-delayed {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+        .animate-float {
+          animation: float 4s ease-in-out infinite;
+        }
+        .animate-float-delayed {
+          animation: float-delayed 4s ease-in-out infinite;
+          animation-delay: 1s;
+        }
+      `}</style>
     </div>
   );
 }
