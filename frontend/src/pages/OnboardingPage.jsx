@@ -79,12 +79,18 @@ export default function OnboardingPage({ token, user, onLogin }) {
       setRedirectUrl(res.data.redirect_url);
       setCreated(true);
       
-      // In production, would redirect to actual subdomain:
-      // window.location.href = res.data.redirect_url;
+      // Determine redirect based on environment
+      const hostname = window.location.hostname.toLowerCase();
+      const supportsWildcard = hostname.endsWith(`.${BASE_DOMAIN}`) || hostname === BASE_DOMAIN;
       
-      // For preview, redirect to dashboard after showing success
       setTimeout(() => {
-        navigate("/dashboard");
+        if (supportsWildcard && !hostname.includes('preview.emergentagent.com')) {
+          // Production with wildcard - redirect to actual subdomain
+          window.location.href = res.data.redirect_url;
+        } else {
+          // Preview/development - use route-based approach
+          navigate(`/school/${subdomain}/dashboard`);
+        }
       }, 3000);
       
     } catch (err) {
