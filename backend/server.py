@@ -602,6 +602,36 @@ async def get_tenant_info(request: Request):
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# PUBLIC SCHOOL INFO (For branded login pages)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/schools/public/{subdomain}")
+async def get_school_public_info(subdomain: str):
+    """
+    Get public info for a school by subdomain.
+    Used to display branded login pages.
+    Returns: school_name, logo_url, colors, etc.
+    """
+    subdomain = subdomain.lower().strip()
+    
+    school = await db.schools.find_one(
+        {"subdomain": subdomain, "status": "active"},
+        {"_id": 0, "password": 0, "owner_user_id": 0}
+    )
+    
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    return {
+        "subdomain": school.get("subdomain"),
+        "school_name": school.get("school_name"),
+        "full_domain": school.get("full_domain"),
+        "logo_url": school.get("logo_url"),  # Can be null
+        "primary_color": school.get("primary_color", "#001f4b"),
+        "secondary_color": school.get("secondary_color", "#e1b82c"),
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
 # PROTECTED DASHBOARD ROUTES (REQUIRE SCHOOL_ID)
 # ══════════════════════════════════════════════════════════════════════════════
 
