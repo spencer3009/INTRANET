@@ -4,10 +4,23 @@
 Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con arquitectura multi-tenant real basada en subdominios similar a Shopify/Notion.
 
 ## Arquitectura Multi-Tenant
+
+### Diseño Original (Producción con Wildcard SSL)
 - **Dominio Base**: edunet.pe (con wildcard DNS *.edunet.pe)
 - **Multi-Tenancy**: Por subdominios (colegioroble.edunet.pe)
-- **Routing**: Por Host header (NO DNS dinámico, NO CNAME)
-- **Control**: 100% por base de datos
+- **Routing**: Por Host header
+
+### Arquitectura Híbrida (Implementada)
+Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automático), se implementó una arquitectura híbrida que funciona en ambos escenarios:
+
+| Entorno | Patrón URL | Ejemplo |
+|---------|-----------|---------|
+| **Producción** (con wildcard) | `{subdomain}.edunet.pe/dashboard` | `elroble.edunet.pe/dashboard` |
+| **Preview/Dev** (sin wildcard) | `edunet.pe/school/{subdomain}/dashboard` | `edunet.pe/school/elroble/dashboard` |
+
+- El código detecta automáticamente el entorno y usa la estrategia correcta
+- La lógica de negocio permanece idéntica
+- Cuando Emergent soporte wildcard SSL, la producción funcionará automáticamente
 
 ## Stack Técnico
 - **Frontend**: React 19, Tailwind CSS, Lucide React
@@ -15,7 +28,7 @@ Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con arquitec
 - **Base de datos**: MongoDB con índices únicos
 - **Marca**: EduNet (navy #001f4b, gold #e1b82c)
 
-## Modelo de Datos (Implementado)
+## Modelo de Datos
 
 ### Collection: schools
 ```json
@@ -47,71 +60,36 @@ Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con arquitec
 }
 ```
 
-## Flujo Obligatorio (Implementado)
+## Flujo de Usuario
 
 ### Paso 1: Registro Simple
 - **Ruta**: `/register`
 - **Campos**: nombre_colegio, email, contraseña
-- **Endpoint**: `POST /api/auth/register`
-- **Resultado**: 
-  - `email_verified: false`
-  - `school_id: null` (NO se crea school aún)
+- **Resultado**: `email_verified: false`, `school_id: null`
 
 ### Paso 2: Verificación de Email
 - **Ruta**: `/verify-email`
-- **Endpoint**: `POST /api/auth/verify-email`
-- **Resultado**:
-  - `email_verified: true`
-  - `school_id: null` (todavía)
+- **Resultado**: `email_verified: true`, `school_id: null`
 
 ### Paso 3: Creación de Subdominio (OBLIGATORIO)
 - **Ruta**: `/onboarding`
-- **UI**: `[subdomain] .edunet.pe` (sufijo fijo)
-- **Endpoint disponibilidad**: `GET /api/subdomain/check?subdomain=xxx`
-- **Endpoint creación**: `POST /api/schools/create`
-- **Validaciones**:
-  - Regex: `^[a-z0-9]{3,30}$`
-  - Sin caracteres especiales
-  - Mínimo 3 caracteres
-  - Subdominios reservados bloqueados
-  - Unicidad en BD (no DNS)
-- **Resultado**:
-  - Crea documento en `schools`
-  - Actualiza `user.school_id`
-  - `redirect_url: "https://subdomain.edunet.pe"`
+- **Validaciones**: Regex `^[a-z0-9]{3,30}$`, unicidad en BD
+- **Resultado**: Crea school, actualiza `user.school_id`
 
 ### Bloqueo Estricto
-- Si `school_id === null` → Usuario BLOQUEADO del dashboard
-- Backend retorna 403: "Debes crear tu subdominio primero"
-- Frontend redirige a `/onboarding`
+- Sin `school_id` → Usuario BLOQUEADO del dashboard
+- Backend: 403 "Debes crear tu subdominio primero"
+- Frontend: Redirige a `/onboarding`
 
-## Regla Shopify (Implementado)
-- Si usuario tiene `subdomain` → Login retorna `redirect_to_subdomain: true`
-- En producción: redirigir automáticamente a `https://{subdomain}.edunet.pe`
-- Usuario NUNCA debe ver dashboard desde edunet.pe si tiene subdominio
+## Regla Shopify
+- Si usuario tiene `subdomain`:
+  - Producción: Redirect automático a `https://{subdomain}.edunet.pe`
+  - Preview: Redirect a `/school/{subdomain}/dashboard`
 
-## Multi-Tenancy por Host Header (Implementado)
-
-### Función extract_subdomain(host)
-```python
-# edunet.pe, www.edunet.pe → null (main domain)
-# colegioroble.edunet.pe → "colegioroble" (tenant)
-# admin.edunet.pe → null (reserved)
-```
-
-### Endpoint: `GET /api/tenant/info`
-```json
-{
-  "is_main_domain": false,
-  "subdomain": "colegioroble",
-  "school": { "id", "school_name", "status" }
-}
-```
-
-## API Endpoints (Implementado)
+## API Endpoints
 
 ### Autenticación
-- `POST /api/auth/register` - Crear usuario (school_id: null)
+- `POST /api/auth/register` - Crear usuario
 - `POST /api/auth/login` - Login con redirect_to_subdomain
 - `POST /api/auth/verify-email` - Verificar código
 - `GET /api/auth/me` - Usuario actual
@@ -120,51 +98,57 @@ Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con arquitec
 - `GET /api/subdomain/check?subdomain=xxx` - Verificar disponibilidad
 
 ### Schools
-- `POST /api/schools/create` - Crear tenant (school + actualizar user)
+- `POST /api/schools/create` - Crear tenant
 
 ### Dashboard (Requieren school_id)
-- `GET /api/dashboard/metrics` - Métricas del colegio
-- `GET /api/dashboard/events` - Eventos
-- `GET /api/dashboard/enrollment` - Matrícula
-- `GET /api/dashboard/school` - Info del colegio
+- `GET /api/dashboard/metrics`
+- `GET /api/dashboard/events`
+- `GET /api/dashboard/enrollment`
+- `GET /api/dashboard/school`
 
-## Subdominios Reservados
+## Rutas Frontend
+
+### Rutas Públicas
+- `/` - Landing Page
+- `/register` - Registro (Paso 1)
+- `/login` - Login
+- `/verify-email` - Verificación (Paso 2)
+
+### Rutas Protegidas
+- `/onboarding` - Crear subdominio (Paso 3)
+- `/dashboard/*` - Dashboard (subdomain mode)
+- `/school/:subdomain/dashboard/*` - Dashboard (route mode)
+
+## Variables de Entorno
+
+### Backend (.env)
 ```
-www, admin, api, app, mail, support, help, dashboard, edunet,
-test, demo, staging, dev, ftp, smtp, imap, pop, cdn, static,
-assets, billing, payment, account, login, register
+MONGO_URL=mongodb://localhost:27017
+DB_NAME=test_database
+JWT_SECRET=your-secret-key
+BASE_DOMAIN=edunet.pe
+```
+
+### Frontend (.env)
+```
+REACT_APP_BACKEND_URL=https://your-domain.com
+REACT_APP_BASE_DOMAIN=edunet.pe
 ```
 
 ## Testing Verificado
 - ✅ Registro crea usuario con `school_id: null`
-- ✅ Verificación de email actualiza `email_verified: true`
-- ✅ Usuario sin school_id BLOQUEADO del dashboard (403)
-- ✅ Check subdomain valida disponibilidad en BD
+- ✅ Verificación actualiza `email_verified: true`
+- ✅ Usuario sin school_id BLOQUEADO del dashboard
 - ✅ Creación de school actualiza `user.school_id`
-- ✅ Login indica `redirect_to_subdomain: true` si tiene subdomain
-- ✅ Dashboard accesible solo con school_id
-
-## Páginas Frontend
-- `/` - Landing Page premium
-- `/register` - Registro (Paso 1 de 3)
-- `/verify-email` - Verificación (Paso 2 de 3)
-- `/welcome` - Bienvenida post-verificación
-- `/onboarding` - Crear subdominio (Paso 3 de 3, OBLIGATORIO)
-- `/dashboard` - Dashboard (solo si school_id existe)
-- `/*` - 404 / Colegio no encontrado
-
-## Resultado Final
-✅ SaaS multi-colegio real (tipo Shopify/Notion)
-✅ Subdominio obligatorio antes del dashboard
-✅ Aislamiento por tenant (school_id)
-✅ Routing por Host header
-✅ Arquitectura escalable
+- ✅ Login indica `redirect_to_subdomain: true`
+- ✅ Arquitectura híbrida funciona en ambos modos
+- ✅ Usuarios legacy (school sin subdomain) redirigidos a onboarding
 
 ## Próximas Tareas (Backlog)
 
 ### P0 - Crítico
 - [ ] Implementar envío real de emails (SendGrid/Resend)
-- [ ] Página de error para subdominios inexistentes
+- [ ] Social login (Google, GitHub)
 
 ### P1 - Importante
 - [ ] CRUD de eventos en dashboard
@@ -180,4 +164,10 @@ assets, billing, payment, account, login, register
 ### P3 - Futuro
 - [ ] Roles adicionales (admin, teacher)
 - [ ] Suspensión de colegios
-- [ ] Facturación por colegio
+- [ ] Facturación/pagos por colegio
+
+## Notas de Plataforma
+- **Emergent** actualmente NO soporta wildcard SSL automático
+- El wildcard DNS (*.edunet.pe) está configurado pero SSL no se emite para subdominios
+- La arquitectura híbrida permite desarrollo sin bloqueo
+- Cuando Emergent soporte wildcard SSL, solo cambiar detección en `App.js`
