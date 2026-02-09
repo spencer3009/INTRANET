@@ -454,7 +454,7 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
     
     Actions:
       1. Validate subdomain
-      2. Create school record
+      2. Create or update school record
       3. Update user.school_id
       4. Return redirect URL
     """
@@ -463,16 +463,19 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
+    existing_school = None
     if user.get("school_id"):
-        # User already has a school, get its subdomain
-        school = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0})
-        if school:
+        # User has a school_id, check if that school has a subdomain
+        existing_school = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0})
+        if existing_school and existing_school.get("subdomain"):
+            # School already has subdomain - user already completed onboarding
             return {
                 "message": "Ya tienes un colegio creado",
-                "subdomain": school["subdomain"],
-                "full_domain": school["full_domain"],
-                "redirect_url": f"https://{school['subdomain']}.{BASE_DOMAIN}"
+                "subdomain": existing_school["subdomain"],
+                "full_domain": existing_school["full_domain"],
+                "redirect_url": f"https://{existing_school['subdomain']}.{BASE_DOMAIN}"
             }
+        # If school exists but has no subdomain, we'll update it below
     
     # Check email verification
     if not user.get("email_verified"):
@@ -493,31 +496,46 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
     if existing:
         raise HTTPException(status_code=400, detail="Este subdominio ya está en uso. Prueba otro nombre.")
 
-    school_id = str(uuid.uuid4())
     full_domain = f"{subdomain}.{BASE_DOMAIN}"
 
-    # Create school record
-    school_doc = {
-        "id": school_id,
-        "school_name": user["name"],
-        "subdomain": subdomain,
-        "full_domain": full_domain,
-        "status": "active",
-        "owner_user_id": user["id"],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-        "updated_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.schools.insert_one(school_doc)
-
-    # Update user with school_id
-    await db.users.update_one(
-        {"id": user["id"]},
-        {"$set": {
-            "school_id": school_id,
-            "role": "owner",
+    if existing_school:
+        # UPDATE existing school record (legacy user completing onboarding)
+        school_id = existing_school["id"]
+        await db.schools.update_one(
+            {"id": school_id},
+            {"$set": {
+                "subdomain": subdomain,
+                "full_domain": full_domain,
+                "status": "active",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        logger.info(f"School updated with subdomain: {subdomain}.{BASE_DOMAIN} for user {user['email']}")
+    else:
+        # CREATE new school record
+        school_id = str(uuid.uuid4())
+        school_doc = {
+            "id": school_id,
+            "school_name": user["name"],
+            "subdomain": subdomain,
+            "full_domain": full_domain,
+            "status": "active",
+            "owner_user_id": user["id"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
             "updated_at": datetime.now(timezone.utc).isoformat()
-        }}
-    )
+        }
+        await db.schools.insert_one(school_doc)
+        
+        # Update user with school_id only if they didn't have one
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "school_id": school_id,
+                "role": "owner",
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        logger.info(f"School created: {subdomain}.{BASE_DOMAIN} for user {user['email']}")
 
     # Create new token with school info
     new_token = create_token(
