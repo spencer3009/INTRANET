@@ -4,7 +4,7 @@ import axios from "axios";
 import { GraduationCap, Globe, Check, X, Loader2, ArrowRight, Sparkles } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const BASE_DOMAIN = "edunet.pe";
+const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
 function sanitizeSubdomain(text) {
   return text

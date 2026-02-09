@@ -10,7 +10,7 @@ import OnboardingPage from "@/pages/OnboardingPage";
 import DashboardPage from "@/pages/DashboardPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
-const BASE_DOMAIN = "edunet.pe";
+const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
 // ══════════════════════════════════════════════════════════════════════════════
 // SHOPIFY RULE: Redirect to subdomain if user has one
