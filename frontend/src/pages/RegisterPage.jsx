@@ -5,12 +5,23 @@ import {
   Eye,
   EyeOff,
   GraduationCap,
+  Users,
+  BarChart3,
+  Shield,
+  MessageSquare,
   ChevronDown,
   ArrowLeft,
   UserPlus,
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+const valueProps = [
+  { icon: Users, title: "Comunidad Conectada", desc: "Padres, docentes y directivos en un solo lugar" },
+  { icon: BarChart3, title: "Reportes Inteligentes", desc: "Métricas de asistencia y calificaciones" },
+  { icon: MessageSquare, title: "Comunicación Eficaz", desc: "Sin depender de WhatsApp ni correos" },
+  { icon: Shield, title: "Datos Seguros", desc: "Encriptación y control de acceso por roles" },
+];
 
 const roles = ["Director(a)", "Administrador(a)", "Coordinador(a)", "Otro"];
 
@@ -85,10 +96,82 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex" data-testid="register-page">
-      {/* Left accent bar */}
-      <div className="hidden md:block w-2 bg-gradient-to-b from-[#001f4b] via-[#1e40af] to-[#3b82f6]" />
+      {/* ═══════════════════════════════════════════════════════════════════════
+          LEFT PANEL - Informative content
+      ═══════════════════════════════════════════════════════════════════════ */}
+      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#001636] via-[#001f4b] to-[#0a3068] relative overflow-hidden flex-col justify-between p-12">
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-[#5c85d6]/10 blur-3xl" />
+        <div className="absolute bottom-20 left-10 w-60 h-60 rounded-full bg-[#e1b82c]/10 blur-3xl" />
+        <div className="absolute top-1/2 right-20 w-40 h-40 rounded-full bg-white/5 blur-2xl" />
 
-      {/* Main content */}
+        {/* Brand & Title */}
+        <div className="relative z-10">
+          <Link to="/" className="flex items-center gap-2.5 mb-16">
+            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
+              <GraduationCap className="w-5 h-5 text-[#e1b82c]" />
+            </div>
+            <span className="text-xl font-extrabold text-white tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>
+              EduNet
+            </span>
+          </Link>
+
+          <h2 className="text-4xl font-extrabold text-white leading-tight mb-4" style={{ fontFamily: "Manrope, sans-serif" }}>
+            Digitaliza la gestión de tu colegio
+          </h2>
+          <p className="text-blue-200/70 text-base leading-relaxed max-w-md">
+            Crea tu intranet escolar y conecta a toda la comunidad educativa en un solo lugar seguro y organizado.
+          </p>
+        </div>
+
+        {/* Value prop cards */}
+        <div className="relative z-10 grid grid-cols-2 gap-4 my-12">
+          {valueProps.map((v) => {
+            const Icon = v.icon;
+            return (
+              <div
+                key={v.title}
+                className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-2xl p-5 hover:bg-white/10 transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#e1b82c]/20 flex items-center justify-center mb-3 group-hover:bg-[#e1b82c]/30 transition-colors">
+                  <Icon className="w-5 h-5 text-[#e1b82c]" />
+                </div>
+                <p className="text-sm font-bold text-white mb-1">{v.title}</p>
+                <p className="text-xs text-blue-200/50 leading-relaxed">{v.desc}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Social proof */}
+        <div className="relative z-10 flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="flex -space-x-2">
+              {[1,2,3,4].map((i) => (
+                <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-[#001f4b] flex items-center justify-center text-[10px] font-bold text-white">
+                  {["M", "C", "A", "J"][i-1]}
+                </div>
+              ))}
+            </div>
+            <span className="text-sm font-semibold text-white ml-2">+120 colegios</span>
+          </div>
+          <div className="h-4 w-px bg-white/20" />
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-bold text-[#e1b82c]">4.9</span>
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map((i) => (
+                <svg key={i} className="w-3.5 h-3.5 fill-[#e1b82c] text-[#e1b82c]" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════════
+          RIGHT PANEL - Registration form
+      ═══════════════════════════════════════════════════════════════════════ */}
       <div className="flex-1 bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 flex flex-col">
         {/* Back button */}
         <div className="p-6">
@@ -105,6 +188,16 @@ export default function RegisterPage() {
         {/* Centered form container */}
         <div className="flex-1 flex items-center justify-center px-6 pb-12">
           <div className="w-full max-w-md">
+            {/* Mobile brand */}
+            <div className="lg:hidden flex items-center gap-2 mb-6">
+              <div className="w-9 h-9 rounded-xl bg-[#001f4b] flex items-center justify-center">
+                <GraduationCap className="w-5 h-5 text-[#e1b82c]" />
+              </div>
+              <span className="text-xl font-extrabold text-[#001f4b]" style={{ fontFamily: "Manrope" }}>
+                EduNet
+              </span>
+            </div>
+
             {/* Card */}
             <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 md:p-10">
               {/* Icon */}
@@ -319,14 +412,6 @@ export default function RegisterPage() {
               y la{" "}
               <span className="text-[#1e40af] cursor-pointer hover:underline">Política de Privacidad</span>
             </p>
-
-            {/* Brand footer */}
-            <div className="flex items-center justify-center gap-2 mt-6">
-              <div className="w-7 h-7 rounded-lg bg-[#001f4b] flex items-center justify-center">
-                <GraduationCap className="w-4 h-4 text-[#e1b82c]" />
-              </div>
-              <span className="text-sm font-bold text-slate-400">EduNet</span>
-            </div>
           </div>
         </div>
       </div>
