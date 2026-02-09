@@ -387,7 +387,7 @@ export default function RegisterPage() {
                   data-testid="register-submit-btn"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-3.5 bg-gradient-to-r from-[#1e40af] to-[#3b82f6] text-white font-bold rounded-xl hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2 mt-2"
+                  className="w-full py-3.5 bg-gradient-to-r from-[#001f4b] to-[#0a3068] text-white font-bold rounded-xl hover:shadow-lg hover:shadow-blue-900/25 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2 mt-2"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
