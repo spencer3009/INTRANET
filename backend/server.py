@@ -316,8 +316,8 @@ async def verify_email(data: VerifyEmailRequest):
 async def login(creds: UserLogin):
     """
     Login user and return:
-      - If has school_id: include subdomain for redirect
-      - If no school_id: indicate onboarding needed
+      - If has school_id AND school has subdomain: include subdomain for redirect
+      - If no school_id OR school has no subdomain: indicate onboarding needed
     """
     user = await db.users.find_one({"email": creds.email.lower()})
     if not user or not verify_password(creds.password, user["password"]):
@@ -325,14 +325,21 @@ async def login(creds: UserLogin):
     
     # Get school info if user has one
     subdomain = None
-    if user.get("school_id"):
-        school = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0})
-        if school:
+    school_id = user.get("school_id")
+    
+    if school_id:
+        school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+        if school and school.get("subdomain"):
+            # Only set subdomain if school has one (completed onboarding)
             subdomain = school.get("subdomain")
+        else:
+            # Legacy user with school but no subdomain - treat as not onboarded
+            # Clear school_id from response so frontend knows to redirect to onboarding
+            school_id = None
 
     token = create_token(
         user["id"], user["email"], user["name"], user["role"],
-        user.get("school_id"), subdomain, user.get("email_verified", False)
+        school_id, subdomain, user.get("email_verified", False)
     )
 
     return {
@@ -342,7 +349,7 @@ async def login(creds: UserLogin):
             "email": user["email"],
             "name": user["name"],
             "role": user["role"],
-            "school_id": user.get("school_id"),
+            "school_id": school_id,
             "subdomain": subdomain,
             "email_verified": user.get("email_verified", False)
         },
