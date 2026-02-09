@@ -4,7 +4,7 @@ import axios from "axios";
 import { Eye, EyeOff, Lock, Mail, GraduationCap, ArrowLeft } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-const BASE_DOMAIN = "edunet.pe";
+const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
 export default function LoginPage({ onLogin }) {
   const navigate = useNavigate();
