@@ -1,5 +1,6 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -33,6 +34,17 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# RESERVED SUBDOMAINS
+# ══════════════════════════════════════════════════════════════════════════════
+
+RESERVED_SUBDOMAINS = [
+    "www", "admin", "api", "app", "mail", "support", "help", 
+    "dashboard", "edunet", "test", "demo", "staging", "dev", 
+    "ftp", "smtp", "imap", "pop", "cdn", "static", "assets",
+    "billing", "payment", "account", "login", "register"
+]
+
+# ══════════════════════════════════════════════════════════════════════════════
 # AUTH HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -47,7 +59,7 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
 
-def create_token(user_id: str, email: str, name: str, role: str, school_id: str = None, subdomain: str = None) -> str:
+def create_token(user_id: str, email: str, name: str, role: str, school_id: str = None, subdomain: str = None, email_verified: bool = False) -> str:
     payload = {
         "sub": user_id,
         "email": email,
@@ -55,6 +67,7 @@ def create_token(user_id: str, email: str, name: str, role: str, school_id: str 
         "role": role,
         "school_id": school_id,
         "subdomain": subdomain,
+        "email_verified": email_verified,
         "exp": datetime.now(timezone.utc).timestamp() + 86400 * 7  # 7 days
     }
     return jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
@@ -73,28 +86,40 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(r
 # ══════════════════════════════════════════════════════════════════════════════
 
 def extract_subdomain(host: str) -> Optional[str]:
-    """Extract subdomain from Host header"""
+    """
+    Extract subdomain from Host header.
+    Returns None for main domain (edunet.pe, www.edunet.pe)
+    Returns subdomain string for tenant domains (colegioroble.edunet.pe)
+    """
     if not host:
         return None
     
     # Remove port if present
-    host = host.split(':')[0].lower()
+    host = host.split(':')[0].lower().strip()
     
-    # Check if it's a subdomain of our base domain
+    # Main domain - no tenant
+    if host == BASE_DOMAIN or host == f'www.{BASE_DOMAIN}':
+        return None
+    
+    # Subdomain detection
     if host.endswith(f'.{BASE_DOMAIN}'):
         subdomain = host.replace(f'.{BASE_DOMAIN}', '')
-        if subdomain and subdomain not in ['www', 'api', 'admin']:
-            return subdomain
+        # Validate: no dots (prevent nested subdomains)
+        if '.' in subdomain:
+            return None
+        # Validate: not reserved
+        if subdomain in RESERVED_SUBDOMAINS:
+            return None
+        return subdomain
     
     # For development/preview environments
-    # Handle patterns like: subdomain.school-portal-152.preview.emergentagent.com
+    # Handle patterns like: colegioroble.school-portal-152.preview.emergentagent.com
     parts = host.split('.')
-    if len(parts) > 1:
-        # Check if first part looks like a school subdomain (not www, not the main app name)
-        first_part = parts[0]
-        if first_part not in ['www', 'api', 'admin', 'school-portal-152'] and len(first_part) >= 3:
-            # Verify it's actually a registered subdomain in DB (will be done in the route)
-            return first_part
+    if len(parts) >= 4 and 'preview.emergentagent.com' in host:
+        potential_subdomain = parts[0]
+        # Only if it's not the main app identifier
+        if potential_subdomain != 'school-portal-152' and len(potential_subdomain) >= 3:
+            return potential_subdomain
     
     return None
 
@@ -102,38 +127,60 @@ async def get_school_by_subdomain(subdomain: str):
     """Get school document by subdomain"""
     if not subdomain:
         return None
-    return await db.schools.find_one({"subdomain": subdomain, "status": "active"}, {"_id": 0})
+    return await db.schools.find_one(
+        {"subdomain": subdomain, "status": "active"}, 
+        {"_id": 0, "password": 0}
+    )
 
-async def get_tenant_context(request: Request):
-    """Extract tenant context from request"""
+async def get_tenant_from_request(request: Request):
+    """
+    Get tenant context from request.
+    Returns: { is_main_domain, subdomain, school }
+    """
     host = request.headers.get('host', '')
     subdomain = extract_subdomain(host)
     
-    if subdomain:
-        school = await get_school_by_subdomain(subdomain)
-        if school:
-            return {"subdomain": subdomain, "school": school}
+    if not subdomain:
+        return {
+            "is_main_domain": True,
+            "subdomain": None,
+            "school": None
+        }
     
-    return {"subdomain": None, "school": None}
+    school = await get_school_by_subdomain(subdomain)
+    return {
+        "is_main_domain": False,
+        "subdomain": subdomain,
+        "school": school
+    }
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MODELS
 # ══════════════════════════════════════════════════════════════════════════════
 
+class UserRegister(BaseModel):
+    school_name: str
+    email: str
+    password: str
+
 class UserLogin(BaseModel):
     email: str
     password: str
 
-class UserResponse(BaseModel):
-    model_config = ConfigDict(extra="ignore")
-    id: str
+class VerifyEmailRequest(BaseModel):
     email: str
-    name: str
-    role: str
-    avatar: Optional[str] = None
-    school_id: Optional[str] = None
-    subdomain: Optional[str] = None
-    onboarding_complete: bool = False
+    code: str
+
+class CheckSubdomainRequest(BaseModel):
+    subdomain: str
+
+class CreateSchoolRequest(BaseModel):
+    subdomain: str
+
+class CheckSubdomainResponse(BaseModel):
+    available: bool
+    subdomain: str = ""
+    reason: str = ""
 
 class MetricResponse(BaseModel):
     exams_projected: int
@@ -154,167 +201,101 @@ class EnrollmentData(BaseModel):
     month: str
     students: int
 
-# ── School Registration Models (Simplified) ──
-
-class SchoolRegister(BaseModel):
-    school_name: str
-    email: str
-    password: str
-
-class VerifyEmailRequest(BaseModel):
-    email: str
-    code: str
-
-class CreateSubdomainRequest(BaseModel):
-    subdomain: str
-
-class CheckSubdomainResponse(BaseModel):
-    available: bool
-    subdomain: str = ""
-    reason: str = ""
-
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH ROUTES
 # ══════════════════════════════════════════════════════════════════════════════
 
-@api_router.post("/auth/login")
-async def login(creds: UserLogin):
-    user = await db.users.find_one({"email": creds.email})
-    if not user or not verify_password(creds.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    
-    # Get school info for subdomain
-    school = await db.schools.find_one({"id": user.get("school_id")}, {"_id": 0})
-    subdomain = school.get("subdomain") if school else None
-    
-    token = create_token(
-        user["id"], 
-        user["email"], 
-        user["name"], 
-        user["role"],
-        user.get("school_id"),
-        subdomain
-    )
-    
-    return {
-        "token": token,
-        "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "name": user["name"],
-            "role": user["role"],
-            "avatar": user.get("avatar", ""),
-            "school_id": user.get("school_id"),
-            "subdomain": subdomain,
-            "onboarding_complete": user.get("onboarding_complete", False)
-        }
-    }
-
-@api_router.get("/auth/me")
-async def get_me(current_user=Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0})
-    if not user:
-        raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
-    # Get school info
-    school = await db.schools.find_one({"id": user.get("school_id")}, {"_id": 0})
-    subdomain = school.get("subdomain") if school else None
-    
-    return {
-        **user,
-        "subdomain": subdomain,
-        "onboarding_complete": user.get("onboarding_complete", False)
-    }
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SCHOOL REGISTRATION ROUTES (SIMPLIFIED)
-# ══════════════════════════════════════════════════════════════════════════════
-
-@api_router.post("/schools/register")
-async def register_school(data: SchoolRegister):
+@api_router.post("/auth/register")
+async def register(data: UserRegister):
     """
-    Step 1: Simple registration with school_name, email, password
+    Step 1: Register user ONLY (school is NOT created yet)
+    User starts with:
+      - email_verified = false
+      - school_id = null
     """
-    existing = await db.schools.find_one({"email": data.email})
+    # Check if email already exists
+    existing = await db.users.find_one({"email": data.email.lower()})
     if existing:
         raise HTTPException(status_code=400, detail="Este correo ya está registrado")
 
-    school_id = str(uuid.uuid4())
     user_id = str(uuid.uuid4())
     verification_code = str(uuid.uuid4())[:6].upper()
 
-    # Create school record
-    school_doc = {
-        "id": school_id,
-        "school_name": data.school_name,
-        "email": data.email,
-        "password": hash_password(data.password),
-        "email_verified": False,
-        "verification_code": verification_code,
-        "onboarding_complete": False,
-        "subdomain": None,
-        "full_domain": None,
-        "status": "pending",  # pending -> active when subdomain is created
-        "created_at": datetime.now(timezone.utc).isoformat()
-    }
-    await db.schools.insert_one(school_doc)
-
-    # Create user record linked to school
+    # Create user with school_id = null
     user_doc = {
         "id": user_id,
-        "email": data.email,
+        "email": data.email.lower(),
         "password": hash_password(data.password),
-        "name": data.school_name,  # Use school name as user name initially
-        "role": "Administrador",
-        "school_id": school_id,
-        "avatar": "",
+        "name": data.school_name,  # Store school name in user for now
+        "role": "owner",
+        "school_id": None,  # NO SCHOOL YET
         "email_verified": False,
-        "onboarding_complete": False,
-        "created_at": datetime.now(timezone.utc).isoformat()
+        "verification_code": verification_code,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
     }
     await db.users.insert_one(user_doc)
 
-    logger.info(f"School registered: {data.school_name}, verification code: {verification_code}")
+    logger.info(f"User registered: {data.email}, verification code: {verification_code}")
 
     return {
         "message": "Cuenta creada exitosamente",
-        "school_id": school_id,
-        "verification_code": verification_code,
-        "email": data.email
+        "user_id": user_id,
+        "verification_code": verification_code,  # For demo/testing
+        "email": data.email.lower()
     }
 
-@api_router.post("/schools/verify-email")
+@api_router.post("/auth/verify-email")
 async def verify_email(data: VerifyEmailRequest):
     """
-    Step 2: Verify email with code
-    Returns token but user MUST complete onboarding before accessing dashboard
+    Step 2: Verify email
+    After this:
+      - email_verified = true
+      - school_id still null (must complete onboarding)
     """
-    school = await db.schools.find_one({"email": data.email})
-    if not school:
-        raise HTTPException(status_code=404, detail="Cuenta no encontrada")
+    user = await db.users.find_one({"email": data.email.lower()})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
 
-    if school["verification_code"] != data.code.upper():
+    if user.get("email_verified"):
+        # Already verified, just return token
+        token = create_token(
+            user["id"], user["email"], user["name"], user["role"],
+            user.get("school_id"), None, True
+        )
+        return {
+            "message": "Email ya verificado",
+            "verified": True,
+            "token": token,
+            "user": {
+                "id": user["id"],
+                "email": user["email"],
+                "name": user["name"],
+                "role": user["role"],
+                "school_id": user.get("school_id"),
+                "subdomain": None,
+                "email_verified": True
+            }
+        }
+
+    if user.get("verification_code") != data.code.upper():
         raise HTTPException(status_code=400, detail="Código de verificación incorrecto")
 
-    # Mark as verified
-    await db.schools.update_one(
-        {"email": data.email}, 
-        {"$set": {"email_verified": True}}
-    )
+    # Mark email as verified
     await db.users.update_one(
-        {"email": data.email}, 
-        {"$set": {"email_verified": True}}
+        {"email": data.email.lower()},
+        {"$set": {
+            "email_verified": True,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
     )
 
-    user = await db.users.find_one({"email": data.email}, {"_id": 0, "password": 0})
     token = create_token(
-        user["id"], 
-        user["email"], 
-        user["name"], 
-        user["role"],
-        user.get("school_id"),
-        None  # No subdomain yet
+        user["id"], user["email"], user["name"], user["role"],
+        None, None, True  # school_id still null
     )
+
+    logger.info(f"Email verified: {data.email}")
 
     return {
         "message": "Email verificado correctamente",
@@ -325,21 +306,83 @@ async def verify_email(data: VerifyEmailRequest):
             "email": user["email"],
             "name": user["name"],
             "role": user["role"],
-            "avatar": user.get("avatar", ""),
-            "school_id": user.get("school_id"),
+            "school_id": None,  # Still null!
             "subdomain": None,
-            "onboarding_complete": False
+            "email_verified": True
         }
     }
 
-@api_router.get("/schools/check-subdomain/{subdomain}")
+@api_router.post("/auth/login")
+async def login(creds: UserLogin):
+    """
+    Login user and return:
+      - If has school_id: include subdomain for redirect
+      - If no school_id: indicate onboarding needed
+    """
+    user = await db.users.find_one({"email": creds.email.lower()})
+    if not user or not verify_password(creds.password, user["password"]):
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    
+    # Get school info if user has one
+    subdomain = None
+    if user.get("school_id"):
+        school = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0})
+        if school:
+            subdomain = school.get("subdomain")
+
+    token = create_token(
+        user["id"], user["email"], user["name"], user["role"],
+        user.get("school_id"), subdomain, user.get("email_verified", False)
+    )
+
+    return {
+        "token": token,
+        "user": {
+            "id": user["id"],
+            "email": user["email"],
+            "name": user["name"],
+            "role": user["role"],
+            "school_id": user.get("school_id"),
+            "subdomain": subdomain,
+            "email_verified": user.get("email_verified", False)
+        },
+        # SHOPIFY RULE: If user has subdomain, tell frontend to redirect
+        "redirect_to_subdomain": subdomain is not None,
+        "redirect_url": f"https://{subdomain}.{BASE_DOMAIN}" if subdomain else None
+    }
+
+@api_router.get("/auth/me")
+async def get_me(current_user=Depends(get_current_user)):
+    """Get current user with school info"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0, "verification_code": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Get school info
+    subdomain = None
+    if user.get("school_id"):
+        school = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0})
+        if school:
+            subdomain = school.get("subdomain")
+    
+    return {
+        **user,
+        "subdomain": subdomain
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SUBDOMAIN ROUTES
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/subdomain/check")
 async def check_subdomain(subdomain: str) -> CheckSubdomainResponse:
     """
-    Check if subdomain is available (validates against DB, not DNS)
+    Check if subdomain is available.
+    Validates ONLY against database, NOT DNS.
     """
     subdomain = subdomain.lower().strip()
     
-    # Validate format: only lowercase letters and numbers
+    # Validate format: ^[a-z0-9]{3,}$
     if not re.match(r'^[a-z0-9]+$', subdomain):
         return CheckSubdomainResponse(
             available=False, 
@@ -347,7 +390,7 @@ async def check_subdomain(subdomain: str) -> CheckSubdomainResponse:
             reason="Solo letras minúsculas y números, sin espacios ni caracteres especiales"
         )
     
-    # Minimum length
+    # Minimum length: 3
     if len(subdomain) < 3:
         return CheckSubdomainResponse(
             available=False, 
@@ -355,7 +398,7 @@ async def check_subdomain(subdomain: str) -> CheckSubdomainResponse:
             reason="El subdominio debe tener al menos 3 caracteres"
         )
     
-    # Maximum length
+    # Maximum length: 30
     if len(subdomain) > 30:
         return CheckSubdomainResponse(
             available=False, 
@@ -363,85 +406,117 @@ async def check_subdomain(subdomain: str) -> CheckSubdomainResponse:
             reason="El subdominio debe tener máximo 30 caracteres"
         )
 
-    # Reserved subdomains
-    reserved = ["admin", "www", "api", "app", "mail", "support", "help", "edunet", 
-                "test", "demo", "staging", "dev", "ftp", "smtp", "imap", "pop"]
-    if subdomain in reserved:
+    # Check reserved subdomains
+    if subdomain in RESERVED_SUBDOMAINS:
         return CheckSubdomainResponse(
             available=False, 
             subdomain=subdomain,
             reason="Este subdominio está reservado"
         )
 
-    # Check database for existing subdomain
+    # Check database for existing subdomain (case-insensitive)
     existing = await db.schools.find_one({"subdomain": subdomain})
     if existing:
         return CheckSubdomainResponse(
             available=False, 
             subdomain=subdomain,
-            reason="Este subdominio ya está en uso"
+            reason="Este subdominio ya está en uso. Prueba otro nombre."
         )
 
     return CheckSubdomainResponse(
         available=True, 
         subdomain=subdomain,
-        reason="Disponible"
+        reason="¡Disponible!"
     )
 
-@api_router.post("/schools/create-subdomain")
-async def create_subdomain(data: CreateSubdomainRequest, current_user=Depends(get_current_user)):
+# ══════════════════════════════════════════════════════════════════════════════
+# SCHOOL (TENANT) CREATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.post("/schools/create")
+async def create_school(data: CreateSchoolRequest, current_user=Depends(get_current_user)):
     """
-    Step 3: Create subdomain (REQUIRED before accessing dashboard)
+    Step 3: Create school (tenant) with subdomain.
+    This is REQUIRED before accessing dashboard.
+    
+    Actions:
+      1. Validate subdomain
+      2. Create school record
+      3. Update user.school_id
+      4. Return redirect URL
     """
+    # Check if user already has a school
+    user = await db.users.find_one({"id": current_user["sub"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("school_id"):
+        # User already has a school, get its subdomain
+        school = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0})
+        if school:
+            return {
+                "message": "Ya tienes un colegio creado",
+                "subdomain": school["subdomain"],
+                "full_domain": school["full_domain"],
+                "redirect_url": f"https://{school['subdomain']}.{BASE_DOMAIN}"
+            }
+    
+    # Check email verification
+    if not user.get("email_verified"):
+        raise HTTPException(status_code=403, detail="Debes verificar tu email primero")
+
     subdomain = data.subdomain.lower().strip()
     
     # Validate format
-    if not re.match(r'^[a-z0-9]+$', subdomain):
+    if not re.match(r'^[a-z0-9]{3,}$', subdomain):
         raise HTTPException(status_code=400, detail="Formato de subdominio inválido")
-    
-    if len(subdomain) < 3:
-        raise HTTPException(status_code=400, detail="El subdominio debe tener al menos 3 caracteres")
+
+    # Check reserved
+    if subdomain in RESERVED_SUBDOMAINS:
+        raise HTTPException(status_code=400, detail="Este subdominio está reservado")
 
     # Check availability one more time
     existing = await db.schools.find_one({"subdomain": subdomain})
     if existing:
-        raise HTTPException(status_code=400, detail="Este subdominio ya está en uso")
+        raise HTTPException(status_code=400, detail="Este subdominio ya está en uso. Prueba otro nombre.")
 
+    school_id = str(uuid.uuid4())
     full_domain = f"{subdomain}.{BASE_DOMAIN}"
 
-    # Update school with subdomain
-    await db.schools.update_one(
-        {"email": current_user["email"]},
+    # Create school record
+    school_doc = {
+        "id": school_id,
+        "school_name": user["name"],
+        "subdomain": subdomain,
+        "full_domain": full_domain,
+        "status": "active",
+        "owner_user_id": user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    await db.schools.insert_one(school_doc)
+
+    # Update user with school_id
+    await db.users.update_one(
+        {"id": user["id"]},
         {"$set": {
-            "subdomain": subdomain,
-            "full_domain": full_domain,
-            "status": "active",
-            "onboarding_complete": True,
-            "activated_at": datetime.now(timezone.utc).isoformat()
+            "school_id": school_id,
+            "role": "owner",
+            "updated_at": datetime.now(timezone.utc).isoformat()
         }}
     )
 
-    # Update user
-    await db.users.update_one(
-        {"email": current_user["email"]},
-        {"$set": {"onboarding_complete": True}}
-    )
-
-    # Create new token with subdomain
-    user = await db.users.find_one({"email": current_user["email"]}, {"_id": 0, "password": 0})
+    # Create new token with school info
     new_token = create_token(
-        user["id"],
-        user["email"],
-        user["name"],
-        user["role"],
-        user.get("school_id"),
-        subdomain
+        user["id"], user["email"], user["name"], "owner",
+        school_id, subdomain, True
     )
 
-    logger.info(f"Subdomain created: {subdomain}.{BASE_DOMAIN} for school {current_user['email']}")
+    logger.info(f"School created: {subdomain}.{BASE_DOMAIN} for user {user['email']}")
 
     return {
-        "message": "Subdominio creado exitosamente",
+        "message": "¡Tu intranet ha sido creada!",
+        "school_id": school_id,
         "subdomain": subdomain,
         "full_domain": full_domain,
         "redirect_url": f"https://{full_domain}",
@@ -450,11 +525,10 @@ async def create_subdomain(data: CreateSubdomainRequest, current_user=Depends(ge
             "id": user["id"],
             "email": user["email"],
             "name": user["name"],
-            "role": user["role"],
-            "avatar": user.get("avatar", ""),
-            "school_id": user.get("school_id"),
+            "role": "owner",
+            "school_id": school_id,
             "subdomain": subdomain,
-            "onboarding_complete": True
+            "email_verified": True
         }
     }
 
@@ -465,58 +539,69 @@ async def create_subdomain(data: CreateSubdomainRequest, current_user=Depends(ge
 @api_router.get("/tenant/info")
 async def get_tenant_info(request: Request):
     """
-    Get current tenant info based on Host header
-    Used by frontend to determine which school's intranet to display
+    Get current tenant info based on Host header.
+    Used by frontend to determine routing behavior.
     """
-    host = request.headers.get('host', '')
-    subdomain = extract_subdomain(host)
+    tenant = await get_tenant_from_request(request)
     
-    if not subdomain:
+    if tenant["is_main_domain"]:
         return {
             "is_main_domain": True,
             "subdomain": None,
-            "school": None
+            "school": None,
+            "message": "Dominio principal"
         }
     
-    school = await db.schools.find_one(
-        {"subdomain": subdomain, "status": "active"},
-        {"_id": 0, "password": 0, "verification_code": 0}
-    )
-    
-    if not school:
+    if not tenant["school"]:
         return {
             "is_main_domain": False,
-            "subdomain": subdomain,
+            "subdomain": tenant["subdomain"],
             "school": None,
-            "error": "Colegio no encontrado"
+            "error": "Este colegio no existe o fue desactivado"
         }
     
     return {
         "is_main_domain": False,
-        "subdomain": subdomain,
+        "subdomain": tenant["subdomain"],
         "school": {
-            "id": school["id"],
-            "school_name": school["school_name"],
-            "subdomain": school["subdomain"],
-            "full_domain": school["full_domain"],
-            "status": school["status"]
+            "id": tenant["school"]["id"],
+            "school_name": tenant["school"]["school_name"],
+            "subdomain": tenant["school"]["subdomain"],
+            "full_domain": tenant["school"]["full_domain"],
+            "status": tenant["school"]["status"]
         }
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# DASHBOARD ROUTES (TENANT-AWARE)
+# PROTECTED DASHBOARD ROUTES (REQUIRE SCHOOL_ID)
 # ══════════════════════════════════════════════════════════════════════════════
 
+async def require_school(current_user=Depends(get_current_user)):
+    """
+    Dependency that requires user to have a school_id.
+    If school_id is null, user cannot access dashboard.
+    """
+    if not current_user.get("email_verified"):
+        raise HTTPException(status_code=403, detail="Debes verificar tu email primero")
+    
+    if not current_user.get("school_id"):
+        raise HTTPException(
+            status_code=403, 
+            detail="Debes crear tu subdominio primero",
+            headers={"X-Redirect": "/onboarding"}
+        )
+    
+    return current_user
+
 @api_router.get("/dashboard/metrics", response_model=MetricResponse)
-async def get_metrics(request: Request, current_user=Depends(get_current_user)):
-    """Get metrics for current tenant"""
+async def get_metrics(current_user=Depends(require_school)):
+    """Get metrics for current tenant - REQUIRES SCHOOL"""
     school_id = current_user.get("school_id")
     
-    # Try to get school-specific metrics first
-    if school_id:
-        metrics = await db.metrics.find_one({"school_id": school_id}, {"_id": 0})
-        if metrics:
-            return metrics
+    # Try to get school-specific metrics
+    metrics = await db.metrics.find_one({"tenant_id": school_id}, {"_id": 0})
+    if metrics:
+        return metrics
     
     # Return default metrics
     return MetricResponse(
@@ -527,47 +612,55 @@ async def get_metrics(request: Request, current_user=Depends(get_current_user)):
     )
 
 @api_router.get("/dashboard/events", response_model=List[EventResponse])
-async def get_events(request: Request, current_user=Depends(get_current_user)):
-    """Get events for current tenant"""
+async def get_events(current_user=Depends(require_school)):
+    """Get events for current tenant - REQUIRES SCHOOL"""
     school_id = current_user.get("school_id")
     
-    query = {"school_id": school_id} if school_id else {}
-    events = await db.events.find(query, {"_id": 0}).sort("date", 1).to_list(20)
+    # Get tenant-specific events
+    events = await db.events.find(
+        {"tenant_id": school_id}, 
+        {"_id": 0}
+    ).sort("date", 1).to_list(20)
     
-    # If no school-specific events, return default events
+    # If no tenant events, return defaults
     if not events:
-        events = await db.events.find({}, {"_id": 0}).sort("date", 1).to_list(20)
+        events = await db.events.find(
+            {"tenant_id": {"$exists": False}}, 
+            {"_id": 0}
+        ).sort("date", 1).to_list(20)
     
     return events
 
 @api_router.get("/dashboard/enrollment", response_model=List[EnrollmentData])
-async def get_enrollment(request: Request, current_user=Depends(get_current_user)):
-    """Get enrollment data for current tenant"""
+async def get_enrollment(current_user=Depends(require_school)):
+    """Get enrollment data for current tenant - REQUIRES SCHOOL"""
     school_id = current_user.get("school_id")
     
-    query = {"school_id": school_id} if school_id else {}
-    data = await db.enrollment.find(query, {"_id": 0}).to_list(100)
+    data = await db.enrollment.find(
+        {"tenant_id": school_id}, 
+        {"_id": 0}
+    ).to_list(100)
     
-    # If no school-specific data, return default
     if not data:
-        data = await db.enrollment.find({}, {"_id": 0}).to_list(100)
+        data = await db.enrollment.find(
+            {"tenant_id": {"$exists": False}}, 
+            {"_id": 0}
+        ).to_list(100)
     
     return data
 
 @api_router.get("/dashboard/school")
-async def get_school_info(current_user=Depends(get_current_user)):
-    """Get current user's school info"""
+async def get_school_info(current_user=Depends(require_school)):
+    """Get current user's school info - REQUIRES SCHOOL"""
     school_id = current_user.get("school_id")
-    if not school_id:
-        raise HTTPException(status_code=404, detail="No school associated")
     
     school = await db.schools.find_one(
         {"id": school_id},
-        {"_id": 0, "password": 0, "verification_code": 0}
+        {"_id": 0, "password": 0}
     )
     
     if not school:
-        raise HTTPException(status_code=404, detail="School not found")
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
     
     return school
 
@@ -579,8 +672,12 @@ async def get_school_info(current_user=Depends(get_current_user)):
 async def seed_data():
     """Seed initial data for demo"""
     
-    # Seed default events (global)
-    await db.events.delete_many({"school_id": {"$exists": False}})
+    # Create unique index on subdomain
+    await db.schools.create_index("subdomain", unique=True, sparse=True)
+    await db.users.create_index("email", unique=True)
+    
+    # Seed default events (global - no tenant_id)
+    await db.events.delete_many({"tenant_id": {"$exists": False}})
     events = [
         {"id": str(uuid.uuid4()), "title": "Reunión de Padres - 1ero Primaria", "date": "2026-02-18", "time": "09:00 AM", "category": "reunion", "color": "#001f4b"},
         {"id": str(uuid.uuid4()), "title": "Examen Trimestral - Matemáticas", "date": "2026-02-22", "time": "10:00 AM", "category": "examen", "color": "#e1b82c"},
@@ -591,7 +688,7 @@ async def seed_data():
     await db.events.insert_many(events)
 
     # Seed default enrollment data (global)
-    await db.enrollment.delete_many({"school_id": {"$exists": False}})
+    await db.enrollment.delete_many({"tenant_id": {"$exists": False}})
     enrollment = [
         {"month": "Ene", "students": 380},
         {"month": "Feb", "students": 412},
@@ -608,11 +705,16 @@ async def seed_data():
     ]
     await db.enrollment.insert_many(enrollment)
 
-    return {"message": "Datos iniciales creados correctamente"}
+    return {"message": "Datos iniciales creados e índices configurados"}
 
 @api_router.get("/")
 async def root():
-    return {"message": "EduNet SaaS API", "version": "2.0", "base_domain": BASE_DOMAIN}
+    return {
+        "message": "EduNet SaaS API",
+        "version": "2.1",
+        "base_domain": BASE_DOMAIN,
+        "architecture": "Multi-tenant by subdomain"
+    }
 
 # ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
@@ -623,7 +725,7 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=["*"],  # Allow all origins for subdomain support
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
