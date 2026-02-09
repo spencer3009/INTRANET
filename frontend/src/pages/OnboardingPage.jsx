@@ -176,6 +176,16 @@ export default function OnboardingPage({ token, user, onLogin, onLogout }) {
       <div className="absolute bottom-20 left-20 w-72 h-72 rounded-full bg-[#e1b82c]/10 blur-3xl" />
       <div className="absolute top-1/2 left-1/4 w-64 h-64 rounded-full bg-purple-500/10 blur-3xl" />
       
+      {/* Logout button - top right */}
+      <button
+        onClick={handleLogout}
+        className="absolute top-6 right-6 flex items-center gap-2 text-sm text-white/50 hover:text-white/80 transition-colors z-20"
+        data-testid="onboarding-logout-btn"
+      >
+        <LogOut className="w-4 h-4" />
+        Cerrar sesión
+      </button>
+      
       <div className="w-full max-w-lg relative z-10">
         {/* Brand */}
         <div className="flex items-center justify-center gap-2 mb-10">
