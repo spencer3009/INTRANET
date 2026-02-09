@@ -273,7 +273,7 @@ function App() {
                 {hasSchool ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
-                  <OnboardingPage token={token} user={user} onLogin={handleLogin} />
+                  <OnboardingPage token={token} user={user} onLogin={handleLogin} onLogout={handleLogout} />
                 )}
               </ProtectedRoute>
             }
