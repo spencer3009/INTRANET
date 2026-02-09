@@ -12,26 +12,15 @@ import {
   ChevronDown,
   ArrowLeft,
   UserPlus,
-  CheckCircle,
-  Clock,
-  Zap,
-  Globe,
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-const valueProps = [
+const features = [
   { icon: Users, title: "Comunidad Conectada", desc: "Padres, docentes y directivos en un solo lugar" },
-  { icon: BarChart3, title: "Reportes Inteligentes", desc: "Métricas de asistencia y calificaciones" },
-  { icon: MessageSquare, title: "Comunicación Eficaz", desc: "Sin depender de WhatsApp ni correos" },
+  { icon: BarChart3, title: "Reportes Inteligentes", desc: "Métricas de asistencia y calificaciones al instante" },
+  { icon: MessageSquare, title: "Comunicación Eficaz", desc: "Mensajería institucional sin WhatsApp" },
   { icon: Shield, title: "Datos Seguros", desc: "Encriptación y control de acceso por roles" },
-];
-
-const benefits = [
-  "Configuración en menos de 5 minutos",
-  "Sin necesidad de conocimientos técnicos",
-  "Soporte en español disponible 24/7",
-  "Prueba gratuita sin compromiso",
 ];
 
 const roles = ["Director(a)", "Administrador(a)", "Coordinador(a)", "Otro"];
@@ -108,118 +97,75 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen flex" data-testid="register-page">
       {/* ═══════════════════════════════════════════════════════════════════════
-          LEFT PANEL - Informative content
+          LEFT PANEL - Wider, gradient background, glass cards
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="hidden lg:flex lg:w-[45%] bg-gradient-to-br from-[#001636] via-[#001f4b] to-[#0a3068] relative overflow-hidden flex-col p-10 xl:p-12">
-        {/* Decorative elements */}
-        <div className="absolute top-0 right-0 w-80 h-80 rounded-full bg-[#5c85d6]/10 blur-3xl" />
-        <div className="absolute bottom-20 left-10 w-60 h-60 rounded-full bg-[#e1b82c]/10 blur-3xl" />
-        <div className="absolute top-1/2 right-20 w-40 h-40 rounded-full bg-white/5 blur-2xl" />
+      <div className="hidden lg:flex lg:w-[55%] bg-gradient-to-br from-[#1e40af] via-[#3b82f6] to-[#6366f1] relative overflow-hidden flex-col justify-between p-12 xl:p-16">
+        {/* Decorative blurs */}
+        <div className="absolute top-20 right-20 w-96 h-96 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute bottom-10 left-10 w-72 h-72 rounded-full bg-[#e1b82c]/20 blur-3xl" />
+        <div className="absolute top-1/2 left-1/3 w-64 h-64 rounded-full bg-purple-400/20 blur-3xl" />
+        
+        {/* Grid pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }} />
 
-        {/* Brand */}
+        {/* Content */}
         <div className="relative z-10">
-          <Link to="/" className="flex items-center gap-2.5 mb-10">
-            <div className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10 flex items-center justify-center">
-              <GraduationCap className="w-5 h-5 text-[#e1b82c]" />
+          {/* Brand logo */}
+          <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 py-3 mb-16">
+            <div className="w-10 h-10 rounded-xl bg-[#e1b82c] flex items-center justify-center">
+              <GraduationCap className="w-5 h-5 text-[#1e40af]" />
             </div>
             <span className="text-xl font-extrabold text-white tracking-tight" style={{ fontFamily: "Manrope, sans-serif" }}>
               EduNet
             </span>
-          </Link>
+          </div>
 
-          <h2 className="text-3xl xl:text-4xl font-extrabold text-white leading-tight mb-4" style={{ fontFamily: "Manrope, sans-serif" }}>
-            Digitaliza la gestión de tu colegio
-          </h2>
-          <p className="text-blue-200/70 text-base leading-relaxed max-w-md mb-8">
-            Crea tu intranet escolar y conecta a toda la comunidad educativa en un solo lugar seguro y organizado.
+          {/* Main headline */}
+          <h1 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight mb-6" style={{ fontFamily: "Manrope, sans-serif" }}>
+            Digitaliza tu colegio,<br />
+            <span className="text-[#e1b82c]">potencia tu gestión</span>
+          </h1>
+          
+          <p className="text-lg text-blue-100/80 leading-relaxed max-w-lg mb-12">
+            La plataforma de intranet escolar más intuitiva para directores y equipos administrativos en Perú.
           </p>
 
-          {/* Benefits list */}
-          <div className="space-y-3 mb-8">
-            {benefits.map((benefit, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-[#e1b82c]/20 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-3.5 h-3.5 text-[#e1b82c]" />
-                </div>
-                <span className="text-sm text-blue-100/80">{benefit}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Quick stats */}
-          <div className="grid grid-cols-3 gap-3 mb-8">
-            <div className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Zap className="w-4 h-4 text-[#e1b82c]" />
-                <span className="text-xl font-bold text-white">5</span>
-              </div>
-              <p className="text-[10px] text-blue-200/50 uppercase tracking-wide">Min. setup</p>
-            </div>
-            <div className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Clock className="w-4 h-4 text-[#e1b82c]" />
-                <span className="text-xl font-bold text-white">24/7</span>
-              </div>
-              <p className="text-[10px] text-blue-200/50 uppercase tracking-wide">Soporte</p>
-            </div>
-            <div className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-xl p-4 text-center">
-              <div className="flex items-center justify-center gap-1.5 mb-1">
-                <Globe className="w-4 h-4 text-[#e1b82c]" />
-                <span className="text-xl font-bold text-white">100%</span>
-              </div>
-              <p className="text-[10px] text-blue-200/50 uppercase tracking-wide">En la nube</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Value prop cards */}
-        <div className="relative z-10 grid grid-cols-2 gap-3 mb-8">
-          {valueProps.map((v) => {
-            const Icon = v.icon;
-            return (
-              <div
-                key={v.title}
-                className="bg-white/[0.06] backdrop-blur-sm border border-white/10 rounded-xl p-4 hover:bg-white/10 transition-colors group"
-              >
-                <div className="w-9 h-9 rounded-lg bg-[#e1b82c]/20 flex items-center justify-center mb-3 group-hover:bg-[#e1b82c]/30 transition-colors">
-                  <Icon className="w-4 h-4 text-[#e1b82c]" />
-                </div>
-                <p className="text-sm font-bold text-white mb-1">{v.title}</p>
-                <p className="text-xs text-blue-200/50 leading-relaxed">{v.desc}</p>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Social proof */}
-        <div className="relative z-10 mt-auto pt-6 border-t border-white/10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2">
-                {[1,2,3,4].map((i) => (
-                  <div key={i} className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-[#001f4b] flex items-center justify-center text-[10px] font-bold text-white">
-                    {["M", "C", "A", "J"][i-1]}
+          {/* Feature cards - Glass effect */}
+          <div className="grid grid-cols-2 gap-4">
+            {features.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={f.title}
+                  className="bg-white/[0.08] backdrop-blur-xl border border-white/10 rounded-2xl p-5 hover:bg-white/[0.12] transition-all duration-300 group"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center mb-4 group-hover:bg-white/20 transition-colors">
+                    <Icon className="w-5 h-5 text-blue-200" />
                   </div>
-                ))}
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-white">+120 colegios</span>
-                <p className="text-xs text-blue-200/50">confían en EduNet</p>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1 justify-end">
-                <span className="text-lg font-bold text-[#e1b82c]">4.9</span>
-                <div className="flex gap-0.5">
-                  {[1,2,3,4,5].map((i) => (
-                    <svg key={i} className="w-3.5 h-3.5 fill-[#e1b82c] text-[#e1b82c]" viewBox="0 0 24 24">
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                  ))}
+                  <h3 className="text-base font-bold text-white mb-1.5">{f.title}</h3>
+                  <p className="text-sm text-blue-200/60 leading-relaxed">{f.desc}</p>
                 </div>
-              </div>
-              <p className="text-xs text-blue-200/50">valoración promedio</p>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Social proof footer */}
+        <div className="relative z-10 flex items-center gap-8 pt-8 border-t border-white/10">
+          <div className="flex items-center gap-2">
+            <Users className="w-5 h-5 text-blue-200/60" />
+            <span className="text-sm font-semibold text-white">+120 colegios activos</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5">
+              {[1,2,3,4,5].map((i) => (
+                <svg key={i} className="w-4 h-4 fill-[#e1b82c] text-[#e1b82c]" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              ))}
             </div>
+            <span className="text-sm font-semibold text-white">4.9</span>
+            <span className="text-sm text-blue-200/60">valoración</span>
           </div>
         </div>
       </div>
@@ -227,12 +173,12 @@ export default function RegisterPage() {
       {/* ═══════════════════════════════════════════════════════════════════════
           RIGHT PANEL - Registration form
       ═══════════════════════════════════════════════════════════════════════ */}
-      <div className="flex-1 bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-100 flex flex-col">
+      <div className="flex-1 bg-gradient-to-br from-slate-50 via-blue-50/50 to-indigo-50/30 flex flex-col min-h-screen">
         {/* Back button */}
-        <div className="p-6">
+        <div className="p-6 xl:p-8">
           <Link 
             to="/" 
-            className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-[#001f4b] transition-colors group"
+            className="inline-flex items-center gap-2 text-sm font-medium text-slate-400 hover:text-[#1e40af] transition-colors group"
             data-testid="register-back-btn"
           >
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -241,23 +187,23 @@ export default function RegisterPage() {
         </div>
 
         {/* Centered form container */}
-        <div className="flex-1 flex items-center justify-center px-6 pb-12">
+        <div className="flex-1 flex items-center justify-center px-6 xl:px-12 pb-8">
           <div className="w-full max-w-md">
             {/* Mobile brand */}
-            <div className="lg:hidden flex items-center gap-2 mb-6">
-              <div className="w-9 h-9 rounded-xl bg-[#001f4b] flex items-center justify-center">
+            <div className="lg:hidden flex items-center gap-2 mb-8">
+              <div className="w-10 h-10 rounded-xl bg-[#1e40af] flex items-center justify-center">
                 <GraduationCap className="w-5 h-5 text-[#e1b82c]" />
               </div>
-              <span className="text-xl font-extrabold text-[#001f4b]" style={{ fontFamily: "Manrope" }}>
+              <span className="text-xl font-extrabold text-[#1e40af]" style={{ fontFamily: "Manrope" }}>
                 EduNet
               </span>
             </div>
 
             {/* Card */}
-            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 p-8 md:p-10">
+            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/60 p-8 xl:p-10 border border-slate-100">
               {/* Icon */}
               <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#001f4b] to-[#1e40af] flex items-center justify-center shadow-lg shadow-blue-900/20">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#1e40af] to-[#3b82f6] flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <UserPlus className="w-8 h-8 text-white" />
                 </div>
               </div>
@@ -270,11 +216,11 @@ export default function RegisterPage() {
               >
                 Crea tu cuenta
               </h1>
-              <p className="text-sm text-slate-500 text-center mb-8">
+              <p className="text-sm text-slate-400 text-center mb-8">
                 Empieza gratis, sin tarjeta de crédito
               </p>
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-4">
                 {error && (
                   <div className="bg-red-50 border border-red-100 text-red-600 text-sm p-3 rounded-xl text-center" data-testid="register-error">
                     {error}
@@ -283,15 +229,15 @@ export default function RegisterPage() {
 
                 {/* School name */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Nombre del colegio <span className="text-red-400">*</span>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">
+                    Nombre del colegio
                   </label>
                   <input
                     data-testid="register-school-name"
                     type="text"
                     value={form.school_name}
                     onChange={(e) => update("school_name", e.target.value)}
-                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all placeholder:text-slate-400"
+                    className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all placeholder:text-slate-400"
                     placeholder="Ej: Colegio El Roble"
                     required
                   />
@@ -299,15 +245,15 @@ export default function RegisterPage() {
 
                 {/* Contact name */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Nombre completo <span className="text-red-400">*</span>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">
+                    Nombre completo
                   </label>
                   <input
                     data-testid="register-contact-name"
                     type="text"
                     value={form.contact_name}
                     onChange={(e) => update("contact_name", e.target.value)}
-                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all placeholder:text-slate-400"
+                    className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all placeholder:text-slate-400"
                     placeholder="Tu nombre completo"
                     required
                   />
@@ -315,13 +261,13 @@ export default function RegisterPage() {
 
                 {/* Role select */}
                 <div className="relative">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Cargo <span className="text-red-400">*</span>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">
+                    Cargo
                   </label>
                   <button
                     type="button"
                     onClick={() => setRoleOpen(!roleOpen)}
-                    className="w-full flex items-center justify-between px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all"
                     data-testid="register-role-select"
                   >
                     <span className={form.role ? "text-slate-800" : "text-slate-400"}>
@@ -336,7 +282,7 @@ export default function RegisterPage() {
                           key={r}
                           type="button"
                           onClick={() => { update("role", r); setRoleOpen(false); }}
-                          className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${form.role === r ? "bg-slate-50 font-medium text-[#001f4b]" : "text-slate-700"}`}
+                          className={`w-full text-left px-4 py-3 text-sm hover:bg-slate-50 transition-colors ${form.role === r ? "bg-blue-50 font-medium text-blue-600" : "text-slate-700"}`}
                           data-testid={`role-option-${r}`}
                         >
                           {r}
@@ -349,15 +295,15 @@ export default function RegisterPage() {
                 {/* Custom role input */}
                 {form.role === "Otro" && (
                   <div className="animate-fadeIn">
-                    <label className="block text-sm font-semibold text-slate-700 mb-2">
-                      Especifica tu cargo <span className="text-red-400">*</span>
+                    <label className="block text-sm font-semibold text-slate-600 mb-2">
+                      Especifica tu cargo
                     </label>
                     <input
                       data-testid="register-custom-role"
                       type="text"
                       value={form.custom_role}
                       onChange={(e) => update("custom_role", e.target.value)}
-                      className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all placeholder:text-slate-400"
+                      className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all placeholder:text-slate-400"
                       placeholder="Ej: Secretario(a) Académico(a)"
                       required
                     />
@@ -366,15 +312,15 @@ export default function RegisterPage() {
 
                 {/* Email */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Correo electrónico <span className="text-red-400">*</span>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">
+                    Correo electrónico
                   </label>
                   <input
                     data-testid="register-email"
                     type="email"
                     value={form.email}
                     onChange={(e) => update("email", e.target.value)}
-                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all placeholder:text-slate-400"
+                    className="w-full px-4 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all placeholder:text-slate-400"
                     placeholder="tu@email.com"
                     required
                   />
@@ -382,11 +328,11 @@ export default function RegisterPage() {
 
                 {/* WhatsApp */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    WhatsApp <span className="text-slate-400 font-normal text-xs">(opcional)</span>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">
+                    WhatsApp <span className="text-slate-400 font-normal">(opcional)</span>
                   </label>
                   <div className="flex gap-2">
-                    <div className="flex items-center gap-2 px-3 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 shrink-0">
+                    <div className="flex items-center gap-2 px-3 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm font-medium text-slate-600 shrink-0">
                       <span className="text-base">🇵🇪</span>
                       <span>+51</span>
                     </div>
@@ -403,7 +349,7 @@ export default function RegisterPage() {
                           update("whatsapp", value);
                         }}
                         maxLength={9}
-                        className="w-full pl-10 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all placeholder:text-slate-400"
+                        className="w-full pl-10 pr-4 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all placeholder:text-slate-400"
                         placeholder="999 999 999"
                       />
                     </div>
@@ -412,8 +358,8 @@ export default function RegisterPage() {
 
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Contraseña <span className="text-red-400">*</span>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">
+                    Contraseña
                   </label>
                   <div className="relative">
                     <input
@@ -421,7 +367,7 @@ export default function RegisterPage() {
                       type={showPass ? "text" : "password"}
                       value={form.password}
                       onChange={(e) => update("password", e.target.value)}
-                      className="w-full px-4 pr-11 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all placeholder:text-slate-400"
+                      className="w-full px-4 pr-11 py-3 bg-slate-50/80 border border-slate-200 rounded-xl text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 focus:bg-white transition-all placeholder:text-slate-400"
                       placeholder="Mínimo 6 caracteres"
                       required
                     />
@@ -441,31 +387,60 @@ export default function RegisterPage() {
                   data-testid="register-submit-btn"
                   type="submit"
                   disabled={loading}
-                  className="w-full py-4 bg-gradient-to-r from-[#001f4b] to-[#1e40af] text-white font-bold rounded-xl hover:shadow-lg hover:shadow-blue-900/20 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+                  className="w-full py-3.5 bg-gradient-to-r from-[#1e40af] to-[#3b82f6] text-white font-bold rounded-xl hover:shadow-lg hover:shadow-blue-500/25 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2 mt-2"
                 >
                   {loading ? (
                     <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    "Crear mi cuenta"
+                    <>
+                      Crear mi cuenta
+                      <ArrowLeft className="w-4 h-4 rotate-180" />
+                    </>
                   )}
                 </button>
               </form>
 
+              {/* Divider */}
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-slate-200" />
+                <span className="text-xs text-slate-400">o continúa con</span>
+                <div className="flex-1 h-px bg-slate-200" />
+              </div>
+
+              {/* Social login buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  Google
+                </button>
+                <button className="flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-700 hover:bg-slate-50 hover:border-slate-300 transition-all">
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+                  </svg>
+                  GitHub
+                </button>
+              </div>
+
               {/* Login link */}
               <p className="text-center text-sm text-slate-500 mt-6">
                 ¿Ya tienes cuenta?{" "}
-                <Link to="/login" className="font-semibold text-[#001f4b] hover:underline" data-testid="register-login-link">
+                <Link to="/login" className="font-semibold text-[#1e40af] hover:underline" data-testid="register-login-link">
                   Inicia sesión
                 </Link>
               </p>
             </div>
 
             {/* Terms */}
-            <p className="text-center text-xs text-slate-400 mt-6 px-4">
+            <p className="text-center text-xs text-slate-400 mt-6">
               Al crear tu cuenta aceptas los{" "}
-              <span className="text-[#1e40af] cursor-pointer hover:underline">Términos de Servicio</span>{" "}
+              <span className="text-blue-500 cursor-pointer hover:underline">Términos</span>{" "}
               y la{" "}
-              <span className="text-[#1e40af] cursor-pointer hover:underline">Política de Privacidad</span>
+              <span className="text-blue-500 cursor-pointer hover:underline">Privacidad</span>
             </p>
           </div>
         </div>
