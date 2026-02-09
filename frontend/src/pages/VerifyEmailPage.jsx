@@ -20,7 +20,7 @@ export default function VerifyEmailPage({ onLogin }) {
     setError("");
     setLoading(true);
     try {
-      const res = await axios.post(`${API}/schools/verify-email`, { email, code });
+      const res = await axios.post(`${API}/auth/verify-email`, { email, code });
       if (res.data.verified) {
         setVerified(true);
         if (res.data.token) {
