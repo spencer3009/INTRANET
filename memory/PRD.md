@@ -1,12 +1,14 @@
-# PRD - EduNet: Intranet para Colegios
+# PRD - EduNet: Intranet SaaS Multi-Tenant para Colegios
 
 ## Problema Original
-Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con landing page, flujo de registro completo, verificación de email, onboarding con configuración de subdominio, y dashboard de administración.
+Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con landing page, flujo de registro completo, verificación de email, onboarding con configuración de subdominio personalizado, y dashboard de administración. Arquitectura multi-tenant basada en subdominios.
 
 ## Arquitectura
 - **Frontend**: React 19, Tailwind CSS, shadcn/ui, Recharts, Lucide React
 - **Backend**: FastAPI, Motor (async MongoDB), JWT auth, bcrypt
 - **Base de datos**: MongoDB
+- **Dominio Base**: edunet.pe (con wildcard DNS *.edunet.pe)
+- **Multi-Tenancy**: Basado en subdominios, routing por Host header
 - **Marca**: EduNet (navy #001f4b, gold #e1b82c)
 
 ## Usuarios
@@ -15,92 +17,177 @@ Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con landing 
 - Profesores (futuro)
 - Padres de familia (futuro)
 
-## Flujo de Usuario
-1. Landing → Registro → Verificación email → Bienvenida → Onboarding (subdominio) → Dashboard
-2. Login directo → Dashboard (usuarios existentes)
+## Flujo SaaS Multi-Tenant (Implementado - Diciembre 2025)
 
-## Implementado
+### Paso 1: Registro Simple
+- **Campos**: nombre_colegio, email, contraseña (solo 3 campos)
+- **Endpoint**: `POST /api/schools/register`
+- **Estado**: `onboarding_complete: false`
 
-### Landing Page (/) — REDISEÑADA v2 (Diciembre 2025)
-**Diseño Premium SaaS - Estilo Stripe/Linear/Notion**
-- [x] Tema oscuro (#0a0f1a) como base - elimina el look "muy blanco"
-- [x] Gradientes mesh (azul/púrpura/dorado) como fondo principal
-- [x] Glassmorphism (backdrop-blur) en cards y navbar
-- [x] Navbar fija con navegación (4 links + 2 CTAs con gradiente dorado)
-- [x] Hero impactante:
-  - Badge "Plataforma #1 en Perú" con ícono Sparkles
-  - Título con gradiente dorado "transforma"
-  - 2 CTAs con hover effects
-  - Trust badges (Sin tarjeta, 5 min setup, Soporte español)
-- [x] Preview de dashboard estilo app:
-  - Frame con botones de navegador
-  - 4 stats coloridas (azul, verde, violeta, ámbar)
-  - Gráfico de barras mini
-  - Tarjetas flotantes animadas (float animation)
-- [x] Estadísticas: 4 cards con gradientes vibrantes (azul, violeta, verde, naranja)
-- [x] Features: 6 cards con íconos en gradientes coloridos
-- [x] "Cómo funciona": Fondo gradiente azul/púrpura, 4 pasos con iconos dorados
-- [x] "Por qué EduNet": Visual abstracto CSS (formas geométricas), lista de beneficios
-- [x] Testimonios: 3 cards con avatares de iniciales, estrellas doradas
-- [x] Pricing: 3 planes con highlight dorado en "Profesional"
-- [x] Seguridad: 4 badges (encriptación, LGPDP, uptime, soporte)
-- [x] FAQ: 4 preguntas expandibles
-- [x] CTA final: Gradiente púrpura/azul impactante
-- [x] Footer oscuro con 4 columnas
-- [x] 100% responsive (móvil y desktop)
-- [x] Sin imágenes pesadas - solo CSS gradients y placeholders
-- [x] Testing: 60/60 tests pasados
+### Paso 2: Verificación de Email
+- **Código**: 6 caracteres alfanuméricos
+- **Endpoint**: `POST /api/schools/verify-email`
+- **Demo**: Código visible en pantalla para testing
+- **Retorna**: Token JWT pero `onboarding_complete: false`
 
-### Registro (/register)
-- [x] Split layout: panel izquierdo marketing + panel derecho formulario
-- [x] Campos: nombre colegio, nombre contacto, cargo (select), email, contraseña, teléfono (opcional)
-- [x] Validación frontend y backend
-- [x] Rechazo de emails duplicados
+### Paso 3: Creación de Subdominio (OBLIGATORIO)
+- **Pantalla**: "Crea el nombre de tu intranet"
+- **Input visual**: `[tucolegio] .edunet.pe` (sufijo fijo)
+- **Validaciones**:
+  - Solo letras minúsculas y números
+  - Sin espacios ni caracteres especiales
+  - Mínimo 3 caracteres, máximo 30
+  - Verificación de disponibilidad en BD (no DNS)
+  - Subdomnios reservados bloqueados (admin, www, api, etc.)
+- **Endpoint disponibilidad**: `GET /api/schools/check-subdomain/{subdomain}`
+- **Endpoint creación**: `POST /api/schools/create-subdomain`
+- **Al completar**: `onboarding_complete: true`, redirige a dashboard
 
-### Verificación de Email (/verify-email)
-- [x] Pantalla de ingreso de código
-- [x] Modo demo: código visible en pantalla
-- [x] Verificación contra backend
-- [x] Generación de JWT al verificar
+### Protección de Rutas
+- Dashboard BLOQUEADO hasta completar onboarding
+- Si `onboarding_complete: false` → redirige a `/welcome`
+- Solo después de crear subdominio se permite acceso
 
-### Bienvenida (/welcome)
-- [x] Saludo personalizado
-- [x] CTA "Empezar configuración"
+### Multi-Tenancy por Host Header
+- **Endpoint**: `GET /api/tenant/info`
+- Backend lee header `Host` de cada request
+- Extrae subdominio dinámicamente
+- Busca colegio en BD por subdomain
+- Si existe → carga intranet de ese colegio
+- Si no existe → muestra landing o error
 
-### Onboarding (/onboarding)
-- [x] Campo nombre del colegio
-- [x] Auto-generación de subdominio (slugify)
-- [x] Verificación de disponibilidad en tiempo real
-- [x] Preview de URL final (subdominio.edunet.pe)
-- [x] Pantalla de creación con loader
-- [x] Pantalla de éxito
+## Modelo de Datos
 
-### Dashboard (/dashboard)
-- [x] Sidebar con navegación por iconos
-- [x] Header con logo, búsqueda expandible, notificaciones, avatar
-- [x] 4 tarjetas de métricas
-- [x] Banner hero de bienvenida
-- [x] Acceso rápido (Calificaciones, Horario, Biblioteca, Contactar)
-- [x] Gráfico de alumnos inscritos (Recharts)
-- [x] Asistencia del mes (donut chart)
-- [x] Noticias y avisos
-- [x] Lista de eventos
-- [x] Calendario mini interactivo
-- [x] Tarjeta de perfil
-- [x] Footer institucional
+### schools
+```json
+{
+  "id": "uuid",
+  "school_name": "Colegio El Roble",
+  "email": "admin@colegio.edu.pe",
+  "password": "bcrypt_hash",
+  "email_verified": true,
+  "verification_code": "ABC123",
+  "onboarding_complete": true,
+  "subdomain": "elroble",
+  "full_domain": "elroble.edunet.pe",
+  "status": "active",
+  "created_at": "2025-12-10T...",
+  "activated_at": "2025-12-10T..."
+}
+```
 
-### Login (/login)
-- [x] Marca EduNet
-- [x] Link a registro
-- [x] Credenciales de prueba: admin@elroble.edu / admin123
+### users
+```json
+{
+  "id": "uuid",
+  "email": "admin@colegio.edu.pe",
+  "password": "bcrypt_hash",
+  "name": "Colegio El Roble",
+  "role": "Administrador",
+  "school_id": "uuid",
+  "avatar": "",
+  "email_verified": true,
+  "onboarding_complete": true,
+  "created_at": "2025-12-10T..."
+}
+```
 
-## Backlog
-- P0: Envío real de emails de verificación
-- P1: CRUD de eventos, métricas, noticias
-- P1: Gestión de alumnos y cursos
-- P1: Roles de usuario (admin, profesor, padre)
-- P2: Módulo de calificaciones funcional
-- P2: Módulo de horarios
-- P2: Planes de pago (free/pro)
-- P3: Notificaciones en tiempo real
-- P3: Chat/mensajería interna
+## API Endpoints
+
+### Autenticación
+- `POST /api/auth/login` - Login con email/password
+- `GET /api/auth/me` - Obtener usuario actual
+
+### Registro SaaS
+- `POST /api/schools/register` - Paso 1: Crear cuenta
+- `POST /api/schools/verify-email` - Paso 2: Verificar código
+- `GET /api/schools/check-subdomain/{subdomain}` - Verificar disponibilidad
+- `POST /api/schools/create-subdomain` - Paso 3: Crear subdominio
+
+### Multi-Tenant
+- `GET /api/tenant/info` - Obtener info del tenant actual
+
+### Dashboard
+- `GET /api/dashboard/metrics` - Métricas del colegio
+- `GET /api/dashboard/events` - Eventos del calendario
+- `GET /api/dashboard/enrollment` - Datos de matrícula
+- `GET /api/dashboard/school` - Info del colegio
+
+## Páginas Frontend
+
+### Públicas
+- `/` - Landing Page (premium, estilo Stripe/Linear)
+- `/register` - Registro simplificado (3 campos)
+- `/login` - Inicio de sesión
+- `/verify-email` - Verificación de código
+
+### Protegidas (requieren auth)
+- `/welcome` - Bienvenida post-verificación
+- `/onboarding` - Creación de subdominio (OBLIGATORIA)
+- `/dashboard` - Dashboard principal (solo si onboarding completo)
+
+## Implementado - Diciembre 2025
+
+### Landing Page ✅
+- Diseño premium estilo SaaS (Stripe/Linear/Notion)
+- Tema oscuro con gradientes mesh
+- Hero impactante con preview de dashboard
+- 6 secciones: Features, How it Works, Why EduNet, Testimonials, Pricing, FAQ
+- 100% responsive
+
+### Registro SaaS Simplificado ✅
+- Solo 3 campos: nombre_colegio, email, contraseña
+- Panel izquierdo informativo (55% ancho)
+- Indicador "Paso 1 de 3"
+
+### Verificación de Email ✅
+- Código demo visible para testing
+- Indicador "Paso 2 de 3"
+
+### Onboarding de Subdominio ✅
+- Input visual: `[subdomain] .edunet.pe`
+- Validación en tiempo real con debounce
+- Preview del dominio final
+- Reglas visibles
+- Indicador "Paso 3 de 3"
+
+### Multi-Tenancy Backend ✅
+- Extracción de subdominio del Host header
+- Validación contra BD (no DNS)
+- Subdominios reservados bloqueados
+- Endpoints tenant-aware
+
+## Próximas Tareas (Backlog)
+
+### P0 - Crítico
+- [ ] Implementar envío real de emails (SendGrid/Resend)
+- [ ] Manejo de errores de red en frontend
+
+### P1 - Importante
+- [ ] CRUD de eventos en dashboard
+- [ ] CRUD de estudiantes
+- [ ] CRUD de docentes
+- [ ] Gestión de roles y permisos
+
+### P2 - Mejoras
+- [ ] Recuperación de contraseña
+- [ ] Cambio de contraseña
+- [ ] Personalización de logo por colegio
+- [ ] Notificaciones en tiempo real
+
+### P3 - Futuro
+- [ ] App móvil
+- [ ] Integración con calificaciones
+- [ ] Módulo de comunicación padres
+- [ ] Integración de pagos (Stripe)
+
+## URLs de Ejemplo
+- Landing: https://edunet.pe
+- Registro: https://edunet.pe/register
+- Intranet Colegio El Roble: https://elroble.edunet.pe
+- Intranet Colegio San Pablo: https://sanpablo.edunet.pe
+
+## Testing
+- API endpoints testeados con curl
+- Frontend verificado con screenshots
+- Flujo completo de registro → verificación → onboarding → dashboard funcional
