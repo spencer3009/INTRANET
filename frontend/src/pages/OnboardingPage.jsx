@@ -29,6 +29,18 @@ export default function OnboardingPage({ token, user, onLogin, onLogout }) {
 
   const headers = { Authorization: `Bearer ${token}` };
 
+  // Handle logout
+  const handleLogout = () => {
+    if (onLogout) {
+      onLogout();
+    } else {
+      // Fallback if onLogout not provided
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+    }
+    navigate("/login");
+  };
+
   // Check availability with debounce
   const checkAvailability = useCallback(async (sub) => {
     if (sub.length < 3) {
