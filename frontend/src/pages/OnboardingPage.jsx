@@ -24,6 +24,7 @@ export default function OnboardingPage({ token, user, onLogin }) {
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(false);
   const [createdDomain, setCreatedDomain] = useState("");
+  const [redirectUrl, setRedirectUrl] = useState("");
   const [error, setError] = useState("");
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -37,9 +38,9 @@ export default function OnboardingPage({ token, user, onLogin }) {
     }
     setChecking(true);
     try {
-      const res = await axios.get(`${API}/schools/check-subdomain/${sub}`);
+      const res = await axios.get(`${API}/subdomain/check?subdomain=${sub}`);
       setAvailable(res.data.available);
-      setAvailMessage(res.data.reason || (res.data.available ? "Disponible" : "No disponible"));
+      setAvailMessage(res.data.reason || (res.data.available ? "¡Disponible!" : "No disponible"));
     } catch {
       setAvailable(null);
       setAvailMessage("Error al verificar");
@@ -62,22 +63,26 @@ export default function OnboardingPage({ token, user, onLogin }) {
     setCreating(true);
 
     try {
+      // Call the schools/create endpoint
       const res = await axios.post(
-        `${API}/schools/create-subdomain`,
+        `${API}/schools/create`,
         { subdomain },
         { headers }
       );
       
-      // Update user state with new token
+      // Update user state with new token and user info
       if (res.data.token && res.data.user) {
         onLogin(res.data.token, res.data.user);
       }
       
       setCreatedDomain(res.data.full_domain);
+      setRedirectUrl(res.data.redirect_url);
       setCreated(true);
       
-      // Redirect to dashboard after showing success
-      // In production, this would redirect to the actual subdomain
+      // In production, would redirect to actual subdomain:
+      // window.location.href = res.data.redirect_url;
+      
+      // For preview, redirect to dashboard after showing success
       setTimeout(() => {
         navigate("/dashboard");
       }, 3000);
@@ -121,7 +126,10 @@ export default function OnboardingPage({ token, user, onLogin }) {
                   {createdDomain}
                 </p>
               </div>
-              <p className="text-sm text-blue-200/60">Redirigiendo al dashboard...</p>
+              <p className="text-sm text-blue-200/60 mb-2">Redirigiendo al dashboard...</p>
+              <p className="text-xs text-blue-200/40">
+                En producción serías redirigido a: {redirectUrl}
+              </p>
               <div className="mt-4">
                 <Loader2 className="w-6 h-6 text-white/40 animate-spin mx-auto" />
               </div>
@@ -165,7 +173,7 @@ export default function OnboardingPage({ token, user, onLogin }) {
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/10 rounded-full px-4 py-2 mb-6">
             <Sparkles className="w-4 h-4 text-[#e1b82c]" />
-            <span className="text-xs font-semibold text-white/70">Paso 3 de 3</span>
+            <span className="text-xs font-semibold text-white/70">Paso 3 de 3 · Obligatorio</span>
           </div>
           
           <h1
@@ -176,7 +184,7 @@ export default function OnboardingPage({ token, user, onLogin }) {
             Crea el nombre de tu intranet
           </h1>
           <p className="text-base text-blue-200/60">
-            Elige un subdominio único para tu colegio
+            Este será el acceso exclusivo de tu colegio
           </p>
         </div>
 
@@ -266,8 +274,15 @@ export default function OnboardingPage({ token, user, onLogin }) {
           </button>
         </form>
 
+        {/* Warning */}
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mt-6">
+          <p className="text-center text-xs text-amber-300/80">
+            ⚠️ Este paso es obligatorio. No podrás acceder al dashboard hasta crear tu subdominio.
+          </p>
+        </div>
+
         {/* Note */}
-        <p className="text-center text-xs text-white/30 mt-6">
+        <p className="text-center text-xs text-white/30 mt-4">
           No podrás cambiar el subdominio después de crearlo
         </p>
       </div>
