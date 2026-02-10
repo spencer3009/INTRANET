@@ -203,10 +203,17 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [ ] Refactorizar UsersPage.jsx (>1000 líneas)
 
 ### P3 - Futuro
-- [ ] Módulo de Horarios
+- [x] Módulo de Horarios (UI básica implementada - 10 Feb 2026)
 - [ ] Módulo de Asistencia
 - [ ] Módulo de Calificaciones
 - [ ] Módulo de Reportes
+
+## Últimos Cambios (10 Feb 2026)
+- **Fix: Módulo de Horarios** - Corregido endpoint `/api/tenant/settings` → `/api/settings`
+- **Fix: Dropdowns de grados y profesores** - Ahora cargan correctamente los datos
+- **Fix: Logo del colegio** - Ahora se muestra en el header de la página de Horarios
+- **Fix: Ordenamiento de grados** - Ordenados por nivel (Inicial → Primaria → Secundaria)
+- **Fix: Ruta de Horarios** - Cambiada de `/schedule` a `/horarios` para consistencia en español
 
 ## Credenciales de Prueba
 - **Email**: admin.settings@test.pe
