@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import { 
-  Users, UserPlus, ArrowLeft, Loader2, 
-  GraduationCap, Briefcase, BookOpen, UserCheck,
-  Shield, Clock, Building2
+  Users, UserPlus, ArrowLeft, Loader2, X, Camera, Upload,
+  GraduationCap, Building2, Check, AlertCircle, Plus
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -76,6 +75,413 @@ const ROLE_CARDS = [
   },
 ];
 
+// Add User Modal Component
+function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
+  const fileInputRef = useRef(null);
+  const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  
+  const [form, setForm] = useState({
+    photo_url: "",
+    name: "",
+    last_name: "",
+    username: "",
+    password: "",
+    email: "",
+    phone: "",
+    birthday: "",
+    gender: "",
+    address: "",
+    role: roleId || "teacher"
+  });
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setForm({
+        photo_url: "",
+        name: "",
+        last_name: "",
+        username: "",
+        password: "",
+        email: "",
+        phone: "",
+        birthday: "",
+        gender: "",
+        address: "",
+        role: roleId || "teacher"
+      });
+      setError("");
+      setUsernameError("");
+    }
+  }, [isOpen, roleId]);
+
+  // Check username availability
+  const checkUsername = async (username) => {
+    if (!username || username.length < 3) {
+      setUsernameError("");
+      return;
+    }
+    
+    setCheckingUsername(true);
+    try {
+      const res = await axios.get(`${API}/users/check-username/${username}`, { headers });
+      if (!res.data.available) {
+        setUsernameError("El usuario ya existe");
+      } else {
+        setUsernameError("");
+      }
+    } catch (err) {
+      console.error("Error checking username:", err);
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  // Handle photo upload
+  const handlePhotoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      setError("Solo se permiten archivos de imagen");
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      setError("El archivo no debe superar 5MB");
+      return;
+    }
+    
+    setUploading(true);
+    setError("");
+    
+    try {
+      const sigRes = await axios.get(
+        `${API}/cloudinary/signature?resource_type=image&folder=edunet/users`,
+        { headers }
+      );
+      const sig = sigRes.data;
+      
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", sig.api_key);
+      formData.append("timestamp", sig.timestamp);
+      formData.append("signature", sig.signature);
+      formData.append("folder", sig.folder);
+      
+      const uploadRes = await fetch(
+        `https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`,
+        { method: "POST", body: formData }
+      );
+      
+      const uploadData = await uploadRes.json();
+      
+      if (uploadData.secure_url) {
+        setForm(prev => ({ ...prev, photo_url: uploadData.secure_url }));
+      } else {
+        throw new Error("Error al subir imagen");
+      }
+    } catch (err) {
+      setError(err.message || "Error al subir la foto");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Handle form submit
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!form.name || !form.username || !form.password) {
+      setError("Nombre, usuario y contraseña son obligatorios");
+      return;
+    }
+    
+    if (usernameError) {
+      setError("El nombre de usuario no está disponible");
+      return;
+    }
+    
+    setLoading(true);
+    setError("");
+    
+    try {
+      const res = await axios.post(`${API}/users`, form, { headers });
+      onUserCreated(res.data.user);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al crear usuario");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (field, value) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+    if (field === 'username') {
+      // Debounce username check
+      clearTimeout(window.usernameTimeout);
+      window.usernameTimeout = setTimeout(() => checkUsername(value), 500);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  const roleConfig = ROLE_CARDS.find(r => r.id === roleId) || ROLE_CARDS[2];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8" data-testid="add-user-modal">
+        {/* Header */}
+        <div className={`bg-gradient-to-r ${roleConfig.color} px-6 py-4 rounded-t-2xl flex items-center justify-between`}>
+          <div className="flex items-center gap-3">
+            <img src={roleConfig.image} alt="" className="w-10 h-10" />
+            <div className="text-white">
+              <h2 className="text-xl font-bold">Nuevo {roleConfig.labelSingular}</h2>
+              <p className="text-white/70 text-sm">Completa los datos del usuario</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6">
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Photo Upload - Full width */}
+            <div className="md:col-span-2 flex flex-col items-center">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Fotografía</label>
+              <div 
+                className="relative group cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <div className="w-28 h-28 rounded-full border-3 border-dashed border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden transition-all group-hover:border-blue-400">
+                  {form.photo_url ? (
+                    <img src={form.photo_url} alt="Foto" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center">
+                      <Camera className="w-8 h-8 text-slate-300 mx-auto" />
+                    </div>
+                  )}
+                </div>
+                <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  {uploading ? (
+                    <Loader2 className="w-6 h-6 text-white animate-spin" />
+                  ) : (
+                    <Camera className="w-6 h-6 text-white" />
+                  )}
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg">
+                  <Plus className="w-4 h-4 text-white" />
+                </div>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handlePhotoUpload}
+                className="hidden"
+              />
+              <p className="text-xs text-slate-400 mt-2">Click para subir foto</p>
+            </div>
+
+            {/* Name */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Nombre <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={form.name}
+                onChange={(e) => handleChange('name', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder="Juan"
+                required
+              />
+            </div>
+
+            {/* Last Name */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Apellido</label>
+              <input
+                type="text"
+                value={form.last_name}
+                onChange={(e) => handleChange('last_name', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder="Pérez"
+              />
+            </div>
+
+            {/* Username */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Usuario <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={form.username}
+                  onChange={(e) => handleChange('username', e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                    usernameError 
+                      ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500' 
+                      : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
+                  placeholder="juanperez"
+                  required
+                />
+                {checkingUsername && (
+                  <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
+                )}
+                {!checkingUsername && form.username && !usernameError && (
+                  <Check className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-500" />
+                )}
+              </div>
+              {usernameError && (
+                <p className="text-xs text-red-500 mt-1">{usernameError}</p>
+              )}
+            </div>
+
+            {/* Password */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Contraseña <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => handleChange('password', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Correo</label>
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => handleChange('email', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder="juan@correo.com"
+              />
+            </div>
+
+            {/* Phone */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Celular</label>
+              <input
+                type="tel"
+                value={form.phone}
+                onChange={(e) => handleChange('phone', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder="+51 999 999 999"
+              />
+            </div>
+
+            {/* Birthday */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Cumpleaños</label>
+              <input
+                type="date"
+                value={form.birthday}
+                onChange={(e) => handleChange('birthday', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+              />
+            </div>
+
+            {/* Gender */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Género</label>
+              <select
+                value={form.gender}
+                onChange={(e) => handleChange('gender', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="">Seleccionar...</option>
+                <option value="male">Masculino</option>
+                <option value="female">Femenino</option>
+                <option value="other">Otro</option>
+              </select>
+            </div>
+
+            {/* Address */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Dirección</label>
+              <input
+                type="text"
+                value={form.address}
+                onChange={(e) => handleChange('address', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder="Av. Principal 123"
+              />
+            </div>
+
+            {/* Role */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de cuenta</label>
+              <select
+                value={form.role}
+                onChange={(e) => handleChange('role', e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+              >
+                <option value="admin">Administrador</option>
+                <option value="teacher">Profesor</option>
+                <option value="student">Estudiante</option>
+                <option value="parent">Padre/Apoderado</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="mt-8 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || usernameError}
+              className={`flex-1 px-6 py-3 bg-gradient-to-r ${roleConfig.color} text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2`}
+            >
+              {loading ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <Check className="w-5 h-5" />
+                  Guardar
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function UsersPage({ user, token, subdomain, onLogout }) {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -85,6 +491,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [error, setError] = useState("");
   const [selectedRole, setSelectedRole] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addModalRole, setAddModalRole] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -120,6 +527,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     setSelectedRole(roleId);
   };
 
+  const handleAddUser = (roleId) => {
+    setAddModalRole(roleId === 'pending' ? 'teacher' : roleId);
+    setShowAddModal(true);
+  };
+
+  const handleUserCreated = (newUser) => {
+    setUsers(prev => [...prev, newUser]);
+  };
+
   const schoolName = settings?.system_name || user?.name || "Mi Colegio";
   const logoUrl = settings?.logo_url;
 
@@ -141,12 +557,25 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             <ArrowLeft className="w-5 h-5" />
             Volver a categorías
           </button>
-          <div className="flex items-center gap-4">
-            <img src={roleConfig.image} alt={roleConfig.label} className="w-16 h-16 object-contain" />
-            <div>
-              <h1 className="text-3xl font-bold">{roleConfig.label}</h1>
-              <p className="text-white/80">{filteredUsers.length} {filteredUsers.length === 1 ? roleConfig.labelSingular : roleConfig.label.toLowerCase()}</p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <img src={roleConfig.image} alt={roleConfig.label} className="w-16 h-16 object-contain" />
+              <div>
+                <h1 className="text-3xl font-bold">{roleConfig.label}</h1>
+                <p className="text-white/80">{filteredUsers.length} {filteredUsers.length === 1 ? roleConfig.labelSingular : roleConfig.label.toLowerCase()}</p>
+              </div>
             </div>
+            
+            {/* Add button */}
+            {selectedRole !== 'owner' && (
+              <button
+                onClick={() => handleAddUser(selectedRole)}
+                className="w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                data-testid="add-user-circle-btn"
+              >
+                <Plus className="w-7 h-7 text-white" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -155,13 +584,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
             <img src={roleConfig.image} alt="" className="w-24 h-24 mx-auto mb-4 opacity-30" />
             <p className="text-slate-500">No hay {roleConfig.label.toLowerCase()} registrados</p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className={`mt-4 px-6 py-3 bg-gradient-to-r ${roleConfig.color} text-white rounded-xl font-semibold hover:shadow-lg transition-all`}
-            >
-              <UserPlus className="w-4 h-4 inline mr-2" />
-              Agregar {roleConfig.labelSingular}
-            </button>
+            {selectedRole !== 'owner' && (
+              <button
+                onClick={() => handleAddUser(selectedRole)}
+                className={`mt-4 px-6 py-3 bg-gradient-to-r ${roleConfig.color} text-white rounded-xl font-semibold hover:shadow-lg transition-all`}
+              >
+                <UserPlus className="w-4 h-4 inline mr-2" />
+                Agregar {roleConfig.labelSingular}
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -172,14 +603,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 data-testid={`user-card-${u.id}`}
               >
                 <div className="flex items-center gap-4 mb-4">
-                  <div className={`w-14 h-14 rounded-full ${roleConfig.iconBg} flex items-center justify-center`}>
-                    <span className={`text-xl font-bold ${roleConfig.textColor}`}>
-                      {u.name?.charAt(0)?.toUpperCase() || "U"}
-                    </span>
-                  </div>
+                  {u.photo_url ? (
+                    <img 
+                      src={u.photo_url} 
+                      alt={u.name} 
+                      className="w-14 h-14 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className={`w-14 h-14 rounded-full ${roleConfig.iconBg} flex items-center justify-center`}>
+                      <span className={`text-xl font-bold ${roleConfig.textColor}`}>
+                        {u.name?.charAt(0)?.toUpperCase() || "U"}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-slate-800 truncate">{u.name || "Sin nombre"}</h3>
-                    <p className="text-sm text-slate-500 truncate">{u.email}</p>
+                    <h3 className="font-semibold text-slate-800 truncate">
+                      {u.name} {u.last_name || ""}
+                    </h3>
+                    <p className="text-sm text-slate-500 truncate">{u.email || u.username}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between pt-4 border-t border-slate-100">
@@ -219,7 +660,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
         <div className="relative px-8 py-8">
           <div className="flex items-center gap-6">
-            {/* Logo */}
             <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg overflow-hidden">
               {logoUrl ? (
                 <img src={logoUrl} alt={schoolName} className="w-16 h-16 object-contain" />
@@ -228,7 +668,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               )}
             </div>
 
-            {/* Title */}
             <div className="text-white flex-1">
               <h1 className="text-3xl font-bold tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
                 Usuarios
@@ -236,9 +675,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <p className="text-amber-100">{schoolName}</p>
             </div>
 
-            {/* Add button */}
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => handleAddUser('teacher')}
               className="flex items-center gap-2 bg-white text-amber-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
               data-testid="users-add-btn"
             >
@@ -350,7 +788,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         subdomain={subdomain}
       />
 
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 bg-black/30 z-30 lg:hidden"
@@ -373,30 +810,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       </div>
 
       {/* Add User Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-                <UserPlus className="w-6 h-6 text-amber-600" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-slate-800">Nuevo Usuario</h2>
-                <p className="text-sm text-slate-500">Invitar usuario al sistema</p>
-              </div>
-            </div>
-            <p className="text-slate-500 mb-6 bg-amber-50 p-4 rounded-xl">
-              La funcionalidad de invitar usuarios estará disponible próximamente.
-            </p>
-            <button
-              onClick={() => setShowAddModal(false)}
-              className="w-full px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-all"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
+      <AddUserModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        token={token}
+        roleId={addModalRole}
+        onUserCreated={handleUserCreated}
+      />
     </div>
   );
 }
