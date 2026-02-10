@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { 
-  Wallet, Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
-  TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle, DollarSign,
-  Receipt, CreditCard, Building, Filter, ChevronLeft, ChevronRight, User,
-  ArrowUpRight, ArrowDownRight, MoreHorizontal, Calendar, Banknote,
-  PiggyBank, CircleDollarSign, FileText
+  Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
+  TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle,
+  Receipt, CreditCard, Filter, ChevronLeft, ChevronRight, User,
+  ArrowUpRight, ArrowDownRight, Calendar, Landmark,
+  CircleDollarSign, FileText, Percent, Scale, Briefcase,
+  BadgeDollarSign, Coins, ChartLine, Building2, Wallet2,
+  ShieldCheck, BarChart4, LineChart
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -31,11 +33,11 @@ const METHODS = {
   tarjeta: "Tarjeta"
 };
 
-// Payment statuses - softer colors
+// Payment statuses - Premium banking colors
 const PAYMENT_STATUSES = {
-  pending: { label: "Pendiente", color: "#F59E0B", bgClass: "bg-amber-50", textClass: "text-amber-600", dotClass: "bg-amber-400" },
-  paid: { label: "Pagado", color: "#10B981", bgClass: "bg-emerald-50", textClass: "text-emerald-600", dotClass: "bg-emerald-400" },
-  canceled: { label: "Anulado", color: "#EF4444", bgClass: "bg-red-50", textClass: "text-red-500", dotClass: "bg-red-400" }
+  pending: { label: "Pendiente", bgClass: "bg-amber-50", textClass: "text-amber-700", borderClass: "border-amber-200", dotClass: "bg-amber-500" },
+  paid: { label: "Pagado", bgClass: "bg-emerald-50", textClass: "text-emerald-700", borderClass: "border-emerald-200", dotClass: "bg-emerald-500" },
+  canceled: { label: "Anulado", bgClass: "bg-rose-50", textClass: "text-rose-700", borderClass: "border-rose-200", dotClass: "bg-rose-500" }
 };
 
 // Expense categories
@@ -68,24 +70,24 @@ const formatNumber = (amount) => {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SKELETON LOADER
+// SKELETON LOADER - Premium
 // ══════════════════════════════════════════════════════════════════════════════
 function AccountingSkeleton() {
   return (
     <div className="space-y-6" data-testid="accounting-skeleton">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-2xl p-6 animate-pulse border border-slate-100">
-            <div className="h-4 bg-slate-100 rounded w-1/2 mb-4" />
-            <div className="h-8 bg-slate-100 rounded w-3/4" />
+          <div key={i} className="bg-white rounded-2xl p-6 animate-pulse shadow-sm border border-gray-100">
+            <div className="h-4 bg-gray-100 rounded w-1/2 mb-4" />
+            <div className="h-8 bg-gray-100 rounded w-3/4" />
           </div>
         ))}
       </div>
-      <div className="bg-white rounded-2xl p-6 animate-pulse border border-slate-100">
-        <div className="h-6 bg-slate-100 rounded w-1/4 mb-4" />
+      <div className="bg-white rounded-2xl p-6 animate-pulse shadow-sm border border-gray-100">
+        <div className="h-6 bg-gray-100 rounded w-1/4 mb-4" />
         <div className="space-y-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-16 bg-slate-50 rounded-xl" />
+            <div key={i} className="h-16 bg-gray-50 rounded-xl" />
           ))}
         </div>
       </div>
@@ -94,181 +96,222 @@ function AccountingSkeleton() {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// STAT CARD COMPONENT - Premium Design
+// STAT CARD COMPONENT - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 function StatCard({ title, value, subtitle, icon: Icon, trend, trendValue, variant = "default" }) {
   const variants = {
     default: {
-      iconBg: "bg-slate-100",
-      iconColor: "text-slate-600",
-      valueColor: "text-slate-900"
+      iconBg: "bg-gradient-to-br from-slate-600 to-slate-700",
+      iconColor: "text-white",
+      valueColor: "text-slate-800",
+      cardClass: ""
     },
-    success: {
-      iconBg: "bg-emerald-50",
-      iconColor: "text-emerald-600",
-      valueColor: "text-emerald-700"
+    income: {
+      iconBg: "bg-gradient-to-br from-emerald-500 to-teal-600",
+      iconColor: "text-white",
+      valueColor: "text-emerald-700",
+      cardClass: "border-l-4 border-l-emerald-500"
     },
-    danger: {
-      iconBg: "bg-red-50",
-      iconColor: "text-red-500",
-      valueColor: "text-red-600"
+    expense: {
+      iconBg: "bg-gradient-to-br from-rose-500 to-pink-600",
+      iconColor: "text-white",
+      valueColor: "text-rose-700",
+      cardClass: "border-l-4 border-l-rose-500"
     },
-    warning: {
-      iconBg: "bg-amber-50",
-      iconColor: "text-amber-600",
-      valueColor: "text-amber-700"
+    pending: {
+      iconBg: "bg-gradient-to-br from-amber-400 to-orange-500",
+      iconColor: "text-white",
+      valueColor: "text-amber-700",
+      cardClass: "border-l-4 border-l-amber-500"
     },
-    info: {
-      iconBg: "bg-blue-50",
-      iconColor: "text-blue-600",
-      valueColor: "text-blue-700"
+    balance: {
+      iconBg: "bg-gradient-to-br from-blue-600 to-indigo-700",
+      iconColor: "text-white",
+      valueColor: "text-blue-700",
+      cardClass: "border-l-4 border-l-blue-600"
     }
   };
 
   const style = variants[variant];
 
   return (
-    <div className="bg-white rounded-2xl p-6 border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
+    <div className={`bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300 ${style.cardClass}`}>
       <div className="flex items-start justify-between mb-4">
-        <div className={`w-12 h-12 ${style.iconBg} rounded-xl flex items-center justify-center`}>
-          <Icon className={`w-6 h-6 ${style.iconColor}`} />
+        <div className={`w-11 h-11 ${style.iconBg} rounded-xl flex items-center justify-center shadow-lg`}>
+          <Icon className={`w-5 h-5 ${style.iconColor}`} />
         </div>
         {trend && (
-          <div className={`flex items-center gap-1 text-sm font-medium ${
-            trend === "up" ? "text-emerald-600" : "text-red-500"
+          <div className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ${
+            trend === "up" ? "bg-emerald-50 text-emerald-600" : "bg-rose-50 text-rose-600"
           }`}>
-            {trend === "up" ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+            {trend === "up" ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
             {trendValue}
           </div>
         )}
       </div>
-      <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
-      <p className={`text-2xl font-bold ${style.valueColor}`}>{value}</p>
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{title}</p>
+      <p className={`text-2xl font-bold ${style.valueColor} tracking-tight`}>{value}</p>
       {subtitle && (
-        <p className="text-xs text-slate-400 mt-1">{subtitle}</p>
+        <p className="text-xs text-gray-400 mt-1.5">{subtitle}</p>
       )}
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// DASHBOARD TAB - Premium Design
+// DASHBOARD TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 function DashboardTab({ summary, loading, onViewPayment, onViewExpense }) {
   if (loading) return <AccountingSkeleton />;
   
   return (
     <div className="space-y-6">
-      {/* Period header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold text-slate-800">
-            Resumen Financiero
-          </h2>
-          <p className="text-sm text-slate-500">
-            {summary?.period?.month_name} {summary?.period?.year}
-          </p>
+      {/* Period header - Premium banking style */}
+      <div className="flex items-center justify-between bg-gradient-to-r from-slate-800 via-slate-700 to-slate-800 rounded-2xl px-6 py-5 shadow-lg">
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 bg-white/10 backdrop-blur rounded-xl flex items-center justify-center">
+            <BarChart4 className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-bold text-white">
+              Resumen Financiero
+            </h2>
+            <p className="text-sm text-slate-300">
+              {summary?.period?.month_name} {summary?.period?.year}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl text-sm text-slate-600">
-          <FileText className="w-4 h-4" />
-          IGV: {IGV_PERCENTAGE}%
+        <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur rounded-xl">
+          <Percent className="w-4 h-4 text-amber-400" />
+          <span className="text-sm font-semibold text-white">IGV: {IGV_PERCENTAGE}%</span>
         </div>
       </div>
       
-      {/* Stats cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Stats cards - Premium layout */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
         <StatCard
-          title="Ingresos Confirmados"
+          title="Ingresos"
           value={`S/ ${formatNumber(summary?.ingresos?.total)}`}
-          subtitle={`${summary?.ingresos?.count || 0} pagos registrados`}
+          subtitle={`${summary?.ingresos?.count || 0} pagos confirmados`}
           icon={TrendingUp}
-          variant="success"
+          variant="income"
         />
         <StatCard
-          title="Egresos Totales"
+          title="Egresos"
           value={`S/ ${formatNumber(summary?.egresos?.total)}`}
           subtitle={`${summary?.egresos?.count || 0} gastos registrados`}
           icon={TrendingDown}
-          variant="danger"
+          variant="expense"
         />
         <StatCard
-          title="Pagos Pendientes"
+          title="Por Cobrar"
           value={`S/ ${formatNumber(summary?.pendientes?.total)}`}
-          subtitle={`${summary?.pendientes?.count || 0} por cobrar`}
+          subtitle={`${summary?.pendientes?.count || 0} pagos pendientes`}
           icon={Clock}
-          variant="warning"
+          variant="pending"
         />
         <StatCard
-          title="Balance del Mes"
+          title="Balance"
           value={`S/ ${formatNumber(summary?.balance)}`}
           subtitle="Ingresos - Egresos"
-          icon={PiggyBank}
-          variant={(summary?.balance || 0) >= 0 ? "info" : "danger"}
+          icon={Scale}
+          variant={(summary?.balance || 0) >= 0 ? "balance" : "expense"}
         />
       </div>
 
-      {/* IGV Summary */}
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl p-6 border border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-emerald-600" />
-            Detalle de Ingresos
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-slate-50">
-              <span className="text-sm text-slate-500">Base Imponible</span>
-              <span className="text-sm font-semibold text-slate-700">S/ {formatNumber(summary?.ingresos?.base)}</span>
+      {/* IGV Detail Cards - Premium design */}
+      <div className="grid lg:grid-cols-2 gap-5">
+        {/* Income breakdown */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+                <Coins className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Detalle de Ingresos</h3>
+                <p className="text-xs text-emerald-100">Desglose con IGV</p>
+              </div>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-slate-50">
-              <span className="text-sm text-slate-500">IGV (18%)</span>
-              <span className="text-sm font-semibold text-slate-700">S/ {formatNumber(summary?.ingresos?.igv)}</span>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                <span className="text-sm text-gray-600">Base Imponible</span>
+              </div>
+              <span className="text-sm font-bold text-gray-800">S/ {formatNumber(summary?.ingresos?.base)}</span>
             </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-slate-700">Total</span>
-              <span className="text-base font-bold text-emerald-600">S/ {formatNumber(summary?.ingresos?.total)}</span>
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                <span className="text-sm text-gray-600">IGV (18%)</span>
+              </div>
+              <span className="text-sm font-bold text-gray-800">S/ {formatNumber(summary?.ingresos?.igv)}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-sm font-bold text-gray-700">Total Ingresos</span>
+              <span className="text-xl font-bold text-emerald-600">S/ {formatNumber(summary?.ingresos?.total)}</span>
             </div>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-slate-100">
-          <h3 className="text-sm font-semibold text-slate-800 mb-4 flex items-center gap-2">
-            <CreditCard className="w-4 h-4 text-red-500" />
-            Detalle de Egresos
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center py-2 border-b border-slate-50">
-              <span className="text-sm text-slate-500">Base Imponible</span>
-              <span className="text-sm font-semibold text-slate-700">S/ {formatNumber(summary?.egresos?.base)}</span>
+        {/* Expense breakdown */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="bg-gradient-to-r from-rose-500 to-pink-600 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
+                <CreditCard className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Detalle de Egresos</h3>
+                <p className="text-xs text-rose-100">Desglose con IGV</p>
+              </div>
             </div>
-            <div className="flex justify-between items-center py-2 border-b border-slate-50">
-              <span className="text-sm text-slate-500">IGV (18%)</span>
-              <span className="text-sm font-semibold text-slate-700">S/ {formatNumber(summary?.egresos?.igv)}</span>
+          </div>
+          <div className="p-5 space-y-4">
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                <span className="text-sm text-gray-600">Base Imponible</span>
+              </div>
+              <span className="text-sm font-bold text-gray-800">S/ {formatNumber(summary?.egresos?.base)}</span>
             </div>
-            <div className="flex justify-between items-center py-2">
-              <span className="text-sm font-medium text-slate-700">Total</span>
-              <span className="text-base font-bold text-red-500">S/ {formatNumber(summary?.egresos?.total)}</span>
+            <div className="flex justify-between items-center py-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                <span className="text-sm text-gray-600">IGV (18%)</span>
+              </div>
+              <span className="text-sm font-bold text-gray-800">S/ {formatNumber(summary?.egresos?.igv)}</span>
+            </div>
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-sm font-bold text-gray-700">Total Egresos</span>
+              <span className="text-xl font-bold text-rose-600">S/ {formatNumber(summary?.egresos?.total)}</span>
             </div>
           </div>
         </div>
       </div>
       
-      {/* Recent transactions */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      {/* Recent transactions - Premium style */}
+      <div className="grid lg:grid-cols-2 gap-5">
         {/* Recent payments */}
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-emerald-400" />
-              Últimos Ingresos
-            </h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <ArrowUpRight className="w-4 h-4 text-emerald-600" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-sm">Últimos Ingresos</h3>
+            </div>
+            <span className="text-xs text-gray-400">Recientes</span>
           </div>
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-gray-50">
             {summary?.recent_payments?.length === 0 ? (
               <div className="p-8 text-center">
-                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Receipt className="w-6 h-6 text-slate-300" />
+                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <Receipt className="w-7 h-7 text-gray-300" />
                 </div>
-                <p className="text-sm text-slate-400">No hay pagos registrados</p>
+                <p className="text-sm text-gray-400 font-medium">No hay pagos registrados</p>
               </div>
             ) : (
               summary?.recent_payments?.map(payment => {
@@ -276,24 +319,24 @@ function DashboardTab({ summary, loading, onViewPayment, onViewExpense }) {
                 return (
                   <div 
                     key={payment.id} 
-                    className="px-6 py-4 hover:bg-slate-50/50 cursor-pointer transition-colors"
+                    className="px-5 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
                     onClick={() => onViewPayment(payment)}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
-                          <User className="w-5 h-5 text-slate-400" />
+                        <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
+                          <User className="w-5 h-5 text-gray-500" />
                         </div>
                         <div>
-                          <p className="text-sm font-medium text-slate-800">{payment.student_name}</p>
-                          <p className="text-xs text-slate-400">{payment.concept_label}</p>
+                          <p className="text-sm font-semibold text-gray-800">{payment.student_name}</p>
+                          <p className="text-xs text-gray-400">{payment.concept_label}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold text-slate-800">S/ {formatNumber(payment.total_amount)}</p>
-                        <div className="flex items-center gap-1.5 justify-end mt-1">
+                        <p className="text-sm font-bold text-gray-800">S/ {formatNumber(payment.total_amount)}</p>
+                        <div className={`inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.bgClass} ${statusInfo.textClass}`}>
                           <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.dotClass}`} />
-                          <span className={`text-xs ${statusInfo.textClass}`}>{statusInfo.label}</span>
+                          {statusInfo.label}
                         </div>
                       </div>
                     </div>
@@ -305,41 +348,44 @@ function DashboardTab({ summary, loading, onViewPayment, onViewExpense }) {
         </div>
         
         {/* Recent expenses */}
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800 flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-red-400" />
-              Últimos Egresos
-            </h3>
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center">
+                <ArrowDownRight className="w-4 h-4 text-rose-600" />
+              </div>
+              <h3 className="font-bold text-gray-800 text-sm">Últimos Egresos</h3>
+            </div>
+            <span className="text-xs text-gray-400">Recientes</span>
           </div>
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-gray-50">
             {summary?.recent_expenses?.length === 0 ? (
               <div className="p-8 text-center">
-                <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <CreditCard className="w-6 h-6 text-slate-300" />
+                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <CreditCard className="w-7 h-7 text-gray-300" />
                 </div>
-                <p className="text-sm text-slate-400">No hay egresos registrados</p>
+                <p className="text-sm text-gray-400 font-medium">No hay egresos registrados</p>
               </div>
             ) : (
               summary?.recent_expenses?.map(expense => (
                 <div 
                   key={expense.id} 
-                  className="px-6 py-4 hover:bg-slate-50/50 cursor-pointer transition-colors"
+                  className="px-5 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
                   onClick={() => onViewExpense(expense)}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
-                        <CreditCard className="w-5 h-5 text-red-400" />
+                      <div className="w-10 h-10 bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl flex items-center justify-center">
+                        <Briefcase className="w-5 h-5 text-rose-500" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-slate-800">{expense.title}</p>
-                        <p className="text-xs text-slate-400">{expense.category_label}</p>
+                        <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
+                        <p className="text-xs text-gray-400">{expense.category_label}</p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-semibold text-red-500">- S/ {formatNumber(expense.total_amount)}</p>
-                      <p className="text-xs text-slate-400 mt-1">{expense.expense_date}</p>
+                      <p className="text-sm font-bold text-rose-600">- S/ {formatNumber(expense.total_amount)}</p>
+                      <p className="text-xs text-gray-400 mt-1">{expense.expense_date}</p>
                     </div>
                   </div>
                 </div>
@@ -353,22 +399,22 @@ function DashboardTab({ summary, loading, onViewPayment, onViewExpense }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PAYMENTS TAB - Premium Design
+// PAYMENTS TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, filterStatus, setFilterStatus }) {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-5">
+      {/* Header - Premium style */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-500">Filtrar:</span>
+          <span className="text-sm font-medium text-gray-500">Estado:</span>
           <div className="flex gap-2">
             <button
               onClick={() => setFilterStatus("")}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 filterStatus === ""
-                  ? "bg-slate-800 text-white"
-                  : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300"
+                  ? "bg-slate-800 text-white shadow-md"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
               Todos
@@ -377,10 +423,10 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
               <button
                 key={key}
                 onClick={() => setFilterStatus(key)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                   filterStatus === key
-                    ? `${val.bgClass} ${val.textClass} border border-current`
-                    : "bg-white text-slate-600 border border-slate-200 hover:border-slate-300"
+                    ? `${val.bgClass} ${val.textClass} border ${val.borderClass}`
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 <div className={`w-2 h-2 rounded-full ${val.dotClass}`} />
@@ -391,87 +437,85 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
         </div>
         <button
           onClick={onCreateNew}
-          className="px-5 py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 transition-colors flex items-center gap-2"
+          className="px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
           data-testid="create-payment-btn"
         >
           <Plus className="w-4 h-4" />
-          Registrar Pago
+          Nuevo Ingreso
         </button>
       </div>
       
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      {/* Table - Premium design */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-100">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Estudiante</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Concepto</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Base</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">IGV</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Método</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estudiante</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Concepto</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Base</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">IGV</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Método</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha</th>
+                <th className="px-5 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-gray-50">
               {payments.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-6 py-16 text-center">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <Receipt className="w-8 h-8 text-slate-300" />
+                  <td colSpan={9} className="px-5 py-16 text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <Receipt className="w-8 h-8 text-gray-300" />
                     </div>
-                    <p className="text-slate-500 font-medium">No hay pagos registrados</p>
-                    <p className="text-sm text-slate-400 mt-1">Comienza registrando tu primer pago</p>
+                    <p className="text-gray-500 font-semibold">No hay ingresos registrados</p>
+                    <p className="text-sm text-gray-400 mt-1">Registra tu primer ingreso</p>
                   </td>
                 </tr>
               ) : (
                 payments.map(payment => {
                   const statusInfo = PAYMENT_STATUSES[payment.payment_status] || PAYMENT_STATUSES.pending;
                   return (
-                    <tr key={payment.id} className="hover:bg-slate-50/50 transition-colors" data-testid={`payment-row-${payment.id}`}>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
+                    <tr key={payment.id} className="hover:bg-gray-50/50 transition-colors" data-testid={`payment-row-${payment.id}`}>
+                      <td className="px-5 py-4">
+                        <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${statusInfo.bgClass} ${statusInfo.textClass}`}>
                           <div className={`w-2 h-2 rounded-full ${statusInfo.dotClass}`} />
-                          <span className={`text-sm font-medium ${statusInfo.textClass}`}>
-                            {statusInfo.label}
-                          </span>
+                          {statusInfo.label}
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center">
-                            <User className="w-4 h-4 text-slate-400" />
+                          <div className="w-9 h-9 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                            <User className="w-4 h-4 text-gray-500" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-slate-800">{payment.student_name}</p>
-                            <p className="text-xs text-slate-400">{payment.grade_name}</p>
+                            <p className="text-sm font-semibold text-gray-800">{payment.student_name}</p>
+                            <p className="text-xs text-gray-400">{payment.grade_name}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-600">{payment.concept_label}</span>
+                      <td className="px-5 py-4">
+                        <span className="text-sm text-gray-600 font-medium">{payment.concept_label}</span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm text-slate-600">S/ {formatNumber(payment.amount_base)}</span>
+                      <td className="px-5 py-4 text-right">
+                        <span className="text-sm text-gray-600 font-medium">S/ {formatNumber(payment.amount_base)}</span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm text-slate-400">
+                      <td className="px-5 py-4 text-right">
+                        <span className="text-sm text-gray-400">
                           {payment.igv_applicable ? `S/ ${formatNumber(payment.igv_amount)}` : "-"}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <span className="text-sm font-semibold text-slate-800">S/ {formatNumber(payment.total_amount)}</span>
+                      <td className="px-5 py-4 text-right">
+                        <span className="text-sm font-bold text-gray-800">S/ {formatNumber(payment.total_amount)}</span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-600">{payment.method_label}</span>
+                      <td className="px-5 py-4">
+                        <span className="text-sm text-gray-600">{payment.method_label}</span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className="text-sm text-slate-500">{payment.payment_date}</span>
+                      <td className="px-5 py-4">
+                        <span className="text-sm text-gray-500">{payment.payment_date}</span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-4">
                         <div className="flex items-center justify-center gap-1">
                           {payment.payment_status === "pending" && (
                             <button
@@ -487,7 +531,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                             <>
                               <button
                                 onClick={() => onEdit(payment)}
-                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 title="Editar"
                                 data-testid={`edit-payment-${payment.id}`}
                               >
@@ -495,7 +539,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                               </button>
                               <button
                                 onClick={() => onCancel(payment)}
-                                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                                 title="Anular"
                                 data-testid={`cancel-payment-${payment.id}`}
                               >
@@ -513,27 +557,27 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
           </table>
         </div>
         
-        {/* Pagination */}
+        {/* Pagination - Premium */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-sm text-slate-500">
-              {total} pagos en total
+          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <span className="text-sm text-gray-500 font-medium">
+              {total} registros
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onPageChange(page - 1)}
                 disabled={page === 1}
-                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm text-slate-600 px-3">
+              <span className="text-sm text-gray-600 font-medium px-3">
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => onPageChange(page + 1)}
                 disabled={page === totalPages}
-                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -546,19 +590,19 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// EXPENSES TAB - Premium Design
+// EXPENSES TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onDelete, filterCategory, setFilterCategory }) {
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+    <div className="space-y-5">
+      {/* Header - Premium style */}
+      <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-500">Categoría:</span>
+          <span className="text-sm font-medium text-gray-500">Categoría:</span>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-200"
+            className="px-4 py-2 bg-gray-100 border-0 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
             data-testid="filter-expense-category"
           >
             <option value="">Todas</option>
@@ -569,77 +613,77 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
         </div>
         <button
           onClick={onCreateNew}
-          className="px-5 py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 transition-colors flex items-center gap-2"
+          className="px-5 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
           data-testid="create-expense-btn"
         >
           <Plus className="w-4 h-4" />
-          Registrar Egreso
+          Nuevo Egreso
         </button>
       </div>
       
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+      {/* Table - Premium design */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-100">
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Fecha</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Descripción</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Categoría</th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-400 uppercase tracking-wider">Proveedor</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Base</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">IGV</th>
-                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-400 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-4 text-center text-xs font-semibold text-slate-400 uppercase tracking-wider">Acciones</th>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Fecha</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Descripción</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Categoría</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Proveedor</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Base</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">IGV</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
+                <th className="px-5 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-gray-50">
               {expenses.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-16 text-center">
-                    <div className="w-16 h-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                      <CreditCard className="w-8 h-8 text-slate-300" />
+                  <td colSpan={8} className="px-5 py-16 text-center">
+                    <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <CreditCard className="w-8 h-8 text-gray-300" />
                     </div>
-                    <p className="text-slate-500 font-medium">No hay egresos registrados</p>
-                    <p className="text-sm text-slate-400 mt-1">Comienza registrando tu primer egreso</p>
+                    <p className="text-gray-500 font-semibold">No hay egresos registrados</p>
+                    <p className="text-sm text-gray-400 mt-1">Registra tu primer egreso</p>
                   </td>
                 </tr>
               ) : (
                 expenses.map(expense => (
-                  <tr key={expense.id} className="hover:bg-slate-50/50 transition-colors" data-testid={`expense-row-${expense.id}`}>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-500">{expense.expense_date}</span>
+                  <tr key={expense.id} className="hover:bg-gray-50/50 transition-colors" data-testid={`expense-row-${expense.id}`}>
+                    <td className="px-5 py-4">
+                      <span className="text-sm text-gray-500 font-medium">{expense.expense_date}</span>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-sm font-medium text-slate-800">{expense.title}</p>
+                    <td className="px-5 py-4">
+                      <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
                       {expense.description && (
-                        <p className="text-xs text-slate-400 truncate max-w-[200px]">{expense.description}</p>
+                        <p className="text-xs text-gray-400 truncate max-w-[200px]">{expense.description}</p>
                       )}
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium">
+                    <td className="px-5 py-4">
+                      <span className="px-3 py-1.5 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold">
                         {expense.category_label}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm text-slate-600">{expense.provider_name || "-"}</span>
+                    <td className="px-5 py-4">
+                      <span className="text-sm text-gray-600">{expense.provider_name || "-"}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-sm text-slate-600">S/ {formatNumber(expense.amount_base)}</span>
+                    <td className="px-5 py-4 text-right">
+                      <span className="text-sm text-gray-600 font-medium">S/ {formatNumber(expense.amount_base)}</span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-sm text-slate-400">
+                    <td className="px-5 py-4 text-right">
+                      <span className="text-sm text-gray-400">
                         {expense.igv_applicable ? `S/ ${formatNumber(expense.igv_amount)}` : "-"}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-sm font-semibold text-red-500">S/ {formatNumber(expense.total_amount)}</span>
+                    <td className="px-5 py-4 text-right">
+                      <span className="text-sm font-bold text-rose-600">S/ {formatNumber(expense.total_amount)}</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-5 py-4">
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => onEdit(expense)}
-                          className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                           title="Editar"
                           data-testid={`edit-expense-${expense.id}`}
                         >
@@ -647,7 +691,7 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
                         </button>
                         <button
                           onClick={() => onDelete(expense)}
-                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                           title="Eliminar"
                           data-testid={`delete-expense-${expense.id}`}
                         >
@@ -662,27 +706,27 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
           </table>
         </div>
         
-        {/* Pagination */}
+        {/* Pagination - Premium */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-100 flex items-center justify-between">
-            <span className="text-sm text-slate-500">
-              {total} egresos en total
+          <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50/50">
+            <span className="text-sm text-gray-500 font-medium">
+              {total} registros
             </span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => onPageChange(page - 1)}
                 disabled={page === 1}
-                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm text-slate-600 px-3">
+              <span className="text-sm text-gray-600 font-medium px-3">
                 {page} / {totalPages}
               </span>
               <button
                 onClick={() => onPageChange(page + 1)}
                 disabled={page === totalPages}
-                className="p-2 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -695,7 +739,7 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PAYMENT FORM MODAL - Premium Design
+// PAYMENT FORM MODAL - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, students }) {
   const [formData, setFormData] = useState({
@@ -805,39 +849,42 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="payment-form-modal">
-      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+        {/* Header - Premium banking style */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
-              <Receipt className="w-5 h-5 text-emerald-600" />
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <Receipt className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-800">
-              {payment?.id ? "Editar Pago" : "Registrar Pago"}
-            </h2>
+            <div>
+              <h2 className="text-lg font-bold text-white">
+                {payment?.id ? "Editar Ingreso" : "Registrar Ingreso"}
+              </h2>
+              <p className="text-xs text-emerald-100">Complete los datos del pago</p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-160px)]">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-3">
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl flex items-center gap-3">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <span className="text-sm">{error}</span>
+              <span className="text-sm font-medium">{error}</span>
             </div>
           )}
 
           {/* Student selection */}
           <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-3">Estudiante</label>
+            <label className="block text-sm font-bold text-gray-700 mb-3">Estudiante</label>
             <div className="grid grid-cols-3 gap-3">
               <select
                 value={formData.grade_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value, section_id: "", student_id: "" }))}
-                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="">Grado</option>
                 {grades.map(g => (
@@ -848,7 +895,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 value={formData.section_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, section_id: e.target.value, student_id: "" }))}
                 disabled={!formData.grade_id}
-                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
+                className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
               >
                 <option value="">Sección</option>
                 {filteredSections.map(s => (
@@ -859,7 +906,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 value={formData.student_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, student_id: e.target.value }))}
                 disabled={!formData.section_id}
-                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:opacity-50"
+                className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
               >
                 <option value="">Estudiante</option>
                 {filteredStudents.map(s => (
@@ -872,11 +919,11 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
           {/* Concept and method */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Concepto</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Concepto</label>
               <select
                 value={formData.concept}
                 onChange={(e) => setFormData(prev => ({ ...prev, concept: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 {Object.entries(CONCEPTS).map(([key, val]) => (
                   <option key={key} value={key}>{val}</option>
@@ -884,11 +931,11 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Método de pago</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Método de Pago</label>
               <select
                 value={formData.payment_method}
                 onChange={(e) => setFormData(prev => ({ ...prev, payment_method: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 {Object.entries(METHODS).map(([key, val]) => (
                   <option key={key} value={key}>{val}</option>
@@ -897,11 +944,15 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             </div>
           </div>
 
-          {/* Amount and IGV */}
-          <div className="bg-slate-50 rounded-2xl p-5 mb-6">
+          {/* Amount and IGV - Premium calculator style */}
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 mb-6 border border-gray-200">
+            <div className="flex items-center gap-2 mb-4">
+              <CircleDollarSign className="w-5 h-5 text-emerald-600" />
+              <span className="text-sm font-bold text-gray-700">Cálculo del Monto</span>
+            </div>
             <div className="grid grid-cols-2 gap-4 mb-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Monto Base (S/.)</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Monto Base (S/.)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -909,36 +960,36 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                   value={formData.amount_base}
                   onChange={(e) => setFormData(prev => ({ ...prev, amount_base: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
               </div>
               <div className="flex items-end pb-1">
-                <label className="flex items-center gap-3 cursor-pointer select-none">
+                <label className="flex items-center gap-3 cursor-pointer select-none bg-white px-4 py-3 rounded-xl border border-gray-200">
                   <input
                     type="checkbox"
                     checked={formData.igv_applicable}
                     onChange={(e) => setFormData(prev => ({ ...prev, igv_applicable: e.target.checked }))}
-                    className="w-5 h-5 rounded border-slate-300 text-slate-800 focus:ring-slate-300"
+                    className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
                   />
-                  <span className="text-sm text-slate-600">Incluye IGV (18%)</span>
+                  <span className="text-sm font-semibold text-gray-700">Incluye IGV (18%)</span>
                 </label>
               </div>
             </div>
             
-            <div className="border-t border-slate-200 pt-4 space-y-2">
+            <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Subtotal</span>
-                <span className="font-medium text-slate-700">S/ {formatNumber(amountBase)}</span>
+                <span className="text-gray-500 font-medium">Subtotal</span>
+                <span className="font-bold text-gray-700">S/ {formatNumber(amountBase)}</span>
               </div>
               {formData.igv_applicable && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">IGV (18%)</span>
-                  <span className="font-medium text-slate-700">S/ {formatNumber(igvAmount)}</span>
+                  <span className="text-gray-500 font-medium">IGV (18%)</span>
+                  <span className="font-bold text-amber-600">S/ {formatNumber(igvAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-base pt-2 border-t border-slate-200">
-                <span className="font-semibold text-slate-700">Total</span>
-                <span className="font-bold text-emerald-600">S/ {formatNumber(totalAmount)}</span>
+              <div className="flex justify-between text-base pt-3 border-t border-gray-100">
+                <span className="font-bold text-gray-700">Total a Pagar</span>
+                <span className="text-xl font-bold text-emerald-600">S/ {formatNumber(totalAmount)}</span>
               </div>
             </div>
           </div>
@@ -946,46 +997,46 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
           {/* Status and date */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Estado</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Estado</label>
               <select
                 value={formData.payment_status}
                 onChange={(e) => setFormData(prev => ({ ...prev, payment_status: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="pending">Pendiente</option>
                 <option value="paid">Pagado</option>
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Fecha</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Fecha</label>
               <input
                 type="date"
                 value={formData.payment_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
             </div>
           </div>
 
           {/* Notes */}
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Notas (opcional)</label>
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Notas (opcional)</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Observaciones adicionales..."
               rows={2}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
             />
           </div>
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors"
+            className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
           >
             Cancelar
           </button>
@@ -993,7 +1044,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-5 py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
             data-testid="save-payment-btn"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -1006,7 +1057,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// EXPENSE FORM MODAL - Premium Design
+// EXPENSE FORM MODAL - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
   const [formData, setFormData] = useState({
@@ -1087,51 +1138,54 @@ function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="expense-form-modal">
-      <div className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+        {/* Header - Premium banking style */}
+        <div className="bg-gradient-to-r from-rose-500 to-pink-600 px-6 py-5 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-red-500" />
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <CreditCard className="w-5 h-5 text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-slate-800">
-              {expense?.id ? "Editar Egreso" : "Registrar Egreso"}
-            </h2>
+            <div>
+              <h2 className="text-lg font-bold text-white">
+                {expense?.id ? "Editar Egreso" : "Registrar Egreso"}
+              </h2>
+              <p className="text-xs text-rose-100">Complete los datos del gasto</p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-160px)]">
+        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-3">
+            <div className="mb-6 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl flex items-center gap-3">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <span className="text-sm">{error}</span>
+              <span className="text-sm font-medium">{error}</span>
             </div>
           )}
 
           {/* Title */}
           <div className="mb-5">
-            <label className="block text-sm font-medium text-slate-700 mb-2">Descripción del gasto</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Descripción del Gasto</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="Ej: Pago de luz - Enero 2026"
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
             />
           </div>
 
           {/* Category and provider */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Categoría</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Categoría</label>
               <select
                 value={formData.category}
                 onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               >
                 {Object.entries(EXPENSE_CATEGORIES).map(([key, val]) => (
                   <option key={key} value={key}>{val}</option>
@@ -1139,22 +1193,26 @@ function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Proveedor</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Proveedor</label>
               <input
                 type="text"
                 value={formData.provider_name}
                 onChange={(e) => setFormData(prev => ({ ...prev, provider_name: e.target.value }))}
                 placeholder="Nombre del proveedor"
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
           </div>
 
-          {/* Amount and IGV */}
-          <div className="bg-slate-50 rounded-2xl p-5 mb-5">
+          {/* Amount and IGV - Premium calculator style */}
+          <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 mb-5 border border-gray-200">
+            <div className="flex items-center gap-2 mb-4">
+              <CircleDollarSign className="w-5 h-5 text-rose-500" />
+              <span className="text-sm font-bold text-gray-700">Cálculo del Monto</span>
+            </div>
             <div className="grid grid-cols-2 gap-4 mb-5">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Monto Base (S/.)</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Monto Base (S/.)</label>
                 <input
                   type="number"
                   step="0.01"
@@ -1162,36 +1220,36 @@ function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
                   value={formData.amount_base}
                   onChange={(e) => setFormData(prev => ({ ...prev, amount_base: e.target.value }))}
                   placeholder="0.00"
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
                 />
               </div>
               <div className="flex items-end pb-1">
-                <label className="flex items-center gap-3 cursor-pointer select-none">
+                <label className="flex items-center gap-3 cursor-pointer select-none bg-white px-4 py-3 rounded-xl border border-gray-200">
                   <input
                     type="checkbox"
                     checked={formData.igv_applicable}
                     onChange={(e) => setFormData(prev => ({ ...prev, igv_applicable: e.target.checked }))}
-                    className="w-5 h-5 rounded border-slate-300 text-slate-800 focus:ring-slate-300"
+                    className="w-5 h-5 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
                   />
-                  <span className="text-sm text-slate-600">Incluye IGV (18%)</span>
+                  <span className="text-sm font-semibold text-gray-700">Incluye IGV (18%)</span>
                 </label>
               </div>
             </div>
             
-            <div className="border-t border-slate-200 pt-4 space-y-2">
+            <div className="bg-white rounded-xl p-4 border border-gray-200 space-y-3">
               <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Subtotal</span>
-                <span className="font-medium text-slate-700">S/ {formatNumber(amountBase)}</span>
+                <span className="text-gray-500 font-medium">Subtotal</span>
+                <span className="font-bold text-gray-700">S/ {formatNumber(amountBase)}</span>
               </div>
               {formData.igv_applicable && (
                 <div className="flex justify-between text-sm">
-                  <span className="text-slate-500">IGV (18%)</span>
-                  <span className="font-medium text-slate-700">S/ {formatNumber(igvAmount)}</span>
+                  <span className="text-gray-500 font-medium">IGV (18%)</span>
+                  <span className="font-bold text-amber-600">S/ {formatNumber(igvAmount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-base pt-2 border-t border-slate-200">
-                <span className="font-semibold text-slate-700">Total</span>
-                <span className="font-bold text-red-500">S/ {formatNumber(totalAmount)}</span>
+              <div className="flex justify-between text-base pt-3 border-t border-gray-100">
+                <span className="font-bold text-gray-700">Total Egreso</span>
+                <span className="text-xl font-bold text-rose-600">S/ {formatNumber(totalAmount)}</span>
               </div>
             </div>
           </div>
@@ -1199,20 +1257,20 @@ function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
           {/* Date and method */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Fecha</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Fecha</label>
               <input
                 type="date"
                 value={formData.expense_date}
                 onChange={(e) => setFormData(prev => ({ ...prev, expense_date: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Método de pago</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Método de Pago</label>
               <select
                 value={formData.payment_method}
                 onChange={(e) => setFormData(prev => ({ ...prev, payment_method: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
               >
                 {Object.entries(METHODS).map(([key, val]) => (
                   <option key={key} value={key}>{val}</option>
@@ -1223,23 +1281,23 @@ function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Notas (opcional)</label>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Notas (opcional)</label>
             <textarea
               value={formData.notes}
               onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
               placeholder="Observaciones adicionales..."
               rows={2}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 resize-none"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent resize-none"
             />
           </div>
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors"
+            className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
           >
             Cancelar
           </button>
@@ -1247,7 +1305,7 @@ function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
           <button
             onClick={handleSubmit}
             disabled={saving}
-            className="px-5 py-2.5 bg-slate-800 text-white rounded-xl font-medium hover:bg-slate-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
             data-testid="save-expense-btn"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
@@ -1260,7 +1318,7 @@ function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE COMPONENT
+// MAIN PAGE COMPONENT - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -1419,14 +1477,17 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="w-8 h-8 text-slate-400 animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <Loader2 className="w-10 h-10 text-slate-600 animate-spin mx-auto mb-4" />
+          <p className="text-sm text-gray-500 font-medium">Cargando datos financieros...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex" data-testid="accounting-page">
+    <div className="min-h-screen bg-gray-50 flex" data-testid="accounting-page">
       <Sidebar 
         user={user} 
         settings={settings} 
@@ -1437,29 +1498,29 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       />
       
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between">
+        {/* Header - Premium banking style */}
+        <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-xl">
-              <Wallet className="w-5 h-5 text-slate-600" />
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-xl">
+              <Landmark className="w-5 h-5 text-gray-600" />
             </button>
             {settings?.logo_url && (
               <img src={settings.logo_url} alt="Logo" className="h-9 w-auto object-contain" />
             )}
             <div>
-              <h1 className="text-lg font-semibold text-slate-800">{settings?.system_name || "Instituto"}</h1>
-              <p className="text-xs text-slate-400">Gestión Financiera</p>
+              <h1 className="text-lg font-bold text-gray-800">{settings?.system_name || "Instituto"}</h1>
+              <p className="text-xs text-gray-400 font-medium">Gestión Financiera</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-slate-700">{user?.name} {user?.last_name}</p>
-              <p className="text-xs text-slate-400 capitalize">{user?.role}</p>
+              <p className="text-sm font-semibold text-gray-700">{user?.name} {user?.last_name}</p>
+              <p className="text-xs text-gray-400 capitalize font-medium">{user?.role}</p>
             </div>
             {user?.photo_url ? (
-              <img src={user.photo_url} alt="" className="w-9 h-9 rounded-xl object-cover" />
+              <img src={user.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover ring-2 ring-gray-100" />
             ) : (
-              <div className="w-9 h-9 rounded-xl bg-slate-800 flex items-center justify-center text-white text-sm font-medium">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-white text-sm font-bold shadow-lg">
                 {user?.name?.charAt(0) || "U"}
               </div>
             )}
@@ -1468,25 +1529,27 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
         {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8">
-          {/* Page header */}
+          {/* Page header - Premium with icon */}
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-white" />
+            <div className="flex items-center gap-4 mb-2">
+              <div className="w-12 h-12 bg-gradient-to-br from-slate-700 to-slate-900 rounded-2xl flex items-center justify-center shadow-lg">
+                <Landmark className="w-6 h-6 text-white" />
               </div>
-              <h1 className="text-2xl font-bold text-slate-800">Contabilidad</h1>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-800">Contabilidad</h1>
+                <p className="text-sm text-gray-500">Control de ingresos y egresos del colegio</p>
+              </div>
             </div>
-            <p className="text-slate-500 ml-[52px]">Control de ingresos y egresos del colegio</p>
           </div>
 
-          {/* Tabs */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-1.5 mb-8 inline-flex">
+          {/* Tabs - Premium style */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-1.5 mb-8 inline-flex shadow-sm">
             <button
               onClick={() => setActiveTab("dashboard")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === "dashboard"
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-md"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
               data-testid="tab-dashboard"
             >
@@ -1494,10 +1557,10 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
             </button>
             <button
               onClick={() => setActiveTab("payments")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === "payments"
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-md"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
               data-testid="tab-payments"
             >
@@ -1505,10 +1568,10 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
             </button>
             <button
               onClick={() => setActiveTab("expenses")}
-              className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all ${
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
                 activeTab === "expenses"
-                  ? "bg-slate-800 text-white"
-                  : "text-slate-500 hover:text-slate-700"
+                  ? "bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-md"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
               data-testid="tab-expenses"
             >
@@ -1518,14 +1581,13 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
           {/* Tab content */}
           {activeTab === "dashboard" && (
-            <DashboardTab 
-              summary={summary} 
+            <DashboardTab
+              summary={summary}
               loading={loading}
               onViewPayment={(p) => { setEditingPayment(p); setShowPaymentModal(true); }}
               onViewExpense={(e) => { setEditingExpense(e); setShowExpenseModal(true); }}
             />
           )}
-
           {activeTab === "payments" && (
             <PaymentsTab
               payments={payments}
@@ -1542,7 +1604,6 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               setFilterStatus={setFilterPaymentStatus}
             />
           )}
-
           {activeTab === "expenses" && (
             <ExpensesTab
               expenses={expenses}
@@ -1571,7 +1632,6 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         sections={sections}
         students={students}
       />
-
       <ExpenseFormModal
         isOpen={showExpenseModal}
         onClose={() => { setShowExpenseModal(false); setEditingExpense(null); }}
