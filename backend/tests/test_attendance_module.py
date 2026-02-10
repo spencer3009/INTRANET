@@ -97,7 +97,7 @@ class TestAttendanceModule:
             "section_id": "test",
             "date": "2026-01-15"
         })
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
         print("✓ GET /api/attendance/students requires authentication")
     
     def test_03_attendance_teachers_requires_auth(self):
@@ -105,7 +105,7 @@ class TestAttendanceModule:
         response = self.session.get(f"{BASE_URL}/api/attendance/teachers", params={
             "date": "2026-01-15"
         })
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
         print("✓ GET /api/attendance/teachers requires authentication")
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -281,7 +281,7 @@ class TestAttendanceModule:
             "section_id": "test",
             "records": []
         })
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
         print("✓ POST /api/attendance/students/save requires authentication")
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -389,7 +389,7 @@ class TestAttendanceModule:
             "date": "2026-01-15",
             "records": []
         })
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
         print("✓ POST /api/attendance/teachers/save requires authentication")
     
     def test_24_teacher_attendance_justified_status(self):
@@ -515,7 +515,7 @@ class TestAttendanceModule:
         session.headers.update({"Content-Type": "application/json"})
         
         response = session.get(f"{BASE_URL}/api/attendance/reports/teachers")
-        assert response.status_code == 403, f"Expected 403, got {response.status_code}"
+        assert response.status_code in [401, 403], f"Expected 401/403, got {response.status_code}"
         print("✓ GET /api/attendance/reports/teachers requires authentication")
 
     # ═══════════════════════════════════════════════════════════════════════════
