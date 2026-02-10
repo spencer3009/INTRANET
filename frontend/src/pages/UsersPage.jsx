@@ -290,6 +290,13 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         seccion_id: "",
         turno_id: "",
         padre_id: "",
+        condiciones_medicas: "",
+        alergias: "",
+        doctor_nombre: "",
+        doctor_telefono: "",
+        persona_autorizada: "",
+        persona_autorizada_telefono: "",
+        notas: "",
         dni: "",
         ocupacion: "",
         lugar_trabajo: "",
@@ -301,6 +308,8 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
       setParentSearch("");
       setSelectedParent(null);
       setShowParentDropdown(false);
+      setShowParentSection(false);
+      setShowComplementaryInfo(false);
     }
   }, [isOpen, roleId]);
 
