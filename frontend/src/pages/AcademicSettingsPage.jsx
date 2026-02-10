@@ -623,6 +623,59 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     else setSections(p => p.map(s => s.id === section.id ? section : s));
   };
   const handleShiftSuccess = (shift, action) => { if (action === "create") setShifts(p => [...p, shift]); else setShifts(p => p.map(s => s.id === shift.id ? shift : s)); };
+  
+  const handlePeriodSuccess = (period, action, deactivatedPeriodName) => {
+    if (action === "create") {
+      setPeriods(p => [period, ...p]); // Add at beginning (sorted by fecha_inicio desc)
+      // If another period was deactivated, update it
+      if (deactivatedPeriodName) {
+        setPeriods(p => p.map(per => per.nombre === deactivatedPeriodName ? { ...per, activo: false } : per));
+        setInfoModalMessage({
+          title: "Período creado",
+          message: `El período "${period.nombre}" ha sido creado y activado. El período "${deactivatedPeriodName}" ha sido desactivado automáticamente.`
+        });
+        setShowInfoModal(true);
+      }
+    } else {
+      setPeriods(p => p.map(per => per.id === period.id ? period : per));
+      if (deactivatedPeriodName) {
+        setPeriods(p => p.map(per => per.nombre === deactivatedPeriodName ? { ...per, activo: false } : per));
+        setInfoModalMessage({
+          title: "Período actualizado",
+          message: `El período "${period.nombre}" ha sido activado. El período "${deactivatedPeriodName}" ha sido desactivado automáticamente.`
+        });
+        setShowInfoModal(true);
+      }
+    }
+  };
+
+  // Activate period handler
+  const handleActivatePeriod = async () => {
+    if (!activatingPeriod) return;
+    setActivateLoading(true);
+    try {
+      const res = await axios.post(`${API}/academic/periods/${activatingPeriod.id}/activate`, {}, { headers });
+      // Update local state
+      setPeriods(p => p.map(per => ({
+        ...per,
+        activo: per.id === activatingPeriod.id
+      })));
+      setShowActivateModal(false);
+      setActivatingPeriod(null);
+      // Show info message if another period was deactivated
+      if (res.data.deactivated_period) {
+        setInfoModalMessage({
+          title: "Período activado",
+          message: res.data.message
+        });
+        setShowInfoModal(true);
+      }
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al activar período");
+    } finally {
+      setActivateLoading(false);
+    }
+  };
 
   // Delete handlers
   const confirmDelete = async () => {
