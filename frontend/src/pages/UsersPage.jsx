@@ -308,6 +308,23 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
       return;
     }
 
+    // Validate password strength
+    if (passwordStrength.level <= 1) {
+      setError("La contraseña es muy débil. Usa al menos 6 caracteres con mayúsculas, minúsculas y números.");
+      return;
+    }
+
+    // Validate password confirmation
+    if (!confirmPassword) {
+      setError("Debes confirmar la contraseña");
+      return;
+    }
+
+    if (form.password !== confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return;
+    }
+
     if (!form.role) {
       setError("Debes seleccionar un tipo de cuenta");
       return;
