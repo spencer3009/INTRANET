@@ -1267,7 +1267,7 @@ async def create_academic_level(
     }
     
     await db.academic_levels.insert_one(level)
-    del level["_id"] if "_id" in level else None
+    level.pop("_id", None)
     level["grade_count"] = 0
     
     return {"message": "Nivel creado correctamente", "level": level}
