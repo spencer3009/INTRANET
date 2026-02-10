@@ -527,6 +527,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [openMenuId, setOpenMenuId] = useState(null);
   const [deletingUser, setDeletingUser] = useState(null);
   
+  // Modal states
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalContent, setInfoModalContent] = useState({ title: "", message: "", type: "info" });
+  
   const headers = { Authorization: `Bearer ${token}` };
 
   // Fetch users and settings
@@ -570,29 +577,45 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     setSelectedRole(roleId);
   };
 
-  // Delete user handler
-  const handleDeleteUser = async (userId) => {
-    if (!window.confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) {
-      return;
-    }
+  // Open delete confirmation modal
+  const handleDeleteClick = (userObj) => {
+    setUserToDelete(userObj);
+    setShowDeleteModal(true);
+    setOpenMenuId(null);
+  };
+
+  // Confirm delete user
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
     
-    setDeletingUser(userId);
+    setDeleteLoading(true);
     try {
-      await axios.delete(`${API}/users/${userId}`, { headers });
-      setUsers(prev => prev.filter(u => u.id !== userId));
-      setOpenMenuId(null);
+      await axios.delete(`${API}/users/${userToDelete.id}`, { headers });
+      setUsers(prev => prev.filter(u => u.id !== userToDelete.id));
+      setShowDeleteModal(false);
+      setUserToDelete(null);
     } catch (err) {
-      alert(err.response?.data?.detail || "Error al eliminar usuario");
+      setShowDeleteModal(false);
+      setInfoModalContent({
+        title: "Error al eliminar",
+        message: err.response?.data?.detail || "No se pudo eliminar el usuario. Intenta nuevamente.",
+        type: "danger"
+      });
+      setShowInfoModal(true);
     } finally {
-      setDeletingUser(null);
+      setDeleteLoading(false);
     }
   };
 
   // Edit user handler (placeholder for future implementation)
   const handleEditUser = (userId) => {
-    // TODO: Implement edit modal
-    alert('Funcionalidad de edición próximamente');
     setOpenMenuId(null);
+    setInfoModalContent({
+      title: "Próximamente",
+      message: "La funcionalidad de edición de usuarios estará disponible muy pronto.",
+      type: "info"
+    });
+    setShowInfoModal(true);
   };
 
   const handleAddUser = (roleId) => {
