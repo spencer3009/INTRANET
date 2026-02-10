@@ -1,0 +1,1066 @@
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import Sidebar from "../components/Sidebar";
+import { 
+  ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
+  Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
+  User, Filter, CheckCircle2, XCircle, AlertTriangle
+} from "lucide-react";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Tab configurations
+const ATTENDANCE_TABS = [
+  { id: "students", label: "Estudiantes", icon: Users, description: "Asistencia de alumnos" },
+  { id: "teachers", label: "Profesores", icon: UserCheck, description: "Asistencia de docentes" },
+  { id: "reports", label: "Reportes", icon: FileText, description: "Reportes de asistencia" }
+];
+
+// Status configurations
+const STUDENT_STATUSES = [
+  { id: "present", label: "Presente", icon: CheckCircle2, color: "emerald", bgColor: "bg-emerald-100", textColor: "text-emerald-700", borderColor: "border-emerald-500" },
+  { id: "late", label: "Tardanza", icon: Clock, color: "amber", bgColor: "bg-amber-100", textColor: "text-amber-700", borderColor: "border-amber-500" },
+  { id: "absent", label: "Ausente", icon: XCircle, color: "red", bgColor: "bg-red-100", textColor: "text-red-700", borderColor: "border-red-500" }
+];
+
+const TEACHER_STATUSES = [
+  ...STUDENT_STATUSES,
+  { id: "justified", label: "Justificado", icon: AlertTriangle, color: "blue", bgColor: "bg-blue-100", textColor: "text-blue-700", borderColor: "border-blue-500" }
+];
+
+// Local storage keys for filter persistence
+const STORAGE_KEYS = {
+  GRADE: "attendance_last_grade",
+  SECTION: "attendance_last_section",
+  DATE: "attendance_last_date"
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STATUS BUTTON COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
+function StatusButton({ status, isActive, onClick, disabled }) {
+  const Icon = status.icon;
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(status.id)}
+      disabled={disabled}
+      className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+        isActive
+          ? `${status.bgColor} ${status.textColor} border-2 ${status.borderColor} shadow-sm`
+          : "bg-slate-100 text-slate-500 border-2 border-transparent hover:bg-slate-200"
+      } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+    >
+      <Icon className="w-4 h-4" />
+      <span className="hidden sm:inline">{status.label}</span>
+    </button>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STUDENT ATTENDANCE TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function StudentAttendanceTab({ token, schoolId }) {
+  const [grades, setGrades] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [selectedGrade, setSelectedGrade] = useState("");
+  const [selectedSection, setSelectedSection] = useState("");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [hasSavedRecords, setHasSavedRecords] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // Load grades on mount
+  useEffect(() => {
+    loadGrades();
+    // Restore last selection from localStorage
+    const lastGrade = localStorage.getItem(STORAGE_KEYS.GRADE);
+    const lastSection = localStorage.getItem(STORAGE_KEYS.SECTION);
+    const lastDate = localStorage.getItem(STORAGE_KEYS.DATE);
+    if (lastGrade) setSelectedGrade(lastGrade);
+    if (lastSection) setSelectedSection(lastSection);
+    if (lastDate) setSelectedDate(lastDate);
+  }, []);
+
+  // Load sections when grade changes
+  useEffect(() => {
+    if (selectedGrade) {
+      loadSections(selectedGrade);
+      localStorage.setItem(STORAGE_KEYS.GRADE, selectedGrade);
+    }
+  }, [selectedGrade]);
+
+  // Save section selection
+  useEffect(() => {
+    if (selectedSection) {
+      localStorage.setItem(STORAGE_KEYS.SECTION, selectedSection);
+    }
+  }, [selectedSection]);
+
+  // Save date selection
+  useEffect(() => {
+    if (selectedDate) {
+      localStorage.setItem(STORAGE_KEYS.DATE, selectedDate);
+    }
+  }, [selectedDate]);
+
+  const loadGrades = async () => {
+    try {
+      const res = await axios.get(`${API}/academic/grades`, { headers });
+      // Sort by level order
+      const levelOrder = { 'inicial': 1, 'primaria': 2, 'secundaria': 3 };
+      const sortedGrades = res.data.filter(g => g.activo).sort((a, b) => {
+        const levelA = levelOrder[a.nivel_nombre?.toLowerCase()] || 99;
+        const levelB = levelOrder[b.nivel_nombre?.toLowerCase()] || 99;
+        if (levelA !== levelB) return levelA - levelB;
+        return (a.orden || 0) - (b.orden || 0);
+      });
+      setGrades(sortedGrades);
+    } catch (err) {
+      console.error("Error loading grades:", err);
+    }
+  };
+
+  const loadSections = async (gradeId) => {
+    try {
+      const res = await axios.get(`${API}/academic/sections`, { headers });
+      const gradeSections = res.data.filter(s => s.activo && s.grado_id === gradeId);
+      setSections(gradeSections);
+      // If current section not in new list, reset
+      if (!gradeSections.find(s => s.id === selectedSection)) {
+        setSelectedSection("");
+      }
+    } catch (err) {
+      console.error("Error loading sections:", err);
+    }
+  };
+
+  const loadAttendance = async () => {
+    if (!selectedGrade || !selectedSection || !selectedDate) {
+      setError("Selecciona grado, sección y fecha");
+      return;
+    }
+    
+    setLoading(true);
+    setError("");
+    setStudents([]);
+    
+    try {
+      const res = await axios.get(`${API}/attendance/students`, {
+        headers,
+        params: {
+          grade_id: selectedGrade,
+          section_id: selectedSection,
+          date: selectedDate
+        }
+      });
+      setStudents(res.data.students);
+      setHasSavedRecords(res.data.has_saved_records);
+      setHasChanges(false);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al cargar asistencia");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = (studentId, newStatus) => {
+    setStudents(prev => prev.map(s => 
+      s.id === studentId ? { ...s, status: newStatus } : s
+    ));
+    setHasChanges(true);
+  };
+
+  const saveAttendance = async () => {
+    if (students.length === 0) return;
+    
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    
+    try {
+      const records = students.map(s => ({
+        user_id: s.id,
+        status: s.status
+      }));
+      
+      await axios.post(`${API}/attendance/students/save`, {
+        date: selectedDate,
+        grade_id: selectedGrade,
+        section_id: selectedSection,
+        records
+      }, { headers });
+      
+      setSuccess("Asistencia guardada correctamente");
+      setHasChanges(false);
+      setHasSavedRecords(true);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar asistencia");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Calculate summary
+  const summary = {
+    present: students.filter(s => s.status === "present").length,
+    late: students.filter(s => s.status === "late").length,
+    absent: students.filter(s => s.status === "absent").length,
+    total: students.length
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Filter className="w-5 h-5 text-blue-600" />
+          Filtros de Asistencia
+        </h3>
+        
+        <div className="grid md:grid-cols-4 gap-4">
+          {/* Grade */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Grado</label>
+            <select
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Seleccionar grado</option>
+              {grades.map(g => (
+                <option key={g.id} value={g.id}>
+                  {g.nivel_nombre} - {g.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Section */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
+            <select
+              value={selectedSection}
+              onChange={(e) => setSelectedSection(e.target.value)}
+              disabled={!selectedGrade}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              <option value="">Seleccionar sección</option>
+              {sections.map(s => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha</label>
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Load button */}
+          <div className="flex items-end">
+            <button
+              onClick={loadAttendance}
+              disabled={loading || !selectedGrade || !selectedSection}
+              className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold hover:from-blue-600 hover:to-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+              Cargar
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5" />
+          {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center gap-3">
+          <Check className="w-5 h-5" />
+          {success}
+        </div>
+      )}
+
+      {/* Attendance Table */}
+      {students.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Header with summary */}
+          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-white">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h3 className="text-xl font-bold">Asistencia del {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}</h3>
+                <p className="text-blue-100">{summary.total} estudiantes</p>
+              </div>
+              <div className="flex gap-4 text-sm">
+                <div className="bg-white/20 px-4 py-2 rounded-lg">
+                  <span className="text-emerald-300">✓ {summary.present}</span> Presentes
+                </div>
+                <div className="bg-white/20 px-4 py-2 rounded-lg">
+                  <span className="text-amber-300">⏰ {summary.late}</span> Tardanzas
+                </div>
+                <div className="bg-white/20 px-4 py-2 rounded-lg">
+                  <span className="text-red-300">✗ {summary.absent}</span> Ausentes
+                </div>
+              </div>
+            </div>
+            
+            {/* Unsaved changes warning */}
+            {hasChanges && (
+              <div className="mt-3 p-3 bg-amber-500/30 rounded-lg flex items-center gap-2 text-amber-100">
+                <AlertTriangle className="w-5 h-5" />
+                <span>Tienes cambios pendientes por guardar</span>
+              </div>
+            )}
+          </div>
+
+          {/* Student list */}
+          <div className="divide-y divide-slate-100">
+            {students.map((student, idx) => (
+              <div
+                key={student.id}
+                className={`p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors ${
+                  idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                }`}
+              >
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  {student.photo_url ? (
+                    <img src={student.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-bold">
+                      {student.name?.charAt(0) || "E"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Name */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800">{student.full_name}</p>
+                  <p className="text-sm text-slate-500">{student.email}</p>
+                </div>
+
+                {/* Status buttons */}
+                <div className="flex gap-2">
+                  {STUDENT_STATUSES.map(status => (
+                    <StatusButton
+                      key={status.id}
+                      status={status}
+                      isActive={student.status === status.id}
+                      onClick={(newStatus) => handleStatusChange(student.id, newStatus)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Save button */}
+          <div className="p-6 bg-slate-50 border-t border-slate-200">
+            <button
+              onClick={saveAttendance}
+              disabled={saving || !hasChanges}
+              className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+                hasChanges
+                  ? "bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg"
+                  : "bg-slate-200 text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-6 h-6" />
+                  {hasSavedRecords ? "Actualizar Asistencia" : "Guardar Asistencia"}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && students.length === 0 && selectedGrade && selectedSection && (
+        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+          <Users className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-xl font-bold text-slate-700 mb-2">Sin estudiantes</h3>
+          <p className="text-slate-500">No hay estudiantes registrados en esta sección o no se ha cargado la asistencia.</p>
+          <button
+            onClick={loadAttendance}
+            className="mt-6 px-6 py-3 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600"
+          >
+            Cargar asistencia
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEACHER ATTENDANCE TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function TeacherAttendanceTab({ token, schoolId }) {
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split("T")[0]);
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [hasSavedRecords, setHasSavedRecords] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const loadAttendance = async () => {
+    setLoading(true);
+    setError("");
+    
+    try {
+      const res = await axios.get(`${API}/attendance/teachers`, {
+        headers,
+        params: { date: selectedDate }
+      });
+      setTeachers(res.data.teachers);
+      setHasSavedRecords(res.data.has_saved_records);
+      setHasChanges(false);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al cargar asistencia");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load on date change
+  useEffect(() => {
+    loadAttendance();
+  }, [selectedDate]);
+
+  const handleStatusChange = (teacherId, newStatus) => {
+    setTeachers(prev => prev.map(t => 
+      t.id === teacherId ? { ...t, status: newStatus } : t
+    ));
+    setHasChanges(true);
+  };
+
+  const saveAttendance = async () => {
+    if (teachers.length === 0) return;
+    
+    setSaving(true);
+    setError("");
+    setSuccess("");
+    
+    try {
+      const records = teachers.map(t => ({
+        user_id: t.id,
+        status: t.status
+      }));
+      
+      await axios.post(`${API}/attendance/teachers/save`, {
+        date: selectedDate,
+        records
+      }, { headers });
+      
+      setSuccess("Asistencia de profesores guardada correctamente");
+      setHasChanges(false);
+      setHasSavedRecords(true);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar asistencia");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Calculate summary
+  const summary = {
+    present: teachers.filter(t => t.status === "present").length,
+    late: teachers.filter(t => t.status === "late").length,
+    absent: teachers.filter(t => t.status === "absent").length,
+    justified: teachers.filter(t => t.status === "justified").length,
+    total: teachers.length
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Date filter */}
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <Calendar className="w-6 h-6 text-indigo-600" />
+            <span className="font-semibold text-slate-700">Fecha:</span>
+          </div>
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
+          <button
+            onClick={loadAttendance}
+            disabled={loading}
+            className="px-6 py-3 bg-indigo-500 text-white rounded-xl font-semibold hover:bg-indigo-600 disabled:opacity-50 flex items-center gap-2"
+          >
+            {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
+            Actualizar
+          </button>
+        </div>
+      </div>
+
+      {/* Messages */}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
+          <AlertCircle className="w-5 h-5" />
+          {error}
+        </div>
+      )}
+      
+      {success && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl flex items-center gap-3">
+          <Check className="w-5 h-5" />
+          {success}
+        </div>
+      )}
+
+      {/* Teacher list */}
+      {teachers.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 text-white">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h3 className="text-xl font-bold">Asistencia del {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}</h3>
+                <p className="text-indigo-100">{summary.total} profesores</p>
+              </div>
+              <div className="flex gap-3 text-sm flex-wrap">
+                <div className="bg-white/20 px-3 py-2 rounded-lg">
+                  <span className="text-emerald-300">✓ {summary.present}</span>
+                </div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg">
+                  <span className="text-amber-300">⏰ {summary.late}</span>
+                </div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg">
+                  <span className="text-red-300">✗ {summary.absent}</span>
+                </div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg">
+                  <span className="text-blue-300">📝 {summary.justified}</span>
+                </div>
+              </div>
+            </div>
+            
+            {hasChanges && (
+              <div className="mt-3 p-3 bg-amber-500/30 rounded-lg flex items-center gap-2 text-amber-100">
+                <AlertTriangle className="w-5 h-5" />
+                <span>Tienes cambios pendientes por guardar</span>
+              </div>
+            )}
+          </div>
+
+          {/* Teacher list */}
+          <div className="divide-y divide-slate-100">
+            {teachers.map((teacher, idx) => (
+              <div
+                key={teacher.id}
+                className={`p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors ${
+                  idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
+                }`}
+              >
+                {/* Avatar */}
+                <div className="flex-shrink-0">
+                  {teacher.photo_url ? (
+                    <img src={teacher.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                      {teacher.name?.charAt(0) || "P"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Name */}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800">{teacher.full_name}</p>
+                  <p className="text-sm text-slate-500">{teacher.email}</p>
+                </div>
+
+                {/* Status buttons */}
+                <div className="flex gap-2 flex-wrap justify-end">
+                  {TEACHER_STATUSES.map(status => (
+                    <StatusButton
+                      key={status.id}
+                      status={status}
+                      isActive={teacher.status === status.id}
+                      onClick={(newStatus) => handleStatusChange(teacher.id, newStatus)}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Save button */}
+          <div className="p-6 bg-slate-50 border-t border-slate-200">
+            <button
+              onClick={saveAttendance}
+              disabled={saving || !hasChanges}
+              className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
+                hasChanges
+                  ? "bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white shadow-lg"
+                  : "bg-slate-200 text-slate-500 cursor-not-allowed"
+              }`}
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-6 h-6 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-6 h-6" />
+                  {hasSavedRecords ? "Actualizar Asistencia" : "Guardar Asistencia"}
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {!loading && teachers.length === 0 && (
+        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+          <UserCheck className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-xl font-bold text-slate-700 mb-2">Sin profesores</h3>
+          <p className="text-slate-500">No hay profesores registrados en el sistema.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REPORTS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function ReportsTab({ token, schoolId }) {
+  const [teachers, setTeachers] = useState([]);
+  const [selectedTeacher, setSelectedTeacher] = useState("");
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1);
+    return date.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingTeachers, setLoadingTeachers] = useState(true);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // Load teachers
+  useEffect(() => {
+    loadTeachers();
+  }, []);
+
+  const loadTeachers = async () => {
+    try {
+      const res = await axios.get(`${API}/users`, { headers });
+      const teacherList = res.data.filter(u => u.role === "teacher");
+      setTeachers(teacherList);
+    } catch (err) {
+      console.error("Error loading teachers:", err);
+    } finally {
+      setLoadingTeachers(false);
+    }
+  };
+
+  const loadReport = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        start_date: startDate,
+        end_date: endDate
+      };
+      if (selectedTeacher) {
+        params.teacher_id = selectedTeacher;
+      }
+      
+      const res = await axios.get(`${API}/attendance/reports/teachers`, {
+        headers,
+        params
+      });
+      setReport(res.data);
+    } catch (err) {
+      console.error("Error loading report:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Filter className="w-5 h-5 text-violet-600" />
+          Filtros del Reporte
+        </h3>
+        
+        <div className="grid md:grid-cols-4 gap-4">
+          {/* Teacher */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Profesor</label>
+            <select
+              value={selectedTeacher}
+              onChange={(e) => setSelectedTeacher(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+            >
+              <option value="">Todos los profesores</option>
+              {teachers.map(t => (
+                <option key={t.id} value={t.id}>
+                  {t.name} {t.last_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Start Date */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Desde</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+          </div>
+
+          {/* End Date */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Hasta</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+            />
+          </div>
+
+          {/* Generate button */}
+          <div className="flex items-end">
+            <button
+              onClick={loadReport}
+              disabled={loading}
+              className="w-full px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+              Generar Reporte
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Report results */}
+      {report && (
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 text-white">
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div>
+                <h3 className="text-xl font-bold">Reporte de Asistencia</h3>
+                <p className="text-violet-100">
+                  {new Date(startDate).toLocaleDateString("es-PE")} - {new Date(endDate).toLocaleDateString("es-PE")}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  disabled
+                  className="px-4 py-2 bg-white/20 text-white/60 rounded-lg flex items-center gap-2 cursor-not-allowed"
+                  title="Próximamente"
+                >
+                  <Download className="w-5 h-5" />
+                  Exportar PDF
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Summary cards */}
+          <div className="p-6 border-b border-slate-200">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="bg-slate-50 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-slate-800">{report.summary.total_records}</p>
+                <p className="text-sm text-slate-500">Total registros</p>
+              </div>
+              <div className="bg-emerald-50 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-emerald-600">{report.summary.present}</p>
+                <p className="text-sm text-emerald-700">Presentes</p>
+              </div>
+              <div className="bg-amber-50 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-amber-600">{report.summary.late}</p>
+                <p className="text-sm text-amber-700">Tardanzas</p>
+              </div>
+              <div className="bg-red-50 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-red-600">{report.summary.absent}</p>
+                <p className="text-sm text-red-700">Ausentes</p>
+              </div>
+              <div className="bg-blue-50 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-blue-600">{report.summary.justified}</p>
+                <p className="text-sm text-blue-700">Justificados</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Teacher breakdown */}
+          {report.report.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">Profesor</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-slate-700">Días</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-emerald-600">Presente</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-amber-600">Tardanza</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-red-600">Ausente</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-blue-600">Justificado</th>
+                    <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">Asistencia</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {report.report.map((item, idx) => (
+                    <tr key={item.teacher_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          {item.teacher_photo ? (
+                            <img src={item.teacher_photo} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                              {item.teacher_name?.charAt(0) || "P"}
+                            </div>
+                          )}
+                          <span className="font-semibold text-slate-800">{item.teacher_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center text-slate-600">{item.total_days}</td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full font-medium">
+                          {item.present}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="px-3 py-1 bg-amber-100 text-amber-700 rounded-full font-medium">
+                          {item.late}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full font-medium">
+                          {item.absent}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
+                          {item.justified}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <div className="w-24 h-2 bg-slate-200 rounded-full overflow-hidden">
+                            <div 
+                              className={`h-full rounded-full ${
+                                item.attendance_rate >= 90 ? "bg-emerald-500" :
+                                item.attendance_rate >= 75 ? "bg-amber-500" : "bg-red-500"
+                              }`}
+                              style={{ width: `${item.attendance_rate}%` }}
+                            />
+                          </div>
+                          <span className={`font-bold ${
+                            item.attendance_rate >= 90 ? "text-emerald-600" :
+                            item.attendance_rate >= 75 ? "text-amber-600" : "text-red-600"
+                          }`}>
+                            {item.attendance_rate}%
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-12 text-center">
+              <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-700 mb-2">Sin datos</h3>
+              <p className="text-slate-500">No hay registros de asistencia en el rango seleccionado.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Initial state */}
+      {!report && !loading && (
+        <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
+          <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-xl font-bold text-slate-700 mb-2">Genera un Reporte</h3>
+          <p className="text-slate-500">Selecciona los filtros y presiona "Generar Reporte"</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+export default function AttendancePage({ user, token, subdomain, onLogout }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("students");
+  
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    loadSettings();
+  }, []);
+
+  const loadSettings = async () => {
+    try {
+      const res = await axios.get(`${API}/settings`, { headers });
+      setSettings(res.data);
+    } catch (err) {
+      console.error("Error loading settings:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
+        <Loader2 className="w-10 h-10 text-[#001f4b] animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="attendance-page">
+      <Sidebar 
+        user={user} 
+        settings={settings} 
+        isOpen={sidebarOpen} 
+        setIsOpen={setSidebarOpen}
+        subdomain={subdomain}
+        onLogout={onLogout}
+      />
+      
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-xl">
+              <ClipboardCheck className="w-6 h-6 text-slate-600" />
+            </button>
+            {settings?.logo_url && (
+              <img src={settings.logo_url} alt="Logo" className="h-10 w-auto object-contain" />
+            )}
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">{settings?.system_name || "Instituto"}</h1>
+              <p className="text-sm text-slate-500">Control de Asistencias</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-semibold text-slate-800">{user?.name} {user?.last_name}</p>
+              <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
+            </div>
+            {user?.photo_url ? (
+              <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
+                {user?.name?.charAt(0) || "U"}
+              </div>
+            )}
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 p-6 lg:p-8">
+          {/* Page Title */}
+          <div className="relative overflow-hidden rounded-3xl mb-8">
+            <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-emerald-600">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+            </div>
+            <div className="relative px-8 py-10 flex items-center gap-6">
+              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-xl">
+                <ClipboardCheck className="w-10 h-10 text-teal-600" />
+              </div>
+              <div className="text-white">
+                <h1 className="text-4xl font-bold tracking-tight mb-2">Asistencias</h1>
+                <p className="text-teal-200 text-lg">Registro y control de asistencia escolar</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
+            {ATTENDANCE_TABS.map(tab => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-semibold transition-all whitespace-nowrap ${
+                    isActive 
+                      ? "bg-white shadow-lg text-teal-600 border-2 border-teal-200" 
+                      : "bg-white/50 text-slate-600 hover:bg-white hover:shadow border-2 border-transparent"
+                  }`}
+                  data-testid={`tab-${tab.id}`}
+                >
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? "bg-teal-100" : "bg-slate-100"}`}>
+                    <Icon className={`w-6 h-6 ${isActive ? "text-teal-600" : "text-slate-500"}`} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold">{tab.label}</p>
+                    <p className="text-xs opacity-60">{tab.description}</p>
+                  </div>
+                  {isActive && <ChevronRight className="w-5 h-5 ml-2" />}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Tab content */}
+          {activeTab === "students" && (
+            <StudentAttendanceTab token={token} schoolId={user?.school_id} />
+          )}
+          
+          {activeTab === "teachers" && (
+            <TeacherAttendanceTab token={token} schoolId={user?.school_id} />
+          )}
+          
+          {activeTab === "reports" && (
+            <ReportsTab token={token} schoolId={user?.school_id} />
+          )}
+        </main>
+      </div>
+    </div>
+  );
+}
