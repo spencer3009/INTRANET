@@ -83,6 +83,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   const [error, setError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const [form, setForm] = useState({
     photo_url: "",
