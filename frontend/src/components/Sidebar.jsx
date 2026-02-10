@@ -16,6 +16,7 @@ import {
   MessageSquare,
   ClipboardCheck,
   ClipboardList,
+  AlertTriangle,
 } from "lucide-react";
 
 const navItems = [
@@ -26,6 +27,7 @@ const navItems = [
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias" },
   { id: "calendario", label: "Calendario", icon: CalendarDays, route: "/calendario" },
   { id: "encuestas", label: "Encuestas", icon: ClipboardList, route: "/encuestas" },
+  { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes" },
   { id: "comunidad", label: "Comunidad", icon: Users },
   { id: "academico", label: "Académico", icon: GraduationCap },
