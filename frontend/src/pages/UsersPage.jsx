@@ -944,119 +944,284 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
                   )}
                 </div>
 
-                {/* Vincular Padre/Apoderado - autocomplete */}
+                {/* Vincular Padre/Apoderado - Switch + Collapsible */}
                 <div className="md:col-span-2 pt-4 border-t border-slate-200 mt-2">
-                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-1">
-                    <UserCheck className="w-4 h-4 text-teal-500" />
-                    Vincular Padre/Apoderado
-                    <span className="text-xs font-normal text-slate-400">(opcional)</span>
-                  </h3>
-                  <p className="text-xs text-slate-500 mb-3">Busca por nombre o DNI del padre registrado</p>
-                  
-                  {/* Selected parent display */}
-                  {selectedParent ? (
-                    <div className="flex items-center justify-between p-4 bg-teal-50 border border-teal-200 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
-                          {selectedParent.photo_url ? (
-                            <img src={selectedParent.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                          ) : (
-                            <Users className="w-5 h-5 text-teal-600" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-slate-800">{selectedParent.name} {selectedParent.last_name}</p>
-                          <p className="text-xs text-slate-500">DNI: {selectedParent.dni || 'No registrado'}</p>
-                        </div>
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-teal-100 flex items-center justify-center">
+                        <UserCheck className="w-5 h-5 text-teal-600" />
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedParent(null);
-                          setForm(prev => ({ ...prev, padre_id: "" }));
-                          setParentSearch("");
-                        }}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800">Vincular Padre/Apoderado</h3>
+                        <p className="text-xs text-slate-500">Asociar este estudiante con un padre registrado</p>
+                      </div>
                     </div>
-                  ) : (
-                    <div className="relative">
-                      <div className="relative">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                        <input
-                          type="text"
-                          value={parentSearch}
-                          onChange={(e) => {
-                            setParentSearch(e.target.value);
-                            setShowParentDropdown(true);
-                          }}
-                          onFocus={() => setShowParentDropdown(true)}
-                          className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
-                          placeholder="Buscar padre por nombre o DNI..."
-                        />
-                        {loadingParents && (
-                          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
-                        )}
-                      </div>
-                      
-                      {/* Dropdown */}
-                      {showParentDropdown && !loadingParents && (
-                        <div className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
-                          {filteredParents.length === 0 ? (
-                            <div className="p-4 text-center text-slate-500">
-                              {parents.length === 0 ? (
-                                <div>
-                                  <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                  <p className="text-sm">No hay padres registrados</p>
-                                  <p className="text-xs text-slate-400 mt-1">Primero registra un padre/apoderado</p>
-                                </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowParentSection(!showParentSection)} 
+                      className={`relative w-12 h-7 rounded-full transition-colors ${showParentSection ? "bg-teal-500" : "bg-slate-300"}`}
+                    >
+                      <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${showParentSection ? "left-5" : "left-0.5"}`} />
+                    </button>
+                  </div>
+                  
+                  {/* Collapsible content */}
+                  {showParentSection && (
+                    <div className="mt-4 p-4 bg-white border border-slate-200 rounded-xl">
+                      {/* Selected parent display */}
+                      {selectedParent ? (
+                        <div className="flex items-center justify-between p-4 bg-teal-50 border border-teal-200 rounded-xl">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                              {selectedParent.photo_url ? (
+                                <img src={selectedParent.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                               ) : (
-                                <div>
-                                  <Search className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                                  <p className="text-sm">No se encontraron resultados</p>
-                                </div>
+                                <Users className="w-5 h-5 text-teal-600" />
                               )}
                             </div>
-                          ) : (
-                            filteredParents.slice(0, 10).map(parent => (
-                              <button
-                                key={parent.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedParent(parent);
-                                  setForm(prev => ({ ...prev, padre_id: parent.id }));
-                                  setShowParentDropdown(false);
-                                  setParentSearch("");
-                                }}
-                                className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-100 last:border-b-0 transition-colors"
-                              >
-                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                                  {parent.photo_url ? (
-                                    <img src={parent.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                            <div>
+                              <p className="font-semibold text-slate-800">{selectedParent.name} {selectedParent.last_name}</p>
+                              <p className="text-xs text-slate-500">DNI: {selectedParent.dni || 'No registrado'}</p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedParent(null);
+                              setForm(prev => ({ ...prev, padre_id: "" }));
+                              setParentSearch("");
+                            }}
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="relative">
+                          <div className="relative">
+                            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                            <input
+                              type="text"
+                              value={parentSearch}
+                              onChange={(e) => {
+                                setParentSearch(e.target.value);
+                                setShowParentDropdown(true);
+                              }}
+                              onFocus={() => setShowParentDropdown(true)}
+                              className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                              placeholder="Buscar padre por nombre o DNI..."
+                            />
+                            {loadingParents && (
+                              <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
+                            )}
+                          </div>
+                          
+                          {/* Dropdown */}
+                          {showParentDropdown && !loadingParents && (
+                            <div className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                              {filteredParents.length === 0 ? (
+                                <div className="p-4 text-center text-slate-500">
+                                  {parents.length === 0 ? (
+                                    <div>
+                                      <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                      <p className="text-sm">No hay padres registrados</p>
+                                      <p className="text-xs text-slate-400 mt-1">Primero registra un padre/apoderado</p>
+                                    </div>
                                   ) : (
-                                    <Users className="w-5 h-5 text-slate-400" />
+                                    <div>
+                                      <Search className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                      <p className="text-sm">No se encontraron resultados</p>
+                                    </div>
                                   )}
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-slate-800 truncate">{parent.name} {parent.last_name}</p>
-                                  <p className="text-xs text-slate-500">
-                                    {parent.dni ? `DNI: ${parent.dni}` : 'Sin DNI'}
-                                    {parent.ocupacion && ` • ${parent.ocupacion}`}
-                                  </p>
+                              ) : (
+                                filteredParents.slice(0, 10).map(parent => (
+                                  <button
+                                    key={parent.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedParent(parent);
+                                      setForm(prev => ({ ...prev, padre_id: parent.id }));
+                                      setShowParentDropdown(false);
+                                      setParentSearch("");
+                                    }}
+                                    className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-100 last:border-b-0 transition-colors"
+                                  >
+                                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                      {parent.photo_url ? (
+                                        <img src={parent.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                                      ) : (
+                                        <Users className="w-5 h-5 text-slate-400" />
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-slate-800 truncate">{parent.name} {parent.last_name}</p>
+                                      <p className="text-xs text-slate-500">
+                                        {parent.dni ? `DNI: ${parent.dni}` : 'Sin DNI'}
+                                        {parent.ocupacion && ` • ${parent.ocupacion}`}
+                                      </p>
+                                    </div>
+                                    <Check className="w-5 h-5 text-teal-500 opacity-0 group-hover:opacity-100" />
+                                  </button>
+                                ))
+                              )}
+                              {filteredParents.length > 10 && (
+                                <div className="px-4 py-2 text-xs text-center text-slate-400 bg-slate-50">
+                                  Mostrando 10 de {filteredParents.length} resultados. Refina tu búsqueda.
                                 </div>
-                                <Check className="w-5 h-5 text-teal-500 opacity-0 group-hover:opacity-100" />
-                              </button>
-                            ))
-                          )}
-                          {filteredParents.length > 10 && (
-                            <div className="px-4 py-2 text-xs text-center text-slate-400 bg-slate-50">
-                              Mostrando 10 de {filteredParents.length} resultados. Refina tu búsqueda.
+                              )}
                             </div>
                           )}
                         </div>
                       )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Información complementaria - Switch + Collapsible */}
+                <div className="md:col-span-2 pt-4 border-t border-slate-200 mt-2">
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center">
+                        <Heart className="w-5 h-5 text-rose-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800">Información Complementaria</h3>
+                        <p className="text-xs text-slate-500">Datos médicos y contactos de emergencia</p>
+                      </div>
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={() => setShowComplementaryInfo(!showComplementaryInfo)} 
+                      className={`relative w-12 h-7 rounded-full transition-colors ${showComplementaryInfo ? "bg-rose-500" : "bg-slate-300"}`}
+                    >
+                      <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${showComplementaryInfo ? "left-5" : "left-0.5"}`} />
+                    </button>
+                  </div>
+                  
+                  {/* Collapsible content */}
+                  {showComplementaryInfo && (
+                    <div className="mt-4 p-4 bg-white border border-slate-200 rounded-xl">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Condiciones médicas */}
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <Stethoscope className="w-4 h-4 text-rose-500" />
+                            Condiciones o enfermedades
+                          </label>
+                          <textarea
+                            value={form.condiciones_medicas}
+                            onChange={(e) => handleChange('condiciones_medicas', e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all resize-none"
+                            placeholder="Ej: Asma, diabetes, epilepsia, etc."
+                            rows={2}
+                          />
+                        </div>
+
+                        {/* Alergias */}
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Alergias
+                          </label>
+                          <textarea
+                            value={form.alergias}
+                            onChange={(e) => handleChange('alergias', e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all resize-none"
+                            placeholder="Ej: Penicilina, maní, mariscos, etc."
+                            rows={2}
+                          />
+                        </div>
+
+                        {/* Doctor nombre */}
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Doctor personal
+                          </label>
+                          <input
+                            type="text"
+                            value={form.doctor_nombre}
+                            onChange={(e) => handleChange('doctor_nombre', e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                            placeholder="Nombre del médico"
+                          />
+                        </div>
+
+                        {/* Doctor teléfono */}
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Teléfono del doctor
+                          </label>
+                          <div className="flex">
+                            <span className="inline-flex items-center px-4 py-3 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-600 font-medium">
+                              +51
+                            </span>
+                            <input
+                              type="tel"
+                              value={form.doctor_telefono}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                                handleChange('doctor_telefono', value);
+                              }}
+                              className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                              placeholder="999 999 999"
+                              maxLength={9}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Persona autorizada */}
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                            Persona autorizada
+                          </label>
+                          <input
+                            type="text"
+                            value={form.persona_autorizada}
+                            onChange={(e) => handleChange('persona_autorizada', e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                            placeholder="Nombre completo"
+                          />
+                        </div>
+
+                        {/* Teléfono persona autorizada */}
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Teléfono persona autorizada
+                          </label>
+                          <div className="flex">
+                            <span className="inline-flex items-center px-4 py-3 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-600 font-medium">
+                              +51
+                            </span>
+                            <input
+                              type="tel"
+                              value={form.persona_autorizada_telefono}
+                              onChange={(e) => {
+                                const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                                handleChange('persona_autorizada_telefono', value);
+                              }}
+                              className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
+                              placeholder="999 999 999"
+                              maxLength={9}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Notas */}
+                        <div className="md:col-span-2">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-slate-500" />
+                            Notas adicionales
+                          </label>
+                          <textarea
+                            value={form.notas}
+                            onChange={(e) => handleChange('notas', e.target.value)}
+                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all resize-none"
+                            placeholder="Cualquier información adicional relevante..."
+                            rows={3}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
