@@ -368,9 +368,9 @@ function App() {
             }
           />
 
-          {/* Schedule Page - URL path mode */}
+          {/* Schedule Page - URL path mode (Spanish alias: horarios) */}
           <Route
-            path="/school/:subdomain/schedule"
+            path="/school/:subdomain/horarios"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <SchedulePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
@@ -378,9 +378,9 @@ function App() {
             }
           />
 
-          {/* Schedule Page - Direct path (for subdomain mode) */}
+          {/* Schedule Page - Direct path (for subdomain mode - Spanish alias) */}
           <Route
-            path="/schedule"
+            path="/horarios"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <SchedulePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
