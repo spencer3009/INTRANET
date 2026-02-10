@@ -921,6 +921,123 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
                     <p className="text-xs text-amber-600 mt-1">No hay turnos configurados.</p>
                   )}
                 </div>
+
+                {/* Vincular Padre/Apoderado - autocomplete */}
+                <div className="md:col-span-2 pt-4 border-t border-slate-200 mt-2">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-1">
+                    <UserCheck className="w-4 h-4 text-teal-500" />
+                    Vincular Padre/Apoderado
+                    <span className="text-xs font-normal text-slate-400">(opcional)</span>
+                  </h3>
+                  <p className="text-xs text-slate-500 mb-3">Busca por nombre o DNI del padre registrado</p>
+                  
+                  {/* Selected parent display */}
+                  {selectedParent ? (
+                    <div className="flex items-center justify-between p-4 bg-teal-50 border border-teal-200 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
+                          {selectedParent.photo_url ? (
+                            <img src={selectedParent.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          ) : (
+                            <Users className="w-5 h-5 text-teal-600" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-slate-800">{selectedParent.name} {selectedParent.last_name}</p>
+                          <p className="text-xs text-slate-500">DNI: {selectedParent.dni || 'No registrado'}</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedParent(null);
+                          setForm(prev => ({ ...prev, padre_id: "" }));
+                          setParentSearch("");
+                        }}
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <div className="relative">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                        <input
+                          type="text"
+                          value={parentSearch}
+                          onChange={(e) => {
+                            setParentSearch(e.target.value);
+                            setShowParentDropdown(true);
+                          }}
+                          onFocus={() => setShowParentDropdown(true)}
+                          className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all"
+                          placeholder="Buscar padre por nombre o DNI..."
+                        />
+                        {loadingParents && (
+                          <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 animate-spin" />
+                        )}
+                      </div>
+                      
+                      {/* Dropdown */}
+                      {showParentDropdown && !loadingParents && (
+                        <div className="absolute z-20 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-xl max-h-60 overflow-y-auto">
+                          {filteredParents.length === 0 ? (
+                            <div className="p-4 text-center text-slate-500">
+                              {parents.length === 0 ? (
+                                <div>
+                                  <Users className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                  <p className="text-sm">No hay padres registrados</p>
+                                  <p className="text-xs text-slate-400 mt-1">Primero registra un padre/apoderado</p>
+                                </div>
+                              ) : (
+                                <div>
+                                  <Search className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                                  <p className="text-sm">No se encontraron resultados</p>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            filteredParents.slice(0, 10).map(parent => (
+                              <button
+                                key={parent.id}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedParent(parent);
+                                  setForm(prev => ({ ...prev, padre_id: parent.id }));
+                                  setShowParentDropdown(false);
+                                  setParentSearch("");
+                                }}
+                                className="w-full px-4 py-3 text-left hover:bg-slate-50 flex items-center gap-3 border-b border-slate-100 last:border-b-0 transition-colors"
+                              >
+                                <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                                  {parent.photo_url ? (
+                                    <img src={parent.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                                  ) : (
+                                    <Users className="w-5 h-5 text-slate-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-slate-800 truncate">{parent.name} {parent.last_name}</p>
+                                  <p className="text-xs text-slate-500">
+                                    {parent.dni ? `DNI: ${parent.dni}` : 'Sin DNI'}
+                                    {parent.ocupacion && ` • ${parent.ocupacion}`}
+                                  </p>
+                                </div>
+                                <Check className="w-5 h-5 text-teal-500 opacity-0 group-hover:opacity-100" />
+                              </button>
+                            ))
+                          )}
+                          {filteredParents.length > 10 && (
+                            <div className="px-4 py-2 text-xs text-center text-slate-400 bg-slate-50">
+                              Mostrando 10 de {filteredParents.length} resultados. Refina tu búsqueda.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </>
             )}
 
