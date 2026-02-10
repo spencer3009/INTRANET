@@ -307,7 +307,23 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   };
 
   const handleChange = (field, value) => {
-    setForm(prev => ({ ...prev, [field]: value }));
+    setForm(prev => {
+      const updated = { ...prev, [field]: value };
+      
+      // Cascade reset for academic fields
+      if (field === 'nivel_id') {
+        updated.grado_id = "";
+        updated.seccion_id = "";
+      } else if (field === 'grado_id') {
+        updated.seccion_id = "";
+      } else if (field === 'role' && value === 'student' && levels.length === 0) {
+        // Load academic data when student role is selected
+        loadAcademicData();
+      }
+      
+      return updated;
+    });
+    
     if (field === 'username') {
       // Debounce username check
       clearTimeout(window.usernameTimeout);
