@@ -219,10 +219,25 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [x] Módulo de Horarios (UI básica implementada - 10 Feb 2026)
 - [x] Módulo de Mensajería (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Asistencia (Implementado completo - 10 Feb 2026)
+- [x] Módulo de Calendario (Implementado completo - 10 Feb 2026)
 - [ ] Módulo de Calificaciones
 - [ ] Módulo de Reportes generales
 
 ## Últimos Cambios (10 Feb 2026)
+- **NEW: Módulo de Calendario** - Implementado completo nivel premium:
+  - 3 vistas: Mes (default), Semana, Día
+  - Controles: ◀️ Anterior, Hoy, Siguiente ▶️
+  - 6 tipos de evento con colores: Académico (azul), Institucional (púrpura), Administrativo (gris), Feriado (rojo), Evento especial (amarillo), Comunicación (verde)
+  - Modal CRUD de eventos: título, tipo, fechas, horas, descripción, visibilidad
+  - Visibilidad por roles (profesores/estudiantes/padres) y grados
+  - Solo admin/director pueden crear/editar/eliminar
+  - Filtro rápido por tipo de evento
+  - Leyenda de colores clickeable
+  - Click en día vacío → crear evento con fecha precargada
+  - "+X más" cuando hay muchos eventos en un día
+  - Validación: start_date <= end_date
+  - Checkbox "Todo el día" oculta campos de hora
+  - Endpoints: `/api/calendar/events`, `/api/calendar/event-types`
 - **NEW: Módulo de Asistencias** - Implementado completo con nivel premium:
   - Tab ESTUDIANTES: Filtros cascada (Grado → Sección → Fecha), tabla con avatares y estados
   - Tab PROFESORES: Filtro por fecha, 4 estados (Presente/Tardanza/Ausente/Justificado)
@@ -260,6 +275,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - **Login URL**: /school/demosettings/login
 - **Messages URL**: /school/demosettings/mensajes
 - **Attendance URL**: /school/demosettings/asistencias
+- **Calendar URL**: /school/demosettings/calendario
 
 ## Notas de Plataforma
 - **Emergent** actualmente NO soporta wildcard SSL automático
