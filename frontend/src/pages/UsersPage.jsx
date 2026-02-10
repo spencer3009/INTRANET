@@ -584,15 +584,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
             <img src={roleConfig.image} alt="" className="w-24 h-24 mx-auto mb-4 opacity-30" />
             <p className="text-slate-500">No hay {roleConfig.label.toLowerCase()} registrados</p>
-            {selectedRole !== 'owner' && (
-              <button
-                onClick={() => handleAddUser(selectedRole)}
-                className={`mt-4 px-6 py-3 bg-gradient-to-r ${roleConfig.color} text-white rounded-xl font-semibold hover:shadow-lg transition-all`}
-              >
-                <UserPlus className="w-4 h-4 inline mr-2" />
-                Agregar {roleConfig.labelSingular}
-              </button>
-            )}
+            <button
+              onClick={() => handleAddUser(selectedRole)}
+              className={`mt-4 px-6 py-3 bg-gradient-to-r ${roleConfig.color} text-white rounded-xl font-semibold hover:shadow-lg transition-all`}
+            >
+              <UserPlus className="w-4 h-4 inline mr-2" />
+              Agregar {roleConfig.labelSingular}
+            </button>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
