@@ -975,6 +975,41 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   
   const headers = { Authorization: `Bearer ${token}` };
 
+  // Heartbeat for presence
+  const sendHeartbeat = useCallback(async () => {
+    try {
+      await axios.post(`${API}/presence/heartbeat`, {}, { headers });
+    } catch (err) {
+      console.error("Heartbeat error:", err);
+    }
+  }, [token]);
+
+  // Setup heartbeat interval
+  useEffect(() => {
+    // Send initial heartbeat
+    sendHeartbeat();
+    
+    // Setup interval
+    const interval = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL);
+    
+    // Cleanup on unmount - mark offline
+    return () => {
+      clearInterval(interval);
+      axios.post(`${API}/presence/offline`, {}, { headers }).catch(() => {});
+    };
+  }, [sendHeartbeat]);
+
+  // Also send heartbeat on visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        sendHeartbeat();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [sendHeartbeat]);
+
   useEffect(() => {
     loadInitialData();
   }, []);
@@ -987,6 +1022,18 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
       loadInbox();
     }
   }, [activeTab]);
+
+  // Refresh data periodically to update presence status
+  useEffect(() => {
+    const refreshInterval = setInterval(() => {
+      if (activeTab === "chats" && !selectedChat) {
+        loadChats();
+      }
+      loadUsers();
+    }, 60000); // Refresh every minute
+
+    return () => clearInterval(refreshInterval);
+  }, [activeTab, selectedChat]);
 
   const loadInitialData = async () => {
     setLoading(true);
