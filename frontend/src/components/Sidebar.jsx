@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import {
   Home,
   Mail,
@@ -21,7 +22,18 @@ const navItems = [
   { id: "estadisticas", label: "Estadísticas", icon: BarChart3 },
 ];
 
-export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout }) {
+export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain }) {
+  const navigate = useNavigate();
+  
+  const handleSettingsClick = () => {
+    // Navigate to settings page using route-based approach
+    if (subdomain) {
+      navigate(`/school/${subdomain}/settings`);
+    } else {
+      navigate('/settings');
+    }
+  };
+  
   return (
     <aside
       className={`sidebar fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 ${
@@ -40,7 +52,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         </button>
         {expanded && (
           <span className="ml-3 text-white font-bold text-sm tracking-wide whitespace-nowrap" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            EL ROBLE
+            {schoolName || "EDUNET"}
           </span>
         )}
       </div>
@@ -69,6 +81,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
       {/* Bottom: Settings + Logout */}
       <div className="border-t border-white/10 p-2 space-y-1">
         <button
+          onClick={handleSettingsClick}
           className="sidebar-link w-full"
           data-testid="sidebar-settings"
           title="Ajustes"
