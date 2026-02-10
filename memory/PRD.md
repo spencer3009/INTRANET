@@ -185,6 +185,17 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - `GET /api/academic/periods/active` - Período activo
 - `POST /api/academic/periods/{id}/activate` - Activar período
 
+### Mensajería Interna
+- `GET /api/messages/users` - Usuarios agrupados por rol
+- `GET /api/messages/chats` - Lista de conversaciones
+- `GET /api/messages/chats/{user_id}` - Historial de chat
+- `POST /api/messages/chats/send` - Enviar mensaje de chat
+- `GET /api/messages/inbox` - Bandeja de entrada (mail)
+- `POST /api/messages/send` - Enviar mensaje tipo correo
+- `PUT /api/messages/{id}/read` - Marcar como leído
+- `GET /api/messages/unread-count` - Contador de no leídos
+- `DELETE /api/messages/{id}` - Eliminar mensaje
+
 ## Próximas Tareas (Backlog)
 
 ### P0 - Crítico
@@ -195,6 +206,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [ ] Implementar envío real de emails (SendGrid/Resend)
 - [ ] Social login (Google, GitHub)
 - [ ] Módulo de Matrículas
+- [ ] Completar módulo de Grupos (mensajería grupal por grado/sección/rol)
 
 ### P2 - Mejoras
 - [ ] Cambiar texto "subdominio" por "identificador" en OnboardingPage.jsx
@@ -204,11 +216,19 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 
 ### P3 - Futuro
 - [x] Módulo de Horarios (UI básica implementada - 10 Feb 2026)
+- [x] Módulo de Mensajería (Implementado completo - 10 Feb 2026)
 - [ ] Módulo de Asistencia
 - [ ] Módulo de Calificaciones
 - [ ] Módulo de Reportes
 
 ## Últimos Cambios (10 Feb 2026)
+- **NEW: Módulo de Mensajería** - Implementado completo con:
+  - Tab CHATS: Conversaciones directas tipo WhatsApp con burbujas, historial, adjuntos
+  - Tab ESCRIBIR: Mensajes tipo correo interno con selector de usuarios por rol
+  - Tab GRUPOS: Estructura base (placeholder "Próximamente")
+  - Selector de destinatarios agrupados por rol (Directores, Profesores, Padres)
+  - Soporte para adjuntos via Cloudinary
+  - Bandeja de entrada con filtros (Todos, Recibidos, Enviados)
 - **Fix: Módulo de Horarios** - Corregido endpoint `/api/tenant/settings` → `/api/settings`
 - **Fix: Dropdowns de grados y profesores** - Ahora cargan correctamente los datos
 - **Fix: Logo del colegio** - Ahora se muestra en el header de la página de Horarios
@@ -220,6 +240,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - **Password**: test123
 - **Identifier**: demosettings
 - **Login URL**: /school/demosettings/login
+- **Messages URL**: /school/demosettings/mensajes
 
 ## Notas de Plataforma
 - **Emergent** actualmente NO soporta wildcard SSL automático
