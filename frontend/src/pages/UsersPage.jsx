@@ -940,6 +940,34 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         roleId={addModalRole}
         onUserCreated={handleUserCreated}
       />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setUserToDelete(null);
+        }}
+        onConfirm={confirmDeleteUser}
+        title="Eliminar usuario"
+        message={userToDelete ? `¿Estás seguro de eliminar a "${userToDelete.name}"? Esta acción eliminará permanentemente al usuario y su foto de perfil.` : ""}
+        confirmText="Sí, eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        loading={deleteLoading}
+      />
+
+      {/* Info/Error Modal */}
+      <ConfirmModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        onConfirm={() => setShowInfoModal(false)}
+        title={infoModalContent.title}
+        message={infoModalContent.message}
+        confirmText="Entendido"
+        type={infoModalContent.type}
+        showCancel={false}
+      />
     </div>
   );
 }
