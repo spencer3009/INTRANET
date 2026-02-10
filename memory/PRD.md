@@ -223,10 +223,31 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [x] Módulo de Encuestas (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Disciplina (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Noticias (Implementado completo - 10 Feb 2026)
+- [x] Módulo de Contabilidad (Implementado completo - 10 Feb 2026)
 - [ ] Módulo de Calificaciones
 - [ ] Módulo de Reportes generales
 
 ## Últimos Cambios (10 Feb 2026)
+- **NEW: Módulo de Contabilidad** - Implementado completo nivel super premium (Perú):
+  - Dashboard financiero con 4 cards: Ingresos Confirmados, Egresos Totales, Pagos Pendientes, Balance
+  - 3 tabs: Inicio (Dashboard), Pagos (Ingresos), Egresos
+  - Cálculo automático de IGV 18% (Perú)
+  - Montos en Soles (S/.) con formato de moneda peruano
+  - Pagos (Ingresos):
+    - Selección de estudiante por Grado→Sección→Estudiante
+    - Conceptos: Matrícula, Mensualidad, Taller, Uniforme, Material, Evento, Otros
+    - Métodos: Efectivo, Transferencia, Yape, Plin, Tarjeta
+    - Estados: Pendiente, Pagado, Anulado
+    - Acciones: Confirmar, Anular, Editar
+    - Cálculo en vivo: Base + IGV = Total
+  - Egresos:
+    - Categorías: Servicios, Personal, Mantenimiento, Materiales, Otros
+    - CRUD completo con proveedor
+  - Resumen mensual con periodo (mes/año)
+  - Transacciones recientes en dashboard
+  - Solo admin/director tienen acceso
+  - Endpoints: `/api/accounting/payments`, `/api/accounting/expenses`, `/api/accounting/summary`
+
 - **NEW: Módulo de Noticias** - Implementado completo nivel premium:
   - CRUD completo de noticias institucionales
   - 3 estados: Borrador, Publicado, Archivado
@@ -330,6 +351,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - **Surveys URL**: /school/demosettings/encuestas
 - **Discipline URL**: /school/demosettings/disciplina
 - **News URL**: /school/demosettings/noticias
+- **Accounting URL**: /school/demosettings/contabilidad
 
 ## Notas de Plataforma
 - **Emergent** actualmente NO soporta wildcard SSL automático
