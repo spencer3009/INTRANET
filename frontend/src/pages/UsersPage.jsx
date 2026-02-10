@@ -523,6 +523,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [selectedRole, setSelectedRole] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalRole, setAddModalRole] = useState(null);
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [deletingUser, setDeletingUser] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -546,6 +548,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     fetchData();
   }, [token]);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => setOpenMenuId(null);
+    if (openMenuId) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [openMenuId]);
+
   // Count users by role
   const getUserCount = (roleId) => {
     if (roleId === 'pending') {
@@ -556,6 +567,31 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   const handleCardClick = (roleId) => {
     setSelectedRole(roleId);
+  };
+
+  // Delete user handler
+  const handleDeleteUser = async (userId) => {
+    if (!window.confirm('¿Estás seguro de eliminar este usuario? Esta acción no se puede deshacer.')) {
+      return;
+    }
+    
+    setDeletingUser(userId);
+    try {
+      await axios.delete(`${API}/users/${userId}`, { headers });
+      setUsers(prev => prev.filter(u => u.id !== userId));
+      setOpenMenuId(null);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al eliminar usuario");
+    } finally {
+      setDeletingUser(null);
+    }
+  };
+
+  // Edit user handler (placeholder for future implementation)
+  const handleEditUser = (userId) => {
+    // TODO: Implement edit modal
+    alert('Funcionalidad de edición próximamente');
+    setOpenMenuId(null);
   };
 
   const handleAddUser = (roleId) => {
