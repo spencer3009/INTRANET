@@ -526,26 +526,97 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
             </div>
 
             {/* Password */}
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Contraseña <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={form.password}
-                  onChange={(e) => handleChange('password', e.target.value)}
-                  className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                  placeholder="••••••••"
-                  required
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
+            <div className="md:col-span-2">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Password field */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Contraseña <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={form.password}
+                      onChange={(e) => handleChange('password', e.target.value)}
+                      className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  
+                  {/* Password strength indicator */}
+                  {form.password && (
+                    <div className="mt-2">
+                      <div className="flex gap-1 mb-1">
+                        {[1, 2, 3, 4, 5].map((level) => (
+                          <div
+                            key={level}
+                            className={`h-1.5 flex-1 rounded-full transition-all ${
+                              level <= passwordStrength.level ? passwordStrength.color : 'bg-slate-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <p className={`text-xs font-medium ${passwordStrength.textColor}`}>
+                        {passwordStrength.label}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Confirm password field */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Confirmar contraseña <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      className={`w-full px-4 py-3 pr-12 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                        passwordsMismatch
+                          ? 'border-red-300 focus:ring-red-500/20 focus:border-red-500'
+                          : passwordsMatch
+                          ? 'border-emerald-300 focus:ring-emerald-500/20 focus:border-emerald-500'
+                          : 'border-slate-200 focus:ring-blue-500/20 focus:border-blue-500'
+                      }`}
+                      placeholder="••••••••"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  
+                  {/* Match indicator */}
+                  {confirmPassword && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      {passwordsMatch ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-500" />
+                          <span className="text-xs font-medium text-emerald-600">Las contraseñas coinciden</span>
+                        </>
+                      ) : (
+                        <>
+                          <X className="w-4 h-4 text-red-500" />
+                          <span className="text-xs font-medium text-red-600">Las contraseñas no coinciden</span>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
