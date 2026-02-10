@@ -18,7 +18,7 @@ import {
   ClipboardList,
   AlertTriangle,
   Newspaper,
-  Wallet,
+  Landmark,
 } from "lucide-react";
 
 const navItems = [
