@@ -851,73 +851,97 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       )}
 
       {/* Role Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {ROLE_CARDS.map((role) => {
           const count = getUserCount(role.id);
           return (
             <button
               key={role.id}
               onClick={() => handleCardClick(role.id)}
-              className="group bg-white rounded-2xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-slate-200 text-left relative overflow-hidden"
+              className={`group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 ${role.borderColor} bg-gradient-to-br ${role.lightGradient}`}
               data-testid={`role-card-${role.id}`}
             >
-              <div className={`absolute inset-0 bg-gradient-to-br ${role.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+              {/* Gradient overlay on hover */}
+              <div className={`absolute inset-0 bg-gradient-to-br ${role.gradientBg} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
               
-              <div className="absolute top-4 right-4 text-slate-300 group-hover:text-slate-400">
-                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                </svg>
-              </div>
+              {/* Decorative circles */}
+              <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br ${role.gradientBg} opacity-10`} />
+              <div className={`absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-gradient-to-br ${role.gradientBg} opacity-10`} />
 
-              <div className="flex justify-center mb-4">
-                <img 
-                  src={role.image} 
-                  alt={role.label}
-                  className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-
-              <h3 className="text-lg font-bold text-slate-800 text-center mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                {role.label}
-              </h3>
-
-              <p className="text-sm text-slate-500 text-center">
-                {count} {count === 1 ? role.labelSingular : role.label}
-              </p>
-
+              {/* Pending badge */}
               {role.isPending && count > 0 && (
-                <div className="absolute top-4 left-4">
-                  <span className="px-2 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
-                    {count}
+                <div className="absolute top-4 left-4 z-10">
+                  <span className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
+                    {count} nuevos
                   </span>
                 </div>
               )}
+
+              {/* Content */}
+              <div className="relative z-10">
+                {/* Icon container with gradient border */}
+                <div className="flex justify-center mb-4">
+                  <div className={`w-24 h-24 rounded-2xl bg-white shadow-lg p-3 group-hover:shadow-xl transition-all duration-300 border-2 ${role.borderColor}`}>
+                    <img 
+                      src={role.image} 
+                      alt={role.label}
+                      className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                </div>
+
+                {/* Title with gradient text on hover */}
+                <h3 className={`text-xl font-bold text-center mb-2 ${role.textColor}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  {role.label}
+                </h3>
+
+                {/* Count badge */}
+                <div className="flex justify-center">
+                  <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border ${role.borderColor} ${role.textColor} font-semibold text-sm`}>
+                    <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${role.gradientBg}`}></span>
+                    {count} {count === 1 ? role.labelSingular : role.label.toLowerCase()}
+                  </span>
+                </div>
+
+                {/* Arrow indicator */}
+                <div className="flex justify-center mt-4">
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${role.gradientBg} flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0`}>
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </button>
           );
         })}
       </div>
 
       {/* Quick Stats */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-        <h3 className="text-lg font-bold text-slate-800 mb-4" style={{ fontFamily: 'Manrope, sans-serif' }}>
+      <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
+        <h3 className="text-xl font-bold text-slate-800 mb-6" style={{ fontFamily: 'Manrope, sans-serif' }}>
           Resumen General
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-blue-600">{users.length}</p>
-            <p className="text-sm text-blue-600/70">Total Usuarios</p>
+          <div className="relative overflow-hidden bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-5 text-center text-white shadow-lg">
+            <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/10"></div>
+            <p className="text-4xl font-bold mb-1">{users.length}</p>
+            <p className="text-sm text-blue-100">Total Usuarios</p>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-emerald-600">{users.filter(u => u.email_verified).length}</p>
-            <p className="text-sm text-emerald-600/70">Verificados</p>
+          <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-center text-white shadow-lg">
+            <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/10"></div>
+            <p className="text-4xl font-bold mb-1">{users.filter(u => u.email_verified).length}</p>
+            <p className="text-sm text-emerald-100">Verificados</p>
           </div>
-          <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-amber-600">{users.filter(u => !u.email_verified).length}</p>
-            <p className="text-sm text-amber-600/70">Pendientes</p>
+          <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-center text-white shadow-lg">
+            <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/10"></div>
+            <p className="text-4xl font-bold mb-1">{users.filter(u => !u.email_verified).length}</p>
+            <p className="text-sm text-amber-100">Pendientes</p>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-purple-600">{new Set(users.map(u => u.role)).size}</p>
-            <p className="text-sm text-purple-600/70">Roles Activos</p>
+          <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-5 text-center text-white shadow-lg">
+            <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/10"></div>
+            <p className="text-4xl font-bold mb-1">{new Set(users.map(u => u.role)).size}</p>
+            <p className="text-sm text-purple-100">Roles Activos</p>
           </div>
         </div>
       </div>
