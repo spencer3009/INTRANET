@@ -132,6 +132,14 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     seccion_id: "",
     turno_id: "",
     padre_id: "", // Parent linked to student
+    // Student complementary info
+    condiciones_medicas: "",
+    alergias: "",
+    doctor_nombre: "",
+    doctor_telefono: "",
+    persona_autorizada: "",
+    persona_autorizada_telefono: "",
+    notas: "",
     // Parent-specific fields
     dni: "",
     ocupacion: "",
@@ -145,6 +153,10 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   const [showParentDropdown, setShowParentDropdown] = useState(false);
   const [selectedParent, setSelectedParent] = useState(null);
   const [loadingParents, setLoadingParents] = useState(false);
+  
+  // Toggle states for optional sections
+  const [showParentSection, setShowParentSection] = useState(false);
+  const [showComplementaryInfo, setShowComplementaryInfo] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
