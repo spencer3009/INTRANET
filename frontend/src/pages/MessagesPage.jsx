@@ -116,16 +116,26 @@ function UserSelector({ value, onChange, users, loading, placeholder = "Seleccio
       >
         {selectedUser ? (
           <div className="flex items-center gap-3">
-            {selectedUser.photo_url ? (
-              <img src={selectedUser.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-            ) : (
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
-                {selectedUser.name?.charAt(0) || "U"}
-              </div>
-            )}
+            <div className="relative">
+              {selectedUser.photo_url ? (
+                <img src={selectedUser.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-bold">
+                  {selectedUser.name?.charAt(0) || "U"}
+                </div>
+              )}
+              <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${
+                selectedUser.is_online ? "bg-emerald-500" : "bg-slate-400"
+              }`} />
+            </div>
             <div>
               <p className="font-medium text-slate-800">{selectedUser.full_name}</p>
-              <p className="text-xs text-slate-500">{ROLE_LABELS[selectedUser.role] || selectedUser.role}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">{ROLE_LABELS[selectedUser.role] || selectedUser.role}</span>
+                <span className={`text-xs ${selectedUser.is_online ? "text-emerald-600" : "text-slate-400"}`}>
+                  • {selectedUser.is_online ? "En línea" : "Desconectado"}
+                </span>
+              </div>
             </div>
           </div>
         ) : (
@@ -165,8 +175,11 @@ function UserSelector({ value, onChange, users, loading, placeholder = "Seleccio
             ) : (
               filteredGroups.map((group) => (
                 <div key={group.label}>
-                  <div className="px-4 py-2 bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wide sticky top-0">
-                    {group.label}
+                  <div className="px-4 py-2 bg-slate-50 text-xs font-bold text-slate-500 uppercase tracking-wide sticky top-0 flex items-center justify-between">
+                    <span>{group.label}</span>
+                    <span className="text-emerald-600">
+                      {group.users.filter(u => u.is_online).length} en línea
+                    </span>
                   </div>
                   {group.users.map((user) => (
                     <button
@@ -181,15 +194,25 @@ function UserSelector({ value, onChange, users, loading, placeholder = "Seleccio
                         value === user.id ? "bg-blue-50" : ""
                       }`}
                     >
-                      {user.photo_url ? (
-                        <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-bold">
-                          {user.name?.charAt(0) || "U"}
-                        </div>
-                      )}
+                      <div className="relative">
+                        {user.photo_url ? (
+                          <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-bold">
+                            {user.name?.charAt(0) || "U"}
+                          </div>
+                        )}
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                          user.is_online ? "bg-emerald-500" : "bg-slate-400"
+                        }`} />
+                      </div>
                       <div className="text-left flex-1">
-                        <p className="font-medium text-slate-800">{user.full_name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-slate-800">{user.full_name}</p>
+                          {user.is_online && (
+                            <span className="text-xs text-emerald-600 font-medium">En línea</span>
+                          )}
+                        </div>
                         <p className="text-xs text-slate-500">{user.email}</p>
                       </div>
                       {value === user.id && (
