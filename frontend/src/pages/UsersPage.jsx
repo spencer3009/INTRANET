@@ -7,7 +7,8 @@ import ConfirmModal from "@/components/ConfirmModal";
 import { 
   Users, UserPlus, ArrowLeft, Loader2, X, Camera, Upload,
   GraduationCap, Building2, Check, AlertCircle, Plus, Eye, EyeOff,
-  MoreVertical, Pencil, Trash2, BookOpen, Sparkles, Search, UserCheck
+  MoreVertical, Pencil, Trash2, BookOpen, Sparkles, Search, UserCheck,
+  Heart, Phone, FileText, Stethoscope, ShieldCheck
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
