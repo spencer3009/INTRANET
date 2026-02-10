@@ -27,6 +27,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - **Backend**: FastAPI, Motor (async MongoDB), JWT auth, bcrypt
 - **Base de datos**: MongoDB con índices únicos
 - **Marca**: EduNet (navy #001f4b, gold #e1b82c)
+- **Uploads**: Cloudinary (client-side con firma del backend)
 
 ## Modelo de Datos
 
@@ -35,10 +36,11 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 {
   "id": "uuid",
   "school_name": "Colegio El Roble",
-  "subdomain": "colegioroble",        // UNIQUE, lowercase
+  "subdomain": "colegioroble",
   "full_domain": "colegioroble.edunet.pe",
-  "status": "active",                 // active | pending | suspended
+  "status": "active",
   "owner_user_id": "uuid",
+  "logo_url": "string | null",
   "created_at": "ISO",
   "updated_at": "ISO"
 }
@@ -50,41 +52,110 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
   "id": "uuid",
   "email": "admin@colegio.edu.pe",
   "password": "bcrypt_hash",
-  "name": "Colegio El Roble",
-  "role": "owner",                    // owner | admin | teacher
-  "school_id": "uuid | null",         // NULL hasta crear subdominio
+  "name": "Nombre",
+  "last_name": "Apellido",
+  "role": "owner | admin | teacher | director",
+  "school_id": "uuid | null",
   "email_verified": true,
-  "verification_code": "ABC123",
+  "photo_url": "string | null",
   "created_at": "ISO",
   "updated_at": "ISO"
 }
 ```
 
-## Flujo de Usuario
+### Collection: academic_levels
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "nombre": "Primaria",
+  "descripcion": "string | null",
+  "imagen_url": "string | null",
+  "activo": true,
+  "created_at": "ISO",
+  "updated_at": "ISO"
+}
+```
 
-### Paso 1: Registro Simple
-- **Ruta**: `/register`
-- **Campos**: nombre_colegio, email, contraseña
-- **Resultado**: `email_verified: false`, `school_id: null`
+### Collection: grades
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "nombre": "1°",
+  "nivel_id": "uuid",
+  "orden": 1,
+  "activo": true,
+  "created_at": "ISO",
+  "updated_at": "ISO"
+}
+```
 
-### Paso 2: Verificación de Email
-- **Ruta**: `/verify-email`
-- **Resultado**: `email_verified: true`, `school_id: null`
+### Collection: sections
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "nombre": "A",
+  "grado_id": "uuid",
+  "capacidad_maxima": 30,
+  "activo": true,
+  "created_at": "ISO",
+  "updated_at": "ISO"
+}
+```
 
-### Paso 3: Creación de Subdominio (OBLIGATORIO)
-- **Ruta**: `/onboarding`
-- **Validaciones**: Regex `^[a-z0-9]{3,30}$`, unicidad en BD
-- **Resultado**: Crea school, actualiza `user.school_id`
+### Collection: shifts
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "nombre": "Mañana",
+  "hora_inicio": "07:00",
+  "hora_fin": "12:00",
+  "color": "#3B82F6",
+  "activo": true,
+  "created_at": "ISO",
+  "updated_at": "ISO"
+}
+```
 
-### Bloqueo Estricto
-- Sin `school_id` → Usuario BLOQUEADO del dashboard
-- Backend: 403 "Debes crear tu subdominio primero"
-- Frontend: Redirige a `/onboarding`
+### Collection: academic_periods
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "nombre": "Bimestre I - 2025",
+  "fecha_inicio": "2025-03-03",
+  "fecha_fin": "2025-05-09",
+  "activo": true,
+  "created_at": "ISO",
+  "updated_at": "ISO"
+}
+```
 
-## Regla Shopify
-- Si usuario tiene `subdomain`:
-  - Producción: Redirect automático a `https://{subdomain}.edunet.pe`
-  - Preview: Redirect a `/school/{subdomain}/dashboard`
+## Módulo de Ajustes Académicos (COMPLETADO)
+
+### Fase 1: Niveles y Grados ✅
+- CRUD de niveles educativos (Inicial, Primaria, Secundaria)
+- CRUD de grados por nivel
+- Validaciones de duplicados y relaciones
+
+### Fase 2: Secciones y Turnos ✅
+- CRUD de secciones por grado (A, B, C)
+- CRUD de turnos con horarios y colores
+- Filtros por nivel/grado
+
+### Fase 3: Períodos Académicos ✅
+- CRUD de períodos (bimestres, trimestres, semestres)
+- **Solo un período activo por tenant**
+- Desactivación automática del período anterior
+- Validación de fechas no superpuestas
+- Endpoint GET /api/academic/periods/active
+- Endpoint POST /api/academic/periods/{id}/activate
+- No permite eliminar período activo
+- UI con banner destacado para período activo
+- Color índigo-violeta (no rojo) para evitar connotaciones negativas
 
 ## API Endpoints
 
@@ -94,77 +165,54 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - `POST /api/auth/verify-email` - Verificar código
 - `GET /api/auth/me` - Usuario actual
 
-### Subdomain
-- `GET /api/subdomain/check?subdomain=xxx` - Verificar disponibilidad
+### Usuarios
+- `GET /api/users` - Listar usuarios del tenant
+- `POST /api/users` - Crear usuario
+- `GET /api/users/{id}` - Obtener usuario
+- `DELETE /api/users/{id}` - Eliminar usuario
 
-### Schools
-- `POST /api/schools/create` - Crear tenant
-
-### Dashboard (Requieren school_id)
-- `GET /api/dashboard/metrics`
-- `GET /api/dashboard/events`
-- `GET /api/dashboard/enrollment`
-- `GET /api/dashboard/school`
-
-## Rutas Frontend
-
-### Rutas Públicas
-- `/` - Landing Page
-- `/register` - Registro (Paso 1)
-- `/login` - Login
-- `/verify-email` - Verificación (Paso 2)
-
-### Rutas Protegidas
-- `/onboarding` - Crear subdominio (Paso 3)
-- `/dashboard/*` - Dashboard (subdomain mode)
-- `/school/:subdomain/dashboard/*` - Dashboard (route mode)
-
-## Variables de Entorno
-
-### Backend (.env)
-```
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=test_database
-JWT_SECRET=your-secret-key
-BASE_DOMAIN=edunet.pe
-```
-
-### Frontend (.env)
-```
-REACT_APP_BACKEND_URL=https://your-domain.com
-REACT_APP_BASE_DOMAIN=edunet.pe
-```
-
-## Testing Verificado
-- ✅ Registro crea usuario con `school_id: null`
-- ✅ Verificación actualiza `email_verified: true`
-- ✅ Usuario sin school_id BLOQUEADO del dashboard
-- ✅ Creación de school actualiza `user.school_id`
-- ✅ Login indica `redirect_to_subdomain: true`
-- ✅ Arquitectura híbrida funciona en ambos modos
-- ✅ Usuarios legacy (school sin subdomain) redirigidos a onboarding
+### Ajustes Académicos
+- `GET/POST /api/academic/levels` - Niveles educativos
+- `PUT/DELETE /api/academic/levels/{id}`
+- `GET/POST /api/academic/grades` - Grados
+- `PUT/DELETE /api/academic/grades/{id}`
+- `GET/POST /api/academic/sections` - Secciones
+- `PUT/DELETE /api/academic/sections/{id}`
+- `GET/POST /api/academic/shifts` - Turnos
+- `PUT/DELETE /api/academic/shifts/{id}`
+- `GET/POST /api/academic/periods` - Períodos
+- `PUT/DELETE /api/academic/periods/{id}`
+- `GET /api/academic/periods/active` - Período activo
+- `POST /api/academic/periods/{id}/activate` - Activar período
 
 ## Próximas Tareas (Backlog)
 
 ### P0 - Crítico
-- [ ] Implementar envío real de emails (SendGrid/Resend)
-- [ ] Social login (Google, GitHub)
+- [ ] Implementar funcionalidad "Editar Usuario" (UI existe, funcionalidad pendiente)
+- [ ] Verificación de usuario completa del módulo Ajustes Académicos
 
 ### P1 - Importante
-- [ ] CRUD de eventos en dashboard
-- [ ] CRUD de estudiantes
-- [ ] CRUD de docentes
-- [ ] Tenant-isolation en todas las queries
+- [ ] Implementar envío real de emails (SendGrid/Resend)
+- [ ] Social login (Google, GitHub)
+- [ ] Módulo de Matrículas
 
 ### P2 - Mejoras
+- [ ] Cambiar texto "subdominio" por "identificador" en OnboardingPage.jsx
 - [ ] Recuperación de contraseña
-- [ ] Personalización de logo por colegio
-- [ ] Invitación de usuarios al colegio
+- [ ] Refactorizar AcademicSettingsPage.jsx (>1000 líneas)
+- [ ] Refactorizar UsersPage.jsx (>1000 líneas)
 
 ### P3 - Futuro
-- [ ] Roles adicionales (admin, teacher)
-- [ ] Suspensión de colegios
-- [ ] Facturación/pagos por colegio
+- [ ] Módulo de Horarios
+- [ ] Módulo de Asistencia
+- [ ] Módulo de Calificaciones
+- [ ] Módulo de Reportes
+
+## Credenciales de Prueba
+- **Email**: admin.settings@test.pe
+- **Password**: test123
+- **Identifier**: demosettings
+- **Login URL**: /school/demosettings/login
 
 ## Notas de Plataforma
 - **Emergent** actualmente NO soporta wildcard SSL automático
