@@ -1257,6 +1257,16 @@ async def create_academic_level(
     if existing:
         raise HTTPException(status_code=400, detail="Ya existe un nivel con ese nombre")
     
+    # Get next order number if not provided
+    if data.orden == 0:
+        max_order = await db.academic_levels.find_one(
+            {"school_id": user["school_id"]},
+            sort=[("orden", -1)]
+        )
+        next_order = (max_order.get("orden", 0) + 1) if max_order else 1
+    else:
+        next_order = data.orden
+
     level = {
         "id": str(uuid.uuid4()),
         "school_id": user["school_id"],
@@ -1264,6 +1274,7 @@ async def create_academic_level(
         "descripcion": data.descripcion,
         "imagen_url": data.imagen_url,
         "activo": data.activo,
+        "orden": next_order,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
