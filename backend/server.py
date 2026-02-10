@@ -1132,6 +1132,13 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
+    # Add academic fields for students
+    if data.role == "student":
+        new_user["nivel_id"] = data.nivel_id
+        new_user["grado_id"] = data.grado_id
+        new_user["seccion_id"] = data.seccion_id
+        new_user["turno_id"] = data.turno_id
+    
     await db.users.insert_one(new_user)
     
     # Remove sensitive fields before returning
