@@ -1224,7 +1224,7 @@ async def get_academic_levels(
     if activo is not None:
         query["activo"] = activo
     
-    levels = await db.academic_levels.find(query, {"_id": 0}).sort("created_at", 1).to_list(100)
+    levels = await db.academic_levels.find(query, {"_id": 0}).sort("orden", 1).to_list(100)
     
     # Add grade count for each level
     for level in levels:
