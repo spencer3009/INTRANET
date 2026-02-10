@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import {
   Home,
   UserCog,
@@ -32,6 +33,10 @@ const navItems = [
 
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain }) {
   const navigate = useNavigate();
+  const [isHovered, setIsHovered] = useState(false);
+  
+  // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
+  const isExpanded = isHovered || expanded;
   
   const handleNavClick = (item) => {
     if (item.route) {
@@ -59,20 +64,25 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
   return (
     <aside
       className={`sidebar fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 ${
-        expanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
+        isExpanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
       data-testid="sidebar"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Top: Logo + Toggle */}
       <div className="flex items-center justify-center h-16 border-b border-white/10 px-3">
         <button
           onClick={onToggle}
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
+          className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all lg:hidden"
           data-testid="sidebar-toggle"
         >
           <Menu className="w-5 h-5" />
         </button>
-        {expanded && (
+        <div className="hidden lg:flex items-center justify-center w-10 h-10">
+          <Menu className="w-5 h-5 text-white/60" />
+        </div>
+        {isExpanded && (
           <span className="ml-3 text-white font-bold text-sm tracking-wide whitespace-nowrap" style={{ fontFamily: 'Manrope, sans-serif' }}>
             {schoolName || "EDUNET"}
           </span>
@@ -94,7 +104,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
               <span className="link-icon">
                 <Icon className="w-5 h-5" />
               </span>
-              {expanded && <span className="text-sm font-medium">{item.label}</span>}
+              {isExpanded && <span className="text-sm font-medium">{item.label}</span>}
             </button>
           );
         })}
@@ -109,7 +119,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
           title="Ajustes"
         >
           <span className="link-icon"><Settings className="w-5 h-5" /></span>
-          {expanded && <span className="text-sm font-medium">Ajustes</span>}
+          {isExpanded && <span className="text-sm font-medium">Ajustes</span>}
         </button>
         <button
           onClick={onLogout}
@@ -118,7 +128,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
           title="Cerrar Sesión"
         >
           <span className="link-icon"><LogOut className="w-5 h-5" /></span>
-          {expanded && <span className="text-sm font-medium">Salir</span>}
+          {isExpanded && <span className="text-sm font-medium">Salir</span>}
         </button>
       </div>
     </aside>
