@@ -2523,6 +2523,89 @@ async def delete_schedule(
     return {"message": "Horario eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# USER PRESENCE (ONLINE / OFFLINE)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Presence timeout in minutes - user is offline if no heartbeat in this time
+PRESENCE_TIMEOUT_MINUTES = 5
+
+@api_router.post("/presence/heartbeat")
+async def send_heartbeat(current_user = Depends(get_current_user)):
+    """
+    Send heartbeat to mark user as online.
+    Should be called periodically (every 30-60 seconds) by the frontend.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    now = datetime.now(timezone.utc)
+    
+    # Upsert presence record
+    await db.presence.update_one(
+        {"user_id": current_user["sub"]},
+        {
+            "$set": {
+                "user_id": current_user["sub"],
+                "school_id": user["school_id"],
+                "is_online": True,
+                "last_seen": now.isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    return {"status": "ok", "last_seen": now.isoformat()}
+
+@api_router.get("/presence/users")
+async def get_presence_status(current_user = Depends(get_current_user)):
+    """
+    Get online/offline status for all users in the same school.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc)
+    timeout_threshold = now - timedelta(minutes=PRESENCE_TIMEOUT_MINUTES)
+    
+    # Get all presence records for school
+    presence_cursor = db.presence.find(
+        {"school_id": school_id},
+        {"_id": 0}
+    )
+    presence_records = await presence_cursor.to_list(length=1000)
+    
+    # Build presence map with online status based on last_seen
+    result = {}
+    for p in presence_records:
+        last_seen = datetime.fromisoformat(p["last_seen"].replace("Z", "+00:00")) if p.get("last_seen") else None
+        is_online = last_seen and last_seen > timeout_threshold if last_seen else False
+        result[p["user_id"]] = {
+            "is_online": is_online,
+            "last_seen": p.get("last_seen")
+        }
+    
+    return result
+
+@api_router.post("/presence/offline")
+async def mark_offline(current_user = Depends(get_current_user)):
+    """
+    Explicitly mark user as offline (called on logout or window close).
+    """
+    await db.presence.update_one(
+        {"user_id": current_user["sub"]},
+        {
+            "$set": {
+                "is_online": False,
+                "last_seen": datetime.now(timezone.utc).isoformat()
+            }
+        }
+    )
+    return {"status": "ok"}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MESSAGES / INTERNAL COMMUNICATIONS
 # ══════════════════════════════════════════════════════════════════════════════
 
