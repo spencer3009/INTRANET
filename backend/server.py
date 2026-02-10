@@ -1061,6 +1061,14 @@ class CreateUserRequest(BaseModel):
     seccion_id: Optional[str] = None
     turno_id: Optional[str] = None
     padre_id: Optional[str] = None  # Link student to parent
+    # Student complementary info
+    condiciones_medicas: Optional[str] = None
+    alergias: Optional[str] = None
+    doctor_nombre: Optional[str] = None
+    doctor_telefono: Optional[str] = None
+    persona_autorizada: Optional[str] = None
+    persona_autorizada_telefono: Optional[str] = None
+    notas: Optional[str] = None
     # Parent-specific fields
     dni: Optional[str] = None
     ocupacion: Optional[str] = None
