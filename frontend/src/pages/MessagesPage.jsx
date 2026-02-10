@@ -1280,16 +1280,27 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                             selectedChat?.id === chat.partner_id ? "bg-violet-50" : ""
                           }`}
                         >
-                          {chat.partner_photo ? (
-                            <img src={chat.partner_photo} alt="" className="w-12 h-12 rounded-full object-cover" />
-                          ) : (
-                            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-bold">
-                              {chat.partner_name?.charAt(0) || "U"}
-                            </div>
-                          )}
+                          <div className="relative">
+                            {chat.partner_photo ? (
+                              <img src={chat.partner_photo} alt="" className="w-12 h-12 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-bold">
+                                {chat.partner_name?.charAt(0) || "U"}
+                              </div>
+                            )}
+                            {/* Presence indicator */}
+                            <span className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                              chat.is_online ? "bg-emerald-500" : "bg-slate-400"
+                            }`} />
+                          </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <p className="font-semibold text-slate-800 truncate">{chat.partner_name}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-semibold text-slate-800 truncate">{chat.partner_name}</p>
+                                {chat.is_online && (
+                                  <span className="text-xs text-emerald-600 font-medium">●</span>
+                                )}
+                              </div>
                               <span className="text-xs text-slate-400">{formatTime(chat.last_message_time)}</span>
                             </div>
                             <p className="text-sm text-slate-500 truncate">
