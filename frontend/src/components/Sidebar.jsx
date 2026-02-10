@@ -18,6 +18,7 @@ import {
   ClipboardList,
   AlertTriangle,
   Newspaper,
+  Wallet,
 } from "lucide-react";
 
 const navItems = [
@@ -30,6 +31,7 @@ const navItems = [
   { id: "encuestas", label: "Encuestas", icon: ClipboardList, route: "/encuestas" },
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina" },
   { id: "noticias", label: "Noticias", icon: Newspaper, route: "/noticias" },
+  { id: "contabilidad", label: "Contabilidad", icon: Wallet, route: "/contabilidad" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes" },
   { id: "comunidad", label: "Comunidad", icon: Users },
   { id: "academico", label: "Académico", icon: GraduationCap },
