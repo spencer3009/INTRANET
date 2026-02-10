@@ -366,14 +366,23 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Contraseña <span className="text-red-500">*</span>
               </label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => handleChange('password', e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                placeholder="••••••••"
-                required
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => handleChange('password', e.target.value)}
+                  className="w-full px-4 py-3 pr-12 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
             </div>
 
             {/* Email */}
@@ -390,13 +399,23 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
 
             {/* Phone */}
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Celular</label>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => handleChange('phone', e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-                placeholder="+51 999 999 999"
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Celular / WhatsApp</label>
+              <div className="flex">
+                <span className="inline-flex items-center px-4 py-3 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-600 font-medium">
+                  +51
+                </span>
+                <input
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => {
+                    // Only allow numbers and limit to 9 digits
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                    handleChange('phone', value);
+                  }}
+                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                  placeholder="999 999 999"
+                  maxLength={9}
+                />
               />
             </div>
 
