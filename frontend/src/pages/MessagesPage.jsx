@@ -1,13 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { 
   MessageSquare, Send, Paperclip, Search, X, Check, CheckCheck,
   Mail, Users, ChevronRight, Loader2, AlertCircle, Clock, 
-  User, ArrowLeft, FileText, Image, File, Trash2, Eye
+  User, ArrowLeft, FileText, Image, File, Trash2, Eye, Circle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Heartbeat interval in milliseconds (30 seconds)
+const HEARTBEAT_INTERVAL = 30000;
 
 // Tab configurations
 const MESSAGE_TABS = [
@@ -27,7 +30,52 @@ const ROLE_LABELS = {
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// USER SELECTOR COMPONENT (Dropdown grouped by role)
+// PRESENCE INDICATOR COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
+function PresenceIndicator({ isOnline, size = "md", showLabel = false, lastSeen }) {
+  const sizeClasses = {
+    sm: "w-2.5 h-2.5",
+    md: "w-3 h-3",
+    lg: "w-4 h-4"
+  };
+
+  const formatLastSeen = (isoString) => {
+    if (!isoString) return "";
+    const date = new Date(isoString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Hace un momento";
+    if (diffMins < 60) return `Hace ${diffMins}m`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    if (diffDays < 7) return `Hace ${diffDays}d`;
+    return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
+  };
+
+  return (
+    <div className="flex items-center gap-1.5">
+      <span
+        className={`${sizeClasses[size]} rounded-full ${
+          isOnline 
+            ? "bg-emerald-500 shadow-lg shadow-emerald-500/50" 
+            : "bg-slate-400"
+        }`}
+        title={isOnline ? "En línea" : `Última vez: ${formatLastSeen(lastSeen)}`}
+      />
+      {showLabel && (
+        <span className={`text-xs ${isOnline ? "text-emerald-600 font-medium" : "text-slate-500"}`}>
+          {isOnline ? "En línea" : formatLastSeen(lastSeen)}
+        </span>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// USER SELECTOR COMPONENT (Dropdown grouped by role with presence)
 // ══════════════════════════════════════════════════════════════════════════════
 function UserSelector({ value, onChange, users, loading, placeholder = "Seleccionar destinatario..." }) {
   const [isOpen, setIsOpen] = useState(false);
