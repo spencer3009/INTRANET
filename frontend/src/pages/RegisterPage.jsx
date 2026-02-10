@@ -64,6 +64,32 @@ export default function RegisterPage() {
   const passwordsMatch = form.password && confirmPassword && form.password === confirmPassword;
   const passwordsMismatch = form.password && confirmPassword && form.password !== confirmPassword;
 
+  // Generate strong password
+  const generateStrongPassword = () => {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const symbols = '!@#$%&*';
+    
+    let password = '';
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    const allChars = lowercase + uppercase + numbers + symbols;
+    for (let i = 0; i < 8; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
+    setForm(prev => ({ ...prev, password }));
+    setConfirmPassword(password);
+    setShowPass(true);
+    setShowConfirmPass(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
