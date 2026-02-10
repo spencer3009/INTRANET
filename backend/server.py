@@ -1144,6 +1144,13 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["seccion_id"] = data.seccion_id
         new_user["turno_id"] = data.turno_id
     
+    # Add parent-specific fields
+    if data.role == "parent":
+        new_user["dni"] = data.dni
+        new_user["ocupacion"] = data.ocupacion
+        new_user["lugar_trabajo"] = data.lugar_trabajo
+        new_user["telefono_trabajo"] = data.telefono_trabajo
+    
     await db.users.insert_one(new_user)
     
     # Remove sensitive fields before returning
