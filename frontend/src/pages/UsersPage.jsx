@@ -416,7 +416,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
                   placeholder="999 999 999"
                   maxLength={9}
                 />
-              />
+              </div>
             </div>
 
             {/* Birthday */}
@@ -441,7 +441,6 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
                 <option value="">Seleccionar...</option>
                 <option value="male">Masculino</option>
                 <option value="female">Femenino</option>
-                <option value="other">Otro</option>
               </select>
             </div>
 
