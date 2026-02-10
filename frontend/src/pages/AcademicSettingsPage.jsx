@@ -343,6 +343,185 @@ function ShiftModal({ isOpen, onClose, token, shift, onSuccess }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// PERIOD MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function PeriodModal({ isOpen, onClose, token, period, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({ nombre: "", fecha_inicio: "", fecha_fin: "", activo: false });
+  const isEdit = !!period;
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    if (isOpen) {
+      if (period) {
+        setForm({
+          nombre: period.nombre || "",
+          fecha_inicio: period.fecha_inicio || "",
+          fecha_fin: period.fecha_fin || "",
+          activo: period.activo || false
+        });
+      } else {
+        // Set default dates for new period (current year)
+        const now = new Date();
+        const year = now.getFullYear();
+        setForm({
+          nombre: "",
+          fecha_inicio: `${year}-03-01`,
+          fecha_fin: `${year}-07-31`,
+          activo: false
+        });
+      }
+      setError("");
+    }
+  }, [isOpen, period]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.nombre.trim()) { setError("El nombre es obligatorio"); return; }
+    if (!form.fecha_inicio) { setError("La fecha de inicio es obligatoria"); return; }
+    if (!form.fecha_fin) { setError("La fecha de fin es obligatoria"); return; }
+    if (form.fecha_inicio >= form.fecha_fin) { 
+      setError("La fecha de inicio debe ser anterior a la fecha de fin"); 
+      return; 
+    }
+    setLoading(true);
+    try {
+      const res = isEdit 
+        ? await axios.put(`${API}/academic/periods/${period.id}`, form, { headers }) 
+        : await axios.post(`${API}/academic/periods`, form, { headers });
+      onSuccess(res.data.period, isEdit ? "update" : "create", res.data.deactivated_period);
+      onClose();
+    } catch (err) { 
+      setError(err.response?.data?.detail || "Error al guardar"); 
+    }
+    finally { setLoading(false); }
+  };
+
+  // Format date for display
+  const formatDateLabel = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr + "T00:00:00");
+    return date.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
+  };
+
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-4 py-8">
+        <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+          <div className="bg-gradient-to-r from-rose-500 to-red-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-8 h-8 text-white" />
+              <div className="text-white">
+                <h2 className="text-xl font-bold">{isEdit ? "Editar" : "Nuevo"} Período</h2>
+              </div>
+            </div>
+            <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <form onSubmit={handleSubmit} className="p-6">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+            
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Nombre <span className="text-red-500">*</span>
+              </label>
+              <input 
+                type="text" 
+                value={form.nombre} 
+                onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))} 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500" 
+                placeholder="Ej: Bimestre I - 2025" 
+                required 
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Fecha inicio <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="date" 
+                  value={form.fecha_inicio} 
+                  onChange={(e) => setForm(p => ({ ...p, fecha_inicio: e.target.value }))} 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500" 
+                  required 
+                />
+                {form.fecha_inicio && (
+                  <p className="text-xs text-slate-500 mt-1">{formatDateLabel(form.fecha_inicio)}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Fecha fin <span className="text-red-500">*</span>
+                </label>
+                <input 
+                  type="date" 
+                  value={form.fecha_fin} 
+                  onChange={(e) => setForm(p => ({ ...p, fecha_fin: e.target.value }))} 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500" 
+                  required 
+                />
+                {form.fecha_fin && (
+                  <p className="text-xs text-slate-500 mt-1">{formatDateLabel(form.fecha_fin)}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Warning about activation */}
+            {!isEdit && (
+              <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-800">
+                    <p className="font-semibold mb-1">Nota sobre activación</p>
+                    <p>Solo puede haber un período activo a la vez. Si activas este período al crearlo, el período actual será desactivado automáticamente.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div className="mb-6 flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+              <div>
+                <p className="font-semibold text-slate-700">Activar período</p>
+                <p className="text-sm text-slate-500">
+                  {form.activo ? "Este será el período activo" : "Crear como inactivo"}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setForm(p => ({ ...p, activo: !p.activo }))} 
+                className={`relative w-14 h-8 rounded-full transition-colors ${form.activo ? "bg-rose-500" : "bg-slate-300"}`}
+              >
+                <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${form.activo ? "left-7" : "left-1"}`} />
+              </button>
+            </div>
+            
+            <div className="flex gap-3">
+              <button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">
+                Cancelar
+              </button>
+              <button type="submit" disabled={loading} className="flex-1 px-6 py-3 bg-gradient-to-r from-rose-500 to-red-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                {isEdit ? "Guardar" : "Crear"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function AcademicSettingsPage({ user, token, subdomain, onLogout }) {
