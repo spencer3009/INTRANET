@@ -210,6 +210,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         seccion_id: "",
         turno_id: ""
       });
+      setConfirmPassword("");
       setError("");
       setUsernameError("");
     }
