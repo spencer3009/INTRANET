@@ -493,6 +493,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* News Page - URL path mode (Spanish) */}
+          <Route
+            path="/school/:subdomain/noticias"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <NewsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* News Page - Direct path (for subdomain mode) */}
+          <Route
+            path="/noticias"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <NewsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
