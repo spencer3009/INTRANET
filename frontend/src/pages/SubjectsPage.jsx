@@ -3,48 +3,49 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
-  Users, Search, Filter, ChevronDown, Clock, Palette, Code,
-  GraduationCap, Layers, UserPlus, CheckCircle2, XCircle
+  Users, Search, ChevronRight, Clock, MoreVertical, UserPlus,
+  GraduationCap, Layers, Home, ArrowLeft, User, Power, PowerOff
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Subject colors
 const SUBJECT_COLORS = [
-  { value: "#3B82F6", label: "Azul", class: "bg-blue-500" },
-  { value: "#10B981", label: "Verde", class: "bg-emerald-500" },
-  { value: "#F59E0B", label: "Amarillo", class: "bg-amber-500" },
-  { value: "#EF4444", label: "Rojo", class: "bg-red-500" },
-  { value: "#8B5CF6", label: "Violeta", class: "bg-violet-500" },
-  { value: "#EC4899", label: "Rosa", class: "bg-pink-500" },
-  { value: "#06B6D4", label: "Cyan", class: "bg-cyan-500" },
-  { value: "#6366F1", label: "Indigo", class: "bg-indigo-500" },
-  { value: "#14B8A6", label: "Teal", class: "bg-teal-500" },
-  { value: "#F97316", label: "Naranja", class: "bg-orange-500" },
-  { value: "#84CC16", label: "Lima", class: "bg-lime-500" },
-  { value: "#A855F7", label: "Púrpura", class: "bg-purple-500" },
+  { value: "#3B82F6", label: "Azul" },
+  { value: "#10B981", label: "Verde" },
+  { value: "#F59E0B", label: "Amarillo" },
+  { value: "#EF4444", label: "Rojo" },
+  { value: "#8B5CF6", label: "Violeta" },
+  { value: "#EC4899", label: "Rosa" },
+  { value: "#06B6D4", label: "Cyan" },
+  { value: "#6366F1", label: "Indigo" },
+  { value: "#14B8A6", label: "Teal" },
+  { value: "#F97316", label: "Naranja" },
+  { value: "#84CC16", label: "Lima" },
+  { value: "#A855F7", label: "Púrpura" },
 ];
 
-// Status options
-const STATUS_OPTIONS = {
-  active: { label: "Activo", bgClass: "bg-emerald-50", textClass: "text-emerald-700", dotClass: "bg-emerald-500" },
-  inactive: { label: "Inactivo", bgClass: "bg-gray-100", textClass: "text-gray-600", dotClass: "bg-gray-400" }
+// Level colors for visual distinction
+const LEVEL_COLORS = {
+  0: { bg: "from-violet-500 to-purple-600", light: "bg-violet-50", text: "text-violet-600", border: "border-violet-200" },
+  1: { bg: "from-blue-500 to-indigo-600", light: "bg-blue-50", text: "text-blue-600", border: "border-blue-200" },
+  2: { bg: "from-emerald-500 to-teal-600", light: "bg-emerald-50", text: "text-emerald-600", border: "border-emerald-200" },
+  3: { bg: "from-amber-500 to-orange-600", light: "bg-amber-50", text: "text-amber-600", border: "border-amber-200" },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SKELETON LOADER
+// SKELETON LOADERS
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectsSkeleton() {
+function LevelsSkeleton() {
   return (
-    <div className="space-y-4" data-testid="subjects-skeleton">
-      {[1, 2, 3, 4].map(i => (
-        <div key={i} className="bg-white rounded-xl p-5 animate-pulse border border-gray-100">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-gray-200 rounded-xl" />
-            <div className="flex-1">
-              <div className="h-5 bg-gray-200 rounded w-1/3 mb-2" />
-              <div className="h-4 bg-gray-100 rounded w-1/4" />
-            </div>
+    <div className="space-y-8">
+      {[1, 2, 3].map(i => (
+        <div key={i} className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded-lg w-40 mb-4" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {[1, 2, 3, 4].map(j => (
+              <div key={j} className="h-32 bg-gray-100 rounded-2xl" />
+            ))}
           </div>
         </div>
       ))}
@@ -52,10 +53,215 @@ function SubjectsSkeleton() {
   );
 }
 
+function SubjectsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {[1, 2, 3, 4, 5, 6].map(i => (
+        <div key={i} className="h-44 bg-gray-100 rounded-2xl animate-pulse" />
+      ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// BREADCRUMB NAVIGATION
+// ══════════════════════════════════════════════════════════════════════════════
+function Breadcrumb({ items, onNavigate }) {
+  return (
+    <nav className="flex items-center gap-2 text-sm mb-6">
+      {items.map((item, index) => (
+        <div key={index} className="flex items-center gap-2">
+          {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
+          <button
+            onClick={() => onNavigate(index)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${
+              index === items.length - 1
+                ? "bg-blue-100 text-blue-700 font-semibold"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
+            }`}
+          >
+            {index === 0 && <Home className="w-4 h-4" />}
+            {item.label}
+          </button>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GRADE CARD
+// ══════════════════════════════════════════════════════════════════════════════
+function GradeCard({ grade, levelColor, subjectCount, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group relative bg-white rounded-2xl p-5 border-2 ${levelColor.border} hover:shadow-lg hover:scale-[1.02] transition-all duration-300 text-left`}
+      data-testid={`grade-card-${grade.id}`}
+    >
+      {/* Subject count badge */}
+      {subjectCount > 0 && (
+        <div className={`absolute -top-2 -right-2 w-7 h-7 ${levelColor.light} ${levelColor.text} rounded-full flex items-center justify-center text-xs font-bold border-2 border-white shadow-sm`}>
+          {subjectCount}
+        </div>
+      )}
+      
+      {/* Icon */}
+      <div className={`w-12 h-12 bg-gradient-to-br ${levelColor.bg} rounded-xl flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform`}>
+        <GraduationCap className="w-6 h-6 text-white" />
+      </div>
+      
+      {/* Grade name */}
+      <h3 className="font-bold text-gray-800 text-lg mb-1">{grade.nombre}</h3>
+      <p className="text-xs text-gray-400">
+        {subjectCount === 0 ? "Sin asignaturas" : `${subjectCount} asignatura${subjectCount !== 1 ? "s" : ""}`}
+      </p>
+      
+      {/* Hover indicator */}
+      <div className={`absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity`}>
+        <ChevronRight className={`w-5 h-5 ${levelColor.text}`} />
+      </div>
+    </button>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SUBJECT CARD
+// ══════════════════════════════════════════════════════════════════════════════
+function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  
+  return (
+    <div 
+      className={`group relative bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 ${subject.status === "inactive" ? "opacity-60" : ""}`}
+      data-testid={`subject-card-${subject.id}`}
+    >
+      {/* Color header */}
+      <div 
+        className="h-3 w-full"
+        style={{ backgroundColor: subject.color }}
+      />
+      
+      <div className="p-4">
+        {/* Menu button */}
+        <div className="absolute top-5 right-3">
+          <button
+            onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <MoreVertical className="w-4 h-4" />
+          </button>
+          
+          {/* Dropdown menu */}
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-8 z-20 bg-white rounded-xl shadow-xl border border-gray-100 py-1 w-48">
+                <button
+                  onClick={() => { setMenuOpen(false); onEdit(subject); }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Edit2 className="w-4 h-4" />
+                  Editar asignatura
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onAssignTeacher(subject); }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  {teacher ? "Cambiar profesor" : "Asignar profesor"}
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onToggleStatus(subject); }}
+                  className="w-full px-4 py-2.5 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  {subject.status === "active" ? (
+                    <>
+                      <PowerOff className="w-4 h-4" />
+                      Desactivar
+                    </>
+                  ) : (
+                    <>
+                      <Power className="w-4 h-4" />
+                      Activar
+                    </>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+        
+        {/* Subject icon */}
+        <div 
+          className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
+          style={{ backgroundColor: subject.color + "20" }}
+        >
+          <BookOpen className="w-5 h-5" style={{ color: subject.color }} />
+        </div>
+        
+        {/* Subject info */}
+        <h3 className="font-bold text-gray-800 text-sm mb-0.5 pr-6 line-clamp-1">{subject.name}</h3>
+        <p className="text-xs text-gray-400 mb-3">{subject.code}</p>
+        
+        {/* Teacher */}
+        <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+          {teacher ? (
+            <>
+              {teacher.photo_url ? (
+                <img src={teacher.photo_url} alt="" className="w-7 h-7 rounded-full object-cover" />
+              ) : (
+                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center text-gray-500 text-xs font-semibold">
+                  {teacher.name?.charAt(0)}
+                </div>
+              )}
+              <span className="text-xs text-gray-600 font-medium truncate">{teacher.name} {teacher.last_name?.charAt(0)}.</span>
+            </>
+          ) : (
+            <>
+              <div className="w-7 h-7 rounded-full bg-gray-100 flex items-center justify-center">
+                <User className="w-4 h-4 text-gray-300" />
+              </div>
+              <span className="text-xs text-gray-400 italic">Sin profesor</span>
+            </>
+          )}
+        </div>
+        
+        {/* Hours badge */}
+        {subject.weekly_hours && (
+          <div className="absolute bottom-4 right-4 flex items-center gap-1 text-xs text-gray-400">
+            <Clock className="w-3 h-3" />
+            {subject.weekly_hours}h
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ADD SUBJECT CARD
+// ══════════════════════════════════════════════════════════════════════════════
+function AddSubjectCard({ onClick, levelColor }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`group relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-4 border-2 border-dashed border-gray-200 hover:border-blue-300 hover:from-blue-50 hover:to-indigo-50 transition-all duration-300 flex flex-col items-center justify-center min-h-[176px]`}
+      data-testid="add-subject-card"
+    >
+      <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center mb-3 shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all border border-gray-100">
+        <Plus className="w-6 h-6 text-gray-400 group-hover:text-blue-500 transition-colors" />
+      </div>
+      <span className="text-sm font-semibold text-gray-500 group-hover:text-blue-600 transition-colors">Nueva asignatura</span>
+      <span className="text-xs text-gray-400 mt-1">Agregar a este grado</span>
+    </button>
+  );
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBJECT FORM MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) {
+function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, teachers, preselectedLevel, preselectedGrade }) {
   const [formData, setFormData] = useState({
     name: "",
     code: "",
@@ -64,7 +270,8 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
     grade_id: "",
     weekly_hours: 2,
     color: "#3B82F6",
-    status: "active"
+    status: "active",
+    teacher_id: ""
   });
   const [filteredGrades, setFilteredGrades] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -80,22 +287,24 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
         grade_id: subject.grade_id || "",
         weekly_hours: subject.weekly_hours || 2,
         color: subject.color || "#3B82F6",
-        status: subject.status || "active"
+        status: subject.status || "active",
+        teacher_id: subject.teacher_id || ""
       });
     } else {
       setFormData({
         name: "",
         code: "",
         description: "",
-        level_id: "",
-        grade_id: "",
+        level_id: preselectedLevel || "",
+        grade_id: preselectedGrade || "",
         weekly_hours: 2,
-        color: "#3B82F6",
-        status: "active"
+        color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value,
+        status: "active",
+        teacher_id: ""
       });
     }
     setError("");
-  }, [subject, isOpen]);
+  }, [subject, isOpen, preselectedLevel, preselectedGrade]);
 
   useEffect(() => {
     if (formData.level_id) {
@@ -121,6 +330,10 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
       setError("Selecciona un nivel");
       return;
     }
+    if (!formData.grade_id) {
+      setError("Selecciona un grado");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -132,6 +345,8 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
       setSaving(false);
     }
   };
+
+  const isLocked = preselectedLevel && preselectedGrade;
 
   if (!isOpen) return null;
 
@@ -189,26 +404,15 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
             </div>
           </div>
 
-          {/* Description */}
-          <div className="mb-5">
-            <label className="block text-sm font-bold text-gray-700 mb-2">Descripción</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Descripción de la asignatura..."
-              rows={2}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-            />
-          </div>
-
-          {/* Level and Grade */}
+          {/* Level and Grade - locked if preselected */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Nivel *</label>
               <select
                 value={formData.level_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, level_id: e.target.value, grade_id: "" }))}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                disabled={isLocked}
+                className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isLocked ? "opacity-70 cursor-not-allowed" : ""}`}
               >
                 <option value="">Seleccionar nivel</option>
                 {levels.filter(l => l.activo).map(level => (
@@ -217,14 +421,14 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
               </select>
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Grado (opcional)</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Grado *</label>
               <select
                 value={formData.grade_id}
                 onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value }))}
-                disabled={!formData.level_id}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
+                disabled={isLocked || !formData.level_id}
+                className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${isLocked || !formData.level_id ? "opacity-70 cursor-not-allowed" : ""}`}
               >
-                <option value="">Todos los grados</option>
+                <option value="">Seleccionar grado</option>
                 {filteredGrades.map(grade => (
                   <option key={grade.id} value={grade.id}>{grade.nombre}</option>
                 ))}
@@ -232,7 +436,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
             </div>
           </div>
 
-          {/* Hours and Status */}
+          {/* Hours and Teacher */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Horas Semanales</label>
@@ -246,14 +450,16 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Estado</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">Profesor</label>
               <select
-                value={formData.status}
-                onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value }))}
+                value={formData.teacher_id}
+                onChange={(e) => setFormData(prev => ({ ...prev, teacher_id: e.target.value }))}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="active">Activo</option>
-                <option value="inactive">Inactivo</option>
+                <option value="">Sin asignar</option>
+                {teachers.filter(t => t.activo).map(teacher => (
+                  <option key={teacher.id} value={teacher.id}>{teacher.name} {teacher.last_name}</option>
+                ))}
               </select>
             </div>
           </div>
@@ -277,6 +483,18 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
                 />
               ))}
             </div>
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Descripción (opcional)</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Descripción de la asignatura..."
+              rows={2}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            />
           </div>
         </form>
 
@@ -308,33 +526,25 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades }) 
 // ══════════════════════════════════════════════════════════════════════════════
 // TEACHER ASSIGNMENT MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function TeacherAssignModal({ isOpen, onClose, subject, teachers, assignedTeachers, onSave }) {
-  const [selectedTeachers, setSelectedTeachers] = useState([]);
+function TeacherAssignModal({ isOpen, onClose, subject, teachers, currentTeacherId, onSave }) {
+  const [selectedTeacher, setSelectedTeacher] = useState("");
   const [saving, setSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    if (isOpen && assignedTeachers) {
-      setSelectedTeachers(assignedTeachers.map(t => t.id));
+    if (isOpen) {
+      setSelectedTeacher(currentTeacherId || "");
+      setSearchTerm("");
     }
-    setSearchTerm("");
-  }, [isOpen, assignedTeachers]);
-
-  const handleToggleTeacher = (teacherId) => {
-    setSelectedTeachers(prev => 
-      prev.includes(teacherId) 
-        ? prev.filter(id => id !== teacherId)
-        : [...prev, teacherId]
-    );
-  };
+  }, [isOpen, currentTeacherId]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await onSave(selectedTeachers);
+      await onSave(selectedTeacher ? [selectedTeacher] : []);
       onClose();
     } catch (err) {
-      console.error("Error saving teachers:", err);
+      console.error("Error saving teacher:", err);
     } finally {
       setSaving(false);
     }
@@ -360,7 +570,7 @@ function TeacherAssignModal({ isOpen, onClose, subject, teachers, assignedTeache
               <UserPlus className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Asignar Profesores</h2>
+              <h2 className="text-lg font-bold text-white">Asignar Profesor</h2>
               <p className="text-xs text-violet-100">{subject.name}</p>
             </div>
           </div>
@@ -382,21 +592,41 @@ function TeacherAssignModal({ isOpen, onClose, subject, teachers, assignedTeache
             />
           </div>
 
+          {/* Option to remove teacher */}
+          <button
+            onClick={() => setSelectedTeacher("")}
+            className={`w-full flex items-center gap-3 p-3 rounded-xl mb-2 transition-all ${
+              selectedTeacher === "" 
+                ? "bg-rose-50 border-2 border-rose-300" 
+                : "bg-gray-50 border-2 border-transparent hover:border-gray-200"
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+              selectedTeacher === "" ? "bg-rose-500 border-rose-500" : "border-gray-300"
+            }`}>
+              {selectedTeacher === "" && <Check className="w-3 h-3 text-white" />}
+            </div>
+            <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
+              <User className="w-5 h-5 text-gray-400" />
+            </div>
+            <span className="text-sm font-medium text-gray-600">Sin profesor asignado</span>
+          </button>
+
           {/* Teachers list */}
-          <div className="max-h-[300px] overflow-y-auto space-y-2">
+          <div className="max-h-[280px] overflow-y-auto space-y-2">
             {filteredTeachers.length === 0 ? (
-              <div className="text-center py-8">
-                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <div className="text-center py-6">
+                <Users className="w-10 h-10 text-gray-300 mx-auto mb-2" />
                 <p className="text-sm text-gray-500">No hay profesores disponibles</p>
               </div>
             ) : (
               filteredTeachers.map(teacher => {
-                const isSelected = selectedTeachers.includes(teacher.id);
+                const isSelected = selectedTeacher === teacher.id;
                 return (
-                  <div
+                  <button
                     key={teacher.id}
-                    onClick={() => handleToggleTeacher(teacher.id)}
-                    className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                    onClick={() => setSelectedTeacher(teacher.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl transition-all ${
                       isSelected 
                         ? "bg-violet-50 border-2 border-violet-300" 
                         : "bg-gray-50 border-2 border-transparent hover:border-gray-200"
@@ -414,21 +644,16 @@ function TeacherAssignModal({ isOpen, onClose, subject, teachers, assignedTeache
                         {teacher.name?.charAt(0)}
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-left">
                       <p className="text-sm font-semibold text-gray-800 truncate">
                         {teacher.name} {teacher.last_name}
                       </p>
                       <p className="text-xs text-gray-500 truncate">{teacher.email}</p>
                     </div>
-                  </div>
+                  </button>
                 );
               })
             )}
-          </div>
-
-          {/* Selected count */}
-          <div className="mt-4 text-sm text-gray-500 text-center">
-            {selectedTeachers.length} profesor(es) seleccionado(s)
           </div>
         </div>
 
@@ -446,7 +671,7 @@ function TeacherAssignModal({ isOpen, onClose, subject, teachers, assignedTeache
             onClick={handleSave}
             disabled={saving}
             className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
-            data-testid="save-teachers-btn"
+            data-testid="save-teacher-btn"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             Guardar
@@ -458,55 +683,132 @@ function TeacherAssignModal({ isOpen, onClose, subject, teachers, assignedTeache
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CONFIRM DELETE MODAL
+// LEVELS VIEW (MAIN VIEW)
 // ══════════════════════════════════════════════════════════════════════════════
-function ConfirmDeleteModal({ isOpen, onClose, subject, onConfirm }) {
-  const [deleting, setDeleting] = useState(false);
+function LevelsView({ levels, grades, subjects, onSelectGrade }) {
+  // Group grades by level
+  const gradesByLevel = {};
+  levels.forEach(level => {
+    gradesByLevel[level.id] = grades.filter(g => g.nivel_id === level.id && g.activo);
+  });
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      await onConfirm();
-      onClose();
-    } catch (err) {
-      console.error("Error deleting:", err);
-    } finally {
-      setDeleting(false);
+  // Count subjects by grade
+  const subjectCountByGrade = {};
+  subjects.forEach(subject => {
+    if (subject.grade_id) {
+      subjectCountByGrade[subject.grade_id] = (subjectCountByGrade[subject.grade_id] || 0) + 1;
     }
-  };
-
-  if (!isOpen || !subject) return null;
+  });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-        <div className="text-center">
-          <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trash2 className="w-8 h-8 text-rose-600" />
+    <div className="space-y-10">
+      {levels.filter(l => l.activo).map((level, levelIndex) => {
+        const levelGrades = gradesByLevel[level.id] || [];
+        const levelColor = LEVEL_COLORS[levelIndex % Object.keys(LEVEL_COLORS).length];
+        
+        return (
+          <div key={level.id} data-testid={`level-section-${level.id}`}>
+            {/* Level header */}
+            <div className="flex items-center gap-3 mb-5">
+              <div className={`w-10 h-10 bg-gradient-to-br ${levelColor.bg} rounded-xl flex items-center justify-center shadow-lg`}>
+                <Layers className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">{level.nombre}</h2>
+                <p className="text-sm text-gray-400">{levelGrades.length} grado{levelGrades.length !== 1 ? "s" : ""}</p>
+              </div>
+            </div>
+            
+            {/* Grades grid */}
+            {levelGrades.length === 0 ? (
+              <div className={`${levelColor.light} rounded-2xl p-8 text-center border ${levelColor.border}`}>
+                <GraduationCap className={`w-12 h-12 ${levelColor.text} mx-auto mb-3 opacity-50`} />
+                <p className={`${levelColor.text} font-medium`}>Este nivel no tiene grados configurados</p>
+                <p className="text-sm text-gray-400 mt-1">Agrega grados en Ajustes Académicos</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
+                {levelGrades.map(grade => (
+                  <GradeCard
+                    key={grade.id}
+                    grade={grade}
+                    levelColor={levelColor}
+                    subjectCount={subjectCountByGrade[grade.id] || 0}
+                    onClick={() => onSelectGrade(level, grade)}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-          <h3 className="text-lg font-bold text-gray-800 mb-2">Eliminar Asignatura</h3>
-          <p className="text-sm text-gray-500 mb-6">
-            ¿Estás seguro de eliminar <strong>{subject.name}</strong>? Esta acción no se puede deshacer.
-          </p>
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex-1 px-4 py-2.5 bg-rose-600 text-white rounded-xl font-semibold hover:bg-rose-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-              Eliminar
-            </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// GRADE SUBJECTS VIEW
+// ══════════════════════════════════════════════════════════════════════════════
+function GradeSubjectsView({ level, grade, subjects, teachers, subjectTeachers, onAddSubject, onEditSubject, onAssignTeacher, onToggleStatus, levelColorIndex }) {
+  const levelColor = LEVEL_COLORS[levelColorIndex % Object.keys(LEVEL_COLORS).length];
+  
+  // Get teacher for each subject
+  const getTeacherForSubject = (subjectId) => {
+    const assignment = subjectTeachers[subjectId];
+    if (assignment && assignment.length > 0) {
+      return teachers.find(t => t.id === assignment[0]);
+    }
+    return null;
+  };
+
+  return (
+    <div>
+      {/* Grade header */}
+      <div className={`${levelColor.light} rounded-2xl p-6 mb-6 border ${levelColor.border}`}>
+        <div className="flex items-center gap-4">
+          <div className={`w-14 h-14 bg-gradient-to-br ${levelColor.bg} rounded-xl flex items-center justify-center shadow-lg`}>
+            <GraduationCap className="w-7 h-7 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">{grade.nombre}</h2>
+            <p className={`text-sm ${levelColor.text} font-medium`}>{level.nombre}</p>
+          </div>
+          <div className="ml-auto text-right">
+            <p className="text-3xl font-bold text-gray-800">{subjects.length}</p>
+            <p className="text-sm text-gray-500">asignatura{subjects.length !== 1 ? "s" : ""}</p>
           </div>
         </div>
       </div>
+
+      {/* Subjects grid */}
+      {subjects.length === 0 ? (
+        <div className="bg-gray-50 rounded-2xl p-12 text-center border-2 border-dashed border-gray-200">
+          <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">Este grado aún no tiene asignaturas</h3>
+          <p className="text-sm text-gray-400 mb-6">Comienza agregando la primera asignatura</p>
+          <button
+            onClick={onAddSubject}
+            className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Agregar Asignatura
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {subjects.map(subject => (
+            <SubjectCard
+              key={subject.id}
+              subject={subject}
+              teacher={getTeacherForSubject(subject.id)}
+              onEdit={() => onEditSubject(subject)}
+              onAssignTeacher={() => onAssignTeacher(subject)}
+              onToggleStatus={() => onToggleStatus(subject)}
+            />
+          ))}
+          <AddSubjectCard onClick={onAddSubject} levelColor={levelColor} />
+        </div>
+      )}
     </div>
   );
 }
@@ -519,23 +821,22 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   
-  const [subjects, setSubjects] = useState([]);
   const [levels, setLevels] = useState([]);
   const [grades, setGrades] = useState([]);
+  const [subjects, setSubjects] = useState([]);
   const [teachers, setTeachers] = useState([]);
+  const [subjectTeachers, setSubjectTeachers] = useState({});
   
-  const [filterLevel, setFilterLevel] = useState("");
-  const [filterGrade, setFilterGrade] = useState("");
-  const [filterStatus, setFilterStatus] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  // Navigation state
+  const [selectedLevel, setSelectedLevel] = useState(null);
+  const [selectedGrade, setSelectedGrade] = useState(null);
+  const [levelColorIndex, setLevelColorIndex] = useState(0);
   
+  // Modal state
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
   const [showTeacherModal, setShowTeacherModal] = useState(false);
-  const [selectedSubject, setSelectedSubject] = useState(null);
-  const [assignedTeachers, setAssignedTeachers] = useState([]);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingSubject, setDeletingSubject] = useState(null);
+  const [selectedSubjectForTeacher, setSelectedSubjectForTeacher] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -543,26 +844,34 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
     loadInitialData();
   }, []);
 
-  useEffect(() => {
-    if (!loading) loadSubjects();
-  }, [filterLevel, filterGrade, filterStatus]);
-
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      const [settingsRes, levelsRes, gradesRes, usersRes] = await Promise.all([
+      const [settingsRes, levelsRes, gradesRes, subjectsRes, usersRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers }),
         axios.get(`${API}/academic/levels`, { headers }),
         axios.get(`${API}/academic/grades`, { headers }),
+        axios.get(`${API}/academic/subjects`, { headers }),
         axios.get(`${API}/users`, { headers })
       ]);
       
       setSettings(settingsRes.data);
       setLevels(levelsRes.data);
       setGrades(gradesRes.data);
+      setSubjects(subjectsRes.data);
       setTeachers(usersRes.data.filter(u => u.role === "teacher"));
       
-      await loadSubjects();
+      // Load teacher assignments for all subjects
+      const teacherAssignments = {};
+      for (const subject of subjectsRes.data) {
+        try {
+          const res = await axios.get(`${API}/academic/subjects/${subject.id}/teachers`, { headers });
+          teacherAssignments[subject.id] = res.data.teachers?.map(t => t.id) || [];
+        } catch (err) {
+          teacherAssignments[subject.id] = [];
+        }
+      }
+      setSubjectTeachers(teacherAssignments);
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
@@ -572,60 +881,104 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
 
   const loadSubjects = async () => {
     try {
-      const params = {};
-      if (filterLevel) params.level_id = filterLevel;
-      if (filterGrade) params.grade_id = filterGrade;
-      if (filterStatus) params.status = filterStatus;
-      
-      const res = await axios.get(`${API}/academic/subjects`, { headers, params });
+      const res = await axios.get(`${API}/academic/subjects`, { headers });
       setSubjects(res.data);
     } catch (err) {
       console.error("Error loading subjects:", err);
     }
   };
 
+  const handleSelectGrade = (level, grade) => {
+    const levelIndex = levels.findIndex(l => l.id === level.id);
+    setLevelColorIndex(levelIndex >= 0 ? levelIndex : 0);
+    setSelectedLevel(level);
+    setSelectedGrade(grade);
+  };
+
+  const handleNavigate = (index) => {
+    if (index === 0) {
+      setSelectedLevel(null);
+      setSelectedGrade(null);
+    }
+  };
+
   const handleSaveSubject = async (data) => {
+    const subjectData = {
+      name: data.name,
+      code: data.code,
+      description: data.description,
+      level_id: data.level_id,
+      grade_id: data.grade_id,
+      weekly_hours: data.weekly_hours,
+      color: data.color,
+      status: data.status
+    };
+
+    let subjectId;
+    
     if (editingSubject?.id) {
-      await axios.put(`${API}/academic/subjects/${editingSubject.id}`, data, { headers });
+      await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers });
+      subjectId = editingSubject.id;
     } else {
-      await axios.post(`${API}/academic/subjects`, data, { headers });
+      const res = await axios.post(`${API}/academic/subjects`, subjectData, { headers });
+      subjectId = res.data.subject.id;
     }
+    
+    // Assign teacher if selected
+    if (data.teacher_id) {
+      await axios.post(`${API}/academic/subjects/${subjectId}/teachers`, { teacher_ids: [data.teacher_id] }, { headers });
+      setSubjectTeachers(prev => ({ ...prev, [subjectId]: [data.teacher_id] }));
+    } else if (editingSubject?.id) {
+      // Remove teacher if none selected during edit
+      await axios.post(`${API}/academic/subjects/${subjectId}/teachers`, { teacher_ids: [] }, { headers });
+      setSubjectTeachers(prev => ({ ...prev, [subjectId]: [] }));
+    }
+    
     loadSubjects();
   };
 
-  const handleOpenTeacherModal = async (subject) => {
-    setSelectedSubject(subject);
-    try {
-      const res = await axios.get(`${API}/academic/subjects/${subject.id}/teachers`, { headers });
-      setAssignedTeachers(res.data.teachers || []);
-      setShowTeacherModal(true);
-    } catch (err) {
-      console.error("Error loading teachers:", err);
-    }
-  };
-
-  const handleSaveTeachers = async (teacherIds) => {
-    await axios.post(`${API}/academic/subjects/${selectedSubject.id}/teachers`, { teacher_ids: teacherIds }, { headers });
+  const handleAssignTeacher = async (teacherIds) => {
+    if (!selectedSubjectForTeacher) return;
+    await axios.post(`${API}/academic/subjects/${selectedSubjectForTeacher.id}/teachers`, { teacher_ids: teacherIds }, { headers });
+    setSubjectTeachers(prev => ({ ...prev, [selectedSubjectForTeacher.id]: teacherIds }));
     loadSubjects();
   };
 
-  const handleDeleteSubject = async () => {
-    try {
-      await axios.delete(`${API}/academic/subjects/${deletingSubject.id}`, { headers });
-      loadSubjects();
-    } catch (err) {
-      alert(err.response?.data?.detail || "Error al eliminar");
-      throw err;
-    }
+  const handleToggleStatus = async (subject) => {
+    const newStatus = subject.status === "active" ? "inactive" : "active";
+    await axios.put(`${API}/academic/subjects/${subject.id}`, { status: newStatus }, { headers });
+    loadSubjects();
   };
 
-  const filteredSubjects = subjects.filter(s => 
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.code.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const openAddSubjectModal = () => {
+    setEditingSubject(null);
+    setShowSubjectModal(true);
+  };
 
-  const filteredGradesForFilter = filterLevel 
-    ? grades.filter(g => g.nivel_id === filterLevel && g.activo)
+  const openEditSubjectModal = (subject) => {
+    // Find current teacher for this subject
+    const currentTeachers = subjectTeachers[subject.id] || [];
+    setEditingSubject({ ...subject, teacher_id: currentTeachers[0] || "" });
+    setShowSubjectModal(true);
+  };
+
+  const openTeacherModal = (subject) => {
+    setSelectedSubjectForTeacher(subject);
+    setShowTeacherModal(true);
+  };
+
+  // Build breadcrumb items
+  const breadcrumbItems = [{ label: "Asignaturas", path: null }];
+  if (selectedLevel) {
+    breadcrumbItems.push({ label: selectedLevel.nombre, path: null });
+  }
+  if (selectedGrade) {
+    breadcrumbItems.push({ label: selectedGrade.nombre, path: null });
+  }
+
+  // Filter subjects for selected grade
+  const gradeSubjects = selectedGrade 
+    ? subjects.filter(s => s.grade_id === selectedGrade.id)
     : [];
 
   if (loading) {
@@ -683,187 +1036,60 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8">
           {/* Page header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4 mb-2">
+          <div className="mb-6">
+            <div className="flex items-center gap-4 mb-4">
+              {selectedGrade && (
+                <button
+                  onClick={() => handleNavigate(0)}
+                  className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 text-gray-500" />
+                </button>
+              )}
               <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-lg">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">Asignaturas</h1>
-                <p className="text-sm text-gray-500">Gestiona las materias académicas del colegio</p>
+                <p className="text-sm text-gray-500">
+                  {selectedGrade 
+                    ? `${selectedLevel?.nombre} - ${selectedGrade?.nombre}`
+                    : "Gestiona las materias por nivel y grado"
+                  }
+                </p>
               </div>
             </div>
+
+            {/* Breadcrumb */}
+            {selectedGrade && (
+              <Breadcrumb items={breadcrumbItems} onNavigate={handleNavigate} />
+            )}
           </div>
 
-          {/* Filters bar */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-6 shadow-sm">
-            <div className="flex flex-wrap items-center gap-4">
-              {/* Search */}
-              <div className="relative flex-1 min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Buscar asignatura..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              {/* Level filter */}
-              <select
-                value={filterLevel}
-                onChange={(e) => { setFilterLevel(e.target.value); setFilterGrade(""); }}
-                className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos los niveles</option>
-                {levels.filter(l => l.activo).map(level => (
-                  <option key={level.id} value={level.id}>{level.nombre}</option>
-                ))}
-              </select>
-
-              {/* Grade filter */}
-              <select
-                value={filterGrade}
-                onChange={(e) => setFilterGrade(e.target.value)}
-                disabled={!filterLevel}
-                className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                <option value="">Todos los grados</option>
-                {filteredGradesForFilter.map(grade => (
-                  <option key={grade.id} value={grade.id}>{grade.nombre}</option>
-                ))}
-              </select>
-
-              {/* Status filter */}
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Todos los estados</option>
-                <option value="active">Activos</option>
-                <option value="inactive">Inactivos</option>
-              </select>
-
-              {/* Add button */}
-              <button
-                onClick={() => { setEditingSubject(null); setShowSubjectModal(true); }}
-                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
-                data-testid="create-subject-btn"
-              >
-                <Plus className="w-4 h-4" />
-                Nueva Asignatura
-              </button>
-            </div>
-          </div>
-
-          {/* Subjects list */}
-          {filteredSubjects.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-              <div className="w-20 h-20 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="w-10 h-10 text-gray-300" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">No hay asignaturas</h3>
-              <p className="text-sm text-gray-500 mb-6">Comienza creando tu primera asignatura</p>
-              <button
-                onClick={() => { setEditingSubject(null); setShowSubjectModal(true); }}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all inline-flex items-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                Crear Asignatura
-              </button>
-            </div>
+          {/* Content */}
+          {!selectedGrade ? (
+            // Show levels and grades overview
+            <LevelsView
+              levels={levels}
+              grades={grades}
+              subjects={subjects}
+              onSelectGrade={handleSelectGrade}
+            />
           ) : (
-            <div className="grid gap-4">
-              {filteredSubjects.map(subject => {
-                const statusInfo = STATUS_OPTIONS[subject.status] || STATUS_OPTIONS.active;
-                return (
-                  <div
-                    key={subject.id}
-                    className="bg-white rounded-xl border border-gray-100 p-5 hover:shadow-md transition-all"
-                    data-testid={`subject-card-${subject.id}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      {/* Color indicator */}
-                      <div 
-                        className="w-14 h-14 rounded-xl flex items-center justify-center shadow-sm"
-                        style={{ backgroundColor: subject.color + "20" }}
-                      >
-                        <BookOpen className="w-7 h-7" style={{ color: subject.color }} />
-                      </div>
-
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="text-base font-bold text-gray-800">{subject.name}</h3>
-                          <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-md text-xs font-semibold">
-                            {subject.code}
-                          </span>
-                          <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.bgClass} ${statusInfo.textClass}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${statusInfo.dotClass}`} />
-                            {statusInfo.label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <GraduationCap className="w-4 h-4" />
-                            {subject.level_name}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Layers className="w-4 h-4" />
-                            {subject.grade_name}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            {subject.weekly_hours}h/semana
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            {subject.teacher_count || 0} profesor(es)
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Actions */}
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleOpenTeacherModal(subject)}
-                          className="p-2.5 text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
-                          title="Asignar profesores"
-                          data-testid={`assign-teachers-${subject.id}`}
-                        >
-                          <UserPlus className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => { setEditingSubject(subject); setShowSubjectModal(true); }}
-                          className="p-2.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Editar"
-                          data-testid={`edit-subject-${subject.id}`}
-                        >
-                          <Edit2 className="w-5 h-5" />
-                        </button>
-                        <button
-                          onClick={() => { setDeletingSubject(subject); setShowDeleteModal(true); }}
-                          className="p-2.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                          title="Eliminar"
-                          data-testid={`delete-subject-${subject.id}`}
-                        >
-                          <Trash2 className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            // Show subjects for selected grade
+            <GradeSubjectsView
+              level={selectedLevel}
+              grade={selectedGrade}
+              subjects={gradeSubjects}
+              teachers={teachers}
+              subjectTeachers={subjectTeachers}
+              levelColorIndex={levelColorIndex}
+              onAddSubject={openAddSubjectModal}
+              onEditSubject={openEditSubjectModal}
+              onAssignTeacher={openTeacherModal}
+              onToggleStatus={handleToggleStatus}
+            />
           )}
-
-          {/* Stats footer */}
-          <div className="mt-6 flex items-center justify-between text-sm text-gray-500">
-            <span>{filteredSubjects.length} asignatura(s) encontrada(s)</span>
-            <span>{subjects.filter(s => s.status === "active").length} activas</span>
-          </div>
         </main>
       </div>
 
@@ -875,20 +1101,17 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         onSave={handleSaveSubject}
         levels={levels}
         grades={grades}
+        teachers={teachers}
+        preselectedLevel={selectedLevel?.id}
+        preselectedGrade={selectedGrade?.id}
       />
       <TeacherAssignModal
         isOpen={showTeacherModal}
-        onClose={() => { setShowTeacherModal(false); setSelectedSubject(null); }}
-        subject={selectedSubject}
+        onClose={() => { setShowTeacherModal(false); setSelectedSubjectForTeacher(null); }}
+        subject={selectedSubjectForTeacher}
         teachers={teachers}
-        assignedTeachers={assignedTeachers}
-        onSave={handleSaveTeachers}
-      />
-      <ConfirmDeleteModal
-        isOpen={showDeleteModal}
-        onClose={() => { setShowDeleteModal(false); setDeletingSubject(null); }}
-        subject={deletingSubject}
-        onConfirm={handleDeleteSubject}
+        currentTeacherId={selectedSubjectForTeacher ? (subjectTeachers[selectedSubjectForTeacher.id]?.[0] || "") : ""}
+        onSave={handleAssignTeacher}
       />
     </div>
   );
