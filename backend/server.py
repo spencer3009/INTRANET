@@ -1201,12 +1201,14 @@ class AcademicLevelCreate(BaseModel):
     descripcion: Optional[str] = None
     imagen_url: Optional[str] = None
     activo: bool = True
+    orden: int = 0
 
 class AcademicLevelUpdate(BaseModel):
     nombre: Optional[str] = Field(None, min_length=1, max_length=100)
     descripcion: Optional[str] = None
     imagen_url: Optional[str] = None
     activo: Optional[bool] = None
+    orden: Optional[int] = None
 
 @api_router.get("/academic/levels")
 async def get_academic_levels(
