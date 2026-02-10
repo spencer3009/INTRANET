@@ -2523,6 +2523,413 @@ async def delete_schedule(
     return {"message": "Horario eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# MESSAGES / INTERNAL COMMUNICATIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class MessageCreate(BaseModel):
+    """Create a new message (chat or mail type)"""
+    receiver_id: str
+    type: Literal["chat", "mail"] = "chat"
+    subject: Optional[str] = None
+    message: str
+    attachments: Optional[List[dict]] = None  # [{url, name, type, size}]
+
+class MessageUpdate(BaseModel):
+    """Update message (mark as read)"""
+    read: bool
+
+@api_router.get("/messages/users")
+async def get_message_users(current_user = Depends(get_current_user)):
+    """
+    Get all users in the same school, grouped by role.
+    Used to populate the recipient selector.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Get all users except current user
+    users_cursor = db.users.find(
+        {"school_id": school_id, "id": {"$ne": current_user["sub"]}},
+        {"_id": 0, "password": 0, "verification_code": 0}
+    )
+    users = await users_cursor.to_list(length=1000)
+    
+    # Group by role
+    role_order = ["owner", "admin", "director", "teacher", "parent", "student"]
+    role_labels = {
+        "owner": "Directores",
+        "admin": "Administradores", 
+        "director": "Directores",
+        "teacher": "Profesores",
+        "parent": "Padres",
+        "student": "Estudiantes"
+    }
+    
+    grouped = {}
+    for u in users:
+        role = u.get("role", "other")
+        label = role_labels.get(role, "Otros")
+        if label not in grouped:
+            grouped[label] = []
+        grouped[label].append({
+            "id": u["id"],
+            "name": u.get("name", ""),
+            "last_name": u.get("last_name", ""),
+            "full_name": f"{u.get('name', '')} {u.get('last_name', '')}".strip(),
+            "email": u.get("email"),
+            "role": role,
+            "photo_url": u.get("photo_url")
+        })
+    
+    # Sort users within each group by name
+    for label in grouped:
+        grouped[label].sort(key=lambda x: x["full_name"].lower())
+    
+    # Return in order
+    result = []
+    for role in role_order:
+        label = role_labels.get(role)
+        if label and label in grouped:
+            result.append({
+                "label": label,
+                "users": grouped[label]
+            })
+            del grouped[label]
+    
+    # Add any remaining groups
+    for label, users_list in grouped.items():
+        result.append({"label": label, "users": users_list})
+    
+    return result
+
+@api_router.get("/messages/chats")
+async def get_chat_list(current_user = Depends(get_current_user)):
+    """
+    Get list of all chat conversations for current user.
+    Returns unique conversations with last message preview.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    user_id = current_user["sub"]
+    school_id = user["school_id"]
+    
+    # Get all chat messages involving current user
+    messages = await db.messages.find({
+        "school_id": school_id,
+        "type": "chat",
+        "$or": [
+            {"sender_id": user_id},
+            {"receiver_id": user_id}
+        ]
+    }, {"_id": 0}).sort("created_at", -1).to_list(5000)
+    
+    # Group by conversation partner
+    conversations = {}
+    for msg in messages:
+        partner_id = msg["receiver_id"] if msg["sender_id"] == user_id else msg["sender_id"]
+        
+        if partner_id not in conversations:
+            conversations[partner_id] = {
+                "partner_id": partner_id,
+                "last_message": msg["message"][:100] + ("..." if len(msg["message"]) > 100 else ""),
+                "last_message_time": msg["created_at"],
+                "unread_count": 0,
+                "is_sender": msg["sender_id"] == user_id
+            }
+        
+        # Count unread messages sent TO current user
+        if msg["receiver_id"] == user_id and not msg.get("read", False):
+            conversations[partner_id]["unread_count"] += 1
+    
+    # Get partner user info
+    partner_ids = list(conversations.keys())
+    partners = await db.users.find(
+        {"id": {"$in": partner_ids}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}
+    ).to_list(1000)
+    
+    partners_map = {p["id"]: p for p in partners}
+    
+    # Build result
+    result = []
+    for partner_id, conv in conversations.items():
+        partner = partners_map.get(partner_id, {})
+        result.append({
+            "partner_id": partner_id,
+            "partner_name": f"{partner.get('name', '')} {partner.get('last_name', '')}".strip(),
+            "partner_photo": partner.get("photo_url"),
+            "partner_role": partner.get("role"),
+            "last_message": conv["last_message"],
+            "last_message_time": conv["last_message_time"],
+            "unread_count": conv["unread_count"],
+            "is_sender": conv["is_sender"]
+        })
+    
+    # Sort by last message time
+    result.sort(key=lambda x: x["last_message_time"], reverse=True)
+    
+    return result
+
+@api_router.get("/messages/chats/{partner_id}")
+async def get_chat_history(partner_id: str, current_user = Depends(get_current_user)):
+    """
+    Get chat history with a specific user.
+    Also marks messages as read.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    user_id = current_user["sub"]
+    school_id = user["school_id"]
+    
+    # Verify partner exists and is in same school
+    partner = await db.users.find_one(
+        {"id": partner_id, "school_id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}
+    )
+    if not partner:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Get all messages between users
+    messages = await db.messages.find({
+        "school_id": school_id,
+        "type": "chat",
+        "$or": [
+            {"sender_id": user_id, "receiver_id": partner_id},
+            {"sender_id": partner_id, "receiver_id": user_id}
+        ]
+    }, {"_id": 0}).sort("created_at", 1).to_list(1000)
+    
+    # Mark received messages as read
+    await db.messages.update_many(
+        {
+            "school_id": school_id,
+            "type": "chat",
+            "sender_id": partner_id,
+            "receiver_id": user_id,
+            "read": False
+        },
+        {"$set": {"read": True}}
+    )
+    
+    return {
+        "partner": {
+            "id": partner["id"],
+            "name": f"{partner.get('name', '')} {partner.get('last_name', '')}".strip(),
+            "photo_url": partner.get("photo_url"),
+            "role": partner.get("role")
+        },
+        "messages": messages
+    }
+
+@api_router.post("/messages/chats/send")
+async def send_chat_message(data: MessageCreate, current_user = Depends(get_current_user)):
+    """Send a chat message to another user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Verify receiver exists and is in same school
+    receiver = await db.users.find_one(
+        {"id": data.receiver_id, "school_id": school_id},
+        {"_id": 0, "id": 1}
+    )
+    if not receiver:
+        raise HTTPException(status_code=404, detail="Destinatario no encontrado")
+    
+    message = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "sender_id": current_user["sub"],
+        "receiver_id": data.receiver_id,
+        "type": "chat",
+        "subject": None,
+        "message": data.message,
+        "attachments": data.attachments or [],
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.messages.insert_one(message)
+    if "_id" in message:
+        del message["_id"]
+    
+    return {"message": "Mensaje enviado", "data": message}
+
+@api_router.get("/messages/inbox")
+async def get_inbox(
+    type: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get inbox messages (mail type) for current user.
+    Can filter by type: 'received', 'sent', or all.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    user_id = current_user["sub"]
+    school_id = user["school_id"]
+    
+    # Build query
+    query = {"school_id": school_id, "type": "mail"}
+    
+    if type == "received":
+        query["receiver_id"] = user_id
+    elif type == "sent":
+        query["sender_id"] = user_id
+    else:
+        # All messages involving user
+        query["$or"] = [
+            {"sender_id": user_id},
+            {"receiver_id": user_id}
+        ]
+    
+    messages = await db.messages.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    # Get user info for senders/receivers
+    user_ids = set()
+    for msg in messages:
+        user_ids.add(msg["sender_id"])
+        user_ids.add(msg["receiver_id"])
+    
+    users_data = await db.users.find(
+        {"id": {"$in": list(user_ids)}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}
+    ).to_list(1000)
+    
+    users_map = {u["id"]: u for u in users_data}
+    
+    # Enrich messages with user info
+    result = []
+    for msg in messages:
+        sender = users_map.get(msg["sender_id"], {})
+        receiver = users_map.get(msg["receiver_id"], {})
+        
+        result.append({
+            **msg,
+            "sender_name": f"{sender.get('name', '')} {sender.get('last_name', '')}".strip(),
+            "sender_photo": sender.get("photo_url"),
+            "sender_role": sender.get("role"),
+            "receiver_name": f"{receiver.get('name', '')} {receiver.get('last_name', '')}".strip(),
+            "receiver_photo": receiver.get("photo_url"),
+            "receiver_role": receiver.get("role"),
+            "is_sent_by_me": msg["sender_id"] == user_id
+        })
+    
+    return result
+
+@api_router.post("/messages/send")
+async def send_mail_message(data: MessageCreate, current_user = Depends(get_current_user)):
+    """Send a mail-type message (formal internal communication)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Verify receiver exists and is in same school
+    receiver = await db.users.find_one(
+        {"id": data.receiver_id, "school_id": school_id},
+        {"_id": 0, "id": 1}
+    )
+    if not receiver:
+        raise HTTPException(status_code=404, detail="Destinatario no encontrado")
+    
+    if not data.subject:
+        raise HTTPException(status_code=400, detail="El asunto es requerido para mensajes tipo correo")
+    
+    message = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "sender_id": current_user["sub"],
+        "receiver_id": data.receiver_id,
+        "type": "mail",
+        "subject": data.subject,
+        "message": data.message,
+        "attachments": data.attachments or [],
+        "read": False,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.messages.insert_one(message)
+    if "_id" in message:
+        del message["_id"]
+    
+    logger.info(f"Mail sent from {current_user['sub']} to {data.receiver_id}: {data.subject}")
+    
+    return {"message": "Mensaje enviado correctamente", "data": message}
+
+@api_router.put("/messages/{message_id}/read")
+async def mark_message_read(message_id: str, current_user = Depends(get_current_user)):
+    """Mark a message as read"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Find message and verify it's for current user
+    message = await db.messages.find_one({
+        "id": message_id,
+        "school_id": user["school_id"],
+        "receiver_id": current_user["sub"]
+    })
+    
+    if not message:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    await db.messages.update_one(
+        {"id": message_id},
+        {"$set": {"read": True}}
+    )
+    
+    return {"message": "Mensaje marcado como leído"}
+
+@api_router.get("/messages/unread-count")
+async def get_unread_count(current_user = Depends(get_current_user)):
+    """Get total unread message count for current user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    count = await db.messages.count_documents({
+        "school_id": user["school_id"],
+        "receiver_id": current_user["sub"],
+        "read": False
+    })
+    
+    return {"unread_count": count}
+
+@api_router.delete("/messages/{message_id}")
+async def delete_message(message_id: str, current_user = Depends(get_current_user)):
+    """Delete a message (only sender can delete)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Find message and verify ownership
+    message = await db.messages.find_one({
+        "id": message_id,
+        "school_id": user["school_id"],
+        "sender_id": current_user["sub"]
+    })
+    
+    if not message:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado o no tienes permiso")
+    
+    await db.messages.delete_one({"id": message_id})
+    
+    return {"message": "Mensaje eliminado correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
