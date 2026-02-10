@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, Menu, X } from "lucide-react";
+import { Search, Bell, Menu, X, GraduationCap } from "lucide-react";
 
-export default function DashboardHeader({ user, onMenuClick, onLogout }) {
+export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const inputRef = useRef(null);
@@ -12,6 +12,8 @@ export default function DashboardHeader({ user, onMenuClick, onLogout }) {
     month: "long",
     day: "numeric",
   });
+
+  const displayName = schoolName || user?.name || "Admin";
 
   useEffect(() => {
     if (searchOpen && inputRef.current) {
@@ -40,16 +42,25 @@ export default function DashboardHeader({ user, onMenuClick, onLogout }) {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <img
-            src="https://socioscreativos.com/wp-content/uploads/2026/02/roble.jpg"
-            alt="Logo Colegio El Roble"
-            className="h-20 w-auto object-contain"
-            data-testid="header-logo"
-            onError={(e) => { e.target.src = 'https://via.placeholder.com/40?text=ER'; }}
-          />
+          
+          {/* Logo - from settings or fallback */}
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt={displayName}
+              className="h-16 w-auto object-contain"
+              data-testid="header-logo"
+              onError={(e) => { e.target.style.display = 'none'; }}
+            />
+          ) : (
+            <div className="h-14 w-14 bg-[#001f4b] rounded-xl flex items-center justify-center" data-testid="header-logo-placeholder">
+              <GraduationCap className="w-7 h-7 text-[#e1b82c]" />
+            </div>
+          )}
+          
           <div>
             <h2 className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }} data-testid="header-welcome">
-              Bienvenido, {user?.name || "Admin"}
+              Bienvenido, {displayName}
             </h2>
             <p className="text-xs text-slate-500 capitalize">{today}</p>
           </div>
