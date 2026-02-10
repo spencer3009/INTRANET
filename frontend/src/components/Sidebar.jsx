@@ -1,13 +1,8 @@
 import { useNavigate } from "react-router-dom";
 import {
   Home,
-  Mail,
-  Users,
   UserCog,
-  GraduationCap,
-  BookOpen,
   CalendarDays,
-  BarChart3,
   Settings,
   LogOut,
   Menu,
@@ -33,10 +28,6 @@ const navItems = [
   { id: "noticias", label: "Noticias", icon: Newspaper, route: "/noticias" },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes" },
-  { id: "comunidad", label: "Comunidad", icon: Users },
-  { id: "academico", label: "Académico", icon: GraduationCap },
-  { id: "biblioteca", label: "Biblioteca", icon: BookOpen },
-  { id: "estadisticas", label: "Estadísticas", icon: BarChart3 },
 ];
 
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain }) {
