@@ -9,6 +9,7 @@ import VerifyEmailPage from "@/pages/VerifyEmailPage";
 import WelcomePage from "@/pages/WelcomePage";
 import OnboardingPage from "@/pages/OnboardingPage";
 import DashboardPage from "@/pages/DashboardPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
