@@ -5,7 +5,8 @@ import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import { 
   Users, UserPlus, ArrowLeft, Loader2, X, Camera, Upload,
-  GraduationCap, Building2, Check, AlertCircle, Plus, Eye, EyeOff
+  GraduationCap, Building2, Check, AlertCircle, Plus, Eye, EyeOff,
+  MoreVertical, Pencil, Trash2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
