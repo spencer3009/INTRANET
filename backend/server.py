@@ -1593,6 +1593,393 @@ async def delete_grade(
     return {"message": "Grado eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC SETTINGS - SECCIONES
+# ══════════════════════════════════════════════════════════════════════════════
+
+class SectionCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=50)
+    grado_id: str
+    capacidad_maxima: Optional[int] = None
+    activo: bool = True
+
+class SectionUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=1, max_length=50)
+    grado_id: Optional[str] = None
+    capacidad_maxima: Optional[int] = None
+    activo: Optional[bool] = None
+
+@api_router.get("/academic/sections")
+async def get_sections(
+    grado_id: Optional[str] = None,
+    nivel_id: Optional[str] = None,
+    activo: Optional[bool] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all sections for the current tenant"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    query = {"school_id": user["school_id"]}
+    if grado_id:
+        query["grado_id"] = grado_id
+    if activo is not None:
+        query["activo"] = activo
+    
+    # If filtering by nivel_id, first get all grades of that level
+    if nivel_id:
+        grades_in_level = await db.grades.find(
+            {"school_id": user["school_id"], "nivel_id": nivel_id},
+            {"id": 1}
+        ).to_list(100)
+        grade_ids = [g["id"] for g in grades_in_level]
+        query["grado_id"] = {"$in": grade_ids}
+    
+    sections = await db.sections.find(query, {"_id": 0}).sort("nombre", 1).to_list(500)
+    
+    # Add grade and level info for each section
+    grades_cache = {}
+    levels_cache = {}
+    for section in sections:
+        # Get grade info
+        if section["grado_id"] not in grades_cache:
+            grade = await db.grades.find_one({"id": section["grado_id"]}, {"_id": 0, "nombre": 1, "nivel_id": 1})
+            grades_cache[section["grado_id"]] = grade
+        grade_info = grades_cache[section["grado_id"]]
+        section["grado_nombre"] = grade_info["nombre"] if grade_info else "Sin grado"
+        
+        # Get level info
+        if grade_info and grade_info.get("nivel_id"):
+            nivel_id = grade_info["nivel_id"]
+            if nivel_id not in levels_cache:
+                level = await db.academic_levels.find_one({"id": nivel_id}, {"_id": 0, "nombre": 1})
+                levels_cache[nivel_id] = level
+            level_info = levels_cache[nivel_id]
+            section["nivel_id"] = nivel_id
+            section["nivel_nombre"] = level_info["nombre"] if level_info else "Sin nivel"
+        else:
+            section["nivel_id"] = None
+            section["nivel_nombre"] = "Sin nivel"
+        
+        # TODO: Add student count when that module is implemented
+        section["student_count"] = 0
+    
+    return sections
+
+@api_router.post("/academic/sections")
+async def create_section(
+    data: SectionCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new section"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear secciones")
+    
+    # Verify grade exists
+    grade = await db.grades.find_one({
+        "id": data.grado_id,
+        "school_id": user["school_id"]
+    })
+    if not grade:
+        raise HTTPException(status_code=400, detail="El grado no existe")
+    
+    # Check for duplicate name within the same grade
+    existing = await db.sections.find_one({
+        "school_id": user["school_id"],
+        "grado_id": data.grado_id,
+        "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe una sección con ese nombre en este grado")
+    
+    section = {
+        "id": str(uuid.uuid4()),
+        "school_id": user["school_id"],
+        "nombre": data.nombre,
+        "grado_id": data.grado_id,
+        "capacidad_maxima": data.capacidad_maxima,
+        "activo": data.activo,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.sections.insert_one(section)
+    section.pop("_id", None)
+    
+    # Add grade and level info
+    section["grado_nombre"] = grade["nombre"]
+    level = await db.academic_levels.find_one({"id": grade["nivel_id"]}, {"_id": 0, "nombre": 1})
+    section["nivel_id"] = grade["nivel_id"]
+    section["nivel_nombre"] = level["nombre"] if level else "Sin nivel"
+    section["student_count"] = 0
+    
+    return {"message": "Sección creada correctamente", "section": section}
+
+@api_router.put("/academic/sections/{section_id}")
+async def update_section(
+    section_id: str,
+    data: SectionUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update a section"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar secciones")
+    
+    # Find the section
+    section = await db.sections.find_one({
+        "id": section_id,
+        "school_id": user["school_id"]
+    })
+    if not section:
+        raise HTTPException(status_code=404, detail="Sección no encontrada")
+    
+    # If changing grade, verify new grade exists
+    new_grado_id = data.grado_id if data.grado_id else section["grado_id"]
+    if data.grado_id and data.grado_id != section["grado_id"]:
+        grade = await db.grades.find_one({
+            "id": data.grado_id,
+            "school_id": user["school_id"]
+        })
+        if not grade:
+            raise HTTPException(status_code=400, detail="El grado no existe")
+    
+    # Check for duplicate name within the same grade
+    if data.nombre and (data.nombre.lower() != section["nombre"].lower() or new_grado_id != section["grado_id"]):
+        existing = await db.sections.find_one({
+            "school_id": user["school_id"],
+            "grado_id": new_grado_id,
+            "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"},
+            "id": {"$ne": section_id}
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe una sección con ese nombre en este grado")
+    
+    # Build update
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.nombre is not None:
+        update_data["nombre"] = data.nombre
+    if data.grado_id is not None:
+        update_data["grado_id"] = data.grado_id
+    if data.capacidad_maxima is not None:
+        update_data["capacidad_maxima"] = data.capacidad_maxima
+    if data.activo is not None:
+        update_data["activo"] = data.activo
+    
+    await db.sections.update_one({"id": section_id}, {"$set": update_data})
+    
+    # Get updated section with grade and level info
+    updated_section = await db.sections.find_one({"id": section_id}, {"_id": 0})
+    grade = await db.grades.find_one({"id": updated_section["grado_id"]}, {"_id": 0})
+    updated_section["grado_nombre"] = grade["nombre"] if grade else "Sin grado"
+    if grade:
+        level = await db.academic_levels.find_one({"id": grade["nivel_id"]}, {"_id": 0, "nombre": 1})
+        updated_section["nivel_id"] = grade["nivel_id"]
+        updated_section["nivel_nombre"] = level["nombre"] if level else "Sin nivel"
+    updated_section["student_count"] = 0
+    
+    return {"message": "Sección actualizada correctamente", "section": updated_section}
+
+@api_router.delete("/academic/sections/{section_id}")
+async def delete_section(
+    section_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a section (only if no students are enrolled)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar secciones")
+    
+    # Find the section
+    section = await db.sections.find_one({
+        "id": section_id,
+        "school_id": user["school_id"]
+    })
+    if not section:
+        raise HTTPException(status_code=404, detail="Sección no encontrada")
+    
+    # TODO: Check for enrolled students when that module is implemented
+    # student_count = await db.enrollments.count_documents({"section_id": section_id})
+    # if student_count > 0:
+    #     raise HTTPException(status_code=400, detail=f"No se puede eliminar la sección porque tiene {student_count} estudiante(s) matriculado(s)")
+    
+    await db.sections.delete_one({"id": section_id})
+    
+    return {"message": "Sección eliminada correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC SETTINGS - TURNOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ShiftCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=100)
+    hora_inicio: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    hora_fin: str = Field(..., pattern=r"^\d{2}:\d{2}$")
+    color: Optional[str] = "#3B82F6"
+    activo: bool = True
+
+class ShiftUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=1, max_length=100)
+    hora_inicio: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$")
+    hora_fin: Optional[str] = Field(None, pattern=r"^\d{2}:\d{2}$")
+    color: Optional[str] = None
+    activo: Optional[bool] = None
+
+@api_router.get("/academic/shifts")
+async def get_shifts(
+    activo: Optional[bool] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all shifts for the current tenant"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    query = {"school_id": user["school_id"]}
+    if activo is not None:
+        query["activo"] = activo
+    
+    shifts = await db.shifts.find(query, {"_id": 0}).sort("hora_inicio", 1).to_list(50)
+    
+    return shifts
+
+@api_router.post("/academic/shifts")
+async def create_shift(
+    data: ShiftCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new shift"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear turnos")
+    
+    # Check for duplicate name
+    existing = await db.shifts.find_one({
+        "school_id": user["school_id"],
+        "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe un turno con ese nombre")
+    
+    # Validate time range
+    if data.hora_inicio >= data.hora_fin:
+        raise HTTPException(status_code=400, detail="La hora de inicio debe ser menor que la hora de fin")
+    
+    shift = {
+        "id": str(uuid.uuid4()),
+        "school_id": user["school_id"],
+        "nombre": data.nombre,
+        "hora_inicio": data.hora_inicio,
+        "hora_fin": data.hora_fin,
+        "color": data.color or "#3B82F6",
+        "activo": data.activo,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.shifts.insert_one(shift)
+    shift.pop("_id", None)
+    
+    return {"message": "Turno creado correctamente", "shift": shift}
+
+@api_router.put("/academic/shifts/{shift_id}")
+async def update_shift(
+    shift_id: str,
+    data: ShiftUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update a shift"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar turnos")
+    
+    # Find the shift
+    shift = await db.shifts.find_one({
+        "id": shift_id,
+        "school_id": user["school_id"]
+    })
+    if not shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    # Check for duplicate name if name is being changed
+    if data.nombre and data.nombre.lower() != shift["nombre"].lower():
+        existing = await db.shifts.find_one({
+            "school_id": user["school_id"],
+            "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"},
+            "id": {"$ne": shift_id}
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe un turno con ese nombre")
+    
+    # Validate time range if times are being changed
+    new_hora_inicio = data.hora_inicio if data.hora_inicio else shift["hora_inicio"]
+    new_hora_fin = data.hora_fin if data.hora_fin else shift["hora_fin"]
+    if new_hora_inicio >= new_hora_fin:
+        raise HTTPException(status_code=400, detail="La hora de inicio debe ser menor que la hora de fin")
+    
+    # Build update
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.nombre is not None:
+        update_data["nombre"] = data.nombre
+    if data.hora_inicio is not None:
+        update_data["hora_inicio"] = data.hora_inicio
+    if data.hora_fin is not None:
+        update_data["hora_fin"] = data.hora_fin
+    if data.color is not None:
+        update_data["color"] = data.color
+    if data.activo is not None:
+        update_data["activo"] = data.activo
+    
+    await db.shifts.update_one({"id": shift_id}, {"$set": update_data})
+    
+    updated_shift = await db.shifts.find_one({"id": shift_id}, {"_id": 0})
+    
+    return {"message": "Turno actualizado correctamente", "shift": updated_shift}
+
+@api_router.delete("/academic/shifts/{shift_id}")
+async def delete_shift(
+    shift_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a shift"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar turnos")
+    
+    # Find the shift
+    shift = await db.shifts.find_one({
+        "id": shift_id,
+        "school_id": user["school_id"]
+    })
+    if not shift:
+        raise HTTPException(status_code=404, detail="Turno no encontrado")
+    
+    # TODO: Check if shift is in use (schedules, etc.) when that module is implemented
+    
+    await db.shifts.delete_one({"id": shift_id})
+    
+    return {"message": "Turno eliminado correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
