@@ -557,12 +557,23 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
 
             {/* Password */}
             <div className="md:col-span-2">
+              {/* Generate password button */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-slate-700">Contraseña <span className="text-red-500">*</span></span>
+                <button
+                  type="button"
+                  onClick={generateStrongPassword}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs font-semibold rounded-lg hover:shadow-md hover:shadow-purple-500/25 transition-all"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Generar contraseña
+                </button>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Password field */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Contraseña <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-xs text-slate-500 mb-1.5">Nueva contraseña</label>
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
