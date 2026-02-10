@@ -1480,7 +1480,7 @@ async def create_grade(
     }
     
     await db.grades.insert_one(grade)
-    del grade["_id"] if "_id" in grade else None
+    grade.pop("_id", None)
     grade["nivel_nombre"] = level["nombre"]
     grade["section_count"] = 0
     
