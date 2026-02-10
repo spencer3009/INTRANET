@@ -212,6 +212,26 @@ class EnrollmentData(BaseModel):
     month: str
     students: int
 
+class TenantSettings(BaseModel):
+    """Settings for a tenant (school)"""
+    logo_url: Optional[str] = None
+    system_name: Optional[str] = None
+    system_title: Optional[str] = None
+    system_email: Optional[str] = None
+    currency: Optional[Literal["PEN", "USD", "EUR"]] = "PEN"
+    whatsapp: Optional[str] = None
+    website_url: Optional[str] = None
+
+class TenantSettingsUpdate(BaseModel):
+    """Update settings for a tenant"""
+    logo_url: Optional[str] = None
+    system_name: Optional[str] = None
+    system_title: Optional[str] = None
+    system_email: Optional[str] = None
+    currency: Optional[Literal["PEN", "USD", "EUR"]] = None
+    whatsapp: Optional[str] = None
+    website_url: Optional[str] = None
+
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH ROUTES
 # ══════════════════════════════════════════════════════════════════════════════
