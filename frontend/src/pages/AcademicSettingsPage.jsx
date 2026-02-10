@@ -499,7 +499,7 @@ function PeriodModal({ isOpen, onClose, token, period, onSuccess }) {
               <button 
                 type="button" 
                 onClick={() => setForm(p => ({ ...p, activo: !p.activo }))} 
-                className={`relative w-14 h-8 rounded-full transition-colors ${form.activo ? "bg-rose-500" : "bg-slate-300"}`}
+                className={`relative w-14 h-8 rounded-full transition-colors ${form.activo ? "bg-indigo-500" : "bg-slate-300"}`}
               >
                 <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${form.activo ? "left-7" : "left-1"}`} />
               </button>
