@@ -19,6 +19,7 @@ import CalendarPage from "@/pages/CalendarPage";
 import SurveysPage from "@/pages/SurveysPage";
 import DisciplinePage from "@/pages/DisciplinePage";
 import NewsPage from "@/pages/NewsPage";
+import AccountingPage from "@/pages/AccountingPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
