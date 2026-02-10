@@ -3089,6 +3089,508 @@ async def delete_message(message_id: str, current_user = Depends(get_current_use
     return {"message": "Mensaje eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ATTENDANCE MODULE
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AttendanceRecord(BaseModel):
+    """Single attendance record for batch save"""
+    user_id: str
+    status: Literal["present", "late", "absent", "justified"]
+
+class AttendanceBatchSave(BaseModel):
+    """Batch save attendance records"""
+    date: str  # ISO date string (YYYY-MM-DD)
+    grade_id: Optional[str] = None
+    section_id: Optional[str] = None
+    records: List[AttendanceRecord]
+
+class TeacherAttendanceSave(BaseModel):
+    """Save teacher attendance"""
+    date: str
+    records: List[AttendanceRecord]
+
+# ─────────────────────────────────────────────────────────────────────────────
+# STUDENT ATTENDANCE
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_router.get("/attendance/students")
+async def get_students_for_attendance(
+    grade_id: str,
+    section_id: str,
+    date: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get students for a specific grade/section with their attendance status for the given date.
+    If no attendance exists for that date, returns students with default status 'present'.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Get students for this grade/section
+    students_cursor = db.users.find(
+        {
+            "school_id": school_id,
+            "role": "student",
+            "grado_id": grade_id,
+            "seccion_id": section_id
+        },
+        {"_id": 0, "password": 0, "verification_code": 0}
+    )
+    students = await students_cursor.to_list(length=500)
+    
+    # Get existing attendance records for this date
+    attendance_cursor = db.attendances.find(
+        {
+            "school_id": school_id,
+            "type": "student",
+            "grade_id": grade_id,
+            "section_id": section_id,
+            "date": date
+        },
+        {"_id": 0}
+    )
+    attendance_records = await attendance_cursor.to_list(length=500)
+    
+    # Build attendance map
+    attendance_map = {a["user_id"]: a for a in attendance_records}
+    
+    # Build result with attendance status
+    result = []
+    for s in students:
+        attendance = attendance_map.get(s["id"])
+        result.append({
+            "id": s["id"],
+            "name": s.get("name", ""),
+            "last_name": s.get("last_name", ""),
+            "full_name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(),
+            "photo_url": s.get("photo_url"),
+            "email": s.get("email"),
+            "status": attendance["status"] if attendance else "present",  # Default to present
+            "has_record": attendance is not None  # Whether a record exists for this date
+        })
+    
+    # Sort by name
+    result.sort(key=lambda x: x["full_name"].lower())
+    
+    return {
+        "date": date,
+        "grade_id": grade_id,
+        "section_id": section_id,
+        "students": result,
+        "total": len(result),
+        "has_saved_records": len(attendance_records) > 0
+    }
+
+@api_router.post("/attendance/students/save")
+async def save_student_attendance(data: AttendanceBatchSave, current_user = Depends(get_current_user)):
+    """
+    Save attendance records for students in batch.
+    Creates or updates records for the specified date.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Delete existing records for this date/grade/section
+    await db.attendances.delete_many({
+        "school_id": school_id,
+        "type": "student",
+        "grade_id": data.grade_id,
+        "section_id": data.section_id,
+        "date": data.date
+    })
+    
+    # Insert new records
+    records_to_insert = []
+    for record in data.records:
+        records_to_insert.append({
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "type": "student",
+            "user_id": record.user_id,
+            "grade_id": data.grade_id,
+            "section_id": data.section_id,
+            "date": data.date,
+            "status": record.status,
+            "recorded_by": current_user["sub"],
+            "created_at": now
+        })
+    
+    if records_to_insert:
+        await db.attendances.insert_many(records_to_insert)
+    
+    # Calculate summary
+    summary = {"present": 0, "late": 0, "absent": 0}
+    for r in data.records:
+        if r.status in summary:
+            summary[r.status] += 1
+    
+    logger.info(f"Student attendance saved for {data.date} by {current_user['sub']}: {len(data.records)} records")
+    
+    return {
+        "message": "Asistencia guardada correctamente",
+        "date": data.date,
+        "total_records": len(data.records),
+        "summary": summary
+    }
+
+@api_router.get("/attendance/students/history")
+async def get_student_attendance_history(
+    student_id: str,
+    start_date: str,
+    end_date: str,
+    current_user = Depends(get_current_user)
+):
+    """Get attendance history for a specific student within a date range."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Get attendance records
+    records_cursor = db.attendances.find(
+        {
+            "school_id": school_id,
+            "type": "student",
+            "user_id": student_id,
+            "date": {"$gte": start_date, "$lte": end_date}
+        },
+        {"_id": 0}
+    ).sort("date", -1)
+    
+    records = await records_cursor.to_list(length=365)
+    
+    # Calculate summary
+    summary = {"present": 0, "late": 0, "absent": 0, "total_days": len(records)}
+    for r in records:
+        if r["status"] in summary:
+            summary[r["status"]] += 1
+    
+    return {
+        "student_id": student_id,
+        "start_date": start_date,
+        "end_date": end_date,
+        "records": records,
+        "summary": summary
+    }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEACHER ATTENDANCE
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_router.get("/attendance/teachers")
+async def get_teachers_for_attendance(
+    date: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get all teachers with their attendance status for the given date.
+    If no attendance exists, returns teachers with default status 'present'.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Get all teachers
+    teachers_cursor = db.users.find(
+        {"school_id": school_id, "role": "teacher"},
+        {"_id": 0, "password": 0, "verification_code": 0}
+    )
+    teachers = await teachers_cursor.to_list(length=500)
+    
+    # Get existing attendance records for this date
+    attendance_cursor = db.attendances.find(
+        {
+            "school_id": school_id,
+            "type": "teacher",
+            "date": date
+        },
+        {"_id": 0}
+    )
+    attendance_records = await attendance_cursor.to_list(length=500)
+    
+    # Build attendance map
+    attendance_map = {a["user_id"]: a for a in attendance_records}
+    
+    # Build result
+    result = []
+    for t in teachers:
+        attendance = attendance_map.get(t["id"])
+        result.append({
+            "id": t["id"],
+            "name": t.get("name", ""),
+            "last_name": t.get("last_name", ""),
+            "full_name": f"{t.get('name', '')} {t.get('last_name', '')}".strip(),
+            "photo_url": t.get("photo_url"),
+            "email": t.get("email"),
+            "status": attendance["status"] if attendance else "present",
+            "has_record": attendance is not None
+        })
+    
+    # Sort by name
+    result.sort(key=lambda x: x["full_name"].lower())
+    
+    return {
+        "date": date,
+        "teachers": result,
+        "total": len(result),
+        "has_saved_records": len(attendance_records) > 0
+    }
+
+@api_router.post("/attendance/teachers/save")
+async def save_teacher_attendance(data: TeacherAttendanceSave, current_user = Depends(get_current_user)):
+    """
+    Save attendance records for teachers in batch.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Delete existing records for this date
+    await db.attendances.delete_many({
+        "school_id": school_id,
+        "type": "teacher",
+        "date": data.date
+    })
+    
+    # Insert new records
+    records_to_insert = []
+    for record in data.records:
+        records_to_insert.append({
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "type": "teacher",
+            "user_id": record.user_id,
+            "grade_id": None,
+            "section_id": None,
+            "date": data.date,
+            "status": record.status,
+            "recorded_by": current_user["sub"],
+            "created_at": now
+        })
+    
+    if records_to_insert:
+        await db.attendances.insert_many(records_to_insert)
+    
+    # Calculate summary
+    summary = {"present": 0, "late": 0, "absent": 0, "justified": 0}
+    for r in data.records:
+        if r.status in summary:
+            summary[r.status] += 1
+    
+    logger.info(f"Teacher attendance saved for {data.date} by {current_user['sub']}: {len(data.records)} records")
+    
+    return {
+        "message": "Asistencia de profesores guardada correctamente",
+        "date": data.date,
+        "total_records": len(data.records),
+        "summary": summary
+    }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ATTENDANCE REPORTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_router.get("/attendance/reports/teachers")
+async def get_teacher_attendance_report(
+    teacher_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get teacher attendance report with summary statistics.
+    Can filter by specific teacher and/or date range.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Build query
+    query = {"school_id": school_id, "type": "teacher"}
+    
+    if teacher_id:
+        query["user_id"] = teacher_id
+    
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    elif start_date:
+        query["date"] = {"$gte": start_date}
+    elif end_date:
+        query["date"] = {"$lte": end_date}
+    
+    # Get attendance records
+    records_cursor = db.attendances.find(query, {"_id": 0}).sort("date", -1)
+    records = await records_cursor.to_list(length=1000)
+    
+    # Get teacher info
+    teacher_ids = list(set(r["user_id"] for r in records))
+    teachers_cursor = db.users.find(
+        {"id": {"$in": teacher_ids}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}
+    )
+    teachers = await teachers_cursor.to_list(length=500)
+    teachers_map = {t["id"]: t for t in teachers}
+    
+    # Build report by teacher
+    report_by_teacher = {}
+    for r in records:
+        tid = r["user_id"]
+        if tid not in report_by_teacher:
+            teacher = teachers_map.get(tid, {})
+            report_by_teacher[tid] = {
+                "teacher_id": tid,
+                "teacher_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
+                "teacher_photo": teacher.get("photo_url"),
+                "present": 0,
+                "late": 0,
+                "absent": 0,
+                "justified": 0,
+                "total_days": 0,
+                "attendance_rate": 0
+            }
+        
+        report_by_teacher[tid]["total_days"] += 1
+        if r["status"] in report_by_teacher[tid]:
+            report_by_teacher[tid][r["status"]] += 1
+    
+    # Calculate attendance rate
+    for tid, data in report_by_teacher.items():
+        if data["total_days"] > 0:
+            attended = data["present"] + data["late"] + data["justified"]
+            data["attendance_rate"] = round((attended / data["total_days"]) * 100, 1)
+    
+    # Convert to list and sort by name
+    report_list = list(report_by_teacher.values())
+    report_list.sort(key=lambda x: x["teacher_name"].lower())
+    
+    # Overall summary
+    overall_summary = {
+        "total_records": len(records),
+        "present": sum(1 for r in records if r["status"] == "present"),
+        "late": sum(1 for r in records if r["status"] == "late"),
+        "absent": sum(1 for r in records if r["status"] == "absent"),
+        "justified": sum(1 for r in records if r["status"] == "justified")
+    }
+    
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "teacher_id": teacher_id,
+        "report": report_list,
+        "summary": overall_summary,
+        "records": records[:100]  # Return last 100 records for detail view
+    }
+
+@api_router.get("/attendance/reports/students")
+async def get_student_attendance_report(
+    grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get student attendance report with summary statistics.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Build query
+    query = {"school_id": school_id, "type": "student"}
+    
+    if grade_id:
+        query["grade_id"] = grade_id
+    if section_id:
+        query["section_id"] = section_id
+    
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    elif start_date:
+        query["date"] = {"$gte": start_date}
+    elif end_date:
+        query["date"] = {"$lte": end_date}
+    
+    # Get attendance records
+    records_cursor = db.attendances.find(query, {"_id": 0}).sort("date", -1)
+    records = await records_cursor.to_list(length=5000)
+    
+    # Get student info
+    student_ids = list(set(r["user_id"] for r in records))
+    students_cursor = db.users.find(
+        {"id": {"$in": student_ids}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}
+    )
+    students = await students_cursor.to_list(length=1000)
+    students_map = {s["id"]: s for s in students}
+    
+    # Build report by student
+    report_by_student = {}
+    for r in records:
+        sid = r["user_id"]
+        if sid not in report_by_student:
+            student = students_map.get(sid, {})
+            report_by_student[sid] = {
+                "student_id": sid,
+                "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+                "student_photo": student.get("photo_url"),
+                "present": 0,
+                "late": 0,
+                "absent": 0,
+                "total_days": 0,
+                "attendance_rate": 0
+            }
+        
+        report_by_student[sid]["total_days"] += 1
+        if r["status"] in report_by_student[sid]:
+            report_by_student[sid][r["status"]] += 1
+    
+    # Calculate attendance rate
+    for sid, data in report_by_student.items():
+        if data["total_days"] > 0:
+            attended = data["present"] + data["late"]
+            data["attendance_rate"] = round((attended / data["total_days"]) * 100, 1)
+    
+    # Convert to list and sort
+    report_list = list(report_by_student.values())
+    report_list.sort(key=lambda x: x["student_name"].lower())
+    
+    # Overall summary
+    overall_summary = {
+        "total_records": len(records),
+        "present": sum(1 for r in records if r["status"] == "present"),
+        "late": sum(1 for r in records if r["status"] == "late"),
+        "absent": sum(1 for r in records if r["status"] == "absent")
+    }
+    
+    return {
+        "start_date": start_date,
+        "end_date": end_date,
+        "grade_id": grade_id,
+        "section_id": section_id,
+        "report": report_list,
+        "summary": overall_summary
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
