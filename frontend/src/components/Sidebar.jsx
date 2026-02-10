@@ -80,7 +80,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
           return (
             <button
               key={item.id}
-              onClick={() => onNavigate(item.id)}
+              onClick={() => handleNavClick(item)}
               className={`sidebar-link w-full ${active === item.id ? "active" : ""}`}
               data-testid={`sidebar-${item.id}`}
               title={item.label}
