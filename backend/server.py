@@ -2464,7 +2464,8 @@ async def create_schedule(
     }
     
     await db.schedules.insert_one(schedule)
-    del schedule["_id"] if "_id" in schedule else None
+    if "_id" in schedule:
+        del schedule["_id"]
     
     return {"message": "Horario creado correctamente", "schedule": schedule}
 
