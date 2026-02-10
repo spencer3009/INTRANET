@@ -835,7 +835,7 @@ async def generate_cloudinary_signature(
     Generate a signed upload signature for Cloudinary.
     Requires authentication.
     """
-    ALLOWED_FOLDERS = ("edunet/logos", "edunet/uploads", "edunet/media")
+    ALLOWED_FOLDERS = ("edunet/logos", "edunet/uploads", "edunet/media", "edunet/users")
     if not any(folder.startswith(f) for f in ALLOWED_FOLDERS):
         raise HTTPException(status_code=400, detail="Carpeta no permitida")
 
