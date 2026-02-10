@@ -5958,7 +5958,7 @@ async def get_subjects(
     
     # Enrich subjects with level and grade names
     levels = {l["id"]: l["nombre"] for l in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)}
-    grades = {g["id"]: g for g in await db.academic_grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(200)}
+    grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(200)}
     
     for subject in subjects:
         subject["level_name"] = levels.get(subject.get("level_id"), "")
