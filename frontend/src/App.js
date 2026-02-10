@@ -326,6 +326,26 @@ function App() {
             }
           />
           
+          {/* Users Page - Route based */}
+          <Route
+            path="/school/:subdomain/users"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <UsersPage user={user} token={token} subdomain={user?.subdomain} />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Users Page - Direct path (for subdomain mode) */}
+          <Route
+            path="/users"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <UsersPage user={user} token={token} subdomain={user?.subdomain} />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
             path="/school/:subdomain"
