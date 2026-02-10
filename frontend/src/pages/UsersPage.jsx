@@ -105,6 +105,13 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   
+  // Academic data for students
+  const [levels, setLevels] = useState([]);
+  const [grades, setGrades] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [loadingAcademic, setLoadingAcademic] = useState(false);
+  
   const [form, setForm] = useState({
     photo_url: "",
     name: "",
@@ -116,10 +123,42 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     birthday: "",
     gender: "",
     address: "",
-    role: roleId || ""
+    role: roleId || "",
+    // Student-specific fields
+    nivel_id: "",
+    grado_id: "",
+    seccion_id: "",
+    turno_id: ""
   });
 
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Load academic data when modal opens for students
+  useEffect(() => {
+    if (isOpen && (roleId === 'student' || form.role === 'student')) {
+      loadAcademicData();
+    }
+  }, [isOpen, roleId]);
+
+  const loadAcademicData = async () => {
+    setLoadingAcademic(true);
+    try {
+      const [levelsRes, gradesRes, sectionsRes, shiftsRes] = await Promise.all([
+        axios.get(`${API}/academic/levels`, { headers }),
+        axios.get(`${API}/academic/grades`, { headers }),
+        axios.get(`${API}/academic/sections`, { headers }),
+        axios.get(`${API}/academic/shifts`, { headers })
+      ]);
+      setLevels(levelsRes.data.filter(l => l.activo));
+      setGrades(gradesRes.data.filter(g => g.activo));
+      setSections(sectionsRes.data.filter(s => s.activo));
+      setShifts(shiftsRes.data.filter(s => s.activo));
+    } catch (err) {
+      console.error("Error loading academic data:", err);
+    } finally {
+      setLoadingAcademic(false);
+    }
+  };
 
   // Reset form when modal opens
   useEffect(() => {
@@ -135,12 +174,26 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         birthday: "",
         gender: "",
         address: "",
-        role: roleId || ""
+        role: roleId || "",
+        nivel_id: "",
+        grado_id: "",
+        seccion_id: "",
+        turno_id: ""
       });
       setError("");
       setUsernameError("");
     }
   }, [isOpen, roleId]);
+
+  // Filtered grades based on selected level
+  const filteredGrades = form.nivel_id 
+    ? grades.filter(g => g.nivel_id === form.nivel_id) 
+    : [];
+
+  // Filtered sections based on selected grade
+  const filteredSections = form.grado_id 
+    ? sections.filter(s => s.grado_id === form.grado_id) 
+    : [];
 
   // Check username availability
   const checkUsername = async (username) => {
