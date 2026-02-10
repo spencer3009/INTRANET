@@ -281,6 +281,14 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
       setError("Debes seleccionar un tipo de cuenta");
       return;
     }
+
+    // Validate academic fields for students
+    if (form.role === 'student' || roleId === 'student') {
+      if (!form.nivel_id || !form.grado_id || !form.seccion_id || !form.turno_id) {
+        setError("Para estudiantes, debes seleccionar nivel, grado, sección y turno");
+        return;
+      }
+    }
     
     if (usernameError) {
       setError("El nombre de usuario no está disponible");
@@ -296,6 +304,15 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         ...form,
         phone: form.phone ? `+51${form.phone}` : ""
       };
+      
+      // Remove empty academic fields for non-students
+      if (form.role !== 'student' && roleId !== 'student') {
+        delete submitData.nivel_id;
+        delete submitData.grado_id;
+        delete submitData.seccion_id;
+        delete submitData.turno_id;
+      }
+      
       const res = await axios.post(`${API}/users`, submitData, { headers });
       onUserCreated(res.data.user);
       onClose();
