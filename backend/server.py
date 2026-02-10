@@ -5987,13 +5987,13 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
     school_id = user["school_id"]
     
     # Verify level exists
-    level = await db.levels.find_one({"id": data.level_id, "school_id": school_id})
+    level = await db.academic_levels.find_one({"id": data.level_id, "school_id": school_id})
     if not level:
         raise HTTPException(status_code=400, detail="El nivel seleccionado no existe")
     
     # Verify grade exists if provided
     if data.grade_id:
-        grade = await db.grades.find_one({"id": data.grade_id, "school_id": school_id})
+        grade = await db.academic_grades.find_one({"id": data.grade_id, "school_id": school_id})
         if not grade:
             raise HTTPException(status_code=400, detail="El grado seleccionado no existe")
     
