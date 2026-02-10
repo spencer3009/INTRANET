@@ -346,6 +346,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Academic Settings Page - Path-based (for preview mode) */}
+          <Route
+            path="/school/:subdomain/academic-settings"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AcademicSettingsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Academic Settings Page - Direct path (for subdomain mode) */}
+          <Route
+            path="/academic-settings"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AcademicSettingsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
