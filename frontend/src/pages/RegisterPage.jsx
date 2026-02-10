@@ -304,9 +304,19 @@ export default function RegisterPage() {
 
                 {/* Password */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-600 mb-2">
-                    Contraseña
-                  </label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-semibold text-slate-600">
+                      Contraseña
+                    </label>
+                    <button
+                      type="button"
+                      onClick={generateStrongPassword}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-violet-500 to-purple-600 text-white text-xs font-semibold rounded-lg hover:shadow-md hover:shadow-purple-500/25 transition-all"
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      Generar
+                    </button>
+                  </div>
                   <div className="relative">
                     <input
                       data-testid="register-password"
