@@ -213,7 +213,12 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     setError("");
     
     try {
-      const res = await axios.post(`${API}/users`, form, { headers });
+      // Prepare data with phone prefix
+      const submitData = {
+        ...form,
+        phone: form.phone ? `+51${form.phone}` : ""
+      };
+      const res = await axios.post(`${API}/users`, submitData, { headers });
       onUserCreated(res.data.user);
       onClose();
     } catch (err) {
