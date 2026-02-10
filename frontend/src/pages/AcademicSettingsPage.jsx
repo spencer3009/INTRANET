@@ -410,7 +410,7 @@ function PeriodModal({ isOpen, onClose, token, period, onSuccess }) {
     <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
         <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
-          <div className="bg-gradient-to-r from-rose-500 to-red-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+          <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Calendar className="w-8 h-8 text-white" />
               <div className="text-white">
