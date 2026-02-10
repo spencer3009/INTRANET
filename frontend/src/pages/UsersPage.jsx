@@ -376,6 +376,14 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         return;
       }
     }
+
+    // Validate parent fields
+    if (form.role === 'parent' || roleId === 'parent') {
+      if (!form.dni || form.dni.length !== 8) {
+        setError("El DNI es obligatorio y debe tener 8 dígitos");
+        return;
+      }
+    }
     
     if (usernameError) {
       setError("El nombre de usuario no está disponible");
@@ -389,7 +397,8 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
       // Prepare data with phone prefix
       const submitData = {
         ...form,
-        phone: form.phone ? `+51${form.phone}` : ""
+        phone: form.phone ? `+51${form.phone}` : "",
+        telefono_trabajo: form.telefono_trabajo ? `+51${form.telefono_trabajo}` : ""
       };
       
       // Remove empty academic fields for non-students
@@ -398,6 +407,14 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         delete submitData.grado_id;
         delete submitData.seccion_id;
         delete submitData.turno_id;
+      }
+
+      // Remove parent fields for non-parents
+      if (form.role !== 'parent' && roleId !== 'parent') {
+        delete submitData.dni;
+        delete submitData.ocupacion;
+        delete submitData.lugar_trabajo;
+        delete submitData.telefono_trabajo;
       }
       
       const res = await axios.post(`${API}/users`, submitData, { headers });
