@@ -277,6 +277,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         grado_id: "",
         seccion_id: "",
         turno_id: "",
+        padre_id: "",
         dni: "",
         ocupacion: "",
         lugar_trabajo: "",
@@ -285,6 +286,9 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
       setConfirmPassword("");
       setError("");
       setUsernameError("");
+      setParentSearch("");
+      setSelectedParent(null);
+      setShowParentDropdown(false);
     }
   }, [isOpen, roleId]);
 
