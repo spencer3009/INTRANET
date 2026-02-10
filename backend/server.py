@@ -17,6 +17,7 @@ import re
 import time
 import cloudinary
 import cloudinary.utils
+import cloudinary.uploader
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
