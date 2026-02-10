@@ -1060,6 +1060,11 @@ class CreateUserRequest(BaseModel):
     grado_id: Optional[str] = None
     seccion_id: Optional[str] = None
     turno_id: Optional[str] = None
+    # Parent-specific fields
+    dni: Optional[str] = None
+    ocupacion: Optional[str] = None
+    lugar_trabajo: Optional[str] = None
+    telefono_trabajo: Optional[str] = None
 
 @api_router.get("/users/check-username/{username}")
 async def check_username(username: str, current_user = Depends(get_current_user)):
