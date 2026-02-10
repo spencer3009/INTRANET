@@ -13,25 +13,35 @@ import AttendanceAndNews from "@/components/AttendanceAndNews";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export default function DashboardPage({ user, token, onLogout }) {
+export default function DashboardPage({ user, token, onLogout, routeSubdomain }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [metrics, setMetrics] = useState(null);
   const [events, setEvents] = useState([]);
   const [enrollment, setEnrollment] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [activeSection, setActiveSection] = useState("inicio");
 
   const headers = { Authorization: `Bearer ${token}` };
+  const subdomain = routeSubdomain || user?.subdomain;
 
   const fetchData = useCallback(async () => {
     try {
-      const [metricsRes, eventsRes, enrollmentRes] = await Promise.all([
+      const [metricsRes, eventsRes, enrollmentRes, settingsRes] = await Promise.all([
         axios.get(`${API}/dashboard/metrics`, { headers }),
         axios.get(`${API}/dashboard/events`, { headers }),
         axios.get(`${API}/dashboard/enrollment`, { headers }),
+        axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
       ]);
       setMetrics(metricsRes.data);
       setEvents(eventsRes.data);
       setEnrollment(enrollmentRes.data);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+        // Update browser title
+        if (settingsRes.data.system_title) {
+          document.title = settingsRes.data.system_title;
+        }
+      }
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       if (err.response?.status === 401) onLogout();
@@ -42,6 +52,13 @@ export default function DashboardPage({ user, token, onLogout }) {
     fetchData();
   }, [fetchData]);
 
+  // Get display values from settings or user
+  const schoolName = settings?.system_name || user?.name || "EduNet";
+  const logoUrl = settings?.logo_url;
+  const systemEmail = settings?.system_email || "";
+  const whatsapp = settings?.whatsapp || "";
+  const websiteUrl = settings?.website_url || "";
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="dashboard-container">
       <Sidebar
@@ -50,6 +67,8 @@ export default function DashboardPage({ user, token, onLogout }) {
         expanded={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onLogout={onLogout}
+        schoolName={schoolName}
+        subdomain={subdomain}
       />
 
       {/* Mobile overlay */}
@@ -65,6 +84,8 @@ export default function DashboardPage({ user, token, onLogout }) {
           user={user}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           onLogout={onLogout}
+          logoUrl={logoUrl}
+          schoolName={schoolName}
         />
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scroll" data-testid="dashboard-main">
@@ -73,7 +94,7 @@ export default function DashboardPage({ user, token, onLogout }) {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
             {/* Left column */}
             <div className="lg:col-span-8 space-y-6">
-              <HeroBanner user={user} />
+              <HeroBanner user={user} schoolName={schoolName} />
               <QuickAccess />
               <StudentChart data={enrollment} />
               <AttendanceAndNews />
@@ -92,28 +113,41 @@ export default function DashboardPage({ user, token, onLogout }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div>
                 <div className="flex items-center gap-3 mb-3">
-                  <img
-                    src="https://socioscreativos.com/wp-content/uploads/2026/02/roble.jpg"
-                    alt="Logo"
-                    className="h-10 w-auto object-contain brightness-0 invert"
-                    onError={(e) => { e.target.src = 'https://via.placeholder.com/40?text=ER'; }}
-                  />
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt="Logo"
+                      className="h-10 w-auto object-contain"
+                    />
+                  ) : (
+                    <div className="h-10 w-10 bg-[#e1b82c] rounded-lg flex items-center justify-center">
+                      <span className="text-[#001f4b] font-bold text-lg">
+                        {schoolName?.charAt(0) || "E"}
+                      </span>
+                    </div>
+                  )}
                   <div>
-                    <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase">Colegio</p>
-                    <p className="text-sm font-extrabold tracking-wide" style={{ fontFamily: 'Manrope, sans-serif' }}>EL ROBLE</p>
+                    <p className="text-[10px] font-bold tracking-widest text-white/60 uppercase">Intranet</p>
+                    <p className="text-sm font-extrabold tracking-wide" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                      {schoolName}
+                    </p>
                   </div>
                 </div>
                 <p className="text-xs text-white/50 leading-relaxed max-w-xs">
-                  Formando líderes con valores desde 1985. Educación integral para un futuro brillante.
+                  Sistema de gestión educativa integral. Potenciado por EduNet.
                 </p>
               </div>
 
               <div>
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#e1b82c] mb-3">Contacto</h4>
                 <div className="space-y-2 text-xs text-white/60">
-                  <p>Av. Los Robles 1234, Lima, Perú</p>
-                  <p>Tel: (01) 555-0100</p>
-                  <p>info@colegioelroble.edu.pe</p>
+                  {systemEmail && <p>{systemEmail}</p>}
+                  {whatsapp && <p>WhatsApp: {whatsapp}</p>}
+                  {websiteUrl && (
+                    <a href={websiteUrl} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">
+                      {websiteUrl}
+                    </a>
+                  )}
                 </div>
               </div>
 
@@ -128,8 +162,8 @@ export default function DashboardPage({ user, token, onLogout }) {
             </div>
 
             <div className="mt-6 pt-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
-              <p className="text-[11px] text-white/40">Colegio El Roble &copy; 2026 — Todos los derechos reservados</p>
-              <p className="text-[11px] text-white/40">Intranet v1.0</p>
+              <p className="text-[11px] text-white/40">{schoolName} &copy; {new Date().getFullYear()} — Todos los derechos reservados</p>
+              <p className="text-[11px] text-white/40">Powered by EduNet</p>
             </div>
           </footer>
 
