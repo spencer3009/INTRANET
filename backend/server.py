@@ -5993,7 +5993,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
     
     # Verify grade exists if provided
     if data.grade_id:
-        grade = await db.academic_grades.find_one({"id": data.grade_id, "school_id": school_id})
+        grade = await db.grades.find_one({"id": data.grade_id, "school_id": school_id})
         if not grade:
             raise HTTPException(status_code=400, detail="El grado seleccionado no existe")
     
