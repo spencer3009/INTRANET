@@ -236,10 +236,11 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   const roleConfig = ROLE_CARDS.find(r => r.id === roleId) || ROLE_CARDS[2];
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8" data-testid="add-user-modal">
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${roleConfig.color} px-6 py-4 rounded-t-2xl flex items-center justify-between`}>
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-4 py-8">
+        <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl" data-testid="add-user-modal">
+          {/* Header */}
+          <div className={`bg-gradient-to-r ${roleConfig.color} px-6 py-4 rounded-t-2xl flex items-center justify-between`}>
           <div className="flex items-center gap-3">
             <img src={roleConfig.image} alt="" className="w-10 h-10" />
             <div className="text-white">
