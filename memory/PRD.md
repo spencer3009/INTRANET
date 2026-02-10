@@ -221,10 +221,28 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [x] Módulo de Asistencia (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Calendario (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Encuestas (Implementado completo - 10 Feb 2026)
+- [x] Módulo de Disciplina (Implementado completo - 10 Feb 2026)
 - [ ] Módulo de Calificaciones
 - [ ] Módulo de Reportes generales
 
 ## Últimos Cambios (10 Feb 2026)
+- **NEW: Módulo de Disciplina** - Implementado completo nivel premium:
+  - CRUD completo de reportes disciplinarios
+  - 4 prioridades: Baja (verde), Media (amarillo), Alta (naranja), Crítica (rojo)
+  - 4 estados: Abierto, En revisión, Resuelto, Archivado
+  - Filtros avanzados: grado, sección, prioridad, estado, rango de fechas
+  - Cards de estadísticas: Abiertos, En revisión, Resueltos, Críticos
+  - Tabla con indicadores visuales de prioridad (barra color)
+  - Modal de creación con selects dependientes (grado→sección→estudiante)
+  - Soporte para adjuntos vía Cloudinary (imágenes, PDF, documentos)
+  - Modal de detalle con línea de tiempo (Creado→Revisado→Resuelto)
+  - Modal de cambio de estado para admins/directores
+  - Permisos diferenciados por rol:
+    - Profesores: crear y ver solo sus reportes (editar si está abierto)
+    - Directores/Admin: ver todos, editar cualquiera, cambiar estado
+    - Solo Admin: eliminar reportes
+  - Endpoints: `/api/discipline`, `/api/discipline/{id}`, `/api/discipline/{id}/status`, `/api/discipline/stats/summary`
+
 - **NEW: Módulo de Encuestas** - Implementado completo nivel premium:
   - CRUD completo de encuestas con pregunta y opciones múltiples
   - 3 estados: Borrador, Activa, Cerrada
@@ -293,6 +311,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - **Attendance URL**: /school/demosettings/asistencias
 - **Calendar URL**: /school/demosettings/calendario
 - **Surveys URL**: /school/demosettings/encuestas
+- **Discipline URL**: /school/demosettings/disciplina
 
 ## Notas de Plataforma
 - **Emergent** actualmente NO soporta wildcard SSL automático
