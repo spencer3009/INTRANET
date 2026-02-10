@@ -687,6 +687,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       else if (deleteTarget.type === "grade") { setGrades(p => p.filter(g => g.id !== deleteTarget.item.id)); setLevels(p => p.map(l => l.id === deleteTarget.item.nivel_id ? { ...l, grade_count: Math.max(0, (l.grade_count || 1) - 1) } : l)); }
       else if (deleteTarget.type === "section") { setSections(p => p.filter(s => s.id !== deleteTarget.item.id)); setGrades(p => p.map(g => g.id === deleteTarget.item.grado_id ? { ...g, section_count: Math.max(0, (g.section_count || 1) - 1) } : g)); }
       else if (deleteTarget.type === "shift") setShifts(p => p.filter(s => s.id !== deleteTarget.item.id));
+      else if (deleteTarget.type === "period") setPeriods(p => p.filter(per => per.id !== deleteTarget.item.id));
       setShowDeleteModal(false); setDeleteTarget(null);
     } catch (err) { alert(err.response?.data?.detail || "Error al eliminar"); }
     finally { setDeleteLoading(false); }
