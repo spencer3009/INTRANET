@@ -22,6 +22,9 @@ const ROLE_CARDS = [
     bgColor: "bg-blue-50",
     iconBg: "bg-blue-100",
     textColor: "text-blue-600",
+    borderColor: "border-blue-200",
+    gradientBg: "from-blue-500 to-indigo-600",
+    lightGradient: "from-blue-50 to-indigo-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
   },
   { 
@@ -32,6 +35,9 @@ const ROLE_CARDS = [
     bgColor: "bg-purple-50",
     iconBg: "bg-purple-100",
     textColor: "text-purple-600",
+    borderColor: "border-purple-200",
+    gradientBg: "from-purple-500 to-pink-600",
+    lightGradient: "from-purple-50 to-pink-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135768.png"
   },
   { 
@@ -42,6 +48,9 @@ const ROLE_CARDS = [
     bgColor: "bg-emerald-50",
     iconBg: "bg-emerald-100",
     textColor: "text-emerald-600",
+    borderColor: "border-emerald-200",
+    gradientBg: "from-emerald-500 to-teal-600",
+    lightGradient: "from-emerald-50 to-teal-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135789.png"
   },
   { 
@@ -52,6 +61,9 @@ const ROLE_CARDS = [
     bgColor: "bg-amber-50",
     iconBg: "bg-amber-100",
     textColor: "text-amber-600",
+    borderColor: "border-amber-200",
+    gradientBg: "from-amber-500 to-orange-600",
+    lightGradient: "from-amber-50 to-orange-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135810.png"
   },
   { 
@@ -62,6 +74,9 @@ const ROLE_CARDS = [
     bgColor: "bg-rose-50",
     iconBg: "bg-rose-100",
     textColor: "text-rose-600",
+    borderColor: "border-rose-200",
+    gradientBg: "from-rose-500 to-red-600",
+    lightGradient: "from-rose-50 to-red-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135725.png"
   },
   { 
@@ -72,6 +87,9 @@ const ROLE_CARDS = [
     bgColor: "bg-slate-50",
     iconBg: "bg-slate-100",
     textColor: "text-slate-600",
+    borderColor: "border-slate-200",
+    gradientBg: "from-slate-400 to-gray-500",
+    lightGradient: "from-slate-50 to-gray-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135823.png",
     isPending: true
   },
