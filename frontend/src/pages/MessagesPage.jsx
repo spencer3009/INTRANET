@@ -350,18 +350,40 @@ function ChatView({ partner, messages, currentUserId, onSendMessage, onBack, tok
         >
           <ArrowLeft className="w-5 h-5" />
         </button>
-        {partner.photo_url ? (
-          <img src={partner.photo_url} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white/30" />
-        ) : (
-          <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold">
-            {partner.name?.charAt(0) || "U"}
-          </div>
-        )}
+        <div className="relative">
+          {partner.photo_url ? (
+            <img src={partner.photo_url} alt="" className="w-12 h-12 rounded-full object-cover border-2 border-white/30" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center text-white text-xl font-bold">
+              {partner.name?.charAt(0) || "U"}
+            </div>
+          )}
+          {/* Presence indicator */}
+          <span className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-white ${
+            partner.is_online ? "bg-emerald-500" : "bg-slate-400"
+          }`} />
+        </div>
         <div className="flex-1 text-white">
           <h3 className="font-bold text-lg">{partner.name}</h3>
-          <p className="text-blue-100 text-sm">{ROLE_LABELS[partner.role] || partner.role}</p>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-blue-100">{ROLE_LABELS[partner.role] || partner.role}</span>
+            <span className="text-blue-200">•</span>
+            <span className={partner.is_online ? "text-emerald-300" : "text-blue-200"}>
+              {partner.is_online ? "En línea" : "Desconectado"}
+            </span>
+          </div>
         </div>
       </div>
+
+      {/* Offline notification banner */}
+      {!partner.is_online && (
+        <div className="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center gap-3">
+          <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <p className="text-sm text-amber-700">
+            Este usuario no está conectado. El mensaje se entregará cuando esté activo.
+          </p>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50" style={{ minHeight: "300px" }}>
