@@ -514,6 +514,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Accounting Page - URL path mode (Spanish) */}
+          <Route
+            path="/school/:subdomain/contabilidad"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AccountingPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Accounting Page - Direct path (for subdomain mode) */}
+          <Route
+            path="/contabilidad"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AccountingPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
