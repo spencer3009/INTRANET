@@ -472,6 +472,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Discipline Page - URL path mode (Spanish) */}
+          <Route
+            path="/school/:subdomain/disciplina"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <DisciplinePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Discipline Page - Direct path (for subdomain mode) */}
+          <Route
+            path="/disciplina"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <DisciplinePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
