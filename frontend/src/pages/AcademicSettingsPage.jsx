@@ -1089,13 +1089,50 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           {selectedCategory === "grados" && renderGrados()}
           {selectedCategory === "secciones" && renderSecciones()}
           {selectedCategory === "turnos" && renderTurnos()}
+          {selectedCategory === "periodos" && renderPeriodos()}
         </main>
       </div>
       <LevelModal isOpen={showLevelModal} onClose={() => { setShowLevelModal(false); setEditingLevel(null); }} token={token} level={editingLevel} onSuccess={handleLevelSuccess} />
       <GradeModal isOpen={showGradeModal} onClose={() => { setShowGradeModal(false); setEditingGrade(null); }} token={token} grade={editingGrade} levels={levels} onSuccess={handleGradeSuccess} preselectedLevelId={selectedLevelFilter} />
       <SectionModal isOpen={showSectionModal} onClose={() => { setShowSectionModal(false); setEditingSection(null); }} token={token} section={editingSection} grades={grades} levels={levels} onSuccess={handleSectionSuccess} preselectedGradeId="" />
       <ShiftModal isOpen={showShiftModal} onClose={() => { setShowShiftModal(false); setEditingShift(null); }} token={token} shift={editingShift} onSuccess={handleShiftSuccess} />
-      <ConfirmModal isOpen={showDeleteModal} onClose={() => { setShowDeleteModal(false); setDeleteTarget(null); }} onConfirm={confirmDelete} title={`Eliminar ${deleteTarget?.type === "level" ? "Nivel" : deleteTarget?.type === "grade" ? "Grado" : deleteTarget?.type === "section" ? "Sección" : "Turno"}`} message={`¿Eliminar "${deleteTarget?.item?.nombre}"? Esta acción no se puede deshacer.`} confirmText="Sí, eliminar" type="danger" loading={deleteLoading} />
+      <PeriodModal isOpen={showPeriodModal} onClose={() => { setShowPeriodModal(false); setEditingPeriod(null); }} token={token} period={editingPeriod} onSuccess={handlePeriodSuccess} />
+      
+      {/* Delete confirmation modal */}
+      <ConfirmModal 
+        isOpen={showDeleteModal} 
+        onClose={() => { setShowDeleteModal(false); setDeleteTarget(null); }} 
+        onConfirm={confirmDelete} 
+        title={`Eliminar ${deleteTarget?.type === "level" ? "Nivel" : deleteTarget?.type === "grade" ? "Grado" : deleteTarget?.type === "section" ? "Sección" : deleteTarget?.type === "shift" ? "Turno" : "Período"}`} 
+        message={`¿Eliminar "${deleteTarget?.item?.nombre}"? Esta acción no se puede deshacer.`} 
+        confirmText="Sí, eliminar" 
+        type="danger" 
+        loading={deleteLoading} 
+      />
+      
+      {/* Activate period confirmation modal */}
+      <ConfirmModal 
+        isOpen={showActivateModal} 
+        onClose={() => { setShowActivateModal(false); setActivatingPeriod(null); }} 
+        onConfirm={handleActivatePeriod} 
+        title="Activar Período" 
+        message={`¿Deseas activar el período "${activatingPeriod?.nombre}"? El período activo actual será desactivado automáticamente.`} 
+        confirmText="Sí, activar" 
+        type="warning" 
+        loading={activateLoading} 
+      />
+      
+      {/* Info modal for success messages */}
+      <ConfirmModal 
+        isOpen={showInfoModal} 
+        onClose={() => setShowInfoModal(false)} 
+        onConfirm={() => setShowInfoModal(false)} 
+        title={infoModalMessage.title} 
+        message={infoModalMessage.message} 
+        confirmText="Entendido" 
+        type="success" 
+        showCancel={false} 
+      />
     </div>
   );
 }
