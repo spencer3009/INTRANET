@@ -1,0 +1,102 @@
+{
+  "summary": "Bug fix verified: 'El grado seleccionado no existe' error when creating subject with specific grade. Fix: Changed db.academic_grades to db.grades in backend. Backend: 21/22 tests passed (95%). Frontend: All features working correctly.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "POST /api/academic/subjects", "issue": "Empty name is accepted (should be rejected)", "priority": "LOW"}
+    ]
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "GET /api/academic/levels - Returns levels (Inicial, Primaria, Secundaria)",
+    "GET /api/academic/grades - Returns grades with nivel_id",
+    "POST /api/academic/subjects - Create subject WITHOUT specific grade (all grades in level)",
+    "POST /api/academic/subjects - Create subject WITH specific grade (BUG FIX VERIFIED)",
+    "POST /api/academic/subjects - Invalid grade_id returns 400 error",
+    "POST /api/academic/subjects - Invalid level_id returns 400 error",
+    "GET /api/academic/subjects - List all subjects",
+    "GET /api/academic/subjects?level_id=X - Filter by level",
+    "GET /api/academic/subjects?grade_id=X - Filter by grade",
+    "GET /api/academic/subjects?status=active - Filter by status",
+    "PUT /api/academic/subjects/{id} - Update subject",
+    "PUT /api/academic/subjects/{id} - Change grade (BUG FIX VERIFIED)",
+    "PUT /api/academic/subjects/{id} - Returns 404 for nonexistent",
+    "DELETE /api/academic/subjects/{id} - Delete subject",
+    "DELETE /api/academic/subjects/{id} - Returns 404 for nonexistent",
+    "GET /api/academic/subjects/{id}/teachers - Get assigned teachers",
+    "POST /api/academic/subjects/{id}/teachers - Assign teachers",
+    "Duplicate code rejected",
+    "Missing level rejected",
+    "Frontend: Subjects page loads correctly",
+    "Frontend: Create modal opens",
+    "Frontend: Level selector shows Inicial, Primaria, Secundaria",
+    "Frontend: Grade selector is disabled when no level selected",
+    "Frontend: Grade selector enables and populates when level selected",
+    "Frontend: Grade selector shows correct grades for Primaria (1° to 6°)",
+    "Frontend: Create subject with specific grade works (no error)",
+    "Frontend: Edit subject shows correct grade",
+    "Frontend: Filters work (level, grade, status)",
+    "Frontend: Delete subject works"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_subjects_module.py",
+    "/app/test_reports/pytest/pytest_subjects.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Minor: Empty subject name is accepted by backend - should add validation"
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_subjects_module.py"
+  ],
+  
+  "success_rate": {
+    "backend": "95% (21/22 passed)",
+    "frontend": "100%"
+  },
+  
+  "test_credentials": {
+    "email": "admin.settings@test.pe",
+    "password": "test123",
+    "subdomain": "demosettings",
+    "login_url": "/school/demosettings/login",
+    "subjects_url": "/school/demosettings/asignaturas"
+  },
+  
+  "seed_data_creation": "Test subjects created with TEST- and UI- prefixes were cleaned up after testing",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Subjects module (Asignaturas) fully functional. Bug fix verified: db.academic_grades changed to db.grades in server.py lines 5996 and 6110. Levels: Inicial, Primaria, Secundaria. Primaria has 6 grades (1° to 6°). Existing subjects: Matemáticas, Comunicación, Ciencias Naturales, Historia, Educación Física, Arte y Cultura, Inglés (with 1° grade).",
+  
+  "bug_fix_verification": {
+    "original_bug": "Error 'El grado seleccionado no existe' when creating subject with specific grade",
+    "root_cause": "Backend was querying db.academic_grades instead of db.grades",
+    "fix_applied": "Changed db.academic_grades to db.grades in POST /api/academic/subjects and PUT /api/academic/subjects/{id}",
+    "fix_location": "/app/backend/server.py lines 5996 and 6110",
+    "verification_status": "PASSED - Both backend API tests and frontend UI tests confirm fix works"
+  },
+  
+  "verified_features": {
+    "create_subject_without_grade": "WORKING - Creates subject for all grades in level",
+    "create_subject_with_grade": "WORKING - Creates subject for specific grade (BUG FIX)",
+    "edit_subject": "WORKING - Can update all fields including grade",
+    "grade_selector_enables": "WORKING - Enables when level is selected",
+    "grade_selector_populates": "WORKING - Shows correct grades for selected level",
+    "list_with_filters": "WORKING - Level, grade, status filters work",
+    "delete_subject": "WORKING - Removes subject from database"
+  }
+}
