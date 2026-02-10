@@ -23,11 +23,11 @@ const navItems = [
   { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings" },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias" },
+  { id: "calendario", label: "Calendario", icon: CalendarDays, route: "/calendario" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes" },
   { id: "comunidad", label: "Comunidad", icon: Users },
   { id: "academico", label: "Académico", icon: GraduationCap },
   { id: "biblioteca", label: "Biblioteca", icon: BookOpen },
-  { id: "calendario", label: "Calendario", icon: CalendarDays },
   { id: "estadisticas", label: "Estadísticas", icon: BarChart3 },
 ];
 
