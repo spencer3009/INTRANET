@@ -1060,6 +1060,7 @@ class CreateUserRequest(BaseModel):
     grado_id: Optional[str] = None
     seccion_id: Optional[str] = None
     turno_id: Optional[str] = None
+    padre_id: Optional[str] = None  # Link student to parent
     # Parent-specific fields
     dni: Optional[str] = None
     ocupacion: Optional[str] = None
