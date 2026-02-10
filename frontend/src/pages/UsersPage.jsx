@@ -569,15 +569,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             </div>
             
             {/* Add button */}
-            {selectedRole !== 'owner' && (
-              <button
-                onClick={() => handleAddUser(selectedRole)}
-                className="w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all hover:scale-110"
-                data-testid="add-user-circle-btn"
-              >
-                <Plus className="w-7 h-7 text-white" />
-              </button>
-            )}
+            <button
+              onClick={() => handleAddUser(selectedRole)}
+              className="w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all hover:scale-110"
+              data-testid="add-user-circle-btn"
+            >
+              <Plus className="w-7 h-7 text-white" />
+            </button>
           </div>
         </div>
 
