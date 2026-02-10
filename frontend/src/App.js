@@ -376,6 +376,26 @@ function App() {
             }
           />
 
+          {/* Subjects Page - URL path mode */}
+          <Route
+            path="/school/:subdomain/asignaturas"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <SubjectsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Subjects Page - Direct path */}
+          <Route
+            path="/asignaturas"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <SubjectsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Schedule Page - URL path mode (Spanish alias: horarios) */}
           <Route
             path="/school/:subdomain/horarios"
