@@ -76,11 +76,11 @@ const ACADEMIC_CATEGORIES = [
     label: "Períodos Académicos",
     description: "Bimestres, Trimestres, Semestres",
     icon: Calendar,
-    color: "from-rose-500 to-red-600",
-    lightColor: "from-rose-50 to-red-50",
-    borderColor: "border-rose-200",
-    textColor: "text-rose-600",
-    bgColor: "bg-rose-100"
+    color: "from-indigo-500 to-violet-600",
+    lightColor: "from-indigo-50 to-violet-50",
+    borderColor: "border-indigo-200",
+    textColor: "text-indigo-600",
+    bgColor: "bg-indigo-100"
   }
 ];
 
