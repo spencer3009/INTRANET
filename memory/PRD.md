@@ -222,11 +222,19 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [ ] Módulo de Reportes
 
 ## Últimos Cambios (10 Feb 2026)
+- **NEW: Sistema de Presencia (Online/Offline)** - Implementado completo:
+  - 🟢 Indicador verde = Usuario activo (online)
+  - ⚪ Indicador gris = Usuario inactivo (offline)
+  - Heartbeat cada 30 segundos para mantener estado online
+  - Timeout de 5 minutos para marcar como offline
+  - Usuarios online aparecen primero en listas
+  - Banner informativo: "Este usuario no está conectado. El mensaje se entregará cuando esté activo."
+  - Endpoints: `/api/presence/heartbeat`, `/api/presence/users`, `/api/presence/offline`
 - **NEW: Módulo de Mensajería** - Implementado completo con:
   - Tab CHATS: Conversaciones directas tipo WhatsApp con burbujas, historial, adjuntos
   - Tab ESCRIBIR: Mensajes tipo correo interno con selector de usuarios por rol
   - Tab GRUPOS: Estructura base (placeholder "Próximamente")
-  - Selector de destinatarios agrupados por rol (Directores, Profesores, Padres)
+  - Selector de destinatarios agrupados por rol con indicadores de presencia
   - Soporte para adjuntos via Cloudinary
   - Bandeja de entrada con filtros (Todos, Recibidos, Enviados)
 - **Fix: Módulo de Horarios** - Corregido endpoint `/api/tenant/settings` → `/api/settings`
