@@ -1143,7 +1143,7 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
 
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user = Depends(get_current_user)):
-    """Delete a user"""
+    """Delete a user and their Cloudinary image"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -1163,6 +1163,30 @@ async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     # Cannot delete owners
     if target.get("role") == "owner":
         raise HTTPException(status_code=400, detail="No puedes eliminar al propietario")
+    
+    # Delete photo from Cloudinary if exists
+    if target.get("photo_url"):
+        try:
+            # Extract public_id from Cloudinary URL
+            # URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{filename}.{ext}
+            photo_url = target["photo_url"]
+            if "cloudinary.com" in photo_url:
+                # Extract the part after /upload/
+                parts = photo_url.split("/upload/")
+                if len(parts) > 1:
+                    # Remove version prefix (v123456789/) and file extension
+                    path_with_ext = parts[1]
+                    # Remove version prefix if present
+                    if path_with_ext.startswith("v"):
+                        path_with_ext = "/".join(path_with_ext.split("/")[1:])
+                    # Remove file extension
+                    public_id = path_with_ext.rsplit(".", 1)[0]
+                    # Delete from Cloudinary
+                    cloudinary.uploader.destroy(public_id)
+                    logger.info(f"Deleted Cloudinary image: {public_id}")
+        except Exception as e:
+            logger.error(f"Error deleting Cloudinary image: {e}")
+            # Continue with user deletion even if image deletion fails
     
     await db.users.delete_one({"id": user_id})
     
