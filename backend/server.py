@@ -1193,6 +1193,406 @@ async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     return {"message": "Usuario eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC SETTINGS - NIVELES EDUCATIVOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AcademicLevelCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=100)
+    descripcion: Optional[str] = None
+    imagen_url: Optional[str] = None
+    activo: bool = True
+
+class AcademicLevelUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=1, max_length=100)
+    descripcion: Optional[str] = None
+    imagen_url: Optional[str] = None
+    activo: Optional[bool] = None
+
+@api_router.get("/academic/levels")
+async def get_academic_levels(
+    activo: Optional[bool] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all academic levels for the current tenant"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    query = {"school_id": user["school_id"]}
+    if activo is not None:
+        query["activo"] = activo
+    
+    levels = await db.academic_levels.find(query, {"_id": 0}).sort("created_at", 1).to_list(100)
+    
+    # Add grade count for each level
+    for level in levels:
+        grade_count = await db.grades.count_documents({
+            "school_id": user["school_id"],
+            "nivel_id": level["id"]
+        })
+        level["grade_count"] = grade_count
+    
+    return levels
+
+@api_router.post("/academic/levels")
+async def create_academic_level(
+    data: AcademicLevelCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new academic level"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear niveles")
+    
+    # Check for duplicate name
+    existing = await db.academic_levels.find_one({
+        "school_id": user["school_id"],
+        "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe un nivel con ese nombre")
+    
+    level = {
+        "id": str(uuid.uuid4()),
+        "school_id": user["school_id"],
+        "nombre": data.nombre,
+        "descripcion": data.descripcion,
+        "imagen_url": data.imagen_url,
+        "activo": data.activo,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.academic_levels.insert_one(level)
+    del level["_id"] if "_id" in level else None
+    level["grade_count"] = 0
+    
+    return {"message": "Nivel creado correctamente", "level": level}
+
+@api_router.put("/academic/levels/{level_id}")
+async def update_academic_level(
+    level_id: str,
+    data: AcademicLevelUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update an academic level"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar niveles")
+    
+    # Find the level
+    level = await db.academic_levels.find_one({
+        "id": level_id,
+        "school_id": user["school_id"]
+    })
+    if not level:
+        raise HTTPException(status_code=404, detail="Nivel no encontrado")
+    
+    # Check for duplicate name if name is being changed
+    if data.nombre and data.nombre.lower() != level["nombre"].lower():
+        existing = await db.academic_levels.find_one({
+            "school_id": user["school_id"],
+            "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"},
+            "id": {"$ne": level_id}
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe un nivel con ese nombre")
+    
+    # Build update
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.nombre is not None:
+        update_data["nombre"] = data.nombre
+    if data.descripcion is not None:
+        update_data["descripcion"] = data.descripcion
+    if data.imagen_url is not None:
+        update_data["imagen_url"] = data.imagen_url
+    if data.activo is not None:
+        update_data["activo"] = data.activo
+    
+    await db.academic_levels.update_one({"id": level_id}, {"$set": update_data})
+    
+    # Get updated level
+    updated_level = await db.academic_levels.find_one({"id": level_id}, {"_id": 0})
+    grade_count = await db.grades.count_documents({
+        "school_id": user["school_id"],
+        "nivel_id": level_id
+    })
+    updated_level["grade_count"] = grade_count
+    
+    return {"message": "Nivel actualizado correctamente", "level": updated_level}
+
+@api_router.delete("/academic/levels/{level_id}")
+async def delete_academic_level(
+    level_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete an academic level (only if no grades are associated)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar niveles")
+    
+    # Find the level
+    level = await db.academic_levels.find_one({
+        "id": level_id,
+        "school_id": user["school_id"]
+    })
+    if not level:
+        raise HTTPException(status_code=404, detail="Nivel no encontrado")
+    
+    # Check if level has grades
+    grade_count = await db.grades.count_documents({
+        "school_id": user["school_id"],
+        "nivel_id": level_id
+    })
+    if grade_count > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No se puede eliminar el nivel porque tiene {grade_count} grado(s) asociado(s). Elimina primero los grados."
+        )
+    
+    # Delete image from Cloudinary if exists
+    if level.get("imagen_url") and "cloudinary.com" in level["imagen_url"]:
+        try:
+            parts = level["imagen_url"].split("/upload/")
+            if len(parts) > 1:
+                path_with_ext = parts[1]
+                if path_with_ext.startswith("v"):
+                    path_with_ext = "/".join(path_with_ext.split("/")[1:])
+                public_id = path_with_ext.rsplit(".", 1)[0]
+                cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            logger.error(f"Error deleting Cloudinary image: {e}")
+    
+    await db.academic_levels.delete_one({"id": level_id})
+    
+    return {"message": "Nivel eliminado correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC SETTINGS - GRADOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class GradeCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=100)
+    nivel_id: str
+    orden: Optional[int] = 0
+    activo: bool = True
+
+class GradeUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=1, max_length=100)
+    nivel_id: Optional[str] = None
+    orden: Optional[int] = None
+    activo: Optional[bool] = None
+
+@api_router.get("/academic/grades")
+async def get_grades(
+    nivel_id: Optional[str] = None,
+    activo: Optional[bool] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all grades for the current tenant"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    query = {"school_id": user["school_id"]}
+    if nivel_id:
+        query["nivel_id"] = nivel_id
+    if activo is not None:
+        query["activo"] = activo
+    
+    grades = await db.grades.find(query, {"_id": 0}).sort([("nivel_id", 1), ("orden", 1)]).to_list(200)
+    
+    # Add level info and section count for each grade
+    levels_cache = {}
+    for grade in grades:
+        # Get level info
+        if grade["nivel_id"] not in levels_cache:
+            level = await db.academic_levels.find_one({"id": grade["nivel_id"]}, {"_id": 0, "nombre": 1})
+            levels_cache[grade["nivel_id"]] = level["nombre"] if level else "Sin nivel"
+        grade["nivel_nombre"] = levels_cache[grade["nivel_id"]]
+        
+        # Get section count
+        section_count = await db.sections.count_documents({
+            "school_id": user["school_id"],
+            "grado_id": grade["id"]
+        })
+        grade["section_count"] = section_count
+    
+    return grades
+
+@api_router.post("/academic/grades")
+async def create_grade(
+    data: GradeCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new grade"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear grados")
+    
+    # Verify level exists
+    level = await db.academic_levels.find_one({
+        "id": data.nivel_id,
+        "school_id": user["school_id"]
+    })
+    if not level:
+        raise HTTPException(status_code=400, detail="El nivel educativo no existe")
+    
+    # Check for duplicate name within the same level
+    existing = await db.grades.find_one({
+        "school_id": user["school_id"],
+        "nivel_id": data.nivel_id,
+        "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe un grado con ese nombre en este nivel")
+    
+    # Auto-calculate order if not provided
+    orden = data.orden
+    if orden == 0:
+        last_grade = await db.grades.find_one(
+            {"school_id": user["school_id"], "nivel_id": data.nivel_id},
+            sort=[("orden", -1)]
+        )
+        orden = (last_grade["orden"] + 1) if last_grade else 1
+    
+    grade = {
+        "id": str(uuid.uuid4()),
+        "school_id": user["school_id"],
+        "nombre": data.nombre,
+        "nivel_id": data.nivel_id,
+        "orden": orden,
+        "activo": data.activo,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.grades.insert_one(grade)
+    del grade["_id"] if "_id" in grade else None
+    grade["nivel_nombre"] = level["nombre"]
+    grade["section_count"] = 0
+    
+    return {"message": "Grado creado correctamente", "grade": grade}
+
+@api_router.put("/academic/grades/{grade_id}")
+async def update_grade(
+    grade_id: str,
+    data: GradeUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update a grade"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar grados")
+    
+    # Find the grade
+    grade = await db.grades.find_one({
+        "id": grade_id,
+        "school_id": user["school_id"]
+    })
+    if not grade:
+        raise HTTPException(status_code=404, detail="Grado no encontrado")
+    
+    # If changing level, verify new level exists
+    new_nivel_id = data.nivel_id if data.nivel_id else grade["nivel_id"]
+    if data.nivel_id and data.nivel_id != grade["nivel_id"]:
+        level = await db.academic_levels.find_one({
+            "id": data.nivel_id,
+            "school_id": user["school_id"]
+        })
+        if not level:
+            raise HTTPException(status_code=400, detail="El nivel educativo no existe")
+    
+    # Check for duplicate name within the same level
+    if data.nombre and (data.nombre.lower() != grade["nombre"].lower() or new_nivel_id != grade["nivel_id"]):
+        existing = await db.grades.find_one({
+            "school_id": user["school_id"],
+            "nivel_id": new_nivel_id,
+            "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"},
+            "id": {"$ne": grade_id}
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe un grado con ese nombre en este nivel")
+    
+    # Build update
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.nombre is not None:
+        update_data["nombre"] = data.nombre
+    if data.nivel_id is not None:
+        update_data["nivel_id"] = data.nivel_id
+    if data.orden is not None:
+        update_data["orden"] = data.orden
+    if data.activo is not None:
+        update_data["activo"] = data.activo
+    
+    await db.grades.update_one({"id": grade_id}, {"$set": update_data})
+    
+    # Get updated grade with level info
+    updated_grade = await db.grades.find_one({"id": grade_id}, {"_id": 0})
+    level = await db.academic_levels.find_one({"id": updated_grade["nivel_id"]}, {"_id": 0, "nombre": 1})
+    updated_grade["nivel_nombre"] = level["nombre"] if level else "Sin nivel"
+    section_count = await db.sections.count_documents({
+        "school_id": user["school_id"],
+        "grado_id": grade_id
+    })
+    updated_grade["section_count"] = section_count
+    
+    return {"message": "Grado actualizado correctamente", "grade": updated_grade}
+
+@api_router.delete("/academic/grades/{grade_id}")
+async def delete_grade(
+    grade_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a grade (only if no sections are associated)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar grados")
+    
+    # Find the grade
+    grade = await db.grades.find_one({
+        "id": grade_id,
+        "school_id": user["school_id"]
+    })
+    if not grade:
+        raise HTTPException(status_code=404, detail="Grado no encontrado")
+    
+    # Check if grade has sections
+    section_count = await db.sections.count_documents({
+        "school_id": user["school_id"],
+        "grado_id": grade_id
+    })
+    if section_count > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No se puede eliminar el grado porque tiene {section_count} sección(es) asociada(s). Elimina primero las secciones."
+        )
+    
+    # TODO: Check for enrolled students when that module is implemented
+    
+    await db.grades.delete_one({"id": grade_id})
+    
+    return {"message": "Grado eliminado correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
