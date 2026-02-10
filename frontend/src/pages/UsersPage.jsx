@@ -478,6 +478,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );
