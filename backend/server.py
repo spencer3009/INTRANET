@@ -1154,6 +1154,21 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["turno_id"] = data.turno_id
         if data.padre_id:
             new_user["padre_id"] = data.padre_id
+        # Complementary info
+        if data.condiciones_medicas:
+            new_user["condiciones_medicas"] = data.condiciones_medicas
+        if data.alergias:
+            new_user["alergias"] = data.alergias
+        if data.doctor_nombre:
+            new_user["doctor_nombre"] = data.doctor_nombre
+        if data.doctor_telefono:
+            new_user["doctor_telefono"] = f"+51{data.doctor_telefono}" if data.doctor_telefono and not data.doctor_telefono.startswith("+") else data.doctor_telefono
+        if data.persona_autorizada:
+            new_user["persona_autorizada"] = data.persona_autorizada
+        if data.persona_autorizada_telefono:
+            new_user["persona_autorizada_telefono"] = f"+51{data.persona_autorizada_telefono}" if data.persona_autorizada_telefono and not data.persona_autorizada_telefono.startswith("+") else data.persona_autorizada_telefono
+        if data.notas:
+            new_user["notas"] = data.notas
     
     # Add parent-specific fields
     if data.role == "parent":
