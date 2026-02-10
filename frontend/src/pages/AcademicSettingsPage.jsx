@@ -700,7 +700,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       {ACADEMIC_CATEGORIES.map((cat) => {
         const Icon = cat.icon;
-        const count = cat.id === "niveles" ? levels.length : cat.id === "grados" ? grades.length : cat.id === "secciones" ? sections.length : cat.id === "turnos" ? shifts.length : 0;
+        const count = cat.id === "niveles" ? levels.length : cat.id === "grados" ? grades.length : cat.id === "secciones" ? sections.length : cat.id === "turnos" ? shifts.length : cat.id === "periodos" ? periods.length : 0;
         return (
           <button key={cat.id} onClick={() => !cat.disabled && setSelectedCategory(cat.id)} disabled={cat.disabled} className={`group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 ${cat.borderColor} bg-gradient-to-br ${cat.lightColor} ${cat.disabled ? "opacity-50 cursor-not-allowed" : ""}`}>
             <div className={`absolute inset-0 bg-gradient-to-br ${cat.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
