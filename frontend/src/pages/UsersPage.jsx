@@ -104,6 +104,8 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   const [usernameError, setUsernameError] = useState("");
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState("");
   
   // Academic data for students
   const [levels, setLevels] = useState([]);
@@ -132,6 +134,34 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   });
 
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Password strength calculator
+  const getPasswordStrength = (password) => {
+    if (!password) return { level: 0, label: "", color: "bg-slate-200" };
+    
+    let score = 0;
+    
+    // Length checks
+    if (password.length >= 6) score += 1;
+    if (password.length >= 8) score += 1;
+    if (password.length >= 12) score += 1;
+    
+    // Character type checks
+    if (/[a-z]/.test(password)) score += 1;
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^a-zA-Z0-9]/.test(password)) score += 1;
+    
+    if (score <= 2) return { level: 1, label: "Muy débil", color: "bg-red-500", textColor: "text-red-600" };
+    if (score <= 3) return { level: 2, label: "Débil", color: "bg-orange-500", textColor: "text-orange-600" };
+    if (score <= 5) return { level: 3, label: "Media", color: "bg-yellow-500", textColor: "text-yellow-600" };
+    if (score <= 6) return { level: 4, label: "Fuerte", color: "bg-emerald-500", textColor: "text-emerald-600" };
+    return { level: 5, label: "Muy fuerte", color: "bg-emerald-600", textColor: "text-emerald-700" };
+  };
+
+  const passwordStrength = getPasswordStrength(form.password);
+  const passwordsMatch = form.password && confirmPassword && form.password === confirmPassword;
+  const passwordsMismatch = form.password && confirmPassword && form.password !== confirmPassword;
 
   // Load academic data when modal opens for students
   useEffect(() => {
