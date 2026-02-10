@@ -207,6 +207,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [ ] Social login (Google, GitHub)
 - [ ] Módulo de Matrículas
 - [ ] Completar módulo de Grupos (mensajería grupal por grado/sección/rol)
+- [ ] Exportación PDF en reportes de asistencia
 
 ### P2 - Mejoras
 - [ ] Cambiar texto "subdominio" por "identificador" en OnboardingPage.jsx
@@ -217,11 +218,20 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 ### P3 - Futuro
 - [x] Módulo de Horarios (UI básica implementada - 10 Feb 2026)
 - [x] Módulo de Mensajería (Implementado completo - 10 Feb 2026)
-- [ ] Módulo de Asistencia
+- [x] Módulo de Asistencia (Implementado completo - 10 Feb 2026)
 - [ ] Módulo de Calificaciones
-- [ ] Módulo de Reportes
+- [ ] Módulo de Reportes generales
 
 ## Últimos Cambios (10 Feb 2026)
+- **NEW: Módulo de Asistencias** - Implementado completo con nivel premium:
+  - Tab ESTUDIANTES: Filtros cascada (Grado → Sección → Fecha), tabla con avatares y estados
+  - Tab PROFESORES: Filtro por fecha, 4 estados (Presente/Tardanza/Ausente/Justificado)
+  - Tab REPORTES: Filtros (Profesor + Rango fechas), summary cards, tabla con % asistencia
+  - Default "Presente" al cargar lista, indicador cambios pendientes, bloqueo doble guardado
+  - Persistencia de filtros en localStorage
+  - Auditoría: recorded_by y timestamp en cada registro
+  - Botón "Exportar PDF" como placeholder (próximamente)
+  - Endpoints: `/api/attendance/students`, `/api/attendance/teachers`, `/api/attendance/reports/teachers`
 - **NEW: Sistema de Presencia (Online/Offline)** - Implementado completo:
   - 🟢 Indicador verde = Usuario activo (online)
   - ⚪ Indicador gris = Usuario inactivo (offline)
@@ -249,6 +259,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - **Identifier**: demosettings
 - **Login URL**: /school/demosettings/login
 - **Messages URL**: /school/demosettings/mensajes
+- **Attendance URL**: /school/demosettings/asistencias
 
 ## Notas de Plataforma
 - **Emergent** actualmente NO soporta wildcard SSL automático
