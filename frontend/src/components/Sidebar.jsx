@@ -12,12 +12,14 @@ import {
   LogOut,
   Menu,
   BookMarked,
+  Clock,
 } from "lucide-react";
 
 const navItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users" },
   { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings" },
+  { id: "horarios", label: "Horarios", icon: Clock, route: "/schedule" },
   { id: "mensajeria", label: "Mensajería", icon: Mail },
   { id: "comunidad", label: "Comunidad", icon: Users },
   { id: "academico", label: "Académico", icon: GraduationCap },
