@@ -210,6 +210,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   useEffect(() => {
     if (isOpen && (roleId === 'student' || form.role === 'student')) {
       loadAcademicData();
+      loadParents();
     }
   }, [isOpen, roleId]);
 
@@ -232,6 +233,30 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
       setLoadingAcademic(false);
     }
   };
+
+  const loadParents = async () => {
+    setLoadingParents(true);
+    try {
+      const res = await axios.get(`${API}/users`, { headers });
+      // Filter only parents
+      const parentUsers = res.data.filter(u => u.role === 'parent');
+      setParents(parentUsers);
+    } catch (err) {
+      console.error("Error loading parents:", err);
+    } finally {
+      setLoadingParents(false);
+    }
+  };
+
+  // Filtered parents based on search
+  const filteredParents = parentSearch.trim() 
+    ? parents.filter(p => {
+        const searchLower = parentSearch.toLowerCase();
+        const fullName = `${p.name || ''} ${p.last_name || ''}`.toLowerCase();
+        const dni = (p.dni || '').toLowerCase();
+        return fullName.includes(searchLower) || dni.includes(searchLower);
+      })
+    : parents;
 
   // Reset form when modal opens
   useEffect(() => {
