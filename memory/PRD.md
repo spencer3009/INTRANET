@@ -220,10 +220,26 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [x] Módulo de Mensajería (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Asistencia (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Calendario (Implementado completo - 10 Feb 2026)
+- [x] Módulo de Encuestas (Implementado completo - 10 Feb 2026)
 - [ ] Módulo de Calificaciones
 - [ ] Módulo de Reportes generales
 
 ## Últimos Cambios (10 Feb 2026)
+- **NEW: Módulo de Encuestas** - Implementado completo nivel premium:
+  - CRUD completo de encuestas con pregunta y opciones múltiples
+  - 3 estados: Borrador, Activa, Cerrada
+  - Segmentación por roles (Todos, Profesores, Estudiantes, Padres, Directores)
+  - Indicador de participación (respuestas / total de usuarios objetivo)
+  - Diferenciación visual entre encuestas activas con/sin respuestas
+  - Modal de resultados con gráficos estadísticos (Recharts)
+    - Gráfico de barras horizontal
+    - Gráfico circular (pie chart)
+    - Tabla con opciones, votos y porcentajes
+  - Cards estadísticas: Respuestas totales, Usuarios objetivo, % Participación
+  - Filtros por estado
+  - Solo admins/directores pueden crear/editar/cerrar encuestas
+  - Usuarios responden una sola vez por encuesta
+  - Endpoints: `/api/surveys`, `/api/surveys/{id}`, `/api/surveys/{id}/close`, `/api/surveys/{id}/answer`, `/api/surveys/{id}/results`
 - **NEW: Módulo de Calendario** - Implementado completo nivel premium:
   - 3 vistas: Mes (default), Semana, Día
   - Controles: ◀️ Anterior, Hoy, Siguiente ▶️
@@ -276,6 +292,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - **Messages URL**: /school/demosettings/mensajes
 - **Attendance URL**: /school/demosettings/asistencias
 - **Calendar URL**: /school/demosettings/calendario
+- **Surveys URL**: /school/demosettings/encuestas
 
 ## Notas de Plataforma
 - **Emergent** actualmente NO soporta wildcard SSL automático
