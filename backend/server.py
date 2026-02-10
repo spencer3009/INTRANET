@@ -5172,6 +5172,719 @@ async def delete_news(news_id: str, current_user = Depends(get_current_user)):
     return {"message": "Noticia eliminada correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ACCOUNTING MODULE - CONTABILIDAD ESCOLAR (PERÚ)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Peru IGV rate
+DEFAULT_IGV_PERCENTAGE = 18
+
+PAYMENT_CONCEPTS = {
+    "matricula": "Matrícula",
+    "mensualidad": "Mensualidad",
+    "taller": "Taller",
+    "uniforme": "Uniforme",
+    "material": "Material escolar",
+    "evento": "Evento",
+    "otros": "Otros"
+}
+
+PAYMENT_METHODS = {
+    "efectivo": "Efectivo",
+    "transferencia": "Transferencia bancaria",
+    "yape": "Yape",
+    "plin": "Plin",
+    "tarjeta": "Tarjeta"
+}
+
+PAYMENT_STATUSES = {
+    "pending": {"label": "Pendiente", "color": "#F59E0B"},
+    "paid": {"label": "Pagado", "color": "#22C55E"},
+    "canceled": {"label": "Anulado", "color": "#EF4444"}
+}
+
+EXPENSE_CATEGORIES = {
+    "servicios": "Servicios (luz, agua, internet)",
+    "personal": "Personal y planilla",
+    "mantenimiento": "Mantenimiento",
+    "materiales": "Materiales y suministros",
+    "otros": "Otros gastos"
+}
+
+class PaymentCreate(BaseModel):
+    student_id: str
+    grade_id: str
+    section_id: str
+    concept: str
+    description: Optional[str] = None
+    amount_base: float = Field(..., gt=0)
+    igv_applicable: bool = True
+    igv_percentage: float = DEFAULT_IGV_PERCENTAGE
+    payment_method: str
+    payment_status: Literal["pending", "paid"] = "pending"
+    payment_date: Optional[str] = None
+    receipt_number: Optional[str] = None
+    notes: Optional[str] = None
+
+class PaymentUpdate(BaseModel):
+    concept: Optional[str] = None
+    description: Optional[str] = None
+    amount_base: Optional[float] = Field(None, gt=0)
+    igv_applicable: Optional[bool] = None
+    igv_percentage: Optional[float] = None
+    payment_method: Optional[str] = None
+    payment_date: Optional[str] = None
+    receipt_number: Optional[str] = None
+    notes: Optional[str] = None
+
+class ExpenseCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    category: str
+    description: Optional[str] = None
+    amount_base: float = Field(..., gt=0)
+    igv_applicable: bool = True
+    igv_percentage: float = DEFAULT_IGV_PERCENTAGE
+    expense_date: str
+    payment_method: str
+    provider_name: Optional[str] = None
+    notes: Optional[str] = None
+
+class ExpenseUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    category: Optional[str] = None
+    description: Optional[str] = None
+    amount_base: Optional[float] = Field(None, gt=0)
+    igv_applicable: Optional[bool] = None
+    igv_percentage: Optional[float] = None
+    expense_date: Optional[str] = None
+    payment_method: Optional[str] = None
+    provider_name: Optional[str] = None
+    notes: Optional[str] = None
+
+def calculate_igv(amount_base: float, igv_applicable: bool, igv_percentage: float) -> dict:
+    """Calculate IGV amounts for Peru"""
+    if not igv_applicable:
+        return {
+            "amount_base": round(amount_base, 2),
+            "igv_amount": 0,
+            "total_amount": round(amount_base, 2)
+        }
+    
+    igv_amount = round(amount_base * (igv_percentage / 100), 2)
+    total_amount = round(amount_base + igv_amount, 2)
+    
+    return {
+        "amount_base": round(amount_base, 2),
+        "igv_amount": igv_amount,
+        "total_amount": total_amount
+    }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PAYMENTS (INGRESOS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_router.get("/accounting/payments")
+async def get_payments(
+    status: Optional[str] = None,
+    concept: Optional[str] = None,
+    grade_id: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50,
+    current_user = Depends(get_current_user)
+):
+    """Get all payments (ingresos) for the school"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver la contabilidad")
+    
+    school_id = user["school_id"]
+    
+    query = {"school_id": school_id}
+    if status:
+        query["payment_status"] = status
+    if concept:
+        query["concept"] = concept
+    if grade_id:
+        query["grade_id"] = grade_id
+    if date_from:
+        query["payment_date"] = {"$gte": date_from}
+    if date_to:
+        if "payment_date" in query:
+            query["payment_date"]["$lte"] = date_to
+        else:
+            query["payment_date"] = {"$lte": date_to}
+    
+    skip = (page - 1) * limit
+    total = await db.payments.count_documents(query)
+    
+    payments_cursor = db.payments.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
+    payments = await payments_cursor.to_list(limit)
+    
+    # Enrich with student, grade, section names
+    students_cache = {}
+    grades_cache = {}
+    sections_cache = {}
+    
+    for payment in payments:
+        # Student info
+        if payment["student_id"] not in students_cache:
+            student = await db.users.find_one({"id": payment["student_id"]}, {"_id": 0, "name": 1, "last_name": 1})
+            students_cache[payment["student_id"]] = student
+        student_info = students_cache[payment["student_id"]]
+        payment["student_name"] = f"{student_info.get('name', '')} {student_info.get('last_name', '')}".strip() if student_info else "Desconocido"
+        
+        # Grade info
+        if payment["grade_id"] not in grades_cache:
+            grade = await db.grades.find_one({"id": payment["grade_id"]}, {"_id": 0, "nombre": 1, "nivel_nombre": 1})
+            grades_cache[payment["grade_id"]] = grade
+        grade_info = grades_cache[payment["grade_id"]]
+        payment["grade_name"] = f"{grade_info.get('nivel_nombre', '')} - {grade_info.get('nombre', '')}" if grade_info else "Sin grado"
+        
+        # Section info
+        if payment["section_id"] not in sections_cache:
+            section = await db.sections.find_one({"id": payment["section_id"]}, {"_id": 0, "nombre": 1})
+            sections_cache[payment["section_id"]] = section
+        section_info = sections_cache[payment["section_id"]]
+        payment["section_name"] = section_info.get("nombre") if section_info else "Sin sección"
+        
+        # Labels
+        payment["concept_label"] = PAYMENT_CONCEPTS.get(payment.get("concept", ""), payment.get("concept", ""))
+        payment["method_label"] = PAYMENT_METHODS.get(payment.get("payment_method", ""), payment.get("payment_method", ""))
+        payment["status_label"] = PAYMENT_STATUSES.get(payment.get("payment_status", ""), {}).get("label", "")
+        payment["status_color"] = PAYMENT_STATUSES.get(payment.get("payment_status", ""), {}).get("color", "#64748B")
+    
+    return {
+        "payments": payments,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+@api_router.post("/accounting/payments")
+async def create_payment(data: PaymentCreate, current_user = Depends(get_current_user)):
+    """Create a new payment (ingreso)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para registrar pagos")
+    
+    school_id = user["school_id"]
+    
+    # Verify student exists
+    student = await db.users.find_one({"id": data.student_id, "school_id": school_id, "role": "student"})
+    if not student:
+        raise HTTPException(status_code=400, detail="Estudiante no encontrado")
+    
+    # Calculate IGV
+    amounts = calculate_igv(data.amount_base, data.igv_applicable, data.igv_percentage)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    payment = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "student_id": data.student_id,
+        "grade_id": data.grade_id,
+        "section_id": data.section_id,
+        "concept": data.concept,
+        "description": data.description,
+        "amount_base": amounts["amount_base"],
+        "igv_amount": amounts["igv_amount"],
+        "total_amount": amounts["total_amount"],
+        "igv_applicable": data.igv_applicable,
+        "igv_percentage": data.igv_percentage if data.igv_applicable else 0,
+        "payment_method": data.payment_method,
+        "payment_status": data.payment_status,
+        "payment_date": data.payment_date or now[:10],
+        "receipt_number": data.receipt_number,
+        "notes": data.notes,
+        "created_by": user["id"],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.payments.insert_one(payment)
+    payment.pop("_id", None)
+    
+    # Enrich response
+    payment["student_name"] = f"{student.get('name', '')} {student.get('last_name', '')}".strip()
+    payment["concept_label"] = PAYMENT_CONCEPTS.get(data.concept, data.concept)
+    payment["method_label"] = PAYMENT_METHODS.get(data.payment_method, data.payment_method)
+    payment["status_label"] = PAYMENT_STATUSES.get(data.payment_status, {}).get("label", "")
+    payment["status_color"] = PAYMENT_STATUSES.get(data.payment_status, {}).get("color", "#64748B")
+    
+    logger.info(f"Payment created: {payment['id']} - S/{payment['total_amount']} by {user['id']}")
+    
+    return {"message": "Pago registrado correctamente", "payment": payment}
+
+@api_router.put("/accounting/payments/{payment_id}")
+async def update_payment(payment_id: str, data: PaymentUpdate, current_user = Depends(get_current_user)):
+    """Update a payment"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar pagos")
+    
+    school_id = user["school_id"]
+    
+    payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+    
+    # Cannot edit canceled payments
+    if payment.get("payment_status") == "canceled":
+        raise HTTPException(status_code=400, detail="No se puede editar un pago anulado")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    # Copy existing values for recalculation
+    amount_base = payment["amount_base"]
+    igv_applicable = payment["igv_applicable"]
+    igv_percentage = payment.get("igv_percentage", DEFAULT_IGV_PERCENTAGE)
+    
+    if data.amount_base is not None:
+        amount_base = data.amount_base
+    if data.igv_applicable is not None:
+        igv_applicable = data.igv_applicable
+    if data.igv_percentage is not None:
+        igv_percentage = data.igv_percentage
+    
+    # Recalculate amounts
+    amounts = calculate_igv(amount_base, igv_applicable, igv_percentage)
+    update_data.update(amounts)
+    update_data["igv_applicable"] = igv_applicable
+    update_data["igv_percentage"] = igv_percentage if igv_applicable else 0
+    
+    # Other fields
+    if data.concept is not None:
+        update_data["concept"] = data.concept
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.payment_method is not None:
+        update_data["payment_method"] = data.payment_method
+    if data.payment_date is not None:
+        update_data["payment_date"] = data.payment_date
+    if data.receipt_number is not None:
+        update_data["receipt_number"] = data.receipt_number
+    if data.notes is not None:
+        update_data["notes"] = data.notes
+    
+    await db.payments.update_one({"id": payment_id}, {"$set": update_data})
+    
+    updated_payment = await db.payments.find_one({"id": payment_id}, {"_id": 0})
+    
+    logger.info(f"Payment updated: {payment_id} by {user['id']}")
+    
+    return {"message": "Pago actualizado correctamente", "payment": updated_payment}
+
+@api_router.put("/accounting/payments/{payment_id}/confirm")
+async def confirm_payment(payment_id: str, current_user = Depends(get_current_user)):
+    """Confirm a pending payment"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para confirmar pagos")
+    
+    school_id = user["school_id"]
+    
+    payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+    
+    if payment.get("payment_status") == "paid":
+        raise HTTPException(status_code=400, detail="El pago ya está confirmado")
+    if payment.get("payment_status") == "canceled":
+        raise HTTPException(status_code=400, detail="No se puede confirmar un pago anulado")
+    
+    await db.payments.update_one(
+        {"id": payment_id},
+        {"$set": {
+            "payment_status": "paid",
+            "payment_date": datetime.now(timezone.utc).isoformat()[:10],
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"Payment confirmed: {payment_id} by {user['id']}")
+    
+    return {"message": "Pago confirmado correctamente"}
+
+@api_router.put("/accounting/payments/{payment_id}/cancel")
+async def cancel_payment(payment_id: str, current_user = Depends(get_current_user)):
+    """Cancel a payment"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para anular pagos")
+    
+    school_id = user["school_id"]
+    
+    payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
+    if not payment:
+        raise HTTPException(status_code=404, detail="Pago no encontrado")
+    
+    if payment.get("payment_status") == "canceled":
+        raise HTTPException(status_code=400, detail="El pago ya está anulado")
+    
+    await db.payments.update_one(
+        {"id": payment_id},
+        {"$set": {
+            "payment_status": "canceled",
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"Payment canceled: {payment_id} by {user['id']}")
+    
+    return {"message": "Pago anulado correctamente"}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EXPENSES (EGRESOS)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_router.get("/accounting/expenses")
+async def get_expenses(
+    category: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50,
+    current_user = Depends(get_current_user)
+):
+    """Get all expenses (egresos) for the school"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver la contabilidad")
+    
+    school_id = user["school_id"]
+    
+    query = {"school_id": school_id}
+    if category:
+        query["category"] = category
+    if date_from:
+        query["expense_date"] = {"$gte": date_from}
+    if date_to:
+        if "expense_date" in query:
+            query["expense_date"]["$lte"] = date_to
+        else:
+            query["expense_date"] = {"$lte": date_to}
+    
+    skip = (page - 1) * limit
+    total = await db.expenses.count_documents(query)
+    
+    expenses_cursor = db.expenses.find(query, {"_id": 0}).sort("created_at", -1).skip(skip).limit(limit)
+    expenses = await expenses_cursor.to_list(limit)
+    
+    for expense in expenses:
+        expense["category_label"] = EXPENSE_CATEGORIES.get(expense.get("category", ""), expense.get("category", ""))
+        expense["method_label"] = PAYMENT_METHODS.get(expense.get("payment_method", ""), expense.get("payment_method", ""))
+    
+    return {
+        "expenses": expenses,
+        "total": total,
+        "page": page,
+        "limit": limit,
+        "total_pages": (total + limit - 1) // limit
+    }
+
+@api_router.post("/accounting/expenses")
+async def create_expense(data: ExpenseCreate, current_user = Depends(get_current_user)):
+    """Create a new expense (egreso)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para registrar egresos")
+    
+    school_id = user["school_id"]
+    
+    # Calculate IGV
+    amounts = calculate_igv(data.amount_base, data.igv_applicable, data.igv_percentage)
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    expense = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "title": data.title.strip(),
+        "category": data.category,
+        "description": data.description,
+        "amount_base": amounts["amount_base"],
+        "igv_amount": amounts["igv_amount"],
+        "total_amount": amounts["total_amount"],
+        "igv_applicable": data.igv_applicable,
+        "igv_percentage": data.igv_percentage if data.igv_applicable else 0,
+        "expense_date": data.expense_date,
+        "payment_method": data.payment_method,
+        "provider_name": data.provider_name,
+        "notes": data.notes,
+        "created_by": user["id"],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.expenses.insert_one(expense)
+    expense.pop("_id", None)
+    
+    expense["category_label"] = EXPENSE_CATEGORIES.get(data.category, data.category)
+    expense["method_label"] = PAYMENT_METHODS.get(data.payment_method, data.payment_method)
+    
+    logger.info(f"Expense created: {expense['id']} - S/{expense['total_amount']} by {user['id']}")
+    
+    return {"message": "Egreso registrado correctamente", "expense": expense}
+
+@api_router.put("/accounting/expenses/{expense_id}")
+async def update_expense(expense_id: str, data: ExpenseUpdate, current_user = Depends(get_current_user)):
+    """Update an expense"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar egresos")
+    
+    school_id = user["school_id"]
+    
+    expense = await db.expenses.find_one({"id": expense_id, "school_id": school_id})
+    if not expense:
+        raise HTTPException(status_code=404, detail="Egreso no encontrado")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    # Handle amount recalculation
+    amount_base = expense["amount_base"]
+    igv_applicable = expense["igv_applicable"]
+    igv_percentage = expense.get("igv_percentage", DEFAULT_IGV_PERCENTAGE)
+    
+    if data.amount_base is not None:
+        amount_base = data.amount_base
+    if data.igv_applicable is not None:
+        igv_applicable = data.igv_applicable
+    if data.igv_percentage is not None:
+        igv_percentage = data.igv_percentage
+    
+    amounts = calculate_igv(amount_base, igv_applicable, igv_percentage)
+    update_data.update(amounts)
+    update_data["igv_applicable"] = igv_applicable
+    update_data["igv_percentage"] = igv_percentage if igv_applicable else 0
+    
+    if data.title is not None:
+        update_data["title"] = data.title.strip()
+    if data.category is not None:
+        update_data["category"] = data.category
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.expense_date is not None:
+        update_data["expense_date"] = data.expense_date
+    if data.payment_method is not None:
+        update_data["payment_method"] = data.payment_method
+    if data.provider_name is not None:
+        update_data["provider_name"] = data.provider_name
+    if data.notes is not None:
+        update_data["notes"] = data.notes
+    
+    await db.expenses.update_one({"id": expense_id}, {"$set": update_data})
+    
+    updated_expense = await db.expenses.find_one({"id": expense_id}, {"_id": 0})
+    
+    logger.info(f"Expense updated: {expense_id} by {user['id']}")
+    
+    return {"message": "Egreso actualizado correctamente", "expense": updated_expense}
+
+@api_router.delete("/accounting/expenses/{expense_id}")
+async def delete_expense(expense_id: str, current_user = Depends(get_current_user)):
+    """Delete an expense"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar egresos")
+    
+    school_id = user["school_id"]
+    
+    result = await db.expenses.delete_one({"id": expense_id, "school_id": school_id})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Egreso no encontrado")
+    
+    logger.info(f"Expense deleted: {expense_id} by {user['id']}")
+    
+    return {"message": "Egreso eliminado correctamente"}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ACCOUNTING SUMMARY (DASHBOARD)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_router.get("/accounting/summary")
+async def get_accounting_summary(
+    year: Optional[int] = None,
+    month: Optional[int] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get accounting summary for dashboard"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para ver la contabilidad")
+    
+    school_id = user["school_id"]
+    
+    # Default to current year/month
+    now = datetime.now(timezone.utc)
+    if not year:
+        year = now.year
+    if not month:
+        month = now.month
+    
+    # Build date range for the month
+    start_date = f"{year}-{month:02d}-01"
+    if month == 12:
+        end_date = f"{year + 1}-01-01"
+    else:
+        end_date = f"{year}-{month + 1:02d}-01"
+    
+    # Payments aggregation
+    payments_pipeline = [
+        {"$match": {
+            "school_id": school_id,
+            "payment_date": {"$gte": start_date, "$lt": end_date}
+        }},
+        {"$group": {
+            "_id": "$payment_status",
+            "total": {"$sum": "$total_amount"},
+            "base": {"$sum": "$amount_base"},
+            "igv": {"$sum": "$igv_amount"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    
+    payments_agg = await db.payments.aggregate(payments_pipeline).to_list(10)
+    
+    # Process payments results
+    ingresos_confirmados = 0
+    ingresos_base = 0
+    ingresos_igv = 0
+    pagos_pendientes = 0
+    pagos_pendientes_count = 0
+    pagos_confirmados_count = 0
+    pagos_anulados_count = 0
+    
+    for item in payments_agg:
+        if item["_id"] == "paid":
+            ingresos_confirmados = item["total"]
+            ingresos_base = item["base"]
+            ingresos_igv = item["igv"]
+            pagos_confirmados_count = item["count"]
+        elif item["_id"] == "pending":
+            pagos_pendientes = item["total"]
+            pagos_pendientes_count = item["count"]
+        elif item["_id"] == "canceled":
+            pagos_anulados_count = item["count"]
+    
+    # Expenses aggregation
+    expenses_pipeline = [
+        {"$match": {
+            "school_id": school_id,
+            "expense_date": {"$gte": start_date, "$lt": end_date}
+        }},
+        {"$group": {
+            "_id": None,
+            "total": {"$sum": "$total_amount"},
+            "base": {"$sum": "$amount_base"},
+            "igv": {"$sum": "$igv_amount"},
+            "count": {"$sum": 1}
+        }}
+    ]
+    
+    expenses_agg = await db.expenses.aggregate(expenses_pipeline).to_list(1)
+    
+    egresos_totales = 0
+    egresos_base = 0
+    egresos_igv = 0
+    egresos_count = 0
+    
+    if expenses_agg:
+        egresos_totales = expenses_agg[0]["total"]
+        egresos_base = expenses_agg[0]["base"]
+        egresos_igv = expenses_agg[0]["igv"]
+        egresos_count = expenses_agg[0]["count"]
+    
+    # Calculate balance
+    balance = round(ingresos_confirmados - egresos_totales, 2)
+    
+    # Get recent transactions
+    recent_payments = await db.payments.find(
+        {"school_id": school_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(5).to_list(5)
+    
+    # Enrich recent payments
+    for p in recent_payments:
+        student = await db.users.find_one({"id": p["student_id"]}, {"_id": 0, "name": 1, "last_name": 1})
+        p["student_name"] = f"{student.get('name', '')} {student.get('last_name', '')}".strip() if student else "Desconocido"
+        p["concept_label"] = PAYMENT_CONCEPTS.get(p.get("concept", ""), p.get("concept", ""))
+        p["status_label"] = PAYMENT_STATUSES.get(p.get("payment_status", ""), {}).get("label", "")
+        p["status_color"] = PAYMENT_STATUSES.get(p.get("payment_status", ""), {}).get("color", "#64748B")
+    
+    recent_expenses = await db.expenses.find(
+        {"school_id": school_id},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(5).to_list(5)
+    
+    for e in recent_expenses:
+        e["category_label"] = EXPENSE_CATEGORIES.get(e.get("category", ""), e.get("category", ""))
+    
+    return {
+        "period": {
+            "year": year,
+            "month": month,
+            "month_name": ["", "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"][month]
+        },
+        "ingresos": {
+            "total": round(ingresos_confirmados, 2),
+            "base": round(ingresos_base, 2),
+            "igv": round(ingresos_igv, 2),
+            "count": pagos_confirmados_count
+        },
+        "egresos": {
+            "total": round(egresos_totales, 2),
+            "base": round(egresos_base, 2),
+            "igv": round(egresos_igv, 2),
+            "count": egresos_count
+        },
+        "pendientes": {
+            "total": round(pagos_pendientes, 2),
+            "count": pagos_pendientes_count
+        },
+        "anulados": {
+            "count": pagos_anulados_count
+        },
+        "balance": balance,
+        "recent_payments": recent_payments,
+        "recent_expenses": recent_expenses
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
