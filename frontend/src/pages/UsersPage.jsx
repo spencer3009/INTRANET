@@ -243,7 +243,11 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         nivel_id: "",
         grado_id: "",
         seccion_id: "",
-        turno_id: ""
+        turno_id: "",
+        dni: "",
+        ocupacion: "",
+        lugar_trabajo: "",
+        telefono_trabajo: ""
       });
       setConfirmPassword("");
       setError("");
