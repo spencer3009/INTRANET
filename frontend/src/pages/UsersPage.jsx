@@ -96,7 +96,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     birthday: "",
     gender: "",
     address: "",
-    role: roleId || "teacher"
+    role: roleId || ""
   });
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -115,7 +115,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         birthday: "",
         gender: "",
         address: "",
-        role: roleId || "teacher"
+        role: roleId || ""
       });
       setError("");
       setUsernameError("");
