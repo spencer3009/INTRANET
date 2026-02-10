@@ -869,6 +869,90 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
                 </div>
               </>
             )}
+
+            {/* Parent-specific fields */}
+            {(roleId === 'parent' || form.role === 'parent') && (
+              <>
+                {/* Section header */}
+                <div className="md:col-span-2 pt-4 border-t border-slate-200 mt-2">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-teal-500" />
+                    Información del Apoderado
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">Datos adicionales del padre o apoderado</p>
+                </div>
+
+                {/* DNI */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    DNI <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={form.dni}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                      handleChange('dni', value);
+                    }}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    placeholder="12345678"
+                    maxLength={8}
+                    required={roleId === 'parent' || form.role === 'parent'}
+                  />
+                </div>
+
+                {/* Ocupación */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Ocupación / Profesión
+                  </label>
+                  <input
+                    type="text"
+                    value={form.ocupacion}
+                    onChange={(e) => handleChange('ocupacion', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    placeholder="Ej: Ingeniero, Docente, Comerciante"
+                  />
+                </div>
+
+                {/* Lugar de trabajo */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Lugar de trabajo
+                  </label>
+                  <input
+                    type="text"
+                    value={form.lugar_trabajo}
+                    onChange={(e) => handleChange('lugar_trabajo', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                    placeholder="Ej: Ministerio de Educación"
+                  />
+                </div>
+
+                {/* Teléfono de trabajo */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Teléfono de trabajo
+                  </label>
+                  <div className="flex">
+                    <span className="inline-flex items-center px-4 py-3 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-slate-600 font-medium">
+                      +51
+                    </span>
+                    <input
+                      type="tel"
+                      value={form.telefono_trabajo}
+                      onChange={(e) => {
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 9);
+                        handleChange('telefono_trabajo', value);
+                      }}
+                      className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-r-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                      placeholder="999 999 999"
+                      maxLength={9}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Submit Button */}
