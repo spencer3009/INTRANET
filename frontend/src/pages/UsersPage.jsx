@@ -583,6 +583,108 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
                 </select>
               )}
             </div>
+
+            {/* Academic fields for students */}
+            {(roleId === 'student' || form.role === 'student') && (
+              <>
+                {/* Section header */}
+                <div className="md:col-span-2 pt-4 border-t border-slate-200 mt-2">
+                  <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <BookOpen className="w-4 h-4 text-blue-500" />
+                    Información Académica
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-1">Selecciona el nivel, grado, sección y turno del estudiante</p>
+                </div>
+
+                {/* Nivel */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Nivel <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={form.nivel_id}
+                    onChange={(e) => handleChange('nivel_id', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                    required={roleId === 'student' || form.role === 'student'}
+                    disabled={loadingAcademic}
+                  >
+                    <option value="">Seleccionar nivel...</option>
+                    {levels.map(l => (
+                      <option key={l.id} value={l.id}>{l.nombre}</option>
+                    ))}
+                  </select>
+                  {levels.length === 0 && !loadingAcademic && (
+                    <p className="text-xs text-amber-600 mt-1">No hay niveles configurados. Configura en Ajustes Académicos.</p>
+                  )}
+                </div>
+
+                {/* Grado */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Grado <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={form.grado_id}
+                    onChange={(e) => handleChange('grado_id', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    required={roleId === 'student' || form.role === 'student'}
+                    disabled={!form.nivel_id || loadingAcademic}
+                  >
+                    <option value="">{form.nivel_id ? "Seleccionar grado..." : "Primero selecciona un nivel"}</option>
+                    {filteredGrades.map(g => (
+                      <option key={g.id} value={g.id}>{g.nombre}</option>
+                    ))}
+                  </select>
+                  {form.nivel_id && filteredGrades.length === 0 && !loadingAcademic && (
+                    <p className="text-xs text-amber-600 mt-1">No hay grados para este nivel.</p>
+                  )}
+                </div>
+
+                {/* Sección */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Sección <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={form.seccion_id}
+                    onChange={(e) => handleChange('seccion_id', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    required={roleId === 'student' || form.role === 'student'}
+                    disabled={!form.grado_id || loadingAcademic}
+                  >
+                    <option value="">{form.grado_id ? "Seleccionar sección..." : "Primero selecciona un grado"}</option>
+                    {filteredSections.map(s => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </select>
+                  {form.grado_id && filteredSections.length === 0 && !loadingAcademic && (
+                    <p className="text-xs text-amber-600 mt-1">No hay secciones para este grado.</p>
+                  )}
+                </div>
+
+                {/* Turno */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Turno <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={form.turno_id}
+                    onChange={(e) => handleChange('turno_id', e.target.value)}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                    required={roleId === 'student' || form.role === 'student'}
+                    disabled={loadingAcademic}
+                  >
+                    <option value="">Seleccionar turno...</option>
+                    {shifts.map(s => (
+                      <option key={s.id} value={s.id}>{s.nombre} ({s.hora_inicio} - {s.hora_fin})</option>
+                    ))}
+                  </select>
+                  {shifts.length === 0 && !loadingAcademic && (
+                    <p className="text-xs text-amber-600 mt-1">No hay turnos configurados.</p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* Submit Button */}
