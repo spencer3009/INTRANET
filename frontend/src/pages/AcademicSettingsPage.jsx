@@ -536,6 +536,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
   const [shifts, setShifts] = useState([]);
+  const [periods, setPeriods] = useState([]);
   
   // Modal states
   const [showLevelModal, setShowLevelModal] = useState(false);
@@ -546,6 +547,17 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const [editingSection, setEditingSection] = useState(null);
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
+  const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [editingPeriod, setEditingPeriod] = useState(null);
+  
+  // Activation modal for periods
+  const [showActivateModal, setShowActivateModal] = useState(false);
+  const [activatingPeriod, setActivatingPeriod] = useState(null);
+  const [activateLoading, setActivateLoading] = useState(false);
+  
+  // Info modal for showing messages
+  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoModalMessage, setInfoModalMessage] = useState({ title: "", message: "" });
   
   // Menu states
   const [menuOpen, setMenuOpen] = useState(null);
