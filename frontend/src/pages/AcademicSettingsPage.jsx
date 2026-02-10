@@ -801,14 +801,21 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     const filteredGrades = selectedLevelFilter ? grades.filter(g => g.nivel_id === selectedLevelFilter) : grades;
     const gradesByLevel = {};
     filteredGrades.forEach(g => { if (!gradesByLevel[g.nivel_id]) gradesByLevel[g.nivel_id] = { nivel_nombre: g.nivel_nombre, grades: [] }; gradesByLevel[g.nivel_id].grades.push(g); });
+    
+    // Sort levels by orden field from levels array
+    const sortedLevelEntries = Object.entries(gradesByLevel).sort((a, b) => {
+      const levelA = levels.find(l => l.id === a[0]);
+      const levelB = levels.find(l => l.id === b[0]);
+      return (levelA?.orden || 99) - (levelB?.orden || 99);
+    });
 
     return (
       <div>
         <SectionHeader category={cat} count={grades.length} countLabel={grades.length === 1 ? "grado" : "grados"} onAdd={() => { setEditingGrade(null); setShowGradeModal(true); }} addLabel="Nuevo Grado" />
         {levels.length > 0 && <div className="mb-6 flex flex-wrap gap-2"><button onClick={() => setSelectedLevelFilter("")} className={`px-4 py-2 rounded-xl font-medium transition-all ${!selectedLevelFilter ? "bg-emerald-500 text-white" : "bg-white text-slate-700 hover:bg-slate-50 border"}`}>Todos</button>{levels.filter(l => l.activo).map(l => <button key={l.id} onClick={() => setSelectedLevelFilter(l.id)} className={`px-4 py-2 rounded-xl font-medium transition-all ${selectedLevelFilter === l.id ? "bg-emerald-500 text-white" : "bg-white text-slate-700 hover:bg-slate-50 border"}`}>{l.nombre}</button>)}</div>}
-        {Object.keys(gradesByLevel).length === 0 ? <EmptyState category={cat} message={levels.length === 0 ? "Primero crea un nivel educativo." : "Crea el primer grado."} onAdd={levels.length > 0 ? () => { setEditingGrade(null); setShowGradeModal(true); } : null} addLabel="Crear grado" /> : (
+        {sortedLevelEntries.length === 0 ? <EmptyState category={cat} message={levels.length === 0 ? "Primero crea un nivel educativo." : "Crea el primer grado."} onAdd={levels.length > 0 ? () => { setEditingGrade(null); setShowGradeModal(true); } : null} addLabel="Crear grado" /> : (
           <div className="space-y-8">
-            {Object.entries(gradesByLevel).map(([nivelId, data]) => (
+            {sortedLevelEntries.map(([nivelId, data]) => (
               <div key={nivelId}>
                 <h3 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><GraduationCap className="w-5 h-5 text-blue-500" />{data.nivel_nombre}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
