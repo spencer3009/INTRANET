@@ -14,6 +14,7 @@ import {
   BookMarked,
   Clock,
   MessageSquare,
+  ClipboardCheck,
 } from "lucide-react";
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users" },
   { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings" },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios" },
+  { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes" },
   { id: "comunidad", label: "Comunidad", icon: Users },
   { id: "academico", label: "Académico", icon: GraduationCap },
