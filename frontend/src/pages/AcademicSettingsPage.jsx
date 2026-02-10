@@ -1025,8 +1025,8 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                     {/* Content */}
                     <div className="pr-10">
                       <div className="flex items-center gap-3 mb-3">
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${period.activo ? "bg-emerald-100" : "bg-rose-100"}`}>
-                          <Calendar className={`w-6 h-6 ${period.activo ? "text-emerald-600" : "text-rose-600"}`} />
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${period.activo ? "bg-emerald-100" : "bg-indigo-100"}`}>
+                          <Calendar className={`w-6 h-6 ${period.activo ? "text-emerald-600" : "text-indigo-600"}`} />
                         </div>
                         <div>
                           <h3 className="font-bold text-slate-800 text-lg">{period.nombre}</h3>
