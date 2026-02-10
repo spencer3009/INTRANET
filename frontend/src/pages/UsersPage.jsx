@@ -714,16 +714,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         Editar
                       </button>
                       <button
-                        onClick={() => handleDeleteUser(u.id)}
-                        disabled={deletingUser === u.id}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors disabled:opacity-50"
+                        onClick={() => handleDeleteClick(u)}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                         data-testid={`delete-user-${u.id}`}
                       >
-                        {deletingUser === u.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
+                        <Trash2 className="w-4 h-4" />
                         Eliminar
                       </button>
                     </div>
