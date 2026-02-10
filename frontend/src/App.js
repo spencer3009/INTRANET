@@ -14,6 +14,7 @@ import UsersPage from "@/pages/UsersPage";
 import AcademicSettingsPage from "@/pages/AcademicSettingsPage";
 import SchedulePage from "@/pages/SchedulePage";
 import MessagesPage from "@/pages/MessagesPage";
+import AttendancePage from "@/pages/AttendancePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
