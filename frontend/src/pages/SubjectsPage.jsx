@@ -316,7 +316,7 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
           )}
         </div>
       </div>
-    </button>
+    </div>
   );
 }
 
