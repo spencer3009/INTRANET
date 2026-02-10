@@ -1041,6 +1041,132 @@ async def get_user_by_id(user_id: str, current_user = Depends(get_current_user))
     
     return target_user
 
+class CreateUserRequest(BaseModel):
+    """Request to create a new user"""
+    username: str
+    password: str
+    name: str
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    birthday: Optional[str] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    role: str = "teacher"
+    photo_url: Optional[str] = None
+
+@api_router.get("/users/check-username/{username}")
+async def check_username(username: str, current_user = Depends(get_current_user)):
+    """Check if username is available"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    existing = await db.users.find_one({
+        "username": username.lower(),
+        "school_id": user["school_id"]
+    })
+    
+    return {
+        "available": existing is None,
+        "username": username
+    }
+
+@api_router.post("/users")
+async def create_user(data: CreateUserRequest, current_user = Depends(get_current_user)):
+    """
+    Create a new user for the current tenant.
+    Only admins/owners can create users.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Check role - only owner or admin can create users
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear usuarios")
+    
+    school_id = user["school_id"]
+    
+    # Check if username already exists in this school
+    existing = await db.users.find_one({
+        "username": data.username.lower(),
+        "school_id": school_id
+    })
+    
+    if existing:
+        raise HTTPException(status_code=400, detail="El usuario ya existe")
+    
+    # Check if email already exists (if provided)
+    if data.email:
+        existing_email = await db.users.find_one({
+            "email": data.email.lower(),
+            "school_id": school_id
+        })
+        if existing_email:
+            raise HTTPException(status_code=400, detail="El correo ya está registrado")
+    
+    # Create user
+    new_user = {
+        "id": str(uuid.uuid4()),
+        "username": data.username.lower(),
+        "password": hash_password(data.password),
+        "name": data.name,
+        "last_name": data.last_name,
+        "email": data.email.lower() if data.email else None,
+        "phone": data.phone,
+        "birthday": data.birthday,
+        "gender": data.gender,
+        "address": data.address,
+        "role": data.role,
+        "photo_url": data.photo_url,
+        "school_id": school_id,
+        "email_verified": True,  # Created by admin, no verification needed
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(new_user)
+    
+    # Remove sensitive fields before returning
+    del new_user["password"]
+    if "_id" in new_user:
+        del new_user["_id"]
+    
+    logger.info(f"User created: {data.username} with role {data.role} in school {school_id}")
+    
+    return {
+        "message": "Usuario creado correctamente",
+        "user": new_user
+    }
+
+@api_router.delete("/users/{user_id}")
+async def delete_user(user_id: str, current_user = Depends(get_current_user)):
+    """Delete a user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar usuarios")
+    
+    # Cannot delete yourself
+    if user_id == user["id"]:
+        raise HTTPException(status_code=400, detail="No puedes eliminarte a ti mismo")
+    
+    # Find target user
+    target = await db.users.find_one({"id": user_id, "school_id": user["school_id"]})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Cannot delete owners
+    if target.get("role") == "owner":
+        raise HTTPException(status_code=400, detail="No puedes eliminar al propietario")
+    
+    await db.users.delete_one({"id": user_id})
+    
+    return {"message": "Usuario eliminado correctamente"}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
