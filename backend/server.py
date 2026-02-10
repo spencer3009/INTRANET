@@ -2625,13 +2625,15 @@ class MessageUpdate(BaseModel):
 async def get_message_users(current_user = Depends(get_current_user)):
     """
     Get all users in the same school, grouped by role.
-    Used to populate the recipient selector.
+    Includes online/offline status and sorts online users first.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     school_id = user["school_id"]
+    now = datetime.now(timezone.utc)
+    timeout_threshold = now - timedelta(minutes=PRESENCE_TIMEOUT_MINUTES)
     
     # Get all users except current user
     users_cursor = db.users.find(
@@ -2639,6 +2641,28 @@ async def get_message_users(current_user = Depends(get_current_user)):
         {"_id": 0, "password": 0, "verification_code": 0}
     )
     users = await users_cursor.to_list(length=1000)
+    
+    # Get presence data for all users
+    presence_cursor = db.presence.find(
+        {"school_id": school_id},
+        {"_id": 0}
+    )
+    presence_records = await presence_cursor.to_list(length=1000)
+    
+    # Build presence map
+    presence_map = {}
+    for p in presence_records:
+        last_seen = None
+        if p.get("last_seen"):
+            try:
+                last_seen = datetime.fromisoformat(p["last_seen"].replace("Z", "+00:00"))
+            except:
+                pass
+        is_online = last_seen and last_seen > timeout_threshold if last_seen else False
+        presence_map[p["user_id"]] = {
+            "is_online": is_online,
+            "last_seen": p.get("last_seen")
+        }
     
     # Group by role
     role_order = ["owner", "admin", "director", "teacher", "parent", "student"]
@@ -2657,6 +2681,10 @@ async def get_message_users(current_user = Depends(get_current_user)):
         label = role_labels.get(role, "Otros")
         if label not in grouped:
             grouped[label] = []
+        
+        # Get presence info
+        presence = presence_map.get(u["id"], {"is_online": False, "last_seen": None})
+        
         grouped[label].append({
             "id": u["id"],
             "name": u.get("name", ""),
@@ -2664,12 +2692,14 @@ async def get_message_users(current_user = Depends(get_current_user)):
             "full_name": f"{u.get('name', '')} {u.get('last_name', '')}".strip(),
             "email": u.get("email"),
             "role": role,
-            "photo_url": u.get("photo_url")
+            "photo_url": u.get("photo_url"),
+            "is_online": presence["is_online"],
+            "last_seen": presence["last_seen"]
         })
     
-    # Sort users within each group by name
+    # Sort users within each group: online first, then by name
     for label in grouped:
-        grouped[label].sort(key=lambda x: x["full_name"].lower())
+        grouped[label].sort(key=lambda x: (not x["is_online"], x["full_name"].lower()))
     
     # Return in order
     result = []
