@@ -222,10 +222,27 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - [x] Módulo de Calendario (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Encuestas (Implementado completo - 10 Feb 2026)
 - [x] Módulo de Disciplina (Implementado completo - 10 Feb 2026)
+- [x] Módulo de Noticias (Implementado completo - 10 Feb 2026)
 - [ ] Módulo de Calificaciones
 - [ ] Módulo de Reportes generales
 
 ## Últimos Cambios (10 Feb 2026)
+- **NEW: Módulo de Noticias** - Implementado completo nivel premium:
+  - CRUD completo de noticias institucionales
+  - 3 estados: Borrador, Publicado, Archivado
+  - Feed estilo LinkedIn/Facebook con cards modernas
+  - Avatar de autor, fecha, título, resumen
+  - Noticias destacadas (pinned) con badge - máximo 3 simultáneas
+  - Modal de creación con 3 tabs:
+    - Contenido: Título, Resumen, Contenido
+    - Multimedia: Imagen principal, Galería (Cloudinary)
+    - Visibilidad: Restricción por roles y grados
+  - Modal de vista completa tipo artículo
+  - Menú contextual (⋯) con acciones: Ver, Editar, Publicar, Destacar, Archivar, Eliminar
+  - Paginación
+  - Permisos: Solo admin/director crean y publican
+  - Endpoints: `/api/news`, `/api/news/{id}`, `/api/news/{id}/publish`, `/api/news/{id}/archive`, `/api/news/{id}/pin`
+
 - **NEW: Módulo de Disciplina** - Implementado completo nivel premium:
   - CRUD completo de reportes disciplinarios
   - 4 prioridades: Baja (verde), Media (amarillo), Alta (naranja), Crítica (rojo)
@@ -312,6 +329,7 @@ Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automá
 - **Calendar URL**: /school/demosettings/calendario
 - **Surveys URL**: /school/demosettings/encuestas
 - **Discipline URL**: /school/demosettings/disciplina
+- **News URL**: /school/demosettings/noticias
 
 ## Notas de Plataforma
 - **Emergent** actualmente NO soporta wildcard SSL automático
