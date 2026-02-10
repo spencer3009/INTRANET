@@ -2818,7 +2818,7 @@ async def get_chat_list(current_user = Depends(get_current_user)):
 async def get_chat_history(partner_id: str, current_user = Depends(get_current_user)):
     """
     Get chat history with a specific user.
-    Also marks messages as read.
+    Also marks messages as read. Includes partner's presence status.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
@@ -2826,6 +2826,8 @@ async def get_chat_history(partner_id: str, current_user = Depends(get_current_u
     
     user_id = current_user["sub"]
     school_id = user["school_id"]
+    now = datetime.now(timezone.utc)
+    timeout_threshold = now - timedelta(minutes=PRESENCE_TIMEOUT_MINUTES)
     
     # Verify partner exists and is in same school
     partner = await db.users.find_one(
@@ -2834,6 +2836,22 @@ async def get_chat_history(partner_id: str, current_user = Depends(get_current_u
     )
     if not partner:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Get partner's presence status
+    presence_record = await db.presence.find_one(
+        {"user_id": partner_id},
+        {"_id": 0}
+    )
+    
+    is_online = False
+    last_seen = None
+    if presence_record and presence_record.get("last_seen"):
+        try:
+            last_seen_dt = datetime.fromisoformat(presence_record["last_seen"].replace("Z", "+00:00"))
+            is_online = last_seen_dt > timeout_threshold
+            last_seen = presence_record["last_seen"]
+        except:
+            pass
     
     # Get all messages between users
     messages = await db.messages.find({
@@ -2862,7 +2880,9 @@ async def get_chat_history(partner_id: str, current_user = Depends(get_current_u
             "id": partner["id"],
             "name": f"{partner.get('name', '')} {partner.get('last_name', '')}".strip(),
             "photo_url": partner.get("photo_url"),
-            "role": partner.get("role")
+            "role": partner.get("role"),
+            "is_online": is_online,
+            "last_seen": last_seen
         },
         "messages": messages
     }
