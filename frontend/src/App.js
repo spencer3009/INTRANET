@@ -311,7 +311,7 @@ function App() {
             path="/school/:subdomain/settings"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <SettingsPage user={user} token={token} />
+                <SettingsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -321,7 +321,7 @@ function App() {
             path="/settings"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <SettingsPage user={user} token={token} />
+                <SettingsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -331,7 +331,7 @@ function App() {
             path="/school/:subdomain/users"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <UsersPage user={user} token={token} subdomain={user?.subdomain} />
+                <UsersPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -341,7 +341,7 @@ function App() {
             path="/users"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <UsersPage user={user} token={token} subdomain={user?.subdomain} />
+                <UsersPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
