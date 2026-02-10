@@ -163,6 +163,36 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   const passwordsMatch = form.password && confirmPassword && form.password === confirmPassword;
   const passwordsMismatch = form.password && confirmPassword && form.password !== confirmPassword;
 
+  // Generate strong password
+  const generateStrongPassword = () => {
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const numbers = '0123456789';
+    const symbols = '!@#$%&*';
+    
+    let password = '';
+    // Ensure at least one of each type
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += symbols[Math.floor(Math.random() * symbols.length)];
+    
+    // Fill remaining with random characters
+    const allChars = lowercase + uppercase + numbers + symbols;
+    for (let i = 0; i < 8; i++) {
+      password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+    
+    // Shuffle the password
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    
+    // Set both password fields and show them
+    setForm(prev => ({ ...prev, password }));
+    setConfirmPassword(password);
+    setShowPassword(true);
+    setShowConfirmPassword(true);
+  };
+
   // Load academic data when modal opens for students
   useEffect(() => {
     if (isOpen && (roleId === 'student' || form.role === 'student')) {
