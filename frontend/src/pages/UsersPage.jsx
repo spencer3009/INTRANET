@@ -662,9 +662,50 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             {filteredUsers.map((u) => (
               <div 
                 key={u.id}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-slate-100"
+                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-slate-100 relative"
                 data-testid={`user-card-${u.id}`}
               >
+                {/* 3 dots menu */}
+                <div className="absolute top-4 right-4">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(openMenuId === u.id ? null : u.id);
+                    }}
+                    className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
+                    data-testid={`user-menu-btn-${u.id}`}
+                  >
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+                  
+                  {/* Dropdown menu */}
+                  {openMenuId === u.id && (
+                    <div className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-slate-100 py-2 min-w-[140px] z-10">
+                      <button
+                        onClick={() => handleEditUser(u.id)}
+                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                        data-testid={`edit-user-${u.id}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(u.id)}
+                        disabled={deletingUser === u.id}
+                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors disabled:opacity-50"
+                        data-testid={`delete-user-${u.id}`}
+                      >
+                        {deletingUser === u.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex items-center gap-4 mb-4">
                   {u.photo_url ? (
                     <img 
@@ -679,7 +720,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                       </span>
                     </div>
                   )}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 pr-8">
                     <h3 className="font-semibold text-slate-800 truncate">
                       {u.name} {u.last_name || ""}
                     </h3>
