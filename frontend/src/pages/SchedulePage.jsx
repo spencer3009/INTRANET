@@ -611,24 +611,25 @@ export default function SchedulePage({ user, token, subdomain, onLogout }) {
         onLogout={onLogout}
       />
       
-      <div className="flex-1 flex flex-col min-h-screen lg:ml-20">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
         <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-xl">
               <Calendar className="w-6 h-6 text-slate-600" />
             </button>
+            {settings?.logo_url && (
+              <img src={settings.logo_url} alt="Logo" className="h-10 w-auto object-contain" />
+            )}
             <div>
-              <h1 className="text-xl font-bold text-slate-800">Bienvenido, {settings?.system_name || "Instituto"}</h1>
-              <p className="text-sm text-slate-500">
-                {new Date().toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-              </p>
+              <h1 className="text-xl font-bold text-slate-800">{settings?.system_name || "Instituto"}</h1>
+              <p className="text-sm text-slate-500">Gestión de Horarios</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-800">{settings?.system_name || "Colegio"}</p>
-              <p className="text-xs text-slate-500">{user?.role}</p>
+              <p className="text-sm font-semibold text-slate-800">{user?.name} {user?.last_name}</p>
+              <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
             </div>
             {user?.photo_url ? (
               <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
