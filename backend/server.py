@@ -6098,7 +6098,7 @@ async def update_subject(subject_id: str, data: SubjectUpdate, current_user = De
         update_data["description"] = data.description.strip()
     
     if data.level_id is not None:
-        level = await db.levels.find_one({"id": data.level_id, "school_id": school_id})
+        level = await db.academic_levels.find_one({"id": data.level_id, "school_id": school_id})
         if not level:
             raise HTTPException(status_code=400, detail="El nivel seleccionado no existe")
         update_data["level_id"] = data.level_id
@@ -6107,7 +6107,7 @@ async def update_subject(subject_id: str, data: SubjectUpdate, current_user = De
         if data.grade_id == "":
             update_data["grade_id"] = None
         else:
-            grade = await db.grades.find_one({"id": data.grade_id, "school_id": school_id})
+            grade = await db.academic_grades.find_one({"id": data.grade_id, "school_id": school_id})
             if not grade:
                 raise HTTPException(status_code=400, detail="El grado seleccionado no existe")
             update_data["grade_id"] = data.grade_id
