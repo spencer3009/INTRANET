@@ -131,12 +131,20 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     grado_id: "",
     seccion_id: "",
     turno_id: "",
+    padre_id: "", // Parent linked to student
     // Parent-specific fields
     dni: "",
     ocupacion: "",
     lugar_trabajo: "",
     telefono_trabajo: ""
   });
+
+  // Parent search state for students
+  const [parents, setParents] = useState([]);
+  const [parentSearch, setParentSearch] = useState("");
+  const [showParentDropdown, setShowParentDropdown] = useState(false);
+  const [selectedParent, setSelectedParent] = useState(null);
+  const [loadingParents, setLoadingParents] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
