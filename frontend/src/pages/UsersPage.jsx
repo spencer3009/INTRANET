@@ -614,9 +614,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
 
                 {/* Confirm password field */}
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Confirmar contraseña <span className="text-red-500">*</span>
-                  </label>
+                  <label className="block text-xs text-slate-500 mb-1.5">Confirmar contraseña</label>
                   <div className="relative">
                     <input
                       type={showConfirmPassword ? "text" : "password"}
