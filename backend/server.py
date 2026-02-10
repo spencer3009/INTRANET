@@ -2722,7 +2722,7 @@ async def get_message_users(current_user = Depends(get_current_user)):
 async def get_chat_list(current_user = Depends(get_current_user)):
     """
     Get list of all chat conversations for current user.
-    Returns unique conversations with last message preview.
+    Returns unique conversations with last message preview and presence status.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
@@ -2730,6 +2730,8 @@ async def get_chat_list(current_user = Depends(get_current_user)):
     
     user_id = current_user["sub"]
     school_id = user["school_id"]
+    now = datetime.now(timezone.utc)
+    timeout_threshold = now - timedelta(minutes=PRESENCE_TIMEOUT_MINUTES)
     
     # Get all chat messages involving current user
     messages = await db.messages.find({
@@ -2768,10 +2770,32 @@ async def get_chat_list(current_user = Depends(get_current_user)):
     
     partners_map = {p["id"]: p for p in partners}
     
+    # Get presence data for partners
+    presence_cursor = db.presence.find(
+        {"user_id": {"$in": partner_ids}},
+        {"_id": 0}
+    )
+    presence_records = await presence_cursor.to_list(length=1000)
+    
+    presence_map = {}
+    for p in presence_records:
+        last_seen = None
+        if p.get("last_seen"):
+            try:
+                last_seen = datetime.fromisoformat(p["last_seen"].replace("Z", "+00:00"))
+            except:
+                pass
+        is_online = last_seen and last_seen > timeout_threshold if last_seen else False
+        presence_map[p["user_id"]] = {
+            "is_online": is_online,
+            "last_seen": p.get("last_seen")
+        }
+    
     # Build result
     result = []
     for partner_id, conv in conversations.items():
         partner = partners_map.get(partner_id, {})
+        presence = presence_map.get(partner_id, {"is_online": False, "last_seen": None})
         result.append({
             "partner_id": partner_id,
             "partner_name": f"{partner.get('name', '')} {partner.get('last_name', '')}".strip(),
@@ -2780,7 +2804,9 @@ async def get_chat_list(current_user = Depends(get_current_user)):
             "last_message": conv["last_message"],
             "last_message_time": conv["last_message_time"],
             "unread_count": conv["unread_count"],
-            "is_sender": conv["is_sender"]
+            "is_sender": conv["is_sender"],
+            "is_online": presence["is_online"],
+            "last_seen": presence["last_seen"]
         })
     
     # Sort by last message time
