@@ -992,6 +992,56 @@ async def get_public_settings(subdomain: str):
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# USERS MANAGEMENT
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/users")
+async def get_tenant_users(current_user = Depends(get_current_user)):
+    """
+    Get all users for the current tenant.
+    Only admins/owners can view users.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Check role - only owner or admin can view users
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver usuarios")
+    
+    school_id = user["school_id"]
+    
+    # Get all users for this school
+    users_cursor = db.users.find(
+        {"school_id": school_id},
+        {"_id": 0, "password": 0, "verification_code": 0}
+    )
+    users = await users_cursor.to_list(length=1000)
+    
+    return users
+
+@api_router.get("/users/{user_id}")
+async def get_user_by_id(user_id: str, current_user = Depends(get_current_user)):
+    """Get a specific user by ID"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Check role
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ver usuarios")
+    
+    target_user = await db.users.find_one(
+        {"id": user_id, "school_id": user["school_id"]},
+        {"_id": 0, "password": 0, "verification_code": 0}
+    )
+    
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    return target_user
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
