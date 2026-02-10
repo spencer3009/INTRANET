@@ -591,6 +591,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   useEffect(() => {
     if (selectedCategory === "secciones") loadSections();
     if (selectedCategory === "turnos") loadShifts();
+    if (selectedCategory === "periodos") loadPeriods();
   }, [selectedCategory]);
 
   const loadSections = async () => {
@@ -598,6 +599,9 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   };
   const loadShifts = async () => {
     try { const res = await axios.get(`${API}/academic/shifts`, { headers }); setShifts(res.data); } catch (err) { console.error(err); }
+  };
+  const loadPeriods = async () => {
+    try { const res = await axios.get(`${API}/academic/periods`, { headers }); setPeriods(res.data); } catch (err) { console.error(err); }
   };
 
   useEffect(() => {
