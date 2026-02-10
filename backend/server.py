@@ -2361,6 +2361,167 @@ async def delete_academic_period(
     return {"message": "Período eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# SCHEDULES API
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ScheduleCreate(BaseModel):
+    tipo: str  # "clases", "profesores", "examenes"
+    grado_id: Optional[str] = None
+    seccion_id: Optional[str] = None
+    profesor_id: Optional[str] = None
+    materia: str
+    dia: str
+    hora_inicio: str
+    hora_fin: str
+    aula: Optional[str] = None
+    color: Optional[str] = "#3B82F6"
+
+class ScheduleUpdate(BaseModel):
+    grado_id: Optional[str] = None
+    seccion_id: Optional[str] = None
+    profesor_id: Optional[str] = None
+    materia: Optional[str] = None
+    dia: Optional[str] = None
+    hora_inicio: Optional[str] = None
+    hora_fin: Optional[str] = None
+    aula: Optional[str] = None
+    color: Optional[str] = None
+
+@api_router.get("/schedules")
+async def get_schedules(
+    tipo: str = "clases",
+    grado_id: Optional[str] = None,
+    seccion_id: Optional[str] = None,
+    profesor_id: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get schedules filtered by type and criteria"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    query = {"school_id": user["school_id"], "tipo": tipo}
+    
+    if grado_id:
+        query["grado_id"] = grado_id
+    if seccion_id:
+        query["seccion_id"] = seccion_id
+    if profesor_id:
+        query["profesor_id"] = profesor_id
+    
+    schedules = await db.schedules.find(query, {"_id": 0}).sort("hora_inicio", 1).to_list(500)
+    return schedules
+
+@api_router.post("/schedules")
+async def create_schedule(
+    data: ScheduleCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new schedule entry"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user["role"] not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar horarios")
+    
+    # Check for time conflicts
+    conflict_query = {
+        "school_id": user["school_id"],
+        "dia": data.dia,
+        "hora_inicio": {"$lt": data.hora_fin},
+        "hora_fin": {"$gt": data.hora_inicio}
+    }
+    
+    if data.tipo == "clases" and data.grado_id and data.seccion_id:
+        conflict_query["grado_id"] = data.grado_id
+        conflict_query["seccion_id"] = data.seccion_id
+    elif data.tipo == "profesores" and data.profesor_id:
+        conflict_query["profesor_id"] = data.profesor_id
+    
+    existing = await db.schedules.find_one(conflict_query)
+    if existing:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Conflicto de horario: ya existe una clase en ese horario ({existing['materia']} de {existing['hora_inicio']} a {existing['hora_fin']})"
+        )
+    
+    schedule = {
+        "id": str(uuid.uuid4()),
+        "school_id": user["school_id"],
+        "tipo": data.tipo,
+        "grado_id": data.grado_id,
+        "seccion_id": data.seccion_id,
+        "profesor_id": data.profesor_id,
+        "materia": data.materia,
+        "dia": data.dia,
+        "hora_inicio": data.hora_inicio,
+        "hora_fin": data.hora_fin,
+        "aula": data.aula,
+        "color": data.color,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.schedules.insert_one(schedule)
+    del schedule["_id"] if "_id" in schedule else None
+    
+    return {"message": "Horario creado correctamente", "schedule": schedule}
+
+@api_router.put("/schedules/{schedule_id}")
+async def update_schedule(
+    schedule_id: str,
+    data: ScheduleUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update a schedule entry"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user["role"] not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar horarios")
+    
+    schedule = await db.schedules.find_one({
+        "id": schedule_id,
+        "school_id": user["school_id"]
+    })
+    
+    if not schedule:
+        raise HTTPException(status_code=404, detail="Horario no encontrado")
+    
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.schedules.update_one({"id": schedule_id}, {"$set": update_data})
+    
+    updated = await db.schedules.find_one({"id": schedule_id}, {"_id": 0})
+    return {"message": "Horario actualizado correctamente", "schedule": updated}
+
+@api_router.delete("/schedules/{schedule_id}")
+async def delete_schedule(
+    schedule_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a schedule entry"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user["role"] not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar horarios")
+    
+    result = await db.schedules.delete_one({
+        "id": schedule_id,
+        "school_id": user["school_id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Horario no encontrado")
+    
+    return {"message": "Horario eliminado correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
