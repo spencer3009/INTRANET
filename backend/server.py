@@ -1980,6 +1980,324 @@ async def delete_shift(
     return {"message": "Turno eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC SETTINGS - PERÍODOS ACADÉMICOS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AcademicPeriodCreate(BaseModel):
+    nombre: str = Field(..., min_length=1, max_length=100)
+    fecha_inicio: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    fecha_fin: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    activo: bool = False
+
+class AcademicPeriodUpdate(BaseModel):
+    nombre: Optional[str] = Field(None, min_length=1, max_length=100)
+    fecha_inicio: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    fecha_fin: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    activo: Optional[bool] = None
+
+@api_router.get("/academic/periods")
+async def get_academic_periods(
+    activo: Optional[bool] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all academic periods for the current tenant, sorted by start date (descending)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    query = {"school_id": user["school_id"]}
+    if activo is not None:
+        query["activo"] = activo
+    
+    periods = await db.academic_periods.find(query, {"_id": 0}).sort("fecha_inicio", -1).to_list(100)
+    
+    return periods
+
+@api_router.get("/academic/periods/active")
+async def get_active_academic_period(current_user = Depends(get_current_user)):
+    """Get the currently active academic period for the tenant"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    period = await db.academic_periods.find_one(
+        {"school_id": user["school_id"], "activo": True},
+        {"_id": 0}
+    )
+    
+    if not period:
+        return {"active_period": None, "message": "No hay período académico activo"}
+    
+    return {"active_period": period}
+
+@api_router.post("/academic/periods")
+async def create_academic_period(
+    data: AcademicPeriodCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new academic period"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear períodos")
+    
+    # Validate date range
+    if data.fecha_inicio >= data.fecha_fin:
+        raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
+    
+    # Check for duplicate name
+    existing = await db.academic_periods.find_one({
+        "school_id": user["school_id"],
+        "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"}
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe un período con ese nombre")
+    
+    # Check for overlapping dates
+    overlapping = await db.academic_periods.find_one({
+        "school_id": user["school_id"],
+        "$or": [
+            # New period starts during existing period
+            {"fecha_inicio": {"$lte": data.fecha_inicio}, "fecha_fin": {"$gte": data.fecha_inicio}},
+            # New period ends during existing period
+            {"fecha_inicio": {"$lte": data.fecha_fin}, "fecha_fin": {"$gte": data.fecha_fin}},
+            # New period encompasses existing period
+            {"fecha_inicio": {"$gte": data.fecha_inicio}, "fecha_fin": {"$lte": data.fecha_fin}}
+        ]
+    })
+    if overlapping:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Las fechas se solapan con el período '{overlapping['nombre']}' ({overlapping['fecha_inicio']} - {overlapping['fecha_fin']})"
+        )
+    
+    deactivated_period = None
+    # If setting as active, deactivate any currently active period
+    if data.activo:
+        current_active = await db.academic_periods.find_one({
+            "school_id": user["school_id"],
+            "activo": True
+        })
+        if current_active:
+            await db.academic_periods.update_one(
+                {"id": current_active["id"]},
+                {"$set": {"activo": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            deactivated_period = current_active["nombre"]
+    
+    period = {
+        "id": str(uuid.uuid4()),
+        "school_id": user["school_id"],
+        "nombre": data.nombre,
+        "fecha_inicio": data.fecha_inicio,
+        "fecha_fin": data.fecha_fin,
+        "activo": data.activo,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.academic_periods.insert_one(period)
+    period.pop("_id", None)
+    
+    response = {"message": "Período creado correctamente", "period": period}
+    if deactivated_period:
+        response["deactivated_period"] = deactivated_period
+        response["message"] = f"Período creado y activado. El período '{deactivated_period}' ha sido desactivado."
+    
+    return response
+
+@api_router.put("/academic/periods/{period_id}")
+async def update_academic_period(
+    period_id: str,
+    data: AcademicPeriodUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update an academic period"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar períodos")
+    
+    # Find the period
+    period = await db.academic_periods.find_one({
+        "id": period_id,
+        "school_id": user["school_id"]
+    })
+    if not period:
+        raise HTTPException(status_code=404, detail="Período no encontrado")
+    
+    # Calculate new values
+    new_fecha_inicio = data.fecha_inicio if data.fecha_inicio else period["fecha_inicio"]
+    new_fecha_fin = data.fecha_fin if data.fecha_fin else period["fecha_fin"]
+    
+    # Validate date range
+    if new_fecha_inicio >= new_fecha_fin:
+        raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
+    
+    # Check for duplicate name if name is being changed
+    if data.nombre and data.nombre.lower() != period["nombre"].lower():
+        existing = await db.academic_periods.find_one({
+            "school_id": user["school_id"],
+            "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"},
+            "id": {"$ne": period_id}
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="Ya existe un período con ese nombre")
+    
+    # Check for overlapping dates if dates are being changed
+    if data.fecha_inicio or data.fecha_fin:
+        overlapping = await db.academic_periods.find_one({
+            "school_id": user["school_id"],
+            "id": {"$ne": period_id},
+            "$or": [
+                {"fecha_inicio": {"$lte": new_fecha_inicio}, "fecha_fin": {"$gte": new_fecha_inicio}},
+                {"fecha_inicio": {"$lte": new_fecha_fin}, "fecha_fin": {"$gte": new_fecha_fin}},
+                {"fecha_inicio": {"$gte": new_fecha_inicio}, "fecha_fin": {"$lte": new_fecha_fin}}
+            ]
+        })
+        if overlapping:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Las fechas se solapan con el período '{overlapping['nombre']}' ({overlapping['fecha_inicio']} - {overlapping['fecha_fin']})"
+            )
+    
+    deactivated_period = None
+    # If activating this period, deactivate any other active period
+    if data.activo is True and not period["activo"]:
+        current_active = await db.academic_periods.find_one({
+            "school_id": user["school_id"],
+            "activo": True,
+            "id": {"$ne": period_id}
+        })
+        if current_active:
+            await db.academic_periods.update_one(
+                {"id": current_active["id"]},
+                {"$set": {"activo": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            deactivated_period = current_active["nombre"]
+    
+    # Build update
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.nombre is not None:
+        update_data["nombre"] = data.nombre
+    if data.fecha_inicio is not None:
+        update_data["fecha_inicio"] = data.fecha_inicio
+    if data.fecha_fin is not None:
+        update_data["fecha_fin"] = data.fecha_fin
+    if data.activo is not None:
+        update_data["activo"] = data.activo
+    
+    await db.academic_periods.update_one({"id": period_id}, {"$set": update_data})
+    
+    updated_period = await db.academic_periods.find_one({"id": period_id}, {"_id": 0})
+    
+    response = {"message": "Período actualizado correctamente", "period": updated_period}
+    if deactivated_period:
+        response["deactivated_period"] = deactivated_period
+        response["message"] = f"Período activado. El período '{deactivated_period}' ha sido desactivado."
+    
+    return response
+
+@api_router.post("/academic/periods/{period_id}/activate")
+async def activate_academic_period(
+    period_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Activate an academic period (deactivates any other active period)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden activar períodos")
+    
+    # Find the period
+    period = await db.academic_periods.find_one({
+        "id": period_id,
+        "school_id": user["school_id"]
+    })
+    if not period:
+        raise HTTPException(status_code=404, detail="Período no encontrado")
+    
+    if period["activo"]:
+        return {"message": "El período ya está activo", "period": period}
+    
+    # Deactivate any currently active period
+    deactivated_period = None
+    current_active = await db.academic_periods.find_one({
+        "school_id": user["school_id"],
+        "activo": True
+    })
+    if current_active:
+        await db.academic_periods.update_one(
+            {"id": current_active["id"]},
+            {"$set": {"activo": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        deactivated_period = current_active["nombre"]
+    
+    # Activate this period
+    await db.academic_periods.update_one(
+        {"id": period_id},
+        {"$set": {"activo": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    updated_period = await db.academic_periods.find_one({"id": period_id}, {"_id": 0})
+    
+    response = {
+        "message": f"Período '{period['nombre']}' activado correctamente",
+        "period": updated_period
+    }
+    if deactivated_period:
+        response["deactivated_period"] = deactivated_period
+        response["message"] = f"Período '{period['nombre']}' activado. El período '{deactivated_period}' ha sido desactivado."
+    
+    return response
+
+@api_router.delete("/academic/periods/{period_id}")
+async def delete_academic_period(
+    period_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete an academic period (only if not active and not in use)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar períodos")
+    
+    # Find the period
+    period = await db.academic_periods.find_one({
+        "id": period_id,
+        "school_id": user["school_id"]
+    })
+    if not period:
+        raise HTTPException(status_code=404, detail="Período no encontrado")
+    
+    # Cannot delete active period
+    if period["activo"]:
+        raise HTTPException(
+            status_code=400, 
+            detail="No se puede eliminar un período activo. Activa otro período primero."
+        )
+    
+    # TODO: Check if period is in use (enrollments, attendance, grades) when those modules are implemented
+    # enrollment_count = await db.enrollments.count_documents({"period_id": period_id})
+    # if enrollment_count > 0:
+    #     raise HTTPException(
+    #         status_code=400,
+    #         detail=f"No se puede eliminar el período porque tiene {enrollment_count} matrícula(s) asociada(s)"
+    #     )
+    
+    await db.academic_periods.delete_one({"id": period_id})
+    
+    return {"message": "Período eliminado correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
