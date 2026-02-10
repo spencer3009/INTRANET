@@ -12,6 +12,7 @@ import DashboardPage from "@/pages/DashboardPage";
 import SettingsPage from "@/pages/SettingsPage";
 import UsersPage from "@/pages/UsersPage";
 import AcademicSettingsPage from "@/pages/AcademicSettingsPage";
+import SubjectsPage from "@/pages/SubjectsPage";
 import SchedulePage from "@/pages/SchedulePage";
 import MessagesPage from "@/pages/MessagesPage";
 import AttendancePage from "@/pages/AttendancePage";
