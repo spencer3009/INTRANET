@@ -3,6 +3,7 @@ import {
   Home,
   Mail,
   Users,
+  UserCog,
   GraduationCap,
   BookOpen,
   CalendarDays,
@@ -14,6 +15,7 @@ import {
 
 const navItems = [
   { id: "inicio", label: "Inicio", icon: Home },
+  { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users" },
   { id: "mensajeria", label: "Mensajería", icon: Mail },
   { id: "comunidad", label: "Comunidad", icon: Users },
   { id: "academico", label: "Académico", icon: GraduationCap },
@@ -24,6 +26,20 @@ const navItems = [
 
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain }) {
   const navigate = useNavigate();
+  
+  const handleNavClick = (item) => {
+    if (item.route) {
+      // Navigate to specific route
+      if (subdomain) {
+        navigate(`/school/${subdomain}${item.route}`);
+      } else {
+        navigate(item.route);
+      }
+    } else {
+      // Just update active section (for sections not yet implemented)
+      onNavigate(item.id);
+    }
+  };
   
   const handleSettingsClick = () => {
     // Navigate to settings page using route-based approach
