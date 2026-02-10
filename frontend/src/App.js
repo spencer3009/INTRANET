@@ -430,6 +430,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Calendar Page - URL path mode (Spanish) */}
+          <Route
+            path="/school/:subdomain/calendario"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CalendarPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Calendar Page - Direct path (for subdomain mode) */}
+          <Route
+            path="/calendario"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CalendarPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
