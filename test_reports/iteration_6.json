@@ -1,0 +1,97 @@
+{
+  "summary": "Completed comprehensive testing of User Presence System (Online/Offline). All 13 backend API tests passed (100%). Frontend testing verified presence indicators in chat list, chat header, offline banner, and user selector with online counters.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "POST /api/presence/heartbeat - Sends heartbeat successfully",
+    "POST /api/presence/heartbeat - Requires authentication",
+    "GET /api/presence/users - Returns presence status for all users",
+    "GET /api/presence/users - Requires authentication",
+    "POST /api/presence/offline - Marks user as offline",
+    "POST /api/presence/offline - Requires authentication",
+    "GET /api/messages/users - Includes is_online and last_seen fields",
+    "GET /api/messages/users - Online users appear first in each group",
+    "GET /api/messages/chats - Includes is_online for each partner",
+    "GET /api/messages/chats/{id} - Partner includes is_online and last_seen",
+    "Integration: Heartbeat updates presence status correctly",
+    "Integration: Presence reflected in messages/users endpoint",
+    "Integration: Presence reflected in chats endpoint",
+    "Frontend: Presence indicators (grey circles) in chat list",
+    "Frontend: Presence indicator in chat header",
+    "Frontend: 'Desconectado' status text in chat header",
+    "Frontend: Yellow offline banner when recipient is offline",
+    "Frontend: User selector shows online count per group (e.g., '0 EN LÍNEA')",
+    "Frontend: Presence indicators in user selector dropdown",
+    "Frontend: Heartbeat sent on page load (verified via API)"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_presence_module.py",
+    "/app/test_reports/pytest/pytest_presence.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "Note: The presence system uses timeout-based calculation (5 minutes). The is_online field stored in DB is not used for calculation - only last_seen timestamp is used. This is by design but worth documenting."
+  ],
+  
+  "updated_files": [
+    "/app/backend/tests/test_presence_module.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% (all presence features working)"
+  },
+  
+  "test_credentials": {
+    "email": "admin.settings@test.pe",
+    "password": "test123",
+    "login_url": "/school/demosettings/login",
+    "messages_url": "/school/demosettings/mensajes"
+  },
+  
+  "seed_data_creation": "No new seed data created. Used existing test users from previous iterations.",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Presence system fully functional. Heartbeat interval is 30 seconds (frontend). Timeout is 5 minutes (backend). Current user appears online after heartbeat. Other users appear offline since they haven't sent heartbeats. All presence indicators are grey (offline) as expected.",
+  
+  "verified_features": {
+    "presence_endpoints": {
+      "POST /api/presence/heartbeat": "Marks user as online, returns last_seen timestamp",
+      "GET /api/presence/users": "Returns presence map with is_online and last_seen for all school users",
+      "POST /api/presence/offline": "Marks user as offline (updates last_seen)"
+    },
+    "messages_integration": {
+      "GET /api/messages/users": "Includes is_online and last_seen, online users sorted first",
+      "GET /api/messages/chats": "Includes is_online and last_seen for each chat partner",
+      "GET /api/messages/chats/{id}": "Partner object includes is_online and last_seen"
+    },
+    "frontend_presence": {
+      "chat_list": "Grey presence indicators next to user avatars",
+      "chat_header": "Shows 'Desconectado' status with grey indicator",
+      "offline_banner": "Yellow banner: 'Este usuario no está conectado. El mensaje se entregará cuando esté activo.'",
+      "user_selector": "Shows online count per group (e.g., 'DIRECTORES 0 EN LÍNEA')",
+      "heartbeat": "Sent on page load and every 30 seconds"
+    },
+    "presence_logic": {
+      "timeout": "5 minutes (PRESENCE_TIMEOUT_MINUTES)",
+      "heartbeat_interval": "30 seconds (HEARTBEAT_INTERVAL)",
+      "calculation": "is_online = last_seen > (now - 5 minutes)"
+    }
+  }
+}
