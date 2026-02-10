@@ -11,6 +11,8 @@ import {
   MessageSquare,
   ArrowLeft,
   UserPlus,
+  Check,
+  X,
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -22,6 +24,26 @@ const features = [
   { icon: Shield, title: "Datos Seguros", desc: "Encriptación y control de acceso por roles" },
 ];
 
+// Password strength calculator
+const getPasswordStrength = (password) => {
+  if (!password) return { level: 0, label: "", color: "bg-slate-200" };
+  
+  let score = 0;
+  if (password.length >= 6) score += 1;
+  if (password.length >= 8) score += 1;
+  if (password.length >= 12) score += 1;
+  if (/[a-z]/.test(password)) score += 1;
+  if (/[A-Z]/.test(password)) score += 1;
+  if (/[0-9]/.test(password)) score += 1;
+  if (/[^a-zA-Z0-9]/.test(password)) score += 1;
+  
+  if (score <= 2) return { level: 1, label: "Muy débil", color: "bg-red-500", textColor: "text-red-600" };
+  if (score <= 3) return { level: 2, label: "Débil", color: "bg-orange-500", textColor: "text-orange-600" };
+  if (score <= 5) return { level: 3, label: "Media", color: "bg-yellow-500", textColor: "text-yellow-600" };
+  if (score <= 6) return { level: 4, label: "Fuerte", color: "bg-emerald-500", textColor: "text-emerald-600" };
+  return { level: 5, label: "Muy fuerte", color: "bg-emerald-600", textColor: "text-emerald-700" };
+};
+
 export default function RegisterPage() {
   const navigate = useNavigate();
   const [form, setForm] = useState({
@@ -29,11 +51,17 @@ export default function RegisterPage() {
     email: "",
     password: "",
   });
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const update = (key, val) => setForm((p) => ({ ...p, [key]: val }));
+
+  const passwordStrength = getPasswordStrength(form.password);
+  const passwordsMatch = form.password && confirmPassword && form.password === confirmPassword;
+  const passwordsMismatch = form.password && confirmPassword && form.password !== confirmPassword;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,8 +71,21 @@ export default function RegisterPage() {
       setError("Por favor completa todos los campos");
       return;
     }
-    if (form.password.length < 6) {
-      setError("La contraseña debe tener al menos 6 caracteres");
+    
+    // Validate password strength
+    if (passwordStrength.level <= 1) {
+      setError("La contraseña es muy débil. Usa al menos 6 caracteres con mayúsculas, minúsculas y números.");
+      return;
+    }
+
+    // Validate password confirmation
+    if (!confirmPassword) {
+      setError("Debes confirmar la contraseña");
+      return;
+    }
+
+    if (form.password !== confirmPassword) {
+      setError("Las contraseñas no coinciden");
       return;
     }
 
