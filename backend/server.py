@@ -1144,6 +1144,8 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["grado_id"] = data.grado_id
         new_user["seccion_id"] = data.seccion_id
         new_user["turno_id"] = data.turno_id
+        if data.padre_id:
+            new_user["padre_id"] = data.padre_id
     
     # Add parent-specific fields
     if data.role == "parent":
