@@ -1,4 +1,4 @@
-from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request
+from fastapi import FastAPI, APIRouter, HTTPException, Depends, Request, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
@@ -7,13 +7,16 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List, Optional
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from typing import List, Optional, Literal
 import uuid
 from datetime import datetime, timezone
 import jwt
 import bcrypt
 import re
+import time
+import cloudinary
+import cloudinary.utils
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -25,6 +28,14 @@ db = client[os.environ['DB_NAME']]
 JWT_SECRET = os.environ.get('JWT_SECRET', 'edunet-saas-secret-key-2026-dev-only')
 JWT_ALGORITHM = "HS256"
 BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'edunet.pe')
+
+# Cloudinary configuration
+cloudinary.config(
+    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.environ.get("CLOUDINARY_API_KEY"),
+    api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+    secure=True
+)
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
