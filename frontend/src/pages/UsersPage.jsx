@@ -910,15 +910,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               </h1>
               <p className="text-amber-100">{schoolName}</p>
             </div>
-
-            <button
-              onClick={() => handleAddUser('teacher')}
-              className="flex items-center gap-2 bg-white text-amber-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-all"
-              data-testid="users-add-btn"
-            >
-              <UserPlus className="w-5 h-5" />
-              Nuevo Usuario
-            </button>
           </div>
         </div>
       </div>
