@@ -672,120 +672,200 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
     return (
       <div className="p-6 lg:p-8" data-testid="users-list-content">
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${roleConfig.color} text-white rounded-2xl p-6 mb-6`}>
-          <button
-            onClick={() => setSelectedRole(null)}
-            className="flex items-center gap-2 text-white/80 hover:text-white mb-4 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Volver a categorías
-          </button>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img src={roleConfig.image} alt={roleConfig.label} className="w-16 h-16 object-contain" />
-              <div>
-                <h1 className="text-3xl font-bold">{roleConfig.label}</h1>
-                <p className="text-white/80">{filteredUsers.length} {filteredUsers.length === 1 ? roleConfig.labelSingular : roleConfig.label.toLowerCase()}</p>
-              </div>
-            </div>
-            
-            {/* Add button */}
+        {/* Enhanced Header */}
+        <div className={`relative overflow-hidden bg-gradient-to-r ${roleConfig.gradientBg} text-white rounded-3xl p-8 mb-8 shadow-xl`}>
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2"></div>
+          <div className="absolute top-1/2 right-1/4 w-32 h-32 bg-white/5 rounded-full"></div>
+          
+          <div className="relative z-10">
+            {/* Back button */}
             <button
-              onClick={() => handleAddUser(selectedRole)}
-              className="w-14 h-14 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all hover:scale-110"
-              data-testid="add-user-circle-btn"
+              onClick={() => setSelectedRole(null)}
+              className="flex items-center gap-2 text-white/80 hover:text-white mb-6 transition-colors group"
             >
-              <Plus className="w-7 h-7 text-white" />
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                <ArrowLeft className="w-4 h-4" />
+              </div>
+              <span className="font-medium">Volver a categorías</span>
             </button>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                {/* Icon container */}
+                <div className="w-24 h-24 bg-white rounded-2xl shadow-lg p-4 flex items-center justify-center">
+                  <img src={roleConfig.image} alt={roleConfig.label} className="w-full h-full object-contain" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>{roleConfig.label}</h1>
+                  <div className="flex items-center gap-3">
+                    <span className="px-4 py-1.5 bg-white/20 rounded-full text-sm font-medium backdrop-blur-sm">
+                      {filteredUsers.length} {filteredUsers.length === 1 ? roleConfig.labelSingular : roleConfig.label.toLowerCase()}
+                    </span>
+                    <span className="w-2 h-2 rounded-full bg-white/50"></span>
+                    <span className="text-white/80 text-sm">Gestión de personal</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Add button */}
+              <button
+                onClick={() => handleAddUser(selectedRole)}
+                className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                data-testid="add-user-circle-btn"
+              >
+                <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                  <Plus className="w-5 h-5 text-white" />
+                </div>
+                <span>Agregar {roleConfig.labelSingular}</span>
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Users Grid */}
         {filteredUsers.length === 0 ? (
-          <div className="bg-white rounded-2xl p-12 text-center shadow-sm">
-            <img src={roleConfig.image} alt="" className="w-24 h-24 mx-auto mb-4 opacity-30" />
-            <p className="text-slate-500">No hay {roleConfig.label.toLowerCase()} registrados</p>
-            <button
-              onClick={() => handleAddUser(selectedRole)}
-              className={`mt-4 px-6 py-3 bg-gradient-to-r ${roleConfig.color} text-white rounded-xl font-semibold hover:shadow-lg transition-all`}
-            >
-              <UserPlus className="w-4 h-4 inline mr-2" />
-              Agregar {roleConfig.labelSingular}
-            </button>
+          <div className={`relative overflow-hidden bg-gradient-to-br ${roleConfig.lightGradient} rounded-3xl p-16 text-center border-2 ${roleConfig.borderColor}`}>
+            {/* Decorative circles */}
+            <div className={`absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gradient-to-br ${roleConfig.gradientBg} opacity-10`}></div>
+            <div className={`absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-gradient-to-br ${roleConfig.gradientBg} opacity-10`}></div>
+            
+            <div className="relative z-10">
+              <div className={`w-32 h-32 mx-auto mb-6 bg-white rounded-3xl shadow-lg p-6 border-2 ${roleConfig.borderColor}`}>
+                <img src={roleConfig.image} alt="" className="w-full h-full object-contain opacity-50" />
+              </div>
+              <h3 className={`text-2xl font-bold ${roleConfig.textColor} mb-2`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                Sin {roleConfig.label.toLowerCase()}
+              </h3>
+              <p className="text-slate-500 mb-6 max-w-md mx-auto">
+                Aún no tienes {roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!
+              </p>
+              <button
+                onClick={() => handleAddUser(selectedRole)}
+                className={`inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r ${roleConfig.gradientBg} text-white rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5`}
+              >
+                <UserPlus className="w-5 h-5" />
+                Agregar {roleConfig.labelSingular}
+              </button>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredUsers.map((u) => (
               <div 
                 key={u.id}
-                className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-all border border-slate-100 relative"
+                className={`group relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${roleConfig.borderColor} hover:-translate-y-1`}
                 data-testid={`user-card-${u.id}`}
               >
-                {/* 3 dots menu */}
-                <div className="absolute top-4 right-4">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setOpenMenuId(openMenuId === u.id ? null : u.id);
-                    }}
-                    className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
-                    data-testid={`user-menu-btn-${u.id}`}
-                  >
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
-                  
-                  {/* Dropdown menu */}
-                  {openMenuId === u.id && (
-                    <div className="absolute right-0 top-10 bg-white rounded-xl shadow-lg border border-slate-100 py-2 min-w-[140px] z-10">
-                      <button
-                        onClick={() => handleEditUser(u.id)}
-                        className="w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
-                        data-testid={`edit-user-${u.id}`}
-                      >
-                        <Pencil className="w-4 h-4" />
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClick(u)}
-                        className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
-                        data-testid={`delete-user-${u.id}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        Eliminar
-                      </button>
-                    </div>
-                  )}
-                </div>
+                {/* Top gradient bar */}
+                <div className={`h-2 bg-gradient-to-r ${roleConfig.gradientBg}`}></div>
+                
+                {/* Decorative background */}
+                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${roleConfig.gradientBg} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2`}></div>
+                
+                <div className="p-6 relative">
+                  {/* 3 dots menu */}
+                  <div className="absolute top-2 right-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOpenMenuId(openMenuId === u.id ? null : u.id);
+                      }}
+                      className={`w-10 h-10 rounded-full hover:bg-gradient-to-r hover:${roleConfig.gradientBg} hover:text-white flex items-center justify-center text-slate-400 transition-all`}
+                      data-testid={`user-menu-btn-${u.id}`}
+                    >
+                      <MoreVertical className="w-5 h-5" />
+                    </button>
+                    
+                    {/* Dropdown menu */}
+                    {openMenuId === u.id && (
+                      <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 min-w-[160px] z-10">
+                        <button
+                          onClick={() => handleEditUser(u.id)}
+                          className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                          data-testid={`edit-user-${u.id}`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                            <Pencil className="w-4 h-4 text-blue-600" />
+                          </div>
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(u)}
+                          className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                          data-testid={`delete-user-${u.id}`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          </div>
+                          Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="flex items-center gap-4 mb-4">
-                  {u.photo_url ? (
-                    <img 
-                      src={u.photo_url} 
-                      alt={u.name} 
-                      className="w-14 h-14 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className={`w-14 h-14 rounded-full ${roleConfig.iconBg} flex items-center justify-center`}>
-                      <span className={`text-xl font-bold ${roleConfig.textColor}`}>
-                        {u.name?.charAt(0)?.toUpperCase() || "U"}
-                      </span>
+                  {/* User info */}
+                  <div className="flex flex-col items-center text-center mb-4">
+                    {/* Avatar */}
+                    <div className={`relative mb-4`}>
+                      <div className={`w-20 h-20 rounded-2xl overflow-hidden border-3 ${roleConfig.borderColor} shadow-lg`}>
+                        {u.photo_url ? (
+                          <img 
+                            src={u.photo_url} 
+                            alt={u.name} 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className={`w-full h-full bg-gradient-to-br ${roleConfig.lightGradient} flex items-center justify-center`}>
+                            <span className={`text-2xl font-bold ${roleConfig.textColor}`}>
+                              {u.name?.charAt(0)?.toUpperCase() || "U"}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      {/* Online indicator */}
+                      <div className={`absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r ${roleConfig.gradientBg} rounded-full border-3 border-white flex items-center justify-center`}>
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
                     </div>
-                  )}
-                  <div className="flex-1 min-w-0 pr-8">
-                    <h3 className="font-semibold text-slate-800 truncate">
+                    
+                    {/* Name */}
+                    <h3 className="text-lg font-bold text-slate-800 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
                       {u.name} {u.last_name || ""}
                     </h3>
-                    <p className="text-sm text-slate-500 truncate">{u.email || u.username}</p>
+                    
+                    {/* Email/Username */}
+                    <p className="text-sm text-slate-500 mb-3">{u.email || `@${u.username}`}</p>
+                    
+                    {/* Role badge */}
+                    <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} text-white text-xs font-semibold shadow-sm`}>
+                      <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                      {roleConfig.labelSingular}
+                    </span>
                   </div>
-                </div>
-                <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-                  <span className={`text-xs font-medium px-3 py-1 rounded-full ${roleConfig.bgColor} ${roleConfig.textColor}`}>
-                    {roleConfig.labelSingular}
-                  </span>
-                  <span className="text-xs text-slate-400">
-                    {u.created_at ? new Date(u.created_at).toLocaleDateString('es-PE') : '-'}
-                  </span>
+                  
+                  {/* User details */}
+                  <div className={`pt-4 border-t ${roleConfig.borderColor} space-y-2`}>
+                    {u.phone && (
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <div className={`w-6 h-6 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
+                          <svg className={`w-3 h-3 ${roleConfig.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                        </div>
+                        <span>{u.phone}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <div className={`w-6 h-6 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
+                        <svg className={`w-3 h-3 ${roleConfig.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <span>Registrado: {u.created_at ? new Date(u.created_at).toLocaleDateString('es-PE') : '-'}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
