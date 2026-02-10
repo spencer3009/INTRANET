@@ -471,15 +471,30 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
             {/* Role */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de cuenta</label>
-              <select
-                value={form.role}
-                onChange={(e) => handleChange('role', e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
-              >
-                <option value="">Seleccionar</option>
-                <option value="owner">Propietario</option>
-                <option value="admin">Director</option>
-              </select>
+              {roleId ? (
+                // Fixed role - not editable
+                <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-medium">
+                  {roleId === 'owner' ? 'Propietario' : 
+                   roleId === 'admin' ? 'Director' : 
+                   roleId === 'teacher' ? 'Profesor' : 
+                   roleId === 'student' ? 'Estudiante' : 
+                   roleId === 'parent' ? 'Padre/Apoderado' : roleId}
+                </div>
+              ) : (
+                // Selectable role
+                <select
+                  value={form.role}
+                  onChange={(e) => handleChange('role', e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all appearance-none cursor-pointer"
+                >
+                  <option value="">Seleccionar</option>
+                  <option value="owner">Propietario</option>
+                  <option value="admin">Director</option>
+                  <option value="teacher">Profesor</option>
+                  <option value="student">Estudiante</option>
+                  <option value="parent">Padre/Apoderado</option>
+                </select>
+              )}
             </div>
           </div>
 
