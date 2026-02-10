@@ -80,8 +80,7 @@ const ACADEMIC_CATEGORIES = [
     lightColor: "from-rose-50 to-red-50",
     borderColor: "border-rose-200",
     textColor: "text-rose-600",
-    bgColor: "bg-rose-100",
-    disabled: true
+    bgColor: "bg-rose-100"
   }
 ];
 
