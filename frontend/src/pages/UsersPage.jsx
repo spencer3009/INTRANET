@@ -130,7 +130,12 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     nivel_id: "",
     grado_id: "",
     seccion_id: "",
-    turno_id: ""
+    turno_id: "",
+    // Parent-specific fields
+    dni: "",
+    ocupacion: "",
+    lugar_trabajo: "",
+    telefono_trabajo: ""
   });
 
   const headers = { Authorization: `Bearer ${token}` };
