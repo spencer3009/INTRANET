@@ -1,11 +1,13 @@
-export default function HeroBanner({ user }) {
+export default function HeroBanner({ user, schoolName }) {
+  const displayName = schoolName || user?.name || "tu Colegio";
+  
   return (
     <div className="hero-banner" data-testid="hero-banner">
       <img
         src="https://socioscreativos.com/wp-content/uploads/2026/02/000372773w.jpg"
-        alt="Estudiantes del Colegio El Roble"
+        alt={`Estudiantes de ${displayName}`}
         className="w-full h-full object-cover absolute inset-0"
-        onError={(e) => { e.target.src = 'https://via.placeholder.com/900x300?text=Colegio+El+Roble'; }}
+        onError={(e) => { e.target.src = 'https://via.placeholder.com/900x300?text=Intranet+Escolar'; }}
       />
       <div className="absolute inset-0 bg-gradient-to-r from-[#001f4b]/80 via-[#001f4b]/50 to-transparent" />
       <div className="relative z-10 flex items-center h-full min-h-[240px] px-8 md:px-12">
@@ -23,7 +25,7 @@ export default function HeroBanner({ user }) {
             Bienvenidos a la Intranet
           </h2>
           <p className="text-blue-100 text-sm md:text-base leading-relaxed max-w-md">
-            Gestiona recursos, revisa calificaciones y mantente conectado con toda la comunidad académica del Colegio El Roble.
+            Gestiona recursos, revisa calificaciones y mantente conectado con toda la comunidad académica de {displayName}.
           </p>
         </div>
       </div>
