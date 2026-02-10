@@ -896,6 +896,179 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     );
   };
 
+  // Períodos section
+  const renderPeriodos = () => {
+    const cat = ACADEMIC_CATEGORIES.find(c => c.id === "periodos");
+    const activePeriod = periods.find(p => p.activo);
+    
+    // Format date helper
+    const formatDate = (dateStr) => {
+      if (!dateStr) return "";
+      const date = new Date(dateStr + "T00:00:00");
+      return date.toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" });
+    };
+    
+    // Get period duration in days
+    const getDuration = (start, end) => {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      const diffTime = Math.abs(endDate - startDate);
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      return diffDays;
+    };
+
+    return (
+      <div>
+        <SectionHeader 
+          category={cat} 
+          count={periods.length} 
+          countLabel={periods.length === 1 ? "período" : "períodos"} 
+          onAdd={() => { setEditingPeriod(null); setShowPeriodModal(true); }} 
+          addLabel="Nuevo Período" 
+        />
+        
+        {/* Active period banner */}
+        {activePeriod && (
+          <div className="mb-6 p-6 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-2xl shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Play className="w-7 h-7 text-white fill-white" />
+                </div>
+                <div className="text-white">
+                  <p className="text-sm font-medium text-emerald-100">Período Activo</p>
+                  <h3 className="text-2xl font-bold">{activePeriod.nombre}</h3>
+                  <p className="text-sm text-emerald-100 mt-1">
+                    {formatDate(activePeriod.fecha_inicio)} — {formatDate(activePeriod.fecha_fin)}
+                    <span className="mx-2">•</span>
+                    {getDuration(activePeriod.fecha_inicio, activePeriod.fecha_fin)} días
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => { setEditingPeriod(activePeriod); setShowPeriodModal(true); }}
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-xl font-medium flex items-center gap-2"
+                >
+                  <Pencil className="w-4 h-4" /> Editar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {periods.length === 0 ? (
+          <EmptyState 
+            category={cat} 
+            message="Crea el primer período académico para comenzar. Los períodos te permiten organizar el año escolar en bimestres, trimestres o semestres." 
+            onAdd={() => { setEditingPeriod(null); setShowPeriodModal(true); }} 
+            addLabel="Crear período" 
+          />
+        ) : (
+          <div className="space-y-4">
+            {/* All periods list */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {periods.map(period => (
+                <div 
+                  key={period.id} 
+                  className={`group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all border-2 ${period.activo ? "border-emerald-300 ring-2 ring-emerald-100" : cat.borderColor} overflow-hidden`}
+                >
+                  {/* Active indicator bar */}
+                  <div className={`h-2 ${period.activo ? "bg-gradient-to-r from-emerald-500 to-teal-600" : `bg-gradient-to-r ${cat.color}`}`}></div>
+                  
+                  <div className="p-5">
+                    {/* Menu button */}
+                    <div className="absolute top-4 right-3">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === period.id ? null : period.id); }} 
+                        className="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"
+                      >
+                        <MoreVertical className="w-5 h-5" />
+                      </button>
+                      {menuOpen === period.id && (
+                        <div className="absolute right-0 top-11 bg-white rounded-xl shadow-2xl border py-2 min-w-[180px] z-10">
+                          <button 
+                            onClick={() => { setEditingPeriod(period); setShowPeriodModal(true); setMenuOpen(null); }} 
+                            className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                              <Pencil className="w-4 h-4 text-blue-600" />
+                            </div>
+                            Editar
+                          </button>
+                          {!period.activo && (
+                            <button 
+                              onClick={() => { setActivatingPeriod(period); setShowActivateModal(true); setMenuOpen(null); }} 
+                              className="w-full px-4 py-3 text-left text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-3"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                                <Play className="w-4 h-4 text-emerald-600" />
+                              </div>
+                              Activar
+                            </button>
+                          )}
+                          {!period.activo && (
+                            <button 
+                              onClick={() => openDelete("period", period)} 
+                              className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
+                            >
+                              <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                                <Trash2 className="w-4 h-4 text-red-600" />
+                              </div>
+                              Eliminar
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Content */}
+                    <div className="pr-10">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${period.activo ? "bg-emerald-100" : "bg-rose-100"}`}>
+                          <Calendar className={`w-6 h-6 ${period.activo ? "text-emerald-600" : "text-rose-600"}`} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-slate-800 text-lg">{period.nombre}</h3>
+                          <p className="text-xs text-slate-500">{getDuration(period.fecha_inicio, period.fecha_fin)} días</p>
+                        </div>
+                      </div>
+                      
+                      {/* Date range */}
+                      <div className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl mb-3">
+                        <CalendarDays className="w-4 h-4 text-slate-400" />
+                        <span className="text-sm text-slate-600">
+                          {formatDate(period.fecha_inicio)} — {formatDate(period.fecha_fin)}
+                        </span>
+                      </div>
+                      
+                      {/* Status and actions */}
+                      <div className="flex items-center justify-between">
+                        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${period.activo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                          <span className={`w-2 h-2 rounded-full ${period.activo ? "bg-emerald-500 animate-pulse" : "bg-slate-400"}`}></span>
+                          {period.activo ? "Activo" : "Inactivo"}
+                        </span>
+                        
+                        {!period.activo && (
+                          <button 
+                            onClick={() => { setActivatingPeriod(period); setShowActivateModal(true); }}
+                            className="px-3 py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-700 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors"
+                          >
+                            <Play className="w-3 h-3" /> Activar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="w-10 h-10 text-[#001f4b] animate-spin" /></div>;
 
   return (
