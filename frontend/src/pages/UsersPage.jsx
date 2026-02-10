@@ -241,23 +241,23 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
         <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl" data-testid="add-user-modal">
           {/* Header */}
           <div className={`bg-gradient-to-r ${roleConfig.color} px-6 py-4 rounded-t-2xl flex items-center justify-between`}>
-          <div className="flex items-center gap-3">
-            <img src={roleConfig.image} alt="" className="w-10 h-10" />
-            <div className="text-white">
-              <h2 className="text-xl font-bold">Nuevo {roleConfig.labelSingular}</h2>
-              <p className="text-white/70 text-sm">Completa los datos del usuario</p>
+            <div className="flex items-center gap-3">
+              <img src={roleConfig.image} alt="" className="w-10 h-10" />
+              <div className="text-white">
+                <h2 className="text-xl font-bold">Nuevo {roleConfig.labelSingular}</h2>
+                <p className="text-white/70 text-sm">Completa los datos del usuario</p>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6">
+          {/* Form */}
+          <form onSubmit={handleSubmit} className="p-6">
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
