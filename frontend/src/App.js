@@ -367,6 +367,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Schedule Page - URL path mode */}
+          <Route
+            path="/school/:subdomain/schedule"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <SchedulePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Schedule Page - Direct path (for subdomain mode) */}
+          <Route
+            path="/schedule"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <SchedulePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
