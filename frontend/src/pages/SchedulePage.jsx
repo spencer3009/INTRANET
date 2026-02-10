@@ -515,15 +515,33 @@ export default function SchedulePage({ user, token, subdomain, onLogout }) {
     setLoading(true);
     try {
       const [settingsRes, levelsRes, gradesRes, sectionsRes, usersRes] = await Promise.all([
-        axios.get(`${API}/tenant/settings`, { headers }),
+        axios.get(`${API}/settings`, { headers }),
         axios.get(`${API}/academic/levels`, { headers }),
         axios.get(`${API}/academic/grades`, { headers }),
         axios.get(`${API}/academic/sections`, { headers }),
         axios.get(`${API}/users`, { headers })
       ]);
       setSettings(settingsRes.data);
-      setLevels(levelsRes.data.filter(l => l.activo));
-      setGrades(gradesRes.data.filter(g => g.activo));
+      
+      // Sort levels by standard order: Inicial, Primaria, Secundaria
+      const levelOrder = { 'inicial': 1, 'primaria': 2, 'secundaria': 3 };
+      const sortedLevels = levelsRes.data.filter(l => l.activo).sort((a, b) => {
+        const orderA = levelOrder[a.nombre.toLowerCase()] || 99;
+        const orderB = levelOrder[b.nombre.toLowerCase()] || 99;
+        return orderA - orderB;
+      });
+      setLevels(sortedLevels);
+      
+      // Sort grades by level order first, then by grade order
+      const gradesData = gradesRes.data.filter(g => g.activo);
+      const sortedGrades = gradesData.sort((a, b) => {
+        const levelA = levelOrder[a.nivel_nombre?.toLowerCase()] || 99;
+        const levelB = levelOrder[b.nivel_nombre?.toLowerCase()] || 99;
+        if (levelA !== levelB) return levelA - levelB;
+        return (a.orden || 0) - (b.orden || 0);
+      });
+      setGrades(sortedGrades);
+      
       setSections(sectionsRes.data.filter(s => s.activo));
       setTeachers(usersRes.data.filter(u => u.role === 'teacher'));
     } catch (err) {
