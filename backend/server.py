@@ -822,6 +822,176 @@ async def root():
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# CLOUDINARY SIGNATURE (For secure uploads)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/cloudinary/signature")
+async def generate_cloudinary_signature(
+    resource_type: str = Query("image", enum=["image", "video"]),
+    folder: str = Query("edunet/logos"),
+    current_user = Depends(get_current_user)
+):
+    """
+    Generate a signed upload signature for Cloudinary.
+    Requires authentication.
+    """
+    ALLOWED_FOLDERS = ("edunet/logos", "edunet/uploads", "edunet/media")
+    if not any(folder.startswith(f) for f in ALLOWED_FOLDERS):
+        raise HTTPException(status_code=400, detail="Carpeta no permitida")
+
+    timestamp = int(time.time())
+    params = {
+        "timestamp": timestamp,
+        "folder": folder,
+    }
+
+    signature = cloudinary.utils.api_sign_request(
+        params,
+        os.environ.get("CLOUDINARY_API_SECRET")
+    )
+
+    return {
+        "signature": signature,
+        "timestamp": timestamp,
+        "cloud_name": os.environ.get("CLOUDINARY_CLOUD_NAME"),
+        "api_key": os.environ.get("CLOUDINARY_API_KEY"),
+        "folder": folder,
+        "resource_type": resource_type
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TENANT SETTINGS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/settings")
+async def get_tenant_settings(current_user = Depends(get_current_user)):
+    """
+    Get settings for the current user's tenant.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Get school info
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    # Get or create settings
+    settings = await db.tenant_settings.find_one(
+        {"school_id": school_id},
+        {"_id": 0}
+    )
+    
+    if not settings:
+        # Return defaults based on school
+        settings = {
+            "school_id": school_id,
+            "logo_url": None,
+            "system_name": school.get("school_name", ""),
+            "system_title": f"{school.get('school_name', '')} - Intranet",
+            "system_email": user.get("email", ""),
+            "currency": "PEN",
+            "whatsapp": None,
+            "website_url": None,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+    
+    return settings
+
+@api_router.put("/settings")
+async def update_tenant_settings(
+    data: TenantSettingsUpdate,
+    current_user = Depends(get_current_user)
+):
+    """
+    Update settings for the current user's tenant.
+    Only admins/owners can update settings.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Check role - only owner or admin can update settings
+    if user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden modificar ajustes")
+    
+    school_id = user["school_id"]
+    
+    # Build update document (only include non-None values)
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    # Upsert settings
+    result = await db.tenant_settings.update_one(
+        {"school_id": school_id},
+        {
+            "$set": update_data,
+            "$setOnInsert": {
+                "school_id": school_id,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+        },
+        upsert=True
+    )
+    
+    # Also update logo_url in schools collection for public access
+    if data.logo_url is not None:
+        await db.schools.update_one(
+            {"id": school_id},
+            {"$set": {"logo_url": data.logo_url}}
+        )
+    
+    # Return updated settings
+    settings = await db.tenant_settings.find_one(
+        {"school_id": school_id},
+        {"_id": 0}
+    )
+    
+    logger.info(f"Settings updated for school {school_id}")
+    
+    return {
+        "message": "Ajustes guardados correctamente",
+        "settings": settings
+    }
+
+@api_router.get("/settings/public/{subdomain}")
+async def get_public_settings(subdomain: str):
+    """
+    Get public settings for a school by subdomain.
+    Used to customize login pages, etc.
+    """
+    subdomain = subdomain.lower().strip()
+    
+    school = await db.schools.find_one(
+        {"subdomain": subdomain, "status": "active"},
+        {"_id": 0}
+    )
+    
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    settings = await db.tenant_settings.find_one(
+        {"school_id": school["id"]},
+        {"_id": 0}
+    )
+    
+    # Merge school info with settings
+    return {
+        "subdomain": school.get("subdomain"),
+        "school_name": school.get("school_name"),
+        "full_domain": school.get("full_domain"),
+        "logo_url": settings.get("logo_url") if settings else school.get("logo_url"),
+        "system_name": settings.get("system_name") if settings else school.get("school_name"),
+        "system_title": settings.get("system_title") if settings else f"{school.get('school_name')} - Intranet",
+        "primary_color": school.get("primary_color", "#001f4b"),
+        "secondary_color": school.get("secondary_color", "#e1b82c"),
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
