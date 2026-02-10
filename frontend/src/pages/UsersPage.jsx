@@ -203,6 +203,11 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
       setError("Nombre, usuario y contraseña son obligatorios");
       return;
     }
+
+    if (!form.role) {
+      setError("Debes seleccionar un tipo de cuenta");
+      return;
+    }
     
     if (usernameError) {
       setError("El nombre de usuario no está disponible");
