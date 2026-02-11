@@ -979,6 +979,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const [editingGrade, setEditingGrade] = useState(null);
   const [showSectionModal, setShowSectionModal] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
+  const [showSectionTypesAdmin, setShowSectionTypesAdmin] = useState(false);
   const [showShiftModal, setShowShiftModal] = useState(false);
   const [editingShift, setEditingShift] = useState(null);
   const [showPeriodModal, setShowPeriodModal] = useState(false);
