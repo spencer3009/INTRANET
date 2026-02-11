@@ -993,30 +993,31 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                         <MoreVertical className="w-5 h-5" />
                       </button>
                       {menuOpen === period.id && (
-                        <div className="absolute right-0 top-11 bg-white rounded-xl shadow-2xl border py-2 min-w-[180px] z-10">
-                          <button 
-                            onClick={() => { setEditingPeriod(period); setShowPeriodModal(true); setMenuOpen(null); }} 
-                            className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
-                          >
-                            <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                              <Pencil className="w-4 h-4 text-blue-600" />
-                            </div>
-                            Editar
-                          </button>
-                          {!period.activo && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(null)} />
+                          <div className="absolute right-0 top-11 bg-white rounded-xl shadow-2xl border py-2 min-w-[180px] z-20">
                             <button 
-                              onClick={() => { setActivatingPeriod(period); setShowActivateModal(true); setMenuOpen(null); }} 
-                              className="w-full px-4 py-3 text-left text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-3"
+                              onClick={() => { setEditingPeriod(period); setShowPeriodModal(true); setMenuOpen(null); }} 
+                              className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
                             >
-                              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
-                                <Play className="w-4 h-4 text-emerald-600" />
+                              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                <Pencil className="w-4 h-4 text-blue-600" />
                               </div>
-                              Activar
+                              Editar
                             </button>
-                          )}
-                          {!period.activo && (
+                            {!period.activo && (
+                              <button 
+                                onClick={() => { setActivatingPeriod(period); setShowActivateModal(true); setMenuOpen(null); }} 
+                                className="w-full px-4 py-3 text-left text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-3"
+                              >
+                                <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center">
+                                  <Play className="w-4 h-4 text-emerald-600" />
+                                </div>
+                                Activar
+                              </button>
+                            )}
                             <button 
-                              onClick={() => openDelete("period", period)} 
+                              onClick={() => { setMenuOpen(null); openDelete("period", period); }} 
                               className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
                             >
                               <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
@@ -1024,8 +1025,8 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                               </div>
                               Eliminar
                             </button>
-                          )}
-                        </div>
+                          </div>
+                        </>
                       )}
                     </div>
                     
