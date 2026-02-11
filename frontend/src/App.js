@@ -590,7 +590,7 @@ function App() {
             path="/school/:subdomain/perfil"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ProfilePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} onUserUpdate={setUser} />
+                <ProfilePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
               </ProtectedRoute>
             }
           />
@@ -600,7 +600,7 @@ function App() {
             path="/perfil"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ProfilePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} onUserUpdate={setUser} />
+                <ProfilePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
               </ProtectedRoute>
             }
           />
