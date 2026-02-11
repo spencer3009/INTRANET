@@ -556,6 +556,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Course Detail Page - URL path mode */}
+          <Route
+            path="/school/:subdomain/curso/:subjectId"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CourseDetailPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Course Detail Page - Direct path */}
+          <Route
+            path="/curso/:subjectId"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <CourseDetailPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
