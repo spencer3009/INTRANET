@@ -981,6 +981,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   const [students, setStudents] = useState([]);
   const [levelName, setLevelName] = useState("");
   const [gradeName, setGradeName] = useState("");
+  const [academicPeriodName, setAcademicPeriodName] = useState("");
   
   const [activeTab, setActiveTab] = useState("tablero");
   
