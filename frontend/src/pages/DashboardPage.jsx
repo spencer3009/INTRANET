@@ -189,6 +189,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
           onLogout={onLogout}
           logoUrl={logoUrl}
           schoolName={schoolName}
+          subdomain={subdomain}
         />
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scroll" data-testid="dashboard-main">

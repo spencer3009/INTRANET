@@ -1903,6 +1903,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           onLogout={onLogout}
           logoUrl={logoUrl}
           schoolName={schoolName}
+          subdomain={subdomain}
         />
 
         <main className="flex-1 overflow-y-auto custom-scroll">

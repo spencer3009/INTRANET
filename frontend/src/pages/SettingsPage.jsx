@@ -177,6 +177,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
           onLogout={onLogout}
           logoUrl={logoUrl}
           schoolName={schoolName}
+          subdomain={subdomain}
         />
 
         <main className="flex-1 overflow-y-auto custom-scroll p-6 lg:p-8">
