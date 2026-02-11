@@ -546,6 +546,9 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
             }}
         )
         logger.info(f"School updated with subdomain: {subdomain}.{BASE_DOMAIN} for user {user['email']}")
+        
+        # Seed demo data for the school
+        await seed_demo_data_for_school(db, school_id, user["id"])
     else:
         # CREATE new school record
         school_id = str(uuid.uuid4())
@@ -571,6 +574,9 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
             }}
         )
         logger.info(f"School created: {subdomain}.{BASE_DOMAIN} for user {user['email']}")
+        
+        # Seed demo data for the new school
+        await seed_demo_data_for_school(db, school_id, user["id"])
 
     # Create new token with school info
     new_token = create_token(
