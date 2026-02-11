@@ -734,6 +734,7 @@ export default function CarouselManager({ token }) {
                   banner={banner}
                   onToggle={handleToggle}
                   onDelete={handleDelete}
+                  onEdit={handleEdit}
                   onDragStart={handleDragStart}
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
@@ -755,6 +756,17 @@ export default function CarouselManager({ token }) {
         imageFile={selectedFile}
         onCropComplete={handleCropComplete}
         token={token}
+      />
+
+      {/* Edit Modal */}
+      <EditBannerModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingBanner(null);
+        }}
+        banner={editingBanner}
+        onSave={handleEditSave}
       />
     </div>
   );
