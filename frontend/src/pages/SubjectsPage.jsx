@@ -896,7 +896,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       </div>
 
       <SubjectFormModal isOpen={showSubjectModal} onClose={() => { setShowSubjectModal(false); setEditingSubject(null); }}
-        subject={editingSubject} onSave={handleSaveSubject} levels={levels} grades={grades} teachers={teachers}
+        subject={editingSubject} onSave={handleSaveSubject} levels={levels} grades={grades}
         preselectedLevel={selectedLevel?.id} preselectedGrade={selectedGrade?.id} />
       <TeacherAssignModal isOpen={showTeacherModal} onClose={() => { setShowTeacherModal(false); setSelectedSubjectForTeacher(null); }}
         subject={selectedSubjectForTeacher} teachers={teachers}
