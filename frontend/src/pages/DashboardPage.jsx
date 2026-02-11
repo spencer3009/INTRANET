@@ -11,8 +11,91 @@ import ProfileCard from "@/components/ProfileCard";
 import StudentChart from "@/components/StudentChart";
 import AttendanceAndNews from "@/components/AttendanceAndNews";
 import DemoBanner from "@/components/DemoBanner";
+import { AlertTriangle, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Component to fix permissions
+function PermissionsFixer({ token, onFixed }) {
+  const [fixing, setFixing] = useState(false);
+  const [result, setResult] = useState(null);
+  
+  const handleFix = async () => {
+    setFixing(true);
+    setResult(null);
+    try {
+      const res = await axios.post(`${API}/auth/fix-owner-permissions`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setResult({ success: true, message: res.data.message, data: res.data });
+      // Update token and user in localStorage
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
+      }
+      if (res.data.user) {
+        localStorage.setItem("user", JSON.stringify(res.data.user));
+      }
+      // Reload after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      setResult({ success: false, message: err.response?.data?.detail || "Error al reparar permisos" });
+    } finally {
+      setFixing(false);
+    }
+  };
+  
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
+      <div className="flex items-start gap-4">
+        <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+          <AlertTriangle className="w-6 h-6 text-amber-600" />
+        </div>
+        <div className="flex-1">
+          <h3 className="text-lg font-bold text-amber-800 mb-1">Permisos de administrador requeridos</h3>
+          <p className="text-sm text-amber-700 mb-4">
+            Tu cuenta parece no tener los permisos correctos configurados. Si eres el propietario de esta intranet, 
+            haz clic en el botón para restaurar tus permisos y cargar los datos de ejemplo.
+          </p>
+          
+          {result && (
+            <div className={`flex items-center gap-2 mb-4 p-3 rounded-xl ${result.success ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              {result.success ? <CheckCircle className="w-5 h-5" /> : <XCircle className="w-5 h-5" />}
+              <span className="text-sm font-medium">{result.message}</span>
+              {result.success && result.data?.demo_data_seeded && (
+                <span className="text-xs bg-green-200 px-2 py-0.5 rounded-full ml-2">+ Datos demo cargados</span>
+              )}
+            </div>
+          )}
+          
+          <button
+            onClick={handleFix}
+            disabled={fixing || result?.success}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white rounded-xl font-semibold transition-colors"
+          >
+            {fixing ? (
+              <>
+                <RefreshCw className="w-4 h-4 animate-spin" />
+                Reparando...
+              </>
+            ) : result?.success ? (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                ¡Listo! Recargando...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="w-4 h-4" />
+                Restaurar permisos de propietario
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function DashboardPage({ user, token, onLogout, routeSubdomain }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -23,6 +106,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
   const [enrollment, setEnrollment] = useState([]);
   const [settings, setSettings] = useState(null);
   const [activeSection, setActiveSection] = useState("inicio");
+  const [hasPermissionError, setHasPermissionError] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = routeSubdomain || user?.subdomain;
@@ -47,6 +131,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
       setEnrollment(enrollmentRes.data);
       setCalendarEvents(calendarRes.data || []);
       setNews(newsRes.data?.news || []);
+      setHasPermissionError(false);
       if (settingsRes.data) {
         setSettings(settingsRes.data);
         // Update browser title
@@ -57,6 +142,9 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
     } catch (err) {
       console.error("Error fetching dashboard data:", err);
       if (err.response?.status === 401) onLogout();
+      if (err.response?.status === 403) {
+        setHasPermissionError(true);
+      }
     }
   }, [token]);
 
