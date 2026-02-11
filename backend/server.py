@@ -7281,12 +7281,17 @@ async def get_academic_assignments(
         sections = await db.sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(500)
         
+        # Get periods for assignments that have period_id
+        period_ids = list(set([a.get("period_id") for a in assignments if a.get("period_id")]))
+        periods = await db.academic_periods.find({"id": {"$in": period_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50) if period_ids else []
+        
         # Create lookup maps
         teachers_map = {t["id"]: t for t in teachers}
         levels_map = {l["id"]: l for l in levels}
         grades_map = {g["id"]: g for g in grades}
         sections_map = {s["id"]: s for s in sections}
         subjects_map = {s["id"]: s for s in subjects}
+        periods_map = {p["id"]: p for p in periods}
         
         # Enrich assignments
         for a in assignments:
@@ -7307,6 +7312,11 @@ async def get_academic_assignments(
             a["subject_name"] = subject.get("name", "")
             a["subject_code"] = subject.get("code", "")
             a["subject_color"] = subject.get("color", "#3B82F6")
+            
+            # Add period name
+            if a.get("period_id"):
+                period = periods_map.get(a["period_id"], {})
+                a["period_name"] = period.get("nombre", a.get("period_name", ""))
     
     return assignments
 
