@@ -6702,6 +6702,8 @@ async def create_dashboard_banner(data: BannerCreate, current_user = Depends(get
         "id": banner_id,
         "school_id": school_id,
         "image_url": data.image_url,
+        "title": data.title[:60] if data.title else "",  # Max 60 chars
+        "description": data.description[:120] if data.description else "",  # Max 120 chars
         "order": data.order if data.order > 0 else next_order,
         "active": data.active,
         "created_at": datetime.now(timezone.utc).isoformat(),
