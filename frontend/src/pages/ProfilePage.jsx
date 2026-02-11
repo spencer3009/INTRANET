@@ -519,7 +519,7 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
             )}
 
             {/* Account Info */}
-            {user?.is_owner && (
+            {(user?.is_owner || user?.role === "owner") && (
               <div className="mt-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-6">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
