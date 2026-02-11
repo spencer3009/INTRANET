@@ -1,5 +1,5 @@
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
-import { CheckCircle, AlertTriangle, XCircle, TrendingUp } from "lucide-react";
+import { CheckCircle, AlertTriangle, XCircle, TrendingUp, Newspaper, Clock, Pin } from "lucide-react";
 
 const attendanceData = [
   { name: "Presentes", value: 89, color: "#10b981" },
@@ -7,7 +7,50 @@ const attendanceData = [
   { name: "Ausentes", value: 4, color: "#ef4444" },
 ];
 
-const announcements = [
+const legendItems = [
+  { label: "Presentes", value: "89%", icon: CheckCircle, color: "text-emerald-500" },
+  { label: "Tardanzas", value: "7%", icon: AlertTriangle, color: "text-[#e1b82c]" },
+  { label: "Ausentes", value: "4%", icon: XCircle, color: "text-red-500" },
+];
+
+// Helper function to format relative time
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 60) return `Hace ${diffMins} minutos`;
+  if (diffHours < 24) return `Hace ${diffHours} hora${diffHours > 1 ? 's' : ''}`;
+  if (diffDays === 1) return "Ayer";
+  if (diffDays < 7) return `Hace ${diffDays} días`;
+  return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+}
+
+// Helper function to get tag info based on news category
+function getTagInfo(news) {
+  if (news.pinned) {
+    return { tag: "Destacado", tagColor: "bg-[#e1b82c] text-[#001f4b]" };
+  }
+  
+  const categoryMap = {
+    announcement: { tag: "Anuncio", tagColor: "bg-[#001f4b] text-white" },
+    academic: { tag: "Académico", tagColor: "bg-[#5c85d6]/15 text-[#5c85d6]" },
+    event: { tag: "Evento", tagColor: "bg-emerald-100 text-emerald-700" },
+    achievement: { tag: "Logro", tagColor: "bg-amber-100 text-amber-700" },
+    sports: { tag: "Deportes", tagColor: "bg-orange-100 text-orange-700" },
+    cultural: { tag: "Cultural", tagColor: "bg-purple-100 text-purple-700" },
+    administrative: { tag: "Administrativo", tagColor: "bg-slate-100 text-slate-600" },
+  };
+  
+  return categoryMap[news.category] || { tag: "Aviso", tagColor: "bg-slate-100 text-slate-600" };
+}
+
+// Default announcements for when no news is available
+const defaultAnnouncements = [
   {
     id: 1,
     title: "Inscripciones abiertas para talleres extracurriculares",
@@ -38,13 +81,11 @@ const announcements = [
   },
 ];
 
-const legendItems = [
-  { label: "Presentes", value: "89%", icon: CheckCircle, color: "text-emerald-500" },
-  { label: "Tardanzas", value: "7%", icon: AlertTriangle, color: "text-[#e1b82c]" },
-  { label: "Ausentes", value: "4%", icon: XCircle, color: "text-red-500" },
-];
+export default function AttendanceAndNews({ news = [] }) {
+  // Use real news if available, otherwise show defaults
+  const displayNews = news.length > 0 ? news.slice(0, 4) : defaultAnnouncements;
+  const hasRealNews = news.length > 0;
 
-export default function AttendanceAndNews() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6" data-testid="attendance-news-panel">
       {/* Attendance Chart */}
@@ -109,34 +150,81 @@ export default function AttendanceAndNews() {
 
       {/* Announcements */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6" data-testid="announcements-panel">
-        <h3
-          className="text-base font-bold text-[#001f4b] mb-1"
-          style={{ fontFamily: "Manrope, sans-serif" }}
-        >
-          Noticias y Avisos
-        </h3>
-        <p className="text-xs text-slate-500 mb-4">Comunicados recientes del colegio</p>
+        <div className="flex items-center justify-between mb-1">
+          <h3
+            className="text-base font-bold text-[#001f4b]"
+            style={{ fontFamily: "Manrope, sans-serif" }}
+          >
+            Noticias y Avisos
+          </h3>
+          {hasRealNews && (
+            <span className="text-xs text-[#5c85d6] font-medium px-2 py-1 bg-[#5c85d6]/10 rounded-lg">
+              {news.length} {news.length === 1 ? 'noticia' : 'noticias'}
+            </span>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mb-4">
+          {hasRealNews ? "Comunicados recientes" : "Comunicados recientes del colegio"}
+        </p>
 
         <div className="space-y-3">
-          {announcements.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
-              data-testid={`announcement-${item.id}`}
-            >
-              <div className="w-1 h-full min-h-[40px] rounded-full bg-[#001f4b]/10 group-hover:bg-[#e1b82c] transition-colors flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-800 leading-snug">{item.title}</p>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.tagColor}`}>
-                    {item.tag}
-                  </span>
-                  <span className="text-[11px] text-slate-400">{item.time}</span>
+          {hasRealNews ? (
+            // Show real news
+            displayNews.map((item) => {
+              const { tag, tagColor } = getTagInfo(item);
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                  data-testid={`announcement-${item.id}`}
+                >
+                  <div className="w-1 h-full min-h-[40px] rounded-full bg-[#001f4b]/10 group-hover:bg-[#e1b82c] transition-colors flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-slate-800 leading-snug line-clamp-2">{item.title}</p>
+                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                      {item.pinned && (
+                        <Pin className="w-3 h-3 text-[#e1b82c]" />
+                      )}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${tagColor}`}>
+                        {tag}
+                      </span>
+                      <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatRelativeTime(item.published_at)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            // Show default announcements
+            displayNews.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                data-testid={`announcement-${item.id}`}
+              >
+                <div className="w-1 h-full min-h-[40px] rounded-full bg-[#001f4b]/10 group-hover:bg-[#e1b82c] transition-colors flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800 leading-snug">{item.title}</p>
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${item.tagColor}`}>
+                      {item.tag}
+                    </span>
+                    <span className="text-[11px] text-slate-400">{item.time}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
+
+        {hasRealNews && news.length > 4 && (
+          <button className="w-full mt-4 py-2 text-sm font-medium text-[#5c85d6] hover:text-[#001f4b] hover:bg-slate-50 rounded-lg transition-colors">
+            Ver todas las noticias →
+          </button>
+        )}
       </div>
     </div>
   );
