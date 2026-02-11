@@ -596,7 +596,7 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
 
     # Create new token with school info
     new_token = create_token(
-        user["id"], user["email"], user["name"], "owner",
+        user["id"], user["email"], user["name"], "director",
         school_id, subdomain, True
     )
 
@@ -611,7 +611,9 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
             "id": user["id"],
             "email": user["email"],
             "name": user["name"],
-            "role": "owner",
+            "role": "director",
+            "is_owner": True,
+            "is_super_admin": True,
             "school_id": school_id,
             "subdomain": subdomain,
             "email_verified": True
