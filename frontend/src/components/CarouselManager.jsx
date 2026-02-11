@@ -314,12 +314,6 @@ export default function CarouselManager({ token }) {
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Cloudinary config
-  const cloudinaryConfig = {
-    cloud_name: "dqtpywu4a",
-    upload_preset: "edunet_unsigned"
-  };
-
   // Load banners
   const loadBanners = async () => {
     try {
