@@ -112,7 +112,8 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
     });
   }, [completedCrop]);
 
-  const handleUpload = async () => {
+  // Step 1: Upload cropped image to Cloudinary
+  const handleUploadImage = async () => {
     setError("");
     setUploading(true);
 
@@ -140,8 +141,8 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
       const uploadRes = await axios.post(cloudinaryUrl, formData);
 
       if (uploadRes.data?.secure_url) {
-        onCropComplete(uploadRes.data.secure_url);
-        onClose();
+        setCroppedImageUrl(uploadRes.data.secure_url);
+        setStep(2); // Go to text step
       } else {
         setError("Error al subir la imagen");
       }
@@ -151,6 +152,12 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
     } finally {
       setUploading(false);
     }
+  };
+
+  // Step 2: Save banner with title and description
+  const handleSaveBanner = () => {
+    onCropComplete(croppedImageUrl, title, description);
+    onClose();
   };
 
   if (!isOpen) return null;
