@@ -439,11 +439,15 @@ export default function CarouselManager({ token }) {
     e.target.value = "";
   };
 
-  // Handle crop complete
-  const handleCropComplete = async (imageUrl) => {
+  // Handle crop complete - now receives title and description
+  const handleCropComplete = async (imageUrl, title, description) => {
     setSaving(true);
     try {
-      await axios.post(`${API}/dashboard/banners`, { image_url: imageUrl }, { headers });
+      await axios.post(`${API}/dashboard/banners`, { 
+        image_url: imageUrl,
+        title: title || "",
+        description: description || ""
+      }, { headers });
       loadBanners();
     } catch (err) {
       console.error("Error creating banner:", err);
