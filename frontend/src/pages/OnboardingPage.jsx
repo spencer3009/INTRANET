@@ -282,7 +282,7 @@ export default function OnboardingPage({ token, user, onLogin, onLogout }) {
 
           {/* Rules */}
           <div className="bg-white/5 rounded-xl p-4">
-            <p className="text-xs text-white/40 mb-2 font-semibold">Reglas del subdominio:</p>
+            <p className="text-xs text-white/40 mb-2 font-semibold">Reglas del identificador:</p>
             <ul className="text-xs text-white/30 space-y-1">
               <li>• Solo letras minúsculas y números</li>
               <li>• Sin espacios ni caracteres especiales</li>
@@ -305,13 +305,13 @@ export default function OnboardingPage({ token, user, onLogin, onLogout }) {
         {/* Warning */}
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mt-6">
           <p className="text-center text-xs text-amber-300/80">
-            ⚠️ Este paso es obligatorio. No podrás acceder al dashboard hasta crear tu subdominio.
+            ⚠️ Este paso es obligatorio. No podrás acceder al dashboard hasta crear tu identificador.
           </p>
         </div>
 
         {/* Note */}
         <p className="text-center text-xs text-white/30 mt-4">
-          No podrás cambiar el subdominio después de crearlo
+          No podrás cambiar el identificador después de crearlo
         </p>
       </div>
 
