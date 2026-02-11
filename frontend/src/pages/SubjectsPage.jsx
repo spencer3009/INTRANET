@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import DashboardHeader from "../components/DashboardHeader";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
   Users, Search, ChevronRight, Clock, MoreVertical,
