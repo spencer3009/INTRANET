@@ -243,15 +243,6 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
                   <span className="font-medium">Editar</span>
                 </button>
                 <button
-                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onAssignTeacher(subject); }}
-                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
-                >
-                  <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
-                    <UserPlus className="w-4 h-4 text-violet-600" />
-                  </div>
-                  <span className="font-medium">{teacher ? "Cambiar profesor" : "Asignar profesor"}</span>
-                </button>
-                <button
                   onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleStatus(subject); }}
                   className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
