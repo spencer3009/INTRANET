@@ -190,7 +190,7 @@ function GradeCard({ grade, theme, subjectCount, onClick }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // COLORFUL SUBJECT CARD
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus }) {
+function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus, onViewCourse }) {
   const [menuOpen, setMenuOpen] = useState(false);
   
   // Generate a lighter background color from the subject color
@@ -199,7 +199,8 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
   
   return (
     <div 
-      className={`group relative rounded-2xl overflow-hidden transition-all duration-300 ease-out
+      onClick={() => onViewCourse && onViewCourse(subject)}
+      className={`group relative rounded-2xl overflow-hidden transition-all duration-300 ease-out cursor-pointer
         shadow-lg hover:shadow-2xl
         hover:-translate-y-2 hover:scale-[1.02]
         ${subject.status === "inactive" ? "opacity-50 grayscale" : ""}
@@ -229,10 +230,10 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
           
           {menuOpen && (
             <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
               <div className="absolute right-0 top-10 z-20 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 w-52">
                 <button
-                  onClick={() => { setMenuOpen(false); onEdit(subject); }}
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(subject); }}
                   className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
                   <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -241,7 +242,7 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
                   <span className="font-medium">Editar</span>
                 </button>
                 <button
-                  onClick={() => { setMenuOpen(false); onAssignTeacher(subject); }}
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onAssignTeacher(subject); }}
                   className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
                   <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
@@ -250,7 +251,7 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
                   <span className="font-medium">{teacher ? "Cambiar profesor" : "Asignar profesor"}</span>
                 </button>
                 <button
-                  onClick={() => { setMenuOpen(false); onToggleStatus(subject); }}
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleStatus(subject); }}
                   className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
                   <div className={`w-8 h-8 ${subject.status === "active" ? "bg-amber-100" : "bg-emerald-100"} rounded-lg flex items-center justify-center`}>
