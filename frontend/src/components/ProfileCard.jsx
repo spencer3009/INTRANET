@@ -46,7 +46,7 @@ function getRoleBadgeColors(role, isOwner, isSuperAdmin) {
   return colors[role] || "bg-slate-100 text-slate-600 border-slate-200";
 }
 
-export default function ProfileCard({ user }) {
+export default function ProfileCard({ user, stats }) {
   const userPhoto = user?.photo_url;
   const userName = user?.name || "Usuario";
   const userEmail = user?.email || "";
