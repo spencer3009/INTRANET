@@ -6731,6 +6731,10 @@ async def update_dashboard_banner(banner_id: str, data: BannerUpdate, current_us
         raise HTTPException(status_code=404, detail="Banner no encontrado")
     
     update_data = {}
+    if data.title is not None:
+        update_data["title"] = data.title[:60]  # Max 60 chars
+    if data.description is not None:
+        update_data["description"] = data.description[:120]  # Max 120 chars
     if data.order is not None:
         update_data["order"] = data.order
     if data.active is not None:
