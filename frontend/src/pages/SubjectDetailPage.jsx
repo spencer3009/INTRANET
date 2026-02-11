@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import DashboardHeader from "../components/DashboardHeader";
 import { 
   BookOpen, ArrowLeft, Edit2, Users, Award, LayoutDashboard,
   ClipboardList, FolderOpen, FlaskConical, MessageCircle, Video,
