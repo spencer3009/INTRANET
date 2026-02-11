@@ -115,20 +115,8 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         })}
       </nav>
 
-      {/* Bottom: Profile + Settings + Logout */}
+      {/* Bottom: Settings only (Profile and Logout moved to header dropdown) */}
       <div className="border-t border-white/10 p-2 space-y-1">
-        <button
-          onClick={() => {
-            const basePath = subdomain ? `/school/${subdomain}` : "";
-            navigate(`${basePath}/perfil`);
-          }}
-          className="sidebar-link w-full"
-          data-testid="sidebar-profile"
-          title="Mi Perfil"
-        >
-          <span className="link-icon"><User className="w-5 h-5" /></span>
-          {isExpanded && <span className="text-sm font-medium">Mi Perfil</span>}
-        </button>
         <button
           onClick={handleSettingsClick}
           className="sidebar-link w-full"
@@ -137,15 +125,6 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         >
           <span className="link-icon"><Settings className="w-5 h-5" /></span>
           {isExpanded && <span className="text-sm font-medium">Ajustes</span>}
-        </button>
-        <button
-          onClick={onLogout}
-          className="sidebar-link w-full hover:!text-red-400 hover:!bg-red-500/10"
-          data-testid="sidebar-logout"
-          title="Cerrar Sesión"
-        >
-          <span className="link-icon"><LogOut className="w-5 h-5" /></span>
-          {isExpanded && <span className="text-sm font-medium">Salir</span>}
         </button>
       </div>
     </aside>
