@@ -6912,6 +6912,428 @@ async def delete_dashboard_banner(banner_id: str, current_user = Depends(get_cur
     return {"message": "Banner eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC ASSIGNMENTS API (Teacher-Subject Pivot Table)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AcademicAssignmentCreate(BaseModel):
+    teacher_id: str
+    level_id: str
+    grade_id: str
+    section_id: str
+    subject_id: str
+    school_year: int = 2026
+    role: Literal["titular", "auxiliar"] = "titular"
+    status: Literal["activo", "inactivo"] = "activo"
+
+class AcademicAssignmentUpdate(BaseModel):
+    teacher_id: Optional[str] = None
+    level_id: Optional[str] = None
+    grade_id: Optional[str] = None
+    section_id: Optional[str] = None
+    subject_id: Optional[str] = None
+    school_year: Optional[int] = None
+    role: Optional[Literal["titular", "auxiliar"]] = None
+    status: Optional[Literal["activo", "inactivo"]] = None
+
+@api_router.get("/academic/assignments")
+async def get_academic_assignments(
+    level_id: Optional[str] = None,
+    grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    subject_id: Optional[str] = None,
+    teacher_id: Optional[str] = None,
+    school_year: Optional[int] = None,
+    status: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all academic assignments with optional filters"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    query = {"school_id": school_id}
+    
+    # Apply filters
+    if level_id:
+        query["level_id"] = level_id
+    if grade_id:
+        query["grade_id"] = grade_id
+    if section_id:
+        query["section_id"] = section_id
+    if subject_id:
+        query["subject_id"] = subject_id
+    if teacher_id:
+        query["teacher_id"] = teacher_id
+    if school_year:
+        query["school_year"] = school_year
+    if status:
+        query["status"] = status
+    
+    assignments = await db.academic_assignments.find(query, {"_id": 0}).sort("created_at", -1).to_list(1000)
+    
+    # Enrich with related data
+    if assignments:
+        # Get all unique IDs
+        teacher_ids = list(set(a["teacher_id"] for a in assignments))
+        level_ids = list(set(a["level_id"] for a in assignments))
+        grade_ids = list(set(a["grade_id"] for a in assignments))
+        section_ids = list(set(a["section_id"] for a in assignments))
+        subject_ids = list(set(a["subject_id"] for a in assignments))
+        
+        # Fetch related data
+        teachers = await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(500)
+        levels = await db.academic_levels.find({"id": {"$in": level_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+        grades = await db.academic_grades.find({"id": {"$in": grade_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+        sections = await db.academic_sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+        subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(500)
+        
+        # Create lookup maps
+        teachers_map = {t["id"]: t for t in teachers}
+        levels_map = {l["id"]: l for l in levels}
+        grades_map = {g["id"]: g for g in grades}
+        sections_map = {s["id"]: s for s in sections}
+        subjects_map = {s["id"]: s for s in subjects}
+        
+        # Enrich assignments
+        for a in assignments:
+            teacher = teachers_map.get(a["teacher_id"], {})
+            a["teacher_name"] = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+            a["teacher_photo"] = teacher.get("photo_url")
+            
+            level = levels_map.get(a["level_id"], {})
+            a["level_name"] = level.get("nombre", "")
+            
+            grade = grades_map.get(a["grade_id"], {})
+            a["grade_name"] = grade.get("nombre", "")
+            
+            section = sections_map.get(a["section_id"], {})
+            a["section_name"] = section.get("nombre", "")
+            
+            subject = subjects_map.get(a["subject_id"], {})
+            a["subject_name"] = subject.get("name", "")
+            a["subject_code"] = subject.get("code", "")
+            a["subject_color"] = subject.get("color", "#3B82F6")
+    
+    return assignments
+
+@api_router.get("/academic/assignments/by-teacher/{teacher_id}")
+async def get_assignments_by_teacher(
+    teacher_id: str,
+    school_year: Optional[int] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all assignments for a specific teacher (for profile view)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    query = {"school_id": school_id, "teacher_id": teacher_id, "status": "activo"}
+    
+    if school_year:
+        query["school_year"] = school_year
+    
+    assignments = await db.academic_assignments.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    # Enrich with related data
+    for a in assignments:
+        level = await db.academic_levels.find_one({"id": a["level_id"]}, {"_id": 0, "nombre": 1})
+        grade = await db.academic_grades.find_one({"id": a["grade_id"]}, {"_id": 0, "nombre": 1})
+        section = await db.academic_sections.find_one({"id": a["section_id"]}, {"_id": 0, "nombre": 1})
+        subject = await db.subjects.find_one({"id": a["subject_id"]}, {"_id": 0, "name": 1, "code": 1, "color": 1})
+        
+        a["level_name"] = level.get("nombre", "") if level else ""
+        a["grade_name"] = grade.get("nombre", "") if grade else ""
+        a["section_name"] = section.get("nombre", "") if section else ""
+        a["subject_name"] = subject.get("name", "") if subject else ""
+        a["subject_code"] = subject.get("code", "") if subject else ""
+        a["subject_color"] = subject.get("color", "#3B82F6") if subject else "#3B82F6"
+    
+    return assignments
+
+@api_router.get("/academic/assignments/teachers-summary")
+async def get_teachers_assignments_summary(
+    school_year: Optional[int] = 2026,
+    current_user = Depends(get_current_user)
+):
+    """Get summary of assignments per teacher (for load visualization)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Get all active teachers
+    teachers = await db.users.find(
+        {"school_id": school_id, "role": "teacher", "status": {"$ne": "inactive"}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}
+    ).to_list(500)
+    
+    # Get assignment counts per teacher
+    result = []
+    for teacher in teachers:
+        count = await db.academic_assignments.count_documents({
+            "school_id": school_id,
+            "teacher_id": teacher["id"],
+            "school_year": school_year,
+            "status": "activo"
+        })
+        result.append({
+            "id": teacher["id"],
+            "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
+            "photo_url": teacher.get("photo_url"),
+            "assignments_count": count
+        })
+    
+    # Sort by assignment count descending
+    result.sort(key=lambda x: x["assignments_count"], reverse=True)
+    
+    return result
+
+@api_router.post("/academic/assignments")
+async def create_academic_assignment(
+    data: AcademicAssignmentCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new academic assignment"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear asignaciones")
+    
+    school_id = user["school_id"]
+    
+    # Validate teacher exists and is a teacher
+    teacher = await db.users.find_one({
+        "id": data.teacher_id,
+        "school_id": school_id,
+        "role": "teacher"
+    })
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Profesor no encontrado")
+    
+    # Validate level exists
+    level = await db.academic_levels.find_one({"id": data.level_id, "school_id": school_id})
+    if not level:
+        raise HTTPException(status_code=404, detail="Nivel no encontrado")
+    
+    # Validate grade exists and belongs to level
+    grade = await db.academic_grades.find_one({
+        "id": data.grade_id,
+        "school_id": school_id,
+        "nivel_id": data.level_id
+    })
+    if not grade:
+        raise HTTPException(status_code=404, detail="Grado no encontrado o no pertenece al nivel")
+    
+    # Validate section exists
+    section = await db.academic_sections.find_one({
+        "id": data.section_id,
+        "school_id": school_id
+    })
+    if not section:
+        raise HTTPException(status_code=404, detail="Sección no encontrada")
+    
+    # Validate subject exists
+    subject = await db.subjects.find_one({
+        "id": data.subject_id,
+        "school_id": school_id
+    })
+    if not subject:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+    
+    # Check for exact duplicate
+    duplicate = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "teacher_id": data.teacher_id,
+        "level_id": data.level_id,
+        "grade_id": data.grade_id,
+        "section_id": data.section_id,
+        "subject_id": data.subject_id,
+        "school_year": data.school_year
+    })
+    if duplicate:
+        raise HTTPException(
+            status_code=400,
+            detail="Ya existe una asignación exacta para este profesor, asignatura, nivel, grado, sección y año escolar"
+        )
+    
+    assignment = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "teacher_id": data.teacher_id,
+        "level_id": data.level_id,
+        "grade_id": data.grade_id,
+        "section_id": data.section_id,
+        "subject_id": data.subject_id,
+        "school_year": data.school_year,
+        "role": data.role,
+        "status": data.status,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"]
+    }
+    
+    await db.academic_assignments.insert_one(assignment)
+    
+    # Remove _id for response
+    if "_id" in assignment:
+        del assignment["_id"]
+    
+    # Enrich response
+    assignment["teacher_name"] = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+    assignment["level_name"] = level.get("nombre", "")
+    assignment["grade_name"] = grade.get("nombre", "")
+    assignment["section_name"] = section.get("nombre", "")
+    assignment["subject_name"] = subject.get("name", "")
+    
+    logger.info(f"Academic assignment created: {assignment['id']} for school {school_id}")
+    
+    return {"message": "Asignación creada correctamente", "assignment": assignment}
+
+@api_router.put("/academic/assignments/{assignment_id}")
+async def update_academic_assignment(
+    assignment_id: str,
+    data: AcademicAssignmentUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update an academic assignment"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar asignaciones")
+    
+    school_id = user["school_id"]
+    
+    assignment = await db.academic_assignments.find_one({
+        "id": assignment_id,
+        "school_id": school_id
+    })
+    if not assignment:
+        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+    
+    update_data = {}
+    
+    # Validate and update each field
+    if data.teacher_id is not None:
+        teacher = await db.users.find_one({"id": data.teacher_id, "school_id": school_id, "role": "teacher"})
+        if not teacher:
+            raise HTTPException(status_code=404, detail="Profesor no encontrado")
+        update_data["teacher_id"] = data.teacher_id
+    
+    if data.level_id is not None:
+        level = await db.academic_levels.find_one({"id": data.level_id, "school_id": school_id})
+        if not level:
+            raise HTTPException(status_code=404, detail="Nivel no encontrado")
+        update_data["level_id"] = data.level_id
+    
+    if data.grade_id is not None:
+        grade = await db.academic_grades.find_one({"id": data.grade_id, "school_id": school_id})
+        if not grade:
+            raise HTTPException(status_code=404, detail="Grado no encontrado")
+        update_data["grade_id"] = data.grade_id
+    
+    if data.section_id is not None:
+        section = await db.academic_sections.find_one({"id": data.section_id, "school_id": school_id})
+        if not section:
+            raise HTTPException(status_code=404, detail="Sección no encontrada")
+        update_data["section_id"] = data.section_id
+    
+    if data.subject_id is not None:
+        subject = await db.subjects.find_one({"id": data.subject_id, "school_id": school_id})
+        if not subject:
+            raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+        update_data["subject_id"] = data.subject_id
+    
+    if data.school_year is not None:
+        update_data["school_year"] = data.school_year
+    
+    if data.role is not None:
+        update_data["role"] = data.role
+    
+    if data.status is not None:
+        update_data["status"] = data.status
+    
+    if update_data:
+        # Check for duplicate after update
+        check_data = {**assignment, **update_data}
+        duplicate = await db.academic_assignments.find_one({
+            "school_id": school_id,
+            "teacher_id": check_data["teacher_id"],
+            "level_id": check_data["level_id"],
+            "grade_id": check_data["grade_id"],
+            "section_id": check_data["section_id"],
+            "subject_id": check_data["subject_id"],
+            "school_year": check_data["school_year"],
+            "id": {"$ne": assignment_id}  # Exclude current assignment
+        })
+        if duplicate:
+            raise HTTPException(
+                status_code=400,
+                detail="Ya existe una asignación con esta combinación"
+            )
+        
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.academic_assignments.update_one({"id": assignment_id}, {"$set": update_data})
+    
+    updated = await db.academic_assignments.find_one({"id": assignment_id}, {"_id": 0})
+    
+    return {"message": "Asignación actualizada correctamente", "assignment": updated}
+
+@api_router.delete("/academic/assignments/{assignment_id}")
+async def delete_academic_assignment(
+    assignment_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete an academic assignment"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar asignaciones")
+    
+    school_id = user["school_id"]
+    
+    result = await db.academic_assignments.delete_one({
+        "id": assignment_id,
+        "school_id": school_id
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Asignación no encontrada")
+    
+    logger.info(f"Academic assignment deleted: {assignment_id}")
+    
+    return {"message": "Asignación eliminada correctamente"}
+
+@api_router.get("/users/teachers/active")
+async def get_active_teachers(
+    current_user = Depends(get_current_user)
+):
+    """Get all active teachers for the school"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    teachers = await db.users.find(
+        {
+            "school_id": school_id,
+            "role": "teacher",
+            "status": {"$ne": "inactive"}
+        },
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1}
+    ).sort("name", 1).to_list(500)
+    
+    return teachers
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
