@@ -96,11 +96,11 @@ export default function ProfileCard({ user }) {
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <div className="bg-slate-50 rounded-lg p-3">
-          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>12</p>
+          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{stats?.subjects || 0}</p>
           <p className="text-[11px] text-slate-500">Cursos</p>
         </div>
         <div className="bg-slate-50 rounded-lg p-3">
-          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>456</p>
+          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{stats?.students || 0}</p>
           <p className="text-[11px] text-slate-500">Alumnos</p>
         </div>
       </div>
