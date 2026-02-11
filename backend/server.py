@@ -383,10 +383,16 @@ async def login(creds: UserLogin):
             "id": user["id"],
             "email": user["email"],
             "name": user["name"],
+            "last_name": user.get("last_name", ""),
             "role": user["role"],
             "school_id": school_id,
             "subdomain": subdomain,
-            "email_verified": user.get("email_verified", False)
+            "email_verified": user.get("email_verified", False),
+            "is_owner": user.get("is_owner", False),
+            "is_super_admin": user.get("is_super_admin", False),
+            "is_protected": user.get("is_protected", False),
+            "photo_url": user.get("photo_url"),
+            "phone": user.get("phone")
         },
         # SHOPIFY RULE: If user has subdomain, tell frontend to redirect
         "redirect_to_subdomain": subdomain is not None,
