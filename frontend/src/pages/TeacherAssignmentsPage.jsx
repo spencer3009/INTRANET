@@ -629,13 +629,13 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                   <option value="">Seleccionar período...</option>
                   {sortedPeriods.map(p => (
                     <option key={p.id} value={p.id}>
-                      {p.nombre} {p.activo ? "(Activo)" : ""}
+                      {p.nombre} - {p.year || "Sin año"} {p.activo ? "✓" : ""}
                     </option>
                   ))}
                 </select>
                 {sortedPeriods.length === 0 && (
                   <p className="text-xs text-amber-600 mt-1">
-                    No hay períodos configurados. Créalos en Ajustes Académicos.
+                    No hay períodos configurados. Créalos en Años Académicos.
                   </p>
                 )}
               </div>
