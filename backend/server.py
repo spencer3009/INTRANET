@@ -177,9 +177,10 @@ class UserRegister(BaseModel):
     school_name: str
     email: str
     password: str
+    username: Optional[str] = None
 
 class UserLogin(BaseModel):
-    email: str
+    email: str  # Can be email OR username
     password: str
 
 class VerifyEmailRequest(BaseModel):
