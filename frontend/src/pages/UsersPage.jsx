@@ -1363,6 +1363,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [infoModalContent, setInfoModalContent] = useState({ title: "", message: "", type: "info" });
+  // Edit user states
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editForm, setEditForm] = useState({});
+  const [editLoading, setEditLoading] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
 
