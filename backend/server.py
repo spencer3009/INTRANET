@@ -2798,11 +2798,22 @@ async def delete_shift(
 # ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC SETTINGS - PERÍODOS ACADÉMICOS
 # ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC YEARS & PERIODS MODELS (Premium SaaS Architecture)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AcademicYearCreate(BaseModel):
+    year: int = Field(..., ge=2020, le=2100)
+    status: Literal["activo", "futuro", "cerrado"] = "futuro"
+    clone_from_year: Optional[int] = None  # Optional: clone periods from this year
+
+class AcademicYearUpdate(BaseModel):
+    status: Optional[Literal["activo", "futuro", "cerrado"]] = None
 
 class AcademicPeriodCreate(BaseModel):
+    academic_year_id: str = Field(...)  # Required: FK to academic year
     nombre: str = Field(..., min_length=1, max_length=100)
-    fecha_inicio: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
-    fecha_fin: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$")
+    fecha_inicio: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
+    fecha_fin: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     activo: bool = False
 
 class AcademicPeriodUpdate(BaseModel):
@@ -2811,21 +2822,293 @@ class AcademicPeriodUpdate(BaseModel):
     fecha_fin: Optional[str] = Field(None, pattern=r"^\d{4}-\d{2}-\d{2}$")
     activo: Optional[bool] = None
 
-@api_router.get("/academic/periods")
-async def get_academic_periods(
-    activo: Optional[bool] = None,
+# ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC YEARS ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/academic/years")
+async def get_academic_years(
+    status: Optional[str] = None,
     current_user = Depends(get_current_user)
 ):
-    """Get all academic periods for the current tenant, sorted by start date (descending)"""
+    """Get all academic years for the current tenant"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     query = {"school_id": user["school_id"]}
+    if status:
+        query["status"] = status
+    
+    years = await db.academic_years.find(query, {"_id": 0}).sort("year", -1).to_list(50)
+    
+    # Count periods for each year
+    for year in years:
+        period_count = await db.academic_periods.count_documents({
+            "school_id": user["school_id"],
+            "academic_year_id": year["id"]
+        })
+        year["period_count"] = period_count
+        
+        # Get active period name if exists
+        active_period = await db.academic_periods.find_one({
+            "school_id": user["school_id"],
+            "academic_year_id": year["id"],
+            "activo": True
+        }, {"_id": 0, "nombre": 1})
+        year["active_period_name"] = active_period["nombre"] if active_period else None
+    
+    return years
+
+@api_router.get("/academic/years/active")
+async def get_active_academic_year(current_user = Depends(get_current_user)):
+    """Get the currently active academic year"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    year = await db.academic_years.find_one(
+        {"school_id": user["school_id"], "status": "activo"},
+        {"_id": 0}
+    )
+    
+    if not year:
+        return {"active_year": None, "message": "No hay año académico activo"}
+    
+    return {"active_year": year}
+
+@api_router.post("/academic/years")
+async def create_academic_year(
+    data: AcademicYearCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new academic year with optional period cloning"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear años académicos")
+    
+    school_id = user["school_id"]
+    
+    # Check for duplicate year
+    existing = await db.academic_years.find_one({
+        "school_id": school_id,
+        "year": data.year
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail=f"El año académico {data.year} ya existe")
+    
+    deactivated_year = None
+    # If setting as active, deactivate current active year (set to cerrado)
+    if data.status == "activo":
+        current_active = await db.academic_years.find_one({
+            "school_id": school_id,
+            "status": "activo"
+        })
+        if current_active:
+            await db.academic_years.update_one(
+                {"id": current_active["id"]},
+                {"$set": {"status": "cerrado", "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            deactivated_year = current_active["year"]
+    
+    academic_year = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "year": data.year,
+        "status": data.status,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.academic_years.insert_one(academic_year)
+    del academic_year["_id"]
+    
+    # Clone periods from another year if requested
+    cloned_periods = []
+    if data.clone_from_year:
+        source_year = await db.academic_years.find_one({
+            "school_id": school_id,
+            "year": data.clone_from_year
+        })
+        if source_year:
+            source_periods = await db.academic_periods.find({
+                "school_id": school_id,
+                "academic_year_id": source_year["id"]
+            }, {"_id": 0}).sort("orden", 1).to_list(20)
+            
+            for idx, sp in enumerate(source_periods, start=1):
+                new_period = {
+                    "id": str(uuid.uuid4()),
+                    "school_id": school_id,
+                    "academic_year_id": academic_year["id"],
+                    "nombre": sp["nombre"],  # Just the name without year (e.g., "Bimestre I")
+                    "fecha_inicio": None,  # Empty for editing
+                    "fecha_fin": None,
+                    "orden": sp.get("orden", idx),
+                    "activo": False,  # Always inactive when cloned
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }
+                await db.academic_periods.insert_one(new_period)
+                del new_period["_id"]
+                cloned_periods.append(new_period)
+    
+    response = {
+        "message": f"Año académico {data.year} creado correctamente",
+        "academic_year": academic_year
+    }
+    
+    if cloned_periods:
+        response["cloned_periods"] = cloned_periods
+        response["message"] += f". Se clonaron {len(cloned_periods)} períodos del año {data.clone_from_year}."
+    
+    if deactivated_year:
+        response["deactivated_year"] = deactivated_year
+        response["message"] = f"Año {data.year} activado. El año {deactivated_year} ha sido cerrado."
+    
+    return response
+
+@api_router.put("/academic/years/{year_id}")
+async def update_academic_year(
+    year_id: str,
+    data: AcademicYearUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update an academic year status"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar años académicos")
+    
+    school_id = user["school_id"]
+    
+    year = await db.academic_years.find_one({
+        "id": year_id,
+        "school_id": school_id
+    })
+    if not year:
+        raise HTTPException(status_code=404, detail="Año académico no encontrado")
+    
+    deactivated_year = None
+    # If setting to active, close current active year
+    if data.status == "activo" and year["status"] != "activo":
+        current_active = await db.academic_years.find_one({
+            "school_id": school_id,
+            "status": "activo",
+            "id": {"$ne": year_id}
+        })
+        if current_active:
+            await db.academic_years.update_one(
+                {"id": current_active["id"]},
+                {"$set": {"status": "cerrado", "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            deactivated_year = current_active["year"]
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.status is not None:
+        update_data["status"] = data.status
+    
+    await db.academic_years.update_one(
+        {"id": year_id},
+        {"$set": update_data}
+    )
+    
+    updated_year = await db.academic_years.find_one({"id": year_id}, {"_id": 0})
+    
+    response = {"message": "Año académico actualizado", "academic_year": updated_year}
+    if deactivated_year:
+        response["deactivated_year"] = deactivated_year
+        response["message"] = f"Año {year['year']} activado. El año {deactivated_year} ha sido cerrado."
+    
+    return response
+
+@api_router.delete("/academic/years/{year_id}")
+async def delete_academic_year(
+    year_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete an academic year (only if no periods exist)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar años académicos")
+    
+    school_id = user["school_id"]
+    
+    year = await db.academic_years.find_one({
+        "id": year_id,
+        "school_id": school_id
+    })
+    if not year:
+        raise HTTPException(status_code=404, detail="Año académico no encontrado")
+    
+    # Check if year has periods
+    period_count = await db.academic_periods.count_documents({
+        "school_id": school_id,
+        "academic_year_id": year_id
+    })
+    if period_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede eliminar: el año tiene {period_count} períodos asociados. Elimine los períodos primero."
+        )
+    
+    # Check if year is active
+    if year["status"] == "activo":
+        raise HTTPException(status_code=400, detail="No se puede eliminar un año académico activo")
+    
+    await db.academic_years.delete_one({"id": year_id})
+    
+    return {"message": f"Año académico {year['year']} eliminado"}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC PERIODS ENDPOINTS (Modified for Year dependency)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/academic/periods")
+async def get_academic_periods(
+    academic_year_id: Optional[str] = None,
+    activo: Optional[bool] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all academic periods for the current tenant, optionally filtered by year"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    query = {"school_id": school_id}
+    
+    if academic_year_id:
+        query["academic_year_id"] = academic_year_id
     if activo is not None:
         query["activo"] = activo
     
-    periods = await db.academic_periods.find(query, {"_id": 0}).sort("fecha_inicio", -1).to_list(100)
+    periods = await db.academic_periods.find(query, {"_id": 0}).sort([("orden", 1), ("fecha_inicio", -1)]).to_list(100)
+    
+    # Enrich with year info
+    year_ids = list(set([p.get("academic_year_id") for p in periods if p.get("academic_year_id")]))
+    years_map = {}
+    if year_ids:
+        years = await db.academic_years.find({"id": {"$in": year_ids}}, {"_id": 0, "id": 1, "year": 1, "status": 1}).to_list(50)
+        years_map = {y["id"]: y for y in years}
+    
+    for period in periods:
+        year_data = years_map.get(period.get("academic_year_id"))
+        if year_data:
+            period["year"] = year_data["year"]
+            period["year_status"] = year_data["status"]
+        else:
+            # Legacy period without year - try to extract from name
+            period["year"] = None
+            period["year_status"] = None
     
     return periods
 
