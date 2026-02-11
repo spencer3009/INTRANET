@@ -1258,14 +1258,14 @@ async def get_public_settings(subdomain: str):
 async def get_tenant_users(current_user = Depends(get_current_user)):
     """
     Get all users for the current tenant.
-    Only admins/directors/super_admins can view users.
+    Only admins/directors/owners/super_admins can view users.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    # Check role - only director, admin or super_admin can view users
-    if user.get("role") not in ["director", "admin"] and not user.get("is_super_admin"):
+    # Check role - owners, super_admins, directors and admins can view users
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden ver usuarios")
     
     school_id = user["school_id"]
@@ -1286,8 +1286,8 @@ async def get_user_by_id(user_id: str, current_user = Depends(get_current_user))
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    # Check role
-    if user.get("role") not in ["director", "admin"] and not user.get("is_super_admin"):
+    # Check role - owners, super_admins, directors and admins can view users
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden ver usuarios")
     
     target_user = await db.users.find_one(
