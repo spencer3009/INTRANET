@@ -528,6 +528,29 @@ async def change_password(data: PasswordChange, current_user=Depends(get_current
     
     return {"message": "Contraseña actualizada correctamente"}
 
+@api_router.get("/auth/check-username/{username}")
+async def check_username_availability(username: str, current_user=Depends(get_current_user)):
+    """Check if a username is available"""
+    username = username.strip().lower()
+    
+    if len(username) < 3:
+        return {"available": False, "message": "Mínimo 3 caracteres"}
+    if len(username) > 30:
+        return {"available": False, "message": "Máximo 30 caracteres"}
+    if not re.match(r'^[a-z0-9_]+$', username):
+        return {"available": False, "message": "Solo letras, números y guiones bajos"}
+    
+    # Check if username is taken by another user
+    existing = await db.users.find_one({
+        "username": username,
+        "id": {"$ne": current_user["sub"]}
+    })
+    
+    if existing:
+        return {"available": False, "message": "Este nombre de usuario ya está en uso"}
+    
+    return {"available": True, "message": "Nombre de usuario disponible"}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SUBDOMAIN ROUTES
 # ══════════════════════════════════════════════════════════════════════════════
