@@ -186,19 +186,19 @@ export default function SchoolLoginPage({ onLogin }) {
             )}
 
             <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-2">Correo electrónico</label>
+              <label className="block text-sm font-semibold text-slate-600 mb-2">Email o nombre de usuario</label>
               <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   data-testid="login-email-input"
-                  type="email"
+                  type="text"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full pl-11 pr-4 py-3.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all placeholder:text-slate-400"
                   style={{ 
                     "--tw-ring-color": `${primaryColor}30`
                   }}
-                  placeholder="tu@email.com"
+                  placeholder="tu@email.com o tu_usuario"
                   required
                 />
               </div>
