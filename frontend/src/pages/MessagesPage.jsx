@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import DashboardHeader from "../components/DashboardHeader";
 import { 
   MessageSquare, Send, Paperclip, Search, X, Check, CheckCheck,
   Mail, Users, ChevronRight, Loader2, AlertCircle, Clock, 
