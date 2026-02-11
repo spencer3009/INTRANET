@@ -100,6 +100,34 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 
 ## Colecciones MongoDB
 
+### academic_years (NUEVA - 2025-02-11)
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "year": 2026,
+  "status": "activo|futuro|cerrado",
+  "created_at": "ISO datetime",
+  "updated_at": "ISO datetime"
+}
+```
+
+### academic_periods (MODIFICADA - 2025-02-11)
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "academic_year_id": "uuid",   // FK a academic_years
+  "nombre": "Bimestre I",       // Sin año (ej: NO "Bimestre I - 2026")
+  "fecha_inicio": "2026-03-01",
+  "fecha_fin": "2026-05-15",
+  "orden": 1,
+  "activo": true,
+  "created_at": "ISO datetime",
+  "updated_at": "ISO datetime"
+}
+```
+
 ### academic_assignments
 ```json
 {
@@ -110,7 +138,9 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
   "grade_id": "uuid",
   "section_id": "uuid",
   "subject_id": "uuid",
-  "school_year": 2026,
+  "period_id": "uuid",          // NUEVO - FK a academic_periods
+  "period_name": "Bimestre I",  // NUEVO - nombre del período
+  "school_year": 2026,          // Mantenido para retrocompatibilidad
   "role": "titular|auxiliar",
   "status": "activo|inactivo",
   "created_at": "ISO datetime",
