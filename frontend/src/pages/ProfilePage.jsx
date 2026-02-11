@@ -3,7 +3,8 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import {
   User, Mail, Phone, Camera, Save, Lock, Eye, EyeOff,
-  Shield, Crown, CheckCircle, AlertCircle, Loader2, AtSign, Check, X
+  Shield, Crown, CheckCircle, AlertCircle, Loader2, AtSign, Check, X,
+  BookOpen, GraduationCap, Users, Calendar
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
