@@ -740,6 +740,7 @@ function GradeSubjectsView({ level, grade, subjects, teachers, subjectTeachers, 
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function SubjectsPage({ user, token, subdomain, onLogout }) {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
