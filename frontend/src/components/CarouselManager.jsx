@@ -528,6 +528,8 @@ export default function CarouselManager({ token }) {
   const [banners, setBanners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCropModal, setShowCropModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingBanner, setEditingBanner] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
   const [draggedId, setDraggedId] = useState(null);
   const [saving, setSaving] = useState(false);
