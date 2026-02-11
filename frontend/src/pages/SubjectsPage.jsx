@@ -284,15 +284,46 @@ function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse }) {
           )}
         </div>
         
-        {/* Teacher - Always show "Sin asignar" as per architecture */}
+        {/* Teacher assignment - show assigned teacher or "Sin asignar" */}
         <div className="flex items-center gap-3 pt-4 border-t border-gray-200/50">
-          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
-            <User className="w-5 h-5 text-gray-300" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-400 font-medium">Sin asignar</p>
-            <p className="text-xs text-gray-300">Ir a Asignación Docente</p>
-          </div>
+          {subject.primary_teacher ? (
+            <>
+              <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-emerald-200 shadow-sm">
+                {subject.primary_teacher.profile_image ? (
+                  <img 
+                    src={subject.primary_teacher.profile_image} 
+                    alt={subject.primary_teacher.name} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">
+                      {subject.primary_teacher.name?.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-700 font-medium truncate">{subject.primary_teacher.name}</p>
+                <p className="text-xs text-emerald-600 capitalize">{subject.primary_teacher.role || "Titular"}</p>
+              </div>
+              {subject.teacher_count > 1 && (
+                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
+                  +{subject.teacher_count - 1}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
+                <User className="w-5 h-5 text-gray-300" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-400 font-medium">Sin asignar</p>
+                <p className="text-xs text-gray-300">Ir a Asignación Docente</p>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
