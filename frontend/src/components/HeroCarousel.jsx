@@ -83,6 +83,12 @@ export default function HeroCarousel({ banners = [], user, schoolName }) {
         {/* Content Overlay - Dynamic based on current banner */}
         <div className="absolute inset-0 z-20 flex items-center">
           <div className="px-6 md:px-10 lg:px-12 w-1/2">
+            {/* Portal Activo Badge */}
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#e1b82c]/20 border border-[#e1b82c] rounded-full mb-4">
+              <span className="w-2.5 h-2.5 bg-[#e1b82c] rounded-full animate-pulse" />
+              <span className="text-[#e1b82c] text-sm font-bold tracking-wide">PORTAL ACTIVO</span>
+            </div>
+            
             <p className="text-white/80 text-sm md:text-base font-medium mb-1">
               {getGreeting()}, {user?.name?.split(" ")[0] || "Usuario"}
             </p>
