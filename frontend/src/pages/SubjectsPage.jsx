@@ -4,7 +4,7 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
-  Users, Search, ChevronRight, Clock, MoreVertical, UserPlus,
+  Users, Search, ChevronRight, Clock, MoreVertical,
   GraduationCap, Home, ArrowLeft, User, Power, PowerOff,
   Sparkles, Star, Zap
 } from "lucide-react";
