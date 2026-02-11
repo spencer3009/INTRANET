@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, Menu, X, GraduationCap, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Search, Bell, Menu, X, GraduationCap, User, ChevronDown, LogOut, Settings } from "lucide-react";
 
 // Default avatar component with initials
 function DefaultAvatar({ name, size = "w-10 h-10", textSize = "text-sm" }) {
@@ -40,10 +41,13 @@ function getRoleDisplay(role, isOwner, isSuperAdmin) {
   return ROLE_DISPLAY_MAP[role] || role || "Usuario";
 }
 
-export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName }) {
+export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain }) {
+  const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const inputRef = useRef(null);
+  const profileMenuRef = useRef(null);
 
   const today = new Date().toLocaleDateString("es-ES", {
     weekday: "long",
@@ -66,11 +70,38 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
   // Close on Escape
   useEffect(() => {
     const handleKey = (e) => {
-      if (e.key === "Escape") setSearchOpen(false);
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+        setProfileMenuOpen(false);
+      }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, []);
+
+  // Close profile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    if (profileMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [profileMenuOpen]);
+
+  const handleProfileClick = () => {
+    setProfileMenuOpen(false);
+    const basePath = subdomain ? `/school/${subdomain}` : "";
+    navigate(`${basePath}/perfil`);
+  };
+
+  const handleLogoutClick = () => {
+    setProfileMenuOpen(false);
+    onLogout();
+  };
 
   return (
     <header className="glass-header sticky top-0 z-30 px-4 md:px-6 lg:px-8" data-testid="dashboard-header">
@@ -108,7 +139,7 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
           </div>
         </div>
 
-        {/* Right: Search + Notifications + Avatar */}
+        {/* Right: Search + Notifications + Avatar with Dropdown */}
         <div className="flex items-center gap-3">
           {/* Search bar */}
           <div className="relative flex items-center" data-testid="header-search-container">
@@ -151,27 +182,76 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
             <span className="absolute top-2 right-2 w-2 h-2 bg-[#e1b82c] rounded-full" />
           </button>
 
-          <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
-            <div className="hidden sm:block text-right">
-              <p className="text-sm font-semibold text-slate-800">{userName}</p>
-              <p className="text-[11px] text-slate-500">{userRole}</p>
-            </div>
-            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#e1b82c]/30" data-testid="header-avatar">
-              {userPhoto ? (
-                <img
-                  src={userPhoto}
-                  alt={userName}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { 
-                    e.target.style.display = 'none';
-                    e.target.nextSibling?.classList.remove('hidden');
-                  }}
-                />
-              ) : null}
-              <div className={`w-full h-full ${userPhoto ? 'hidden' : ''}`}>
-                <DefaultAvatar name={userName} size="w-full h-full" />
+          {/* Profile Menu with Dropdown */}
+          <div className="relative" ref={profileMenuRef}>
+            <button
+              onClick={() => setProfileMenuOpen(!profileMenuOpen)}
+              className="flex items-center gap-3 pl-3 border-l border-slate-200 cursor-pointer hover:opacity-90 transition-opacity"
+              data-testid="header-profile-button"
+            >
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-semibold text-slate-800">{userName}</p>
+                <p className="text-[11px] text-slate-500">{userRole}</p>
               </div>
-            </div>
+              <div className="relative">
+                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#e1b82c]/30" data-testid="header-avatar">
+                  {userPhoto ? (
+                    <img
+                      src={userPhoto}
+                      alt={userName}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { 
+                        e.target.style.display = 'none';
+                        e.target.nextSibling?.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-full h-full ${userPhoto ? 'hidden' : ''}`}>
+                    <DefaultAvatar name={userName} size="w-full h-full" />
+                  </div>
+                </div>
+              </div>
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {profileMenuOpen && (
+              <div 
+                className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-fade-in-up"
+                data-testid="header-profile-dropdown"
+              >
+                {/* User info header */}
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{userName}</p>
+                  <p className="text-xs text-slate-500">{user?.email || ""}</p>
+                </div>
+
+                {/* Menu items */}
+                <div className="py-1">
+                  <button
+                    onClick={handleProfileClick}
+                    className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                    data-testid="header-dropdown-profile"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                      <User className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <span className="font-medium">Mi Perfil</span>
+                  </button>
+                  
+                  <button
+                    onClick={handleLogoutClick}
+                    className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-red-50 hover:text-red-600 flex items-center gap-3 transition-colors"
+                    data-testid="header-dropdown-logout"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center">
+                      <LogOut className="w-4 h-4 text-red-500" />
+                    </div>
+                    <span className="font-medium">Cerrar sesión</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
