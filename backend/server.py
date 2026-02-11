@@ -7438,6 +7438,18 @@ async def create_academic_assignment(
     if not subject:
         raise HTTPException(status_code=404, detail="Asignatura no encontrada")
     
+    # Validate period if provided
+    period = None
+    period_name = None
+    if data.period_id:
+        period = await db.academic_periods.find_one({
+            "id": data.period_id,
+            "school_id": school_id
+        })
+        if not period:
+            raise HTTPException(status_code=404, detail="Período académico no encontrado")
+        period_name = period.get("nombre", "")
+    
     # Check for exact duplicate
     duplicate = await db.academic_assignments.find_one({
         "school_id": school_id,
@@ -7462,6 +7474,8 @@ async def create_academic_assignment(
         "grade_id": data.grade_id,
         "section_id": data.section_id,
         "subject_id": data.subject_id,
+        "period_id": data.period_id,
+        "period_name": period_name,
         "school_year": data.school_year,
         "role": data.role,
         "status": data.status,
