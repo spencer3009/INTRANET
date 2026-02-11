@@ -191,7 +191,7 @@ function GradeCard({ grade, theme, subjectCount, onClick }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // COLORFUL SUBJECT CARD
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus, onViewCourse }) {
+function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse }) {
   const [menuOpen, setMenuOpen] = useState(false);
   
   // Generate a lighter background color from the subject color
