@@ -1109,7 +1109,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       </div>
       <LevelModal isOpen={showLevelModal} onClose={() => { setShowLevelModal(false); setEditingLevel(null); }} token={token} level={editingLevel} onSuccess={handleLevelSuccess} />
       <GradeModal isOpen={showGradeModal} onClose={() => { setShowGradeModal(false); setEditingGrade(null); }} token={token} grade={editingGrade} levels={levels} onSuccess={handleGradeSuccess} preselectedLevelId={selectedLevelFilter} />
-      <SectionModal isOpen={showSectionModal} onClose={() => { setShowSectionModal(false); setEditingSection(null); }} token={token} section={editingSection} grades={grades} levels={levels} onSuccess={handleSectionSuccess} preselectedGradeId="" />
+      <SectionModal isOpen={showSectionModal} onClose={() => { setShowSectionModal(false); setEditingSection(null); setPreselectedGradeForSection(null); }} token={token} section={editingSection} grades={grades} levels={levels} onSuccess={handleSectionSuccess} preselectedGradeId={preselectedGradeForSection || ""} />
       <ShiftModal isOpen={showShiftModal} onClose={() => { setShowShiftModal(false); setEditingShift(null); }} token={token} shift={editingShift} onSuccess={handleShiftSuccess} />
       <PeriodModal isOpen={showPeriodModal} onClose={() => { setShowPeriodModal(false); setEditingPeriod(null); }} token={token} period={editingPeriod} onSuccess={handlePeriodSuccess} />
       
