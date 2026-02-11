@@ -573,21 +573,27 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [settingsRes, levelsRes, gradesRes] = await Promise.all([
+        const [settingsRes, levelsRes, gradesRes, sectionsRes, shiftsRes, periodsRes] = await Promise.all([
           axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
           axios.get(`${API}/academic/levels`, { headers }),
-          axios.get(`${API}/academic/grades`, { headers })
+          axios.get(`${API}/academic/grades`, { headers }),
+          axios.get(`${API}/academic/sections`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/academic/shifts`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/academic/periods`, { headers }).catch(() => ({ data: [] }))
         ]);
         if (settingsRes.data) setSettings(settingsRes.data);
-        setLevels(levelsRes.data);
-        setGrades(gradesRes.data);
+        setLevels(levelsRes.data || []);
+        setGrades(gradesRes.data || []);
+        setSections(sectionsRes.data || []);
+        setShifts(shiftsRes.data || []);
+        setPeriods(periodsRes.data || []);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     };
     fetchData();
   }, [token]);
 
-  // Load sections/shifts when category selected
+  // Reload data when category changes (to ensure fresh data)
   useEffect(() => {
     if (selectedCategory === "secciones") loadSections();
     if (selectedCategory === "turnos") loadShifts();
