@@ -6984,7 +6984,7 @@ async def get_academic_assignments(
         # Fetch related data
         teachers = await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(500)
         levels = await db.academic_levels.find({"id": {"$in": level_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
-        grades = await db.academic_grades.find({"id": {"$in": grade_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+        grades = await db.grades.find({"id": {"$in": grade_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         sections = await db.academic_sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(500)
         
@@ -7039,7 +7039,7 @@ async def get_assignments_by_teacher(
     # Enrich with related data
     for a in assignments:
         level = await db.academic_levels.find_one({"id": a["level_id"]}, {"_id": 0, "nombre": 1})
-        grade = await db.academic_grades.find_one({"id": a["grade_id"]}, {"_id": 0, "nombre": 1})
+        grade = await db.grades.find_one({"id": a["grade_id"]}, {"_id": 0, "nombre": 1})
         section = await db.academic_sections.find_one({"id": a["section_id"]}, {"_id": 0, "nombre": 1})
         subject = await db.subjects.find_one({"id": a["subject_id"]}, {"_id": 0, "name": 1, "code": 1, "color": 1})
         
@@ -7121,7 +7121,7 @@ async def create_academic_assignment(
         raise HTTPException(status_code=404, detail="Nivel no encontrado")
     
     # Validate grade exists and belongs to level
-    grade = await db.academic_grades.find_one({
+    grade = await db.grades.find_one({
         "id": data.grade_id,
         "school_id": school_id,
         "nivel_id": data.level_id
@@ -7232,7 +7232,7 @@ async def update_academic_assignment(
         update_data["level_id"] = data.level_id
     
     if data.grade_id is not None:
-        grade = await db.academic_grades.find_one({"id": data.grade_id, "school_id": school_id})
+        grade = await db.grades.find_one({"id": data.grade_id, "school_id": school_id})
         if not grade:
             raise HTTPException(status_code=404, detail="Grado no encontrado")
         update_data["grade_id"] = data.grade_id
