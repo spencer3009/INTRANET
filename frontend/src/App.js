@@ -406,6 +406,26 @@ function App() {
             }
           />
 
+          {/* Teacher Assignments Page - URL path mode (Spanish) */}
+          <Route
+            path="/school/:subdomain/asignacion-docente"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherAssignmentsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Teacher Assignments Page - Direct path (for subdomain mode) */}
+          <Route
+            path="/asignacion-docente"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherAssignmentsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Schedule Page - URL path mode (Spanish alias: horarios) */}
           <Route
             path="/school/:subdomain/horarios"
