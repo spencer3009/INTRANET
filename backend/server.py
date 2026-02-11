@@ -354,8 +354,18 @@ async def login(creds: UserLogin):
     Login user and return:
       - If has school_id AND school has subdomain: include subdomain for redirect
       - If no school_id OR school has no subdomain: indicate onboarding needed
+    Accepts email OR username for login.
     """
-    user = await db.users.find_one({"email": creds.email.lower()})
+    identifier = creds.email.lower().strip()
+    
+    # Try to find user by email or username
+    user = await db.users.find_one({
+        "$or": [
+            {"email": identifier},
+            {"username": identifier}
+        ]
+    })
+    
     if not user or not verify_password(creds.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     
@@ -383,6 +393,7 @@ async def login(creds: UserLogin):
         "user": {
             "id": user["id"],
             "email": user["email"],
+            "username": user.get("username"),
             "name": user["name"],
             "last_name": user.get("last_name", ""),
             "role": user["role"],
