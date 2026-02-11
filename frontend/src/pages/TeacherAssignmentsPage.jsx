@@ -676,7 +676,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
     grades: [],
     sections: [],
     subjects: [],
-    teachers: []
+    teachers: [],
+    periods: []
   });
   
   // Filters
