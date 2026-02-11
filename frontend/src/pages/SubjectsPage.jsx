@@ -649,13 +649,8 @@ function LevelsView({ levels, grades, subjects, onSelectGrade }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // GRADE SUBJECTS VIEW
 // ══════════════════════════════════════════════════════════════════════════════
-function GradeSubjectsView({ level, grade, subjects, teachers, subjectTeachers, onAddSubject, onEditSubject, onAssignTeacher, onToggleStatus, onViewCourse, levelColorIndex }) {
+function GradeSubjectsView({ level, grade, subjects, onAddSubject, onEditSubject, onToggleStatus, onViewCourse, levelColorIndex }) {
   const theme = LEVEL_THEMES[levelColorIndex % Object.keys(LEVEL_THEMES).length];
-  
-  const getTeacherForSubject = (subjectId) => {
-    const assignment = subjectTeachers[subjectId];
-    return assignment?.length > 0 ? teachers.find(t => t.id === assignment[0]) : null;
-  };
 
   return (
     <div>
@@ -695,8 +690,8 @@ function GradeSubjectsView({ level, grade, subjects, teachers, subjectTeachers, 
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
           {subjects.map(subject => (
-            <SubjectCard key={subject.id} subject={subject} teacher={getTeacherForSubject(subject.id)}
-              onEdit={() => onEditSubject(subject)} onAssignTeacher={() => onAssignTeacher(subject)} onToggleStatus={() => onToggleStatus(subject)} onViewCourse={() => onViewCourse(subject)} />
+            <SubjectCard key={subject.id} subject={subject}
+              onEdit={() => onEditSubject(subject)} onToggleStatus={() => onToggleStatus(subject)} onViewCourse={() => onViewCourse(subject)} />
           ))}
           <AddSubjectCard onClick={onAddSubject} theme={theme} />
         </div>
