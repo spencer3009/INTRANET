@@ -1946,6 +1946,212 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         type={infoModalContent.type}
         showCancel={false}
       />
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowEditModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-[#001f4b] to-[#003366] px-6 py-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/30">
+                    {editingUser.photo_url ? (
+                      <img src={editingUser.photo_url} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-white/20 flex items-center justify-center text-white text-xl font-bold">
+                        {editingUser.name?.[0] || "U"}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-white">Editar Usuario</h2>
+                    <p className="text-sm text-white/60">{editingUser.email}</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowEditModal(false)} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Nombre */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre</label>
+                  <input
+                    type="text"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                  />
+                </div>
+                {/* Apellido */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Apellido</label>
+                  <input
+                    type="text"
+                    value={editForm.last_name}
+                    onChange={(e) => setEditForm({ ...editForm, last_name: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                  />
+                </div>
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Correo electrónico</label>
+                  <input
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                  />
+                </div>
+                {/* Teléfono */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Teléfono</label>
+                  <input
+                    type="tel"
+                    value={editForm.phone}
+                    onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                  />
+                </div>
+                {/* Fecha de nacimiento */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha de nacimiento</label>
+                  <input
+                    type="date"
+                    value={editForm.birthday}
+                    onChange={(e) => setEditForm({ ...editForm, birthday: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                  />
+                </div>
+                {/* Género */}
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Género</label>
+                  <select
+                    value={editForm.gender}
+                    onChange={(e) => setEditForm({ ...editForm, gender: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                  >
+                    <option value="">Seleccionar...</option>
+                    <option value="M">Masculino</option>
+                    <option value="F">Femenino</option>
+                    <option value="O">Otro</option>
+                  </select>
+                </div>
+                {/* Dirección */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Dirección</label>
+                  <input
+                    type="text"
+                    value={editForm.address}
+                    onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                  />
+                </div>
+
+                {/* Campos específicos para estudiantes */}
+                {editingUser.role === 'student' && (
+                  <>
+                    <div className="md:col-span-2 mt-4 pt-4 border-t border-slate-200">
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <GraduationCap className="w-4 h-4" /> Información Académica
+                      </h4>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Condiciones médicas</label>
+                      <textarea
+                        value={editForm.condiciones_medicas}
+                        onChange={(e) => setEditForm({ ...editForm, condiciones_medicas: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Alergias</label>
+                      <textarea
+                        value={editForm.alergias}
+                        onChange={(e) => setEditForm({ ...editForm, alergias: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none resize-none"
+                        rows={2}
+                      />
+                    </div>
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Notas adicionales</label>
+                      <textarea
+                        value={editForm.notas}
+                        onChange={(e) => setEditForm({ ...editForm, notas: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none resize-none"
+                        rows={2}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Campos específicos para padres */}
+                {editingUser.role === 'parent' && (
+                  <>
+                    <div className="md:col-span-2 mt-4 pt-4 border-t border-slate-200">
+                      <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <FileText className="w-4 h-4" /> Información Adicional
+                      </h4>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">DNI</label>
+                      <input
+                        type="text"
+                        value={editForm.dni}
+                        onChange={(e) => setEditForm({ ...editForm, dni: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Ocupación</label>
+                      <input
+                        type="text"
+                        value={editForm.ocupacion}
+                        onChange={(e) => setEditForm({ ...editForm, ocupacion: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-slate-50 border-t flex items-center justify-between">
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl font-medium transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveEdit}
+                disabled={editLoading}
+                className="px-6 py-2.5 bg-[#001f4b] hover:bg-[#002a5c] disabled:bg-slate-300 text-white rounded-xl font-semibold flex items-center gap-2 transition-colors"
+              >
+                {editLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Guardar Cambios
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
