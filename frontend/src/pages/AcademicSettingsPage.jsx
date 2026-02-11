@@ -226,20 +226,38 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
 // ══════════════════════════════════════════════════════════════════════════════
 function SectionModal({ isOpen, onClose, token, section, grades, levels, onSuccess, preselectedGradeId }) {
   const [loading, setLoading] = useState(false);
+  const [loadingTypes, setLoadingTypes] = useState(false);
   const [error, setError] = useState("");
   const [selectedLevelId, setSelectedLevelId] = useState("");
-  const [form, setForm] = useState({ nombre: "", grado_id: "", capacidad_maxima: "", activo: true });
+  const [sectionTypes, setSectionTypes] = useState([]);
+  const [form, setForm] = useState({ section_type_id: "", grado_id: "", capacidad_maxima: "", activo: true });
   const isEdit = !!section;
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Fetch section types catalog when modal opens
+  useEffect(() => {
+    if (isOpen && token) {
+      setLoadingTypes(true);
+      axios.get(`${API}/academic/section-types`, { headers })
+        .then(res => setSectionTypes(res.data || []))
+        .catch(() => setSectionTypes([]))
+        .finally(() => setLoadingTypes(false));
+    }
+  }, [isOpen, token]);
 
   useEffect(() => {
     if (isOpen) {
       if (section) {
-        setForm({ nombre: section.nombre || "", grado_id: section.grado_id || "", capacidad_maxima: section.capacidad_maxima || "", activo: section.activo !== false });
+        setForm({ 
+          section_type_id: section.section_type_id || "", 
+          grado_id: section.grado_id || "", 
+          capacidad_maxima: section.capacidad_maxima || "", 
+          activo: section.activo !== false 
+        });
         setSelectedLevelId(section.nivel_id || "");
       } else {
         const preGrade = grades.find(g => g.id === preselectedGradeId);
-        setForm({ nombre: "", grado_id: preselectedGradeId || "", capacidad_maxima: "", activo: true });
+        setForm({ section_type_id: "", grado_id: preselectedGradeId || "", capacidad_maxima: "", activo: true });
         setSelectedLevelId(preGrade?.nivel_id || "");
       }
       setError("");
@@ -250,12 +268,19 @@ function SectionModal({ isOpen, onClose, token, section, grades, levels, onSucce
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.nombre.trim()) { setError("El nombre es obligatorio"); return; }
+    if (!form.section_type_id) { setError("Selecciona un tipo de sección"); return; }
     if (!form.grado_id) { setError("Selecciona un grado"); return; }
     setLoading(true);
     try {
-      const submitData = { ...form, capacidad_maxima: form.capacidad_maxima ? parseInt(form.capacidad_maxima) : null };
-      const res = isEdit ? await axios.put(`${API}/academic/sections/${section.id}`, submitData, { headers }) : await axios.post(`${API}/academic/sections`, submitData, { headers });
+      const submitData = { 
+        section_type_id: form.section_type_id,
+        grado_id: form.grado_id,
+        capacidad_maxima: form.capacidad_maxima ? parseInt(form.capacidad_maxima) : null,
+        activo: form.activo
+      };
+      const res = isEdit 
+        ? await axios.put(`${API}/academic/sections/${section.id}`, submitData, { headers }) 
+        : await axios.post(`${API}/academic/sections`, submitData, { headers });
       onSuccess(res.data.section, isEdit ? "update" : "create");
       onClose();
     } catch (err) { setError(err.response?.data?.detail || "Error al guardar"); }
@@ -272,13 +297,104 @@ function SectionModal({ isOpen, onClose, token, section, grades, levels, onSucce
             <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><X className="w-5 h-5" /></button>
           </div>
           <form onSubmit={handleSubmit} className="p-6">
-            {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
-            <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Filtrar por Nivel</label><select value={selectedLevelId} onChange={(e) => { setSelectedLevelId(e.target.value); setForm(p => ({ ...p, grado_id: "" })); }} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"><option value="">Todos los niveles</option>{levels.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}</select></div>
-            <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Grado <span className="text-red-500">*</span></label><select value={form.grado_id} onChange={(e) => setForm(p => ({ ...p, grado_id: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" required><option value="">Seleccionar...</option>{filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nivel_nombre} - {g.nombre}</option>)}</select></div>
-            <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Nombre <span className="text-red-500">*</span></label><input type="text" value={form.nombre} onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Ej: A, B, C" required /></div>
-            <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Capacidad máxima</label><input type="number" value={form.capacidad_maxima} onChange={(e) => setForm(p => ({ ...p, capacidad_maxima: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Ej: 30" min={1} /><p className="text-xs text-slate-500 mt-1">Opcional - Cantidad máxima de estudiantes</p></div>
-            <div className="mb-6 flex items-center justify-between p-4 bg-slate-50 rounded-xl"><div><p className="font-semibold text-slate-700">Estado</p><p className="text-sm text-slate-500">{form.activo ? "Activa" : "Inactiva"}</p></div><button type="button" onClick={() => setForm(p => ({ ...p, activo: !p.activo }))} className={`relative w-14 h-8 rounded-full transition-colors ${form.activo ? "bg-purple-500" : "bg-slate-300"}`}><span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${form.activo ? "left-7" : "left-1"}`} /></button></div>
-            <div className="flex gap-3"><button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancelar</button><button type="submit" disabled={loading} className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2">{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}{isEdit ? "Guardar" : "Crear"}</button></div>
+            {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
+            
+            {/* Filter by Level */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Filtrar por Nivel</label>
+              <select 
+                value={selectedLevelId} 
+                onChange={(e) => { setSelectedLevelId(e.target.value); setForm(p => ({ ...p, grado_id: "" })); }} 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value="">Todos los niveles</option>
+                {levels.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            </div>
+            
+            {/* Grade selector */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Grado <span className="text-red-500">*</span></label>
+              <select 
+                value={form.grado_id} 
+                onChange={(e) => setForm(p => ({ ...p, grado_id: e.target.value }))} 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                required
+              >
+                <option value="">Seleccionar grado...</option>
+                {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nivel_nombre} - {g.nombre}</option>)}
+              </select>
+            </div>
+            
+            {/* Section Type selector (NEW - replaces text input) */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Tipo de Sección <span className="text-red-500">*</span>
+              </label>
+              {loadingTypes ? (
+                <div className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center gap-2 text-slate-500">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Cargando tipos...</span>
+                </div>
+              ) : (
+                <select 
+                  value={form.section_type_id} 
+                  onChange={(e) => setForm(p => ({ ...p, section_type_id: e.target.value }))} 
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                  required
+                  data-testid="section-type-select"
+                >
+                  <option value="">Seleccionar tipo...</option>
+                  {sectionTypes.filter(t => t.activo).map(t => (
+                    <option key={t.id} value={t.id}>{t.label}</option>
+                  ))}
+                </select>
+              )}
+              <p className="text-xs text-slate-500 mt-1">Ej: A, B, C, ÚNICA (del catálogo centralizado)</p>
+            </div>
+            
+            {/* Capacity */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Capacidad máxima</label>
+              <input 
+                type="number" 
+                value={form.capacidad_maxima} 
+                onChange={(e) => setForm(p => ({ ...p, capacidad_maxima: e.target.value }))} 
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500" 
+                placeholder="Ej: 30" 
+                min={1} 
+              />
+              <p className="text-xs text-slate-500 mt-1">Opcional - Cantidad máxima de estudiantes</p>
+            </div>
+            
+            {/* Status toggle */}
+            <div className="mb-6 flex items-center justify-between p-4 bg-slate-50 rounded-xl">
+              <div>
+                <p className="font-semibold text-slate-700">Estado</p>
+                <p className="text-sm text-slate-500">{form.activo ? "Activa" : "Inactiva"}</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setForm(p => ({ ...p, activo: !p.activo }))} 
+                className={`relative w-14 h-8 rounded-full transition-colors ${form.activo ? "bg-purple-500" : "bg-slate-300"}`}
+              >
+                <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${form.activo ? "left-7" : "left-1"}`} />
+              </button>
+            </div>
+            
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors">Cancelar</button>
+              <button 
+                type="submit" 
+                disabled={loading || loadingTypes} 
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+                data-testid="section-modal-submit"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+                {isEdit ? "Guardar" : "Crear"}
+              </button>
+            </div>
           </form>
         </div>
       </div>
