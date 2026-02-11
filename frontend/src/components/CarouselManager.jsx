@@ -510,7 +510,7 @@ export default function CarouselManager({ token }) {
         }}
         imageFile={selectedFile}
         onCropComplete={handleCropComplete}
-        cloudinaryConfig={cloudinaryConfig}
+        token={token}
       />
     </div>
   );
