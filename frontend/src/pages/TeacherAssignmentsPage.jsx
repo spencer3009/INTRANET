@@ -616,8 +616,9 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
 // ══════════════════════════════════════════════════════════════════════════════
 export default function TeacherAssignmentsPage({ user, onLogout }) {
   const navigate = useNavigate();
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [settings, setSettings] = useState(null);
   const [assignments, setAssignments] = useState([]);
   const [teachersSummary, setTeachersSummary] = useState([]);
   
@@ -648,6 +649,19 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
   const token = localStorage.getItem("token");
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = user?.subdomain;
+  
+  // Load settings on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await axios.get(`${API}/settings`, { headers });
+        setSettings(res.data);
+      } catch (err) {
+        console.error("Error loading settings:", err);
+      }
+    };
+    loadSettings();
+  }, []);
   
   // Fetch all data
   const fetchData = async () => {
