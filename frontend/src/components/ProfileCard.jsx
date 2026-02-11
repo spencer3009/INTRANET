@@ -18,32 +18,32 @@ function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
   );
 }
 
-// Get display role in Spanish
+// Get display role in Spanish - CENTRALIZED ROLE MAP
+const ROLE_DISPLAY_MAP = {
+  owner: { label: "PROPIETARIO", colors: "bg-amber-100 text-amber-700 border-amber-200" },
+  super_admin: { label: "SUPER ADMIN", colors: "bg-purple-100 text-purple-700 border-purple-200" },
+  director: { label: "DIRECTOR", colors: "bg-indigo-100 text-indigo-700 border-indigo-200" },
+  admin: { label: "ADMINISTRADOR", colors: "bg-blue-100 text-blue-700 border-blue-200" },
+  teacher: { label: "PROFESOR", colors: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  student: { label: "ALUMNO", colors: "bg-cyan-100 text-cyan-700 border-cyan-200" },
+  parent: { label: "PADRE", colors: "bg-orange-100 text-orange-700 border-orange-200" },
+  profesor: { label: "PROFESOR", colors: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+  alumno: { label: "ALUMNO", colors: "bg-cyan-100 text-cyan-700 border-cyan-200" },
+};
+
 function getRoleDisplay(role, isOwner, isSuperAdmin) {
-  if (isOwner) return "PROPIETARIO";
-  if (isSuperAdmin) return "SUPER ADMIN";
-  const roles = {
-    director: "DIRECTOR",
-    admin: "ADMINISTRADOR",
-    teacher: "PROFESOR",
-    student: "ALUMNO",
-    parent: "PADRE"
-  };
-  return roles[role]?.toUpperCase() || role?.toUpperCase() || "USUARIO";
+  // Priority: is_owner flag > is_super_admin flag > role string
+  if (isOwner || role === "owner") return ROLE_DISPLAY_MAP.owner.label;
+  if (isSuperAdmin || role === "super_admin") return ROLE_DISPLAY_MAP.super_admin.label;
+  return ROLE_DISPLAY_MAP[role]?.label || role?.toUpperCase() || "USUARIO";
 }
 
 // Get role badge colors
 function getRoleBadgeColors(role, isOwner, isSuperAdmin) {
-  if (isOwner) return "bg-amber-100 text-amber-700 border-amber-200";
-  if (isSuperAdmin) return "bg-purple-100 text-purple-700 border-purple-200";
-  const colors = {
-    director: "bg-indigo-100 text-indigo-700 border-indigo-200",
-    admin: "bg-blue-100 text-blue-700 border-blue-200",
-    teacher: "bg-emerald-100 text-emerald-700 border-emerald-200",
-    student: "bg-cyan-100 text-cyan-700 border-cyan-200",
-    parent: "bg-orange-100 text-orange-700 border-orange-200"
-  };
-  return colors[role] || "bg-slate-100 text-slate-600 border-slate-200";
+  // Priority: is_owner flag > is_super_admin flag > role string
+  if (isOwner || role === "owner") return ROLE_DISPLAY_MAP.owner.colors;
+  if (isSuperAdmin || role === "super_admin") return ROLE_DISPLAY_MAP.super_admin.colors;
+  return ROLE_DISPLAY_MAP[role]?.colors || "bg-slate-100 text-slate-600 border-slate-200";
 }
 
 export default function ProfileCard({ user, stats }) {
