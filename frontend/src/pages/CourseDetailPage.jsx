@@ -1078,21 +1078,22 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         console.log("Could not load students");
       }
       
-      // Load academic period (active one or latest)
+      // Get the school year from academic assignments for this subject
       try {
-        const periodsRes = await axios.get(`${API}/academic/periods`, { headers });
-        const activePeriod = periodsRes.data.find(p => p.activo);
-        if (activePeriod) {
-          setAcademicPeriodName(activePeriod.nombre);
-        } else if (periodsRes.data.length > 0) {
-          // Use the first period if none is active (sorted by date)
-          const sortedPeriods = periodsRes.data.sort((a, b) => 
-            new Date(b.fecha_inicio) - new Date(a.fecha_inicio)
-          );
-          setAcademicPeriodName(sortedPeriods[0].nombre || `${new Date().getFullYear()}`);
+        const assignmentsRes = await axios.get(`${API}/academic/assignments`, { headers });
+        const subjectAssignment = assignmentsRes.data.find(a => a.subject_id === subjectId && a.status === "activo");
+        if (subjectAssignment && subjectAssignment.school_year) {
+          setAcademicPeriodName(`Año Escolar ${subjectAssignment.school_year}`);
         } else {
-          // Fallback to current year
-          setAcademicPeriodName(`${new Date().getFullYear()}`);
+          // Fallback: try to get from periods
+          const periodsRes = await axios.get(`${API}/academic/periods`, { headers });
+          const activePeriod = periodsRes.data.find(p => p.activo);
+          if (activePeriod) {
+            setAcademicPeriodName(activePeriod.nombre);
+          } else {
+            // Use current year as fallback
+            setAcademicPeriodName(`${new Date().getFullYear()}`);
+          }
         }
       } catch (e) {
         setAcademicPeriodName(`${new Date().getFullYear()}`);
