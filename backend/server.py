@@ -96,6 +96,15 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(r
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token inválido")
 
+def is_admin_user(user: dict) -> bool:
+    """
+    Check if user has admin privileges.
+    Returns True if user is owner, super_admin, or has admin/director role.
+    """
+    if user.get("is_owner") or user.get("is_super_admin"):
+        return True
+    return user.get("role") in ["owner", "admin", "director"]
+
 # ══════════════════════════════════════════════════════════════════════════════
 # MULTI-TENANT HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
