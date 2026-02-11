@@ -6630,6 +6630,151 @@ async def remove_subject_teacher(subject_id: str, teacher_id: str, current_user 
     return {"message": "Profesor desasignado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# DASHBOARD BANNERS (CAROUSEL)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class BannerCreate(BaseModel):
+    image_url: str
+    order: Optional[int] = 0
+    active: Optional[bool] = True
+
+class BannerUpdate(BaseModel):
+    order: Optional[int] = None
+    active: Optional[bool] = None
+
+class BannerReorder(BaseModel):
+    banner_ids: List[str]
+
+@api_router.get("/dashboard/banners")
+async def get_dashboard_banners(current_user = Depends(get_current_user)):
+    """Get all dashboard banners for the current tenant"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    banners = await db.dashboard_banners.find(
+        {"school_id": user["school_id"]},
+        {"_id": 0}
+    ).sort("order", 1).to_list(50)
+    
+    return banners
+
+@api_router.get("/dashboard/banners/active")
+async def get_active_dashboard_banners(current_user = Depends(get_current_user)):
+    """Get only active dashboard banners for display"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    banners = await db.dashboard_banners.find(
+        {"school_id": user["school_id"], "active": True},
+        {"_id": 0}
+    ).sort("order", 1).to_list(50)
+    
+    return banners
+
+@api_router.post("/dashboard/banners")
+async def create_dashboard_banner(data: BannerCreate, current_user = Depends(get_current_user)):
+    """Create a new dashboard banner - only for owners/super admins"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Check if user is owner or super_admin
+    if not (user.get("is_owner") or user.get("is_super_admin") or user.get("role") in ["owner", "super_admin", "director"]):
+        raise HTTPException(status_code=403, detail="Solo el propietario puede administrar el carrusel")
+    
+    school_id = user["school_id"]
+    
+    # Get current max order
+    max_order_banner = await db.dashboard_banners.find_one(
+        {"school_id": school_id},
+        sort=[("order", -1)]
+    )
+    next_order = (max_order_banner.get("order", 0) + 1) if max_order_banner else 0
+    
+    banner_id = str(uuid.uuid4())
+    banner_doc = {
+        "id": banner_id,
+        "school_id": school_id,
+        "image_url": data.image_url,
+        "order": data.order if data.order > 0 else next_order,
+        "active": data.active,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"]
+    }
+    
+    await db.dashboard_banners.insert_one(banner_doc)
+    
+    logger.info(f"Dashboard banner created: {banner_id} for school {school_id}")
+    
+    return {"message": "Banner creado correctamente", "banner": {k: v for k, v in banner_doc.items() if k != "_id"}}
+
+@api_router.put("/dashboard/banners/{banner_id}")
+async def update_dashboard_banner(banner_id: str, data: BannerUpdate, current_user = Depends(get_current_user)):
+    """Update a dashboard banner"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not (user.get("is_owner") or user.get("is_super_admin") or user.get("role") in ["owner", "super_admin", "director"]):
+        raise HTTPException(status_code=403, detail="Solo el propietario puede administrar el carrusel")
+    
+    banner = await db.dashboard_banners.find_one({"id": banner_id, "school_id": user["school_id"]})
+    if not banner:
+        raise HTTPException(status_code=404, detail="Banner no encontrado")
+    
+    update_data = {}
+    if data.order is not None:
+        update_data["order"] = data.order
+    if data.active is not None:
+        update_data["active"] = data.active
+    
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.dashboard_banners.update_one({"id": banner_id}, {"$set": update_data})
+    
+    return {"message": "Banner actualizado correctamente"}
+
+@api_router.put("/dashboard/banners/reorder")
+async def reorder_dashboard_banners(data: BannerReorder, current_user = Depends(get_current_user)):
+    """Reorder dashboard banners"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not (user.get("is_owner") or user.get("is_super_admin") or user.get("role") in ["owner", "super_admin", "director"]):
+        raise HTTPException(status_code=403, detail="Solo el propietario puede administrar el carrusel")
+    
+    # Update order for each banner
+    for index, banner_id in enumerate(data.banner_ids):
+        await db.dashboard_banners.update_one(
+            {"id": banner_id, "school_id": user["school_id"]},
+            {"$set": {"order": index, "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    return {"message": "Orden actualizado correctamente"}
+
+@api_router.delete("/dashboard/banners/{banner_id}")
+async def delete_dashboard_banner(banner_id: str, current_user = Depends(get_current_user)):
+    """Delete a dashboard banner"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not (user.get("is_owner") or user.get("is_super_admin") or user.get("role") in ["owner", "super_admin", "director"]):
+        raise HTTPException(status_code=403, detail="Solo el propietario puede administrar el carrusel")
+    
+    result = await db.dashboard_banners.delete_one({"id": banner_id, "school_id": user["school_id"]})
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Banner no encontrado")
+    
+    logger.info(f"Dashboard banner deleted: {banner_id}")
+    
+    return {"message": "Banner eliminado correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
