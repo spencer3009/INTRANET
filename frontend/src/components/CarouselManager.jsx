@@ -4,7 +4,7 @@ import "react-image-crop/dist/ReactCrop.css";
 import axios from "axios";
 import { 
   Image, Plus, Trash2, GripVertical, Eye, EyeOff, X, 
-  Upload, Crop, Check, Loader2, AlertCircle, Move
+  Upload, Crop, Check, Loader2, AlertCircle, Move, Pencil
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
