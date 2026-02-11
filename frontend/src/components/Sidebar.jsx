@@ -21,6 +21,7 @@ import {
 const navItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users" },
+  { id: "anos-academicos", label: "Años Académicos", icon: Calendar, route: "/anos-academicos" },
   { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings" },
   { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas" },
   { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente" },
