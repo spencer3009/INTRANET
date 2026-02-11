@@ -1456,7 +1456,7 @@ async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["director", "admin"] and not user.get("is_super_admin"):
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar usuarios")
     
     # Cannot delete yourself
