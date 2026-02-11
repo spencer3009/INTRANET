@@ -2238,7 +2238,7 @@ async def create_section_type(
 # NOTE: /reorder must be defined BEFORE /{type_id} to avoid route matching issues
 @api_router.put("/academic/section-types/reorder")
 async def reorder_section_types(
-    order: List[str] = Body(..., description="List of section type IDs in desired order"),
+    order: List[str] = Body(..., embed=True, description="List of section type IDs in desired order"),
     current_user = Depends(get_current_user)
 ):
     """Reorder section types (admin only)"""
