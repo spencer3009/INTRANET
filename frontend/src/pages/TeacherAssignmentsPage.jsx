@@ -828,7 +828,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
       section_id: "",
       subject_id: "",
       teacher_id: "",
-      school_year: ""
+      period_id: ""
     });
   };
   
