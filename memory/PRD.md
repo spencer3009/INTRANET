@@ -211,6 +211,17 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
    - Compatibilidad hacia atrás: auto-asigna `section_type_id` a secciones existentes
    - Frontend: `SectionModal` ahora usa dropdown del catálogo en lugar de input de texto
 
+2. ✅ **Pantalla de Administración del Catálogo** - COMPLETADO
+   - Modal "Administrar Tipos de Sección" accesible desde Ajustes Académicos → Secciones
+   - Funcionalidades: ver tipos, agregar nuevos, editar etiqueta, desactivar, reordenar
+   - Endpoints: PUT /api/academic/section-types/{id}, PUT /api/academic/section-types/reorder, DELETE (soft-delete)
+   - Validación: no permite desactivar tipos en uso por secciones existentes
+
+3. ✅ **Bug Fix: Profesores asignados no visibles en Asignaturas** - COMPLETADO
+   - Problema: La página de Asignaturas siempre mostraba "Sin asignar" aunque hubiera asignaciones en academic_assignments
+   - Solución: Modificado GET /api/academic/subjects para consultar academic_assignments y devolver primary_teacher
+   - Frontend: SubjectsPage.jsx ahora muestra el profesor asignado con avatar y rol (Titular/Auxiliar)
+
 ### Sesión anterior:
 1. Implementado módulo completo "Asignación Docente"
 2. Eliminado campo "Profesor" del formulario de asignaturas
