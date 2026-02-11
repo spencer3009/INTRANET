@@ -356,6 +356,38 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
                   
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      <AtSign className="w-4 h-4 inline mr-1" />
+                      Nombre de Usuario
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={profile.username}
+                        onChange={(e) => setProfile(p => ({ ...p, username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') }))}
+                        className={`w-full px-4 py-3 pr-12 border rounded-xl focus:outline-none focus:ring-2 focus:border-transparent ${
+                          usernameStatus === 'available' ? 'border-emerald-300 focus:ring-emerald-500' :
+                          usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'border-red-300 focus:ring-red-500' :
+                          'border-gray-200 focus:ring-indigo-500'
+                        }`}
+                        placeholder="mi_usuario"
+                      />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        {usernameStatus === 'checking' && <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />}
+                        {usernameStatus === 'available' && <Check className="w-5 h-5 text-emerald-500" />}
+                        {(usernameStatus === 'taken' || usernameStatus === 'invalid') && <X className="w-5 h-5 text-red-500" />}
+                      </div>
+                    </div>
+                    <p className={`text-xs mt-1 ${
+                      usernameStatus === 'available' ? 'text-emerald-600' :
+                      usernameStatus === 'taken' || usernameStatus === 'invalid' ? 'text-red-600' :
+                      'text-gray-400'
+                    }`}>
+                      {usernameMessage || "Puedes usar este nombre para iniciar sesión"}
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       <Mail className="w-4 h-4 inline mr-1" />
                       Email
                     </label>
