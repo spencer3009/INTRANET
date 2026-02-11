@@ -6713,17 +6713,40 @@ async def get_subjects(
     levels = {l["id"]: l["nombre"] for l in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)}
     grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(200)}
     
+    # Get all users (teachers) for assignment lookup
+    users_cache = {u["id"]: u for u in await db.users.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "profile_image": 1}).to_list(500)}
+    
     for subject in subjects:
         subject["level_name"] = levels.get(subject.get("level_id"), "")
         grade = grades.get(subject.get("grade_id"))
         subject["grade_name"] = grade.get("nombre", "") if grade else "Todos"
         
-        # Get teacher count
-        teacher_count = await db.subject_teachers.count_documents({
+        # Get assigned teachers from academic_assignments (the new architecture)
+        assignments = await db.academic_assignments.find({
             "school_id": school_id,
-            "subject_id": subject["id"]
-        })
-        subject["teacher_count"] = teacher_count
+            "subject_id": subject["id"],
+            "status": "activo"
+        }, {"_id": 0, "teacher_id": 1, "role": 1}).to_list(10)
+        
+        subject["teacher_count"] = len(assignments)
+        subject["assigned_teachers"] = []
+        
+        for assignment in assignments:
+            teacher = users_cache.get(assignment.get("teacher_id"))
+            if teacher:
+                subject["assigned_teachers"].append({
+                    "id": teacher["id"],
+                    "name": teacher["name"],
+                    "profile_image": teacher.get("profile_image"),
+                    "role": assignment.get("role", "titular")
+                })
+        
+        # Set primary teacher (first titular, or first if no titular)
+        if subject["assigned_teachers"]:
+            titular = next((t for t in subject["assigned_teachers"] if t.get("role") == "titular"), None)
+            subject["primary_teacher"] = titular or subject["assigned_teachers"][0]
+        else:
+            subject["primary_teacher"] = None
     
     return subjects
 
