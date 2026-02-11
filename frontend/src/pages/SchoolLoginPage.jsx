@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import { Eye, EyeOff, Lock, Mail, GraduationCap, ArrowLeft, Building2, Loader2 } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, GraduationCap, ArrowLeft, Building2, Loader2, AtSign } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
