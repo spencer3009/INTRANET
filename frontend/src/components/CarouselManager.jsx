@@ -171,55 +171,118 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <Crop className="w-5 h-5 text-white" />
+                {step === 1 ? <Crop className="w-5 h-5 text-white" /> : <Image className="w-5 h-5 text-white" />}
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Recortar Imagen</h2>
-                <p className="text-xs text-white/60">Ajusta el área visible del banner (16:9)</p>
+                <h2 className="text-lg font-bold text-white">
+                  {step === 1 ? "Paso 1: Recortar Imagen" : "Paso 2: Agregar Texto"}
+                </h2>
+                <p className="text-xs text-white/60">
+                  {step === 1 ? "Ajusta el área visible del banner (16:9)" : "Título y descripción del banner"}
+                </p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-3">
+              {/* Step indicators */}
+              <div className="flex items-center gap-2">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= 1 ? 'bg-[#e1b82c] text-[#001f4b]' : 'bg-white/20 text-white/60'}`}>1</div>
+                <div className="w-6 h-0.5 bg-white/30" />
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step >= 2 ? 'bg-[#e1b82c] text-[#001f4b]' : 'bg-white/20 text-white/60'}`}>2</div>
+              </div>
+              <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl ml-2">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Content */}
         <div className="p-6">
-          {/* Instructions */}
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 flex items-start gap-3">
-            <Move className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-            <div>
-              <p className="text-sm text-blue-800 font-medium">Arrastra para ajustar el área visible</p>
-              <p className="text-xs text-blue-600 mt-1">La imagen se recortará en formato horizontal (16:9) para el carrusel</p>
-            </div>
-          </div>
-
-          {/* Crop Area */}
-          <div className="bg-slate-100 rounded-xl p-4 flex items-center justify-center min-h-[300px] max-h-[400px] overflow-auto">
-            {imgSrc ? (
-              <ReactCrop
-                crop={crop}
-                onChange={(c) => setCrop(c)}
-                onComplete={(c) => setCompletedCrop(c)}
-                aspect={16 / 9}
-                className="max-w-full"
-              >
-                <img
-                  ref={imgRef}
-                  src={imgSrc}
-                  alt="Crop preview"
-                  onLoad={onImageLoad}
-                  className="max-h-[350px] w-auto"
-                />
-              </ReactCrop>
-            ) : (
-              <div className="text-slate-400 flex flex-col items-center">
-                <Loader2 className="w-8 h-8 animate-spin mb-2" />
-                <p>Cargando imagen...</p>
+          {step === 1 ? (
+            <>
+              {/* Instructions */}
+              <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+                <Move className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm text-blue-800 font-medium">Arrastra para ajustar el área visible</p>
+                  <p className="text-xs text-blue-600 mt-1">La imagen se recortará en formato horizontal (16:9) para el carrusel</p>
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Crop Area */}
+              <div className="bg-slate-100 rounded-xl p-4 flex items-center justify-center min-h-[300px] max-h-[400px] overflow-auto">
+                {imgSrc ? (
+                  <ReactCrop
+                    crop={crop}
+                    onChange={(c) => setCrop(c)}
+                    onComplete={(c) => setCompletedCrop(c)}
+                    aspect={16 / 9}
+                    className="max-w-full"
+                  >
+                    <img
+                      ref={imgRef}
+                      src={imgSrc}
+                      alt="Crop preview"
+                      onLoad={onImageLoad}
+                      className="max-h-[350px] w-auto"
+                    />
+                  </ReactCrop>
+                ) : (
+                  <div className="text-slate-400 flex flex-col items-center">
+                    <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                    <p>Cargando imagen...</p>
+                  </div>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Preview with text overlay */}
+              <div className="relative rounded-xl overflow-hidden mb-6">
+                <img src={croppedImageUrl} alt="Banner preview" className="w-full h-48 object-cover" />
+                <div className="absolute inset-0 bg-gradient-to-r from-[#001f4b]/90 via-[#001f4b]/60 to-transparent" />
+                <div className="absolute inset-0 flex items-center p-6">
+                  <div className="max-w-[50%]">
+                    <h3 className="text-xl font-bold text-white mb-2">{title || "Título del banner"}</h3>
+                    <p className="text-sm text-white/80">{description || "Descripción del banner..."}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Text inputs */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Título <span className="text-slate-400 font-normal">({title.length}/{MAX_TITLE})</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
+                    placeholder="Ej: Bienvenidos al año escolar 2026"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none transition-all"
+                    maxLength={MAX_TITLE}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Descripción <span className="text-slate-400 font-normal">({description.length}/{MAX_DESC})</span>
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESC))}
+                    placeholder="Ej: Conoce las novedades de este nuevo ciclo escolar"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none transition-all resize-none"
+                    rows={2}
+                    maxLength={MAX_DESC}
+                  />
+                </div>
+                <p className="text-xs text-slate-400">
+                  💡 El texto ocupará aproximadamente la mitad izquierda del banner
+                </p>
+              </div>
+            </>
+          )}
 
           {/* Error */}
           {error && (
@@ -233,28 +296,37 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
         {/* Footer */}
         <div className="px-6 py-4 bg-slate-50 border-t flex items-center justify-between">
           <button
-            onClick={onClose}
+            onClick={step === 1 ? onClose : () => setStep(1)}
             className="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl font-medium transition-colors"
           >
-            Cancelar
+            {step === 1 ? "Cancelar" : "← Volver"}
           </button>
-          <button
-            onClick={handleUpload}
-            disabled={uploading || !completedCrop}
-            className="px-6 py-2.5 bg-[#001f4b] hover:bg-[#002a5c] disabled:bg-slate-300 text-white rounded-xl font-semibold flex items-center gap-2 transition-colors"
-          >
-            {uploading ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Subiendo...
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                Guardar Banner
-              </>
-            )}
-          </button>
+          {step === 1 ? (
+            <button
+              onClick={handleUploadImage}
+              disabled={uploading || !completedCrop}
+              className="px-6 py-2.5 bg-[#001f4b] hover:bg-[#002a5c] disabled:bg-slate-300 text-white rounded-xl font-semibold flex items-center gap-2 transition-colors"
+            >
+              {uploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Subiendo...
+                </>
+              ) : (
+                <>
+                  Siguiente →
+                </>
+              )}
+            </button>
+          ) : (
+            <button
+              onClick={handleSaveBanner}
+              className="px-6 py-2.5 bg-[#e1b82c] hover:bg-[#c9a526] text-[#001f4b] rounded-xl font-bold flex items-center gap-2 transition-colors"
+            >
+              <Check className="w-4 h-4" />
+              Guardar Banner
+            </button>
+          )}
         </div>
       </div>
     </div>
