@@ -80,9 +80,9 @@ export default function HeroCarousel({ banners = [], user, schoolName }) {
           </div>
         ))}
         
-        {/* Content Overlay */}
+        {/* Content Overlay - Dynamic based on current banner */}
         <div className="absolute inset-0 z-20 flex items-center">
-          <div className="px-6 md:px-10 lg:px-12 max-w-2xl">
+          <div className="px-6 md:px-10 lg:px-12 w-1/2">
             <p className="text-white/80 text-sm md:text-base font-medium mb-1">
               {getGreeting()}, {user?.name?.split(" ")[0] || "Usuario"}
             </p>
@@ -90,10 +90,10 @@ export default function HeroCarousel({ banners = [], user, schoolName }) {
               className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3"
               style={{ fontFamily: "Manrope, sans-serif" }}
             >
-              Bienvenidos a la Intranet
+              {activeBanners[currentIndex]?.title || "Bienvenidos a la Intranet"}
             </h1>
-            <p className="text-white/70 text-sm md:text-base max-w-md">
-              {schoolName || "Sistema de gestión educativa"} • Plataforma integral para la comunidad educativa
+            <p className="text-white/70 text-sm md:text-base">
+              {activeBanners[currentIndex]?.description || `${schoolName || "Sistema de gestión educativa"} • Plataforma integral para la comunidad educativa`}
             </p>
           </div>
         </div>
