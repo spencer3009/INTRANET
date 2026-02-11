@@ -8,7 +8,8 @@ import {
   BookMarked, GraduationCap, Calendar, Clock,
   Plus, Pencil, Trash2, MoreVertical, Loader2, Check, X,
   BookOpen, Users, ChevronRight, ArrowLeft, Camera,
-  AlertCircle, Layers, Play, CalendarDays
+  AlertCircle, Layers, Play, CalendarDays, Settings, GripVertical,
+  ChevronUp, ChevronDown
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
