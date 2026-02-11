@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import DashboardHeader from "../components/DashboardHeader";
 import { 
   Newspaper, Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
   Eye, Clock, Pin, PinOff, Archive, Send, MoreHorizontal, Image,
