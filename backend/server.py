@@ -2263,7 +2263,8 @@ async def get_sections(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    query = {"school_id": user["school_id"]}
+    school_id = user["school_id"]
+    query = {"school_id": school_id}
     if grado_id:
         query["grado_id"] = grado_id
     if activo is not None:
@@ -2272,7 +2273,7 @@ async def get_sections(
     # If filtering by nivel_id, first get all grades of that level
     if nivel_id:
         grades_in_level = await db.grades.find(
-            {"school_id": user["school_id"], "nivel_id": nivel_id},
+            {"school_id": school_id, "nivel_id": nivel_id},
             {"id": 1}
         ).to_list(100)
         grade_ids = [g["id"] for g in grades_in_level]
@@ -2280,10 +2281,28 @@ async def get_sections(
     
     sections = await db.sections.find(query, {"_id": 0}).sort("nombre", 1).to_list(500)
     
+    # Load section types for mapping (for backward compatibility)
+    section_types = await db.section_types.find({"school_id": school_id}, {"_id": 0}).to_list(50)
+    section_types_by_key = {st["key"]: st for st in section_types}
+    section_types_by_label = {st["label"]: st for st in section_types}
+    
     # Add grade and level info for each section
     grades_cache = {}
     levels_cache = {}
     for section in sections:
+        # Backward compatibility: assign section_type_id if not present
+        if not section.get("section_type_id") and section.get("nombre"):
+            # Try to match by key (uppercase) first, then by label
+            nombre_upper = section["nombre"].upper().replace("ÚNICA", "UNICA")
+            matched_type = section_types_by_key.get(nombre_upper) or section_types_by_label.get(section["nombre"])
+            if matched_type:
+                section["section_type_id"] = matched_type["id"]
+                # Update the record in DB for future requests
+                await db.sections.update_one(
+                    {"id": section["id"]},
+                    {"$set": {"section_type_id": matched_type["id"]}}
+                )
+        
         # Get grade info
         if section["grado_id"] not in grades_cache:
             grade = await db.grades.find_one({"id": section["grado_id"]}, {"_id": 0, "nombre": 1, "nivel_id": 1})
