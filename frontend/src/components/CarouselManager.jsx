@@ -587,6 +587,23 @@ export default function CarouselManager({ token }) {
     }
   };
 
+  // Edit banner
+  const handleEdit = (banner) => {
+    setEditingBanner(banner);
+    setShowEditModal(true);
+  };
+
+  // Save edited banner
+  const handleEditSave = async (bannerId, title, description) => {
+    try {
+      await axios.put(`${API}/dashboard/banners/${bannerId}`, { title, description }, { headers });
+      setBanners(prev => prev.map(b => b.id === bannerId ? { ...b, title, description } : b));
+    } catch (err) {
+      console.error("Error updating banner:", err);
+      alert(err.response?.data?.detail || "Error al actualizar el banner");
+    }
+  };
+
   // Toggle banner active state
   const handleToggle = async (bannerId, active) => {
     try {
