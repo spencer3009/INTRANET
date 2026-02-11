@@ -750,11 +750,10 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
           {!selectedGrade ? (
             <LevelsView levels={levels} grades={grades} subjects={subjects} onSelectGrade={handleSelectGrade} />
           ) : (
-            <GradeSubjectsView level={selectedLevel} grade={selectedGrade} subjects={gradeSubjects} teachers={teachers}
-              subjectTeachers={subjectTeachers} levelColorIndex={levelColorIndex}
+            <GradeSubjectsView level={selectedLevel} grade={selectedGrade} subjects={gradeSubjects}
+              levelColorIndex={levelColorIndex}
               onAddSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}
-              onEditSubject={(s) => { setEditingSubject({ ...s, teacher_id: subjectTeachers[s.id]?.[0] || "" }); setShowSubjectModal(true); }}
-              onAssignTeacher={(s) => { setSelectedSubjectForTeacher(s); setShowTeacherModal(true); }}
+              onEditSubject={(s) => { setEditingSubject(s); setShowSubjectModal(true); }}
               onToggleStatus={handleToggleStatus}
               onViewCourse={handleViewCourse} />
           )}
@@ -764,9 +763,6 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       <SubjectFormModal isOpen={showSubjectModal} onClose={() => { setShowSubjectModal(false); setEditingSubject(null); }}
         subject={editingSubject} onSave={handleSaveSubject} levels={levels} grades={grades}
         preselectedLevel={selectedLevel?.id} preselectedGrade={selectedGrade?.id} />
-      <TeacherAssignModal isOpen={showTeacherModal} onClose={() => { setShowTeacherModal(false); setSelectedSubjectForTeacher(null); }}
-        subject={selectedSubjectForTeacher} teachers={teachers}
-        currentTeacherId={selectedSubjectForTeacher ? (subjectTeachers[selectedSubjectForTeacher.id]?.[0] || "") : ""} onSave={handleAssignTeacher} />
     </div>
   );
 }
