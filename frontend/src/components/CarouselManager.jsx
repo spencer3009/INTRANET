@@ -325,7 +325,8 @@ export default function CarouselManager({ token }) {
     }
   };
 
-  useState(() => {
+  // FIXED: use useEffect instead of useState
+  useEffect(() => {
     loadBanners();
   }, []);
 
