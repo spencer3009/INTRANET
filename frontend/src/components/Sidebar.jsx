@@ -17,6 +17,7 @@ import {
   Newspaper,
   Landmark,
   User,
+  UserCheck,
 } from "lucide-react";
 
 const navItems = [
@@ -24,6 +25,7 @@ const navItems = [
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users" },
   { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings" },
   { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas" },
+  { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente" },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias" },
   { id: "calendario", label: "Calendario", icon: CalendarDays, route: "/calendario" },
