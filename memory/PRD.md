@@ -100,7 +100,7 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 
 ## Colecciones MongoDB
 
-### academic_assignments (NUEVA)
+### academic_assignments
 ```json
 {
   "id": "uuid",
@@ -115,6 +115,34 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
   "status": "activo|inactivo",
   "created_at": "ISO datetime",
   "created_by": "uuid"
+}
+```
+
+### section_types (NUEVA - 2025-02-11)
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "key": "A",           // valor normalizado (UNICA, A, B, etc.)
+  "label": "A",         // valor visible (ÚNICA, A, B, etc.)
+  "orden": 1,           // orden de aparición en dropdowns
+  "activo": true,
+  "created_at": "ISO datetime"
+}
+```
+
+### sections (MODIFICADA)
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "section_type_id": "uuid",  // NUEVO - referencia a section_types
+  "nombre": "A",              // derivado del section_type.label
+  "grado_id": "uuid",
+  "capacidad_maxima": 30,
+  "activo": true,
+  "created_at": "ISO datetime",
+  "updated_at": "ISO datetime"
 }
 ```
 
