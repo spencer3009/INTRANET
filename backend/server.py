@@ -944,23 +944,34 @@ async def require_school(current_user=Depends(get_current_user)):
     
     return current_user
 
-@api_router.get("/dashboard/metrics", response_model=MetricResponse)
+@api_router.get("/dashboard/metrics")
 async def get_metrics(current_user=Depends(require_school)):
     """Get metrics for current tenant - REQUIRES SCHOOL"""
     school_id = current_user.get("school_id")
     
-    # Try to get school-specific metrics
-    metrics = await db.metrics.find_one({"tenant_id": school_id}, {"_id": 0})
-    if metrics:
-        return metrics
+    # Calculate real counts from database
+    students_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
+    teachers_count = await db.users.count_documents({"school_id": school_id, "role": "teacher"})
+    subjects_count = await db.subjects.count_documents({"school_id": school_id})
     
-    # Return default metrics
-    return MetricResponse(
-        exams_projected=86, 
-        tasks_delivered=75, 
-        avg_students=456, 
-        unread_messages=12
-    )
+    # Count unread messages for current user
+    unread_messages = await db.messages.count_documents({
+        "recipient_id": current_user.get("sub"),
+        "read": False
+    })
+    
+    # Try to get school-specific additional metrics
+    metrics = await db.metrics.find_one({"tenant_id": school_id}, {"_id": 0})
+    
+    return {
+        "students": students_count,
+        "teachers": teachers_count,
+        "subjects": subjects_count,
+        "unread_messages": unread_messages,
+        "exams_projected": metrics.get("exams_projected", 0) if metrics else 0,
+        "tasks_delivered": metrics.get("tasks_delivered", 0) if metrics else 0,
+        "avg_students": students_count,  # Use real count
+    }
 
 @api_router.get("/dashboard/events", response_model=List[EventResponse])
 async def get_events(current_user=Depends(require_school)):
