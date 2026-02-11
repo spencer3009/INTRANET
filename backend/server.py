@@ -2143,17 +2143,110 @@ async def delete_grade(
     return {"message": "Grado eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ACADEMIC SETTINGS - SECTION TYPES (CATALOG)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Predefined section types catalog
+DEFAULT_SECTION_TYPES = [
+    {"key": "A", "label": "A", "orden": 1},
+    {"key": "B", "label": "B", "orden": 2},
+    {"key": "C", "label": "C", "orden": 3},
+    {"key": "D", "label": "D", "orden": 4},
+    {"key": "E", "label": "E", "orden": 5},
+    {"key": "F", "label": "F", "orden": 6},
+    {"key": "UNICA", "label": "ÚNICA", "orden": 7},
+]
+
+@api_router.get("/academic/section-types")
+async def get_section_types(
+    current_user = Depends(get_current_user)
+):
+    """Get all section types for the current tenant (creates default catalog if empty)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Check if section types exist for this school
+    types = await db.section_types.find({"school_id": school_id}, {"_id": 0}).sort("orden", 1).to_list(50)
+    
+    # If no types exist, create the default catalog
+    if not types:
+        for st in DEFAULT_SECTION_TYPES:
+            section_type = {
+                "id": str(uuid.uuid4()),
+                "school_id": school_id,
+                "key": st["key"],
+                "label": st["label"],
+                "orden": st["orden"],
+                "activo": True,
+                "created_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.section_types.insert_one(section_type)
+        
+        types = await db.section_types.find({"school_id": school_id}, {"_id": 0}).sort("orden", 1).to_list(50)
+    
+    return types
+
+@api_router.post("/academic/section-types")
+async def create_section_type(
+    key: str = Body(...),
+    label: str = Body(...),
+    current_user = Depends(get_current_user)
+):
+    """Create a new section type (admin only)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear tipos de sección")
+    
+    school_id = user["school_id"]
+    
+    # Check for duplicate key
+    existing = await db.section_types.find_one({
+        "school_id": school_id,
+        "key": key.upper()
+    })
+    if existing:
+        raise HTTPException(status_code=400, detail="Ya existe un tipo de sección con esa clave")
+    
+    # Get next order
+    last_type = await db.section_types.find_one(
+        {"school_id": school_id},
+        sort=[("orden", -1)]
+    )
+    orden = (last_type["orden"] + 1) if last_type else 1
+    
+    section_type = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "key": key.upper(),
+        "label": label,
+        "orden": orden,
+        "activo": True,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.section_types.insert_one(section_type)
+    del section_type["_id"]
+    
+    return {"message": "Tipo de sección creado", "section_type": section_type}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC SETTINGS - SECCIONES
 # ══════════════════════════════════════════════════════════════════════════════
 
 class SectionCreate(BaseModel):
-    nombre: str = Field(..., min_length=1, max_length=50)
+    section_type_id: str  # Changed from nombre to section_type_id
     grado_id: str
     capacidad_maxima: Optional[int] = None
     activo: bool = True
 
 class SectionUpdate(BaseModel):
-    nombre: Optional[str] = Field(None, min_length=1, max_length=50)
+    section_type_id: Optional[str] = None  # Changed from nombre to section_type_id
     grado_id: Optional[str] = None
     capacidad_maxima: Optional[int] = None
     activo: Optional[bool] = None
