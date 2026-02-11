@@ -414,14 +414,28 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
       return;
     }
     
+    if (!form.period_id) {
+      setError("Selecciona un período académico");
+      return;
+    }
+    
     setLoading(true);
     setError("");
     
     try {
+      // Get the period to extract school_year for backward compatibility
+      const selectedPeriod = academicData.periods?.find(p => p.id === form.period_id);
+      const schoolYear = selectedPeriod ? parseInt(selectedPeriod.nombre.match(/\d{4}/)?.[0] || new Date().getFullYear()) : new Date().getFullYear();
+      
+      const submitData = {
+        ...form,
+        school_year: schoolYear // Keep school_year for backward compatibility
+      };
+      
       if (isEdit) {
-        await axios.put(`${API}/academic/assignments/${assignment.id}`, form, { headers });
+        await axios.put(`${API}/academic/assignments/${assignment.id}`, submitData, { headers });
       } else {
-        await axios.post(`${API}/academic/assignments`, form, { headers });
+        await axios.post(`${API}/academic/assignments`, submitData, { headers });
       }
       onSuccess();
       onClose();
