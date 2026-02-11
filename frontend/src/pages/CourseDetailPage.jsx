@@ -1094,8 +1094,6 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         return <ExamsContent exams={exams} onCreateExam={() => {}} />;
       case "foro":
         return <ForumContent threads={threads} onCreateThread={() => {}} />;
-      case "envivo":
-        return <LiveContent sessions={liveSessions} onSchedule={() => {}} />;
       case "calificaciones":
         return <GradesContent grades={grades} />;
       default:
