@@ -4,8 +4,8 @@ import Sidebar from "../components/Sidebar";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
   Users, Search, ChevronRight, Clock, MoreVertical, UserPlus,
-  GraduationCap, Layers, Home, ArrowLeft, User, Power, PowerOff,
-  Sparkles, BookMarked, School
+  GraduationCap, Home, ArrowLeft, User, Power, PowerOff,
+  Sparkles, Star, Zap
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -26,75 +26,85 @@ const SUBJECT_COLORS = [
   { value: "#A855F7", label: "Púrpura" },
 ];
 
-// Premium level themes with rich gradients
+// Vibrant level themes
 const LEVEL_THEMES = {
   0: { 
-    gradient: "from-violet-500 via-purple-500 to-fuchsia-500",
-    lightBg: "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50",
-    cardBg: "bg-gradient-to-br from-violet-100/50 to-purple-100/30",
-    border: "border-violet-200/50",
-    text: "text-violet-700",
-    accent: "violet",
-    shadow: "shadow-violet-200/50",
-    glow: "hover:shadow-violet-300/60",
-    icon: "from-violet-500 to-purple-600"
+    name: "Inicial",
+    gradient: "from-pink-500 via-rose-500 to-orange-400",
+    cardGradient: "from-pink-400 to-rose-500",
+    bg: "bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50",
+    sectionBg: "bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-orange-400/10",
+    border: "border-pink-200",
+    text: "text-pink-600",
+    badge: "bg-pink-500",
+    iconBg: "bg-gradient-to-br from-pink-500 to-rose-600",
+    cardBorder: "border-pink-300/50",
+    hoverGlow: "hover:shadow-pink-300/50",
+    lightCard: "from-pink-100/80 to-rose-100/60"
   },
   1: { 
-    gradient: "from-blue-500 via-indigo-500 to-violet-500",
-    lightBg: "bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50",
-    cardBg: "bg-gradient-to-br from-blue-100/50 to-indigo-100/30",
-    border: "border-blue-200/50",
-    text: "text-blue-700",
-    accent: "blue",
-    shadow: "shadow-blue-200/50",
-    glow: "hover:shadow-blue-300/60",
-    icon: "from-blue-500 to-indigo-600"
+    name: "Primaria",
+    gradient: "from-blue-500 via-indigo-500 to-purple-500",
+    cardGradient: "from-blue-400 to-indigo-500",
+    bg: "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50",
+    sectionBg: "bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-400/10",
+    border: "border-blue-200",
+    text: "text-blue-600",
+    badge: "bg-blue-500",
+    iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600",
+    cardBorder: "border-blue-300/50",
+    hoverGlow: "hover:shadow-blue-300/50",
+    lightCard: "from-blue-100/80 to-indigo-100/60"
   },
   2: { 
+    name: "Secundaria",
     gradient: "from-emerald-500 via-teal-500 to-cyan-500",
-    lightBg: "bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50",
-    cardBg: "bg-gradient-to-br from-emerald-100/50 to-teal-100/30",
-    border: "border-emerald-200/50",
-    text: "text-emerald-700",
-    accent: "emerald",
-    shadow: "shadow-emerald-200/50",
-    glow: "hover:shadow-emerald-300/60",
-    icon: "from-emerald-500 to-teal-600"
+    cardGradient: "from-emerald-400 to-teal-500",
+    bg: "bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50",
+    sectionBg: "bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-400/10",
+    border: "border-emerald-200",
+    text: "text-emerald-600",
+    badge: "bg-emerald-500",
+    iconBg: "bg-gradient-to-br from-emerald-500 to-teal-600",
+    cardBorder: "border-emerald-300/50",
+    hoverGlow: "hover:shadow-emerald-300/50",
+    lightCard: "from-emerald-100/80 to-teal-100/60"
   },
   3: { 
-    gradient: "from-amber-500 via-orange-500 to-rose-500",
-    lightBg: "bg-gradient-to-br from-amber-50 via-orange-50 to-rose-50",
-    cardBg: "bg-gradient-to-br from-amber-100/50 to-orange-100/30",
-    border: "border-amber-200/50",
-    text: "text-amber-700",
-    accent: "amber",
-    shadow: "shadow-amber-200/50",
-    glow: "hover:shadow-amber-300/60",
-    icon: "from-amber-500 to-orange-600"
+    name: "Extra",
+    gradient: "from-amber-500 via-orange-500 to-red-500",
+    cardGradient: "from-amber-400 to-orange-500",
+    bg: "bg-gradient-to-br from-amber-50 via-orange-50 to-red-50",
+    sectionBg: "bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-400/10",
+    border: "border-amber-200",
+    text: "text-amber-600",
+    badge: "bg-amber-500",
+    iconBg: "bg-gradient-to-br from-amber-500 to-orange-600",
+    cardBorder: "border-amber-300/50",
+    hoverGlow: "hover:shadow-amber-300/50",
+    lightCard: "from-amber-100/80 to-orange-100/60"
   },
 };
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PREMIUM SKELETON LOADERS
+// SKELETON LOADERS
 // ══════════════════════════════════════════════════════════════════════════════
 function LevelsSkeleton() {
   return (
     <div className="space-y-8">
       {[1, 2, 3].map(i => (
-        <div key={i} className="animate-pulse">
-          <div className="bg-white/60 backdrop-blur-sm rounded-3xl p-6 border border-white/80 shadow-xl">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-gray-200 to-gray-300 rounded-2xl" />
-              <div>
-                <div className="h-6 bg-gray-200 rounded-lg w-32 mb-2" />
-                <div className="h-4 bg-gray-100 rounded w-20" />
-              </div>
+        <div key={i} className="animate-pulse bg-white/50 rounded-3xl p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-20 h-20 bg-gray-200 rounded-2xl" />
+            <div className="flex-1">
+              <div className="h-8 bg-gray-200 rounded-lg w-40 mb-2" />
+              <div className="h-4 bg-gray-100 rounded w-28" />
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {[1, 2, 3, 4].map(j => (
-                <div key={j} className="h-36 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl" />
-              ))}
-            </div>
+          </div>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
+            {[1, 2, 3, 4].map(j => (
+              <div key={j} className="h-32 bg-gray-200 rounded-2xl" />
+            ))}
           </div>
         </div>
       ))}
@@ -102,46 +112,34 @@ function LevelsSkeleton() {
   );
 }
 
-function SubjectsSkeleton() {
+// ══════════════════════════════════════════════════════════════════════════════
+// BREADCRUMB
+// ══════════════════════════════════════════════════════════════════════════════
+function Breadcrumb({ items, onNavigate, theme }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-      {[1, 2, 3, 4, 5, 6].map(i => (
-        <div key={i} className="h-48 bg-white/60 backdrop-blur-sm rounded-2xl animate-pulse shadow-lg" />
+    <nav className="flex items-center gap-2 text-sm mb-8">
+      {items.map((item, index) => (
+        <div key={index} className="flex items-center">
+          {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400 mx-1" />}
+          <button
+            onClick={() => onNavigate(index)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full transition-all duration-300 ${
+              index === items.length - 1
+                ? `bg-gradient-to-r ${theme?.gradient || 'from-blue-500 to-indigo-500'} text-white font-bold shadow-lg`
+                : "text-gray-500 hover:text-gray-700 hover:bg-white/80"
+            }`}
+          >
+            {index === 0 && <Home className="w-4 h-4" />}
+            <span>{item.label}</span>
+          </button>
+        </div>
       ))}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// PREMIUM BREADCRUMB
-// ══════════════════════════════════════════════════════════════════════════════
-function Breadcrumb({ items, onNavigate }) {
-  return (
-    <nav className="flex items-center gap-1 text-sm mb-8">
-      <div className="flex items-center bg-white/70 backdrop-blur-sm rounded-2xl px-2 py-1 shadow-sm border border-white/80">
-        {items.map((item, index) => (
-          <div key={index} className="flex items-center">
-            {index > 0 && <ChevronRight className="w-4 h-4 text-gray-300 mx-1" />}
-            <button
-              onClick={() => onNavigate(index)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl transition-all duration-200 ${
-                index === items.length - 1
-                  ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-semibold shadow-md"
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-100/80"
-              }`}
-            >
-              {index === 0 && <Home className="w-4 h-4" />}
-              <span>{item.label}</span>
-            </button>
-          </div>
-        ))}
-      </div>
     </nav>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PREMIUM GRADE CARD
+// COLORFUL GRADE CARD
 // ══════════════════════════════════════════════════════════════════════════════
 function GradeCard({ grade, theme, subjectCount, onClick }) {
   const hasSubjects = subjectCount > 0;
@@ -149,97 +147,102 @@ function GradeCard({ grade, theme, subjectCount, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`group relative bg-white rounded-2xl p-5 transition-all duration-300 ease-out text-left overflow-hidden
-        border-2 ${hasSubjects ? theme.border : 'border-gray-100'}
-        shadow-lg ${theme.shadow}
-        hover:shadow-2xl ${theme.glow}
-        hover:-translate-y-1 hover:scale-[1.02]
+      className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 ease-out text-left
+        bg-gradient-to-br ${theme.lightCard}
+        border-2 ${theme.cardBorder}
+        shadow-lg ${theme.hoverGlow}
+        hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02]
         active:scale-[0.98]
       `}
       data-testid={`grade-card-${grade.id}`}
     >
-      {/* Decorative gradient overlay on hover */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+      {/* Decorative circles */}
+      <div className={`absolute -top-6 -right-6 w-20 h-20 bg-gradient-to-br ${theme.cardGradient} rounded-full opacity-20 group-hover:opacity-40 transition-opacity`} />
+      <div className={`absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-br ${theme.cardGradient} rounded-full opacity-10 group-hover:opacity-30 transition-opacity`} />
       
       {/* Subject count badge */}
       {hasSubjects && (
-        <div className={`absolute -top-1 -right-1 min-w-[28px] h-7 px-2 bg-gradient-to-r ${theme.icon} text-white rounded-full flex items-center justify-center text-xs font-bold shadow-lg ring-2 ring-white`}>
+        <div className={`absolute -top-2 -right-2 min-w-[32px] h-8 px-2.5 ${theme.badge} text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg ring-4 ring-white z-10`}>
           {subjectCount}
         </div>
       )}
       
-      {/* Icon container with gradient */}
-      <div className={`relative w-14 h-14 bg-gradient-to-br ${theme.icon} rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl group-hover:scale-110 transition-all duration-300`}>
-        <GraduationCap className="w-7 h-7 text-white" />
-        {/* Shine effect */}
-        <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/0 via-white/30 to-white/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      {/* Icon */}
+      <div className={`relative w-16 h-16 ${theme.iconBg} rounded-2xl flex items-center justify-center mb-3 shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+        <GraduationCap className="w-8 h-8 text-white" />
+        <Sparkles className="absolute -top-1 -right-1 w-5 h-5 text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity" />
       </div>
       
       {/* Grade name */}
-      <h3 className="font-bold text-gray-800 text-lg mb-1 group-hover:text-gray-900 transition-colors">{grade.nombre}</h3>
-      <p className={`text-sm ${hasSubjects ? theme.text : 'text-gray-400'} font-medium`}>
-        {subjectCount === 0 ? "Sin asignaturas" : `${subjectCount} asignatura${subjectCount !== 1 ? "s" : ""}`}
+      <h3 className="font-bold text-gray-800 text-xl mb-1">{grade.nombre}</h3>
+      <p className={`text-sm font-medium ${hasSubjects ? theme.text : 'text-gray-400'}`}>
+        {subjectCount === 0 ? "Sin asignaturas" : `${subjectCount} materia${subjectCount !== 1 ? "s" : ""}`}
       </p>
       
-      {/* Hover arrow indicator */}
-      <div className={`absolute bottom-4 right-4 w-8 h-8 rounded-full bg-gradient-to-r ${theme.icon} flex items-center justify-center opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300`}>
-        <ChevronRight className="w-4 h-4 text-white" />
+      {/* Hover indicator */}
+      <div className={`absolute bottom-3 right-3 w-8 h-8 rounded-full bg-gradient-to-r ${theme.cardGradient} flex items-center justify-center opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300`}>
+        <ChevronRight className="w-5 h-5 text-white" />
       </div>
     </button>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PREMIUM SUBJECT CARD
+// COLORFUL SUBJECT CARD
 // ══════════════════════════════════════════════════════════════════════════════
 function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus }) {
   const [menuOpen, setMenuOpen] = useState(false);
   
+  // Generate a lighter background color from the subject color
+  const bgColor = subject.color + "15";
+  const borderColor = subject.color + "40";
+  
   return (
     <div 
-      className={`group relative bg-white rounded-2xl overflow-hidden transition-all duration-300 ease-out
+      className={`group relative rounded-2xl overflow-hidden transition-all duration-300 ease-out
         shadow-lg hover:shadow-2xl
-        hover:-translate-y-1 hover:scale-[1.02]
-        border border-gray-100 hover:border-gray-200
-        ${subject.status === "inactive" ? "opacity-60 grayscale" : ""}
+        hover:-translate-y-2 hover:scale-[1.02]
+        ${subject.status === "inactive" ? "opacity-50 grayscale" : ""}
       `}
+      style={{ 
+        background: `linear-gradient(135deg, ${bgColor}, white)`,
+        borderWidth: '2px',
+        borderColor: borderColor
+      }}
       data-testid={`subject-card-${subject.id}`}
     >
-      {/* Color header with gradient effect */}
+      {/* Color accent bar */}
       <div 
-        className="h-2 w-full relative"
-        style={{ backgroundColor: subject.color }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0" />
-      </div>
+        className="h-1.5 w-full"
+        style={{ background: `linear-gradient(90deg, ${subject.color}, ${subject.color}99)` }}
+      />
       
       <div className="p-5">
-        {/* Menu button */}
+        {/* Menu */}
         <div className="absolute top-4 right-3 z-10">
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-sm"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
           
-          {/* Dropdown menu */}
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-10 z-20 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 w-52 backdrop-blur-xl">
+              <div className="absolute right-0 top-10 z-20 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 w-52">
                 <button
                   onClick={() => { setMenuOpen(false); onEdit(subject); }}
-                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
                   <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
                     <Edit2 className="w-4 h-4 text-blue-600" />
                   </div>
-                  <span className="font-medium">Editar asignatura</span>
+                  <span className="font-medium">Editar</span>
                 </button>
                 <button
                   onClick={() => { setMenuOpen(false); onAssignTeacher(subject); }}
-                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
                   <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
                     <UserPlus className="w-4 h-4 text-violet-600" />
@@ -248,14 +251,10 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
                 </button>
                 <button
                   onClick={() => { setMenuOpen(false); onToggleStatus(subject); }}
-                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors"
+                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
                 >
                   <div className={`w-8 h-8 ${subject.status === "active" ? "bg-amber-100" : "bg-emerald-100"} rounded-lg flex items-center justify-center`}>
-                    {subject.status === "active" ? (
-                      <PowerOff className="w-4 h-4 text-amber-600" />
-                    ) : (
-                      <Power className="w-4 h-4 text-emerald-600" />
-                    )}
+                    {subject.status === "active" ? <PowerOff className="w-4 h-4 text-amber-600" /> : <Power className="w-4 h-4 text-emerald-600" />}
                   </div>
                   <span className="font-medium">{subject.status === "active" ? "Desactivar" : "Activar"}</span>
                 </button>
@@ -264,49 +263,56 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
           )}
         </div>
         
-        {/* Subject icon with glow */}
+        {/* Subject icon */}
         <div 
-          className="w-12 h-12 rounded-xl flex items-center justify-center mb-4 shadow-lg transition-transform duration-300 group-hover:scale-110"
+          className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
           style={{ 
-            backgroundColor: subject.color + "20",
-            boxShadow: `0 8px 24px ${subject.color}30`
+            background: `linear-gradient(135deg, ${subject.color}, ${subject.color}CC)`,
           }}
         >
-          <BookOpen className="w-6 h-6" style={{ color: subject.color }} />
+          <BookOpen className="w-7 h-7 text-white" />
         </div>
         
         {/* Subject info */}
-        <h3 className="font-bold text-gray-800 text-base mb-1 pr-8 line-clamp-1 group-hover:text-gray-900 transition-colors">{subject.name}</h3>
+        <h3 className="font-bold text-gray-800 text-lg mb-1 pr-8 line-clamp-1">{subject.name}</h3>
         <div className="flex items-center gap-2 mb-4">
-          <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold">{subject.code}</span>
+          <span 
+            className="px-3 py-1 rounded-full text-xs font-bold text-white"
+            style={{ backgroundColor: subject.color }}
+          >
+            {subject.code}
+          </span>
           {subject.weekly_hours && (
-            <span className="flex items-center gap-1 text-xs text-gray-400">
+            <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
               <Clock className="w-3 h-3" />
               {subject.weekly_hours}h
             </span>
           )}
         </div>
         
-        {/* Teacher section */}
-        <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+        {/* Teacher */}
+        <div className="flex items-center gap-3 pt-4 border-t border-gray-200/50">
           {teacher ? (
             <>
               {teacher.photo_url ? (
-                <img src={teacher.photo_url} alt="" className="w-9 h-9 rounded-xl object-cover ring-2 ring-white shadow-md" />
+                <img src={teacher.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-md" />
               ) : (
-                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold shadow-md">
+                <div 
+                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md"
+                  style={{ background: `linear-gradient(135deg, ${subject.color}, ${subject.color}99)` }}
+                >
                   {teacher.name?.charAt(0)}
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-700 font-semibold truncate">{teacher.name} {teacher.last_name?.charAt(0)}.</p>
-                <p className="text-xs text-gray-400">Profesor asignado</p>
+                <p className="text-xs text-gray-400">Profesor</p>
               </div>
             </>
           ) : (
             <>
-              <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-200">
-                <User className="w-4 h-4 text-gray-300" />
+              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
+                <User className="w-5 h-5 text-gray-300" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-gray-400 font-medium">Sin profesor</p>
@@ -321,53 +327,47 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PREMIUM ADD SUBJECT CARD
+// ADD SUBJECT CARD
 // ══════════════════════════════════════════════════════════════════════════════
 function AddSubjectCard({ onClick, theme }) {
   return (
     <button
       onClick={onClick}
-      className={`group relative bg-gradient-to-br from-gray-50 via-white to-gray-50 rounded-2xl p-5 
-        border-2 border-dashed border-gray-200 
-        hover:border-blue-300 hover:from-blue-50 hover:via-white hover:to-indigo-50
-        hover:shadow-xl hover:shadow-blue-100/50
-        hover:-translate-y-1 hover:scale-[1.02]
+      className={`group relative rounded-2xl p-5 
+        bg-gradient-to-br from-white via-gray-50 to-white
+        border-2 border-dashed ${theme.border}
+        hover:border-solid hover:bg-gradient-to-br ${theme.lightCard}
+        hover:shadow-xl ${theme.hoverGlow}
+        hover:-translate-y-2 hover:scale-[1.02]
         transition-all duration-300 ease-out
-        flex flex-col items-center justify-center min-h-[200px]
+        flex flex-col items-center justify-center min-h-[220px]
       `}
       data-testid="add-subject-card"
     >
-      {/* Animated plus icon */}
-      <div className="relative w-16 h-16 mb-4">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 blur-xl" />
-        <div className="relative w-full h-full bg-white rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl border border-gray-100 group-hover:border-blue-200 transition-all duration-300">
-          <Plus className="w-8 h-8 text-gray-400 group-hover:text-blue-500 transition-colors duration-300 group-hover:rotate-90" style={{ transition: 'transform 0.3s, color 0.3s' }} />
+      {/* Animated icon */}
+      <div className="relative mb-4">
+        <div className={`absolute inset-0 bg-gradient-to-br ${theme.cardGradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300`} />
+        <div className={`relative w-16 h-16 bg-gradient-to-br ${theme.iconBg} rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-6`}>
+          <Plus className="w-8 h-8 text-white transition-transform duration-300 group-hover:rotate-90" />
         </div>
       </div>
       
-      <span className="text-base font-bold text-gray-500 group-hover:text-blue-600 transition-colors duration-300">Nueva asignatura</span>
-      <span className="text-sm text-gray-400 group-hover:text-blue-500/70 mt-1 transition-colors duration-300">Agregar a este grado</span>
+      <span className={`text-base font-bold ${theme.text} transition-colors duration-300`}>Nueva asignatura</span>
+      <span className="text-sm text-gray-400 mt-1">Agregar materia</span>
       
-      {/* Sparkle decoration */}
-      <Sparkles className="absolute top-4 right-4 w-5 h-5 text-gray-200 group-hover:text-amber-400 transition-colors duration-300" />
+      {/* Sparkle */}
+      <Star className={`absolute top-4 right-4 w-5 h-5 text-gray-200 group-hover:text-yellow-400 transition-all duration-300 group-hover:rotate-12`} />
     </button>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SUBJECT FORM MODAL (Same logic, improved visuals)
+// SUBJECT FORM MODAL
 // ══════════════════════════════════════════════════════════════════════════════
 function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, teachers, preselectedLevel, preselectedGrade }) {
   const [formData, setFormData] = useState({
-    name: "",
-    code: "",
-    description: "",
-    level_id: "",
-    grade_id: "",
-    weekly_hours: 2,
-    color: "#3B82F6",
-    status: "active",
-    teacher_id: ""
+    name: "", code: "", description: "", level_id: "", grade_id: "",
+    weekly_hours: 2, color: "#3B82F6", status: "active", teacher_id: ""
   });
   const [filteredGrades, setFilteredGrades] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -376,27 +376,17 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, te
   useEffect(() => {
     if (subject) {
       setFormData({
-        name: subject.name || "",
-        code: subject.code || "",
-        description: subject.description || "",
-        level_id: subject.level_id || "",
-        grade_id: subject.grade_id || "",
-        weekly_hours: subject.weekly_hours || 2,
-        color: subject.color || "#3B82F6",
-        status: subject.status || "active",
-        teacher_id: subject.teacher_id || ""
+        name: subject.name || "", code: subject.code || "", description: subject.description || "",
+        level_id: subject.level_id || "", grade_id: subject.grade_id || "",
+        weekly_hours: subject.weekly_hours || 2, color: subject.color || "#3B82F6",
+        status: subject.status || "active", teacher_id: subject.teacher_id || ""
       });
     } else {
       setFormData({
-        name: "",
-        code: "",
-        description: "",
-        level_id: preselectedLevel || "",
-        grade_id: preselectedGrade || "",
-        weekly_hours: 2,
-        color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value,
-        status: "active",
-        teacher_id: ""
+        name: "", code: "", description: "",
+        level_id: preselectedLevel || "", grade_id: preselectedGrade || "",
+        weekly_hours: 2, color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value,
+        status: "active", teacher_id: ""
       });
     }
     setError("");
@@ -413,30 +403,17 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, te
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
-    if (!formData.name.trim()) {
-      setError("El nombre es requerido");
-      return;
-    }
-    if (!formData.code.trim()) {
-      setError("El código es requerido");
-      return;
-    }
-    if (!formData.level_id) {
-      setError("Selecciona un nivel");
-      return;
-    }
-    if (!formData.grade_id) {
-      setError("Selecciona un grado");
-      return;
-    }
+    if (!formData.name.trim()) { setError("El nombre es requerido"); return; }
+    if (!formData.code.trim()) { setError("El código es requerido"); return; }
+    if (!formData.level_id) { setError("Selecciona un nivel"); return; }
+    if (!formData.grade_id) { setError("Selecciona un grado"); return; }
 
     setSaving(true);
     try {
       await onSave(formData);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar asignatura");
+      setError(err.response?.data?.detail || "Error al guardar");
     } finally {
       setSaving(false);
     }
@@ -447,25 +424,22 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, te
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="subject-form-modal">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden border border-white/20">
-        {/* Header */}
-        <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-6 py-6 overflow-hidden">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdi0yMGgtNjB6IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2EpIi8+PC9zdmc+')] opacity-30" />
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden">
+        <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-6 overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <div className="relative flex items-center justify-between">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
                 <BookOpen className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">
-                  {subject?.id ? "Editar Asignatura" : "Nueva Asignatura"}
-                </h2>
-                <p className="text-sm text-white/70">Complete los datos de la materia</p>
+                <h2 className="text-xl font-bold text-white">{subject?.id ? "Editar Asignatura" : "Nueva Asignatura"}</h2>
+                <p className="text-sm text-white/70">Complete los datos</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl transition-all">
+            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -474,145 +448,76 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, te
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {error && (
             <div className="mb-5 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5" />
               <span className="text-sm font-medium">{error}</span>
             </div>
           )}
 
-          {/* Name and Code */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Nombre *</label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Ej: Matemáticas"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              />
+              <input type="text" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                placeholder="Ej: Matemáticas" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Código *</label>
-              <input
-                type="text"
-                value={formData.code}
-                onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                placeholder="Ej: MAT-01"
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all uppercase"
-              />
+              <input type="text" value={formData.code} onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                placeholder="Ej: MAT-01" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
             </div>
           </div>
 
-          {/* Level and Grade */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Nivel *</label>
-              <select
-                value={formData.level_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, level_id: e.target.value, grade_id: "" }))}
-                disabled={isLocked}
-                className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isLocked ? "opacity-70 cursor-not-allowed" : ""}`}
-              >
-                <option value="">Seleccionar nivel</option>
-                {levels.filter(l => l.activo).map(level => (
-                  <option key={level.id} value={level.id}>{level.nombre}</option>
-                ))}
+              <select value={formData.level_id} onChange={(e) => setFormData(prev => ({ ...prev, level_id: e.target.value, grade_id: "" }))}
+                disabled={isLocked} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked ? "opacity-70" : ""}`}>
+                <option value="">Seleccionar</option>
+                {levels.filter(l => l.activo).map(level => (<option key={level.id} value={level.id}>{level.nombre}</option>))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Grado *</label>
-              <select
-                value={formData.grade_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value }))}
-                disabled={isLocked || !formData.level_id}
-                className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${isLocked || !formData.level_id ? "opacity-70 cursor-not-allowed" : ""}`}
-              >
-                <option value="">Seleccionar grado</option>
-                {filteredGrades.map(grade => (
-                  <option key={grade.id} value={grade.id}>{grade.nombre}</option>
-                ))}
+              <select value={formData.grade_id} onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value }))}
+                disabled={isLocked || !formData.level_id} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked || !formData.level_id ? "opacity-70" : ""}`}>
+                <option value="">Seleccionar</option>
+                {filteredGrades.map(grade => (<option key={grade.id} value={grade.id}>{grade.nombre}</option>))}
               </select>
             </div>
           </div>
 
-          {/* Hours and Teacher */}
           <div className="grid grid-cols-2 gap-4 mb-5">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Horas Semanales</label>
-              <input
-                type="number"
-                min="1"
-                max="40"
-                value={formData.weekly_hours}
-                onChange={(e) => setFormData(prev => ({ ...prev, weekly_hours: parseInt(e.target.value) || 1 }))}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              />
+              <input type="number" min="1" max="40" value={formData.weekly_hours} onChange={(e) => setFormData(prev => ({ ...prev, weekly_hours: parseInt(e.target.value) || 1 }))}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">Profesor</label>
-              <select
-                value={formData.teacher_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, teacher_id: e.target.value }))}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              >
+              <select value={formData.teacher_id} onChange={(e) => setFormData(prev => ({ ...prev, teacher_id: e.target.value }))}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">Sin asignar</option>
-                {teachers.filter(t => t.activo).map(teacher => (
-                  <option key={teacher.id} value={teacher.id}>{teacher.name} {teacher.last_name}</option>
-                ))}
+                {teachers.filter(t => t.activo).map(teacher => (<option key={teacher.id} value={teacher.id}>{teacher.name} {teacher.last_name}</option>))}
               </select>
             </div>
           </div>
 
-          {/* Color Picker */}
           <div className="mb-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">Color Identificador</label>
+            <label className="block text-sm font-bold text-gray-700 mb-3">Color</label>
             <div className="flex flex-wrap gap-2">
               {SUBJECT_COLORS.map(color => (
-                <button
-                  key={color.value}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
-                  className={`w-10 h-10 rounded-xl transition-all duration-200 ${
-                    formData.color === color.value 
-                      ? "ring-2 ring-offset-2 ring-gray-400 scale-110 shadow-lg" 
-                      : "hover:scale-110 hover:shadow-md"
-                  }`}
-                  style={{ backgroundColor: color.value }}
-                  title={color.label}
-                />
+                <button key={color.value} type="button" onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
+                  className={`w-10 h-10 rounded-xl transition-all duration-200 ${formData.color === color.value ? "ring-4 ring-gray-300 scale-110 shadow-lg" : "hover:scale-110"}`}
+                  style={{ backgroundColor: color.value }} title={color.label} />
               ))}
             </div>
           </div>
-
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-bold text-gray-700 mb-2">Descripción (opcional)</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Descripción de la asignatura..."
-              rows={2}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
-            />
-          </div>
         </form>
 
-        {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-all"
-          >
-            Cancelar
-          </button>
+          <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50">Cancelar</button>
           <div className="flex-1" />
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center gap-2"
-            data-testid="save-subject-btn"
-          >
+          <button onClick={handleSubmit} disabled={saving}
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             {subject?.id ? "Actualizar" : "Crear"}
           </button>
@@ -623,7 +528,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, te
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// TEACHER ASSIGNMENT MODAL (Same logic, improved visuals)
+// TEACHER MODAL
 // ══════════════════════════════════════════════════════════════════════════════
 function TeacherAssignModal({ isOpen, onClose, subject, teachers, currentTeacherId, onSave }) {
   const [selectedTeacher, setSelectedTeacher] = useState("");
@@ -631,152 +536,75 @@ function TeacherAssignModal({ isOpen, onClose, subject, teachers, currentTeacher
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      setSelectedTeacher(currentTeacherId || "");
-      setSearchTerm("");
-    }
+    if (isOpen) { setSelectedTeacher(currentTeacherId || ""); setSearchTerm(""); }
   }, [isOpen, currentTeacherId]);
 
   const handleSave = async () => {
     setSaving(true);
-    try {
-      await onSave(selectedTeacher ? [selectedTeacher] : []);
-      onClose();
-    } catch (err) {
-      console.error("Error saving teacher:", err);
-    } finally {
-      setSaving(false);
-    }
+    try { await onSave(selectedTeacher ? [selectedTeacher] : []); onClose(); } catch (err) { console.error(err); } finally { setSaving(false); }
   };
 
-  const filteredTeachers = teachers.filter(t => 
-    t.activo && (
-      `${t.name} ${t.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  );
+  const filteredTeachers = teachers.filter(t => t.activo && (`${t.name} ${t.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())));
 
   if (!isOpen || !subject) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="teacher-assign-modal">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
       <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="relative bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 px-6 py-6 overflow-hidden">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iYSIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVHJhbnNmb3JtPSJyb3RhdGUoNDUpIj48cGF0aCBkPSJNLTEwIDMwaDYwdi0yMGgtNjB6IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2EpIi8+PC9zdmc+')] opacity-30" />
-          <div className="relative flex items-center justify-between">
+        <div className="relative bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 px-6 py-6">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
-                <UserPlus className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">Asignar Profesor</h2>
-                <p className="text-sm text-white/70">{subject.name}</p>
-              </div>
+              <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center"><UserPlus className="w-6 h-6 text-white" /></div>
+              <div><h2 className="text-xl font-bold text-white">Asignar Profesor</h2><p className="text-sm text-white/70">{subject.name}</p></div>
             </div>
-            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl transition-all">
-              <X className="w-5 h-5" />
-            </button>
+            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl"><X className="w-5 h-5" /></button>
           </div>
         </div>
 
         <div className="p-5">
-          {/* Search */}
           <div className="relative mb-4">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar profesor..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 transition-all"
-            />
+            <input type="text" placeholder="Buscar profesor..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
           </div>
 
-          {/* Remove teacher option */}
-          <button
-            onClick={() => setSelectedTeacher("")}
-            className={`w-full flex items-center gap-4 p-4 rounded-2xl mb-3 transition-all duration-200 ${
-              selectedTeacher === "" 
-                ? "bg-rose-50 border-2 border-rose-300 shadow-lg" 
-                : "bg-gray-50 border-2 border-transparent hover:border-gray-200"
-            }`}
-          >
-            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-              selectedTeacher === "" ? "bg-rose-500 border-rose-500" : "border-gray-300"
-            }`}>
+          <button onClick={() => setSelectedTeacher("")}
+            className={`w-full flex items-center gap-4 p-4 rounded-2xl mb-3 transition-all ${selectedTeacher === "" ? "bg-rose-50 border-2 border-rose-300 shadow-lg" : "bg-gray-50 border-2 border-transparent hover:border-gray-200"}`}>
+            <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center ${selectedTeacher === "" ? "bg-rose-500 border-rose-500" : "border-gray-300"}`}>
               {selectedTeacher === "" && <Check className="w-4 h-4 text-white" />}
             </div>
-            <div className="w-11 h-11 rounded-xl bg-gray-200 flex items-center justify-center">
-              <User className="w-5 h-5 text-gray-400" />
-            </div>
+            <div className="w-11 h-11 rounded-xl bg-gray-200 flex items-center justify-center"><User className="w-5 h-5 text-gray-400" /></div>
             <span className="text-sm font-semibold text-gray-600">Sin profesor asignado</span>
           </button>
 
-          {/* Teachers list */}
-          <div className="max-h-[280px] overflow-y-auto space-y-2 pr-1">
-            {filteredTeachers.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-8 h-8 text-gray-300" />
-                </div>
-                <p className="text-sm text-gray-500 font-medium">No hay profesores disponibles</p>
-              </div>
-            ) : (
-              filteredTeachers.map(teacher => {
-                const isSelected = selectedTeacher === teacher.id;
-                return (
-                  <button
-                    key={teacher.id}
-                    onClick={() => setSelectedTeacher(teacher.id)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all duration-200 ${
-                      isSelected 
-                        ? "bg-violet-50 border-2 border-violet-300 shadow-lg" 
-                        : "bg-gray-50 border-2 border-transparent hover:border-gray-200 hover:shadow-md"
-                    }`}
-                  >
-                    <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all ${
-                      isSelected ? "bg-violet-600 border-violet-600" : "border-gray-300"
-                    }`}>
-                      {isSelected && <Check className="w-4 h-4 text-white" />}
-                    </div>
-                    {teacher.photo_url ? (
-                      <img src={teacher.photo_url} alt="" className="w-11 h-11 rounded-xl object-cover shadow-md" />
-                    ) : (
-                      <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white font-bold shadow-md">
-                        {teacher.name?.charAt(0)}
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-sm font-bold text-gray-800 truncate">
-                        {teacher.name} {teacher.last_name}
-                      </p>
-                      <p className="text-xs text-gray-500 truncate">{teacher.email}</p>
-                    </div>
-                  </button>
-                );
-              })
-            )}
+          <div className="max-h-[280px] overflow-y-auto space-y-2">
+            {filteredTeachers.map(teacher => {
+              const isSelected = selectedTeacher === teacher.id;
+              return (
+                <button key={teacher.id} onClick={() => setSelectedTeacher(teacher.id)}
+                  className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${isSelected ? "bg-violet-50 border-2 border-violet-300 shadow-lg" : "bg-gray-50 border-2 border-transparent hover:border-gray-200"}`}>
+                  <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center ${isSelected ? "bg-violet-600 border-violet-600" : "border-gray-300"}`}>
+                    {isSelected && <Check className="w-4 h-4 text-white" />}
+                  </div>
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white font-bold shadow-md">
+                    {teacher.name?.charAt(0)}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-bold text-gray-800">{teacher.name} {teacher.last_name}</p>
+                    <p className="text-xs text-gray-500">{teacher.email}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50 transition-all"
-          >
-            Cancelar
-          </button>
+        <div className="px-6 py-4 bg-gray-50 border-t flex gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold">Cancelar</button>
           <div className="flex-1" />
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center gap-2"
-            data-testid="save-teacher-btn"
-          >
+          <button onClick={handleSave} disabled={saving}
+            className="px-6 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-50 flex items-center gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             Guardar
           </button>
@@ -787,20 +615,14 @@ function TeacherAssignModal({ isOpen, onClose, subject, teachers, currentTeacher
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PREMIUM LEVELS VIEW
+// LEVELS VIEW - COLORFUL
 // ══════════════════════════════════════════════════════════════════════════════
 function LevelsView({ levels, grades, subjects, onSelectGrade }) {
   const gradesByLevel = {};
-  levels.forEach(level => {
-    gradesByLevel[level.id] = grades.filter(g => g.nivel_id === level.id && g.activo);
-  });
-
+  levels.forEach(level => { gradesByLevel[level.id] = grades.filter(g => g.nivel_id === level.id && g.activo); });
+  
   const subjectCountByGrade = {};
-  subjects.forEach(subject => {
-    if (subject.grade_id) {
-      subjectCountByGrade[subject.grade_id] = (subjectCountByGrade[subject.grade_id] || 0) + 1;
-    }
-  });
+  subjects.forEach(subject => { if (subject.grade_id) { subjectCountByGrade[subject.grade_id] = (subjectCountByGrade[subject.grade_id] || 0) + 1; } });
 
   return (
     <div className="space-y-8">
@@ -810,51 +632,39 @@ function LevelsView({ levels, grades, subjects, onSelectGrade }) {
         const totalSubjects = levelGrades.reduce((sum, g) => sum + (subjectCountByGrade[g.id] || 0), 0);
         
         return (
-          <div 
-            key={level.id} 
-            className={`relative ${theme.lightBg} rounded-3xl p-6 lg:p-8 border ${theme.border} shadow-xl overflow-hidden`}
-            data-testid={`level-section-${level.id}`}
-          >
-            {/* Background decoration */}
-            <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${theme.gradient} opacity-5 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2`} />
+          <div key={level.id} className={`relative ${theme.bg} rounded-3xl p-6 lg:p-8 border-2 ${theme.border} shadow-xl overflow-hidden`}>
+            {/* Decorative elements */}
+            <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${theme.gradient} opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl`} />
+            <div className={`absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-br ${theme.gradient} opacity-5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl`} />
             
-            {/* Level header */}
+            {/* Header */}
             <div className="relative flex items-center gap-5 mb-6">
-              <div className={`w-16 h-16 bg-gradient-to-br ${theme.icon} rounded-2xl flex items-center justify-center shadow-xl`}>
-                <School className="w-8 h-8 text-white" />
+              <div className={`w-20 h-20 ${theme.iconBg} rounded-3xl flex items-center justify-center shadow-2xl`}>
+                <GraduationCap className="w-10 h-10 text-white" />
               </div>
               <div className="flex-1">
-                <h2 className="text-2xl font-bold text-gray-800">{level.nombre}</h2>
-                <p className={`text-sm ${theme.text} font-medium`}>
-                  {levelGrades.length} grado{levelGrades.length !== 1 ? "s" : ""} • {totalSubjects} asignatura{totalSubjects !== 1 ? "s" : ""}
+                <h2 className="text-3xl font-black text-gray-800">{level.nombre}</h2>
+                <p className={`text-base ${theme.text} font-semibold`}>
+                  {levelGrades.length} grado{levelGrades.length !== 1 ? "s" : ""} • {totalSubjects} materia{totalSubjects !== 1 ? "s" : ""}
                 </p>
               </div>
-              <div className={`hidden sm:flex items-center gap-2 px-4 py-2 ${theme.cardBg} rounded-xl border ${theme.border}`}>
-                <BookMarked className={`w-5 h-5 ${theme.text}`} />
-                <span className={`text-sm font-bold ${theme.text}`}>{totalSubjects}</span>
+              <div className={`hidden sm:flex items-center gap-3 px-5 py-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border ${theme.border}`}>
+                <BookOpen className={`w-6 h-6 ${theme.text}`} />
+                <span className={`text-2xl font-black ${theme.text}`}>{totalSubjects}</span>
               </div>
             </div>
             
             {/* Grades grid */}
             {levelGrades.length === 0 ? (
-              <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-10 text-center border border-white/80 shadow-lg">
-                <div className={`w-20 h-20 bg-gradient-to-br ${theme.icon} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl opacity-50`}>
-                  <GraduationCap className="w-10 h-10 text-white" />
-                </div>
-                <h3 className="text-lg font-bold text-gray-600 mb-2">Sin grados configurados</h3>
-                <p className="text-sm text-gray-400 mb-4">Este nivel no tiene grados académicos</p>
-                <span className="text-xs text-gray-400">Configura los grados en Ajustes Académicos</span>
+              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-10 text-center border-2 border-dashed border-gray-200">
+                <GraduationCap className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-lg font-bold text-gray-500 mb-2">Sin grados configurados</h3>
+                <p className="text-sm text-gray-400">Configura los grados en Ajustes Académicos</p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
                 {levelGrades.map(grade => (
-                  <GradeCard
-                    key={grade.id}
-                    grade={grade}
-                    theme={theme}
-                    subjectCount={subjectCountByGrade[grade.id] || 0}
-                    onClick={() => onSelectGrade(level, grade)}
-                  />
+                  <GradeCard key={grade.id} grade={grade} theme={theme} subjectCount={subjectCountByGrade[grade.id] || 0} onClick={() => onSelectGrade(level, grade)} />
                 ))}
               </div>
             )}
@@ -866,71 +676,56 @@ function LevelsView({ levels, grades, subjects, onSelectGrade }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// PREMIUM GRADE SUBJECTS VIEW
+// GRADE SUBJECTS VIEW
 // ══════════════════════════════════════════════════════════════════════════════
 function GradeSubjectsView({ level, grade, subjects, teachers, subjectTeachers, onAddSubject, onEditSubject, onAssignTeacher, onToggleStatus, levelColorIndex }) {
   const theme = LEVEL_THEMES[levelColorIndex % Object.keys(LEVEL_THEMES).length];
   
   const getTeacherForSubject = (subjectId) => {
     const assignment = subjectTeachers[subjectId];
-    if (assignment && assignment.length > 0) {
-      return teachers.find(t => t.id === assignment[0]);
-    }
-    return null;
+    return assignment?.length > 0 ? teachers.find(t => t.id === assignment[0]) : null;
   };
 
   return (
     <div>
-      {/* Premium grade header */}
-      <div className={`relative ${theme.lightBg} rounded-3xl p-8 mb-8 border ${theme.border} shadow-xl overflow-hidden`}>
-        <div className={`absolute top-0 right-0 w-80 h-80 bg-gradient-to-br ${theme.gradient} opacity-10 blur-3xl rounded-full -translate-y-1/2 translate-x-1/2`} />
-        
+      {/* Header */}
+      <div className={`relative ${theme.bg} rounded-3xl p-8 mb-8 border-2 ${theme.border} shadow-xl overflow-hidden`}>
+        <div className={`absolute top-0 right-0 w-96 h-96 bg-gradient-to-br ${theme.gradient} opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl`} />
         <div className="relative flex items-center gap-6">
-          <div className={`w-20 h-20 bg-gradient-to-br ${theme.icon} rounded-2xl flex items-center justify-center shadow-2xl`}>
-            <GraduationCap className="w-10 h-10 text-white" />
+          <div className={`w-24 h-24 ${theme.iconBg} rounded-3xl flex items-center justify-center shadow-2xl`}>
+            <GraduationCap className="w-12 h-12 text-white" />
           </div>
           <div className="flex-1">
-            <p className={`text-sm font-semibold ${theme.text} mb-1`}>{level.nombre}</p>
-            <h2 className="text-3xl font-bold text-gray-800">{grade.nombre}</h2>
+            <p className={`text-lg font-bold ${theme.text} mb-1`}>{level.nombre}</p>
+            <h2 className="text-4xl font-black text-gray-800">{grade.nombre}</h2>
           </div>
           <div className="text-right">
-            <p className="text-4xl font-bold text-gray-800">{subjects.length}</p>
-            <p className="text-sm text-gray-500 font-medium">asignatura{subjects.length !== 1 ? "s" : ""}</p>
+            <p className={`text-5xl font-black ${theme.text}`}>{subjects.length}</p>
+            <p className="text-base text-gray-500 font-semibold">materia{subjects.length !== 1 ? "s" : ""}</p>
           </div>
         </div>
       </div>
 
       {/* Subjects grid */}
       {subjects.length === 0 ? (
-        <div className="bg-white/80 backdrop-blur-sm rounded-3xl p-16 text-center border-2 border-dashed border-gray-200 shadow-xl">
-          <div className="relative w-24 h-24 mx-auto mb-6">
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-indigo-500 rounded-3xl opacity-20 blur-xl" />
-            <div className="relative w-full h-full bg-white rounded-3xl flex items-center justify-center shadow-xl border border-gray-100">
-              <BookOpen className="w-12 h-12 text-gray-300" />
-            </div>
+        <div className={`${theme.bg} rounded-3xl p-16 text-center border-2 border-dashed ${theme.border}`}>
+          <div className={`w-24 h-24 ${theme.iconBg} rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl opacity-50`}>
+            <BookOpen className="w-12 h-12 text-white" />
           </div>
-          <h3 className="text-xl font-bold text-gray-700 mb-2">Este grado aún no tiene asignaturas</h3>
-          <p className="text-gray-500 mb-8 max-w-sm mx-auto">Comienza agregando las materias que se impartirán en este grado</p>
-          <button
-            onClick={onAddSubject}
-            className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 inline-flex items-center gap-3"
-          >
-            <Plus className="w-5 h-5" />
-            Agregar Primera Asignatura
-            <Sparkles className="w-5 h-5" />
+          <h3 className="text-2xl font-black text-gray-700 mb-3">Sin asignaturas</h3>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto">Este grado aún no tiene materias configuradas. ¡Agrega la primera!</p>
+          <button onClick={onAddSubject}
+            className={`px-8 py-4 bg-gradient-to-r ${theme.gradient} text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 inline-flex items-center gap-3`}>
+            <Plus className="w-6 h-6" />
+            Agregar Asignatura
+            <Zap className="w-5 h-5" />
           </button>
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
           {subjects.map(subject => (
-            <SubjectCard
-              key={subject.id}
-              subject={subject}
-              teacher={getTeacherForSubject(subject.id)}
-              onEdit={() => onEditSubject(subject)}
-              onAssignTeacher={() => onAssignTeacher(subject)}
-              onToggleStatus={() => onToggleStatus(subject)}
-            />
+            <SubjectCard key={subject.id} subject={subject} teacher={getTeacherForSubject(subject.id)}
+              onEdit={() => onEditSubject(subject)} onAssignTeacher={() => onAssignTeacher(subject)} onToggleStatus={() => onToggleStatus(subject)} />
           ))}
           <AddSubjectCard onClick={onAddSubject} theme={theme} />
         </div>
@@ -940,7 +735,7 @@ function GradeSubjectsView({ level, grade, subjects, teachers, subjectTeachers, 
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE COMPONENT
+// MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -964,97 +759,50 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   
   const headers = { Authorization: `Bearer ${token}` };
 
-  useEffect(() => {
-    loadInitialData();
-  }, []);
+  useEffect(() => { loadInitialData(); }, []);
 
   const loadInitialData = async () => {
     setLoading(true);
     try {
       const [settingsRes, levelsRes, gradesRes, subjectsRes, usersRes] = await Promise.all([
-        axios.get(`${API}/settings`, { headers }),
-        axios.get(`${API}/academic/levels`, { headers }),
-        axios.get(`${API}/academic/grades`, { headers }),
-        axios.get(`${API}/academic/subjects`, { headers }),
+        axios.get(`${API}/settings`, { headers }), axios.get(`${API}/academic/levels`, { headers }),
+        axios.get(`${API}/academic/grades`, { headers }), axios.get(`${API}/academic/subjects`, { headers }),
         axios.get(`${API}/users`, { headers })
       ]);
       
-      setSettings(settingsRes.data);
-      setLevels(levelsRes.data);
-      setGrades(gradesRes.data);
-      setSubjects(subjectsRes.data);
-      setTeachers(usersRes.data.filter(u => u.role === "teacher"));
+      setSettings(settingsRes.data); setLevels(levelsRes.data); setGrades(gradesRes.data);
+      setSubjects(subjectsRes.data); setTeachers(usersRes.data.filter(u => u.role === "teacher"));
       
       const teacherAssignments = {};
       for (const subject of subjectsRes.data) {
         try {
           const res = await axios.get(`${API}/academic/subjects/${subject.id}/teachers`, { headers });
           teacherAssignments[subject.id] = res.data.teachers?.map(t => t.id) || [];
-        } catch (err) {
-          teacherAssignments[subject.id] = [];
-        }
+        } catch { teacherAssignments[subject.id] = []; }
       }
       setSubjectTeachers(teacherAssignments);
-    } catch (err) {
-      console.error("Error loading data:", err);
-    } finally {
-      setLoading(false);
-    }
+    } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
   const loadSubjects = async () => {
-    try {
-      const res = await axios.get(`${API}/academic/subjects`, { headers });
-      setSubjects(res.data);
-    } catch (err) {
-      console.error("Error loading subjects:", err);
-    }
+    try { const res = await axios.get(`${API}/academic/subjects`, { headers }); setSubjects(res.data); } catch (err) { console.error(err); }
   };
 
   const handleSelectGrade = (level, grade) => {
-    const levelIndex = levels.findIndex(l => l.id === level.id);
-    setLevelColorIndex(levelIndex >= 0 ? levelIndex : 0);
-    setSelectedLevel(level);
-    setSelectedGrade(grade);
+    setLevelColorIndex(levels.findIndex(l => l.id === level.id));
+    setSelectedLevel(level); setSelectedGrade(grade);
   };
 
-  const handleNavigate = (index) => {
-    if (index === 0) {
-      setSelectedLevel(null);
-      setSelectedGrade(null);
-    }
-  };
+  const handleNavigate = (index) => { if (index === 0) { setSelectedLevel(null); setSelectedGrade(null); } };
 
   const handleSaveSubject = async (data) => {
-    const subjectData = {
-      name: data.name,
-      code: data.code,
-      description: data.description,
-      level_id: data.level_id,
-      grade_id: data.grade_id,
-      weekly_hours: data.weekly_hours,
-      color: data.color,
-      status: data.status
-    };
-
+    const subjectData = { name: data.name, code: data.code, description: data.description, level_id: data.level_id, grade_id: data.grade_id, weekly_hours: data.weekly_hours, color: data.color, status: data.status };
     let subjectId;
+    if (editingSubject?.id) { await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers }); subjectId = editingSubject.id; }
+    else { const res = await axios.post(`${API}/academic/subjects`, subjectData, { headers }); subjectId = res.data.subject.id; }
     
-    if (editingSubject?.id) {
-      await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers });
-      subjectId = editingSubject.id;
-    } else {
-      const res = await axios.post(`${API}/academic/subjects`, subjectData, { headers });
-      subjectId = res.data.subject.id;
-    }
-    
-    if (data.teacher_id) {
-      await axios.post(`${API}/academic/subjects/${subjectId}/teachers`, { teacher_ids: [data.teacher_id] }, { headers });
-      setSubjectTeachers(prev => ({ ...prev, [subjectId]: [data.teacher_id] }));
-    } else if (editingSubject?.id) {
-      await axios.post(`${API}/academic/subjects/${subjectId}/teachers`, { teacher_ids: [] }, { headers });
-      setSubjectTeachers(prev => ({ ...prev, [subjectId]: [] }));
-    }
-    
+    if (data.teacher_id) { await axios.post(`${API}/academic/subjects/${subjectId}/teachers`, { teacher_ids: [data.teacher_id] }, { headers }); setSubjectTeachers(prev => ({ ...prev, [subjectId]: [data.teacher_id] })); }
+    else if (editingSubject?.id) { await axios.post(`${API}/academic/subjects/${subjectId}/teachers`, { teacher_ids: [] }, { headers }); setSubjectTeachers(prev => ({ ...prev, [subjectId]: [] })); }
     loadSubjects();
   };
 
@@ -1066,176 +814,93 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   };
 
   const handleToggleStatus = async (subject) => {
-    const newStatus = subject.status === "active" ? "inactive" : "active";
-    await axios.put(`${API}/academic/subjects/${subject.id}`, { status: newStatus }, { headers });
+    await axios.put(`${API}/academic/subjects/${subject.id}`, { status: subject.status === "active" ? "inactive" : "active" }, { headers });
     loadSubjects();
   };
 
-  const openAddSubjectModal = () => {
-    setEditingSubject(null);
-    setShowSubjectModal(true);
-  };
+  const breadcrumbItems = [{ label: "Asignaturas" }];
+  if (selectedLevel) breadcrumbItems.push({ label: selectedLevel.nombre });
+  if (selectedGrade) breadcrumbItems.push({ label: selectedGrade.nombre });
 
-  const openEditSubjectModal = (subject) => {
-    const currentTeachers = subjectTeachers[subject.id] || [];
-    setEditingSubject({ ...subject, teacher_id: currentTeachers[0] || "" });
-    setShowSubjectModal(true);
-  };
-
-  const openTeacherModal = (subject) => {
-    setSelectedSubjectForTeacher(subject);
-    setShowTeacherModal(true);
-  };
-
-  const breadcrumbItems = [{ label: "Asignaturas", path: null }];
-  if (selectedLevel) {
-    breadcrumbItems.push({ label: selectedLevel.nombre, path: null });
-  }
-  if (selectedGrade) {
-    breadcrumbItems.push({ label: selectedGrade.nombre, path: null });
-  }
-
-  const gradeSubjects = selectedGrade 
-    ? subjects.filter(s => s.grade_id === selectedGrade.id)
-    : [];
+  const gradeSubjects = selectedGrade ? subjects.filter(s => s.grade_id === selectedGrade.id) : [];
+  const currentTheme = LEVEL_THEMES[levelColorIndex % Object.keys(LEVEL_THEMES).length];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
         <div className="text-center">
-          <div className="relative w-16 h-16 mx-auto mb-4">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl blur-xl opacity-40 animate-pulse" />
-            <div className="relative w-full h-full bg-white rounded-2xl flex items-center justify-center shadow-xl">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-            </div>
+          <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl animate-pulse">
+            <Loader2 className="w-10 h-10 text-white animate-spin" />
           </div>
-          <p className="text-sm text-gray-500 font-medium">Cargando asignaturas...</p>
+          <p className="text-gray-500 font-medium">Cargando asignaturas...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 flex" data-testid="subjects-page">
-      <Sidebar 
-        user={user} 
-        settings={settings} 
-        isOpen={sidebarOpen} 
-        setIsOpen={setSidebarOpen}
-        subdomain={subdomain}
-        onLogout={onLogout}
-      />
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex">
+      <Sidebar user={user} settings={settings} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} subdomain={subdomain} onLogout={onLogout} />
       
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Premium Header */}
         <header className="bg-white/80 backdrop-blur-xl border-b border-white/50 px-6 py-4 flex items-center justify-between shadow-sm">
           <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-xl transition-colors">
-              <BookOpen className="w-5 h-5 text-gray-600" />
-            </button>
-            {settings?.logo_url && (
-              <img src={settings.logo_url} alt="Logo" className="h-9 w-auto object-contain" />
-            )}
+            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-xl"><BookOpen className="w-5 h-5 text-gray-600" /></button>
+            {settings?.logo_url && <img src={settings.logo_url} alt="Logo" className="h-9 w-auto" />}
             <div>
               <h1 className="text-lg font-bold text-gray-800">{settings?.system_name || "Instituto"}</h1>
-              <p className="text-xs text-gray-400 font-medium">Gestión Académica</p>
+              <p className="text-xs text-gray-400">Gestión Académica</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-semibold text-gray-700">{user?.name} {user?.last_name}</p>
-              <p className="text-xs text-gray-400 capitalize font-medium">{user?.role}</p>
+              <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
             </div>
-            {user?.photo_url ? (
-              <img src={user.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-lg" />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-sm font-bold shadow-lg">
-                {user?.name?.charAt(0) || "U"}
-              </div>
-            )}
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold shadow-lg">
+              {user?.name?.charAt(0) || "U"}
+            </div>
           </div>
         </header>
 
-        {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8">
-          {/* Page header */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-4">
               {selectedGrade && (
-                <button
-                  onClick={() => handleNavigate(0)}
-                  className="p-3 bg-white hover:bg-gray-50 rounded-xl transition-all shadow-md hover:shadow-lg border border-gray-100"
-                >
+                <button onClick={() => handleNavigate(0)} className="p-3 bg-white hover:bg-gray-50 rounded-xl shadow-lg border border-gray-100 hover:scale-105 transition-all">
                   <ArrowLeft className="w-5 h-5 text-gray-500" />
                 </button>
               )}
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl blur-xl opacity-30" />
-                <div className="relative w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center shadow-xl">
-                  <BookOpen className="w-7 h-7 text-white" />
-                </div>
+              <div className={`w-16 h-16 bg-gradient-to-br ${selectedGrade ? currentTheme?.gradient || 'from-blue-500 to-indigo-500' : 'from-blue-600 to-indigo-700'} rounded-2xl flex items-center justify-center shadow-xl`}>
+                <BookOpen className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl lg:text-3xl font-bold text-gray-800">Asignaturas</h1>
-                <p className="text-sm text-gray-500">
-                  {selectedGrade 
-                    ? `${selectedLevel?.nombre} - ${selectedGrade?.nombre}`
-                    : "Gestiona las materias por nivel y grado"
-                  }
-                </p>
+                <h1 className="text-3xl lg:text-4xl font-black text-gray-800">Asignaturas</h1>
+                <p className="text-gray-500 font-medium">{selectedGrade ? `${selectedLevel?.nombre} - ${selectedGrade?.nombre}` : "Gestiona las materias por nivel y grado"}</p>
               </div>
             </div>
-
-            {selectedGrade && (
-              <Breadcrumb items={breadcrumbItems} onNavigate={handleNavigate} />
-            )}
+            {selectedGrade && <Breadcrumb items={breadcrumbItems} onNavigate={handleNavigate} theme={currentTheme} />}
           </div>
 
-          {/* Content */}
           {!selectedGrade ? (
-            <LevelsView
-              levels={levels}
-              grades={grades}
-              subjects={subjects}
-              onSelectGrade={handleSelectGrade}
-            />
+            <LevelsView levels={levels} grades={grades} subjects={subjects} onSelectGrade={handleSelectGrade} />
           ) : (
-            <GradeSubjectsView
-              level={selectedLevel}
-              grade={selectedGrade}
-              subjects={gradeSubjects}
-              teachers={teachers}
-              subjectTeachers={subjectTeachers}
-              levelColorIndex={levelColorIndex}
-              onAddSubject={openAddSubjectModal}
-              onEditSubject={openEditSubjectModal}
-              onAssignTeacher={openTeacherModal}
-              onToggleStatus={handleToggleStatus}
-            />
+            <GradeSubjectsView level={selectedLevel} grade={selectedGrade} subjects={gradeSubjects} teachers={teachers}
+              subjectTeachers={subjectTeachers} levelColorIndex={levelColorIndex}
+              onAddSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}
+              onEditSubject={(s) => { setEditingSubject({ ...s, teacher_id: subjectTeachers[s.id]?.[0] || "" }); setShowSubjectModal(true); }}
+              onAssignTeacher={(s) => { setSelectedSubjectForTeacher(s); setShowTeacherModal(true); }}
+              onToggleStatus={handleToggleStatus} />
           )}
         </main>
       </div>
 
-      {/* Modals */}
-      <SubjectFormModal
-        isOpen={showSubjectModal}
-        onClose={() => { setShowSubjectModal(false); setEditingSubject(null); }}
-        subject={editingSubject}
-        onSave={handleSaveSubject}
-        levels={levels}
-        grades={grades}
-        teachers={teachers}
-        preselectedLevel={selectedLevel?.id}
-        preselectedGrade={selectedGrade?.id}
-      />
-      <TeacherAssignModal
-        isOpen={showTeacherModal}
-        onClose={() => { setShowTeacherModal(false); setSelectedSubjectForTeacher(null); }}
-        subject={selectedSubjectForTeacher}
-        teachers={teachers}
-        currentTeacherId={selectedSubjectForTeacher ? (subjectTeachers[selectedSubjectForTeacher.id]?.[0] || "") : ""}
-        onSave={handleAssignTeacher}
-      />
+      <SubjectFormModal isOpen={showSubjectModal} onClose={() => { setShowSubjectModal(false); setEditingSubject(null); }}
+        subject={editingSubject} onSave={handleSaveSubject} levels={levels} grades={grades} teachers={teachers}
+        preselectedLevel={selectedLevel?.id} preselectedGrade={selectedGrade?.id} />
+      <TeacherAssignModal isOpen={showTeacherModal} onClose={() => { setShowTeacherModal(false); setSelectedSubjectForTeacher(null); }}
+        subject={selectedSubjectForTeacher} teachers={teachers}
+        currentTeacherId={selectedSubjectForTeacher ? (subjectTeachers[selectedSubjectForTeacher.id]?.[0] || "") : ""} onSave={handleAssignTeacher} />
     </div>
   );
 }
