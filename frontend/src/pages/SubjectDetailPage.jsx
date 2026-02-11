@@ -602,15 +602,25 @@ export default function SubjectDetailPage({ user, token, subdomain, onLogout, su
         setLevel(levelsRes.data.find(l => l.id === subjectData.level_id));
         setGrade(gradesRes.data.find(g => g.id === subjectData.grade_id));
         
-        // Get teacher
-        try {
-          const teacherRes = await axios.get(`${API}/academic/subjects/${subjectId}/teachers`, { headers });
-          if (teacherRes.data.teachers?.length > 0) {
-            const teacherId = teacherRes.data.teachers[0].id;
-            setTeacher(usersRes.data.find(u => u.id === teacherId));
+        // Get teacher from the subject data (now includes primary_teacher from academic_assignments)
+        if (subjectData.primary_teacher) {
+          // Find full user data for the teacher
+          const teacherUser = usersRes.data.find(u => u.id === subjectData.primary_teacher.id);
+          if (teacherUser) {
+            setTeacher({
+              ...teacherUser,
+              photo_url: teacherUser.profile_image,
+              role: subjectData.primary_teacher.role
+            });
+          } else {
+            // Use the basic info from primary_teacher
+            setTeacher({
+              id: subjectData.primary_teacher.id,
+              name: subjectData.primary_teacher.name,
+              photo_url: subjectData.primary_teacher.profile_image,
+              role: subjectData.primary_teacher.role
+            });
           }
-        } catch (err) {
-          console.log("No teacher assigned");
         }
         
         // Get students for this grade
