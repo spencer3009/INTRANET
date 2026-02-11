@@ -1499,34 +1499,14 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       />
       
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header - Premium banking style */}
-        <header className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-xl">
-              <Landmark className="w-5 h-5 text-gray-600" />
-            </button>
-            {settings?.logo_url && (
-              <img src={settings.logo_url} alt="Logo" className="h-9 w-auto object-contain" />
-            )}
-            <div>
-              <h1 className="text-lg font-bold text-gray-800">{settings?.system_name || "Instituto"}</h1>
-              <p className="text-xs text-gray-400 font-medium">Gestión Financiera</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-gray-700">{user?.name} {user?.last_name}</p>
-              <p className="text-xs text-gray-400 capitalize font-medium">{user?.role}</p>
-            </div>
-            {user?.photo_url ? (
-              <img src={user.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover ring-2 ring-gray-100" />
-            ) : (
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-white text-sm font-bold shadow-lg">
-                {user?.name?.charAt(0) || "U"}
-              </div>
-            )}
-          </div>
-        </header>
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={settings?.system_name}
+          subdomain={subdomain}
+        />
 
         {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8">
