@@ -6985,7 +6985,7 @@ async def get_academic_assignments(
         teachers = await db.users.find({"id": {"$in": teacher_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(500)
         levels = await db.academic_levels.find({"id": {"$in": level_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         grades = await db.grades.find({"id": {"$in": grade_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
-        sections = await db.academic_sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
+        sections = await db.sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(500)
         
         # Create lookup maps
@@ -7040,7 +7040,7 @@ async def get_assignments_by_teacher(
     for a in assignments:
         level = await db.academic_levels.find_one({"id": a["level_id"]}, {"_id": 0, "nombre": 1})
         grade = await db.grades.find_one({"id": a["grade_id"]}, {"_id": 0, "nombre": 1})
-        section = await db.academic_sections.find_one({"id": a["section_id"]}, {"_id": 0, "nombre": 1})
+        section = await db.sections.find_one({"id": a["section_id"]}, {"_id": 0, "nombre": 1})
         subject = await db.subjects.find_one({"id": a["subject_id"]}, {"_id": 0, "name": 1, "code": 1, "color": 1})
         
         a["level_name"] = level.get("nombre", "") if level else ""
@@ -7130,7 +7130,7 @@ async def create_academic_assignment(
         raise HTTPException(status_code=404, detail="Grado no encontrado o no pertenece al nivel")
     
     # Validate section exists
-    section = await db.academic_sections.find_one({
+    section = await db.sections.find_one({
         "id": data.section_id,
         "school_id": school_id
     })
@@ -7238,7 +7238,7 @@ async def update_academic_assignment(
         update_data["grade_id"] = data.grade_id
     
     if data.section_id is not None:
-        section = await db.academic_sections.find_one({"id": data.section_id, "school_id": school_id})
+        section = await db.sections.find_one({"id": data.section_id, "school_id": school_id})
         if not section:
             raise HTTPException(status_code=404, detail="Sección no encontrada")
         update_data["section_id"] = data.section_id
