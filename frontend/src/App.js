@@ -577,6 +577,26 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Profile Page - URL path mode */}
+          <Route
+            path="/school/:subdomain/perfil"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ProfilePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} onUserUpdate={setUser} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Profile Page - Direct path */}
+          <Route
+            path="/perfil"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ProfilePage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} onUserUpdate={setUser} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
           <Route
