@@ -765,6 +765,95 @@ async def get_school_info(current_user=Depends(require_school)):
     return school
 
 # ══════════════════════════════════════════════════════════════════════════════
+# DEMO DATA MANAGEMENT
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/demo-data/status")
+async def get_demo_data_status(current_user = Depends(require_school)):
+    """
+    Check if the current school has demo data.
+    Returns info about demo data presence.
+    """
+    user = current_user
+    school_id = current_user.get("school_id")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Escuela no encontrada")
+    
+    has_demo = school.get("has_demo_data", False)
+    demo_seeded_at = school.get("demo_seeded_at")
+    
+    # Count demo items
+    demo_counts = {}
+    if has_demo:
+        demo_counts = {
+            "users": await db.users.count_documents({"school_id": school_id, "is_demo": True}),
+            "subjects": await db.subjects.count_documents({"school_id": school_id, "is_demo": True}),
+            "news": await db.news.count_documents({"school_id": school_id, "is_demo": True}),
+            "events": await db.calendar_events.count_documents({"school_id": school_id, "is_demo": True}),
+            "payments": await db.payments.count_documents({"school_id": school_id, "is_demo": True}),
+        }
+    
+    return {
+        "has_demo_data": has_demo,
+        "demo_seeded_at": demo_seeded_at,
+        "demo_counts": demo_counts,
+        "message": "Esta intranet contiene información de ejemplo para ayudarte a empezar." if has_demo else "No hay datos de demostración"
+    }
+
+@api_router.delete("/demo-data")
+async def delete_demo_data(current_user = Depends(require_school)):
+    """
+    Delete all demo data from the current school.
+    Only admin/owner can delete demo data.
+    """
+    user = current_user
+    school_id = current_user.get("school_id")
+    
+    # Only owner/admin can delete demo data
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar datos demo")
+    
+    # Check if school has demo data
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school or not school.get("has_demo_data"):
+        return {"message": "No hay datos de demostración para eliminar", "deleted": []}
+    
+    # Delete demo data
+    result = await delete_demo_data_for_school(db, school_id)
+    
+    return {
+        "message": "Datos de demostración eliminados correctamente",
+        "deleted": result.get("deleted", [])
+    }
+
+@api_router.post("/demo-data/reseed")
+async def reseed_demo_data(current_user = Depends(require_school)):
+    """
+    Re-seed demo data for the current school.
+    This will first delete existing demo data, then create fresh demo data.
+    Only admin/owner can reseed.
+    """
+    user = current_user
+    school_id = current_user.get("school_id")
+    
+    # Only owner/admin can reseed
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden regenerar datos demo")
+    
+    # First delete existing demo data
+    await delete_demo_data_for_school(db, school_id)
+    
+    # Then seed fresh demo data
+    result = await seed_demo_data_for_school(db, school_id, user.get("sub", user.get("id")))
+    
+    return {
+        "message": "Datos de demostración regenerados correctamente",
+        "seeded": result.get("summary", {}).get("seeded", [])
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SEED DATA
 # ══════════════════════════════════════════════════════════════════════════════
 
