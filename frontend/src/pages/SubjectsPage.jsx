@@ -472,13 +472,12 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, te
               <input type="number" min="1" max="40" value={formData.weekly_hours} onChange={(e) => setFormData(prev => ({ ...prev, weekly_hours: parseInt(e.target.value) || 1 }))}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
             </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Profesor</label>
-              <select value={formData.teacher_id} onChange={(e) => setFormData(prev => ({ ...prev, teacher_id: e.target.value }))}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500">
-                <option value="">Sin asignar</option>
-                {teachers.filter(t => t.activo).map(teacher => (<option key={teacher.id} value={teacher.id}>{teacher.name} {teacher.last_name}</option>))}
-              </select>
+            <div className="flex flex-col justify-end">
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-xs text-amber-700 font-medium">
+                  💡 Los profesores se asignan desde el módulo "Asignación Docente"
+                </p>
+              </div>
             </div>
           </div>
 
