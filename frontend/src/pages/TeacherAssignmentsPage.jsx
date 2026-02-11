@@ -731,7 +731,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         gradesRes,
         sectionsRes,
         subjectsRes,
-        teachersRes
+        teachersRes,
+        periodsRes
       ] = await Promise.all([
         axios.get(`${API}/academic/assignments?${params}`, { headers }),
         axios.get(`${API}/academic/assignments/teachers-summary`, { headers }),
@@ -739,7 +740,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         axios.get(`${API}/academic/grades`, { headers }),
         axios.get(`${API}/academic/sections`, { headers }),
         axios.get(`${API}/academic/subjects`, { headers }),
-        axios.get(`${API}/users/teachers/active`, { headers })
+        axios.get(`${API}/users/teachers/active`, { headers }),
+        axios.get(`${API}/academic/periods`, { headers })
       ]);
       
       setAssignments(assignmentsRes.data);
@@ -749,7 +751,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         grades: gradesRes.data,
         sections: sectionsRes.data,
         subjects: subjectsRes.data,
-        teachers: teachersRes.data
+        teachers: teachersRes.data,
+        periods: periodsRes.data
       });
     } catch (error) {
       console.error("Error fetching data:", error);
