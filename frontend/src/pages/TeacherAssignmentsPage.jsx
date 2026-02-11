@@ -751,7 +751,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
           user={user}
           schoolName={user?.school_name}
           subdomain={subdomain}
-          onToggleSidebar={() => setSidebarExpanded(!sidebarExpanded)}
+          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
         />
         
         {/* Page Header */}
