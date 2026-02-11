@@ -387,6 +387,16 @@ function App() {
             }
           />
 
+          {/* Academic Years Page */}
+          <Route
+            path="/anos-academicos"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AcademicYearsPage token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Subjects Page - URL path mode */}
           <Route
             path="/school/:subdomain/asignaturas"
