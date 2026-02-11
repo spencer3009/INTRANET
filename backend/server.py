@@ -2235,6 +2235,127 @@ async def create_section_type(
     
     return {"message": "Tipo de sección creado", "section_type": section_type}
 
+@api_router.put("/academic/section-types/{type_id}")
+async def update_section_type(
+    type_id: str,
+    label: str = Body(None),
+    activo: bool = Body(None),
+    current_user = Depends(get_current_user)
+):
+    """Update a section type (admin only)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar tipos de sección")
+    
+    school_id = user["school_id"]
+    
+    # Find the section type
+    section_type = await db.section_types.find_one({
+        "id": type_id,
+        "school_id": school_id
+    })
+    if not section_type:
+        raise HTTPException(status_code=404, detail="Tipo de sección no encontrado")
+    
+    # Build update
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if label is not None:
+        update_data["label"] = label
+    if activo is not None:
+        # Check if deactivating - verify no sections are using this type
+        if not activo:
+            sections_using = await db.sections.count_documents({
+                "school_id": school_id,
+                "section_type_id": type_id
+            })
+            if sections_using > 0:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"No se puede desactivar: {sections_using} secciones usan este tipo"
+                )
+        update_data["activo"] = activo
+    
+    await db.section_types.update_one(
+        {"id": type_id},
+        {"$set": update_data}
+    )
+    
+    # Get updated record
+    updated = await db.section_types.find_one({"id": type_id}, {"_id": 0})
+    return {"message": "Tipo de sección actualizado", "section_type": updated}
+
+@api_router.put("/academic/section-types/reorder")
+async def reorder_section_types(
+    order: List[str] = Body(..., description="List of section type IDs in desired order"),
+    current_user = Depends(get_current_user)
+):
+    """Reorder section types (admin only)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden reordenar tipos de sección")
+    
+    school_id = user["school_id"]
+    
+    # Update order for each type
+    for idx, type_id in enumerate(order, start=1):
+        await db.section_types.update_one(
+            {"id": type_id, "school_id": school_id},
+            {"$set": {"orden": idx}}
+        )
+    
+    # Return updated list
+    types = await db.section_types.find({"school_id": school_id}, {"_id": 0}).sort("orden", 1).to_list(50)
+    return {"message": "Orden actualizado", "section_types": types}
+
+@api_router.delete("/academic/section-types/{type_id}")
+async def delete_section_type(
+    type_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Soft delete a section type (admin only) - sets activo=false"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar tipos de sección")
+    
+    school_id = user["school_id"]
+    
+    # Find the section type
+    section_type = await db.section_types.find_one({
+        "id": type_id,
+        "school_id": school_id
+    })
+    if not section_type:
+        raise HTTPException(status_code=404, detail="Tipo de sección no encontrado")
+    
+    # Check if any sections are using this type
+    sections_using = await db.sections.count_documents({
+        "school_id": school_id,
+        "section_type_id": type_id
+    })
+    if sections_using > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No se puede eliminar: {sections_using} secciones usan este tipo. Desactívelo en su lugar."
+        )
+    
+    # Soft delete - just set activo to false
+    await db.section_types.update_one(
+        {"id": type_id},
+        {"$set": {"activo": False, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Tipo de sección desactivado"}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC SETTINGS - SECCIONES
 # ══════════════════════════════════════════════════════════════════════════════
