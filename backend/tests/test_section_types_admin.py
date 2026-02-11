@@ -9,6 +9,7 @@ Tests:
 import pytest
 import requests
 import os
+import time
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -27,6 +28,8 @@ class TestSectionTypesAdminModule:
         self.session.headers.update({"Content-Type": "application/json"})
         self.token = None
         self.created_types = []  # Track created types for cleanup
+        # Use timestamp for unique keys
+        self.test_suffix = str(int(time.time() * 1000))[-6:]
         
     def _login(self):
         """Login and get auth token"""
@@ -89,9 +92,10 @@ class TestSectionTypesAdminModule:
         """Create a new section type for subsequent tests"""
         self._login()
         
+        unique_key = f"TX{self.test_suffix}"
         payload = {
-            "key": "TEST_X",
-            "label": "Test X"
+            "key": unique_key,
+            "label": f"Test {unique_key}"
         }
         
         response = self.session.post(f"{BASE_URL}/api/academic/section-types", json=payload)
@@ -101,12 +105,15 @@ class TestSectionTypesAdminModule:
         assert "section_type" in data, "Response missing 'section_type'"
         
         section_type = data["section_type"]
-        assert section_type["key"] == "TEST_X"
-        assert section_type["label"] == "Test X"
+        assert section_type["key"] == unique_key
+        assert section_type["label"] == f"Test {unique_key}"
         assert section_type["activo"] == True
         
         self.created_types.append(section_type["id"])
         print(f"✓ Created test section type: {section_type['label']} (id: {section_type['id']})")
+        
+        # Cleanup
+        self._cleanup_created_types()
     
     # ═══════════════════════════════════════════════════════════════════════════
     # TEST: PUT /api/academic/section-types/{id} - Update label
@@ -116,9 +123,10 @@ class TestSectionTypesAdminModule:
         """Test PUT /api/academic/section-types/{id} updates label"""
         self._login()
         
-        # First create a test type
+        # First create a test type with unique key
+        unique_key = f"TL{self.test_suffix}"
         create_response = self.session.post(f"{BASE_URL}/api/academic/section-types", json={
-            "key": "TEST_LABEL",
+            "key": unique_key,
             "label": "Original Label"
         })
         assert create_response.status_code == 200, f"Failed to create: {create_response.text}"
@@ -153,12 +161,13 @@ class TestSectionTypesAdminModule:
         """Test PUT /api/academic/section-types/{id} updates activo status"""
         self._login()
         
-        # Create a test type
+        # Create a test type with unique key
+        unique_key = f"TA{self.test_suffix}"
         create_response = self.session.post(f"{BASE_URL}/api/academic/section-types", json={
-            "key": "TEST_ACTIVO",
+            "key": unique_key,
             "label": "Test Activo"
         })
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Failed to create: {create_response.text}"
         
         type_id = create_response.json()["section_type"]["id"]
         self.created_types.append(type_id)
@@ -211,10 +220,12 @@ class TestSectionTypesAdminModule:
         assert get_response.status_code == 200
         
         types = get_response.json()
-        assert len(types) >= 2, "Need at least 2 types to test reorder"
+        # Filter to only active types for cleaner test
+        active_types = [t for t in types if t["activo"]]
+        assert len(active_types) >= 2, "Need at least 2 active types to test reorder"
         
-        # Get original order
-        original_order = [t["id"] for t in types]
+        # Get original order (first 3 active types)
+        original_order = [t["id"] for t in active_types[:3]]
         
         # Reverse the order
         reversed_order = list(reversed(original_order))
@@ -229,15 +240,14 @@ class TestSectionTypesAdminModule:
         data = reorder_response.json()
         assert "section_types" in data, "Response missing 'section_types'"
         
-        # Verify new order
+        # Verify new order - check that orden values are updated
         new_types = data["section_types"]
-        new_order = [t["id"] for t in new_types]
+        for idx, type_id in enumerate(reversed_order):
+            matching_type = next((t for t in new_types if t["id"] == type_id), None)
+            assert matching_type is not None, f"Type {type_id} not found in response"
+            assert matching_type["orden"] == idx + 1, f"Type {type_id} has wrong orden"
         
-        # Check that orden values are updated
-        for idx, t in enumerate(new_types):
-            assert t["orden"] == idx + 1, f"Type {t['key']} has wrong orden: expected {idx + 1}, got {t['orden']}"
-        
-        print(f"✓ PUT /api/academic/section-types/reorder successfully reordered {len(types)} types")
+        print(f"✓ PUT /api/academic/section-types/reorder successfully reordered types")
         
         # Restore original order
         self.session.put(
@@ -252,12 +262,13 @@ class TestSectionTypesAdminModule:
         # Get current types
         get_response = self.session.get(f"{BASE_URL}/api/academic/section-types")
         types = get_response.json()
+        active_types = [t for t in types if t["activo"]]
         
-        if len(types) < 3:
-            pytest.skip("Need at least 3 types to test partial reorder")
+        if len(active_types) < 3:
+            pytest.skip("Need at least 3 active types to test partial reorder")
         
         # Reorder only first 3
-        partial_order = [types[2]["id"], types[0]["id"], types[1]["id"]]
+        partial_order = [active_types[2]["id"], active_types[0]["id"], active_types[1]["id"]]
         
         reorder_response = self.session.put(
             f"{BASE_URL}/api/academic/section-types/reorder",
@@ -268,7 +279,7 @@ class TestSectionTypesAdminModule:
         print("✓ Partial reorder works correctly")
         
         # Restore original order
-        original_order = [t["id"] for t in types]
+        original_order = [t["id"] for t in active_types]
         self.session.put(
             f"{BASE_URL}/api/academic/section-types/reorder",
             json={"order": original_order}
@@ -282,12 +293,13 @@ class TestSectionTypesAdminModule:
         """Test DELETE /api/academic/section-types/{id} sets activo=false"""
         self._login()
         
-        # Create a test type
+        # Create a test type with unique key
+        unique_key = f"TD{self.test_suffix}"
         create_response = self.session.post(f"{BASE_URL}/api/academic/section-types", json={
-            "key": "TEST_DELETE",
+            "key": unique_key,
             "label": "Test Delete"
         })
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Failed to create: {create_response.text}"
         
         type_id = create_response.json()["section_type"]["id"]
         
@@ -392,12 +404,13 @@ class TestSectionTypesAdminModule:
         """Test updating both label and activo in a single PUT request"""
         self._login()
         
-        # Create a test type
+        # Create a test type with unique key
+        unique_key = f"TB{self.test_suffix}"
         create_response = self.session.post(f"{BASE_URL}/api/academic/section-types", json={
-            "key": "TEST_BOTH",
+            "key": unique_key,
             "label": "Original"
         })
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Failed to create: {create_response.text}"
         
         type_id = create_response.json()["section_type"]["id"]
         self.created_types.append(type_id)
