@@ -15,11 +15,14 @@ EduNet es una plataforma SaaS multi-tenant diseñada para colegios en Perú. Cad
 
 ### ✅ Core
 - [x] Autenticación (registro, login, verificación de email)
-- [x] Onboarding (creación de subdomain/identificador)
-- [x] Dashboard principal
+- [x] **Login con Username** - Usuarios pueden loguearse con email O nombre de usuario
+- [x] Onboarding (creación de identificador)
+- [x] Dashboard principal con datos dinámicos
 - [x] Gestión de usuarios (profesores, estudiantes, padres)
 - [x] Ajustes de la institución (logo, nombre, configuración)
-- [x] **Sistema de Demo Data** - Datos de ejemplo automáticos (NUEVO - 11 Feb 2026)
+- [x] **Sistema de Demo Data** - Datos de ejemplo automáticos
+- [x] **Sistema de Perfil Dinámico** - Fotos de perfil en toda la app (NUEVO - 11 Feb 2026)
+- [x] **Super Admin/Owner** - Rol protegido para el primer usuario
 
 ### ✅ Académico
 - [x] Niveles educativos (Inicial, Primaria, Secundaria)
@@ -43,73 +46,61 @@ EduNet es una plataforma SaaS multi-tenant diseñada para colegios en Perú. Cad
 
 ## Lo Que Se Implementó (11 Feb 2026)
 
-### Sistema de Demo Data Automático - NUEVO
-Se implementó un sistema completo de datos de demostración para nuevas intranets:
+### Sistema de Perfiles Dinámicos - NUEVO
+Se implementó un sistema completo de visualización de perfiles de usuario:
 
 #### Características:
-1. **Seeding Automático**: Al crear una nueva intranet, se genera automáticamente:
-   - 3 niveles educativos (Inicial, Primaria, Secundaria)
-   - 14 grados
-   - 2 secciones (A, B)
-   - 2 turnos (Mañana, Tarde)
-   - 1 período académico
-   - 4 profesores demo
-   - 10 estudiantes demo
-   - 8 asignaturas
-   - 3 noticias
-   - 5 eventos de calendario
-   - 5 conceptos de pago
-   - 13 pagos demo
-   - Métricas del dashboard
-   - Datos de inscripción para gráficos
+1. **Foto de Perfil Dinámica**:
+   - Se muestra en el header (arriba derecha)
+   - Se muestra en ProfileCard del dashboard
+   - Se muestra en la página de perfil
+   - Usa `photo_url` del usuario autenticado
+   - Subida a Cloudinary
 
-2. **Identificación de Demo Data**:
-   - Todos los datos demo marcados con `is_demo: true`
-   - Fácil eliminación posterior
-   - No interfiere con datos reales
+2. **Avatar por Defecto Elegante**:
+   - Cuando el usuario no tiene foto, se muestra un avatar con iniciales
+   - Gradiente azul oscuro (#001f4b → #003366)
+   - Extrae iniciales del nombre (ej: "Colegio Demo" → "CD")
+   - Manejo de errores de carga de imagen
 
-3. **Banner de Bienvenida**:
-   - Se muestra en el Dashboard cuando hay datos demo
-   - Informa al usuario sobre la naturaleza de los datos
-   - Muestra contadores de datos demo
-   - Botón para eliminar datos demo
+3. **Visualización de Roles con Badges**:
+   - OWNER: Badge ámbar con icono de corona
+   - SUPER ADMIN: Badge púrpura con icono de escudo
+   - DIRECTOR: Badge índigo
+   - ADMINISTRADOR: Badge azul
+   - PROFESOR: Badge esmeralda
+   - ESTUDIANTE: Badge cyan
+   - PADRE: Badge naranja
 
-4. **Endpoints de Gestión**:
-   - `GET /api/demo-data/status` - Estado de datos demo
-   - `DELETE /api/demo-data` - Eliminar datos demo
-   - `POST /api/demo-data/reseed` - Regenerar datos demo
+4. **ProfileCard Mejorado**:
+   - Muestra foto o avatar con iniciales
+   - Badge de rol con colores diferenciados
+   - Nombre del usuario
+   - Email
+   - Username (@usuario)
+   - Indicador de "en línea"
 
-#### Archivos Creados/Modificados:
-- `/app/backend/demo_seeder.py` (nuevo - módulo de seeding)
-- `/app/backend/server.py` (integración del seeder)
-- `/app/frontend/src/components/DemoBanner.jsx` (nuevo - banner UI)
-- `/app/frontend/src/pages/DashboardPage.jsx` (integración del banner)
+#### Archivos Modificados:
+- `/app/frontend/src/components/DashboardHeader.jsx` - Avatar dinámico y rol
+- `/app/frontend/src/components/ProfileCard.jsx` - Rediseño completo
+- `/app/frontend/src/App.js` - Función handleUserUpdate para persistencia
 
-### Dashboard con Datos Reales (anterior)
-- Eventos del calendario mostrados en "Próximos Eventos"
-- Noticias reales en sección "Noticias y Avisos"
-- Mini calendario con indicadores de eventos
-
-### Página de Detalle de Curso Premium (anterior)
-- Hero Header con gradiente dinámico
-- 6 Tabs Premium: Tablero, Tareas, Material, Exámenes, Foro, Calificaciones
-- Layout de 3 columnas
-- Estados vacíos elegantes
+### Terminología Actualizada
+- Cambiado "subdominio" → "identificador" en OnboardingPage
 
 ## Backlog / Tareas Pendientes
 
 ### P0 - Alta Prioridad
-- [ ] Integrar datos reales en página de detalle del curso (tareas, materiales, exámenes)
 - [ ] Implementar funcionalidad "Editar Usuario" (actualmente placeholder)
+- [ ] Integrar datos reales en página de detalle del curso (tareas, materiales, exámenes)
 
 ### P1 - Media Prioridad
-- [ ] Cambiar terminología "subdomain" → "identificador" en UI
 - [ ] Módulo de Inscripciones/Matrículas
 - [ ] Módulo de Calificaciones
 - [ ] Módulo de Reportes
 
 ### P2 - Baja Prioridad
-- [ ] Refactorizar componentes grandes (UsersPage, AccountingPage, SubjectsPage)
+- [ ] Refactorizar componentes grandes (UsersPage, AccountingPage, CourseDetailPage, ProfilePage)
 - [ ] Integración con SUNAT para facturación electrónica
 - [ ] Notificaciones push
 - [ ] Implementar verificación de email real (actualmente código demo)
@@ -121,12 +112,13 @@ Se implementó un sistema completo de datos de demostración para nuevas intrane
 
 ## Credenciales de Prueba
 - **Email**: `admin.settings@test.pe`
+- **Username**: `admin_demo`
 - **Password**: `test123`
 - **Identificador**: `demosettings`
 - **URL de Login**: `/school/demosettings/login`
 
 ## Integraciones
-- **Cloudinary**: Carga de imágenes
+- **Cloudinary**: Carga de imágenes (logos, fotos de perfil)
 - **Recharts**: Gráficos en encuestas y dashboard
 
 ## Notas Técnicas
@@ -135,3 +127,4 @@ Se implementó un sistema completo de datos de demostración para nuevas intrane
 - El sidebar se expande al hover en desktop
 - Los IDs de MongoDB deben excluirse de las respuestas JSON (`{"_id": 0}`)
 - Todos los datos demo están marcados con `is_demo: true` para fácil identificación
+- El usuario debe tener los campos: `photo_url`, `is_owner`, `is_super_admin`, `role`
