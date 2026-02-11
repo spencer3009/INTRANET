@@ -142,6 +142,15 @@
   color: #cbd5e1;
 }
 
+.calendar-day.has-event {
+  background: rgba(92, 133, 214, 0.1);
+  font-weight: 700;
+}
+
+.calendar-day.has-event:not(.today):not(.inactive) {
+  color: #5c85d6;
+}
+
 /* ── Event dot ── */
 .event-dot {
   width: 8px;
