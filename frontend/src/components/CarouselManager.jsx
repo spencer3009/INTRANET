@@ -109,13 +109,19 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
         return;
       }
 
-      // Upload to Cloudinary
+      // Get Cloudinary signature from backend
+      const sigRes = await axios.get(`${API}/cloudinary/signature?folder=edunet/banners&resource_type=image`, { headers });
+      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
+
+      // Upload to Cloudinary with signature
       const formData = new FormData();
       formData.append("file", croppedBlob, "banner.jpg");
-      formData.append("upload_preset", cloudinaryConfig.upload_preset);
-      formData.append("folder", `edunet/banners`);
+      formData.append("api_key", api_key);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      formData.append("folder", folder);
 
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloud_name}/image/upload`;
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`;
       const uploadRes = await axios.post(cloudinaryUrl, formData);
 
       if (uploadRes.data?.secure_url) {
@@ -126,7 +132,7 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
       }
     } catch (err) {
       console.error("Upload error:", err);
-      setError(err.response?.data?.error?.message || "Error al subir la imagen");
+      setError(err.response?.data?.error?.message || err.response?.data?.detail || "Error al subir la imagen");
     } finally {
       setUploading(false);
     }
