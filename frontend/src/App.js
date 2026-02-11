@@ -22,6 +22,7 @@ import DisciplinePage from "@/pages/DisciplinePage";
 import NewsPage from "@/pages/NewsPage";
 import AccountingPage from "@/pages/AccountingPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
+import ProfilePage from "@/pages/ProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
