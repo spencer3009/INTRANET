@@ -1219,7 +1219,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             subject={subject}
             level={levelName}
             grade={gradeName}
-            academicPeriod="2025-II"
+            academicPeriod={academicPeriodName}
             onEdit={() => {}}
             onViewStudents={() => setActiveTab("calificaciones")}
             onViewGrades={() => setActiveTab("calificaciones")}
