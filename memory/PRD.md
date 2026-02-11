@@ -123,8 +123,7 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 ## Backlog / Próximas Tareas
 
 ### P0 - Prioridad Alta
-- [ ] Verificar cambios en producción (deploy + clear cache)
-- [ ] Completar pruebas de "Editar Usuario"
+- [x] ✅ Catálogo de Tipos de Sección (section_types) - COMPLETADO 2025-02-11
 
 ### P1 - Prioridad Media
 - [ ] Refactorizar `UsersPage.jsx` (>2000 líneas)
@@ -172,9 +171,52 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 
 ## Última Actualización
 **Fecha**: 2025-02-11
-**Cambios**:
+**Cambios recientes**:
+
+### Sesión actual (2025-02-11):
+1. ✅ **Catálogo de Tipos de Sección (section_types)** - COMPLETADO
+   - Nueva colección `section_types` con catálogo centralizado (A, B, C, D, E, F, ÚNICA)
+   - Endpoint `GET /api/academic/section-types` con auto-seeding de catálogo por defecto
+   - Endpoint `POST /api/academic/section-types` para crear nuevos tipos (admin only)
+   - Modificado `POST /api/academic/sections` para usar `section_type_id` en lugar de texto libre
+   - Validación de duplicados: no permite mismo tipo de sección en mismo grado
+   - Compatibilidad hacia atrás: auto-asigna `section_type_id` a secciones existentes
+   - Frontend: `SectionModal` ahora usa dropdown del catálogo en lugar de input de texto
+
+### Sesión anterior:
 1. Implementado módulo completo "Asignación Docente"
 2. Eliminado campo "Profesor" del formulario de asignaturas
 3. Agregado mensaje "Sin asignar → Ir a Asignación Docente"
 4. Backend: nueva colección `academic_assignments` con CRUD
 5. Frontend: nueva página con filtros y panel de carga docente
+
+---
+
+## Decisiones Arquitectónicas Adicionales
+
+### Catálogo de Tipos de Sección (NUEVO - 2025-02-11)
+**Decisión**: El nombre de la sección se selecciona EXCLUSIVAMENTE desde un catálogo centralizado (`section_types`), NO mediante texto libre.
+
+**Razón**:
+- Garantiza integridad de datos (evita inconsistencias como mayúsculas, tildes, duplicados lógicos)
+- Evita errores humanos
+- Facilita filtros y reportes precisos
+- Eleva el sistema a nivel intranet premium
+
+**Estructura `section_types`**:
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "key": "A",           // valor normalizado
+  "label": "A",         // valor visible
+  "orden": 1,           // orden de aparición
+  "activo": true,
+  "created_at": "ISO datetime"
+}
+```
+
+**Consecuencias**:
+- El formulario "Nueva Sección" usa un `<select>` en lugar de `<input type="text">`
+- Las secciones almacenan `section_type_id` (referencia al catálogo)
+- El campo `nombre` se deriva automáticamente del `label` del tipo seleccionado
