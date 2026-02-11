@@ -895,61 +895,6 @@ function ForumContent({ threads, onCreateThread }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// LIVE CLASSES TAB CONTENT
-// ══════════════════════════════════════════════════════════════════════════════
-function LiveContent({ sessions, onSchedule }) {
-  return (
-    <div className="space-y-5">
-      <div className="flex justify-end">
-        <button
-          onClick={onSchedule}
-          className="px-5 py-3 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
-        >
-          <Video className="w-5 h-5" />
-          Programar clase
-        </button>
-      </div>
-      
-      {sessions.length === 0 ? (
-        <EmptyState
-          icon={Video}
-          title="Sin clases en vivo"
-          description="No hay clases en vivo programadas. Programa una sesión para tus estudiantes."
-          action="Programar clase"
-          onAction={onSchedule}
-        />
-      ) : (
-        <div className="grid md:grid-cols-2 gap-4">
-          {sessions.map((session, idx) => (
-            <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all">
-              <div className="h-32 bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center">
-                <PlayCircle className="w-16 h-16 text-white/80" />
-              </div>
-              <div className="p-5">
-                <h4 className="font-bold text-gray-800 mb-2">{session.title}</h4>
-                <div className="flex items-center gap-3 text-sm text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {session.date}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-4 h-4" />
-                    {session.time}
-                  </span>
-                </div>
-                <button className="w-full mt-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl font-semibold transition-colors">
-                  {session.status === "live" ? "Unirse ahora" : "Ver detalles"}
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 // GRADES TAB CONTENT
 // ══════════════════════════════════════════════════════════════════════════════
 function GradesContent({ grades }) {
