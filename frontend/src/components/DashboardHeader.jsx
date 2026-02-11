@@ -1,5 +1,37 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, Menu, X, GraduationCap } from "lucide-react";
+import { Search, Bell, Menu, X, GraduationCap, User } from "lucide-react";
+
+// Default avatar component with initials
+function DefaultAvatar({ name, size = "w-10 h-10", textSize = "text-sm" }) {
+  const getInitials = (name) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+  
+  return (
+    <div className={`${size} rounded-full bg-gradient-to-br from-[#001f4b] to-[#003366] flex items-center justify-center text-white font-semibold ${textSize}`}>
+      {getInitials(name)}
+    </div>
+  );
+}
+
+// Get display role in Spanish
+function getRoleDisplay(role, isOwner, isSuperAdmin) {
+  if (isOwner) return "Propietario";
+  if (isSuperAdmin) return "Super Admin";
+  const roles = {
+    director: "Director",
+    admin: "Administrador",
+    teacher: "Profesor",
+    student: "Alumno",
+    parent: "Padre de Familia"
+  };
+  return roles[role] || role || "Usuario";
+}
 
 export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName }) {
   const [searchOpen, setSearchOpen] = useState(false);
@@ -14,6 +46,9 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
   });
 
   const displayName = schoolName || user?.name || "Admin";
+  const userPhoto = user?.photo_url;
+  const userName = user?.name || "Usuario";
+  const userRole = getRoleDisplay(user?.role, user?.is_owner, user?.is_super_admin);
 
   useEffect(() => {
     if (searchOpen && inputRef.current) {
@@ -111,16 +146,24 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
 
           <div className="flex items-center gap-3 pl-3 border-l border-slate-200">
             <div className="hidden sm:block text-right">
-              <p className="text-sm font-semibold text-slate-800">{user?.name || "Admin"}</p>
-              <p className="text-[11px] text-slate-500">{user?.role || "Administrador"}</p>
+              <p className="text-sm font-semibold text-slate-800">{userName}</p>
+              <p className="text-[11px] text-slate-500">{userRole}</p>
             </div>
             <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#e1b82c]/30" data-testid="header-avatar">
-              <img
-                src={user?.avatar || "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=200"}
-                alt={user?.name}
-                className="w-full h-full object-cover"
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/40?text=U'; }}
-              />
+              {userPhoto ? (
+                <img
+                  src={userPhoto}
+                  alt={userName}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { 
+                    e.target.style.display = 'none';
+                    e.target.nextSibling?.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div className={`w-full h-full ${userPhoto ? 'hidden' : ''}`}>
+                <DefaultAvatar name={userName} size="w-full h-full" />
+              </div>
             </div>
           </div>
         </div>
