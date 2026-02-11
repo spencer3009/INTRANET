@@ -112,8 +112,20 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         })}
       </nav>
 
-      {/* Bottom: Settings + Logout */}
+      {/* Bottom: Profile + Settings + Logout */}
       <div className="border-t border-white/10 p-2 space-y-1">
+        <button
+          onClick={() => {
+            const basePath = subdomain ? `/school/${subdomain}` : "";
+            navigate(`${basePath}/perfil`);
+          }}
+          className="sidebar-link w-full"
+          data-testid="sidebar-profile"
+          title="Mi Perfil"
+        >
+          <span className="link-icon"><User className="w-5 h-5" /></span>
+          {isExpanded && <span className="text-sm font-medium">Mi Perfil</span>}
+        </button>
         <button
           onClick={handleSettingsClick}
           className="sidebar-link w-full"
