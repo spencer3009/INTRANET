@@ -4,6 +4,7 @@ import {
   Home,
   UserCog,
   CalendarDays,
+  Calendar,
   Settings,
   Menu,
   BookMarked,
