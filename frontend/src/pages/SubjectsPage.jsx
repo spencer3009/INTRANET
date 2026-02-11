@@ -360,14 +360,14 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
         name: subject.name || "", code: subject.code || "", description: subject.description || "",
         level_id: subject.level_id || "", grade_id: subject.grade_id || "",
         weekly_hours: subject.weekly_hours || 2, color: subject.color || "#3B82F6",
-        status: subject.status || "active", teacher_id: subject.teacher_id || ""
+        status: subject.status || "active"
       });
     } else {
       setFormData({
         name: "", code: "", description: "",
         level_id: preselectedLevel || "", grade_id: preselectedGrade || "",
         weekly_hours: 2, color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value,
-        status: "active", teacher_id: ""
+        status: "active"
       });
     }
     setError("");
