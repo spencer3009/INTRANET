@@ -19,6 +19,9 @@ import cloudinary
 import cloudinary.utils
 import cloudinary.uploader
 
+# Import demo seeder
+from demo_seeder import seed_demo_data_for_school, delete_demo_data_for_school
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
