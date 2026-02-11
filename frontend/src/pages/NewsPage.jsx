@@ -953,34 +953,14 @@ export default function NewsPage({ user, token, subdomain, onLogout }) {
       />
       
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white shadow-sm px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-xl">
-              <Newspaper className="w-6 h-6 text-slate-600" />
-            </button>
-            {settings?.logo_url && (
-              <img src={settings.logo_url} alt="Logo" className="h-10 w-auto object-contain" />
-            )}
-            <div>
-              <h1 className="text-xl font-bold text-slate-800">{settings?.system_name || "Instituto"}</h1>
-              <p className="text-sm text-slate-500">Noticias Institucionales</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-slate-800">{user?.name} {user?.last_name}</p>
-              <p className="text-xs text-slate-500 capitalize">{user?.role}</p>
-            </div>
-            {user?.photo_url ? (
-              <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-            ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
-                {user?.name?.charAt(0) || "U"}
-              </div>
-            )}
-          </div>
-        </header>
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={settings?.system_name}
+          subdomain={subdomain}
+        />
 
         {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8">
