@@ -604,17 +604,26 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <Calendar className="w-4 h-4 inline mr-1 text-cyan-500" />
-                  Año Escolar
+                  Período Académico
                 </label>
                 <select
-                  value={form.school_year}
-                  onChange={(e) => setForm({...form, school_year: parseInt(e.target.value)})}
+                  value={form.period_id}
+                  onChange={(e) => setForm({...form, period_id: e.target.value})}
                   className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  required
                 >
-                  <option value={2026}>2026</option>
-                  <option value={2025}>2025</option>
-                  <option value={2024}>2024</option>
+                  <option value="">Seleccionar período...</option>
+                  {sortedPeriods.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre} {p.activo ? "(Activo)" : ""}
+                    </option>
+                  ))}
                 </select>
+                {sortedPeriods.length === 0 && (
+                  <p className="text-xs text-amber-600 mt-1">
+                    No hay períodos configurados. Créalos en Ajustes Académicos.
+                  </p>
+                )}
               </div>
             </div>
             
