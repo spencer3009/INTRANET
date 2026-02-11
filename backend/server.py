@@ -3421,6 +3421,112 @@ async def delete_academic_period(
     
     return {"message": "Período eliminado correctamente"}
 
+@api_router.post("/academic/migrate-to-years")
+async def migrate_periods_to_years(
+    current_user = Depends(get_current_user)
+):
+    """
+    Migration endpoint: Convert legacy periods to the new AcademicYear + AcademicPeriod structure.
+    - Creates academic years based on period names (extracts year from "Bimestre I - 2025")
+    - Assigns periods to their respective years
+    - Cleans period names (removes year suffix)
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar migraciones")
+    
+    school_id = user["school_id"]
+    
+    # Get all periods without academic_year_id
+    legacy_periods = await db.academic_periods.find({
+        "school_id": school_id,
+        "$or": [
+            {"academic_year_id": {"$exists": False}},
+            {"academic_year_id": None}
+        ]
+    }, {"_id": 0}).to_list(100)
+    
+    if not legacy_periods:
+        return {
+            "message": "No hay períodos para migrar",
+            "migrated_count": 0,
+            "years_created": []
+        }
+    
+    years_created = []
+    periods_migrated = []
+    warnings = []
+    
+    # Get existing academic years
+    existing_years = await db.academic_years.find({"school_id": school_id}, {"_id": 0}).to_list(50)
+    years_map = {y["year"]: y for y in existing_years}
+    
+    # Get active year for fallback
+    active_year = await db.academic_years.find_one({"school_id": school_id, "status": "activo"})
+    
+    for period in legacy_periods:
+        nombre = period.get("nombre", "")
+        
+        # Try to extract year from name (e.g., "Bimestre I - 2025" -> 2025)
+        year_match = re.search(r'\b(20\d{2})\b', nombre)
+        
+        if year_match:
+            year = int(year_match.group(1))
+            # Clean the period name (remove year and separators)
+            clean_name = re.sub(r'\s*[-–]\s*(20\d{2})', '', nombre).strip()
+        elif active_year:
+            # Fallback to active year
+            year = active_year["year"]
+            clean_name = nombre
+            warnings.append(f"Período '{nombre}' asignado al año activo {year} (no se pudo extraer año del nombre)")
+        else:
+            # Last fallback: current year
+            year = datetime.now().year
+            clean_name = nombre
+            warnings.append(f"Período '{nombre}' asignado al año actual {year} (no hay año activo)")
+        
+        # Create academic year if doesn't exist
+        if year not in years_map:
+            new_year = {
+                "id": str(uuid.uuid4()),
+                "school_id": school_id,
+                "year": year,
+                "status": "cerrado" if year < datetime.now().year else "futuro",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            await db.academic_years.insert_one(new_year)
+            del new_year["_id"]
+            years_map[year] = new_year
+            years_created.append(year)
+        
+        # Update period with academic_year_id and clean name
+        await db.academic_periods.update_one(
+            {"id": period["id"]},
+            {"$set": {
+                "academic_year_id": years_map[year]["id"],
+                "nombre": clean_name,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        periods_migrated.append({
+            "original_name": nombre,
+            "new_name": clean_name,
+            "assigned_year": year
+        })
+    
+    return {
+        "message": f"Migración completada: {len(periods_migrated)} períodos migrados",
+        "migrated_count": len(periods_migrated),
+        "years_created": years_created,
+        "periods_migrated": periods_migrated,
+        "warnings": warnings if warnings else None
+    }
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SCHEDULES API
 # ══════════════════════════════════════════════════════════════════════════════
