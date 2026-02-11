@@ -2390,10 +2390,12 @@ async def update_section(
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden editar secciones")
     
+    school_id = user["school_id"]
+    
     # Find the section
     section = await db.sections.find_one({
         "id": section_id,
-        "school_id": user["school_id"]
+        "school_id": school_id
     })
     if not section:
         raise HTTPException(status_code=404, detail="Sección no encontrada")
@@ -2403,26 +2405,42 @@ async def update_section(
     if data.grado_id and data.grado_id != section["grado_id"]:
         grade = await db.grades.find_one({
             "id": data.grado_id,
-            "school_id": user["school_id"]
+            "school_id": school_id
         })
         if not grade:
             raise HTTPException(status_code=400, detail="El grado no existe")
     
-    # Check for duplicate name within the same grade
-    if data.nombre and (data.nombre.lower() != section["nombre"].lower() or new_grado_id != section["grado_id"]):
-        existing = await db.sections.find_one({
-            "school_id": user["school_id"],
-            "grado_id": new_grado_id,
-            "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"},
-            "id": {"$ne": section_id}
+    # If changing section type, verify and check duplicates
+    new_section_type_id = data.section_type_id if data.section_type_id else section.get("section_type_id")
+    if data.section_type_id:
+        section_type = await db.section_types.find_one({
+            "id": data.section_type_id,
+            "school_id": school_id
         })
-        if existing:
-            raise HTTPException(status_code=400, detail="Ya existe una sección con ese nombre en este grado")
+        if not section_type:
+            raise HTTPException(status_code=400, detail="El tipo de sección no existe")
+        
+        # Check for duplicate: same section type in the same grade
+        if new_section_type_id != section.get("section_type_id") or new_grado_id != section["grado_id"]:
+            existing = await db.sections.find_one({
+                "school_id": school_id,
+                "grado_id": new_grado_id,
+                "section_type_id": new_section_type_id,
+                "id": {"$ne": section_id}
+            })
+            if existing:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Ya existe la sección '{section_type['label']}' en este grado"
+                )
     
     # Build update
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
-    if data.nombre is not None:
-        update_data["nombre"] = data.nombre
+    if data.section_type_id is not None:
+        section_type = await db.section_types.find_one({"id": data.section_type_id, "school_id": school_id})
+        if section_type:
+            update_data["section_type_id"] = data.section_type_id
+            update_data["nombre"] = section_type["label"]
     if data.grado_id is not None:
         update_data["grado_id"] = data.grado_id
     if data.capacidad_maxima is not None:
