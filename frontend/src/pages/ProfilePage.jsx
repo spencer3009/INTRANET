@@ -42,12 +42,35 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
   });
   
   const [uploading, setUploading] = useState(false);
+  
+  // Teacher assignments (only for teachers)
+  const [assignments, setAssignments] = useState([]);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     loadData();
   }, []);
+  
+  // Load teacher assignments if user is a teacher
+  useEffect(() => {
+    if (user?.role === "teacher" && user?.id) {
+      loadTeacherAssignments();
+    }
+  }, [user?.id, user?.role]);
+  
+  const loadTeacherAssignments = async () => {
+    try {
+      setLoadingAssignments(true);
+      const res = await axios.get(`${API}/academic/assignments/by-teacher/${user.id}`, { headers });
+      setAssignments(res.data);
+    } catch (err) {
+      console.error("Error loading assignments:", err);
+    } finally {
+      setLoadingAssignments(false);
+    }
+  };
 
   const loadData = async () => {
     try {
