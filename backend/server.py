@@ -2322,27 +2322,41 @@ async def create_section(
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear secciones")
     
+    school_id = user["school_id"]
+    
     # Verify grade exists
     grade = await db.grades.find_one({
         "id": data.grado_id,
-        "school_id": user["school_id"]
+        "school_id": school_id
     })
     if not grade:
         raise HTTPException(status_code=400, detail="El grado no existe")
     
-    # Check for duplicate name within the same grade
+    # Verify section type exists
+    section_type = await db.section_types.find_one({
+        "id": data.section_type_id,
+        "school_id": school_id
+    })
+    if not section_type:
+        raise HTTPException(status_code=400, detail="El tipo de sección no existe")
+    
+    # Check for duplicate: same section type in the same grade
     existing = await db.sections.find_one({
-        "school_id": user["school_id"],
+        "school_id": school_id,
         "grado_id": data.grado_id,
-        "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"}
+        "section_type_id": data.section_type_id
     })
     if existing:
-        raise HTTPException(status_code=400, detail="Ya existe una sección con ese nombre en este grado")
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Ya existe la sección '{section_type['label']}' en este grado"
+        )
     
     section = {
         "id": str(uuid.uuid4()),
-        "school_id": user["school_id"],
-        "nombre": data.nombre,
+        "school_id": school_id,
+        "section_type_id": data.section_type_id,
+        "nombre": section_type["label"],  # Store label for display
         "grado_id": data.grado_id,
         "capacidad_maxima": data.capacidad_maxima,
         "activo": data.activo,
