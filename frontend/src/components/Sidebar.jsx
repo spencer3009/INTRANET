@@ -16,6 +16,7 @@ import {
   AlertTriangle,
   Newspaper,
   Landmark,
+  User,
 } from "lucide-react";
 
 const navItems = [
