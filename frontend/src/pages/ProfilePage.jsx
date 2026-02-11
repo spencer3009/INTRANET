@@ -542,6 +542,75 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
               </div>
             )}
 
+            {/* Teacher Assignments Section (only for teachers) */}
+            {user?.role === "teacher" && (
+              <div className="mt-8 bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center">
+                    <BookOpen className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-800">Asignaciones Académicas</h3>
+                    <p className="text-sm text-gray-500">Asignaturas que dictas este año</p>
+                  </div>
+                </div>
+                
+                {loadingAssignments ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+                  </div>
+                ) : assignments.length === 0 ? (
+                  <div className="text-center py-8 bg-gray-50 rounded-xl">
+                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                      <BookOpen className="w-8 h-8 text-gray-300" />
+                    </div>
+                    <p className="text-gray-500">No tienes asignaciones académicas activas</p>
+                    <p className="text-sm text-gray-400 mt-1">Contacta al administrador para más información</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {assignments.map((assignment) => (
+                      <div 
+                        key={assignment.id}
+                        className="flex items-center gap-4 p-4 bg-gradient-to-r from-gray-50 to-white rounded-xl border border-gray-100 hover:border-emerald-200 hover:shadow-md transition-all"
+                      >
+                        <div 
+                          className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md"
+                          style={{ backgroundColor: assignment.subject_color || '#10B981' }}
+                        >
+                          <BookOpen className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-900">{assignment.subject_name}</h4>
+                          <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
+                            <span className="flex items-center gap-1">
+                              <GraduationCap className="w-3.5 h-3.5" />
+                              {assignment.level_name} {assignment.grade_name}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3.5 h-3.5" />
+                              Sección {assignment.section_name}
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3.5 h-3.5" />
+                              {assignment.school_year}
+                            </span>
+                          </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          assignment.role === "titular" 
+                            ? "bg-emerald-100 text-emerald-700" 
+                            : "bg-blue-100 text-blue-700"
+                        }`}>
+                          {assignment.role === "titular" ? "Titular" : "Auxiliar"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Account Info */}
             {(user?.is_owner || user?.role === "owner") && (
               <div className="mt-8 bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl border border-amber-200 p-6">
