@@ -821,6 +821,14 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
     loadSubjects();
   };
 
+  const handleViewCourse = (subject) => {
+    if (subdomain) {
+      navigate(`/school/${subdomain}/curso/${subject.id}`);
+    } else {
+      navigate(`/curso/${subject.id}`);
+    }
+  };
+
   const breadcrumbItems = [{ label: "Asignaturas" }];
   if (selectedLevel) breadcrumbItems.push({ label: selectedLevel.nombre });
   if (selectedGrade) breadcrumbItems.push({ label: selectedGrade.nombre });
