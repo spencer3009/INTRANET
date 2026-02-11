@@ -1078,6 +1078,26 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         console.log("Could not load students");
       }
       
+      // Load academic period (active one or latest)
+      try {
+        const periodsRes = await axios.get(`${API}/academic/periods`, { headers });
+        const activePeriod = periodsRes.data.find(p => p.activo);
+        if (activePeriod) {
+          setAcademicPeriodName(activePeriod.nombre);
+        } else if (periodsRes.data.length > 0) {
+          // Use the first period if none is active (sorted by date)
+          const sortedPeriods = periodsRes.data.sort((a, b) => 
+            new Date(b.fecha_inicio) - new Date(a.fecha_inicio)
+          );
+          setAcademicPeriodName(sortedPeriods[0].nombre || `${new Date().getFullYear()}`);
+        } else {
+          // Fallback to current year
+          setAcademicPeriodName(`${new Date().getFullYear()}`);
+        }
+      } catch (e) {
+        setAcademicPeriodName(`${new Date().getFullYear()}`);
+      }
+      
     } catch (err) {
       console.error(err);
       setError("Error al cargar los datos del curso");
