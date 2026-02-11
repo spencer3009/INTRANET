@@ -1090,7 +1090,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       <Sidebar active="ajustes-academicos" onNavigate={() => {}} expanded={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} schoolName={schoolName} subdomain={subdomain} />
       {sidebarOpen && <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
       <div className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} />
+        <DashboardHeader user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain} />
         <main className="flex-1 overflow-y-auto p-6 lg:p-8">
           {!selectedCategory && (
             <div className="relative overflow-hidden rounded-3xl mb-8">
