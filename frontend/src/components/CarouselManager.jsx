@@ -10,13 +10,14 @@ import {
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Crop Modal Component
-function CropModal({ isOpen, onClose, imageFile, onCropComplete, cloudinaryConfig }) {
+function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
   const [crop, setCrop] = useState({ unit: "%", width: 100, aspect: 16 / 9 });
   const [completedCrop, setCompletedCrop] = useState(null);
   const [imgSrc, setImgSrc] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const imgRef = useRef(null);
+  const headers = { Authorization: `Bearer ${token}` };
 
   // Load image when file changes - FIXED: use useEffect instead of useState
   useEffect(() => {
