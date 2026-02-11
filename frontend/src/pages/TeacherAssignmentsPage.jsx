@@ -320,7 +320,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
     section_id: "",
     subject_id: "",
     teacher_id: "",
-    school_year: 2026,
+    period_id: "",
     role: "titular",
     status: "activo"
   });
@@ -346,6 +346,11 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
       )
     : [];
   
+  // Sort periods by date (most recent first)
+  const sortedPeriods = [...(academicData.periods || [])].sort((a, b) => 
+    new Date(b.fecha_inicio) - new Date(a.fecha_inicio)
+  );
+  
   useEffect(() => {
     if (isOpen) {
       if (assignment) {
@@ -355,25 +360,29 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
           section_id: assignment.section_id || "",
           subject_id: assignment.subject_id || "",
           teacher_id: assignment.teacher_id || "",
-          school_year: assignment.school_year || 2026,
+          period_id: assignment.period_id || "",
           role: assignment.role || "titular",
           status: assignment.status || "activo"
         });
       } else {
+        // Find the active period or most recent one as default
+        const activePeriod = academicData.periods?.find(p => p.activo);
+        const defaultPeriodId = activePeriod?.id || sortedPeriods[0]?.id || "";
+        
         setForm({
           level_id: "",
           grade_id: "",
           section_id: "",
           subject_id: "",
           teacher_id: "",
-          school_year: 2026,
+          period_id: defaultPeriodId,
           role: "titular",
           status: "activo"
         });
       }
       setError("");
     }
-  }, [isOpen, assignment]);
+  }, [isOpen, assignment, academicData.periods]);
   
   // Handler for Level change - reset dependent fields
   const handleLevelChange = (e) => {
