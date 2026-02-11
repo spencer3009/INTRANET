@@ -1,360 +1,125 @@
-# PRD - EduNet: Intranet SaaS Multi-Tenant para Colegios
+# EduNet - Intranet SaaS para Colegios en Perú
 
-## Problema Original
-Crear un servicio SaaS de intranet para colegios en Perú (EduNet), con arquitectura multi-tenant real basada en subdominios similar a Shopify/Notion.
+## Descripción General
+EduNet es una plataforma SaaS multi-tenant diseñada para colegios en Perú. Cada institución accede a su intranet a través de una URL única (`edunet.pe/school/{identificador}`). La aplicación está construida con React (frontend) y FastAPI (backend), utilizando MongoDB como base de datos.
 
-## Arquitectura Multi-Tenant
+## Arquitectura
+- **Frontend**: React.js con Tailwind CSS
+- **Backend**: FastAPI (Python)
+- **Base de datos**: MongoDB
+- **Autenticación**: JWT
+- **Almacenamiento de archivos**: Cloudinary
+- **Arquitectura**: Multi-tenant híbrida (URL path-based)
 
-### Diseño Original (Producción con Wildcard SSL)
-- **Dominio Base**: edunet.pe (con wildcard DNS *.edunet.pe)
-- **Multi-Tenancy**: Por subdominios (colegioroble.edunet.pe)
-- **Routing**: Por Host header
+## Módulos Implementados
 
-### Arquitectura Híbrida (Implementada)
-Debido a limitaciones de la plataforma Emergent (no soporta wildcard SSL automático), se implementó una arquitectura híbrida que funciona en ambos escenarios:
+### ✅ Core
+- [x] Autenticación (registro, login, verificación de email)
+- [x] Onboarding (creación de subdomain/identificador)
+- [x] Dashboard principal
+- [x] Gestión de usuarios (profesores, estudiantes, padres)
+- [x] Ajustes de la institución (logo, nombre, configuración)
 
-| Entorno | Patrón URL | Ejemplo |
-|---------|-----------|---------|
-| **Producción** (con wildcard) | `{subdomain}.edunet.pe/dashboard` | `elroble.edunet.pe/dashboard` |
-| **Preview/Dev** (sin wildcard) | `edunet.pe/school/{subdomain}/dashboard` | `edunet.pe/school/elroble/dashboard` |
+### ✅ Académico
+- [x] Niveles educativos (Inicial, Primaria, Secundaria)
+- [x] Grados
+- [x] Secciones
+- [x] Turnos
+- [x] Períodos académicos
+- [x] **Asignaturas** - Módulo completo con UI premium
+- [x] **Detalle de Curso** - Página premium tipo SaaS (NUEVO - 11 Feb 2026)
 
-- El código detecta automáticamente el entorno y usa la estrategia correcta
-- La lógica de negocio permanece idéntica
-- Cuando Emergent soporte wildcard SSL, la producción funcionará automáticamente
+### ✅ Comunicación
+- [x] Mensajería interna
+- [x] Noticias/Anuncios
+- [x] Calendario de eventos
 
-## Stack Técnico
-- **Frontend**: React 19, Tailwind CSS, Lucide React
-- **Backend**: FastAPI, Motor (async MongoDB), JWT auth, bcrypt
-- **Base de datos**: MongoDB con índices únicos
-- **Marca**: EduNet (navy #001f4b, gold #e1b82c)
-- **Uploads**: Cloudinary (client-side con firma del backend)
+### ✅ Gestión
+- [x] Asistencias
+- [x] Encuestas
+- [x] Disciplina
+- [x] Contabilidad (concepto de pago, pagos, reportes)
 
-## Modelo de Datos
+## Lo Que Se Implementó (11 Feb 2026)
 
-### Collection: schools
-```json
-{
-  "id": "uuid",
-  "school_name": "Colegio El Roble",
-  "subdomain": "colegioroble",
-  "full_domain": "colegioroble.edunet.pe",
-  "status": "active",
-  "owner_user_id": "uuid",
-  "logo_url": "string | null",
-  "created_at": "ISO",
-  "updated_at": "ISO"
-}
-```
+### Página de Detalle de Curso/Asignatura - PREMIUM
+Se creó una nueva página `CourseDetailPage.jsx` con diseño premium tipo SaaS educativo (Google Classroom/Canvas/Notion):
 
-### Collection: users
-```json
-{
-  "id": "uuid",
-  "email": "admin@colegio.edu.pe",
-  "password": "bcrypt_hash",
-  "name": "Nombre",
-  "last_name": "Apellido",
-  "role": "owner | admin | teacher | director",
-  "school_id": "uuid | null",
-  "email_verified": true,
-  "photo_url": "string | null",
-  "created_at": "ISO",
-  "updated_at": "ISO"
-}
-```
+#### Características:
+1. **Hero Header**
+   - Gradiente elegante basado en el color de la asignatura
+   - Icono del curso + nombre grande
+   - Badges de nivel, grado y período académico
+   - Código del curso y horas semanales
+   - Botones de acciones rápidas (Editar, Estudiantes, Calificaciones)
 
-### Collection: academic_levels
-```json
-{
-  "id": "uuid",
-  "school_id": "uuid",
-  "nombre": "Primaria",
-  "descripcion": "string | null",
-  "imagen_url": "string | null",
-  "activo": true,
-  "created_at": "ISO",
-  "updated_at": "ISO"
-}
-```
+2. **Tabs Premium**
+   - Tablero (feed de publicaciones)
+   - Tareas
+   - Material de estudio
+   - Exámenes
+   - Foro
+   - En vivo
+   - Calificaciones
+   - Animaciones suaves al cambiar de tab
+   - Indicador activo con gradiente
 
-### Collection: grades
-```json
-{
-  "id": "uuid",
-  "school_id": "uuid",
-  "nombre": "1°",
-  "nivel_id": "uuid",
-  "orden": 1,
-  "activo": true,
-  "created_at": "ISO",
-  "updated_at": "ISO"
-}
-```
+3. **Layout de 3 Columnas**
+   - **Izquierda**: Card del curso, Actividad reciente, Noticias, Accesos rápidos
+   - **Centro**: Contenido principal según tab activo
+   - **Derecha**: Profesor del curso, Lista de estudiantes (scroll), Recordatorios
 
-### Collection: sections
-```json
-{
-  "id": "uuid",
-  "school_id": "uuid",
-  "nombre": "A",
-  "grado_id": "uuid",
-  "capacidad_maxima": 30,
-  "activo": true,
-  "created_at": "ISO",
-  "updated_at": "ISO"
-}
-```
+4. **Experiencia Premium**
+   - Skeleton loaders durante la carga
+   - Estados vacíos elegantes con call-to-action
+   - Microinteracciones y transiciones suaves
+   - Diseño responsivo (desktop/tablet)
 
-### Collection: shifts
-```json
-{
-  "id": "uuid",
-  "school_id": "uuid",
-  "nombre": "Mañana",
-  "hora_inicio": "07:00",
-  "hora_fin": "12:00",
-  "color": "#3B82F6",
-  "activo": true,
-  "created_at": "ISO",
-  "updated_at": "ISO"
-}
-```
+#### Archivos Creados/Modificados:
+- `/app/frontend/src/pages/CourseDetailPage.jsx` (nuevo)
+- `/app/frontend/src/pages/SubjectsPage.jsx` (actualizado para navegación)
+- `/app/frontend/src/App.js` (nuevas rutas)
+- `/app/frontend/src/App.css` (estilos adicionales)
 
-### Collection: academic_periods
-```json
-{
-  "id": "uuid",
-  "school_id": "uuid",
-  "nombre": "Bimestre I - 2025",
-  "fecha_inicio": "2025-03-03",
-  "fecha_fin": "2025-05-09",
-  "activo": true,
-  "created_at": "ISO",
-  "updated_at": "ISO"
-}
-```
+#### Rutas:
+- `/curso/:subjectId` (subdomain mode)
+- `/school/:subdomain/curso/:subjectId` (route mode)
 
-## Módulo de Ajustes Académicos (COMPLETADO)
+## Backlog / Tareas Pendientes
 
-### Fase 1: Niveles y Grados ✅
-- CRUD de niveles educativos (Inicial, Primaria, Secundaria)
-- CRUD de grados por nivel
-- Validaciones de duplicados y relaciones
+### P0 - Alta Prioridad
+- [ ] Integrar datos reales en la página de detalle del curso (tareas, materiales, exámenes)
+- [ ] Implementar funcionalidad "Editar Usuario" (actualmente placeholder)
 
-### Fase 2: Secciones y Turnos ✅
-- CRUD de secciones por grado (A, B, C)
-- CRUD de turnos con horarios y colores
-- Filtros por nivel/grado
+### P1 - Media Prioridad
+- [ ] Cambiar terminología "subdomain" → "identificador" en UI
+- [ ] Módulo de Inscripciones/Matrículas
+- [ ] Módulo de Calificaciones
+- [ ] Módulo de Reportes
 
-### Fase 3: Períodos Académicos ✅
-- CRUD de períodos (bimestres, trimestres, semestres)
-- **Solo un período activo por tenant**
-- Desactivación automática del período anterior
-- Validación de fechas no superpuestas
-- Endpoint GET /api/academic/periods/active
-- Endpoint POST /api/academic/periods/{id}/activate
-- No permite eliminar período activo
-- UI con banner destacado para período activo
-- Color índigo-violeta (no rojo) para evitar connotaciones negativas
-
-## API Endpoints
-
-### Autenticación
-- `POST /api/auth/register` - Crear usuario
-- `POST /api/auth/login` - Login con redirect_to_subdomain
-- `POST /api/auth/verify-email` - Verificar código
-- `GET /api/auth/me` - Usuario actual
-
-### Usuarios
-- `GET /api/users` - Listar usuarios del tenant
-- `POST /api/users` - Crear usuario
-- `GET /api/users/{id}` - Obtener usuario
-- `DELETE /api/users/{id}` - Eliminar usuario
-
-### Ajustes Académicos
-- `GET/POST /api/academic/levels` - Niveles educativos
-- `PUT/DELETE /api/academic/levels/{id}`
-- `GET/POST /api/academic/grades` - Grados
-- `PUT/DELETE /api/academic/grades/{id}`
-- `GET/POST /api/academic/sections` - Secciones
-- `PUT/DELETE /api/academic/sections/{id}`
-- `GET/POST /api/academic/shifts` - Turnos
-- `PUT/DELETE /api/academic/shifts/{id}`
-- `GET/POST /api/academic/periods` - Períodos
-- `PUT/DELETE /api/academic/periods/{id}`
-- `GET /api/academic/periods/active` - Período activo
-- `POST /api/academic/periods/{id}/activate` - Activar período
-
-### Mensajería Interna
-- `GET /api/messages/users` - Usuarios agrupados por rol
-- `GET /api/messages/chats` - Lista de conversaciones
-- `GET /api/messages/chats/{user_id}` - Historial de chat
-- `POST /api/messages/chats/send` - Enviar mensaje de chat
-- `GET /api/messages/inbox` - Bandeja de entrada (mail)
-- `POST /api/messages/send` - Enviar mensaje tipo correo
-- `PUT /api/messages/{id}/read` - Marcar como leído
-- `GET /api/messages/unread-count` - Contador de no leídos
-- `DELETE /api/messages/{id}` - Eliminar mensaje
-
-## Próximas Tareas (Backlog)
-
-### P0 - Crítico
-- [ ] Implementar funcionalidad "Editar Usuario" (UI existe, funcionalidad pendiente)
-- [ ] Verificación de usuario completa del módulo Ajustes Académicos
-
-### P1 - Importante
-- [ ] Implementar envío real de emails (SendGrid/Resend)
-- [ ] Social login (Google, GitHub)
-- [ ] Módulo de Matrículas
-- [ ] Completar módulo de Grupos (mensajería grupal por grado/sección/rol)
-- [ ] Exportación PDF en reportes de asistencia
-
-### P2 - Mejoras
-- [ ] Cambiar texto "subdominio" por "identificador" en OnboardingPage.jsx
-- [ ] Recuperación de contraseña
-- [ ] Refactorizar AcademicSettingsPage.jsx (>1000 líneas)
-- [ ] Refactorizar UsersPage.jsx (>1000 líneas)
+### P2 - Baja Prioridad
+- [ ] Refactorizar componentes grandes (UsersPage, AccountingPage, SubjectsPage)
+- [ ] Integración con SUNAT para facturación electrónica
+- [ ] Notificaciones push
+- [ ] Implementar verificación de email real (actualmente código demo)
 
 ### P3 - Futuro
-- [x] Módulo de Horarios (UI básica implementada - 10 Feb 2026)
-- [x] Módulo de Mensajería (Implementado completo - 10 Feb 2026)
-- [x] Módulo de Asistencia (Implementado completo - 10 Feb 2026)
-- [x] Módulo de Calendario (Implementado completo - 10 Feb 2026)
-- [x] Módulo de Encuestas (Implementado completo - 10 Feb 2026)
-- [x] Módulo de Disciplina (Implementado completo - 10 Feb 2026)
-- [x] Módulo de Noticias (Implementado completo - 10 Feb 2026)
-- [x] Módulo de Contabilidad (Implementado completo - 10 Feb 2026)
-- [ ] Módulo de Calificaciones
-- [ ] Módulo de Reportes generales
-
-## Últimos Cambios (10 Feb 2026)
-- **NEW: Módulo de Contabilidad** - Implementado completo nivel super premium (Perú):
-  - Dashboard financiero con 4 cards: Ingresos Confirmados, Egresos Totales, Pagos Pendientes, Balance
-  - 3 tabs: Inicio (Dashboard), Pagos (Ingresos), Egresos
-  - Cálculo automático de IGV 18% (Perú)
-  - Montos en Soles (S/.) con formato de moneda peruano
-  - Pagos (Ingresos):
-    - Selección de estudiante por Grado→Sección→Estudiante
-    - Conceptos: Matrícula, Mensualidad, Taller, Uniforme, Material, Evento, Otros
-    - Métodos: Efectivo, Transferencia, Yape, Plin, Tarjeta
-    - Estados: Pendiente, Pagado, Anulado
-    - Acciones: Confirmar, Anular, Editar
-    - Cálculo en vivo: Base + IGV = Total
-  - Egresos:
-    - Categorías: Servicios, Personal, Mantenimiento, Materiales, Otros
-    - CRUD completo con proveedor
-  - Resumen mensual con periodo (mes/año)
-  - Transacciones recientes en dashboard
-  - Solo admin/director tienen acceso
-  - Endpoints: `/api/accounting/payments`, `/api/accounting/expenses`, `/api/accounting/summary`
-
-- **NEW: Módulo de Noticias** - Implementado completo nivel premium:
-  - CRUD completo de noticias institucionales
-  - 3 estados: Borrador, Publicado, Archivado
-  - Feed estilo LinkedIn/Facebook con cards modernas
-  - Avatar de autor, fecha, título, resumen
-  - Noticias destacadas (pinned) con badge - máximo 3 simultáneas
-  - Modal de creación con 3 tabs:
-    - Contenido: Título, Resumen, Contenido
-    - Multimedia: Imagen principal, Galería (Cloudinary)
-    - Visibilidad: Restricción por roles y grados
-  - Modal de vista completa tipo artículo
-  - Menú contextual (⋯) con acciones: Ver, Editar, Publicar, Destacar, Archivar, Eliminar
-  - Paginación
-  - Permisos: Solo admin/director crean y publican
-  - Endpoints: `/api/news`, `/api/news/{id}`, `/api/news/{id}/publish`, `/api/news/{id}/archive`, `/api/news/{id}/pin`
-
-- **NEW: Módulo de Disciplina** - Implementado completo nivel premium:
-  - CRUD completo de reportes disciplinarios
-  - 4 prioridades: Baja (verde), Media (amarillo), Alta (naranja), Crítica (rojo)
-  - 4 estados: Abierto, En revisión, Resuelto, Archivado
-  - Filtros avanzados: grado, sección, prioridad, estado, rango de fechas
-  - Cards de estadísticas: Abiertos, En revisión, Resueltos, Críticos
-  - Tabla con indicadores visuales de prioridad (barra color)
-  - Modal de creación con selects dependientes (grado→sección→estudiante)
-  - Soporte para adjuntos vía Cloudinary (imágenes, PDF, documentos)
-  - Modal de detalle con línea de tiempo (Creado→Revisado→Resuelto)
-  - Modal de cambio de estado para admins/directores
-  - Permisos diferenciados por rol:
-    - Profesores: crear y ver solo sus reportes (editar si está abierto)
-    - Directores/Admin: ver todos, editar cualquiera, cambiar estado
-    - Solo Admin: eliminar reportes
-  - Endpoints: `/api/discipline`, `/api/discipline/{id}`, `/api/discipline/{id}/status`, `/api/discipline/stats/summary`
-
-- **NEW: Módulo de Encuestas** - Implementado completo nivel premium:
-  - CRUD completo de encuestas con pregunta y opciones múltiples
-  - 3 estados: Borrador, Activa, Cerrada
-  - Segmentación por roles (Todos, Profesores, Estudiantes, Padres, Directores)
-  - Indicador de participación (respuestas / total de usuarios objetivo)
-  - Diferenciación visual entre encuestas activas con/sin respuestas
-  - Modal de resultados con gráficos estadísticos (Recharts)
-    - Gráfico de barras horizontal
-    - Gráfico circular (pie chart)
-    - Tabla con opciones, votos y porcentajes
-  - Cards estadísticas: Respuestas totales, Usuarios objetivo, % Participación
-  - Filtros por estado
-  - Solo admins/directores pueden crear/editar/cerrar encuestas
-  - Usuarios responden una sola vez por encuesta
-  - Endpoints: `/api/surveys`, `/api/surveys/{id}`, `/api/surveys/{id}/close`, `/api/surveys/{id}/answer`, `/api/surveys/{id}/results`
-- **NEW: Módulo de Calendario** - Implementado completo nivel premium:
-  - 3 vistas: Mes (default), Semana, Día
-  - Controles: ◀️ Anterior, Hoy, Siguiente ▶️
-  - 6 tipos de evento con colores: Académico (azul), Institucional (púrpura), Administrativo (gris), Feriado (rojo), Evento especial (amarillo), Comunicación (verde)
-  - Modal CRUD de eventos: título, tipo, fechas, horas, descripción, visibilidad
-  - Visibilidad por roles (profesores/estudiantes/padres) y grados
-  - Solo admin/director pueden crear/editar/eliminar
-  - Filtro rápido por tipo de evento
-  - Leyenda de colores clickeable
-  - Click en día vacío → crear evento con fecha precargada
-  - "+X más" cuando hay muchos eventos en un día
-  - Validación: start_date <= end_date
-  - Checkbox "Todo el día" oculta campos de hora
-  - Endpoints: `/api/calendar/events`, `/api/calendar/event-types`
-- **NEW: Módulo de Asistencias** - Implementado completo con nivel premium:
-  - Tab ESTUDIANTES: Filtros cascada (Grado → Sección → Fecha), tabla con avatares y estados
-  - Tab PROFESORES: Filtro por fecha, 4 estados (Presente/Tardanza/Ausente/Justificado)
-  - Tab REPORTES: Filtros (Profesor + Rango fechas), summary cards, tabla con % asistencia
-  - Default "Presente" al cargar lista, indicador cambios pendientes, bloqueo doble guardado
-  - Persistencia de filtros en localStorage
-  - Auditoría: recorded_by y timestamp en cada registro
-  - Botón "Exportar PDF" como placeholder (próximamente)
-  - Endpoints: `/api/attendance/students`, `/api/attendance/teachers`, `/api/attendance/reports/teachers`
-- **NEW: Sistema de Presencia (Online/Offline)** - Implementado completo:
-  - 🟢 Indicador verde = Usuario activo (online)
-  - ⚪ Indicador gris = Usuario inactivo (offline)
-  - Heartbeat cada 30 segundos para mantener estado online
-  - Timeout de 5 minutos para marcar como offline
-  - Usuarios online aparecen primero en listas
-  - Banner informativo: "Este usuario no está conectado. El mensaje se entregará cuando esté activo."
-  - Endpoints: `/api/presence/heartbeat`, `/api/presence/users`, `/api/presence/offline`
-- **NEW: Módulo de Mensajería** - Implementado completo con:
-  - Tab CHATS: Conversaciones directas tipo WhatsApp con burbujas, historial, adjuntos
-  - Tab ESCRIBIR: Mensajes tipo correo interno con selector de usuarios por rol
-  - Tab GRUPOS: Estructura base (placeholder "Próximamente")
-  - Selector de destinatarios agrupados por rol con indicadores de presencia
-  - Soporte para adjuntos via Cloudinary
-  - Bandeja de entrada con filtros (Todos, Recibidos, Enviados)
-- **Fix: Módulo de Horarios** - Corregido endpoint `/api/tenant/settings` → `/api/settings`
-- **Fix: Dropdowns de grados y profesores** - Ahora cargan correctamente los datos
-- **Fix: Logo del colegio** - Ahora se muestra en el header de la página de Horarios
-- **Fix: Ordenamiento de grados** - Ordenados por nivel (Inicial → Primaria → Secundaria)
-- **Fix: Ruta de Horarios** - Cambiada de `/schedule` a `/horarios` para consistencia en español
+- [ ] Social logins (Google, Facebook)
+- [ ] Exportación PDF/Excel en todos los módulos
+- [ ] App móvil
 
 ## Credenciales de Prueba
-- **Email**: admin.settings@test.pe
-- **Password**: test123
-- **Identifier**: demosettings
-- **Login URL**: /school/demosettings/login
-- **Messages URL**: /school/demosettings/mensajes
-- **Attendance URL**: /school/demosettings/asistencias
-- **Calendar URL**: /school/demosettings/calendario
-- **Surveys URL**: /school/demosettings/encuestas
-- **Discipline URL**: /school/demosettings/disciplina
-- **News URL**: /school/demosettings/noticias
-- **Accounting URL**: /school/demosettings/contabilidad
+- **Email**: `admin.settings@test.pe`
+- **Password**: `test123`
+- **Identificador**: `demosettings`
+- **URL de Login**: `/school/demosettings/login`
 
-## Notas de Plataforma
-- **Emergent** actualmente NO soporta wildcard SSL automático
-- El wildcard DNS (*.edunet.pe) está configurado pero SSL no se emite para subdominios
-- La arquitectura híbrida permite desarrollo sin bloqueo
-- Cuando Emergent soporte wildcard SSL, solo cambiar detección en `App.js`
+## Integraciones
+- **Cloudinary**: Carga de imágenes
+- **Recharts**: Gráficos en encuestas y dashboard
+
+## Notas Técnicas
+- Los endpoints de backend deben usar el prefijo `/api`
+- Las URLs de frontend utilizan rutas en español (asignaturas, horarios, etc.)
+- El sidebar se expande al hover en desktop
+- Los IDs de MongoDB deben excluirse de las respuestas JSON (`{"_id": 0}`)
