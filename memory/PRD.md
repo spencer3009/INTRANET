@@ -1,130 +1,180 @@
 # EduNet - Intranet SaaS para Colegios en Perú
 
 ## Descripción General
-EduNet es una plataforma SaaS multi-tenant diseñada para colegios en Perú. Cada institución accede a su intranet a través de una URL única (`edunet.pe/school/{identificador}`). La aplicación está construida con React (frontend) y FastAPI (backend), utilizando MongoDB como base de datos.
+Sistema de intranet premium multi-tenant para instituciones educativas en Perú. Cada colegio accede mediante URL path (`edunet.pe/school/{identifier}`) con módulos académicos, administrativos y comunicación.
 
-## Arquitectura
-- **Frontend**: React.js con Tailwind CSS
+## Arquitectura Técnica
 - **Backend**: FastAPI (Python)
-- **Base de datos**: MongoDB
-- **Autenticación**: JWT
-- **Almacenamiento de archivos**: Cloudinary
-- **Arquitectura**: Multi-tenant híbrida (URL path-based)
+- **Frontend**: React.js con Tailwind CSS
+- **Base de Datos**: MongoDB
+- **Almacenamiento de Imágenes**: Cloudinary
+- **Componentes UI**: Shadcn/UI
+
+---
 
 ## Módulos Implementados
 
-### ✅ Core
-- [x] Autenticación (registro, login, verificación de email)
-- [x] **Login con Username** - Usuarios pueden loguearse con email O nombre de usuario
-- [x] Onboarding (creación de identificador)
-- [x] Dashboard principal con datos dinámicos
-- [x] Gestión de usuarios (profesores, estudiantes, padres)
-- [x] Ajustes de la institución (logo, nombre, configuración)
-- [x] **Sistema de Demo Data** - Datos de ejemplo automáticos
-- [x] **Sistema de Perfil Dinámico** - Fotos de perfil en toda la app (NUEVO - 11 Feb 2026)
-- [x] **Super Admin/Owner** - Rol protegido para el primer usuario
+### ✅ Autenticación y Usuarios
+- Login/Registro por subdomain
+- Roles: Owner, Director, Admin, Teacher, Auxiliar, Student, Parent
+- Permisos basados en `is_owner`, `is_super_admin`, `role`
+- Verificación de email (mockup)
+- Gestión de usuarios (CRUD completo)
+- Foto de perfil con Cloudinary
 
-### ✅ Académico
-- [x] Niveles educativos (Inicial, Primaria, Secundaria)
-- [x] Grados
-- [x] Secciones
-- [x] Turnos
-- [x] Períodos académicos
-- [x] **Asignaturas** - Módulo completo con UI premium
-- [x] **Detalle de Curso** - Página premium tipo SaaS
+### ✅ Configuración Académica (Ajustes Académicos)
+- Niveles educativos (Inicial, Primaria, Secundaria)
+- Grados por nivel
+- Secciones
+- Años académicos y periodos
+
+### ✅ Asignaturas (Catálogo Académico)
+- CRUD de asignaturas por nivel/grado
+- Campos: nombre, código, descripción, horas semanales, color
+- **IMPORTANTE**: NO almacena relación con profesores
+- Muestra "Sin asignar" → redirige a Asignación Docente
+
+### ✅ Asignación Docente (NUEVO - 2025-02-11)
+**Tabla pivote `academic_assignments`**
+- Estructura: `teacher_id`, `level_id`, `grade_id`, `section_id`, `subject_id`, `school_year`, `role`, `status`
+- Un profesor puede dictar múltiples asignaturas en diferentes contextos
+- Validación de duplicados exactos
+- Panel de "Carga Docente" con contador de asignaciones por profesor
+- Filtros avanzados por nivel, grado, sección, asignatura, profesor, año
+
+### ✅ Dashboard Principal
+- Carousel de banners administrable
+- Noticias con modal de detalle
+- Estadísticas dinámicas (cursos, estudiantes)
+- Perfil del usuario con badge de rol
+
+### ✅ Horarios
+- Vista por profesor
+- Vista por sección
+- Gestión de bloques horarios
 
 ### ✅ Comunicación
-- [x] Mensajería interna
-- [x] Noticias/Anuncios
-- [x] Calendario de eventos
+- Mensajería interna
+- Noticias y comunicados
+- Encuestas
 
-### ✅ Gestión
-- [x] Asistencias
-- [x] Encuestas
-- [x] Disciplina
-- [x] Contabilidad (concepto de pago, pagos, reportes)
+### ✅ Contabilidad
+- Conceptos de pago
+- Registro de pagos
+- Integración futura con SUNAT
 
-## Lo Que Se Implementó (11 Feb 2026)
+---
 
-### Sistema de Perfiles Dinámicos - NUEVO
-Se implementó un sistema completo de visualización de perfiles de usuario:
+## Decisiones Arquitectónicas Clave
 
-#### Características:
-1. **Foto de Perfil Dinámica**:
-   - Se muestra en el header (arriba derecha)
-   - Se muestra en ProfileCard del dashboard
-   - Se muestra en la página de perfil
-   - Usa `photo_url` del usuario autenticado
-   - Subida a Cloudinary
+### Asignación Profesor-Asignatura
+**Decisión**: La relación profesor↔asignatura se gestiona EXCLUSIVAMENTE desde el módulo "Asignación Docente" mediante la tabla pivote `academic_assignments`.
 
-2. **Avatar por Defecto Elegante**:
-   - Cuando el usuario no tiene foto, se muestra un avatar con iniciales
-   - Gradiente azul oscuro (#001f4b → #003366)
-   - Extrae iniciales del nombre (ej: "Colegio Demo" → "CD")
-   - Manejo de errores de carga de imagen
+**Razón**:
+- Soporta profesores multi-nivel y multi-grado
+- Base para horarios, asistencia, carga horaria
+- Evita duplicación de relaciones
+- Arquitectura profesional y escalable
 
-3. **Visualización de Roles con Badges**:
-   - OWNER: Badge ámbar con icono de corona
-   - SUPER ADMIN: Badge púrpura con icono de escudo
-   - DIRECTOR: Badge índigo
-   - ADMINISTRADOR: Badge azul
-   - PROFESOR: Badge esmeralda
-   - ESTUDIANTE: Badge cyan
-   - PADRE: Badge naranja
+**Consecuencias**:
+- El formulario de asignaturas NO tiene campo "Profesor"
+- En la tarjeta de asignatura se muestra "Sin asignar"
+- La gestión real se hace desde "Asignación Docente"
 
-4. **ProfileCard Mejorado**:
-   - Muestra foto o avatar con iniciales
-   - Badge de rol con colores diferenciados
-   - Nombre del usuario
-   - Email
-   - Username (@usuario)
-   - Indicador de "en línea"
+---
 
-#### Archivos Modificados:
-- `/app/frontend/src/components/DashboardHeader.jsx` - Avatar dinámico y rol
-- `/app/frontend/src/components/ProfileCard.jsx` - Rediseño completo
-- `/app/frontend/src/App.js` - Función handleUserUpdate para persistencia
+## Endpoints Principales
 
-### Terminología Actualizada
-- Cambiado "subdominio" → "identificador" en OnboardingPage
+### Asignación Docente
+- `GET /api/academic/assignments` - Lista con filtros
+- `POST /api/academic/assignments` - Crear asignación
+- `PUT /api/academic/assignments/{id}` - Editar
+- `DELETE /api/academic/assignments/{id}` - Eliminar
+- `GET /api/academic/assignments/by-teacher/{id}` - Por profesor
+- `GET /api/academic/assignments/teachers-summary` - Resumen carga
 
-## Backlog / Tareas Pendientes
+### Usuarios
+- `GET /api/users/teachers/active` - Profesores activos
 
-### P0 - Alta Prioridad
-- [ ] Implementar funcionalidad "Editar Usuario" (actualmente placeholder)
-- [ ] Integrar datos reales en página de detalle del curso (tareas, materiales, exámenes)
+---
 
-### P1 - Media Prioridad
-- [ ] Módulo de Inscripciones/Matrículas
-- [ ] Módulo de Calificaciones
-- [ ] Módulo de Reportes
+## Colecciones MongoDB
 
-### P2 - Baja Prioridad
-- [ ] Refactorizar componentes grandes (UsersPage, AccountingPage, CourseDetailPage, ProfilePage)
-- [ ] Integración con SUNAT para facturación electrónica
-- [ ] Notificaciones push
-- [ ] Implementar verificación de email real (actualmente código demo)
+### academic_assignments (NUEVA)
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "teacher_id": "uuid",
+  "level_id": "uuid",
+  "grade_id": "uuid",
+  "section_id": "uuid",
+  "subject_id": "uuid",
+  "school_year": 2026,
+  "role": "titular|auxiliar",
+  "status": "activo|inactivo",
+  "created_at": "ISO datetime",
+  "created_by": "uuid"
+}
+```
 
-### P3 - Futuro
-- [ ] Social logins (Google, Facebook)
-- [ ] Exportación PDF/Excel en todos los módulos
-- [ ] App móvil
+---
+
+## Backlog / Próximas Tareas
+
+### P0 - Prioridad Alta
+- [ ] Verificar cambios en producción (deploy + clear cache)
+- [ ] Completar pruebas de "Editar Usuario"
+
+### P1 - Prioridad Media
+- [ ] Refactorizar `UsersPage.jsx` (>2000 líneas)
+- [ ] Refactorizar `CarouselManager.jsx` (~760 líneas)
+- [ ] Sección "Asignaciones Académicas" en detalle de usuario/profesor
+
+### P2 - Módulos Futuros
+- [ ] Matrículas
+- [ ] Calificaciones y notas
+- [ ] Reportes académicos
+- [ ] Asistencia docente
+- [ ] Asistencia de alumnos
+- [ ] Integración SUNAT
+- [ ] Email verification real
+- [ ] Social login
+
+---
 
 ## Credenciales de Prueba
-- **Email**: `admin.settings@test.pe`
-- **Username**: `admin_demo`
-- **Password**: `test123`
-- **Identificador**: `demosettings`
-- **URL de Login**: `/school/demosettings/login`
+- **Email**: admin.settings@test.pe
+- **Username**: admin_demo
+- **Password**: test123
+- **Subdomain**: demosettings
 
-## Integraciones
-- **Cloudinary**: Carga de imágenes (logos, fotos de perfil)
-- **Recharts**: Gráficos en encuestas y dashboard
+---
 
-## Notas Técnicas
-- Los endpoints de backend deben usar el prefijo `/api`
-- Las URLs de frontend utilizan rutas en español (asignaturas, horarios, etc.)
-- El sidebar se expande al hover en desktop
-- Los IDs de MongoDB deben excluirse de las respuestas JSON (`{"_id": 0}`)
-- Todos los datos demo están marcados con `is_demo: true` para fácil identificación
-- El usuario debe tener los campos: `photo_url`, `is_owner`, `is_super_admin`, `role`
+## Archivos Clave
+
+### Backend
+- `/app/backend/server.py` - API principal (~7300 líneas)
+
+### Frontend - Páginas
+- `/app/frontend/src/pages/TeacherAssignmentsPage.jsx` - Asignación Docente
+- `/app/frontend/src/pages/SubjectsPage.jsx` - Asignaturas
+- `/app/frontend/src/pages/UsersPage.jsx` - Gestión usuarios
+- `/app/frontend/src/pages/AcademicSettingsPage.jsx` - Config académica
+- `/app/frontend/src/pages/DashboardPage.jsx` - Dashboard
+
+### Frontend - Componentes
+- `/app/frontend/src/components/Sidebar.jsx` - Navegación
+- `/app/frontend/src/components/HeroCarousel.jsx` - Carousel dashboard
+- `/app/frontend/src/components/CarouselManager.jsx` - Admin carousel
+
+---
+
+## Última Actualización
+**Fecha**: 2025-02-11
+**Cambios**:
+1. Implementado módulo completo "Asignación Docente"
+2. Eliminado campo "Profesor" del formulario de asignaturas
+3. Agregado mensaje "Sin asignar → Ir a Asignación Docente"
+4. Backend: nueva colección `academic_assignments` con CRUD
+5. Frontend: nueva página con filtros y panel de carga docente
