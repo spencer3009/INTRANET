@@ -5,7 +5,6 @@ import {
   UserCog,
   CalendarDays,
   Settings,
-  LogOut,
   Menu,
   BookMarked,
   BookOpen,
@@ -16,7 +15,6 @@ import {
   AlertTriangle,
   Newspaper,
   Landmark,
-  User,
   UserCheck,
 } from "lucide-react";
 
