@@ -1175,7 +1175,7 @@ async def update_tenant_settings(
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     # Check role - only owner or admin can update settings
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden modificar ajustes")
     
     school_id = user["school_id"]
@@ -1361,7 +1361,7 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     # Check role - only owner or admin can create users
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear usuarios")
     
     school_id = user["school_id"]
@@ -1604,7 +1604,7 @@ async def update_academic_level(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden editar niveles")
     
     # Find the level
@@ -1658,7 +1658,7 @@ async def delete_academic_level(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar niveles")
     
     # Find the level
@@ -1760,7 +1760,7 @@ async def create_grade(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear grados")
     
     # Verify level exists
@@ -1818,7 +1818,7 @@ async def update_grade(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden editar grados")
     
     # Find the grade
@@ -1885,7 +1885,7 @@ async def delete_grade(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar grados")
     
     # Find the grade
@@ -1997,7 +1997,7 @@ async def create_section(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear secciones")
     
     # Verify grade exists
@@ -2051,7 +2051,7 @@ async def update_section(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden editar secciones")
     
     # Find the section
@@ -2118,7 +2118,7 @@ async def delete_section(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar secciones")
     
     # Find the section
@@ -2184,7 +2184,7 @@ async def create_shift(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear turnos")
     
     # Check for duplicate name
@@ -2227,7 +2227,7 @@ async def update_shift(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden editar turnos")
     
     # Find the shift
@@ -2283,7 +2283,7 @@ async def delete_shift(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar turnos")
     
     # Find the shift
@@ -2361,7 +2361,7 @@ async def create_academic_period(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear períodos")
     
     # Validate date range
@@ -2440,7 +2440,7 @@ async def update_academic_period(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden editar períodos")
     
     # Find the period
@@ -2533,7 +2533,7 @@ async def activate_academic_period(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden activar períodos")
     
     # Find the period
@@ -2588,7 +2588,7 @@ async def delete_academic_period(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar períodos")
     
     # Find the period
@@ -4930,7 +4930,7 @@ async def delete_discipline_report(report_id: str, current_user = Depends(get_cu
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     # Only admin can delete
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar reportes")
     
     school_id = user["school_id"]
@@ -5415,7 +5415,7 @@ async def delete_news(news_id: str, current_user = Depends(get_current_user)):
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar noticias")
     
     school_id = user["school_id"]
@@ -5973,7 +5973,7 @@ async def delete_expense(expense_id: str, current_user = Depends(get_current_use
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar egresos")
     
     school_id = user["school_id"]
