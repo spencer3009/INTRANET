@@ -101,6 +101,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
         />
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scroll" data-testid="dashboard-main">
+          <DemoBanner token={token} onDemoDeleted={fetchData} />
           <MetricCards metrics={metrics} />
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
