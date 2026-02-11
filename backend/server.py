@@ -542,10 +542,23 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
                 "subdomain": subdomain,
                 "full_domain": full_domain,
                 "status": "active",
+                "owner_user_id": user["id"],
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
-        logger.info(f"School updated with subdomain: {subdomain}.{BASE_DOMAIN} for user {user['email']}")
+        
+        # Update owner user with super admin privileges
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "role": "director",
+                "is_owner": True,
+                "is_super_admin": True,
+                "is_protected": True,  # Cannot be deleted or demoted
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        logger.info(f"School updated with subdomain: {subdomain}.{BASE_DOMAIN} for user {user['email']} (Super Admin)")
         
         # Seed demo data for the school
         await seed_demo_data_for_school(db, school_id, user["id"])
@@ -564,16 +577,19 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
         }
         await db.schools.insert_one(school_doc)
         
-        # Update user with school_id only if they didn't have one
+        # Update user with school_id and super admin privileges
         await db.users.update_one(
             {"id": user["id"]},
             {"$set": {
                 "school_id": school_id,
-                "role": "owner",
+                "role": "director",
+                "is_owner": True,
+                "is_super_admin": True,
+                "is_protected": True,  # Cannot be deleted or demoted
                 "updated_at": datetime.now(timezone.utc).isoformat()
             }}
         )
-        logger.info(f"School created: {subdomain}.{BASE_DOMAIN} for user {user['email']}")
+        logger.info(f"School created: {subdomain}.{BASE_DOMAIN} for user {user['email']} (Super Admin)")
         
         # Seed demo data for the new school
         await seed_demo_data_for_school(db, school_id, user["id"])
