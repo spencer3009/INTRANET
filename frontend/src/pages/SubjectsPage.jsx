@@ -625,8 +625,6 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const [levels, setLevels] = useState([]);
   const [grades, setGrades] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [teachers, setTeachers] = useState([]);
-  const [subjectTeachers, setSubjectTeachers] = useState({});
   
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedGrade, setSelectedGrade] = useState(null);
@@ -634,8 +632,6 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
-  const [showTeacherModal, setShowTeacherModal] = useState(false);
-  const [selectedSubjectForTeacher, setSelectedSubjectForTeacher] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -644,31 +640,13 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      const [settingsRes, levelsRes, gradesRes, subjectsRes, usersRes] = await Promise.all([
+      const [settingsRes, levelsRes, gradesRes, subjectsRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers }), axios.get(`${API}/academic/levels`, { headers }),
-        axios.get(`${API}/academic/grades`, { headers }), axios.get(`${API}/academic/subjects`, { headers }),
-        axios.get(`${API}/users`, { headers })
+        axios.get(`${API}/academic/grades`, { headers }), axios.get(`${API}/academic/subjects`, { headers })
       ]);
       
-      console.log("SubjectsPage data loaded:", {
-        settings: settingsRes.data,
-        levels: levelsRes.data,
-        grades: gradesRes.data,
-        subjects: subjectsRes.data,
-        teachers: usersRes.data.filter(u => u.role === "teacher").length
-      });
-      
       setSettings(settingsRes.data); setLevels(levelsRes.data || []); setGrades(gradesRes.data || []);
-      setSubjects(subjectsRes.data || []); setTeachers(usersRes.data.filter(u => u.role === "teacher"));
-      
-      const teacherAssignments = {};
-      for (const subject of (subjectsRes.data || [])) {
-        try {
-          const res = await axios.get(`${API}/academic/subjects/${subject.id}/teachers`, { headers });
-          teacherAssignments[subject.id] = res.data.teachers?.map(t => t.id) || [];
-        } catch { teacherAssignments[subject.id] = []; }
-      }
-      setSubjectTeachers(teacherAssignments);
+      setSubjects(subjectsRes.data || []);
     } catch (err) { 
       console.error("SubjectsPage load error:", err); 
     } finally { setLoading(false); }
@@ -687,19 +665,8 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
 
   const handleSaveSubject = async (data) => {
     const subjectData = { name: data.name, code: data.code, description: data.description, level_id: data.level_id, grade_id: data.grade_id, weekly_hours: data.weekly_hours, color: data.color, status: data.status };
-    let subjectId;
-    if (editingSubject?.id) { await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers }); subjectId = editingSubject.id; }
-    else { const res = await axios.post(`${API}/academic/subjects`, subjectData, { headers }); subjectId = res.data.subject.id; }
-    
-    if (data.teacher_id) { await axios.post(`${API}/academic/subjects/${subjectId}/teachers`, { teacher_ids: [data.teacher_id] }, { headers }); setSubjectTeachers(prev => ({ ...prev, [subjectId]: [data.teacher_id] })); }
-    else if (editingSubject?.id) { await axios.post(`${API}/academic/subjects/${subjectId}/teachers`, { teacher_ids: [] }, { headers }); setSubjectTeachers(prev => ({ ...prev, [subjectId]: [] })); }
-    loadSubjects();
-  };
-
-  const handleAssignTeacher = async (teacherIds) => {
-    if (!selectedSubjectForTeacher) return;
-    await axios.post(`${API}/academic/subjects/${selectedSubjectForTeacher.id}/teachers`, { teacher_ids: teacherIds }, { headers });
-    setSubjectTeachers(prev => ({ ...prev, [selectedSubjectForTeacher.id]: teacherIds }));
+    if (editingSubject?.id) { await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers }); }
+    else { await axios.post(`${API}/academic/subjects`, subjectData, { headers }); }
     loadSubjects();
   };
 
