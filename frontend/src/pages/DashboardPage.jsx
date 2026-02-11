@@ -189,6 +189,9 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
         />
 
         <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scroll" data-testid="dashboard-main">
+          {/* Permission error fixer */}
+          {hasPermissionError && <PermissionsFixer token={token} onFixed={fetchData} />}
+          
           <DemoBanner token={token} onDemoDeleted={fetchData} />
           <MetricCards metrics={metrics} />
 
