@@ -106,7 +106,7 @@ export default function OnboardingPage({ token, user, onLogin, onLogout }) {
       }, 3000);
       
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al crear el subdominio");
+      setError(err.response?.data?.detail || "Error al crear el identificador");
       setCreating(false);
     }
   };
