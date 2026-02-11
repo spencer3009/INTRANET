@@ -691,28 +691,14 @@ export default function SubjectDetailPage({ user, token, subdomain, onLogout, su
       />
       
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-xl border-b border-white/50 px-6 py-4 flex items-center justify-between shadow-sm">
-          <div className="flex items-center gap-4">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 hover:bg-gray-100 rounded-xl">
-              <BookOpen className="w-5 h-5 text-gray-600" />
-            </button>
-            {settings?.logo_url && <img src={settings.logo_url} alt="Logo" className="h-9 w-auto" />}
-            <div>
-              <h1 className="text-lg font-bold text-gray-800">{settings?.system_name || "Instituto"}</h1>
-              <p className="text-xs text-gray-400">Aula Virtual</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-semibold text-gray-700">{user?.name} {user?.last_name}</p>
-              <p className="text-xs text-gray-400 capitalize">{user?.role}</p>
-            </div>
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold shadow-lg">
-              {user?.name?.charAt(0) || "U"}
-            </div>
-          </div>
-        </header>
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={settings?.system_name}
+          subdomain={subdomain}
+        />
 
         {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8">
