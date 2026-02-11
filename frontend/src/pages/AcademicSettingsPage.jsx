@@ -978,7 +978,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
               {periods.map(period => (
                 <div 
                   key={period.id} 
-                  className={`group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all border-2 ${period.activo ? "border-emerald-300 ring-2 ring-emerald-100" : cat.borderColor} overflow-hidden`}
+                  className={`group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all border-2 ${period.activo ? "border-emerald-300 ring-2 ring-emerald-100" : cat.borderColor}`}
                 >
                   {/* Active indicator bar */}
                   <div className={`h-2 ${period.activo ? "bg-gradient-to-r from-emerald-500 to-teal-600" : `bg-gradient-to-r ${cat.color}`}`}></div>
