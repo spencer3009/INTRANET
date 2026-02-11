@@ -724,6 +724,11 @@ function SectionTypesAdminModal({ isOpen, onClose, token, onTypesUpdated }) {
     </div>
   );
 }
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SHIFT MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function ShiftModal({ isOpen, onClose, token, shift, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ nombre: "", hora_inicio: "07:00", hora_fin: "12:00", color: "#3B82F6", activo: true });
