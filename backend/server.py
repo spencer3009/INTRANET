@@ -6713,8 +6713,8 @@ async def get_subjects(
     levels = {l["id"]: l["nombre"] for l in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)}
     grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(200)}
     
-    # Get all users (teachers) for assignment lookup
-    users_cache = {u["id"]: u for u in await db.users.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "profile_image": 1}).to_list(500)}
+    # Get all users (teachers) for assignment lookup - include both profile_image and photo_url
+    users_cache = {u["id"]: u for u in await db.users.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "profile_image": 1, "photo_url": 1}).to_list(500)}
     
     for subject in subjects:
         subject["level_name"] = levels.get(subject.get("level_id"), "")
@@ -6734,10 +6734,12 @@ async def get_subjects(
         for assignment in assignments:
             teacher = users_cache.get(assignment.get("teacher_id"))
             if teacher:
+                # Use profile_image or photo_url (whichever is available)
+                teacher_photo = teacher.get("profile_image") or teacher.get("photo_url")
                 subject["assigned_teachers"].append({
                     "id": teacher["id"],
                     "name": teacher["name"],
-                    "profile_image": teacher.get("profile_image"),
+                    "profile_image": teacher_photo,
                     "role": assignment.get("role", "titular")
                 })
         
