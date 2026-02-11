@@ -1291,7 +1291,29 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     return (
       <div>
         <SectionHeader category={cat} count={sections.length} countLabel={sections.length === 1 ? "sección" : "secciones"} onAdd={() => { setEditingSection(null); setPreselectedGradeForSection(null); setShowSectionModal(true); }} addLabel="Nueva Sección" />
-        {levels.length > 0 && <div className="mb-6 flex flex-wrap gap-2"><button onClick={() => setSelectedLevelFilter("")} className={`px-4 py-2 rounded-xl font-medium transition-all ${!selectedLevelFilter ? "bg-purple-500 text-white" : "bg-white text-slate-700 hover:bg-slate-50 border"}`}>Todos</button>{levels.filter(l => l.activo).map(l => <button key={l.id} onClick={() => setSelectedLevelFilter(l.id)} className={`px-4 py-2 rounded-xl font-medium transition-all ${selectedLevelFilter === l.id ? "bg-purple-500 text-white" : "bg-white text-slate-700 hover:bg-slate-50 border"}`}>{l.nombre}</button>)}</div>}
+        
+        {/* Filters and Admin button */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap gap-2">
+            {levels.length > 0 && (
+              <>
+                <button onClick={() => setSelectedLevelFilter("")} className={`px-4 py-2 rounded-xl font-medium transition-all ${!selectedLevelFilter ? "bg-purple-500 text-white" : "bg-white text-slate-700 hover:bg-slate-50 border"}`}>Todos</button>
+                {levels.filter(l => l.activo).map(l => (
+                  <button key={l.id} onClick={() => setSelectedLevelFilter(l.id)} className={`px-4 py-2 rounded-xl font-medium transition-all ${selectedLevelFilter === l.id ? "bg-purple-500 text-white" : "bg-white text-slate-700 hover:bg-slate-50 border"}`}>{l.nombre}</button>
+                ))}
+              </>
+            )}
+          </div>
+          <button 
+            onClick={() => setShowSectionTypesAdmin(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-purple-200 text-purple-600 rounded-xl font-medium hover:bg-purple-50 transition-all"
+            data-testid="admin-section-types-btn"
+          >
+            <Settings className="w-4 h-4" />
+            Administrar Tipos
+          </button>
+        </div>
+
         {Object.keys(sectionsByGrade).length === 0 ? <EmptyState category={cat} message={grades.length === 0 ? "Primero crea grados." : "Crea la primera sección."} onAdd={grades.length > 0 ? () => { setEditingSection(null); setPreselectedGradeForSection(null); setShowSectionModal(true); } : null} addLabel="Crear sección" /> : (
           <div className="space-y-8">
             {Object.entries(sectionsByGrade).map(([key, data]) => (
