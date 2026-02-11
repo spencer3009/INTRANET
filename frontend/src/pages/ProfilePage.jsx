@@ -260,6 +260,9 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
                 <div className="text-white">
                   <h2 className="text-3xl font-bold">{user?.name} {user?.last_name}</h2>
                   <p className="text-white/80 mt-1">{user?.email}</p>
+                  {user?.username && (
+                    <p className="text-white/60 text-sm mt-0.5">@{user.username}</p>
+                  )}
                   <div className="flex items-center gap-3 mt-3">
                     {user?.is_super_admin && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400 text-amber-900 rounded-full text-xs font-bold">
