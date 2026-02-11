@@ -328,9 +328,22 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
   const isEdit = !!assignment;
   const headers = { Authorization: `Bearer ${token}` };
   
-  // Filter options based on selections (cascade)
+  // Cascade filters - STRICT HIERARCHY
+  // Grades filtered by Level
   const filteredGrades = form.level_id 
     ? academicData.grades.filter(g => g.nivel_id === form.level_id)
+    : [];
+  
+  // Sections filtered by Grade (FIXED)
+  const filteredSections = form.grade_id 
+    ? academicData.sections.filter(s => s.grado_id === form.grade_id)
+    : [];
+  
+  // Subjects filtered by Level + Grade
+  const filteredSubjects = (form.level_id && form.grade_id)
+    ? academicData.subjects.filter(s => 
+        s.level_id === form.level_id && s.grade_id === form.grade_id
+      )
     : [];
   
   useEffect(() => {
@@ -361,6 +374,27 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
       setError("");
     }
   }, [isOpen, assignment]);
+  
+  // Handler for Level change - reset dependent fields
+  const handleLevelChange = (e) => {
+    setForm({
+      ...form,
+      level_id: e.target.value,
+      grade_id: "",
+      section_id: "",
+      subject_id: ""
+    });
+  };
+  
+  // Handler for Grade change - reset dependent fields
+  const handleGradeChange = (e) => {
+    setForm({
+      ...form,
+      grade_id: e.target.value,
+      section_id: "",
+      subject_id: ""
+    });
+  };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -429,7 +463,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               </label>
               <select
                 value={form.level_id}
-                onChange={(e) => setForm({...form, level_id: e.target.value, grade_id: ""})}
+                onChange={handleLevelChange}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
               >
@@ -448,7 +482,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               </label>
               <select
                 value={form.grade_id}
-                onChange={(e) => setForm({...form, grade_id: e.target.value})}
+                onChange={handleGradeChange}
                 className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:bg-gray-50 disabled:text-gray-400"
                 required
                 disabled={!form.level_id}
@@ -463,7 +497,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               )}
             </div>
             
-            {/* Section */}
+            {/* Section - FILTERED BY GRADE */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <Users className="w-4 h-4 inline mr-1 text-emerald-500" />
@@ -472,17 +506,24 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               <select
                 value={form.section_id}
                 onChange={(e) => setForm({...form, section_id: e.target.value})}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:bg-gray-50 disabled:text-gray-400"
                 required
+                disabled={!form.grade_id}
               >
                 <option value="">Seleccionar sección...</option>
-                {academicData.sections.map(s => (
+                {filteredSections.map(s => (
                   <option key={s.id} value={s.id}>{s.nombre}</option>
                 ))}
               </select>
+              {!form.grade_id && (
+                <p className="text-xs text-gray-400 mt-1">Primero selecciona un grado</p>
+              )}
+              {form.grade_id && filteredSections.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">No hay secciones registradas para este grado</p>
+              )}
             </div>
             
-            {/* Subject */}
+            {/* Subject - FILTERED BY LEVEL + GRADE */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <BookOpen className="w-4 h-4 inline mr-1 text-amber-500" />
@@ -491,14 +532,21 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               <select
                 value={form.subject_id}
                 onChange={(e) => setForm({...form, subject_id: e.target.value})}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:bg-gray-50 disabled:text-gray-400"
                 required
+                disabled={!form.grade_id}
               >
                 <option value="">Seleccionar asignatura...</option>
-                {academicData.subjects.map(s => (
+                {filteredSubjects.map(s => (
                   <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
                 ))}
               </select>
+              {!form.grade_id && (
+                <p className="text-xs text-gray-400 mt-1">Primero selecciona un grado</p>
+              )}
+              {form.grade_id && filteredSubjects.length === 0 && (
+                <p className="text-xs text-amber-600 mt-1">No hay asignaturas registradas para este nivel/grado</p>
+              )}
             </div>
             
             {/* Teacher */}
