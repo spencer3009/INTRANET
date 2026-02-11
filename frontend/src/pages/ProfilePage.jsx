@@ -61,6 +61,7 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
       setProfile({
         name: userData.name || "",
         last_name: userData.last_name || "",
+        username: userData.username || "",
         phone: userData.phone || "",
         photo_url: userData.photo_url || ""
       });
@@ -71,6 +72,38 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
       setLoading(false);
     }
   };
+
+  // Check username availability with debounce
+  useEffect(() => {
+    const checkUsername = async () => {
+      const username = profile.username?.trim();
+      if (!username || username.length < 3) {
+        setUsernameStatus(null);
+        setUsernameMessage("");
+        return;
+      }
+      
+      // Don't check if it's the current username
+      if (username === user?.username) {
+        setUsernameStatus("available");
+        setUsernameMessage("Tu nombre de usuario actual");
+        return;
+      }
+      
+      setUsernameStatus("checking");
+      try {
+        const res = await axios.get(`${API}/auth/check-username/${username}`, { headers });
+        setUsernameStatus(res.data.available ? "available" : "taken");
+        setUsernameMessage(res.data.message);
+      } catch (err) {
+        setUsernameStatus("invalid");
+        setUsernameMessage("Error al verificar");
+      }
+    };
+    
+    const timer = setTimeout(checkUsername, 500);
+    return () => clearTimeout(timer);
+  }, [profile.username]);
 
   const handlePhotoUpload = async (e) => {
     const file = e.target.files?.[0];
