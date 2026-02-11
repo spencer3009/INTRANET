@@ -19,6 +19,7 @@ EduNet es una plataforma SaaS multi-tenant diseñada para colegios en Perú. Cad
 - [x] Dashboard principal
 - [x] Gestión de usuarios (profesores, estudiantes, padres)
 - [x] Ajustes de la institución (logo, nombre, configuración)
+- [x] **Sistema de Demo Data** - Datos de ejemplo automáticos (NUEVO - 11 Feb 2026)
 
 ### ✅ Académico
 - [x] Niveles educativos (Inicial, Primaria, Secundaria)
@@ -27,7 +28,7 @@ EduNet es una plataforma SaaS multi-tenant diseñada para colegios en Perú. Cad
 - [x] Turnos
 - [x] Períodos académicos
 - [x] **Asignaturas** - Módulo completo con UI premium
-- [x] **Detalle de Curso** - Página premium tipo SaaS (NUEVO - 11 Feb 2026)
+- [x] **Detalle de Curso** - Página premium tipo SaaS
 
 ### ✅ Comunicación
 - [x] Mensajería interna
@@ -42,53 +43,63 @@ EduNet es una plataforma SaaS multi-tenant diseñada para colegios en Perú. Cad
 
 ## Lo Que Se Implementó (11 Feb 2026)
 
-### Página de Detalle de Curso/Asignatura - PREMIUM
-Se creó una nueva página `CourseDetailPage.jsx` con diseño premium tipo SaaS educativo (Google Classroom/Canvas/Notion):
+### Sistema de Demo Data Automático - NUEVO
+Se implementó un sistema completo de datos de demostración para nuevas intranets:
 
 #### Características:
-1. **Hero Header**
-   - Gradiente elegante basado en el color de la asignatura
-   - Icono del curso + nombre grande
-   - Badges de nivel, grado y período académico
-   - Código del curso y horas semanales
-   - Botones de acciones rápidas (Editar, Estudiantes, Calificaciones)
+1. **Seeding Automático**: Al crear una nueva intranet, se genera automáticamente:
+   - 3 niveles educativos (Inicial, Primaria, Secundaria)
+   - 14 grados
+   - 2 secciones (A, B)
+   - 2 turnos (Mañana, Tarde)
+   - 1 período académico
+   - 4 profesores demo
+   - 10 estudiantes demo
+   - 8 asignaturas
+   - 3 noticias
+   - 5 eventos de calendario
+   - 5 conceptos de pago
+   - 13 pagos demo
+   - Métricas del dashboard
+   - Datos de inscripción para gráficos
 
-2. **Tabs Premium**
-   - Tablero (feed de publicaciones)
-   - Tareas
-   - Material de estudio
-   - Exámenes
-   - Foro
-   - En vivo
-   - Calificaciones
-   - Animaciones suaves al cambiar de tab
-   - Indicador activo con gradiente
+2. **Identificación de Demo Data**:
+   - Todos los datos demo marcados con `is_demo: true`
+   - Fácil eliminación posterior
+   - No interfiere con datos reales
 
-3. **Layout de 3 Columnas**
-   - **Izquierda**: Card del curso, Actividad reciente, Noticias, Accesos rápidos
-   - **Centro**: Contenido principal según tab activo
-   - **Derecha**: Profesor del curso, Lista de estudiantes (scroll), Recordatorios
+3. **Banner de Bienvenida**:
+   - Se muestra en el Dashboard cuando hay datos demo
+   - Informa al usuario sobre la naturaleza de los datos
+   - Muestra contadores de datos demo
+   - Botón para eliminar datos demo
 
-4. **Experiencia Premium**
-   - Skeleton loaders durante la carga
-   - Estados vacíos elegantes con call-to-action
-   - Microinteracciones y transiciones suaves
-   - Diseño responsivo (desktop/tablet)
+4. **Endpoints de Gestión**:
+   - `GET /api/demo-data/status` - Estado de datos demo
+   - `DELETE /api/demo-data` - Eliminar datos demo
+   - `POST /api/demo-data/reseed` - Regenerar datos demo
 
 #### Archivos Creados/Modificados:
-- `/app/frontend/src/pages/CourseDetailPage.jsx` (nuevo)
-- `/app/frontend/src/pages/SubjectsPage.jsx` (actualizado para navegación)
-- `/app/frontend/src/App.js` (nuevas rutas)
-- `/app/frontend/src/App.css` (estilos adicionales)
+- `/app/backend/demo_seeder.py` (nuevo - módulo de seeding)
+- `/app/backend/server.py` (integración del seeder)
+- `/app/frontend/src/components/DemoBanner.jsx` (nuevo - banner UI)
+- `/app/frontend/src/pages/DashboardPage.jsx` (integración del banner)
 
-#### Rutas:
-- `/curso/:subjectId` (subdomain mode)
-- `/school/:subdomain/curso/:subjectId` (route mode)
+### Dashboard con Datos Reales (anterior)
+- Eventos del calendario mostrados en "Próximos Eventos"
+- Noticias reales en sección "Noticias y Avisos"
+- Mini calendario con indicadores de eventos
+
+### Página de Detalle de Curso Premium (anterior)
+- Hero Header con gradiente dinámico
+- 6 Tabs Premium: Tablero, Tareas, Material, Exámenes, Foro, Calificaciones
+- Layout de 3 columnas
+- Estados vacíos elegantes
 
 ## Backlog / Tareas Pendientes
 
 ### P0 - Alta Prioridad
-- [ ] Integrar datos reales en la página de detalle del curso (tareas, materiales, exámenes)
+- [ ] Integrar datos reales en página de detalle del curso (tareas, materiales, exámenes)
 - [ ] Implementar funcionalidad "Editar Usuario" (actualmente placeholder)
 
 ### P1 - Media Prioridad
@@ -123,3 +134,4 @@ Se creó una nueva página `CourseDetailPage.jsx` con diseño premium tipo SaaS 
 - Las URLs de frontend utilizan rutas en español (asignaturas, horarios, etc.)
 - El sidebar se expande al hover en desktop
 - Los IDs de MongoDB deben excluirse de las respuestas JSON (`{"_id": 0}`)
+- Todos los datos demo están marcados con `is_demo: true` para fácil identificación
