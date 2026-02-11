@@ -19,18 +19,25 @@ function DefaultAvatar({ name, size = "w-10 h-10", textSize = "text-sm" }) {
   );
 }
 
+// CENTRALIZED ROLE MAP - Same as ProfileCard
+const ROLE_DISPLAY_MAP = {
+  owner: "Propietario",
+  super_admin: "Super Admin",
+  director: "Director",
+  admin: "Administrador",
+  teacher: "Profesor",
+  student: "Alumno",
+  parent: "Padre de Familia",
+  profesor: "Profesor",
+  alumno: "Alumno",
+};
+
 // Get display role in Spanish
 function getRoleDisplay(role, isOwner, isSuperAdmin) {
-  if (isOwner) return "Propietario";
-  if (isSuperAdmin) return "Super Admin";
-  const roles = {
-    director: "Director",
-    admin: "Administrador",
-    teacher: "Profesor",
-    student: "Alumno",
-    parent: "Padre de Familia"
-  };
-  return roles[role] || role || "Usuario";
+  // Priority: is_owner flag > is_super_admin flag > role string
+  if (isOwner || role === "owner") return ROLE_DISPLAY_MAP.owner;
+  if (isSuperAdmin || role === "super_admin") return ROLE_DISPLAY_MAP.super_admin;
+  return ROLE_DISPLAY_MAP[role] || role || "Usuario";
 }
 
 export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName }) {
