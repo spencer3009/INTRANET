@@ -322,7 +322,7 @@ function CourseInfoSidebar({ subject, activities, news }) {
           {[
             { icon: FolderOpen, label: "Materiales", color: "from-blue-400 to-blue-600" },
             { icon: PenTool, label: "Tareas pendientes", color: "from-amber-400 to-orange-500" },
-            { icon: Video, label: "Clases grabadas", color: "from-rose-400 to-pink-500" },
+            { icon: FileVideo, label: "Clases grabadas", color: "from-rose-400 to-pink-500" },
           ].map((link, idx) => (
             <button
               key={idx}
