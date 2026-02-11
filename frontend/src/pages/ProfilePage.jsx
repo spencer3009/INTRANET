@@ -3,7 +3,7 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import {
   User, Mail, Phone, Camera, Save, Lock, Eye, EyeOff,
-  Shield, Crown, CheckCircle, AlertCircle, Loader2
+  Shield, Crown, CheckCircle, AlertCircle, Loader2, AtSign, Check, X
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -20,9 +20,13 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
   const [profile, setProfile] = useState({
     name: "",
     last_name: "",
+    username: "",
     phone: "",
     photo_url: ""
   });
+  
+  const [usernameStatus, setUsernameStatus] = useState(null); // null, 'checking', 'available', 'taken', 'invalid'
+  const [usernameMessage, setUsernameMessage] = useState("");
   
   const [passwords, setPasswords] = useState({
     current_password: "",
