@@ -448,6 +448,13 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                 </div>
               </div>
             </section>
+
+            {/* Carousel Manager - Only for owners/super admins */}
+            {(user?.is_owner || user?.is_super_admin || user?.role === "owner" || user?.role === "director") && (
+              <section className="mt-8" data-testid="carousel-section">
+                <CarouselManager token={token} />
+              </section>
+            )}
           </form>
         </main>
       </div>
