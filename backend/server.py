@@ -6531,15 +6531,26 @@ async def remove_subject_teacher(subject_id: str, teacher_id: str, current_user 
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
-app.include_router(api_router)
 
+# CORS middleware - MUST be added before routers for proper handling
 app.add_middleware(
     CORSMiddleware,
+    allow_origins=[
+        "*",
+        "https://edunet.pe",
+        "https://*.edunet.pe",
+        "https://colegiodemo.edunet.pe",
+        "https://colegioelroble.edunet.pe",
+        "http://localhost:3000",
+        "http://localhost:8001",
+    ],
     allow_credentials=True,
-    allow_origins=["*"],
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+app.include_router(api_router)
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
