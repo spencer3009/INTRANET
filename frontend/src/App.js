@@ -164,6 +164,13 @@ function App() {
     setUser(userData);
   };
 
+  const handleUserUpdate = (updatedUser) => {
+    // Merge with existing user data to preserve fields that might not be returned
+    const mergedUser = { ...user, ...updatedUser };
+    localStorage.setItem("user", JSON.stringify(mergedUser));
+    setUser(mergedUser);
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
