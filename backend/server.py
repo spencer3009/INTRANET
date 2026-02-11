@@ -460,6 +460,26 @@ async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_u
         update_data["name"] = data.name.strip()
     if data.last_name is not None:
         update_data["last_name"] = data.last_name.strip()
+    if data.username is not None:
+        username = data.username.strip().lower()
+        # Validate username format
+        if username:
+            if len(username) < 3:
+                raise HTTPException(status_code=400, detail="El nombre de usuario debe tener al menos 3 caracteres")
+            if len(username) > 30:
+                raise HTTPException(status_code=400, detail="El nombre de usuario no puede tener más de 30 caracteres")
+            if not re.match(r'^[a-z0-9_]+$', username):
+                raise HTTPException(status_code=400, detail="El nombre de usuario solo puede contener letras, números y guiones bajos")
+            # Check if username is already taken by another user
+            existing = await db.users.find_one({
+                "username": username,
+                "id": {"$ne": user["id"]}
+            })
+            if existing:
+                raise HTTPException(status_code=400, detail="Este nombre de usuario ya está en uso")
+            update_data["username"] = username
+        else:
+            update_data["username"] = None
     if data.phone is not None:
         update_data["phone"] = data.phone.strip()
     if data.photo_url is not None:
