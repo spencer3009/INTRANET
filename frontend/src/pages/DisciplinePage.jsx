@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import DashboardHeader from "../components/DashboardHeader";
 import { 
   AlertTriangle, Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
   Eye, Filter, Clock, FileText, Download, ChevronRight, User,
