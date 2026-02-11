@@ -404,9 +404,326 @@ function SectionModal({ isOpen, onClose, token, section, grades, levels, onSucce
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SHIFT MODAL
+// SECTION TYPES ADMIN MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function ShiftModal({ isOpen, onClose, token, shift, onSuccess }) {
+function SectionTypesAdminModal({ isOpen, onClose, token, onTypesUpdated }) {
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [sectionTypes, setSectionTypes] = useState([]);
+  const [newType, setNewType] = useState({ key: "", label: "" });
+  const [editingType, setEditingType] = useState(null);
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // Load section types when modal opens
+  useEffect(() => {
+    if (isOpen && token) {
+      loadSectionTypes();
+    }
+  }, [isOpen, token]);
+
+  const loadSectionTypes = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/academic/section-types`, { headers });
+      setSectionTypes(res.data || []);
+    } catch (err) {
+      setError("Error al cargar tipos de sección");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddType = async (e) => {
+    e.preventDefault();
+    if (!newType.key.trim() || !newType.label.trim()) {
+      setError("La clave y etiqueta son obligatorias");
+      return;
+    }
+    setSaving(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API}/academic/section-types`, {
+        key: newType.key.toUpperCase(),
+        label: newType.label
+      }, { headers });
+      setSectionTypes(prev => [...prev, res.data.section_type]);
+      setNewType({ key: "", label: "" });
+      setSuccess("Tipo agregado correctamente");
+      setTimeout(() => setSuccess(""), 3000);
+      if (onTypesUpdated) onTypesUpdated();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al crear tipo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateType = async (typeId, updates) => {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await axios.put(`${API}/academic/section-types/${typeId}`, updates, { headers });
+      setSectionTypes(prev => prev.map(t => t.id === typeId ? res.data.section_type : t));
+      setEditingType(null);
+      setSuccess("Tipo actualizado correctamente");
+      setTimeout(() => setSuccess(""), 3000);
+      if (onTypesUpdated) onTypesUpdated();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar tipo");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleToggleActive = async (type) => {
+    await handleUpdateType(type.id, { activo: !type.activo });
+  };
+
+  const handleMoveUp = async (index) => {
+    if (index === 0) return;
+    const newOrder = [...sectionTypes];
+    [newOrder[index - 1], newOrder[index]] = [newOrder[index], newOrder[index - 1]];
+    await reorderTypes(newOrder);
+  };
+
+  const handleMoveDown = async (index) => {
+    if (index === sectionTypes.length - 1) return;
+    const newOrder = [...sectionTypes];
+    [newOrder[index], newOrder[index + 1]] = [newOrder[index + 1], newOrder[index]];
+    await reorderTypes(newOrder);
+  };
+
+  const reorderTypes = async (newOrder) => {
+    setSaving(true);
+    try {
+      const res = await axios.put(`${API}/academic/section-types/reorder`, {
+        order: newOrder.map(t => t.id)
+      }, { headers });
+      setSectionTypes(res.data.section_types);
+      setSuccess("Orden actualizado");
+      setTimeout(() => setSuccess(""), 3000);
+      if (onTypesUpdated) onTypesUpdated();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al reordenar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
+      <div className="min-h-full flex items-center justify-center p-4 py-8">
+        <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-purple-500 to-pink-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Settings className="w-8 h-8 text-white" />
+              <div className="text-white">
+                <h2 className="text-xl font-bold">Administrar Tipos de Sección</h2>
+                <p className="text-sm text-white/80">Catálogo centralizado</p>
+              </div>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          <div className="p-6">
+            {/* Messages */}
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>{error}</span>
+                <button onClick={() => setError("")} className="ml-auto"><X className="w-4 h-4" /></button>
+              </div>
+            )}
+            {success && (
+              <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm flex items-center gap-2">
+                <Check className="w-4 h-4 flex-shrink-0" />
+                <span>{success}</span>
+              </div>
+            )}
+
+            {/* Add new type form */}
+            <div className="mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+              <h3 className="font-semibold text-slate-700 mb-3 flex items-center gap-2">
+                <Plus className="w-4 h-4" /> Agregar nuevo tipo
+              </h3>
+              <form onSubmit={handleAddType} className="flex gap-3">
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={newType.key}
+                    onChange={(e) => setNewType(p => ({ ...p, key: e.target.value.toUpperCase() }))}
+                    placeholder="Clave (ej: G)"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                    maxLength={10}
+                  />
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="text"
+                    value={newType.label}
+                    onChange={(e) => setNewType(p => ({ ...p, label: e.target.value }))}
+                    placeholder="Etiqueta visible (ej: G)"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={saving || !newType.key.trim() || !newType.label.trim()}
+                  className="px-4 py-2 bg-purple-500 text-white rounded-lg font-medium hover:bg-purple-600 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Agregar
+                </button>
+              </form>
+            </div>
+
+            {/* Types list */}
+            <div className="mb-4">
+              <h3 className="font-semibold text-slate-700 mb-3">Tipos existentes ({sectionTypes.length})</h3>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                </div>
+              ) : sectionTypes.length === 0 ? (
+                <p className="text-center text-slate-500 py-8">No hay tipos de sección configurados</p>
+              ) : (
+                <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                  {sectionTypes.map((type, index) => (
+                    <div
+                      key={type.id}
+                      className={`flex items-center gap-3 p-3 bg-white border rounded-xl transition-all ${
+                        type.activo ? "border-slate-200" : "border-slate-100 bg-slate-50 opacity-60"
+                      }`}
+                    >
+                      {/* Reorder buttons */}
+                      <div className="flex flex-col gap-0.5">
+                        <button
+                          onClick={() => handleMoveUp(index)}
+                          disabled={index === 0 || saving}
+                          className="w-6 h-6 rounded hover:bg-slate-100 flex items-center justify-center disabled:opacity-30"
+                        >
+                          <ChevronUp className="w-4 h-4 text-slate-500" />
+                        </button>
+                        <button
+                          onClick={() => handleMoveDown(index)}
+                          disabled={index === sectionTypes.length - 1 || saving}
+                          className="w-6 h-6 rounded hover:bg-slate-100 flex items-center justify-center disabled:opacity-30"
+                        >
+                          <ChevronDown className="w-4 h-4 text-slate-500" />
+                        </button>
+                      </div>
+
+                      {/* Order number */}
+                      <span className="w-6 h-6 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xs font-bold">
+                        {type.orden || index + 1}
+                      </span>
+
+                      {/* Type info */}
+                      <div className="flex-1 min-w-0">
+                        {editingType === type.id ? (
+                          <input
+                            type="text"
+                            defaultValue={type.label}
+                            className="w-full px-2 py-1 border border-purple-300 rounded focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                handleUpdateType(type.id, { label: e.target.value });
+                              } else if (e.key === "Escape") {
+                                setEditingType(null);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (e.target.value !== type.label) {
+                                handleUpdateType(type.id, { label: e.target.value });
+                              } else {
+                                setEditingType(null);
+                              }
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-700">{type.label}</span>
+                            <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
+                              key: {type.key}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Status badge */}
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        type.activo 
+                          ? "bg-emerald-100 text-emerald-700" 
+                          : "bg-slate-200 text-slate-500"
+                      }`}>
+                        {type.activo ? "Activo" : "Inactivo"}
+                      </span>
+
+                      {/* Actions */}
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setEditingType(type.id)}
+                          className="w-8 h-8 rounded-lg hover:bg-blue-50 flex items-center justify-center text-blue-500"
+                          title="Editar etiqueta"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleToggleActive(type)}
+                          disabled={saving}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${
+                            type.activo 
+                              ? "hover:bg-amber-50 text-amber-500" 
+                              : "hover:bg-emerald-50 text-emerald-500"
+                          }`}
+                          title={type.activo ? "Desactivar" : "Activar"}
+                        >
+                          {type.activo ? <X className="w-4 h-4" /> : <Check className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Info note */}
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-800">
+                  <p className="font-semibold mb-1">Nota importante</p>
+                  <p>Los tipos desactivados no aparecerán al crear nuevas secciones. No se pueden desactivar tipos que ya están en uso por secciones existentes.</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Close button */}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={onClose}
+                className="px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ nombre: "", hora_inicio: "07:00", hora_fin: "12:00", color: "#3B82F6", activo: true });
