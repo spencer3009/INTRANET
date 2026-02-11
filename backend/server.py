@@ -803,6 +803,97 @@ async def get_tenant_info(request: Request):
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# FIX/REPAIR OWNER PERMISSIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.post("/auth/fix-owner-permissions")
+async def fix_owner_permissions(current_user=Depends(get_current_user)):
+    """
+    Fix owner permissions for the current user.
+    If the user is the owner of the school (owner_user_id matches), 
+    this will grant them proper owner/super_admin flags.
+    Also seeds demo data if the school is empty.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if not user.get("school_id"):
+        raise HTTPException(status_code=400, detail="No tienes un colegio asociado")
+    
+    # Get the school
+    school = await db.schools.find_one({"id": user["school_id"]})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    # Check if user is the owner of this school
+    is_school_owner = school.get("owner_user_id") == user["id"]
+    
+    # Also check if user was the first user in the school
+    first_user = await db.users.find_one(
+        {"school_id": user["school_id"]},
+        sort=[("created_at", 1)]
+    )
+    is_first_user = first_user and first_user["id"] == user["id"]
+    
+    if is_school_owner or is_first_user:
+        # Grant owner/super_admin permissions
+        await db.users.update_one(
+            {"id": user["id"]},
+            {"$set": {
+                "role": "director",
+                "is_owner": True,
+                "is_super_admin": True,
+                "is_protected": True,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        # Update school owner_user_id if not set
+        if not school.get("owner_user_id"):
+            await db.schools.update_one(
+                {"id": school["id"]},
+                {"$set": {"owner_user_id": user["id"]}}
+            )
+        
+        # Check if demo data needs to be seeded
+        levels_count = await db.academic_levels.count_documents({"school_id": user["school_id"]})
+        if levels_count == 0:
+            # Seed demo data
+            await seed_demo_data_for_school(db, user["school_id"], user["id"])
+            seeded = True
+        else:
+            seeded = False
+        
+        # Generate new token with correct permissions
+        new_token = create_token(
+            user["id"], user["email"], user["name"], "director",
+            user["school_id"], school.get("subdomain"), True
+        )
+        
+        return {
+            "success": True,
+            "message": "Permisos de propietario restaurados correctamente",
+            "token": new_token,
+            "demo_data_seeded": seeded,
+            "user": {
+                "id": user["id"],
+                "email": user["email"],
+                "name": user["name"],
+                "role": "director",
+                "is_owner": True,
+                "is_super_admin": True,
+                "school_id": user["school_id"],
+                "subdomain": school.get("subdomain")
+            }
+        }
+    else:
+        raise HTTPException(
+            status_code=403, 
+            detail="No eres el propietario de esta intranet"
+        )
+
+# ══════════════════════════════════════════════════════════════════════════════
 # PUBLIC SCHOOL INFO (For branded login pages)
 # ══════════════════════════════════════════════════════════════════════════════
 
