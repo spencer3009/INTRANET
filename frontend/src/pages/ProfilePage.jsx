@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
+import DashboardHeader from "../components/DashboardHeader";
 import {
   User, Mail, Phone, Camera, Save, Lock, Eye, EyeOff,
   Shield, Crown, CheckCircle, AlertCircle, Loader2, AtSign, Check, X,
