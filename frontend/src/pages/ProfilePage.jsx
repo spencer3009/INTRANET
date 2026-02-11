@@ -271,14 +271,14 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
                         Super Admin
                       </span>
                     )}
-                    {user?.is_owner && (
+                    {(user?.is_owner || user?.role === "owner") && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 text-white rounded-full text-xs font-bold">
                         <Shield className="w-3.5 h-3.5" />
                         Propietario
                       </span>
                     )}
                     <span className="px-3 py-1 bg-white/20 text-white rounded-full text-xs font-bold capitalize">
-                      {user?.role === "director" ? "Director" : user?.role}
+                      {user?.role === "director" ? "Director" : user?.role === "owner" ? "Director" : user?.role}
                     </span>
                   </div>
                 </div>
