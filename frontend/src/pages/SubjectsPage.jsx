@@ -901,7 +901,8 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
               onAddSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}
               onEditSubject={(s) => { setEditingSubject({ ...s, teacher_id: subjectTeachers[s.id]?.[0] || "" }); setShowSubjectModal(true); }}
               onAssignTeacher={(s) => { setSelectedSubjectForTeacher(s); setShowTeacherModal(true); }}
-              onToggleStatus={handleToggleStatus} />
+              onToggleStatus={handleToggleStatus}
+              onViewCourse={handleViewCourse} />
           )}
         </main>
       </div>
