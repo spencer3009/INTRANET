@@ -1046,14 +1046,14 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       setLevelName(foundSubject.level_name || "");
       setGradeName(foundSubject.grade_name || "");
       
-      // Load teacher assigned to this subject
-      try {
-        const teacherRes = await axios.get(`${API}/academic/subjects/${subjectId}/teachers`, { headers });
-        if (teacherRes.data.teachers && teacherRes.data.teachers.length > 0) {
-          setTeacher(teacherRes.data.teachers[0]);
-        }
-      } catch (e) {
-        console.log("No teacher assigned");
+      // Load teacher from the subject data (now includes primary_teacher from academic_assignments)
+      if (foundSubject.primary_teacher) {
+        setTeacher({
+          id: foundSubject.primary_teacher.id,
+          name: foundSubject.primary_teacher.name,
+          photo_url: foundSubject.primary_teacher.profile_image,
+          role: foundSubject.primary_teacher.role
+        });
       }
       
       // Load students for this grade
