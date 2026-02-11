@@ -890,7 +890,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
             />
           </div>
         </div>
-      </main>
+        </main>
+      </div>
       
       {/* Modals */}
       <AssignmentModal 
