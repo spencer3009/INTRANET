@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import ReactCrop from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import axios from "axios";
@@ -18,16 +18,30 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, cloudinaryConfi
   const [error, setError] = useState("");
   const imgRef = useRef(null);
 
-  // Load image when file changes
-  useState(() => {
+  // Load image when file changes - FIXED: use useEffect instead of useState
+  useEffect(() => {
     if (imageFile) {
+      setImgSrc(""); // Reset first
       const reader = new FileReader();
-      reader.addEventListener("load", () => {
+      reader.onload = () => {
         setImgSrc(reader.result?.toString() || "");
-      });
+      };
+      reader.onerror = () => {
+        setError("Error al cargar la imagen");
+      };
       reader.readAsDataURL(imageFile);
     }
   }, [imageFile]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setImgSrc("");
+      setCrop({ unit: "%", width: 100, aspect: 16 / 9 });
+      setCompletedCrop(null);
+      setError("");
+    }
+  }, [isOpen]);
 
   const onImageLoad = useCallback((e) => {
     const { width, height } = e.currentTarget;
