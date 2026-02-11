@@ -11,18 +11,29 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Crop Modal Component
 function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
+  const [step, setStep] = useState(1); // 1 = crop, 2 = text
   const [crop, setCrop] = useState({ unit: "%", width: 100, aspect: 16 / 9 });
   const [completedCrop, setCompletedCrop] = useState(null);
   const [imgSrc, setImgSrc] = useState("");
+  const [croppedImageUrl, setCroppedImageUrl] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const imgRef = useRef(null);
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load image when file changes - FIXED: use useEffect instead of useState
+  const MAX_TITLE = 50;
+  const MAX_DESC = 100;
+
+  // Load image when file changes
   useEffect(() => {
     if (imageFile) {
-      setImgSrc(""); // Reset first
+      setImgSrc("");
+      setCroppedImageUrl("");
+      setStep(1);
+      setTitle("");
+      setDescription("");
       const reader = new FileReader();
       reader.onload = () => {
         setImgSrc(reader.result?.toString() || "");
@@ -38,9 +49,13 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
   useEffect(() => {
     if (!isOpen) {
       setImgSrc("");
+      setCroppedImageUrl("");
       setCrop({ unit: "%", width: 100, aspect: 16 / 9 });
       setCompletedCrop(null);
       setError("");
+      setStep(1);
+      setTitle("");
+      setDescription("");
     }
   }, [isOpen]);
 
