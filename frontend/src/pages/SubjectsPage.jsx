@@ -773,18 +773,28 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         axios.get(`${API}/users`, { headers })
       ]);
       
-      setSettings(settingsRes.data); setLevels(levelsRes.data); setGrades(gradesRes.data);
-      setSubjects(subjectsRes.data); setTeachers(usersRes.data.filter(u => u.role === "teacher"));
+      console.log("SubjectsPage data loaded:", {
+        settings: settingsRes.data,
+        levels: levelsRes.data,
+        grades: gradesRes.data,
+        subjects: subjectsRes.data,
+        teachers: usersRes.data.filter(u => u.role === "teacher").length
+      });
+      
+      setSettings(settingsRes.data); setLevels(levelsRes.data || []); setGrades(gradesRes.data || []);
+      setSubjects(subjectsRes.data || []); setTeachers(usersRes.data.filter(u => u.role === "teacher"));
       
       const teacherAssignments = {};
-      for (const subject of subjectsRes.data) {
+      for (const subject of (subjectsRes.data || [])) {
         try {
           const res = await axios.get(`${API}/academic/subjects/${subject.id}/teachers`, { headers });
           teacherAssignments[subject.id] = res.data.teachers?.map(t => t.id) || [];
         } catch { teacherAssignments[subject.id] = []; }
       }
       setSubjectTeachers(teacherAssignments);
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+    } catch (err) { 
+      console.error("SubjectsPage load error:", err); 
+    } finally { setLoading(false); }
   };
 
   const loadSubjects = async () => {
