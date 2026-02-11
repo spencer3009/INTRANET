@@ -1314,7 +1314,7 @@ async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if user.get("role") not in ["director", "admin"] and not user.get("is_super_admin"):
         raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar usuarios")
     
     # Cannot delete yourself
@@ -1326,9 +1326,9 @@ async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # Cannot delete owners
-    if target.get("role") == "owner":
-        raise HTTPException(status_code=400, detail="No puedes eliminar al propietario")
+    # PROTECTED USERS CANNOT BE DELETED
+    if target.get("is_protected") or target.get("is_owner") or target.get("is_super_admin"):
+        raise HTTPException(status_code=400, detail="Este usuario es el propietario de la intranet y no puede ser eliminado")
     
     # Delete photo from Cloudinary if exists
     if target.get("photo_url"):
