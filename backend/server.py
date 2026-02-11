@@ -418,6 +418,77 @@ async def get_me(current_user=Depends(get_current_user)):
         "subdomain": subdomain
     }
 
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    last_name: Optional[str] = None
+    phone: Optional[str] = None
+    photo_url: Optional[str] = None
+    
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=6)
+
+@api_router.put("/auth/profile")
+async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_user)):
+    """Update current user's profile"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.name is not None:
+        update_data["name"] = data.name.strip()
+    if data.last_name is not None:
+        update_data["last_name"] = data.last_name.strip()
+    if data.phone is not None:
+        update_data["phone"] = data.phone.strip()
+    if data.photo_url is not None:
+        # Delete old photo from Cloudinary if changing to new one
+        if user.get("photo_url") and user["photo_url"] != data.photo_url:
+            try:
+                if "cloudinary.com" in user["photo_url"]:
+                    parts = user["photo_url"].split("/upload/")
+                    if len(parts) > 1:
+                        path_with_ext = parts[1]
+                        if path_with_ext.startswith("v"):
+                            path_with_ext = "/".join(path_with_ext.split("/")[1:])
+                        public_id = path_with_ext.rsplit(".", 1)[0]
+                        cloudinary.uploader.destroy(public_id)
+                        logger.info(f"Deleted old profile photo: {public_id}")
+            except Exception as e:
+                logger.error(f"Error deleting old photo: {e}")
+        update_data["photo_url"] = data.photo_url
+    
+    await db.users.update_one({"id": user["id"]}, {"$set": update_data})
+    
+    updated_user = await db.users.find_one({"id": user["id"]}, {"_id": 0, "password": 0, "verification_code": 0})
+    return {"message": "Perfil actualizado correctamente", "user": updated_user}
+
+@api_router.put("/auth/password")
+async def change_password(data: PasswordChange, current_user=Depends(get_current_user)):
+    """Change current user's password"""
+    user = await db.users.find_one({"id": current_user["sub"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Verify current password
+    if not bcrypt.checkpw(data.current_password.encode(), user["password"].encode()):
+        raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
+    
+    # Hash new password
+    new_hashed = bcrypt.hashpw(data.new_password.encode(), bcrypt.gensalt()).decode()
+    
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {
+            "password": new_hashed,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": "Contraseña actualizada correctamente"}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SUBDOMAIN ROUTES
 # ══════════════════════════════════════════════════════════════════════════════
