@@ -562,6 +562,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   // Menu states
   const [menuOpen, setMenuOpen] = useState(null);
   const [selectedLevelFilter, setSelectedLevelFilter] = useState("");
+  const [preselectedGradeForSection, setPreselectedGradeForSection] = useState(null);
   
   // Delete modal
   const [showDeleteModal, setShowDeleteModal] = useState(false);
