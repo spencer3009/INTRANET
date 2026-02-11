@@ -749,67 +749,69 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
   };
   
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex">
       <Sidebar 
-        active="asignacion-docente" 
-        onNavigate={() => {}}
-        expanded={sidebarExpanded}
-        onToggle={() => setSidebarExpanded(!sidebarExpanded)}
-        onLogout={onLogout}
-        schoolName={user?.school_name}
+        user={user}
+        settings={settings}
+        isOpen={sidebarOpen}
+        setIsOpen={setSidebarOpen}
         subdomain={subdomain}
+        onLogout={onLogout}
       />
       
-      <main className="flex-1 p-4 lg:p-8 overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader 
           user={user}
-          schoolName={user?.school_name}
-          subdomain={subdomain}
-          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={settings?.system_name}
+          subdomain={subdomain}
         />
         
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                  <BookMarked className="w-6 h-6 text-white" />
-                </div>
-                Asignación Docente
-              </h1>
-              <p className="text-gray-500 mt-1 ml-15">
-                Gestiona la asignación de profesores a asignaturas
-              </p>
-            </div>
-            
-            <button
-              onClick={() => { setEditingAssignment(null); setShowModal(true); }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 font-medium"
-              data-testid="new-assignment-btn"
-            >
-              <Plus className="w-5 h-5" />
-              <span className="hidden sm:inline">Nueva Asignación</span>
-            </button>
-          </div>
-        </div>
-        
         {/* Main Content */}
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Left: Assignments List */}
-          <div className="lg:col-span-3">
-            {/* Filters */}
-            <FilterBar 
-              filters={filters}
-              setFilters={setFilters}
-              levels={academicData.levels}
-              grades={academicData.grades}
-              sections={academicData.sections}
-              subjects={academicData.subjects}
-              teachers={academicData.teachers}
-              onClear={clearFilters}
-            />
+        <main className="flex-1 p-6 lg:p-8 overflow-x-hidden">
+          {/* Page Header */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <BookMarked className="w-6 h-6 text-white" />
+                  </div>
+                  Asignación Docente
+                </h1>
+                <p className="text-gray-500 mt-1 ml-15">
+                  Gestiona la asignación de profesores a asignaturas
+                </p>
+              </div>
+              
+              <button
+                onClick={() => { setEditingAssignment(null); setShowModal(true); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl hover:from-blue-600 hover:to-indigo-700 transition-all shadow-lg shadow-blue-500/25 font-medium"
+                data-testid="new-assignment-btn"
+              >
+                <Plus className="w-5 h-5" />
+                <span className="hidden sm:inline">Nueva Asignación</span>
+              </button>
+            </div>
+          </div>
+          
+          {/* Main Content */}
+          <div className="grid lg:grid-cols-4 gap-6">
+            {/* Left: Assignments List */}
+            <div className="lg:col-span-3">
+              {/* Filters */}
+              <FilterBar 
+                filters={filters}
+                setFilters={setFilters}
+                levels={academicData.levels}
+                grades={academicData.grades}
+                sections={academicData.sections}
+                subjects={academicData.subjects}
+                teachers={academicData.teachers}
+                onClear={clearFilters}
+              />
             
             {/* Assignments Grid */}
             {loading ? (
