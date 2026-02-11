@@ -1554,7 +1554,7 @@ async def create_academic_level(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user.get("role") not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear niveles")
     
     # Check for duplicate name
