@@ -105,6 +105,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
   const [news, setNews] = useState([]);
   const [enrollment, setEnrollment] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [banners, setBanners] = useState([]);
   const [activeSection, setActiveSection] = useState("inicio");
   const [hasPermissionError, setHasPermissionError] = useState(false);
 
@@ -118,19 +119,21 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
       const startDate = today.toISOString().split('T')[0];
       const endDate = new Date(today.setMonth(today.getMonth() + 2)).toISOString().split('T')[0];
 
-      const [metricsRes, eventsRes, enrollmentRes, settingsRes, calendarRes, newsRes] = await Promise.all([
+      const [metricsRes, eventsRes, enrollmentRes, settingsRes, calendarRes, newsRes, bannersRes] = await Promise.all([
         axios.get(`${API}/dashboard/metrics`, { headers }),
         axios.get(`${API}/dashboard/events`, { headers }),
         axios.get(`${API}/dashboard/enrollment`, { headers }),
         axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
         axios.get(`${API}/calendar/events?start_date=${startDate}&end_date=${endDate}`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/news?status=published&limit=5`, { headers }).catch(() => ({ data: { news: [] } })),
+        axios.get(`${API}/dashboard/banners/active`, { headers }).catch(() => ({ data: [] })),
       ]);
       setMetrics(metricsRes.data);
       setEvents(eventsRes.data);
       setEnrollment(enrollmentRes.data);
       setCalendarEvents(calendarRes.data || []);
       setNews(newsRes.data?.news || []);
+      setBanners(bannersRes.data || []);
       setHasPermissionError(false);
       if (settingsRes.data) {
         setSettings(settingsRes.data);
