@@ -80,8 +80,8 @@ export default function ProfileCard({ user, stats }) {
       {/* Role Badge */}
       <div className="mb-2 flex justify-center">
         <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border ${badgeColors}`}>
-          {user?.is_owner && <Crown className="w-3 h-3" />}
-          {user?.is_super_admin && !user?.is_owner && <Shield className="w-3 h-3" />}
+          {(user?.is_owner || user?.role === "owner") && <Crown className="w-3 h-3" />}
+          {(user?.is_super_admin || user?.role === "super_admin") && !user?.is_owner && user?.role !== "owner" && <Shield className="w-3 h-3" />}
           {roleDisplay}
         </span>
       </div>
