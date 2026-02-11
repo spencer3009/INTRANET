@@ -3134,7 +3134,7 @@ async def create_academic_period(
     data: AcademicPeriodCreate,
     current_user = Depends(get_current_user)
 ):
-    """Create a new academic period"""
+    """Create a new academic period within an academic year"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -3142,41 +3142,54 @@ async def create_academic_period(
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear períodos")
     
-    # Validate date range
-    if data.fecha_inicio >= data.fecha_fin:
-        raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
+    school_id = user["school_id"]
     
-    # Check for duplicate name
+    # Validate academic year exists
+    academic_year = await db.academic_years.find_one({
+        "id": data.academic_year_id,
+        "school_id": school_id
+    })
+    if not academic_year:
+        raise HTTPException(status_code=404, detail="Año académico no encontrado")
+    
+    # Validate date range if both dates provided
+    if data.fecha_inicio and data.fecha_fin:
+        if data.fecha_inicio >= data.fecha_fin:
+            raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
+    
+    # Check for duplicate name within the same year
     existing = await db.academic_periods.find_one({
-        "school_id": user["school_id"],
+        "school_id": school_id,
+        "academic_year_id": data.academic_year_id,
         "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"}
     })
     if existing:
-        raise HTTPException(status_code=400, detail="Ya existe un período con ese nombre")
+        raise HTTPException(status_code=400, detail=f"Ya existe un período '{data.nombre}' en el año {academic_year['year']}")
     
-    # Check for overlapping dates
-    overlapping = await db.academic_periods.find_one({
-        "school_id": user["school_id"],
-        "$or": [
-            # New period starts during existing period
-            {"fecha_inicio": {"$lte": data.fecha_inicio}, "fecha_fin": {"$gte": data.fecha_inicio}},
-            # New period ends during existing period
-            {"fecha_inicio": {"$lte": data.fecha_fin}, "fecha_fin": {"$gte": data.fecha_fin}},
-            # New period encompasses existing period
-            {"fecha_inicio": {"$gte": data.fecha_inicio}, "fecha_fin": {"$lte": data.fecha_fin}}
-        ]
-    })
-    if overlapping:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Las fechas se solapan con el período '{overlapping['nombre']}' ({overlapping['fecha_inicio']} - {overlapping['fecha_fin']})"
-        )
+    # Check for overlapping dates within the same year (only if dates provided)
+    if data.fecha_inicio and data.fecha_fin:
+        overlapping = await db.academic_periods.find_one({
+            "school_id": school_id,
+            "academic_year_id": data.academic_year_id,
+            "fecha_inicio": {"$ne": None},
+            "fecha_fin": {"$ne": None},
+            "$or": [
+                {"fecha_inicio": {"$lte": data.fecha_inicio}, "fecha_fin": {"$gte": data.fecha_inicio}},
+                {"fecha_inicio": {"$lte": data.fecha_fin}, "fecha_fin": {"$gte": data.fecha_fin}},
+                {"fecha_inicio": {"$gte": data.fecha_inicio}, "fecha_fin": {"$lte": data.fecha_fin}}
+            ]
+        })
+        if overlapping:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Las fechas se solapan con el período '{overlapping['nombre']}'"
+            )
     
     deactivated_period = None
-    # If setting as active, deactivate any currently active period
+    # If setting as active, deactivate any currently active period in ANY year
     if data.activo:
         current_active = await db.academic_periods.find_one({
-            "school_id": user["school_id"],
+            "school_id": school_id,
             "activo": True
         })
         if current_active:
@@ -3186,12 +3199,21 @@ async def create_academic_period(
             )
             deactivated_period = current_active["nombre"]
     
+    # Get next order number
+    max_order = await db.academic_periods.find_one(
+        {"school_id": school_id, "academic_year_id": data.academic_year_id},
+        sort=[("orden", -1)]
+    )
+    next_order = (max_order.get("orden", 0) + 1) if max_order else 1
+    
     period = {
         "id": str(uuid.uuid4()),
-        "school_id": user["school_id"],
+        "school_id": school_id,
+        "academic_year_id": data.academic_year_id,
         "nombre": data.nombre,
         "fecha_inicio": data.fecha_inicio,
         "fecha_fin": data.fecha_fin,
+        "orden": next_order,
         "activo": data.activo,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
@@ -3199,6 +3221,9 @@ async def create_academic_period(
     
     await db.academic_periods.insert_one(period)
     period.pop("_id", None)
+    
+    # Add year info to response
+    period["year"] = academic_year["year"]
     
     response = {"message": "Período creado correctamente", "period": period}
     if deactivated_period:
