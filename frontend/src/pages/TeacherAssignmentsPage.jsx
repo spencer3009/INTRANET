@@ -894,6 +894,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
                 sections={academicData.sections}
                 subjects={academicData.subjects}
                 teachers={academicData.teachers}
+                periods={academicData.periods}
                 onClear={clearFilters}
               />
             
