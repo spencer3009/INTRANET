@@ -292,36 +292,15 @@ function SubjectCard({ subject, teacher, onEdit, onAssignTeacher, onToggleStatus
           )}
         </div>
         
-        {/* Teacher */}
+        {/* Teacher - Always show "Sin asignar" as per architecture */}
         <div className="flex items-center gap-3 pt-4 border-t border-gray-200/50">
-          {teacher ? (
-            <>
-              {teacher.photo_url ? (
-                <img src={teacher.photo_url} alt="" className="w-10 h-10 rounded-xl object-cover ring-2 ring-white shadow-md" />
-              ) : (
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shadow-md"
-                  style={{ background: `linear-gradient(135deg, ${subject.color}, ${subject.color}99)` }}
-                >
-                  {teacher.name?.charAt(0)}
-                </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-700 font-semibold truncate">{teacher.name} {teacher.last_name?.charAt(0)}.</p>
-                <p className="text-xs text-gray-400">Profesor</p>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
-                <User className="w-5 h-5 text-gray-300" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-400 font-medium">Sin profesor</p>
-                <p className="text-xs text-gray-300">Click para asignar</p>
-              </div>
-            </>
-          )}
+          <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
+            <User className="w-5 h-5 text-gray-300" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm text-gray-400 font-medium">Sin asignar</p>
+            <p className="text-xs text-gray-300">Ir a Asignación Docente</p>
+          </div>
         </div>
       </div>
     </div>
