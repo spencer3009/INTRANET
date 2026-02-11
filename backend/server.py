@@ -1551,6 +1551,133 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         "user": new_user
     }
 
+class UpdateUserRequest(BaseModel):
+    """Request to update an existing user"""
+    name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    birthday: Optional[str] = None
+    gender: Optional[str] = None
+    address: Optional[str] = None
+    role: Optional[str] = None
+    photo_url: Optional[str] = None
+    # Academic fields for students
+    nivel_id: Optional[str] = None
+    grado_id: Optional[str] = None
+    seccion_id: Optional[str] = None
+    turno_id: Optional[str] = None
+    padre_id: Optional[str] = None
+    # Student complementary info
+    condiciones_medicas: Optional[str] = None
+    alergias: Optional[str] = None
+    doctor_nombre: Optional[str] = None
+    doctor_telefono: Optional[str] = None
+    persona_autorizada: Optional[str] = None
+    persona_autorizada_telefono: Optional[str] = None
+    notas: Optional[str] = None
+    # Parent-specific fields
+    dni: Optional[str] = None
+    ocupacion: Optional[str] = None
+    lugar_trabajo: Optional[str] = None
+    telefono_trabajo: Optional[str] = None
+
+@api_router.put("/users/{user_id}")
+async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depends(get_current_user)):
+    """Update an existing user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar usuarios")
+    
+    # Find target user
+    target = await db.users.find_one({"id": user_id, "school_id": user["school_id"]})
+    if not target:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Cannot change role of protected users
+    if (target.get("is_protected") or target.get("is_owner")) and data.role and data.role != target.get("role"):
+        raise HTTPException(status_code=400, detail="No se puede cambiar el rol del propietario de la intranet")
+    
+    # Build update data
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.name is not None:
+        update_data["name"] = data.name
+    if data.last_name is not None:
+        update_data["last_name"] = data.last_name
+    if data.email is not None:
+        # Check if email is already used by another user
+        existing = await db.users.find_one({
+            "email": data.email.lower(),
+            "school_id": user["school_id"],
+            "id": {"$ne": user_id}
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail="Este correo ya está registrado")
+        update_data["email"] = data.email.lower()
+    if data.phone is not None:
+        update_data["phone"] = data.phone
+    if data.birthday is not None:
+        update_data["birthday"] = data.birthday
+    if data.gender is not None:
+        update_data["gender"] = data.gender
+    if data.address is not None:
+        update_data["address"] = data.address
+    if data.role is not None:
+        update_data["role"] = data.role
+    if data.photo_url is not None:
+        update_data["photo_url"] = data.photo_url
+    # Academic fields
+    if data.nivel_id is not None:
+        update_data["nivel_id"] = data.nivel_id
+    if data.grado_id is not None:
+        update_data["grado_id"] = data.grado_id
+    if data.seccion_id is not None:
+        update_data["seccion_id"] = data.seccion_id
+    if data.turno_id is not None:
+        update_data["turno_id"] = data.turno_id
+    if data.padre_id is not None:
+        update_data["padre_id"] = data.padre_id
+    # Student medical/contact info
+    if data.condiciones_medicas is not None:
+        update_data["condiciones_medicas"] = data.condiciones_medicas
+    if data.alergias is not None:
+        update_data["alergias"] = data.alergias
+    if data.doctor_nombre is not None:
+        update_data["doctor_nombre"] = data.doctor_nombre
+    if data.doctor_telefono is not None:
+        update_data["doctor_telefono"] = data.doctor_telefono
+    if data.persona_autorizada is not None:
+        update_data["persona_autorizada"] = data.persona_autorizada
+    if data.persona_autorizada_telefono is not None:
+        update_data["persona_autorizada_telefono"] = data.persona_autorizada_telefono
+    if data.notas is not None:
+        update_data["notas"] = data.notas
+    # Parent fields
+    if data.dni is not None:
+        update_data["dni"] = data.dni
+    if data.ocupacion is not None:
+        update_data["ocupacion"] = data.ocupacion
+    if data.lugar_trabajo is not None:
+        update_data["lugar_trabajo"] = data.lugar_trabajo
+    if data.telefono_trabajo is not None:
+        update_data["telefono_trabajo"] = data.telefono_trabajo
+    
+    await db.users.update_one({"id": user_id}, {"$set": update_data})
+    
+    # Return updated user
+    updated_user = await db.users.find_one(
+        {"id": user_id},
+        {"_id": 0, "password": 0, "verification_code": 0}
+    )
+    
+    logger.info(f"User {user_id} updated by {user['id']}")
+    
+    return {"message": "Usuario actualizado correctamente", "user": updated_user}
+
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     """Delete a user and their Cloudinary image"""
