@@ -1202,6 +1202,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             onEdit={() => {}}
             onViewStudents={() => setActiveTab("calificaciones")}
             onViewGrades={() => setActiveTab("calificaciones")}
+            onBack={() => navigate("/asignaturas")}
           />
           
           {/* Tabs */}
