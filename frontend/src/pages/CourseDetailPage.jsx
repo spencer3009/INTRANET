@@ -1011,7 +1011,6 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   const [tasks] = useState([]);
   const [exams] = useState([]);
   const [threads] = useState([]);
-  const [liveSessions] = useState([]);
   const [grades] = useState([]);
   const [reminders] = useState([
     { title: "Entrega de proyecto final", date: "27 Dic 2025" },
