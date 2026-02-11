@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import CarouselManager from "@/components/CarouselManager";
 import { 
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
-  GraduationCap, Palette, Camera
+  GraduationCap, Palette, Camera, Images
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
