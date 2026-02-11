@@ -6635,10 +6635,14 @@ async def remove_subject_teacher(subject_id: str, teacher_id: str, current_user 
 
 class BannerCreate(BaseModel):
     image_url: str
+    title: Optional[str] = ""
+    description: Optional[str] = ""
     order: Optional[int] = 0
     active: Optional[bool] = True
 
 class BannerUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
     order: Optional[int] = None
     active: Optional[bool] = None
 
