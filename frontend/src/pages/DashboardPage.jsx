@@ -206,7 +206,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
 
             {/* Right column */}
             <div className="lg:col-span-4 space-y-6">
-              <ProfileCard user={user} />
+              <ProfileCard user={user} stats={{ subjects: metrics?.subjects || 0, students: metrics?.students || 0 }} />
               <EventsList events={calendarEvents.length > 0 ? calendarEvents : events} />
               <MiniCalendar events={calendarEvents} />
             </div>
