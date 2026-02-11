@@ -1,16 +1,16 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import {
-  BookOpen, Users, Award, Edit3, ChevronRight, Clock, 
+  BookOpen, Users, Edit3, ChevronRight, Clock, 
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
-  MessageCircle, Video, Trophy, Download, Upload, 
+  MessageCircle, Trophy, Download, Upload, 
   Calendar, Bell, Mail, Phone, MoreVertical, Plus,
-  ArrowLeft, Loader2, AlertCircle, File, Image, 
-  FileVideo, ExternalLink, Heart, MessageSquare, 
-  ChevronDown, ChevronUp, User, GraduationCap, Sparkles,
-  PlayCircle, CheckCircle, XCircle, PenTool, Search
+  ArrowLeft, AlertCircle, File, Image, 
+  FileVideo, Heart, MessageSquare, 
+  ChevronDown, ChevronUp, User, GraduationCap,
+  PenTool, Search
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
