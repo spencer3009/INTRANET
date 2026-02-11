@@ -2680,7 +2680,7 @@ async def create_schedule(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user["role"] not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar horarios")
     
     # Check for time conflicts
@@ -2738,7 +2738,7 @@ async def update_schedule(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user["role"] not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar horarios")
     
     schedule = await db.schedules.find_one({
@@ -2767,7 +2767,7 @@ async def delete_schedule(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    if user["role"] not in ["owner", "admin"]:
+    if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar horarios")
     
     result = await db.schedules.delete_one({
