@@ -115,9 +115,10 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
     }
     
     setUploading(true);
+    setMessage(null);
     try {
-      // Get Cloudinary signature
-      const sigRes = await axios.post(`${API}/cloudinary/signature`, { folder: "edunet/users" }, { headers });
+      // Get Cloudinary signature (GET request with query params)
+      const sigRes = await axios.get(`${API}/cloudinary/signature?folder=edunet/users&resource_type=image`, { headers });
       
       // Upload to Cloudinary
       const formData = new FormData();
