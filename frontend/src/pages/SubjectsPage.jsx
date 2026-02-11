@@ -30,17 +30,17 @@ const SUBJECT_COLORS = [
 const LEVEL_THEMES = {
   0: { 
     name: "Inicial",
-    gradient: "from-pink-500 via-rose-500 to-orange-400",
-    cardGradient: "from-pink-400 to-rose-500",
-    bg: "bg-gradient-to-br from-pink-50 via-rose-50 to-orange-50",
-    sectionBg: "bg-gradient-to-r from-pink-500/10 via-rose-500/10 to-orange-400/10",
-    border: "border-pink-200",
-    text: "text-pink-600",
-    badge: "bg-pink-500",
-    iconBg: "bg-gradient-to-br from-pink-500 to-rose-600",
-    cardBorder: "border-pink-300/50",
-    hoverGlow: "hover:shadow-pink-300/50",
-    lightCard: "from-pink-100/80 to-rose-100/60"
+    gradient: "from-violet-400 via-purple-400 to-fuchsia-400",
+    cardGradient: "from-violet-400 to-purple-500",
+    bg: "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50",
+    sectionBg: "bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-400/10",
+    border: "border-violet-200",
+    text: "text-violet-600",
+    badge: "bg-violet-500",
+    iconBg: "bg-gradient-to-br from-violet-400 to-purple-500",
+    cardBorder: "border-violet-300/50",
+    hoverGlow: "hover:shadow-violet-300/50",
+    lightCard: "from-violet-100/80 to-purple-100/60"
   },
   1: { 
     name: "Primaria",
