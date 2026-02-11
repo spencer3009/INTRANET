@@ -20,7 +20,7 @@ function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
 
 // Get display role in Spanish
 function getRoleDisplay(role, isOwner, isSuperAdmin) {
-  if (isOwner) return "OWNER";
+  if (isOwner) return "PROPIETARIO";
   if (isSuperAdmin) return "SUPER ADMIN";
   const roles = {
     director: "DIRECTOR",
