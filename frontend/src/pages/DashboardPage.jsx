@@ -114,8 +114,8 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
             {/* Right column */}
             <div className="lg:col-span-4 space-y-6">
               <ProfileCard user={user} />
-              <EventsList events={events} />
-              <MiniCalendar />
+              <EventsList events={calendarEvents.length > 0 ? calendarEvents : events} />
+              <MiniCalendar events={calendarEvents} />
             </div>
           </div>
 
