@@ -333,8 +333,122 @@ function CropModal({ isOpen, onClose, imageFile, onCropComplete, token }) {
   );
 }
 
+// Edit Modal Component
+function EditBannerModal({ isOpen, onClose, banner, onSave }) {
+  const [title, setTitle] = useState(banner?.title || "");
+  const [description, setDescription] = useState(banner?.description || "");
+  const [saving, setSaving] = useState(false);
+
+  const MAX_TITLE = 50;
+  const MAX_DESC = 100;
+
+  useEffect(() => {
+    if (banner) {
+      setTitle(banner.title || "");
+      setDescription(banner.description || "");
+    }
+  }, [banner]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    await onSave(banner.id, title, description);
+    setSaving(false);
+    onClose();
+  };
+
+  if (!isOpen || !banner) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#001f4b] to-[#003366] px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <Pencil className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Editar Banner</h2>
+                <p className="text-xs text-white/60">Modifica el título y descripción</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="p-6">
+          {/* Preview */}
+          <div className="relative rounded-xl overflow-hidden mb-6">
+            <img src={banner.image_url} alt="Banner preview" className="w-full h-40 object-cover" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#001f4b]/90 via-[#001f4b]/60 to-transparent" />
+            <div className="absolute inset-0 flex items-center p-6">
+              <div className="max-w-[50%]">
+                <h3 className="text-lg font-bold text-white mb-1">{title || "Título del banner"}</h3>
+                <p className="text-sm text-white/80">{description || "Descripción del banner..."}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Text inputs */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Título <span className="text-slate-400 font-normal">({title.length}/{MAX_TITLE})</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value.slice(0, MAX_TITLE))}
+                placeholder="Ej: Bienvenidos al año escolar 2026"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none transition-all"
+                maxLength={MAX_TITLE}
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Descripción <span className="text-slate-400 font-normal">({description.length}/{MAX_DESC})</span>
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value.slice(0, MAX_DESC))}
+                placeholder="Ej: Conoce las novedades de este nuevo ciclo escolar"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none transition-all resize-none"
+                rows={2}
+                maxLength={MAX_DESC}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-6 py-4 bg-slate-50 border-t flex items-center justify-between">
+          <button
+            onClick={onClose}
+            className="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl font-medium transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-6 py-2.5 bg-[#e1b82c] hover:bg-[#c9a526] disabled:bg-slate-300 text-[#001f4b] rounded-xl font-bold flex items-center gap-2 transition-colors"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+            Guardar Cambios
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Banner Card Component
-function BannerCard({ banner, onToggle, onDelete, onDragStart, onDragOver, onDrop, isDragging }) {
+function BannerCard({ banner, onToggle, onDelete, onEdit, onDragStart, onDragOver, onDrop, isDragging }) {
   return (
     <div
       draggable
@@ -352,6 +466,12 @@ function BannerCard({ banner, onToggle, onDelete, onDragStart, onDragOver, onDro
           alt="Banner"
           className={`w-full h-full object-cover ${!banner.active ? "opacity-50 grayscale" : ""}`}
         />
+        {/* Title overlay */}
+        {banner.title && (
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-2">
+            <p className="text-white text-xs font-medium truncate">{banner.title}</p>
+          </div>
+        )}
         {!banner.active && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/30">
             <span className="px-3 py-1 bg-black/60 text-white text-xs font-bold rounded-full">
@@ -371,7 +491,14 @@ function BannerCard({ banner, onToggle, onDelete, onDragStart, onDragOver, onDro
         <span className="text-xs text-slate-500">
           Orden: {banner.order + 1}
         </span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => onEdit(banner)}
+            className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors"
+            title="Editar texto"
+          >
+            <Pencil className="w-4 h-4" />
+          </button>
           <button
             onClick={() => onToggle(banner.id, !banner.active)}
             className={`p-2 rounded-lg transition-colors ${
