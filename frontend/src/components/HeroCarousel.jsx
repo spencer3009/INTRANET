@@ -89,9 +89,6 @@ export default function HeroCarousel({ banners = [], user, schoolName }) {
               <span className="text-[#e1b82c] text-sm font-bold tracking-wide">PORTAL ACTIVO</span>
             </div>
             
-            <p className="text-white/80 text-sm md:text-base font-medium mb-1">
-              {getGreeting()}, {user?.name?.split(" ")[0] || "Usuario"}
-            </p>
             <h1 
               className="text-2xl md:text-3xl lg:text-4xl font-black text-white mb-3"
               style={{ fontFamily: "Manrope, sans-serif" }}
