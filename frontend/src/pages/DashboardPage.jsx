@@ -108,7 +108,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
               <HeroBanner user={user} schoolName={schoolName} />
               <QuickAccess />
               <StudentChart data={enrollment} />
-              <AttendanceAndNews />
+              <AttendanceAndNews news={news} />
             </div>
 
             {/* Right column */}
