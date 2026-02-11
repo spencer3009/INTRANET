@@ -1442,15 +1442,63 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     }
   };
 
-  // Edit user handler (placeholder for future implementation)
+  // Edit user handler
   const handleEditUser = (userId) => {
     setOpenMenuId(null);
-    setInfoModalContent({
-      title: "Próximamente",
-      message: "La funcionalidad de edición de usuarios estará disponible muy pronto.",
-      type: "info"
-    });
-    setShowInfoModal(true);
+    const userToEdit = users.find(u => u.id === userId);
+    if (userToEdit) {
+      setEditingUser(userToEdit);
+      setEditForm({
+        name: userToEdit.name || "",
+        last_name: userToEdit.last_name || "",
+        email: userToEdit.email || "",
+        phone: userToEdit.phone || "",
+        birthday: userToEdit.birthday || "",
+        gender: userToEdit.gender || "",
+        address: userToEdit.address || "",
+        photo_url: userToEdit.photo_url || "",
+        // Student fields
+        nivel_id: userToEdit.nivel_id || "",
+        grado_id: userToEdit.grado_id || "",
+        seccion_id: userToEdit.seccion_id || "",
+        turno_id: userToEdit.turno_id || "",
+        condiciones_medicas: userToEdit.condiciones_medicas || "",
+        alergias: userToEdit.alergias || "",
+        notas: userToEdit.notas || "",
+        // Parent fields
+        dni: userToEdit.dni || "",
+        ocupacion: userToEdit.ocupacion || "",
+      });
+      setShowEditModal(true);
+    }
+  };
+
+  // Save edited user
+  const handleSaveEdit = async () => {
+    if (!editingUser) return;
+    setEditLoading(true);
+    try {
+      const res = await axios.put(`${API}/users/${editingUser.id}`, editForm, { headers });
+      // Update local state
+      setUsers(prev => prev.map(u => u.id === editingUser.id ? res.data.user : u));
+      setShowEditModal(false);
+      setEditingUser(null);
+      setInfoModalContent({
+        title: "Usuario Actualizado",
+        message: "Los datos del usuario han sido actualizados correctamente.",
+        type: "success"
+      });
+      setShowInfoModal(true);
+    } catch (err) {
+      setInfoModalContent({
+        title: "Error",
+        message: err.response?.data?.detail || "Error al actualizar el usuario",
+        type: "error"
+      });
+      setShowInfoModal(true);
+    } finally {
+      setEditLoading(false);
+    }
   };
 
   const handleAddUser = (roleId) => {
