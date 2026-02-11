@@ -345,10 +345,10 @@ function AddSubjectCard({ onClick, theme }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBJECT FORM MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, teachers, preselectedLevel, preselectedGrade }) {
+function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, preselectedLevel, preselectedGrade }) {
   const [formData, setFormData] = useState({
     name: "", code: "", description: "", level_id: "", grade_id: "",
-    weekly_hours: 2, color: "#3B82F6", status: "active", teacher_id: ""
+    weekly_hours: 2, color: "#3B82F6", status: "active"
   });
   const [filteredGrades, setFilteredGrades] = useState([]);
   const [saving, setSaving] = useState(false);
