@@ -884,9 +884,9 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                           className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold transition-all duration-300
                             ${isActive ? theme.tabActive : theme.tabInactive}`}
                         >
-                          <Icon className={`w-6 h-6 ${isActive ? 'text-white' : ''}`} />
-                          <span className={`text-base ${isActive ? 'text-white' : ''}`}>{level.nombre}</span>
-                          <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${isActive ? 'bg-white/30 text-white' : 'bg-gray-100 text-gray-500'}`}>
+                          <Icon className="w-6 h-6" style={{ color: isActive ? 'white' : undefined }} />
+                          <span className="text-base" style={{ color: isActive ? 'white' : undefined }}>{level.nombre}</span>
+                          <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${isActive ? 'bg-white/30' : 'bg-gray-100 text-gray-500'}`} style={{ color: isActive ? 'white' : undefined }}>
                             {totalSubjects}
                           </span>
                         </TabsTrigger>
