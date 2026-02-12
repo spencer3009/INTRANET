@@ -1256,6 +1256,18 @@ export default function DisciplinePage({ user, token, subdomain, onLogout }) {
         report={statusReport}
         onConfirm={handleStatusChange}
       />
+      
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => { setShowDeleteModal(false); setDeletingReport(null); }}
+        onConfirm={handleDeleteConfirm}
+        loading={deleting}
+        title="Eliminar Reporte"
+        message={`¿Estás seguro de eliminar el reporte "${deletingReport?.title}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        variant="danger"
+        icon="delete"
+      />
     </div>
   );
 }
