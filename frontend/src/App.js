@@ -387,7 +387,17 @@ function App() {
             }
           />
 
-          {/* Academic Years Page */}
+          {/* Academic Years Page - Path-based (for preview mode) */}
+          <Route
+            path="/school/:subdomain/anos-academicos"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AcademicYearsPage token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Academic Years Page - Direct path (for subdomain mode) */}
           <Route
             path="/anos-academicos"
             element={
