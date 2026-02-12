@@ -474,15 +474,15 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
         )}
       </div>
       
-      {/* Latest News - Dynamic from API */}
+      {/* Latest News - Dynamic from API - Premium Sober Design */}
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
         <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
-          <Bell className="w-4 h-4 text-amber-500" />
+          <Bell className="w-4 h-4 text-gray-500" />
           Últimas noticias
         </h4>
         {loadingSidebar ? (
           <div className="flex items-center justify-center py-6">
-            <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
+            <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
           </div>
         ) : sidebarData.news.length === 0 ? (
           <div className="text-center py-6">
@@ -491,7 +491,7 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
             <p className="text-xs text-gray-300 mt-1">Los eventos próximos aparecerán aquí</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2">
             {sidebarData.news.map((item) => {
               const newsStyle = getNewsIcon(item.icon);
               const NewsIcon = newsStyle.icon;
@@ -499,22 +499,22 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
               return (
                 <div 
                   key={item.id} 
-                  className={`p-3 rounded-xl border transition-all hover:shadow-md cursor-pointer ${
+                  className={`p-3 rounded-xl border transition-all hover:bg-gray-50 cursor-pointer ${
                     item.is_important 
-                      ? "bg-amber-50 border-amber-200" 
-                      : `${newsStyle.bg} border-gray-100`
+                      ? "border-l-4 border-l-amber-400 border-gray-100 bg-gray-50/50" 
+                      : "border-gray-100 bg-white hover:border-gray-200"
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <div className={`w-8 h-8 rounded-lg ${newsStyle.bg} flex items-center justify-center flex-shrink-0`}>
-                      <NewsIcon className={`w-4 h-4 ${newsStyle.text}`} />
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                      <NewsIcon className="w-4 h-4 text-gray-500" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-700 line-clamp-2">{item.title}</p>
-                      <div className="flex items-center gap-2 mt-1">
+                      <div className="flex items-center gap-2 mt-1.5">
                         <Calendar className="w-3 h-3 text-gray-400" />
                         <span className={`text-xs font-medium ${
-                          isUpcoming ? "text-emerald-600" : "text-gray-500"
+                          isUpcoming ? "text-gray-600" : "text-gray-400"
                         }`}>
                           {isUpcoming ? formatFutureDate(item.date) : formatTimeAgo(item.date)}
                         </span>
