@@ -2236,10 +2236,10 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           
-          {/* 3-Column Layout */}
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Sidebar */}
-            <div className="lg:col-span-3 order-2 lg:order-1">
+          {/* 3-Column Layout - Google Classroom Style */}
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left Sidebar - Sticky */}
+            <div className="lg:col-span-3 order-2 lg:order-1 lg:sticky lg:top-6 lg:self-start">
               <CourseInfoSidebar
                 subject={subject}
                 activities={activities}
@@ -2247,13 +2247,13 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
               />
             </div>
             
-            {/* Main Content Area */}
-            <div className="lg:col-span-6 order-1 lg:order-2">
+            {/* Main Content Area - Scrollable */}
+            <div className="lg:col-span-6 order-1 lg:order-2 min-h-[50vh]">
               {renderTabContent()}
             </div>
             
-            {/* Right Sidebar */}
-            <div className="lg:col-span-3 order-3">
+            {/* Right Sidebar - Sticky */}
+            <div className="lg:col-span-3 order-3 lg:sticky lg:top-6 lg:self-start">
               <CourseRightSidebar
                 teacher={teacher}
                 students={students}
