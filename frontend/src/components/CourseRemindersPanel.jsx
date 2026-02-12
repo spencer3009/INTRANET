@@ -728,6 +728,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
                       onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
                       onDelete={() => setConfirmDelete(reminder)}
                       onComplete={() => handleComplete(reminder)}
+                      onViewFull={() => setDetailReminder(reminder)}
                     />
                   ))}
                 </div>
@@ -749,6 +750,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
                       onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
                       onDelete={() => setConfirmDelete(reminder)}
                       onComplete={() => handleComplete(reminder)}
+                      onViewFull={() => setDetailReminder(reminder)}
                     />
                   ))}
                 </div>
@@ -777,6 +779,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
                         key={reminder.id}
                         reminder={reminder}
                         canEdit={false}
+                        onViewFull={() => setDetailReminder(reminder)}
                       />
                     ))}
                   </div>
@@ -794,6 +797,13 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
         reminder={editingReminder}
         onSave={handleSave}
         subjectId={subjectId}
+      />
+
+      {/* Detail Modal - View full content */}
+      <ReminderDetailModal
+        reminder={detailReminder}
+        isOpen={!!detailReminder}
+        onClose={() => setDetailReminder(null)}
       />
 
       {/* Delete Confirmation - Using Portal */}
