@@ -273,6 +273,19 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
      - `/app/frontend/src/pages/SubjectsPage.jsx` - Componente de subida con compresión
      - `/app/backend/server.py` - Modelos actualizados, carpeta "edunet/subjects" habilitada en Cloudinary
 
+5. ✅ **Mejora UX Premium: Recorte de Imagen 1:1 para Asignaturas** - COMPLETADO
+   - **Reubicación**: Campo de imagen ahora es el PRIMER elemento del formulario
+   - **Recorte obligatorio 1:1**: Modal dedicado con herramienta de recorte cuadrado
+   - **Controles de zoom**: Botones de acercar/alejar/restablecer (50% - 300%)
+   - **Interfaz tipo Canva/Facebook Ads**: Fondo oscuro, controles intuitivos
+   - **Experiencia fluida**: 
+     - Seleccionar imagen → Modal de recorte → Ajustar área → Aplicar
+     - Resultado cuadrado 800x800px en WebP
+   - **Consistencia visual garantizada**: Imagen cuadrada en todas las vistas (Cards, Horarios, Dashboard)
+   - Librería utilizada: `react-image-crop` (ya instalada)
+   - Archivos modificados:
+     - `/app/frontend/src/pages/SubjectsPage.jsx` - Modal de recorte premium integrado
+
 ### Sesión anterior (2025-02-11):
 1. ✅ **Catálogo de Tipos de Sección (section_types)** - COMPLETADO
    - Nueva colección `section_types` con catálogo centralizado (A, B, C, D, E, F, ÚNICA)
