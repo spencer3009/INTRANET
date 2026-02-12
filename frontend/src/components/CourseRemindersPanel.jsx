@@ -625,7 +625,7 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN REMINDERS PANEL - Premium violet design
 // ══════════════════════════════════════════════════════════════════════════════
-export default function CourseRemindersPanel({ subjectId, token, userRole }) {
+export default function CourseRemindersPanel({ subjectId, token, userRole, isFullWidth = false }) {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -680,6 +680,183 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
   const now = new Date();
   const upcomingReminders = activeReminders.filter(r => new Date(r.date) >= now);
   const pastReminders = activeReminders.filter(r => new Date(r.date) < now);
+
+  // Full width version for tab content (no outer container)
+  if (isFullWidth) {
+    return (
+      <div className="space-y-4">
+        {/* Action Bar */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {activeReminders.length > 0 && (
+              <span className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-sm font-semibold">
+                {activeReminders.length} activos
+              </span>
+            )}
+            {completedReminders.length > 0 && (
+              <button
+                onClick={() => setShowCompleted(!showCompleted)}
+                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors"
+              >
+                <Check className="w-3.5 h-3.5" />
+                {completedReminders.length} completados
+                {showCompleted ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
+            )}
+          </div>
+          {canEdit && (
+            <button
+              onClick={() => { setEditingReminder(null); setShowModal(true); }}
+              className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl font-semibold flex items-center gap-2 hover:shadow-lg transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              Nuevo Recordatorio
+            </button>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="text-center py-12">
+            <Loader2 className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
+            <p className="text-sm text-gray-400 mt-3">Cargando recordatorios...</p>
+          </div>
+        ) : activeReminders.length === 0 && completedReminders.length === 0 ? (
+          <div className="text-center py-12 bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl border border-violet-100">
+            <div className="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-violet-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-700 mb-1">Sin recordatorios</h3>
+            <p className="text-sm text-gray-500 mb-4">Crea el primer recordatorio para este curso</p>
+            {canEdit && (
+              <button
+                onClick={() => { setEditingReminder(null); setShowModal(true); }}
+                className="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl font-semibold inline-flex items-center gap-2 hover:shadow-lg transition-all"
+              >
+                <Plus className="w-4 h-4" />
+                Crear Recordatorio
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Upcoming/Active Reminders */}
+            {upcomingReminders.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Próximos ({upcomingReminders.length})
+                </h4>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {upcomingReminders.map(reminder => (
+                    <ReminderCard 
+                      key={reminder.id} 
+                      reminder={reminder} 
+                      canEdit={canEdit}
+                      onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
+                      onComplete={() => handleComplete(reminder)}
+                      onDelete={() => setConfirmDelete(reminder)}
+                      onViewDetail={() => setDetailReminder(reminder)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Past Active Reminders */}
+            {pastReminders.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Vencidos ({pastReminders.length})
+                </h4>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {pastReminders.map(reminder => (
+                    <ReminderCard 
+                      key={reminder.id} 
+                      reminder={reminder} 
+                      canEdit={canEdit}
+                      onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
+                      onComplete={() => handleComplete(reminder)}
+                      onDelete={() => setConfirmDelete(reminder)}
+                      onViewDetail={() => setDetailReminder(reminder)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Completed Reminders */}
+            {showCompleted && completedReminders.length > 0 && (
+              <div>
+                <h4 className="text-sm font-bold text-green-600 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Completados ({completedReminders.length})
+                </h4>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {completedReminders.map(reminder => (
+                    <ReminderCard 
+                      key={reminder.id} 
+                      reminder={reminder} 
+                      canEdit={canEdit}
+                      onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
+                      onComplete={() => handleComplete(reminder)}
+                      onDelete={() => setConfirmDelete(reminder)}
+                      onViewDetail={() => setDetailReminder(reminder)}
+                      isCompleted
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Modals */}
+        <ReminderModal
+          isOpen={showModal}
+          onClose={() => { setShowModal(false); setEditingReminder(null); }}
+          onSave={handleSave}
+          reminder={editingReminder}
+        />
+        
+        <ReminderDetailModal
+          isOpen={!!detailReminder}
+          onClose={() => setDetailReminder(null)}
+          reminder={detailReminder}
+        />
+
+        {/* Delete Confirmation */}
+        {confirmDelete && (
+          <Portal>
+            <div
+              className="fixed inset-0 flex items-center justify-center p-4"
+              style={{ zIndex: 10000, position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh" }}
+            >
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+              <div className="relative bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl" style={{ zIndex: 10001 }}>
+                <h3 className="font-bold text-gray-800 text-lg mb-2">¿Eliminar recordatorio?</h3>
+                <p className="text-gray-600 text-sm mb-6">Esta acción no se puede deshacer.</p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmDelete(null)}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(confirmDelete)}
+                    className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </Portal>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-violet-100 shadow-sm">
