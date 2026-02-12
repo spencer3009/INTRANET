@@ -261,7 +261,63 @@ function PremiumTabs({ activeTab, onTabChange }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // LEFT SIDEBAR - COURSE INFO
 // ══════════════════════════════════════════════════════════════════════════════
-function CourseInfoSidebar({ subject, activities, news }) {
+function CourseInfoSidebar({ subject, news, subjectId, token }) {
+  const [activities, setActivities] = useState([]);
+  const [loadingActivities, setLoadingActivities] = useState(true);
+
+  // Load activities from API
+  useEffect(() => {
+    const loadActivities = async () => {
+      if (!subjectId || !token) return;
+      
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_BACKEND_URL}/api/course/${subjectId}/activities?limit=10`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setActivities(res.data.activities || []);
+      } catch (err) {
+        console.error("Error loading activities:", err);
+      } finally {
+        setLoadingActivities(false);
+      }
+    };
+    
+    loadActivities();
+  }, [subjectId, token]);
+
+  // Format relative time
+  const formatTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffMins < 1) return "Ahora";
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    if (diffDays === 1) return "Ayer";
+    if (diffDays < 7) return `Hace ${diffDays} días`;
+    return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
+  };
+
+  // Get activity icon and color based on type
+  const getActivityStyle = (type) => {
+    const styles = {
+      post_created: { icon: MessageSquare, color: "from-indigo-400 to-purple-500" },
+      material_uploaded: { icon: FolderOpen, color: "from-blue-400 to-cyan-500" },
+      task_assigned: { icon: PenTool, color: "from-amber-400 to-orange-500" },
+      task_submitted: { icon: CheckCircle, color: "from-emerald-400 to-green-500" },
+      comment_added: { icon: MessageCircle, color: "from-violet-400 to-purple-500" },
+      reminder_created: { icon: Bell, color: "from-rose-400 to-pink-500" },
+      announcement: { icon: Megaphone, color: "from-amber-500 to-orange-500" },
+      exam_scheduled: { icon: BookOpen, color: "from-red-400 to-rose-500" }
+    };
+    return styles[type] || { icon: Activity, color: "from-gray-400 to-gray-500" };
+  };
+
   return (
     <div className="space-y-5">
       {/* Course Card with Image */}
@@ -291,29 +347,59 @@ function CourseInfoSidebar({ subject, activities, news }) {
         )}
       </div>
       
-      {/* Activity Feed */}
+      {/* Activity Feed - Real-time from API */}
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
         <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500" />
+          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           Actividad del curso
         </h4>
-        {activities.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">Sin actividad reciente</p>
+        {loadingActivities ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+          </div>
+        ) : activities.length === 0 ? (
+          <div className="text-center py-6">
+            <Activity className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">Sin actividad reciente</p>
+            <p className="text-xs text-gray-300 mt-1">Las acciones en el curso aparecerán aquí</p>
+          </div>
         ) : (
           <div className="space-y-3">
-            {activities.slice(0, 5).map((activity, idx) => (
-              <div key={idx} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                  {activity.user?.charAt(0) || "U"}
+            {activities.slice(0, 6).map((activity) => {
+              const style = getActivityStyle(activity.activity_type);
+              const IconComponent = style.icon;
+              return (
+                <div 
+                  key={activity.id} 
+                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer group"
+                >
+                  {activity.user_photo ? (
+                    <img 
+                      src={activity.user_photo} 
+                      alt={activity.user_name}
+                      className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-white"
+                    />
+                  ) : (
+                    <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${style.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md`}>
+                      {activity.user_name?.charAt(0) || "U"}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-700 line-clamp-2">
+                      <span className="font-semibold">{activity.user_name}</span>{" "}
+                      <span className="text-gray-500">{activity.title}</span>
+                    </p>
+                    {activity.description && (
+                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1 italic">"{activity.description}"</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-1">
+                      <IconComponent className="w-3 h-3 text-gray-400" />
+                      <p className="text-xs text-gray-400">{formatTimeAgo(activity.created_at)}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-700 line-clamp-2">
-                    <span className="font-semibold">{activity.user}</span> {activity.action}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">{activity.time}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
