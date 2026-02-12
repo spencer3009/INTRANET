@@ -1206,6 +1206,10 @@ async def generate_cloudinary_signature(
         "timestamp": timestamp,
         "folder": folder,
     }
+    
+    # For raw files (PDF, DOC, etc.), add access_control to make them public
+    if resource_type == "raw":
+        params["access_mode"] = "public"
 
     signature = cloudinary.utils.api_sign_request(
         params,
@@ -1218,7 +1222,8 @@ async def generate_cloudinary_signature(
         "cloud_name": os.environ.get("CLOUDINARY_CLOUD_NAME"),
         "api_key": os.environ.get("CLOUDINARY_API_KEY"),
         "folder": folder,
-        "resource_type": resource_type
+        "resource_type": resource_type,
+        "access_mode": "public" if resource_type == "raw" else None
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
