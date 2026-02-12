@@ -814,6 +814,12 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   };
   
   const handleSubmit = async () => {
+    // Validate title for types that require it
+    if (config.requiresTitle && !title.trim()) {
+      setError('El título es obligatorio');
+      return;
+    }
+    
     if (!content.trim() && !imageFile && !file) {
       setError('Agrega texto, imagen o archivo');
       return;
@@ -841,10 +847,12 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
         fileType = file.type;
       }
       
-      // Create post
+      // Create post with type and title
       const res = await axios.post(`${API}/course/${subjectId}/posts`, {
         subject_id: subjectId,
+        title: title.trim() || null,
         content: content.trim(),
+        post_type: postType,
         image_url: imageUrl,
         file_url: fileUrl,
         file_name: fileName,
