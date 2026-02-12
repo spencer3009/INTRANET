@@ -1258,7 +1258,8 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                           year={activeYear}
                           onViewDetails={handleViewDetails}
                           onActivate={handleActivateYear}
-                          onDelete={handleDeleteYear}
+                          onEdit={handleEditYear}
+                          onDelete={handleDeleteYearClick}
                           isActivating={activating === activeYear.id}
                           isDeleting={deleting === activeYear.id}
                         />
@@ -1283,7 +1284,8 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                               year={year}
                               onViewDetails={handleViewDetails}
                               onActivate={handleActivateYear}
-                              onDelete={handleDeleteYear}
+                              onEdit={handleEditYear}
+                          onDelete={handleDeleteYearClick}
                               isActivating={activating === year.id}
                               isDeleting={deleting === year.id}
                             />
@@ -1310,7 +1312,8 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                               year={year}
                               onViewDetails={handleViewDetails}
                               onActivate={handleActivateYear}
-                              onDelete={handleDeleteYear}
+                              onEdit={handleEditYear}
+                          onDelete={handleDeleteYearClick}
                               isActivating={activating === year.id}
                               isDeleting={deleting === year.id}
                             />
