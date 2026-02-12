@@ -898,57 +898,123 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                 loadingPeriods={loadingPeriods}
               />
             ) : (
-              // List View
+              // List View - Premium Design
               <>
-                {/* Header with Create Button */}
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-3">
-                      <Calendar className="w-8 h-8 text-emerald-500" />
-                      Años Académicos
-                    </h1>
-                    <p className="text-slate-600 mt-1">
-                      Administra los años escolares y sus períodos académicos
-                    </p>
+                {/* Premium Header */}
+                <div className="relative mb-10">
+                  {/* Decorative background */}
+                  <div className="absolute -top-4 -left-4 w-32 h-32 bg-emerald-400/10 rounded-full blur-3xl" />
+                  <div className="absolute -top-2 right-10 w-24 h-24 bg-teal-400/10 rounded-full blur-2xl" />
+                  
+                  <div className="relative flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-4 mb-2">
+                        <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-200">
+                          <Calendar className="w-7 h-7 text-white" />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+                            Años Académicos
+                          </h1>
+                          <p className="text-slate-500 font-medium">
+                            Gestión de ciclos escolares y períodos
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={() => setShowCreateModal(true)}
+                      className="group px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl font-bold transition-all shadow-lg shadow-emerald-200 hover:shadow-xl hover:shadow-emerald-300 hover:-translate-y-0.5 flex items-center gap-2"
+                    >
+                      <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                      Nuevo Año
+                    </button>
                   </div>
                   
-                  <button
-                    onClick={() => setShowCreateModal(true)}
-                    className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Nuevo Año
-                  </button>
+                  {/* Stats Bar */}
+                  <div className="mt-6 p-4 bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="flex items-center justify-around divide-x divide-slate-200">
+                      <div className="flex items-center gap-3 px-6">
+                        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                          <Unlock className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-slate-800">{activeYear ? 1 : 0}</p>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Activo</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 px-6">
+                        <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                          <Clock className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-slate-800">{futureYears.length}</p>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Futuros</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 px-6">
+                        <div className="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center">
+                          <Lock className="w-5 h-5 text-slate-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-slate-800">{closedYears.length}</p>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Cerrados</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 px-6">
+                        <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                          <CalendarDays className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-slate-800">{years.reduce((sum, y) => sum + (y.period_count || 0), 0)}</p>
+                          <p className="text-xs font-medium text-slate-500 uppercase tracking-wider">Períodos</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 
                 {loading ? (
-                  <div className="flex items-center justify-center py-20">
-                    <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+                  <div className="flex flex-col items-center justify-center py-20">
+                    <div className="relative">
+                      <div className="w-16 h-16 border-4 border-emerald-200 rounded-full animate-pulse" />
+                      <Loader2 className="w-10 h-10 animate-spin text-emerald-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                    </div>
+                    <p className="mt-4 text-slate-500 font-medium">Cargando años académicos...</p>
                   </div>
                 ) : years.length === 0 ? (
-                  <div className="bg-white rounded-2xl border-2 border-dashed border-slate-300 p-12 text-center">
-                    <Calendar className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-slate-600 mb-2">No hay años académicos</h3>
-                    <p className="text-slate-500 mb-6">
-                      Crea tu primer año académico para comenzar a configurar períodos.
-                    </p>
-                    <button
-                      onClick={() => setShowCreateModal(true)}
-                      className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold transition-colors inline-flex items-center gap-2"
-                    >
-                      <Plus className="w-5 h-5" />
-                      Crear Primer Año
-                    </button>
+                  <div className="relative bg-white rounded-3xl border-2 border-dashed border-slate-200 p-16 text-center overflow-hidden">
+                    <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full -translate-y-1/2 translate-x-1/2" />
+                    <div className="relative">
+                      <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-teal-100 rounded-3xl mx-auto mb-6 flex items-center justify-center">
+                        <Calendar className="w-10 h-10 text-emerald-500" />
+                      </div>
+                      <h3 className="text-2xl font-bold text-slate-700 mb-3">No hay años académicos</h3>
+                      <p className="text-slate-500 mb-8 max-w-md mx-auto">
+                        Comienza creando tu primer año académico para configurar períodos y gestionar el ciclo escolar.
+                      </p>
+                      <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="px-8 py-4 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-2xl font-bold transition-all shadow-lg hover:shadow-xl inline-flex items-center gap-2"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Crear Primer Año
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <div className="space-y-8">
-                    {/* Active Year */}
+                  <div className="space-y-10">
+                    {/* Active Year Section */}
                     {activeYear && (
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                          <Unlock className="w-5 h-5 text-emerald-500" />
-                          Año Activo
-                        </h2>
+                      <section>
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                            <Unlock className="w-4 h-4 text-emerald-600" />
+                          </div>
+                          <h2 className="text-lg font-bold text-slate-700">Año en Operación</h2>
+                          <div className="flex-1 h-px bg-gradient-to-r from-emerald-200 to-transparent" />
+                        </div>
                         <YearCard
                           year={activeYear}
                           onViewDetails={handleViewDetails}
@@ -957,17 +1023,21 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                           isActivating={activating === activeYear.id}
                           isDeleting={deleting === activeYear.id}
                         />
-                      </div>
+                      </section>
                     )}
                     
-                    {/* Future Years */}
+                    {/* Future Years Section */}
                     {futureYears.length > 0 && (
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                          <Clock className="w-5 h-5 text-blue-500" />
-                          Años Futuros (Solo configuración)
-                        </h2>
-                        <div className="space-y-4">
+                      <section>
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Clock className="w-4 h-4 text-blue-600" />
+                          </div>
+                          <h2 className="text-lg font-bold text-slate-700">Años Futuros</h2>
+                          <span className="px-2.5 py-1 bg-blue-100 text-blue-600 text-xs font-bold rounded-full">Solo configuración</span>
+                          <div className="flex-1 h-px bg-gradient-to-r from-blue-200 to-transparent" />
+                        </div>
+                        <div className="grid gap-5">
                           {futureYears.map(year => (
                             <YearCard
                               key={year.id}
@@ -980,17 +1050,21 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                             />
                           ))}
                         </div>
-                      </div>
+                      </section>
                     )}
                     
-                    {/* Closed Years */}
+                    {/* Closed Years Section */}
                     {closedYears.length > 0 && (
-                      <div>
-                        <h2 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
-                          <Lock className="w-5 h-5 text-slate-400" />
-                          Años Cerrados (Solo lectura)
-                        </h2>
-                        <div className="space-y-4">
+                      <section>
+                        <div className="flex items-center gap-3 mb-5">
+                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                            <Lock className="w-4 h-4 text-slate-500" />
+                          </div>
+                          <h2 className="text-lg font-bold text-slate-700">Años Cerrados</h2>
+                          <span className="px-2.5 py-1 bg-slate-100 text-slate-500 text-xs font-bold rounded-full">Solo lectura</span>
+                          <div className="flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent" />
+                        </div>
+                        <div className="grid gap-5">
                           {closedYears.map(year => (
                             <YearCard
                               key={year.id}
@@ -1003,7 +1077,7 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                             />
                           ))}
                         </div>
-                      </div>
+                      </section>
                     )}
                   </div>
                 )}
