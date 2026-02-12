@@ -693,8 +693,41 @@ function DashboardContent({ subjectId, token, user }) {
   );
 }
 
-// Create Post Modal
-function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreated }) {
+// Post type configuration
+const POST_TYPE_CONFIG = {
+  announcement: {
+    label: "Publicación",
+    icon: MessageSquare,
+    color: "from-indigo-500 to-purple-600",
+    requiresTitle: false,
+    placeholder: "¿Qué quieres compartir con tu clase?"
+  },
+  task: {
+    label: "Tarea",
+    icon: PenTool,
+    color: "from-amber-500 to-orange-500",
+    requiresTitle: true,
+    placeholder: "Describe la tarea..."
+  },
+  material: {
+    label: "Material de estudio",
+    icon: FolderOpen,
+    color: "from-blue-500 to-cyan-500",
+    requiresTitle: true,
+    placeholder: "Describe el material..."
+  },
+  forum: {
+    label: "Foro",
+    icon: MessageCircle,
+    color: "from-emerald-500 to-teal-500",
+    requiresTitle: true,
+    placeholder: "Describe el tema de discusión..."
+  }
+};
+
+// Create Post Modal - Enhanced with title and type support
+function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreated, postType = "announcement" }) {
+  const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -705,10 +738,12 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
   
+  const config = POST_TYPE_CONFIG[postType] || POST_TYPE_CONFIG.announcement;
   const headers = { Authorization: `Bearer ${token}` };
   
   useEffect(() => {
     if (!isOpen) {
+      setTitle("");
       setContent("");
       setImageFile(null);
       setImagePreview(null);
