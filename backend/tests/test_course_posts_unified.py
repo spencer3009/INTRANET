@@ -39,15 +39,16 @@ class TestCoursePostsUnified:
         self.session.headers.update({"Authorization": f"Bearer {self.token}"})
         
         # Get a subject to test with
-        subjects_response = self.session.get(f"{BASE_URL}/api/subjects")
+        subjects_response = self.session.get(f"{BASE_URL}/api/academic/subjects")
         if subjects_response.status_code == 200:
             subjects = subjects_response.json()
             if subjects and len(subjects) > 0:
                 self.subject_id = subjects[0].get("id")
+                print(f"Using subject: {subjects[0].get('name')} ({self.subject_id})")
             else:
                 pytest.skip("No subjects available for testing")
         else:
-            pytest.skip("Could not fetch subjects")
+            pytest.skip(f"Could not fetch subjects: {subjects_response.status_code}")
         
         yield
         
@@ -413,7 +414,7 @@ class TestCoursePostsDataPersistence:
         self.user = login_response.json().get("user")
         self.session.headers.update({"Authorization": f"Bearer {self.token}"})
         
-        subjects_response = self.session.get(f"{BASE_URL}/api/subjects")
+        subjects_response = self.session.get(f"{BASE_URL}/api/academic/subjects")
         if subjects_response.status_code == 200:
             subjects = subjects_response.json()
             if subjects:
@@ -421,7 +422,7 @@ class TestCoursePostsDataPersistence:
             else:
                 pytest.skip("No subjects available")
         else:
-            pytest.skip("Could not fetch subjects")
+            pytest.skip(f"Could not fetch subjects: {subjects_response.status_code}")
         
         yield
     
