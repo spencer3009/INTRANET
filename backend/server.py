@@ -3051,7 +3051,7 @@ async def delete_academic_year(
     year_id: str,
     current_user = Depends(get_current_user)
 ):
-    """Delete an academic year (only if no periods exist)"""
+    """Delete an academic year and its associated periods (cascade)"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -3068,24 +3068,24 @@ async def delete_academic_year(
     if not year:
         raise HTTPException(status_code=404, detail="Año académico no encontrado")
     
-    # Check if year has periods
-    period_count = await db.academic_periods.count_documents({
+    # Check if year is active
+    if year["status"] == "activo":
+        raise HTTPException(status_code=400, detail="No se puede eliminar un año académico activo. Primero active otro año.")
+    
+    # Delete associated periods (cascade)
+    deleted_periods = await db.academic_periods.delete_many({
         "school_id": school_id,
         "academic_year_id": year_id
     })
-    if period_count > 0:
-        raise HTTPException(
-            status_code=400,
-            detail=f"No se puede eliminar: el año tiene {period_count} períodos asociados. Elimine los períodos primero."
-        )
     
-    # Check if year is active
-    if year["status"] == "activo":
-        raise HTTPException(status_code=400, detail="No se puede eliminar un año académico activo")
-    
+    # Delete the year
     await db.academic_years.delete_one({"id": year_id})
     
-    return {"message": f"Año académico {year['year']} eliminado"}
+    message = f"Año académico {year['year']} eliminado"
+    if deleted_periods.deleted_count > 0:
+        message += f" junto con {deleted_periods.deleted_count} período(s)"
+    
+    return {"message": message, "deleted_periods_count": deleted_periods.deleted_count}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC PERIODS ENDPOINTS (Modified for Year dependency)
