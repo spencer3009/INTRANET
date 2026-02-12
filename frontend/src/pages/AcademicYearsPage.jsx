@@ -895,66 +895,182 @@ function EditYearModal({ isOpen, onClose, token, year, existingYears, onSuccess 
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// DELETE CONFIRMATION MODAL
+// DELETE CONFIRMATION MODAL - With dependency check
 // ══════════════════════════════════════════════════════════════════════════════
-function DeleteYearModal({ isOpen, onClose, year, onConfirm, loading }) {
+function DeleteYearModal({ isOpen, onClose, year, token, onConfirm, onCloseYear, loading }) {
+  const [checkingDeps, setCheckingDeps] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
+  const [dependencies, setDependencies] = useState(null);
+  const [reasons, setReasons] = useState([]);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  useEffect(() => {
+    if (isOpen && year) {
+      checkDependencies();
+    }
+  }, [isOpen, year]);
+  
+  const checkDependencies = async () => {
+    setCheckingDeps(true);
+    try {
+      const res = await axios.get(`${API}/academic/years/${year.id}/can-delete`, { headers });
+      setCanDelete(res.data.can_delete);
+      setDependencies(res.data.dependencies);
+      setReasons(res.data.reasons || []);
+    } catch (err) {
+      setCanDelete(false);
+      setReasons(["Error al verificar dependencias"]);
+    } finally {
+      setCheckingDeps(false);
+    }
+  };
+  
   if (!isOpen || !year) return null;
   
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="p-6">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <Trash2 className="w-7 h-7 text-red-600" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-800">Eliminar Año {year.year}</h3>
-              <p className="text-slate-500 mt-1">
-                ¿Estás seguro de que deseas eliminar este año académico?
-              </p>
-            </div>
+      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden">
+        {checkingDeps ? (
+          <div className="p-12 text-center">
+            <Loader2 className="w-10 h-10 animate-spin text-indigo-500 mx-auto mb-4" />
+            <p className="text-slate-600 font-medium">Verificando información del año...</p>
           </div>
-          
-          {year.period_count > 0 && (
-            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        ) : canDelete ? (
+          // CAN DELETE - Year is futuro with no dependencies
+          <div className="p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-7 h-7 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">Eliminar Año {year.year}</h3>
+                <p className="text-slate-500 mt-1">
+                  Este año puede eliminarse de forma segura.
+                </p>
+              </div>
+            </div>
+            
+            <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl mb-6">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <Check className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-amber-800">Advertencia</p>
-                  <p className="text-sm text-amber-700">
-                    Este año tiene <strong>{year.period_count} período(s)</strong> configurado(s). 
-                    Al eliminar el año, también se eliminarán todos sus períodos.
+                  <p className="font-semibold text-emerald-800">Verificación completada</p>
+                  <p className="text-sm text-emerald-700">
+                    El año <strong>{year.year}</strong> no tiene períodos, asignaciones ni datos asociados.
                   </p>
                 </div>
               </div>
             </div>
-          )}
-          
-          <div className="p-4 bg-slate-50 rounded-xl mb-6">
-            <p className="text-sm text-slate-600">
-              Esta acción <strong>no se puede deshacer</strong>. Toda la información asociada a este año académico será eliminada permanentemente.
-            </p>
+            
+            <div className="p-4 bg-slate-50 rounded-xl mb-6">
+              <p className="text-sm text-slate-600">
+                Esta acción <strong>no se puede deshacer</strong>. El año académico será eliminado permanentemente.
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => onConfirm(year)}
+                disabled={loading}
+                className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                Eliminar
+              </button>
+            </div>
           </div>
-          
-          <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={() => onConfirm(year)}
-              disabled={loading}
-              className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
-              Eliminar
-            </button>
+        ) : (
+          // CANNOT DELETE - Has dependencies or wrong status
+          <div className="p-6">
+            <div className="flex items-start gap-4 mb-6">
+              <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+                <ShieldAlert className="w-7 h-7 text-amber-600" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-slate-800">No se puede eliminar</h3>
+                <p className="text-slate-500 mt-1">
+                  El año {year.year} tiene datos que deben preservarse.
+                </p>
+              </div>
+            </div>
+            
+            {/* Reasons list */}
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <p className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Motivos:
+              </p>
+              <ul className="space-y-2">
+                {reasons.map((reason, idx) => (
+                  <li key={idx} className="text-sm text-amber-700 flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
+                    {reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            
+            {/* Dependencies summary */}
+            {dependencies && (dependencies.periods > 0 || dependencies.assignments > 0 || dependencies.course_posts > 0) && (
+              <div className="mb-6 p-4 bg-slate-50 rounded-xl">
+                <p className="font-semibold text-slate-700 mb-3">Datos asociados:</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 bg-white rounded-lg border border-slate-200">
+                    <p className="text-2xl font-bold text-slate-800">{dependencies.periods}</p>
+                    <p className="text-xs text-slate-500">Períodos</p>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded-lg border border-slate-200">
+                    <p className="text-2xl font-bold text-slate-800">{dependencies.assignments}</p>
+                    <p className="text-xs text-slate-500">Asignaciones</p>
+                  </div>
+                  <div className="text-center p-3 bg-white rounded-lg border border-slate-200">
+                    <p className="text-2xl font-bold text-slate-800">{dependencies.course_posts}</p>
+                    <p className="text-xs text-slate-500">Publicaciones</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Recommended action */}
+            <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl mb-6">
+              <p className="font-semibold text-blue-800 mb-2">Acción recomendada</p>
+              <p className="text-sm text-blue-700">
+                {year.status === "activo" 
+                  ? "Active otro año académico primero, luego podrá cerrar este año."
+                  : year.status === "cerrado"
+                    ? "Los años cerrados contienen datos históricos. Puede archivarlos para ocultarlos del flujo operativo."
+                    : "Elimine primero los períodos y asignaciones asociados, o cierre el año para preservar los datos."
+                }
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+              >
+                Entendido
+              </button>
+              {year.status === "futuro" && dependencies?.periods > 0 && (
+                <button
+                  onClick={() => { onClose(); /* Navigate to periods */ }}
+                  className="flex-1 px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                >
+                  <Settings className="w-5 h-5" />
+                  Gestionar
+                </button>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
