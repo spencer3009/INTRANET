@@ -132,35 +132,35 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
           
           {/* Actions menu */}
           {canEdit && !isCompleted && (
-            <div className="relative">
+            <div className="relative z-10">
               <button
-                onClick={() => setMenuOpen(!menuOpen)}
-                className="p-1.5 text-gray-300 hover:text-gray-500 hover:bg-gray-100 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+                className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
               
               {menuOpen && (
                 <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-8 z-20 bg-white rounded-xl shadow-lg border border-gray-100 py-1 w-36">
+                  <div className="fixed inset-0 z-[60]" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 top-8 z-[70] bg-white rounded-xl shadow-xl border border-gray-200 py-1 w-36">
                     <button
-                      onClick={() => { setMenuOpen(false); onComplete?.(reminder); }}
-                      className="w-full px-3 py-2 text-left text-xs text-gray-600 hover:bg-emerald-50 flex items-center gap-2"
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onComplete?.(reminder); }}
+                      className="w-full px-3 py-2.5 text-left text-xs text-gray-600 hover:bg-emerald-50 flex items-center gap-2"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
                       <span>Completar</span>
                     </button>
                     <button
-                      onClick={() => { setMenuOpen(false); onEdit?.(reminder); }}
-                      className="w-full px-3 py-2 text-left text-xs text-gray-600 hover:bg-violet-50 flex items-center gap-2"
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit?.(reminder); }}
+                      className="w-full px-3 py-2.5 text-left text-xs text-gray-600 hover:bg-violet-50 flex items-center gap-2"
                     >
                       <Edit2 className="w-3.5 h-3.5 text-violet-500" />
                       <span>Editar</span>
                     </button>
                     <button
-                      onClick={() => { setMenuOpen(false); onDelete?.(reminder); }}
-                      className="w-full px-3 py-2 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2"
+                      onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete?.(reminder); }}
+                      className="w-full px-3 py-2.5 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                       <span>Eliminar</span>
