@@ -2984,7 +2984,7 @@ async def update_academic_year(
     data: AcademicYearUpdate,
     current_user = Depends(get_current_user)
 ):
-    """Update an academic year status"""
+    """Update an academic year status or year number"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -3000,6 +3000,16 @@ async def update_academic_year(
     })
     if not year:
         raise HTTPException(status_code=404, detail="Año académico no encontrado")
+    
+    # If changing year number, check it doesn't already exist
+    if data.year is not None and data.year != year["year"]:
+        existing = await db.academic_years.find_one({
+            "school_id": school_id,
+            "year": data.year,
+            "id": {"$ne": year_id}
+        })
+        if existing:
+            raise HTTPException(status_code=400, detail=f"El año {data.year} ya existe")
     
     deactivated_year = None
     # If setting to active, close current active year
@@ -3017,6 +3027,8 @@ async def update_academic_year(
             deactivated_year = current_active["year"]
     
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.year is not None:
+        update_data["year"] = data.year
     if data.status is not None:
         update_data["status"] = data.status
     
