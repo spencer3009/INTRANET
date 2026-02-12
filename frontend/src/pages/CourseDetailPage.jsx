@@ -1459,7 +1459,6 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
 // ══════════════════════════════════════════════════════════════════════════════
 // UNIFIED CONTENT FEED - For Tasks, Materials, Forum
 // ══════════════════════════════════════════════════════════════════════════════
-const POSTS_PER_PAGE = 4;
 
 function UnifiedContentFeed({ subjectId, token, user, postType }) {
   const [posts, setPosts] = useState([]);
