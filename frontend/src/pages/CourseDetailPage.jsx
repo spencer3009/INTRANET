@@ -3,6 +3,7 @@ import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import CourseRemindersPanel from "../components/CourseRemindersPanel";
 import {
   BookOpen, Users, Edit3, ChevronRight, Clock, 
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
