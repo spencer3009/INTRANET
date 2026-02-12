@@ -4,7 +4,7 @@ import {
   Calendar, Plus, Check, X, ChevronRight, Loader2, 
   AlertCircle, Copy, Lock, Clock, Unlock, CalendarDays,
   ChevronDown, Edit2, Trash2, ArrowLeft, Settings,
-  PlayCircle, PauseCircle, CalendarRange
+  PlayCircle, PauseCircle, CalendarRange, Archive, ShieldAlert
 } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import Sidebar from "../components/Sidebar";
