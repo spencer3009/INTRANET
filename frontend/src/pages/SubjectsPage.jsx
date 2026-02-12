@@ -910,7 +910,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const handleNavigate = (index) => { if (index === 0) { setSelectedLevel(null); setSelectedGrade(null); } };
 
   const handleSaveSubject = async (data) => {
-    const subjectData = { name: data.name, code: data.code, description: data.description, level_id: data.level_id, grade_id: data.grade_id, weekly_hours: data.weekly_hours, color: data.color, status: data.status };
+    const subjectData = { name: data.name, code: data.code, description: data.description, level_id: data.level_id, grade_id: data.grade_id, weekly_hours: data.weekly_hours, color: data.color, status: data.status, image_url: data.image_url || null };
     if (editingSubject?.id) { await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers }); }
     else { await axios.post(`${API}/academic/subjects`, subjectData, { headers }); }
     loadSubjects();
