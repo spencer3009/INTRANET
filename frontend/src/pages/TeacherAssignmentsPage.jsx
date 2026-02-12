@@ -16,7 +16,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // ══════════════════════════════════════════════════════════════════════════════
 // FILTER BAR COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
-function FilterBar({ filters, setFilters, levels, grades, sections, subjects, teachers, periods, onClear }) {
+function FilterBar({ filters, setFilters, levels, grades, sections, subjects, teachers, academicYears, onClear }) {
   const [showFilters, setShowFilters] = useState(false);
   
   // Filter grades by selected level
