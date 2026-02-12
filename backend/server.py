@@ -10072,6 +10072,7 @@ async def create_exam_question(
         "points": data.points,
         "options": options,
         "correct_answer": data.correct_answer,
+        "image_url": data.image_url,
         "order": next_order,
         "created_by": user["id"],
         "created_at": now,
