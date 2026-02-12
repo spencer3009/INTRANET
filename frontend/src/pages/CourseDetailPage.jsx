@@ -5,6 +5,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import CourseRemindersPanel from "../components/CourseRemindersPanel";
+import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import {
   BookOpen, Users, Edit3, ChevronRight, Clock, 
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
@@ -14,7 +16,7 @@ import {
   FileVideo, Heart, MessageSquare, 
   ChevronDown, ChevronUp, User, GraduationCap,
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
-  Activity, Megaphone, CheckCircle, Check, Lock, Play
+  Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
