@@ -8780,6 +8780,10 @@ async def update_course_reminder(
         update_data["reminder_type"] = data.reminder_type
     if data.status is not None:
         update_data["status"] = data.status
+    if data.is_important is not None:
+        update_data["is_important"] = data.is_important
+    if data.notify_all is not None:
+        update_data["notify_all"] = data.notify_all
     
     await db.course_reminders.update_one({"id": reminder_id}, {"$set": update_data})
     
