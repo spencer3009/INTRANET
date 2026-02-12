@@ -307,7 +307,8 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, onViewFull, canE
           {canEdit && !isCompleted && (
             <div className="relative">
               <button
-                onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
+                ref={menuButtonRef}
+                onClick={handleMenuClick}
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
                 data-testid="reminder-menu-btn"
               >
