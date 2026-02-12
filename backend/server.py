@@ -1188,13 +1188,14 @@ async def root():
 
 @api_router.get("/cloudinary/signature")
 async def generate_cloudinary_signature(
-    resource_type: str = Query("image", enum=["image", "video"]),
+    resource_type: str = Query("image", enum=["image", "video", "raw", "auto"]),
     folder: str = Query("edunet/logos"),
     current_user = Depends(get_current_user)
 ):
     """
     Generate a signed upload signature for Cloudinary.
     Requires authentication.
+    resource_type: image, video, raw (for PDF/DOC), or auto
     """
     ALLOWED_FOLDERS = ("edunet/logos", "edunet/uploads", "edunet/media", "edunet/users", "edunet/academic", "edunet/banners", "edunet/news", "edunet/messages", "edunet/discipline", "edunet/subjects", "edunet/posts")
     if not any(folder.startswith(f) for f in ALLOWED_FOLDERS):
