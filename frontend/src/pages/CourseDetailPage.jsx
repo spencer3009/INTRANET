@@ -2469,7 +2469,8 @@ const QUESTION_TYPES = {
 };
 
 // Question Form Modal
-function QuestionFormModal({ isOpen, onClose, onSave, question }) {
+// Question Form Modal with Image Upload
+function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
   const [questionType, setQuestionType] = useState("multiple_choice");
   const [questionText, setQuestionText] = useState("");
   const [points, setPoints] = useState(1);
@@ -2481,6 +2482,34 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   
+  // Image states
+  const [imageUrl, setImageUrl] = useState("");
+  const [showImageCrop, setShowImageCrop] = useState(false);
+  const [imageSrc, setImageSrc] = useState("");
+  const [crop, setCrop] = useState();
+  const [completedCrop, setCompletedCrop] = useState(null);
+  const [scale, setScale] = useState(1);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const imgRef = useRef(null);
+  const fileInputRef = useRef(null);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  // Helper function for center crop
+  const centerAspectCrop = (mediaWidth, mediaHeight, aspect) => {
+    return centerCrop(
+      makeAspectCrop(
+        { unit: '%', width: 90 },
+        aspect,
+        mediaWidth,
+        mediaHeight
+      ),
+      mediaWidth,
+      mediaHeight
+    );
+  };
+  
   useEffect(() => {
     if (question) {
       setQuestionType(question.question_type || "multiple_choice");
@@ -2490,6 +2519,7 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
         setOptions(question.options);
       }
       setCorrectAnswer(question.correct_answer || "");
+      setImageUrl(question.image_url || "");
     } else {
       setQuestionType("multiple_choice");
       setQuestionText("");
@@ -2499,8 +2529,12 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
         { id: "2", text: "", is_correct: false }
       ]);
       setCorrectAnswer("");
+      setImageUrl("");
     }
     setError("");
+    setImageSrc("");
+    setShowImageCrop(false);
+    setScale(1);
   }, [question, isOpen]);
   
   const addOption = () => {
@@ -2517,17 +2551,118 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
     setOptions(options.map(o => {
       if (o.id === id) {
         if (field === "is_correct" && value === true) {
-          // Unmark others if single correct answer
           return { ...o, is_correct: true };
         }
         return { ...o, [field]: value };
       }
-      // If marking this one correct, unmark others (for single answer)
       if (field === "is_correct" && value === true) {
         return { ...o, is_correct: false };
       }
       return o;
     }));
+  };
+  
+  // Image handling functions
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      setError("Por favor selecciona una imagen válida");
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageSrc(reader.result);
+      setShowImageCrop(true);
+      setScale(1);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const onImageLoad = (e) => {
+    const { width, height } = e.currentTarget;
+    setCrop(centerAspectCrop(width, height, 1));
+  };
+  
+  const getCroppedImg = useCallback(async () => {
+    if (!imgRef.current || !completedCrop) return null;
+    const image = imgRef.current;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    const outputSize = 600; // Square output
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    
+    const cropX = completedCrop.x * scaleX;
+    const cropY = completedCrop.y * scaleY;
+    const cropWidth = completedCrop.width * scaleX;
+    const cropHeight = completedCrop.height * scaleY;
+    const scaledCropWidth = cropWidth / scale;
+    const scaledCropHeight = cropHeight / scale;
+    const offsetX = (cropWidth - scaledCropWidth) / 2;
+    const offsetY = (cropHeight - scaledCropHeight) / 2;
+    
+    ctx.drawImage(image, cropX + offsetX, cropY + offsetY, scaledCropWidth, scaledCropHeight, 0, 0, outputSize, outputSize);
+    
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => {
+        if (blob) resolve(new File([blob], 'question-image.webp', { type: 'image/webp' }));
+        else resolve(null);
+      }, 'image/webp', 0.8);
+    });
+  }, [completedCrop, scale]);
+  
+  const uploadToCloudinary = async (file) => {
+    const signatureRes = await axios.get(`${API}/cloudinary/signature?folder=edunet/exam-questions&resource_type=image`, { headers });
+    const { signature, timestamp, cloud_name, api_key, folder } = signatureRes.data;
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('signature', signature);
+    formData.append('timestamp', timestamp);
+    formData.append('api_key', api_key);
+    formData.append('folder', folder);
+    
+    const uploadRes = await axios.post(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, formData, {
+      onUploadProgress: (progressEvent) => setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total))
+    });
+    return uploadRes.data.secure_url;
+  };
+  
+  const handleCropConfirm = async () => {
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      const croppedFile = await getCroppedImg();
+      if (croppedFile) {
+        const url = await uploadToCloudinary(croppedFile);
+        setImageUrl(url);
+        setShowImageCrop(false);
+        setImageSrc("");
+      }
+    } catch (err) {
+      setError("Error al subir la imagen");
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
+  };
+  
+  const handleRemoveImage = async () => {
+    if (question?.id && imageUrl) {
+      try {
+        await axios.delete(`${API}/exams/questions/${question.id}/image`, { headers });
+      } catch (err) {
+        console.error("Error removing image:", err);
+      }
+    }
+    setImageUrl("");
   };
   
   const handleSubmit = async (e) => {
@@ -2539,7 +2674,6 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
       return;
     }
     
-    // Validate based on type
     if (questionType === "multiple_choice") {
       const validOptions = options.filter(o => o.text.trim());
       if (validOptions.length < 2) {
@@ -2575,7 +2709,8 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
         question_text: questionText.trim(),
         points: parseFloat(points),
         options: questionType === "multiple_choice" ? options.filter(o => o.text.trim()) : null,
-        correct_answer: questionType !== "multiple_choice" ? correctAnswer : null
+        correct_answer: questionType !== "multiple_choice" ? correctAnswer : null,
+        image_url: imageUrl || null
       };
       
       await onSave(data, question?.id);
@@ -2587,7 +2722,6 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
     }
   };
   
-  // Preview for fill_blanks
   const renderFillBlanksPreview = () => {
     if (questionType !== "fill_blanks" || !questionText.includes("_")) return null;
     
@@ -2614,6 +2748,87 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
   };
   
   if (!isOpen) return null;
+  
+  // Image Crop Modal
+  if (showImageCrop) {
+    return createPortal(
+      <div className="fixed inset-0 z-[10001] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowImageCrop(false)} />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <Camera className="w-5 h-5" />
+              Recortar imagen (cuadrado)
+            </h3>
+          </div>
+          <div className="p-4">
+            <div className="relative bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center min-h-[300px]">
+              <ReactCrop
+                crop={crop}
+                onChange={(c) => setCrop(c)}
+                onComplete={(c) => setCompletedCrop(c)}
+                aspect={1}
+                className="max-h-[350px]"
+              >
+                <img
+                  ref={imgRef}
+                  src={imageSrc}
+                  alt="Crop"
+                  onLoad={onImageLoad}
+                  style={{ transform: `scale(${scale})`, maxHeight: '350px' }}
+                />
+              </ReactCrop>
+            </div>
+            
+            {/* Zoom control */}
+            <div className="flex items-center gap-3 mt-4 px-2">
+              <ZoomOut className="w-4 h-4 text-gray-500" />
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.1"
+                value={scale}
+                onChange={(e) => setScale(parseFloat(e.target.value))}
+                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+              />
+              <ZoomIn className="w-4 h-4 text-gray-500" />
+            </div>
+            
+            {uploading && (
+              <div className="mt-4">
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-indigo-600 transition-all duration-300" 
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 text-center mt-1">Subiendo... {uploadProgress}%</p>
+              </div>
+            )}
+          </div>
+          <div className="px-6 pb-6 flex gap-3">
+            <button
+              onClick={() => { setShowImageCrop(false); setImageSrc(""); }}
+              className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200"
+              disabled={uploading}
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleCropConfirm}
+              disabled={uploading || !completedCrop}
+              className="flex-1 px-4 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {uploading ? "Subiendo..." : "Confirmar"}
+            </button>
+          </div>
+        </div>
+      </div>,
+      document.body
+    );
+  }
   
   return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
@@ -2666,6 +2881,47 @@ function QuestionFormModal({ isOpen, onClose, onSave, question }) {
                 );
               })}
             </div>
+          </div>
+          
+          {/* Image Upload */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Imagen (opcional)
+            </label>
+            {imageUrl ? (
+              <div className="relative inline-block">
+                <img 
+                  src={imageUrl} 
+                  alt="Pregunta" 
+                  className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200"
+                />
+                <button
+                  type="button"
+                  onClick={handleRemoveImage}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow-md"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center gap-2"
+                >
+                  <Camera className="w-5 h-5" />
+                  Agregar imagen
+                </button>
+              </div>
+            )}
           </div>
           
           {/* Question Text */}
