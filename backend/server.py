@@ -7727,10 +7727,11 @@ async def get_academic_assignments(
             a["subject_code"] = subject.get("code", "")
             a["subject_color"] = subject.get("color", "#3B82F6")
             
-            # Add period name
-            if a.get("period_id"):
-                period = periods_map.get(a["period_id"], {})
-                a["period_name"] = period.get("nombre", a.get("period_name", ""))
+            # Add academic year info
+            if a.get("academic_year_id"):
+                year_data = years_map.get(a["academic_year_id"], {})
+                a["academic_year"] = year_data.get("year", a.get("school_year"))
+                a["academic_year_status"] = year_data.get("status", "")
     
     return assignments
 
