@@ -27,6 +27,7 @@ const TABS = [
   { id: "material", label: "Material de estudio", icon: FolderOpen },
   { id: "examenes", label: "Exámenes en Línea", icon: FlaskConical },
   { id: "foro", label: "Foro", icon: MessageCircle },
+  { id: "recordatorios", label: "Recordatorios", icon: Bell },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy },
 ];
 
