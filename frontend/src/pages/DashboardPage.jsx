@@ -11,6 +11,7 @@ import ProfileCard from "@/components/ProfileCard";
 import StudentChart from "@/components/StudentChart";
 import AttendanceAndNews from "@/components/AttendanceAndNews";
 import DemoBanner from "@/components/DemoBanner";
+import ReminderPopup from "@/components/ReminderPopup";
 import { AlertTriangle, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
