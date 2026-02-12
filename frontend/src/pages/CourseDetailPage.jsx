@@ -2443,7 +2443,6 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             <aside className="hidden lg:block lg:col-span-3 sticky top-[160px] self-start">
               <CourseInfoSidebar
                 subject={subject}
-                news={news}
                 subjectId={subjectId}
                 token={token}
               />
