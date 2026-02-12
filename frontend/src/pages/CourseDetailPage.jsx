@@ -539,12 +539,17 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
         )}
       </div>
       
-      {/* Quick Access - Dynamic from API */}
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <h4 className="font-bold text-gray-700 mb-4">Accesos rápidos</h4>
+      {/* Quick Access - Dynamic from API - Elegant Design */}
+      <div className="bg-gradient-to-br from-violet-50/50 to-indigo-50/30 rounded-2xl p-5 border border-violet-200/40 shadow-sm">
+        <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shadow-sm">
+            <ChevronRight className="w-3.5 h-3.5 text-white" />
+          </div>
+          Accesos rápidos
+        </h4>
         {loadingSidebar ? (
           <div className="flex items-center justify-center py-6">
-            <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
+            <Loader2 className="w-5 h-5 text-violet-500 animate-spin" />
           </div>
         ) : (
           <div className="space-y-2">
@@ -554,18 +559,18 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
               return (
                 <button
                   key={link.id}
-                  className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all group"
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-white/80 hover:bg-white border border-slate-200/60 hover:border-slate-300 rounded-xl transition-all group hover:shadow-sm"
                 >
-                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${colorClass} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-                    <LinkIcon className="w-4 h-4 text-white" />
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colorClass} flex items-center justify-center shadow-md group-hover:scale-110 group-hover:shadow-lg transition-all`}>
+                    <LinkIcon className="w-4.5 h-4.5 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-gray-700 flex-1 text-left">{link.label}</span>
+                  <span className="text-sm font-semibold text-slate-700 flex-1 text-left group-hover:text-slate-800">{link.label}</span>
                   {link.count > 0 && (
-                    <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs font-semibold rounded-full">
+                    <span className="px-2.5 py-1 bg-gradient-to-r from-slate-100 to-slate-200 text-slate-600 text-xs font-bold rounded-full">
                       {link.count}
                     </span>
                   )}
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 group-hover:translate-x-0.5 transition-all" />
                 </button>
               );
             })}
