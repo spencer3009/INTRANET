@@ -1927,13 +1927,13 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       case "tablero":
         return <DashboardContent subjectId={subjectId} token={token} user={user} />;
       case "tareas":
-        return <TasksContent tasks={tasks} onCreateTask={() => {}} />;
+        return <UnifiedContentFeed subjectId={subjectId} token={token} user={user} postType="task" />;
       case "material":
-        return <MaterialContent materials={materials} onUpload={() => {}} />;
+        return <UnifiedContentFeed subjectId={subjectId} token={token} user={user} postType="material" />;
       case "examenes":
         return <ExamsContent exams={exams} onCreateExam={() => {}} />;
       case "foro":
-        return <ForumContent threads={threads} onCreateThread={() => {}} />;
+        return <UnifiedContentFeed subjectId={subjectId} token={token} user={user} postType="forum" />;
       case "calificaciones":
         return <GradesContent grades={grades} />;
       default:
