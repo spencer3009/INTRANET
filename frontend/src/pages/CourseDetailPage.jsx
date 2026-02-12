@@ -2196,7 +2196,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 flex">
+    <div className="h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 flex overflow-hidden">
       <Sidebar
         user={user}
         settings={settings}
@@ -2207,44 +2207,44 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         active="asignaturas"
       />
       
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Fixed Header */}
-        <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100">
-          <DashboardHeader
-            user={user}
-            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-            onLogout={onLogout}
-            logoUrl={settings?.logo_url}
-            schoolName={settings?.system_name}
-            subdomain={subdomain}
-            token={token}
-          />
-        </div>
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={settings?.system_name}
+          subdomain={subdomain}
+          token={token}
+        />
 
-        {/* Main Content - No overflow-auto here, let body scroll */}
-        <main className="flex-1 p-6 lg:p-8">
-          {/* Hero Header */}
-          <CourseHeroHeader
-            subject={subject}
-            level={levelName}
-            grade={gradeName}
-            academicPeriod={academicPeriodName}
-            onEdit={() => {}}
-            onViewStudents={() => setActiveTab("calificaciones")}
-            onViewGrades={() => setActiveTab("calificaciones")}
-            onBack={() => navigate("/asignaturas")}
-          />
+        {/* Main Content Area - Fixed height, no page scroll */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Hero Header - Fixed, no scroll */}
+          <div className="flex-shrink-0 px-6 lg:px-8 pt-6">
+            <CourseHeroHeader
+              subject={subject}
+              level={levelName}
+              grade={gradeName}
+              academicPeriod={academicPeriodName}
+              onEdit={() => {}}
+              onViewStudents={() => setActiveTab("calificaciones")}
+              onViewGrades={() => setActiveTab("calificaciones")}
+              onBack={() => navigate("/asignaturas")}
+            />
+          </div>
           
-          {/* Tabs - Sticky below header */}
-          <div className="mt-6 sticky top-[72px] z-30 bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 -mx-6 lg:-mx-8 px-6 lg:px-8 py-2">
+          {/* Tabs - Fixed, no scroll */}
+          <div className="flex-shrink-0 px-6 lg:px-8 py-4 border-b border-gray-200/50">
             <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           
-          {/* 3-Column Layout - Google Classroom Style */}
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Sidebar - Sticky */}
-            <div className="lg:col-span-3 order-2 lg:order-1">
-              <div className="lg:sticky lg:top-[140px] space-y-4">
+          {/* 3-Column Layout - This is where the magic happens */}
+          <div className="flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 px-6 lg:px-8 py-6 overflow-hidden">
+            {/* Left Sidebar - Fixed height, internal scroll if needed */}
+            <div className="hidden lg:block lg:col-span-3 overflow-y-auto scrollbar-thin">
+              <div className="space-y-4 pb-6">
                 <CourseInfoSidebar
                   subject={subject}
                   activities={activities}
@@ -2253,14 +2253,16 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
               </div>
             </div>
             
-            {/* Main Content Area - Scrollable */}
-            <div className="lg:col-span-6 order-1 lg:order-2 min-h-[50vh]">
-              {renderTabContent()}
+            {/* Main Content Area - THIS IS THE ONLY SCROLLABLE COLUMN */}
+            <div className="lg:col-span-6 overflow-y-auto scrollbar-thin">
+              <div className="pb-6">
+                {renderTabContent()}
+              </div>
             </div>
             
-            {/* Right Sidebar - Sticky */}
-            <div className="lg:col-span-3 order-3">
-              <div className="lg:sticky lg:top-[140px] space-y-4">
+            {/* Right Sidebar - Fixed height, internal scroll if needed */}
+            <div className="hidden lg:block lg:col-span-3 overflow-y-auto scrollbar-thin">
+              <div className="space-y-4 pb-6">
                 <CourseRightSidebar
                   teacher={teacher}
                   students={students}
@@ -2271,8 +2273,29 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
               </div>
             </div>
           </div>
-        </main>
+        </div>
       </div>
+      
+      {/* Custom scrollbar styles */}
+      <style>{`
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb {
+          background-color: rgba(156, 163, 175, 0.3);
+          border-radius: 3px;
+        }
+        .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+          background-color: rgba(156, 163, 175, 0.5);
+        }
+        .scrollbar-thin {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(156, 163, 175, 0.3) transparent;
+        }
+      `}</style>
     </div>
   );
 }
