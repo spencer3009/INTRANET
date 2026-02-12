@@ -320,7 +320,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
     section_id: "",
     subject_id: "",
     teacher_id: "",
-    period_id: "",
+    academic_year_id: "",
     role: "titular",
     status: "activo"
   });
@@ -346,10 +346,12 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
       )
     : [];
   
-  // Sort periods by date (most recent first)
-  const sortedPeriods = [...(academicData.periods || [])].sort((a, b) => 
-    new Date(b.fecha_inicio) - new Date(a.fecha_inicio)
-  );
+  // Sort academic years (active first, then by year descending)
+  const sortedYears = [...(academicData.academicYears || [])].sort((a, b) => {
+    if (a.status === "activo" && b.status !== "activo") return -1;
+    if (b.status === "activo" && a.status !== "activo") return 1;
+    return b.year - a.year;
+  });
   
   useEffect(() => {
     if (isOpen) {
@@ -360,14 +362,14 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
           section_id: assignment.section_id || "",
           subject_id: assignment.subject_id || "",
           teacher_id: assignment.teacher_id || "",
-          period_id: assignment.period_id || "",
+          academic_year_id: assignment.academic_year_id || "",
           role: assignment.role || "titular",
           status: assignment.status || "activo"
         });
       } else {
-        // Find the active period or most recent one as default
-        const activePeriod = academicData.periods?.find(p => p.activo);
-        const defaultPeriodId = activePeriod?.id || sortedPeriods[0]?.id || "";
+        // Find the active year as default
+        const activeYear = academicData.academicYears?.find(y => y.status === "activo");
+        const defaultYearId = activeYear?.id || sortedYears[0]?.id || "";
         
         setForm({
           level_id: "",
@@ -375,14 +377,14 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
           section_id: "",
           subject_id: "",
           teacher_id: "",
-          period_id: defaultPeriodId,
+          academic_year_id: defaultYearId,
           role: "titular",
           status: "activo"
         });
       }
       setError("");
     }
-  }, [isOpen, assignment, academicData.periods]);
+  }, [isOpen, assignment, academicData.academicYears]);
   
   // Handler for Level change - reset dependent fields
   const handleLevelChange = (e) => {
