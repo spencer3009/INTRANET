@@ -1028,16 +1028,29 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
     }
   };
   
-  const handleDeleteYear = async (year) => {
-    if (!window.confirm(`¿Eliminar el año ${year.year}? Esta acción no se puede deshacer.`)) return;
-    
+  const handleEditYear = (year) => {
+    setEditingYear(year);
+    setShowEditModal(true);
+  };
+  
+  const handleDeleteYearClick = (year) => {
+    setDeletingYear(year);
+    setShowDeleteModal(true);
+  };
+  
+  const handleDeleteYearConfirm = async (year) => {
     setDeleting(year.id);
     try {
       await axios.delete(`${API}/academic/years/${year.id}`, { headers });
+      setShowDeleteModal(false);
+      setDeletingYear(null);
       loadYears();
     } catch (err) {
       alert(err.response?.data?.detail || "Error al eliminar año");
     } finally {
+      setDeleting(null);
+    }
+  };
       setDeleting(null);
     }
   };
