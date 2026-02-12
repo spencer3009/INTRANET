@@ -1156,6 +1156,11 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
     }
   };
   
+  const handleArchiveYear = async (year) => {
+    // For now, archiving means setting a flag. We can implement a full archive feature later.
+    alert(`Función de archivar disponible próximamente. El año ${year.year} permanecerá en la sección "Cerrados".`);
+  };
+  
   const handleEditYear = (year) => {
     setEditingYear(year);
     setShowEditModal(true);
