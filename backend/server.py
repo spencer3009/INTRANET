@@ -8005,16 +8005,22 @@ async def update_academic_assignment(
     if update_data:
         # Check for duplicate after update
         check_data = {**assignment, **update_data}
-        duplicate = await db.academic_assignments.find_one({
+        duplicate_query = {
             "school_id": school_id,
             "teacher_id": check_data["teacher_id"],
             "level_id": check_data["level_id"],
             "grade_id": check_data["grade_id"],
             "section_id": check_data["section_id"],
             "subject_id": check_data["subject_id"],
-            "school_year": check_data["school_year"],
             "id": {"$ne": assignment_id}  # Exclude current assignment
-        })
+        }
+        # Add year criterion
+        if check_data.get("academic_year_id"):
+            duplicate_query["academic_year_id"] = check_data["academic_year_id"]
+        else:
+            duplicate_query["school_year"] = check_data.get("school_year")
+        
+        duplicate = await db.academic_assignments.find_one(duplicate_query)
         if duplicate:
             raise HTTPException(
                 status_code=400,
