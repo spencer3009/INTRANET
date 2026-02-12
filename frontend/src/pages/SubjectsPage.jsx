@@ -883,10 +883,11 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                           data-testid={`tab-${level.nombre.toLowerCase().replace(/\s+/g, '-')}`}
                           className={`flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-bold transition-all duration-300
                             ${isActive ? theme.tabActive : theme.tabInactive}`}
+                          style={isActive ? { color: '#ffffff' } : {}}
                         >
-                          <Icon className="w-6 h-6" style={{ color: isActive ? 'white' : undefined }} />
-                          <span className="text-base" style={{ color: isActive ? 'white' : undefined }}>{level.nombre}</span>
-                          <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${isActive ? 'bg-white/30' : 'bg-gray-100 text-gray-500'}`} style={{ color: isActive ? 'white' : undefined }}>
+                          <Icon className="w-6 h-6" color={isActive ? '#ffffff' : undefined} />
+                          <span className="text-base">{level.nombre}</span>
+                          <span className={`px-2.5 py-0.5 text-xs font-bold rounded-full ${isActive ? 'bg-white/30' : 'bg-gray-100 text-gray-500'}`}>
                             {totalSubjects}
                           </span>
                         </TabsTrigger>
