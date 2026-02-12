@@ -785,9 +785,12 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
     setError("");
   };
   
-  const uploadToCloudinary = async (fileToUpload, folder) => {
+  const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
+    // Determine resource type based on file
+    const resourceType = isRawFile ? 'raw' : 'auto';
+    
     const signatureRes = await axios.get(
-      `${API}/cloudinary/signature?folder=${folder}&resource_type=auto`,
+      `${API}/cloudinary/signature?folder=${folder}&resource_type=${resourceType}`,
       { headers }
     );
     const { signature, timestamp, cloud_name, api_key, folder: uploadFolder } = signatureRes.data;
@@ -799,8 +802,11 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
     formData.append('api_key', api_key);
     formData.append('folder', uploadFolder);
     
+    // Use raw endpoint for non-image files, auto for others
+    const uploadEndpoint = isRawFile ? 'raw' : 'auto';
+    
     const uploadRes = await axios.post(
-      `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
+      `https://api.cloudinary.com/v1_1/${cloud_name}/${uploadEndpoint}/upload`,
       formData,
       {
         onUploadProgress: (progressEvent) => {
