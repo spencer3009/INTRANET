@@ -263,17 +263,27 @@ function PremiumTabs({ activeTab, onTabChange }) {
 function CourseInfoSidebar({ subject, activities, news }) {
   return (
     <div className="space-y-5">
-      {/* Course Card */}
+      {/* Course Card with Image */}
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <div 
-          className="w-full aspect-square rounded-2xl flex items-center justify-center mb-4 shadow-inner"
-          style={{ 
-            background: `linear-gradient(135deg, ${subject?.color || '#6366F1'}20, ${subject?.color || '#6366F1'}40)`,
-            border: `2px solid ${subject?.color || '#6366F1'}30`
-          }}
-        >
-          <BookOpen className="w-16 h-16" style={{ color: subject?.color || '#6366F1' }} />
-        </div>
+        {subject?.image_url ? (
+          <div className="w-full aspect-square rounded-2xl overflow-hidden mb-4 shadow-lg">
+            <img 
+              src={subject.image_url} 
+              alt={subject.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div 
+            className="w-full aspect-square rounded-2xl flex items-center justify-center mb-4 shadow-inner"
+            style={{ 
+              background: `linear-gradient(135deg, ${subject?.color || '#6366F1'}20, ${subject?.color || '#6366F1'}40)`,
+              border: `2px solid ${subject?.color || '#6366F1'}30`
+            }}
+          >
+            <BookOpen className="w-16 h-16" style={{ color: subject?.color || '#6366F1' }} />
+          </div>
+        )}
         <h3 className="font-bold text-gray-800 text-center">{subject?.name}</h3>
         {subject?.description && (
           <p className="text-sm text-gray-500 text-center mt-2 line-clamp-3">{subject.description}</p>
