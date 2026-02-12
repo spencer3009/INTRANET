@@ -1136,7 +1136,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       {ACADEMIC_CATEGORIES.map((cat) => {
         const Icon = cat.icon;
-        const count = cat.id === "niveles" ? levels.length : cat.id === "grados" ? grades.length : cat.id === "secciones" ? sections.length : cat.id === "turnos" ? shifts.length : cat.id === "periodos" ? periods.length : 0;
+        const count = cat.id === "niveles" ? levels.length : cat.id === "grados" ? grades.length : cat.id === "secciones" ? sections.length : cat.id === "turnos" ? shifts.length : 0;
         return (
           <button key={cat.id} onClick={() => !cat.disabled && setSelectedCategory(cat.id)} disabled={cat.disabled} className={`group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 ${cat.borderColor} bg-gradient-to-br ${cat.lightColor} ${cat.disabled ? "opacity-50 cursor-not-allowed" : ""}`}>
             <div className={`absolute inset-0 bg-gradient-to-br ${cat.color} opacity-0 group-hover:opacity-10 transition-opacity`} />
@@ -1151,6 +1151,41 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           </button>
         );
       })}
+      
+      {/* Special card for Academic Years - redirects to dedicated page */}
+      <button 
+        onClick={() => {
+          const basePath = subdomain ? `/school/${subdomain}` : "";
+          navigate(`${basePath}/anos-academicos`);
+        }}
+        className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50"
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-violet-600 opacity-0 group-hover:opacity-10 transition-opacity" />
+        <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 opacity-10" />
+        <div className="absolute top-3 right-3 px-2 py-1 bg-indigo-100 text-indigo-600 text-xs font-bold rounded-full flex items-center gap-1">
+          <CalendarDays className="w-3 h-3" />
+          Ir al módulo
+        </div>
+        <div className="relative z-10">
+          <div className="flex justify-center mb-4">
+            <div className="w-20 h-20 rounded-2xl bg-white shadow-lg p-4 border-2 border-indigo-200">
+              <Calendar className="w-full h-full text-indigo-600" />
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-center mb-2 text-indigo-600">Años y Períodos</h3>
+          <div className="flex justify-center">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white shadow-sm border border-indigo-200 text-indigo-600 font-medium text-sm">
+              <span className="w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600"></span>
+              Gestión centralizada
+            </span>
+          </div>
+          <div className="flex justify-center mt-4">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-violet-600 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all translate-y-2 group-hover:translate-y-0">
+              <ChevronRight className="w-5 h-5 text-white" />
+            </div>
+          </div>
+        </div>
+      </button>
     </div>
   );
 
