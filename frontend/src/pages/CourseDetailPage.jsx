@@ -229,8 +229,8 @@ function CourseHeroHeader({ subject, level, grade, academicPeriod, onEdit, onVie
 // ══════════════════════════════════════════════════════════════════════════════
 function PremiumTabs({ activeTab, onTabChange }) {
   return (
-    <div className="bg-white/80 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 p-2">
-      <div className="flex items-center overflow-x-auto hide-scrollbar gap-1">
+    <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 p-3">
+      <div className="flex items-center justify-center overflow-x-auto hide-scrollbar gap-2">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -239,18 +239,15 @@ function PremiumTabs({ activeTab, onTabChange }) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`relative flex items-center gap-2.5 px-5 py-3 rounded-xl font-medium text-sm whitespace-nowrap transition-all duration-300 ${
+              className={`relative flex flex-col items-center justify-center gap-2 px-6 py-4 rounded-xl font-medium text-xs whitespace-nowrap transition-all duration-300 min-w-[100px] ${
                 isActive
-                  ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-200"
-                  : "text-gray-600 hover:text-gray-800 hover:bg-gray-100"
+                  ? "bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-200/50"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
               data-testid={`tab-${tab.id}`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? "text-white" : ""}`} />
-              <span>{tab.label}</span>
-              {isActive && (
-                <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-8 h-1 bg-white/30 rounded-full" />
-              )}
+              <Icon className={`w-7 h-7 ${isActive ? "text-white" : "text-gray-400"}`} strokeWidth={1.5} />
+              <span className="uppercase tracking-wider font-semibold">{tab.label}</span>
             </button>
           );
         })}
