@@ -995,9 +995,10 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                             <YearCard
                               key={year.id}
                               year={year}
-                              onActivate={handleActivateYear}
                               onViewDetails={handleViewDetails}
+                              onActivate={handleActivateYear}
                               onDelete={handleDeleteYear}
+                              isActivating={activating === year.id}
                               isDeleting={deleting === year.id}
                             />
                           ))}
