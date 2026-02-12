@@ -1083,18 +1083,18 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         const assignmentsRes = await axios.get(`${API}/academic/assignments`, { headers });
         const subjectAssignment = assignmentsRes.data.find(a => a.subject_id === subjectId && a.status === "activo");
         if (subjectAssignment) {
-          // Use period_name if available, otherwise show school_year
-          if (subjectAssignment.period_name) {
-            setAcademicPeriodName(subjectAssignment.period_name);
+          // Use academic_year if available, otherwise show school_year
+          if (subjectAssignment.academic_year) {
+            setAcademicPeriodName(`Año Escolar ${subjectAssignment.academic_year}`);
           } else if (subjectAssignment.school_year) {
             setAcademicPeriodName(`Año Escolar ${subjectAssignment.school_year}`);
           }
         } else {
-          // Fallback: try to get active period
-          const periodsRes = await axios.get(`${API}/academic/periods`, { headers });
-          const activePeriod = periodsRes.data.find(p => p.activo);
-          if (activePeriod) {
-            setAcademicPeriodName(activePeriod.nombre);
+          // Fallback: try to get active academic year
+          const yearsRes = await axios.get(`${API}/academic/years`, { headers });
+          const activeYear = yearsRes.data.find(y => y.status === "activo");
+          if (activeYear) {
+            setAcademicPeriodName(`Año Escolar ${activeYear.year}`);
           } else {
             setAcademicPeriodName(`${new Date().getFullYear()}`);
           }
