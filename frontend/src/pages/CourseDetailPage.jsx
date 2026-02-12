@@ -1204,7 +1204,7 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
             className="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-4 hover:bg-gray-100 transition-colors"
           >
             <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-              <File className="w-6 h-6 text-blue-600" />
+              <FileIcon className="w-6 h-6 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-semibold text-gray-700 truncate">{post.file_name || "Archivo adjunto"}</p>
