@@ -2195,11 +2195,8 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   
   const [activeTab, setActiveTab] = useState("tablero");
   
-  // Mock data for demo (replace with actual API calls)
-  const [news] = useState([
-    { title: "Examen parcial programado para el viernes", date: "25 Dic 2025" },
-    { title: "Nueva fecha de entrega de proyecto", date: "22 Dic 2025" },
-  ]);
+  // Mock data - empty, will be loaded from API
+  // (Keeping this for backwards compatibility if needed)
   
   const [posts] = useState([
     {
