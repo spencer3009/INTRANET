@@ -646,7 +646,7 @@ function DashboardContent({ subjectId, token, user }) {
             onClick={() => setShowCreateModal(true)}
             className="p-3 hover:bg-indigo-50 rounded-xl transition-colors group"
           >
-            <Image className="w-5 h-5 text-gray-400 group-hover:text-indigo-500" />
+            <ImageIcon className="w-5 h-5 text-gray-400 group-hover:text-indigo-500" />
           </button>
           <button 
             onClick={() => setShowCreateModal(true)}
