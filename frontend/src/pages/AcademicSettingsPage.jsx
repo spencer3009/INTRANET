@@ -1422,30 +1422,17 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       <SectionModal isOpen={showSectionModal} onClose={() => { setShowSectionModal(false); setEditingSection(null); setPreselectedGradeForSection(null); }} token={token} section={editingSection} grades={grades} levels={levels} onSuccess={handleSectionSuccess} preselectedGradeId={preselectedGradeForSection || ""} />
       <SectionTypesAdminModal isOpen={showSectionTypesAdmin} onClose={() => setShowSectionTypesAdmin(false)} token={token} onTypesUpdated={loadSections} />
       <ShiftModal isOpen={showShiftModal} onClose={() => { setShowShiftModal(false); setEditingShift(null); }} token={token} shift={editingShift} onSuccess={handleShiftSuccess} />
-      <PeriodModal isOpen={showPeriodModal} onClose={() => { setShowPeriodModal(false); setEditingPeriod(null); }} token={token} period={editingPeriod} onSuccess={handlePeriodSuccess} />
       
       {/* Delete confirmation modal */}
       <ConfirmModal 
         isOpen={showDeleteModal} 
         onClose={() => { setShowDeleteModal(false); setDeleteTarget(null); }} 
         onConfirm={confirmDelete} 
-        title={`Eliminar ${deleteTarget?.type === "level" ? "Nivel" : deleteTarget?.type === "grade" ? "Grado" : deleteTarget?.type === "section" ? "Sección" : deleteTarget?.type === "shift" ? "Turno" : "Período"}`} 
+        title={`Eliminar ${deleteTarget?.type === "level" ? "Nivel" : deleteTarget?.type === "grade" ? "Grado" : deleteTarget?.type === "section" ? "Sección" : "Turno"}`} 
         message={`¿Eliminar "${deleteTarget?.item?.nombre}"? Esta acción no se puede deshacer.`} 
         confirmText="Sí, eliminar" 
         type="danger" 
         loading={deleteLoading} 
-      />
-      
-      {/* Activate period confirmation modal */}
-      <ConfirmModal 
-        isOpen={showActivateModal} 
-        onClose={() => { setShowActivateModal(false); setActivatingPeriod(null); }} 
-        onConfirm={handleActivatePeriod} 
-        title="Activar Período" 
-        message={`¿Deseas activar el período "${activatingPeriod?.nombre}"? El período activo actual será desactivado automáticamente.`} 
-        confirmText="Sí, activar" 
-        type="warning" 
-        loading={activateLoading} 
       />
       
       {/* Info modal for success messages */}
