@@ -4,10 +4,11 @@ import {
   Calendar, Plus, Check, X, ChevronRight, Loader2, 
   AlertCircle, Copy, Lock, Clock, Unlock, CalendarDays,
   ChevronDown, Edit2, Trash2, ArrowLeft, Settings,
-  PlayCircle, PauseCircle, CalendarRange, Archive, ShieldAlert
+  PlayCircle, PauseCircle, CalendarRange, Archive, ShieldAlert, Power
 } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import Sidebar from "../components/Sidebar";
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
