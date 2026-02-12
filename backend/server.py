@@ -10151,6 +10151,21 @@ async def update_exam_question(
             })
         update_data["options"] = options
     
+    # Handle image update - delete old image from Cloudinary if replacing
+    if data.image_url is not None:
+        old_image_url = question.get("image_url")
+        if old_image_url and "cloudinary.com" in old_image_url and old_image_url != data.image_url:
+            try:
+                # Extract public_id from Cloudinary URL
+                parts = old_image_url.split("/upload/")
+                if len(parts) > 1:
+                    public_id_with_ext = parts[1].split("/", 1)[-1] if "/" in parts[1] else parts[1]
+                    public_id = public_id_with_ext.rsplit(".", 1)[0]
+                    cloudinary.uploader.destroy(public_id)
+            except Exception as e:
+                print(f"Error deleting old question image from Cloudinary: {e}")
+        update_data["image_url"] = data.image_url
+    
     await db.exam_questions.update_one({"id": question_id}, {"$set": update_data})
     
     # Update exam total points
