@@ -1033,18 +1033,27 @@ export default function DisciplinePage({ user, token, subdomain, onLogout }) {
     }
   };
 
-  const handleDelete = async (report) => {
-    if (!window.confirm(`¿Estás seguro de eliminar el reporte "${report.title}"?`)) return;
-    
+  const handleDeleteClick = (report) => {
+    setDeletingReport(report);
+    setShowDeleteModal(true);
+  };
+  
+  const handleDeleteConfirm = async () => {
+    if (!deletingReport) return;
+    setDeleting(true);
     try {
-      await axios.delete(`${API}/discipline/${report.id}`, { headers });
+      await axios.delete(`${API}/discipline/${deletingReport.id}`, { headers });
       loadReports();
       if (isAdmin) {
         const statsRes = await axios.get(`${API}/discipline/stats/summary`, { headers });
         setStats(statsRes.data);
       }
+      setShowDeleteModal(false);
+      setDeletingReport(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al eliminar reporte");
+    } finally {
+      setDeleting(false);
     }
   };
 
