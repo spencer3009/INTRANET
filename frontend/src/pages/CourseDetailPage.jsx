@@ -2077,12 +2077,6 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   const [activeTab, setActiveTab] = useState("tablero");
   
   // Mock data for demo (replace with actual API calls)
-  const [activities] = useState([
-    { user: "Prof. García", action: "subió nuevo material", time: "Hace 2 horas" },
-    { user: "María López", action: "entregó la tarea 3", time: "Hace 5 horas" },
-    { user: "Carlos Ruiz", action: "comentó en el foro", time: "Ayer" },
-  ]);
-  
   const [news] = useState([
     { title: "Examen parcial programado para el viernes", date: "25 Dic 2025" },
     { title: "Nueva fecha de entrega de proyecto", date: "22 Dic 2025" },
