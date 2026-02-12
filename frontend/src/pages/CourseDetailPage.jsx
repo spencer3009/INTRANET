@@ -1353,6 +1353,19 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
           )}
         </div>
       )}
+      
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        loading={deleting}
+        title="Eliminar publicación"
+        message={post.title 
+          ? `¿Estás seguro de que deseas eliminar "${post.title}"? Esta acción eliminará también las imágenes y archivos adjuntos.`
+          : "¿Estás seguro de que deseas eliminar esta publicación? Esta acción eliminará también las imágenes y archivos adjuntos."
+        }
+      />
     </div>
   );
 }
