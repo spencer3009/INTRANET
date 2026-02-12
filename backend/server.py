@@ -8623,6 +8623,90 @@ async def delete_comment(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COURSE ACTIVITY STREAM - Real-time activity feed (Google Classroom Style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CourseActivityType(str, Enum):
+    post_created = "post_created"           # Profesor publica algo
+    material_uploaded = "material_uploaded" # Se sube material
+    task_assigned = "task_assigned"         # Se asigna tarea
+    task_submitted = "task_submitted"       # Alumno entrega tarea
+    comment_added = "comment_added"         # Alguien comenta
+    reminder_created = "reminder_created"   # Se crea recordatorio
+    announcement = "announcement"           # Aviso publicado
+    exam_scheduled = "exam_scheduled"       # Examen programado
+
+# Helper function to register course activity
+async def register_course_activity(
+    school_id: str,
+    subject_id: str,
+    activity_type: str,
+    user_id: str,
+    user_name: str,
+    user_photo: str = None,
+    title: str = None,
+    description: str = None,
+    reference_id: str = None,
+    reference_type: str = None
+):
+    """Register a new activity in the course activity stream"""
+    activity_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    activity = {
+        "id": activity_id,
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "activity_type": activity_type,
+        "user_id": user_id,
+        "user_name": user_name,
+        "user_photo": user_photo,
+        "title": title,
+        "description": description,
+        "reference_id": reference_id,
+        "reference_type": reference_type,
+        "created_at": now
+    }
+    
+    await db.course_activities.insert_one(activity)
+    return activity_id
+
+
+@api_router.get("/course/{subject_id}/activities")
+async def get_course_activities(
+    subject_id: str,
+    limit: int = 20,
+    offset: int = 0,
+    current_user = Depends(get_current_user)
+):
+    """Get activity stream for a course"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Verify subject exists
+    subject = await db.subjects.find_one({"id": subject_id}, {"_id": 0})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+    
+    # Get activities for this course, ordered by most recent
+    activities = await db.course_activities.find(
+        {"subject_id": subject_id},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
+    
+    # Get total count
+    total = await db.course_activities.count_documents({"subject_id": subject_id})
+    
+    return {
+        "activities": activities,
+        "total": total,
+        "limit": limit,
+        "offset": offset
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # COURSE REMINDERS - Premium Feature (Google Classroom Style)
 # ══════════════════════════════════════════════════════════════════════════════
 
