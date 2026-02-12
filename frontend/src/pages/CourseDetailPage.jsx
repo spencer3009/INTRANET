@@ -1010,8 +1010,9 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
           
           <button
             onClick={handleSubmit}
-            disabled={submitting || (!content.trim() && !imageFile && !file)}
-            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white rounded-xl font-semibold transition-colors flex items-center gap-2"
+            disabled={submitting || (config.requiresTitle && !title.trim()) || (!content.trim() && !imageFile && !file)}
+            className={`px-6 py-2.5 bg-gradient-to-r ${config.color} hover:opacity-90 disabled:from-gray-300 disabled:to-gray-400 text-white rounded-xl font-semibold transition-all flex items-center gap-2`}
+            data-testid="submit-post-btn"
           >
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             Publicar
