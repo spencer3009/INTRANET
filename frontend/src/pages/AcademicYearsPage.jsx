@@ -1443,7 +1443,8 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                               onViewDetails={handleViewDetails}
                               onActivate={handleActivateYear}
                               onEdit={handleEditYear}
-                          onDelete={handleDeleteYearClick}
+                              onDelete={handleDeleteYearClick}
+                              onArchive={handleArchiveYear}
                               isActivating={activating === year.id}
                               isDeleting={deleting === year.id}
                             />
