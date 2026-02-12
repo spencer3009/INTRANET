@@ -266,19 +266,7 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, onViewFull, canE
             
             {/* Description */}
             {description && (
-              <div className="mt-0.5">
-                <p className="text-xs text-gray-500 line-clamp-2">{truncatedDescription}</p>
-                {needsTruncation && (
-                  <button
-                    onClick={(e) => { e.stopPropagation(); onViewFull?.(reminder); }}
-                    className="text-xs text-violet-600 hover:text-violet-700 font-medium mt-0.5 flex items-center gap-1"
-                    data-testid="view-full-btn"
-                  >
-                    <Eye className="w-3 h-3" />
-                    Ver completo
-                  </button>
-                )}
-              </div>
+              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{truncatedDescription}</p>
             )}
             
             {/* Date */}
