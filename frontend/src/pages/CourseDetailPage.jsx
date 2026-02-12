@@ -3057,7 +3057,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       case "material":
         return <UnifiedContentFeed subjectId={subjectId} token={token} user={user} postType="material" />;
       case "examenes":
-        return <ExamsContent exams={exams} onCreateExam={() => {}} />;
+        return <ExamsContent subjectId={subjectId} token={token} userRole={user?.role} />;
       case "foro":
         return <UnifiedContentFeed subjectId={subjectId} token={token} user={user} postType="forum" />;
       case "recordatorios":
