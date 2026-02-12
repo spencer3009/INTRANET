@@ -8853,6 +8853,279 @@ async def complete_course_reminder(
     return {"message": "Recordatorio marcado como completado"}
 
 
+@api_router.post("/course/reminders/{reminder_id}/mark-viewed")
+async def mark_reminder_viewed(
+    reminder_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Mark a reminder as viewed by the current user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    reminder = await db.course_reminders.find_one({"id": reminder_id}, {"_id": 0})
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Recordatorio no encontrado")
+    
+    # Add user to viewed_by array if not already there
+    await db.course_reminders.update_one(
+        {"id": reminder_id},
+        {"$addToSet": {"viewed_by": user["id"]}}
+    )
+    
+    return {"message": "Recordatorio marcado como visto"}
+
+
+@api_router.get("/notifications/reminders")
+async def get_notification_reminders(
+    current_user = Depends(get_current_user)
+):
+    """
+    Get reminders for notification bell across ALL courses the user has access to.
+    Returns:
+    - Important reminders
+    - Upcoming reminders (within 48 hours)
+    - New (unviewed) reminders
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    user_id = user["id"]
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc)
+    
+    # Calculate 48 hours from now
+    upcoming_threshold = (now + timedelta(hours=48)).isoformat()
+    now_iso = now.isoformat()
+    
+    # Get all subjects the user has access to
+    if user.get("role") in ["admin", "owner", "director", "coordinator"]:
+        # Admin roles see all subjects in their school
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "is_active": True},
+            {"_id": 0, "id": 1, "name": 1, "color": 1}
+        ).to_list(500)
+    elif user.get("role") == "teacher":
+        # Teachers see their assigned subjects
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "is_active": True, "teacher_id": user_id},
+            {"_id": 0, "id": 1, "name": 1, "color": 1}
+        ).to_list(100)
+    else:
+        # Students/Parents - get subjects from their enrollments
+        enrollments = await db.enrollments.find(
+            {"school_id": school_id, "user_id": user_id, "status": "active"},
+            {"_id": 0, "subject_ids": 1}
+        ).to_list(100)
+        
+        subject_ids = []
+        for enrollment in enrollments:
+            subject_ids.extend(enrollment.get("subject_ids", []))
+        
+        # Also get from grade enrollment if exists
+        if user.get("grade_id"):
+            grade = await db.grades.find_one({"id": user["grade_id"]}, {"_id": 0})
+            if grade and grade.get("subjects"):
+                subject_ids.extend([s.get("subject_id") for s in grade["subjects"] if s.get("subject_id")])
+        
+        subject_ids = list(set(subject_ids))
+        
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "id": {"$in": subject_ids}, "is_active": True},
+            {"_id": 0, "id": 1, "name": 1, "color": 1}
+        ).to_list(100)
+    
+    subject_ids = [s["id"] for s in subjects]
+    subject_map = {s["id"]: s for s in subjects}
+    
+    if not subject_ids:
+        return {
+            "important": [],
+            "upcoming": [],
+            "new": [],
+            "total_count": 0
+        }
+    
+    # Get all active reminders for these subjects
+    all_reminders = await db.course_reminders.find(
+        {
+            "school_id": school_id,
+            "subject_id": {"$in": subject_ids},
+            "status": "active"
+        },
+        {"_id": 0}
+    ).sort("date", 1).to_list(500)
+    
+    important_reminders = []
+    upcoming_reminders = []
+    new_reminders = []
+    
+    for reminder in all_reminders:
+        reminder_date = reminder.get("date", "")
+        is_important = reminder.get("is_important", False)
+        viewed_by = reminder.get("viewed_by", [])
+        is_viewed = user_id in viewed_by
+        
+        # Add subject info
+        subject_info = subject_map.get(reminder["subject_id"], {})
+        reminder["subject_name"] = subject_info.get("name", "")
+        reminder["subject_color"] = subject_info.get("color", "#6366f1")
+        reminder["is_viewed"] = is_viewed
+        
+        # Categorize reminders
+        # Important reminders (not viewed)
+        if is_important and not is_viewed:
+            important_reminders.append(reminder)
+        # Upcoming within 48h (not viewed or important)
+        elif reminder_date and reminder_date <= upcoming_threshold and reminder_date >= now_iso[:10]:
+            if not is_viewed:
+                upcoming_reminders.append(reminder)
+        # New (not viewed, not in other categories)
+        elif not is_viewed:
+            new_reminders.append(reminder)
+    
+    # Limit results
+    important_reminders = important_reminders[:10]
+    upcoming_reminders = upcoming_reminders[:10]
+    new_reminders = new_reminders[:10]
+    
+    total_count = len(important_reminders) + len(upcoming_reminders) + len(new_reminders)
+    
+    return {
+        "important": important_reminders,
+        "upcoming": upcoming_reminders,
+        "new": new_reminders,
+        "total_count": total_count
+    }
+
+
+@api_router.get("/notifications/reminders/popup")
+async def get_popup_reminders(
+    current_user = Depends(get_current_user)
+):
+    """
+    Get reminders that should trigger a popup notification.
+    Rules:
+    - Important reminders not viewed today
+    - Reminders due within 24 hours not viewed
+    - Overdue reminders not viewed
+    Returns max 1 reminder to show as popup
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    user_id = user["id"]
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc)
+    now_date = now.date().isoformat()
+    
+    # Calculate 24 hours from now
+    upcoming_24h = (now + timedelta(hours=24)).isoformat()
+    now_iso = now.isoformat()
+    
+    # Get user's popup history from user document or separate collection
+    popup_history = user.get("reminder_popup_history", {})
+    
+    # Get all subjects the user has access to (same logic as above)
+    if user.get("role") in ["admin", "owner", "director", "coordinator"]:
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "is_active": True},
+            {"_id": 0, "id": 1, "name": 1}
+        ).to_list(500)
+    elif user.get("role") == "teacher":
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "is_active": True, "teacher_id": user_id},
+            {"_id": 0, "id": 1, "name": 1}
+        ).to_list(100)
+    else:
+        enrollments = await db.enrollments.find(
+            {"school_id": school_id, "user_id": user_id, "status": "active"},
+            {"_id": 0, "subject_ids": 1}
+        ).to_list(100)
+        
+        subject_ids = []
+        for enrollment in enrollments:
+            subject_ids.extend(enrollment.get("subject_ids", []))
+        
+        if user.get("grade_id"):
+            grade = await db.grades.find_one({"id": user["grade_id"]}, {"_id": 0})
+            if grade and grade.get("subjects"):
+                subject_ids.extend([s.get("subject_id") for s in grade["subjects"] if s.get("subject_id")])
+        
+        subject_ids = list(set(subject_ids))
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "id": {"$in": subject_ids}, "is_active": True},
+            {"_id": 0, "id": 1, "name": 1}
+        ).to_list(100)
+    
+    subject_ids = [s["id"] for s in subjects]
+    subject_map = {s["id"]: s for s in subjects}
+    
+    if not subject_ids:
+        return {"reminder": None}
+    
+    # Get active reminders that qualify for popup
+    reminders = await db.course_reminders.find(
+        {
+            "school_id": school_id,
+            "subject_id": {"$in": subject_ids},
+            "status": "active",
+            "$or": [
+                {"is_important": True},
+                {"date": {"$lte": upcoming_24h}}  # Due within 24h or overdue
+            ]
+        },
+        {"_id": 0}
+    ).sort("date", 1).to_list(100)
+    
+    # Find the first reminder that:
+    # 1. User hasn't viewed
+    # 2. Wasn't shown as popup today
+    for reminder in reminders:
+        reminder_id = reminder["id"]
+        viewed_by = reminder.get("viewed_by", [])
+        
+        # Skip if already viewed
+        if user_id in viewed_by:
+            continue
+        
+        # Skip if popup was shown today
+        last_popup_date = popup_history.get(reminder_id)
+        if last_popup_date == now_date:
+            continue
+        
+        # This reminder should be shown as popup
+        subject_info = subject_map.get(reminder["subject_id"], {})
+        reminder["subject_name"] = subject_info.get("name", "")
+        
+        return {"reminder": reminder}
+    
+    return {"reminder": None}
+
+
+@api_router.post("/notifications/reminders/{reminder_id}/dismiss-popup")
+async def dismiss_popup_reminder(
+    reminder_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Record that user dismissed a popup for a reminder (once per day limit)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    now_date = datetime.now(timezone.utc).date().isoformat()
+    
+    # Update user's popup history
+    await db.users.update_one(
+        {"id": user["id"]},
+        {"$set": {f"reminder_popup_history.{reminder_id}": now_date}}
+    )
+    
+    return {"message": "Popup dismissal recorded"}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
