@@ -1,128 +1,133 @@
 <analysis>**original_problem_statement:**
-The user is building a premium, multi-tenant SaaS application, EduNet, for schools in Peru. The core of the development is to implement a professional and scalable academic architecture and enrich the user experience with premium features.
+The user is building a premium, multi-tenant SaaS application, EduNet, for schools in Peru.
 
-**PRODUCT REQUIREMENTS:**
-1.  **Reorganize UX for Academic Management:** Refactor the UI to establish a clear visual and functional hierarchy, where  are managed exclusively within the context of an .
-2.  **Refactor Teacher Assignments:** Change the teacher assignment logic from being per-period to annual, simplifying the operational workflow for schools.
-3.  **Implement Subject Image Uploads:** Allow users to upload an image for each subject, including a premium, 1:1 square image cropping feature to ensure visual consistency across the application.
-4.  **Display Subject Images:** Integrate the uploaded subject images into the  and  to enhance visual identity.
-5.  **Build a Course Communication Feed:** Implement a fully functional, real-time communication feed within each course, similar to Google Classroom, allowing for posts (with text, images, files), likes, and comments.
-6.  **Implement Unified Course Content Tabs:** Extend the course feed functionality to power the Tareas (Tasks), Material de estudio (Study Material), and Foro (Forum) tabs using a single, unified data model () differentiated by a  field.
+The initial task was to implement a unified, professional system for Tareas (Tasks), Material de estudio (Study Material), and Foro (Forum) within each course, using a single  data model.
+
+Throughout the session, the user provided further requests and bug reports, including:
+1.  **Bug Fixes**:
+    *   Fix a critical crash when uploading images caused by a JavaScript .
+    *   Fix failing PDF uploads and downloads, which involved correcting the Cloudinary upload type and resolving public access permissions (401 Unauthorized error).
+2.  **Architectural Improvements**:
+    *   Ensure that when a post is deleted, its associated image or file is also deleted from Cloudinary to prevent orphaned files.
+    *   Implement strict, professional deletion rules for Años Académicos (Academic Years) to protect data integrity, preventing deletion if any related data exists.
+3.  **UI/UX Enhancements**:
+    *   Add pagination to all course feeds, showing 4 posts at a time with a Load More button.
+    *   Redesign the Años Académicos page to have a premium, modern, and professional look.
+    *   Add Edit and Delete functionality to the newly designed Academic Years page.
+    *   Improve post cards by adding a small, blue badge above the title to indicate the post type (Task, Material, etc.), similar to Google Classroom.
+    *   **Project-Wide Mandate**: Replace all basic  alerts with a single, reusable, and professional-looking confirmation modal for a consistent user experience.
 
 **User's preferred language**: Spanish. The next agent MUST respond in Spanish.
 
 **what currently exists?**
-The application features a robust and professional academic architecture.  is the primary entity, and  management is now correctly nested within the , providing a clear hierarchical UX. Teacher assignments are now annual, significantly simplifying administration. A key feature, the ability to upload images for subjects, has been implemented with a premium-level 1:1 image cropper. These images are now displayed on subject cards and the course detail page. Most significantly, the  contains a fully functional, real-time communication feed with support for posts, likes, comments, and attachments (images/files) with automatic image optimization.
+The application now features a fully functional and unified course content system for Tasks, Materials, and Forums, complete with pagination. All known bugs related to image and PDF uploads have been resolved. The backend logic for deleting posts has been enhanced to also remove associated files from Cloudinary, ensuring no orphaned data.
+
+The Años Académicos page has been completely redesigned with a premium UI and now includes robust functionality for editing and safe deletion, adhering to strict data integrity rules.
+
+A project-wide initiative to professionalize user confirmation dialogs is underway. A reusable  component has been created and implemented in several key sections of the application.
 
 **Last working item**:
--   **Last item agent was working:** The user has requested to implement a unified system for Tareas (Tasks), Material de estudio (Study Material), and Foro (Forum). This involves extending the existing  entity with a  field (, , ) and building the UI to create and view these posts within their respective tabs on the . The agent has acknowledged the request and is ready to begin implementation.
--   **Status**: NOT STARTED
--   **Agent Testing Done**: N/A
--   **Which testing method agent to use?**: both. The backend requires testing for the new  field logic in the  model and API endpoints. The frontend requires testing (using the screenshot tool) to verify that the correct posts are displayed in each tab (Tareas, Material de estudio, Foro) and that the creation modals work as expected.
+-   **Last item agent was working:** The agent was executing a project-wide refactor to replace every instance of the native  with a new, professional, and reusable component located at . The agent had already updated , , , and . The work was interrupted while updating .
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: Frontend testing agent. Once the refactoring is complete, a full regression test is required to ensure all confirmation dialogs (for deleting, publishing, confirming payments, etc.) across the entire application function correctly.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-There are no pending issues. The current focus is on new feature development.
+There are no pending issues. All bugs reported by the user in this session have been resolved. The current focus is on completing the in-progress refactoring task.
 
 **In progress Task List**:
-There are no tasks currently in progress. The next task is the implementation of the unified course content system.
+-   **Task 1: Complete Project-Wide Replacement of  (P0)**
+    -   **Where to resume**: The agent was in the middle of refactoring .
+        1.  Finish updating  by adding the necessary state and handlers for the .
+        2.  Update the final identified file: .
+        3.  Run a final  across the  directory to ensure no instances were missed.
+        4.  Run  and  to verify the stability of the entire frontend.
+    -   **What will be achieved with this?**: This will fulfill the user's mandate for a consistent, professional UX for all confirmation actions, completely removing basic browser alerts from the application.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on something**: No.
 
 **Upcoming and Future Tasks**
 *   **Upcoming Tasks:**
-    *   **P0: Implement Unified System for Tasks, Materials, and Forum:**
-        *   Modify the  model in  to include a  field (ENUM: task, material, forum).
-        *   Update the API endpoints to create and filter posts based on this .
-        *   In , implement separate views for each tab (Tareas, Material de estudio, Foro) that fetch and display the corresponding post type.
-        *   Create a unified form/modal for creating new posts, which automatically assigns the correct  based on the active tab.
-*   **Future Tasks (from PRD & user requests):**
+    *   **P0: Test Confirmation Modals:** After completing the refactor, use the  to perform a comprehensive frontend test, verifying all deletion and confirmation flows across the updated pages (, , , , , , ).
+*   **Future Tasks (from PRD & previous handoff):**
     *   **P1**: Build out the Horarios (Schedules) module.
     *   **P2**: Build out the Matrículas (Enrollments) module.
     *   **P3**: Build out the Calificaciones (Grades) module. The tab exists, but functionality is needed.
     *   **Enhancement:** On the teacher dashboard, show a count of how many subjects each teacher is assigned.
     *   **Enhancement:** Add an edit posts feature to the communication feed.
-    *   **Enhancement:** Use the subject's 1:1 cropped image as a banner or cover on the .
+    *   **Enhancement:** Use the subject's 1:1 cropped image as a banner on the .
 
 **Completed work in this session**
--   **Header Implementation & Fix (DONE):**
-    -   Added the standard  to .
-    -   Fixed a bug where the  prop was not passed, causing the header to display generic Usuario instead of the user's name, role, and photo.
--   **UX Reorganization: Academic Years & Periods (DONE):**
-    -   Refactored the UI to manage  from within the .
-    -   Removed the period management section from  and replaced it with a redirect card.
--   **Architectural Refactor: Annual Teacher Assignments (DONE):**
-    -   Modified backend models and endpoints () to use  instead of .
-    -   Updated  to reflect this change, simplifying the assignment process to be annual.
--   **Feature: Premium Subject Image Upload & Crop (DONE):**
-    -   Added functionality to upload an image for each subject in .
-    -   Integrated  to enforce a premium 1:1 square crop experience.
-    -   Updated the  model in  to include .
--   **UI Enhancement: Display Subject Images (DONE):**
-    -   Modified  to show the subject's image instead of a generic icon.
-    -   Updated  to correctly display the subject's image in the main content area.
--   **Feature: Course Communication Feed (DONE):**
-    -   Implemented a complete, real-time communication feed in .
-    -   Created backend models (, , ) and associated CRUD endpoints in .
-    -   Implemented optimistic UI updates for creating posts, liking, and commenting.
-    -   Integrated automatic image optimization (WEBP conversion and resizing) for all images uploaded to the feed.
+-   **Unified Course Content System (DONE):** Implemented a unified system for Tareas, Material de estudio, and Foro using a single  model with a  field.
+-   **Pagination for Feeds (DONE):** Added a Load More button to all course feeds, fetching 4 posts at a time.
+-   **Bug Fix - Image Upload Crash (DONE):** Resolved a  by renaming conflicting  icon imports ( -> ,  -> ).
+-   **Bug Fix - PDF Upload/Download (DONE):** Corrected the Cloudinary upload process to use  and , fixing 401 errors.
+-   **Feature - Cloudinary Orphan File Deletion (DONE):** The backend now deletes images/files from Cloudinary when a post is deleted.
+-   **UI - Premium Redesign of Academic Years (DONE):** Completely overhauled the  with a modern, professional UI.
+-   **Feature - Secure Academic Year Management (DONE):** Implemented Edit functionality and strict, professional Delete rules that prevent data loss by checking for dependencies.
+-   **UI - Post Type Badges (DONE):** Added a small, blue badge above post titles to indicate their type.
+-   **Refactor - Professional Confirmation Modal (IN PROGRESS):** Created a reusable  and began a project-wide replacement of .
+
+**Earlier issues found/mentioned but not fixed**
+None.
+
+**Known issue recurrence from previous fork**
+None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-*   **Backend**: FastAPI
-*   **Frontend**: React.js
-*   **Database**: MongoDB
-*   **Architecture**: Architectural Refactoring (annual vs. periodic assignments), Data Normalization, Master-Detail UI patterns, Unified Data Modeling ( for multiple content types).
-*   **Image Handling**: Cloudinary for storage,  for client-side cropping, automatic server-side optimization (resizing and WEBP conversion).
+*   **Project-Wide Refactoring**: Replacing a native browser function () with a custom, reusable React component for a consistent UX.
+*   **Secure Deletion Logic**: Implementing backend checks for dependencies ( endpoint) to prevent data loss and preserve integrity.
+*   **Cloudinary API**: Advanced usage of  for raw files and  for public access control to resolve 401 errors.
+*   **Component-Based State Management**: Managing multiple states for different confirmation modals within parent page components.
 
 **key DB schema**
--   **academic_assignments**: (Modified) Now stores  instead of .
--   **subjects**: (Modified) Added .
--   **course_posts**: (New) 
--   **post_likes**: (New) 
--   **post_comments**: (New) 
+-   **course_posts**: (Modified) Added  and . The  acts as an ENUM (, , , ).
+-   **academic_years**: (Modified) The  endpoint now allows updating the  field. The  endpoint has been secured with strict dependency checks.
 
 **All files of reference**
+*   **Created:**
+    *   : A new, reusable component for professional confirmation dialogs, intended to replace all  calls.
 *   **Updated:**
-    *   : Major architectural changes. Added a complete course feed system (posts, likes, comments). Modified subject and teacher assignment models and endpoints.
-    *   : Major feature implementation. A fully functional, real-time communication feed was added.
-    *   : Major feature implementation. Added a premium image upload and 1:1 cropping system.
-    *   : Heavily refactored to use annual  instead of .
-    *   : Rewritten to include period management and fix header data display.
-    *   : Refactored to remove period management.
-    *   : Fixed prop drilling for  object to ensure header displays correctly.
-    *   : Updated to reflect completed features.
+    *   : Major changes to implement the unified  system, fix Cloudinary PDF uploads, and add secure, rule-based logic for editing and deleting Academic Years.
+    *   : Major refactoring to add the unified feed tabs, pagination, bug fixes for file uploads, and a professional delete modal for posts.
+    *   : Completely rewritten for a premium redesign and to implement advanced, secure edit/delete functionality with custom modals.
+    *   , , , : Refactored to replace  with the new .
 
 **Critical Info for New Agent**
 -   **Communicate in Spanish.**
--   The immediate task (P0) is to implement the unified  system for Tareas, Material de estudio, and Foro, as detailed in the user's last message. This is an extension of the already-built course feed.
--   The user values a premium UX (like the 1:1 image crop) and scalable backend architecture (like the unified  model). Prioritize these principles.
--   The user provides very detailed, professional prompts. Follow them closely.
+-   Your immediate and highest priority task is to complete the project-wide refactor of replacing all  calls. Resume work on , then proceed to .
+-   The user has a strong and explicitly stated preference for premium and professional UI/UX. All new features and changes must adhere to this high standard. Use custom modals, thoughtful layouts, and clear user feedback.
+-   Data integrity is paramount. The strict, dependency-aware deletion rules implemented for Academic Years should be considered the standard for any future destructive actions.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Provided a detailed prompt to implement a unified system for Tasks, Materials, and Forums using a single  model with a  field. (Status: **NOT STARTED**)
-2.  **User**: Clarified that in the course detail page, the subject's main image should be in the large card area below the header, while the header itself should retain the generic book icon. (Status: **Completed**)
-3.  **User**: Requested that the subject's image be displayed on the  (in place of the icon) and on the  header. (Status: **Completed**, with clarification from the next message).
-4.  **User**: Provided a detailed prompt for a premium UX improvement: move the subject image uploader to the top of the form and implement a mandatory 1:1 square crop. (Status: **Completed**)
-5.  **User**: Requested the ability to add an image to a subject, with automatic compression and conversion to . (Status: **Completed**)
-6.  **User**: Asked if the Año Escolar 2026 data on the course detail page was hardcoded. (Status: **Completed**, agent confirmed it was from the DB and improved the logic).
-7.  **User**: Provided a detailed architectural prompt to change teacher assignments from being per-period to annual to reduce operational load. (Status: **Completed**)
-8.  **User**: Provided a detailed UX prompt to reorganize the academic menu, moving Períodos Académicos management inside the Años Académicos page for a clearer hierarchy. (Status: **Completed**)
-9.  **User**: Pointed out that the user's name, photo, and role were not showing correctly in the header on the new Años Académicos page. (Status: **Completed**)
-10. **User**: Confirmed the plan to add the header to the Años Académicos page. (Status: **Completed**)
+1.  **User**: Mandated that all  modals must be replaced with a professional, reusable modal across the entire project. (Status: **IN PROGRESS**)
+2.  **User**: Provided very strict and detailed rules for when an Academic Year can be deleted, emphasizing data integrity. (Status: **Completed**)
+3.  **User**: Asked how to edit or delete an academic year if they make a mistake. (Status: **Completed**)
+4.  **User**: Requested a premium redesign of the Años Académicos page. (Status: **Completed**)
+5.  **User**: Requested pagination for the course feed after 4 posts. (Status: **Completed**)
+6.  **User**: Reported a 401 error when trying to access an uploaded PDF, even with the correct path. (Status: **Completed**)
+7.  **User**: Reported that the uploaded PDF path looked correct but still showed an error. (Status: **Completed**)
+8.  **User**: Requested the post type label to be a small blue badge above the title. (Status: **Completed**)
+9.  **User**: Requested a label on posts in the main feed to show their origin (Task, Material, etc.). (Status: **Completed**)
+10. **User**: Reported that the PDF download link was broken. (Status: **Completed**)
 
 **Project Health Check:**
--   **Working**: The application is in an excellent, stable state. Major architectural and feature work has been successfully delivered in this session.
+-   **Working**: The application is in a stable state. All user-reported bugs have been fixed. Major features and redesigns have been successfully implemented.
 -   **Broken**: Nothing is broken.
--   **Mocked**: The tabs for Tareas, Material de estudio, and Foro inside a course are still placeholders. The next task is to make them functional. The Calificaciones tab also remains a placeholder.
+-   **Mocked**: The Archivar (Archive) action for Cerrado (Closed) academic years is a placeholder. The Horarios, Matrículas, and Calificaciones modules are still placeholders.
 
 **3rd Party Integrations**
-*   **Cloudinary**: Used for image uploads (subjects, course feed posts).
+*   **Cloudinary**: Used for image and file uploads. Now configured to handle  files (PDFs, DOCs) with  access mode.
 *   **Recharts**: Used for displaying charts.
 *   **react-image-crop**: Used for the premium 1:1 image cropping feature for subjects.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO, the agent relied on self-testing with screenshots and linting for the work in this session.
+-   **Testing agent used after significant changes**: YES, for the initial implementation of the unified course feed, which passed 100%.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
 -   **Known regressions**: None.
