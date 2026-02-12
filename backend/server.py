@@ -8110,13 +8110,16 @@ async def get_active_teachers(
 
 class CoursePostCreate(BaseModel):
     subject_id: str
+    title: Optional[str] = None  # Required for task, material, forum
     content: str = ""
+    post_type: Literal["announcement", "task", "material", "forum"] = "announcement"
     image_url: Optional[str] = None
     file_url: Optional[str] = None
     file_name: Optional[str] = None
     file_type: Optional[str] = None
 
 class CoursePostUpdate(BaseModel):
+    title: Optional[str] = None
     content: Optional[str] = None
     image_url: Optional[str] = None
     file_url: Optional[str] = None
