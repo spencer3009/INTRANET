@@ -8693,9 +8693,9 @@ async def create_course_reminder(
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    # Only teachers, admins and owners can create reminders
-    if user.get("role") not in ["teacher", "admin", "owner"]:
-        raise HTTPException(status_code=403, detail="Solo docentes pueden crear recordatorios")
+    # Only teachers, admins, directors and owners can create reminders
+    if user.get("role") not in ["teacher", "admin", "owner", "director", "coordinator"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para crear recordatorios")
     
     # Verify subject exists
     subject = await db.subjects.find_one({"id": subject_id, "school_id": user["school_id"]}, {"_id": 0})
