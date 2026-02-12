@@ -363,7 +363,7 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN REMINDERS PANEL - Premium Sidebar Component
+// MAIN REMINDERS PANEL - Soft, elegant sidebar component
 // ══════════════════════════════════════════════════════════════════════════════
 export default function CourseRemindersPanel({ subjectId, token, userRole }) {
   const [reminders, setReminders] = useState([]);
@@ -421,24 +421,28 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
   const pastReminders = activeReminders.filter(r => new Date(r.date) < now);
 
   return (
-    <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl overflow-hidden border border-rose-100 shadow-sm">
-      {/* Header */}
-      <div className="px-5 py-4 bg-gradient-to-r from-rose-500 to-pink-500 flex items-center justify-between">
-        <h4 className="font-bold text-white flex items-center gap-2">
-          <Bell className="w-4 h-4" />
+    <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm">
+      {/* Header - Soft rose gradient */}
+      <div className="px-5 py-4 bg-gradient-to-r from-rose-50 to-pink-50 border-b border-rose-100 flex items-center justify-between">
+        <h4 className="font-semibold text-gray-700 flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-rose-100 to-pink-100 rounded-lg flex items-center justify-center">
+            <Bell className="w-4 h-4 text-rose-400" />
+          </div>
           Recordatorios
         </h4>
         <div className="flex items-center gap-2">
-          <span className="px-2.5 py-1 bg-white/20 rounded-full text-white text-sm font-medium">
-            {activeReminders.length}
-          </span>
+          {activeReminders.length > 0 && (
+            <span className="px-2 py-0.5 bg-rose-100 text-rose-500 rounded-full text-xs font-medium">
+              {activeReminders.length}
+            </span>
+          )}
           {canEdit && (
             <button
               onClick={() => { setEditingReminder(null); setShowModal(true); }}
-              className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+              className="p-1.5 bg-rose-100 hover:bg-rose-200 rounded-lg transition-colors"
               title="Agregar recordatorio"
             >
-              <Plus className="w-4 h-4 text-white" />
+              <Plus className="w-4 h-4 text-rose-500" />
             </button>
           )}
         </div>
@@ -447,21 +451,21 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
       <div className="p-4">
         {loading ? (
           <div className="text-center py-6">
-            <Loader2 className="w-8 h-8 text-rose-300 animate-spin mx-auto" />
-            <p className="text-sm text-gray-400 mt-2">Cargando...</p>
+            <Loader2 className="w-6 h-6 text-gray-300 animate-spin mx-auto" />
+            <p className="text-xs text-gray-400 mt-2">Cargando...</p>
           </div>
         ) : activeReminders.length === 0 && completedReminders.length === 0 ? (
           <div className="text-center py-6">
-            <div className="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-              <Sparkles className="w-7 h-7 text-rose-300" />
+            <div className="w-12 h-12 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+              <Sparkles className="w-6 h-6 text-gray-300" />
             </div>
-            <p className="text-gray-500 text-sm font-medium">Sin recordatorios</p>
+            <p className="text-gray-400 text-sm">Sin recordatorios</p>
             {canEdit && (
               <button
                 onClick={() => setShowModal(true)}
-                className="mt-3 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all"
+                className="mt-3 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-500 text-xs font-medium rounded-lg transition-colors"
               >
-                <Plus className="w-4 h-4 inline mr-1" />
+                <Plus className="w-3 h-3 inline mr-1" />
                 Crear primero
               </button>
             )}
@@ -471,7 +475,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
             {/* Past/Overdue reminders */}
             {pastReminders.length > 0 && (
               <div className="mb-3">
-                <p className="text-xs font-bold text-red-500 uppercase mb-2 flex items-center gap-1">
+                <p className="text-[10px] font-semibold text-red-400 uppercase mb-2 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" /> Vencidos ({pastReminders.length})
                 </p>
                 <div className="space-y-2">
@@ -492,7 +496,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
             {/* Upcoming reminders */}
             {upcomingReminders.length > 0 && (
               <div>
-                <p className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
+                <p className="text-[10px] font-semibold text-gray-400 uppercase mb-2 flex items-center gap-1">
                   <Clock className="w-3 h-3" /> Próximos ({upcomingReminders.length})
                 </p>
                 <div className="space-y-2">
@@ -508,7 +512,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
                   ))}
                 </div>
                 {upcomingReminders.length > 4 && (
-                  <p className="text-xs text-center text-rose-500 font-medium mt-2">
+                  <p className="text-[10px] text-center text-gray-400 font-medium mt-2">
                     +{upcomingReminders.length - 4} más
                   </p>
                 )}
@@ -517,12 +521,12 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
 
             {/* Completed reminders toggle */}
             {completedReminders.length > 0 && (
-              <div className="pt-2 border-t border-rose-200">
+              <div className="pt-2 border-t border-gray-100">
                 <button
                   onClick={() => setShowCompleted(!showCompleted)}
-                  className="w-full py-2 text-xs font-medium text-rose-500 hover:text-rose-600 flex items-center justify-center gap-1"
+                  className="w-full py-1.5 text-[10px] font-medium text-gray-400 hover:text-gray-500 flex items-center justify-center gap-1"
                 >
-                  {showCompleted ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {showCompleted ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   Completados ({completedReminders.length})
                 </button>
                 {showCompleted && (
@@ -554,26 +558,26 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
       {/* Delete Confirmation */}
       {confirmDelete && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+          <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
             <div className="text-center">
-              <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-7 h-7 text-red-500" />
+              <div className="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-6 h-6 text-red-400" />
               </div>
-              <h3 className="text-lg font-bold text-gray-800 mb-2">¿Eliminar recordatorio?</h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Se eliminará "{confirmDelete.title}" permanentemente.
+              <h3 className="text-base font-semibold text-gray-700 mb-2">¿Eliminar recordatorio?</h3>
+              <p className="text-sm text-gray-400 mb-5">
+                Se eliminará "{confirmDelete.title}"
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmDelete(null)}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={() => handleDelete(confirmDelete)}
-                  className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors"
+                  className="flex-1 px-4 py-2.5 bg-red-400 hover:bg-red-500 text-white rounded-xl text-sm font-medium transition-colors"
                 >
                   Eliminar
                 </button>
