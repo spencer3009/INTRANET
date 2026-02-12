@@ -175,13 +175,8 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
             )}
           </div>
 
-          <button
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-slate-400 hover:text-[#001f4b] hover:bg-slate-100 transition-colors relative"
-            data-testid="header-notifications-button"
-          >
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 w-2 h-2 bg-[#e1b82c] rounded-full" />
-          </button>
+          {/* Notification Bell */}
+          <NotificationBell token={token} />
 
           {/* Profile Menu with Dropdown */}
           <div className="relative" ref={profileMenuRef}>
