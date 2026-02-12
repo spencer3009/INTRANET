@@ -228,10 +228,18 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 ---
 
 ## Última Actualización
-**Fecha**: 2025-02-11
+**Fecha**: 2025-02-12
 **Cambios recientes**:
 
-### Sesión actual (2025-02-11):
+### Sesión actual (2025-02-12):
+1. ✅ **Header estándar en página Años Académicos** - COMPLETADO
+   - Agregado `DashboardHeader` completo a `/app/frontend/src/pages/AcademicYearsPage.jsx`
+   - Props correctas: `user`, `onMenuClick`, `onLogout`, `logoUrl`, `schoolName`, `subdomain`
+   - Layout refactorizado: ahora usa `flex-1 flex flex-col` para header full-width
+   - Header sticky en parte superior, ancho completo de pantalla
+   - UI consistente con todas las demás páginas de la aplicación
+
+### Sesión anterior (2025-02-11):
 1. ✅ **Catálogo de Tipos de Sección (section_types)** - COMPLETADO
    - Nueva colección `section_types` con catálogo centralizado (A, B, C, D, E, F, ÚNICA)
    - Endpoint `GET /api/academic/section-types` con auto-seeding de catálogo por defecto
