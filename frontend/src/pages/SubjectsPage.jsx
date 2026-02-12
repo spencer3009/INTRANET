@@ -905,12 +905,6 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     </>
   );
 }
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // LEVELS VIEW - COLORFUL
