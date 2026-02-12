@@ -8632,6 +8632,8 @@ class CourseReminderCreate(BaseModel):
     description: Optional[str] = None
     date: str  # ISO date string
     reminder_type: Literal["task", "exam", "notice"] = "notice"
+    is_important: bool = False  # Mark as important for notifications
+    notify_all: bool = False  # Notify all students
 
 class CourseReminderUpdate(BaseModel):
     title: Optional[str] = None
@@ -8639,6 +8641,8 @@ class CourseReminderUpdate(BaseModel):
     date: Optional[str] = None
     reminder_type: Optional[Literal["task", "exam", "notice"]] = None
     status: Optional[Literal["active", "completed", "cancelled"]] = None
+    is_important: Optional[bool] = None
+    notify_all: Optional[bool] = None
 
 
 @api_router.get("/course/{subject_id}/reminders")
