@@ -286,6 +286,26 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
    - Archivos modificados:
      - `/app/frontend/src/pages/SubjectsPage.jsx` - Modal de recorte premium integrado
 
+6. ✅ **Feed de Comunicación del Curso (Nivel Premium)** - COMPLETADO
+   - **Sistema completo de publicaciones** tipo Google Classroom / Teams:
+     - Crear publicaciones con texto, imágenes y archivos
+     - Imágenes comprimidas automáticamente a WebP (máx. 500px, calidad 80%)
+     - Archivos adjuntos con card descargable
+   - **Sistema de reacciones (Me gusta ❤️)**:
+     - Toggle por usuario (dar/quitar)
+     - Contador visible actualizado en tiempo real
+     - Un like máximo por usuario por publicación
+   - **Sistema de comentarios**:
+     - Comentarios cronológicos por publicación
+     - Agregar comentarios sin recargar página
+     - Contador visible
+   - **Menú contextual**: Eliminar (solo autor/admin)
+   - **Actualización optimista** sin recargar página
+   - **Backend**: Nuevas colecciones `course_posts`, `post_likes`, `post_comments`
+   - Archivos modificados:
+     - `/app/frontend/src/pages/CourseDetailPage.jsx` - Componentes DashboardContent, PostCard, CreatePostModal
+     - `/app/backend/server.py` - Endpoints CRUD para posts, likes y comentarios
+
 ### Sesión anterior (2025-02-11):
 1. ✅ **Catálogo de Tipos de Sección (section_types)** - COMPLETADO
    - Nueva colección `section_types` con catálogo centralizado (A, B, C, D, E, F, ÚNICA)
