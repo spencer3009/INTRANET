@@ -241,9 +241,9 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden z-[9999]">
         {/* Header - Premium violet gradient */}
         <div className="bg-gradient-to-r from-violet-500 to-purple-500 px-6 py-5">
           <div className="flex items-center justify-between">
