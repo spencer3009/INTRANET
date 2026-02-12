@@ -1278,7 +1278,7 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
         {/* File Attachment */}
         {post.file_url && (
           <a 
-            href={getFileDownloadUrl(post.file_url, post.file_type)} 
+            href={getFileDownloadUrl(post.file_url)} 
             target="_blank" 
             rel="noopener noreferrer"
             download={post.file_name}
