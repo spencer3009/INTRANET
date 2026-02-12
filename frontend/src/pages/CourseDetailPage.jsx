@@ -871,20 +871,32 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   
   if (!isOpen) return null;
   
+  const Icon = config.icon;
+  
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800">Nueva publicación</h3>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl">
-            <X className="w-5 h-5 text-gray-500" />
+        {/* Header with type indicator */}
+        <div className={`flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gradient-to-r ${config.color}`}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <Icon className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">
+                {postType === "announcement" ? "Nueva publicación" : `Nueva ${config.label.toLowerCase()}`}
+              </h3>
+              <p className="text-xs text-white/70">{config.label}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
+            <X className="w-5 h-5 text-white" />
           </button>
         </div>
         
         {/* Content */}
-        <div className="p-5">
+        <div className="p-5 max-h-[60vh] overflow-y-auto">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
@@ -897,7 +909,7 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
             {user?.photo_url ? (
               <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+              <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${config.color} flex items-center justify-center text-white font-bold text-sm`}>
                 {user?.name?.charAt(0) || "U"}
               </div>
             )}
@@ -907,12 +919,25 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
             </div>
           </div>
           
+          {/* Title input (for task, material, forum) */}
+          {config.requiresTitle && (
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Título *"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-3"
+              data-testid="post-title-input"
+            />
+          )}
+          
           {/* Text input */}
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="¿Qué quieres compartir con tu clase?"
+            placeholder={config.placeholder}
             className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[120px]"
+            data-testid="post-content-input"
           />
           
           {/* Image Preview */}
