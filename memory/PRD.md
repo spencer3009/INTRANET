@@ -252,7 +252,7 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
      - `/app/frontend/src/pages/AcademicSettingsPage.jsx` - Eliminada categoría períodos, agregada tarjeta de redirección
 
 3. ✅ **Ajuste de Arquitectura: Asignación Docente ANUAL** - COMPLETADO
-   - **Cambio principal**: La asignación docente ahora es ANUAL, no por período
+   - **Cambio principal**: La asignación docente ahora es ANUAL (vinculada a Año Académico), no por período
    - **Frontend**: Reemplazado selector de "Período Académico" por "Año Académico"
    - **Backend**: Modelo cambiado de `period_id` a `academic_year_id`
    - **Beneficios**:
@@ -262,6 +262,16 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
    - Archivos modificados:
      - `/app/frontend/src/pages/TeacherAssignmentsPage.jsx` - Selector de año en lugar de período
      - `/app/backend/server.py` - Modelos y endpoints actualizados
+
+4. ✅ **Subida de Imagen para Asignaturas con Compresión WebP** - COMPLETADO
+   - **Nueva funcionalidad**: Ahora las asignaturas pueden tener una imagen de portada
+   - **Compresión automática**: Las imágenes se comprimen y convierten a formato WebP (reducción ~70% del peso)
+   - **Límite**: Máximo 10MB antes de compresión, se redimensiona a 800px de ancho máximo
+   - **UX**: Zona de arrastre/clic, preview de imagen, botón para eliminar/cambiar
+   - **Backend**: Campo `image_url` agregado a modelos `SubjectCreate` y `SubjectUpdate`
+   - Archivos modificados:
+     - `/app/frontend/src/pages/SubjectsPage.jsx` - Componente de subida con compresión
+     - `/app/backend/server.py` - Modelos actualizados, carpeta "edunet/subjects" habilitada en Cloudinary
 
 ### Sesión anterior (2025-02-11):
 1. ✅ **Catálogo de Tipos de Sección (section_types)** - COMPLETADO
