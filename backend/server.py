@@ -9501,6 +9501,434 @@ async def dismiss_popup_reminder(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ONLINE EXAMS MODULE - Premium Implementation
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ExamStatus(str, Enum):
+    draft = "draft"           # Created, only visible to teacher
+    scheduled = "scheduled"   # Scheduled but not visible to students
+    published = "published"   # Visible and accessible to students (within date/time)
+    closed = "closed"         # Finished, read-only
+
+
+class ExamCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    start_datetime: str  # ISO format datetime
+    end_datetime: str    # ISO format datetime
+    duration_minutes: Optional[int] = None
+    min_score_percentage: Optional[float] = 60.0
+
+
+class ExamUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    start_datetime: Optional[str] = None
+    end_datetime: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    min_score_percentage: Optional[float] = None
+    status: Optional[ExamStatus] = None
+
+
+@api_router.get("/course/{subject_id}/exams")
+async def get_course_exams(
+    subject_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get all exams for a course/subject"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Build query based on user role
+    query = {"subject_id": subject_id, "school_id": user["school_id"]}
+    
+    # Students only see published exams
+    is_student = user.get("role") == "student"
+    if is_student:
+        now = datetime.now(timezone.utc)
+        query["status"] = ExamStatus.published.value
+    
+    exams = await db.online_exams.find(query, {"_id": 0}).sort("start_datetime", 1).to_list(100)
+    
+    # For students, add availability info
+    if is_student:
+        now = datetime.now(timezone.utc)
+        for exam in exams:
+            start = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
+            end = datetime.fromisoformat(exam["end_datetime"].replace("Z", "+00:00"))
+            exam["is_available"] = start <= now <= end
+            exam["availability_message"] = None
+            if now < start:
+                exam["availability_message"] = "El examen aún no está disponible"
+            elif now > end:
+                exam["availability_message"] = "El tiempo para este examen ha finalizado"
+    
+    # Get creator info for each exam
+    creator_ids = list(set(e.get("created_by") for e in exams if e.get("created_by")))
+    creators = {}
+    if creator_ids:
+        creator_docs = await db.users.find({"id": {"$in": creator_ids}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(100)
+        creators = {c["id"]: f"{c.get('name', '')} {c.get('last_name', '')}".strip() for c in creator_docs}
+    
+    for exam in exams:
+        exam["creator_name"] = creators.get(exam.get("created_by"), "")
+        # Check if any student has taken this exam (for deletion rules)
+        attempts_count = await db.exam_attempts.count_documents({"exam_id": exam["id"]})
+        exam["has_attempts"] = attempts_count > 0
+        exam["attempts_count"] = attempts_count
+    
+    return exams
+
+
+@api_router.post("/course/{subject_id}/exams")
+async def create_exam(
+    subject_id: str,
+    data: ExamCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new exam for a course"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Only teachers and admins can create exams
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para crear exámenes")
+    
+    # Validate subject exists
+    subject = await db.subjects.find_one({"id": subject_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+    
+    # Validate dates
+    try:
+        start_dt = datetime.fromisoformat(data.start_datetime.replace("Z", "+00:00"))
+        end_dt = datetime.fromisoformat(data.end_datetime.replace("Z", "+00:00"))
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+    
+    if end_dt <= start_dt:
+        raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser posterior a la de inicio")
+    
+    # Create exam
+    exam_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    exam = {
+        "id": exam_id,
+        "school_id": user["school_id"],
+        "subject_id": subject_id,
+        "title": data.title,
+        "description": data.description or "",
+        "start_datetime": data.start_datetime,
+        "end_datetime": data.end_datetime,
+        "duration_minutes": data.duration_minutes,
+        "min_score_percentage": data.min_score_percentage or 60.0,
+        "status": ExamStatus.draft.value,
+        "created_by": user["id"],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.online_exams.insert_one(exam)
+    
+    # Remove _id for response
+    exam.pop("_id", None)
+    return exam
+
+
+@api_router.get("/exams/{exam_id}")
+async def get_exam_detail(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get exam details"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    # Students can only see published exams
+    is_student = user.get("role") == "student"
+    if is_student and exam["status"] != ExamStatus.published.value:
+        raise HTTPException(status_code=403, detail="Este examen no está disponible")
+    
+    # Get subject info
+    subject = await db.subjects.find_one({"id": exam["subject_id"]}, {"_id": 0, "name": 1, "color": 1})
+    exam["subject_name"] = subject.get("name", "") if subject else ""
+    exam["subject_color"] = subject.get("color", "#6366F1") if subject else "#6366F1"
+    
+    # Get creator info
+    if exam.get("created_by"):
+        creator = await db.users.find_one({"id": exam["created_by"]}, {"_id": 0, "name": 1, "last_name": 1})
+        exam["creator_name"] = f"{creator.get('name', '')} {creator.get('last_name', '')}".strip() if creator else ""
+    
+    # Get attempts count
+    attempts_count = await db.exam_attempts.count_documents({"exam_id": exam_id})
+    exam["has_attempts"] = attempts_count > 0
+    exam["attempts_count"] = attempts_count
+    
+    # For students, check availability
+    if is_student:
+        now = datetime.now(timezone.utc)
+        start = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
+        end = datetime.fromisoformat(exam["end_datetime"].replace("Z", "+00:00"))
+        exam["is_available"] = start <= now <= end
+    
+    return exam
+
+
+@api_router.put("/exams/{exam_id}")
+async def update_exam(
+    exam_id: str,
+    data: ExamUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update an exam"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Only teachers and admins can update exams
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para editar exámenes")
+    
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    # Cannot edit closed exams
+    if exam["status"] == ExamStatus.closed.value:
+        raise HTTPException(status_code=400, detail="No se puede editar un examen cerrado")
+    
+    # Build update data
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.title is not None:
+        update_data["title"] = data.title
+    if data.description is not None:
+        update_data["description"] = data.description
+    if data.duration_minutes is not None:
+        update_data["duration_minutes"] = data.duration_minutes
+    if data.min_score_percentage is not None:
+        update_data["min_score_percentage"] = data.min_score_percentage
+    if data.status is not None:
+        # Validate status transitions
+        current_status = exam["status"]
+        new_status = data.status.value
+        
+        # Check if exam has attempts before allowing certain transitions
+        attempts_count = await db.exam_attempts.count_documents({"exam_id": exam_id})
+        
+        if new_status == ExamStatus.draft.value and attempts_count > 0:
+            raise HTTPException(status_code=400, detail="No se puede volver a borrador un examen que ya tiene intentos")
+        
+        update_data["status"] = new_status
+    
+    # Validate dates if being updated
+    start_dt = data.start_datetime or exam["start_datetime"]
+    end_dt = data.end_datetime or exam["end_datetime"]
+    
+    if data.start_datetime is not None or data.end_datetime is not None:
+        try:
+            start = datetime.fromisoformat(start_dt.replace("Z", "+00:00"))
+            end = datetime.fromisoformat(end_dt.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+        
+        if end <= start:
+            raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser posterior a la de inicio")
+        
+        if data.start_datetime is not None:
+            update_data["start_datetime"] = data.start_datetime
+        if data.end_datetime is not None:
+            update_data["end_datetime"] = data.end_datetime
+    
+    await db.online_exams.update_one({"id": exam_id}, {"$set": update_data})
+    
+    # Return updated exam
+    updated_exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0})
+    return updated_exam
+
+
+@api_router.post("/exams/{exam_id}/publish")
+async def publish_exam(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Publish an exam (make it visible to students)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para publicar exámenes")
+    
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    if exam["status"] == ExamStatus.closed.value:
+        raise HTTPException(status_code=400, detail="No se puede publicar un examen cerrado")
+    
+    if exam["status"] == ExamStatus.published.value:
+        raise HTTPException(status_code=400, detail="El examen ya está publicado")
+    
+    await db.online_exams.update_one(
+        {"id": exam_id},
+        {"$set": {"status": ExamStatus.published.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    # Log activity
+    try:
+        activity = {
+            "id": str(uuid.uuid4()),
+            "school_id": user["school_id"],
+            "subject_id": exam["subject_id"],
+            "user_id": user["id"],
+            "user_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+            "user_photo_url": user.get("profile_image"),
+            "activity_type": "exam_scheduled",
+            "content": {
+                "exam_id": exam_id,
+                "exam_title": exam["title"]
+            },
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.course_activities.insert_one(activity)
+    except Exception as e:
+        print(f"Error logging activity: {e}")
+    
+    return {"message": "Examen publicado exitosamente", "status": ExamStatus.published.value}
+
+
+@api_router.post("/exams/{exam_id}/close")
+async def close_exam(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Close an exam (no more attempts allowed)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para cerrar exámenes")
+    
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    if exam["status"] == ExamStatus.closed.value:
+        raise HTTPException(status_code=400, detail="El examen ya está cerrado")
+    
+    await db.online_exams.update_one(
+        {"id": exam_id},
+        {"$set": {"status": ExamStatus.closed.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Examen cerrado exitosamente", "status": ExamStatus.closed.value}
+
+
+@api_router.post("/exams/{exam_id}/schedule")
+async def schedule_exam(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Schedule an exam (intermediate state before publishing)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    if exam["status"] not in [ExamStatus.draft.value]:
+        raise HTTPException(status_code=400, detail="Solo se pueden programar exámenes en estado borrador")
+    
+    await db.online_exams.update_one(
+        {"id": exam_id},
+        {"$set": {"status": ExamStatus.scheduled.value, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Examen programado exitosamente", "status": ExamStatus.scheduled.value}
+
+
+@api_router.delete("/exams/{exam_id}")
+async def delete_exam(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete an exam (with restrictions)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar exámenes")
+    
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    # Check if exam has any attempts
+    attempts_count = await db.exam_attempts.count_documents({"exam_id": exam_id})
+    if attempts_count > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"No se puede eliminar este examen porque {attempts_count} estudiante(s) ya lo han rendido. Solo puedes cerrarlo o archivarlo."
+        )
+    
+    # Cannot delete closed exams
+    if exam["status"] == ExamStatus.closed.value:
+        raise HTTPException(status_code=400, detail="No se puede eliminar un examen cerrado. Solo puedes archivarlo.")
+    
+    await db.online_exams.delete_one({"id": exam_id})
+    
+    return {"message": "Examen eliminado exitosamente"}
+
+
+@api_router.post("/exams/{exam_id}/archive")
+async def archive_exam(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Archive an exam (soft delete for closed exams or exams with attempts)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    await db.online_exams.update_one(
+        {"id": exam_id},
+        {"$set": {"is_archived": True, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Examen archivado exitosamente"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
