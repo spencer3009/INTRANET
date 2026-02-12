@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { 
   Calendar as CalendarIcon, ChevronLeft, ChevronRight, Plus, X,
   Loader2, AlertCircle, Check, Clock, Edit2, Trash2, Eye,
