@@ -527,28 +527,132 @@ function CourseRightSidebar({ teacher, students, reminders }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// DASHBOARD TAB CONTENT (TIMELINE FEED)
+// DASHBOARD TAB CONTENT (TIMELINE FEED) - FUNCTIONAL
 // ══════════════════════════════════════════════════════════════════════════════
-function DashboardContent({ posts, onCreatePost }) {
+
+// Helper to compress image to WebP (max 500px width)
+const compressImageForPost = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = document.createElement('img');
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxWidth = 500;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const webpFile = new File([blob], 'post-image.webp', { type: 'image/webp' });
+              resolve(webpFile);
+            } else {
+              reject(new Error('Failed to compress image'));
+            }
+          },
+          'image/webp',
+          0.8
+        );
+      };
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
+
+function DashboardContent({ subjectId, token, user }) {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  const loadPosts = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/course/${subjectId}/posts`, { headers });
+      setPosts(res.data.posts || []);
+    } catch (err) {
+      console.error('Error loading posts:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [subjectId, token]);
+  
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+  
+  const handlePostCreated = (newPost) => {
+    setPosts([newPost, ...posts]);
+  };
+  
+  const handlePostDeleted = (postId) => {
+    setPosts(posts.filter(p => p.id !== postId));
+  };
+  
+  const handleLikeToggle = (postId, liked, likesCount) => {
+    setPosts(posts.map(p => 
+      p.id === postId ? { ...p, user_liked: liked, likes_count: likesCount } : p
+    ));
+  };
+  
+  const handleCommentAdded = (postId) => {
+    setPosts(posts.map(p => 
+      p.id === postId ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p
+    ));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
-      {/* Create Post */}
+      {/* Create Post Input */}
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
-            U
-          </div>
+          {user?.photo_url ? (
+            <img src={user.photo_url} alt="" className="w-12 h-12 rounded-full object-cover ring-2 ring-gray-100" />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold">
+              {user?.name?.charAt(0) || "U"}
+            </div>
+          )}
           <button
-            onClick={onCreatePost}
+            onClick={() => setShowCreateModal(true)}
             className="flex-1 px-5 py-3.5 bg-gray-100 hover:bg-gray-200 rounded-xl text-left text-gray-500 font-medium transition-colors"
           >
             Comparte algo con tu clase...
           </button>
-          <button className="p-3 hover:bg-gray-100 rounded-xl transition-colors">
-            <Image className="w-5 h-5 text-gray-400" />
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="p-3 hover:bg-indigo-50 rounded-xl transition-colors group"
+          >
+            <Image className="w-5 h-5 text-gray-400 group-hover:text-indigo-500" />
           </button>
-          <button className="p-3 hover:bg-gray-100 rounded-xl transition-colors">
-            <FileText className="w-5 h-5 text-gray-400" />
+          <button 
+            onClick={() => setShowCreateModal(true)}
+            className="p-3 hover:bg-indigo-50 rounded-xl transition-colors group"
+          >
+            <Paperclip className="w-5 h-5 text-gray-400 group-hover:text-indigo-500" />
           </button>
         </div>
       </div>
@@ -560,18 +664,388 @@ function DashboardContent({ posts, onCreatePost }) {
           title="Sin publicaciones"
           description="Aún no hay publicaciones en este curso. ¡Sé el primero en compartir algo!"
           action="Crear publicación"
-          onAction={onCreatePost}
+          onAction={() => setShowCreateModal(true)}
         />
       ) : (
-        posts.map((post, idx) => (
-          <PostCard key={idx} post={post} />
+        posts.map((post) => (
+          <PostCard 
+            key={post.id} 
+            post={post} 
+            token={token}
+            currentUserId={user?.id}
+            onDelete={handlePostDeleted}
+            onLikeToggle={handleLikeToggle}
+            onCommentAdded={handleCommentAdded}
+          />
         ))
       )}
+      
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        subjectId={subjectId}
+        token={token}
+        user={user}
+        onPostCreated={handlePostCreated}
+      />
     </div>
   );
 }
 
-function PostCard({ post }) {
+// Create Post Modal
+function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreated }) {
+  const [content, setContent] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [file, setFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState("");
+  const imageInputRef = useRef(null);
+  const fileInputRef = useRef(null);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  useEffect(() => {
+    if (!isOpen) {
+      setContent("");
+      setImageFile(null);
+      setImagePreview(null);
+      setFile(null);
+      setError("");
+      setUploadProgress(0);
+    }
+  }, [isOpen]);
+  
+  const handleImageSelect = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    
+    if (!selectedFile.type.startsWith('image/')) {
+      setError('Selecciona una imagen válida');
+      return;
+    }
+    
+    if (selectedFile.size > 10 * 1024 * 1024) {
+      setError('La imagen no debe superar 10MB');
+      return;
+    }
+    
+    setImageFile(selectedFile);
+    setImagePreview(URL.createObjectURL(selectedFile));
+    setError("");
+  };
+  
+  const handleFileSelect = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      setError('El archivo no debe superar 25MB');
+      return;
+    }
+    
+    setFile(selectedFile);
+    setError("");
+  };
+  
+  const uploadToCloudinary = async (fileToUpload, folder) => {
+    const signatureRes = await axios.get(
+      `${API}/cloudinary/signature?folder=${folder}&resource_type=auto`,
+      { headers }
+    );
+    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder } = signatureRes.data;
+    
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('signature', signature);
+    formData.append('timestamp', timestamp);
+    formData.append('api_key', api_key);
+    formData.append('folder', uploadFolder);
+    
+    const uploadRes = await axios.post(
+      `https://api.cloudinary.com/v1_1/${cloud_name}/auto/upload`,
+      formData,
+      {
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(progress);
+        }
+      }
+    );
+    
+    return uploadRes.data.secure_url;
+  };
+  
+  const handleSubmit = async () => {
+    if (!content.trim() && !imageFile && !file) {
+      setError('Agrega texto, imagen o archivo');
+      return;
+    }
+    
+    setSubmitting(true);
+    setError("");
+    
+    try {
+      let imageUrl = null;
+      let fileUrl = null;
+      let fileName = null;
+      let fileType = null;
+      
+      // Upload image if present
+      if (imageFile) {
+        const compressedImage = await compressImageForPost(imageFile);
+        imageUrl = await uploadToCloudinary(compressedImage, 'edunet/posts');
+      }
+      
+      // Upload file if present
+      if (file) {
+        fileUrl = await uploadToCloudinary(file, 'edunet/posts');
+        fileName = file.name;
+        fileType = file.type;
+      }
+      
+      // Create post
+      const res = await axios.post(`${API}/course/${subjectId}/posts`, {
+        subject_id: subjectId,
+        content: content.trim(),
+        image_url: imageUrl,
+        file_url: fileUrl,
+        file_name: fileName,
+        file_type: fileType
+      }, { headers });
+      
+      onPostCreated(res.data.post);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al publicar');
+    } finally {
+      setSubmitting(false);
+      setUploadProgress(0);
+    }
+  };
+  
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="text-lg font-bold text-gray-800">Nueva publicación</h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl">
+            <X className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        
+        {/* Content */}
+        <div className="p-5">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-xl text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
+          
+          {/* Author */}
+          <div className="flex items-center gap-3 mb-4">
+            {user?.photo_url ? (
+              <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                {user?.name?.charAt(0) || "U"}
+              </div>
+            )}
+            <div>
+              <p className="font-semibold text-gray-800">{user?.name} {user?.last_name}</p>
+              <p className="text-xs text-gray-400">Publicando en el curso</p>
+            </div>
+          </div>
+          
+          {/* Text input */}
+          <textarea
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="¿Qué quieres compartir con tu clase?"
+            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-gray-700 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[120px]"
+          />
+          
+          {/* Image Preview */}
+          {imagePreview && (
+            <div className="mt-4 relative">
+              <img src={imagePreview} alt="Preview" className="w-full max-h-64 object-cover rounded-xl" />
+              <button
+                onClick={() => { setImageFile(null); setImagePreview(null); }}
+                className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+          
+          {/* File Preview */}
+          {file && (
+            <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-3">
+              <File className="w-8 h-8 text-indigo-500" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-gray-700 truncate">{file.name}</p>
+                <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
+              </div>
+              <button onClick={() => setFile(null)} className="p-1 hover:bg-gray-200 rounded">
+                <X className="w-4 h-4 text-gray-500" />
+              </button>
+            </div>
+          )}
+          
+          {/* Upload Progress */}
+          {submitting && uploadProgress > 0 && (
+            <div className="mt-4">
+              <div className="flex items-center justify-between text-sm text-gray-500 mb-1">
+                <span>Subiendo...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-indigo-500 transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Footer */}
+        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <label className="p-2 hover:bg-gray-200 rounded-xl cursor-pointer transition-colors">
+              <Image className="w-5 h-5 text-green-600" />
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+            </label>
+            <label className="p-2 hover:bg-gray-200 rounded-xl cursor-pointer transition-colors">
+              <Paperclip className="w-5 h-5 text-blue-600" />
+              <input
+                ref={fileInputRef}
+                type="file"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+            </label>
+          </div>
+          
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || (!content.trim() && !imageFile && !file)}
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white rounded-xl font-semibold transition-colors flex items-center gap-2"
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            Publicar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Post Card Component
+function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommentAdded }) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [liking, setLiking] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  const isAuthor = post.author_id === currentUserId;
+  
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "Ahora";
+    if (diffMins < 60) return `Hace ${diffMins} min`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    if (diffDays < 7) return `Hace ${diffDays} días`;
+    return date.toLocaleDateString('es-PE', { day: 'numeric', month: 'short' });
+  };
+  
+  const handleLike = async () => {
+    if (liking) return;
+    setLiking(true);
+    try {
+      const res = await axios.post(`${API}/course/posts/${post.id}/like`, {}, { headers });
+      onLikeToggle(post.id, res.data.liked, res.data.likes_count);
+    } catch (err) {
+      console.error('Error liking:', err);
+    } finally {
+      setLiking(false);
+    }
+  };
+  
+  const handleDelete = async () => {
+    if (!window.confirm('¿Eliminar esta publicación?')) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`${API}/course/posts/${post.id}`, { headers });
+      onDelete(post.id);
+    } catch (err) {
+      alert('Error al eliminar');
+    } finally {
+      setDeleting(false);
+      setShowMenu(false);
+    }
+  };
+  
+  const loadComments = async () => {
+    setLoadingComments(true);
+    try {
+      const res = await axios.get(`${API}/course/posts/${post.id}/comments`, { headers });
+      setComments(res.data);
+    } catch (err) {
+      console.error('Error loading comments:', err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+  
+  const handleToggleComments = () => {
+    if (!showComments && comments.length === 0) {
+      loadComments();
+    }
+    setShowComments(!showComments);
+  };
+  
+  const handleSubmitComment = async () => {
+    if (!newComment.trim() || submittingComment) return;
+    setSubmittingComment(true);
+    try {
+      const res = await axios.post(`${API}/course/posts/${post.id}/comments`, {
+        content: newComment.trim()
+      }, { headers });
+      setComments([...comments, res.data.comment]);
+      setNewComment("");
+      onCommentAdded(post.id);
+    } catch (err) {
+      console.error('Error commenting:', err);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
       <div className="p-5">
@@ -589,53 +1063,149 @@ function PostCard({ post }) {
             </div>
           )}
           <div className="flex-1">
-            <p className="font-bold text-gray-800">{post.author?.name || "Usuario"}</p>
-            <p className="text-sm text-gray-400">{post.date}</p>
+            <p className="font-bold text-gray-800">{post.author?.name} {post.author?.last_name}</p>
+            <p className="text-sm text-gray-400">{formatDate(post.created_at)}</p>
           </div>
-          <button className="p-2 hover:bg-gray-100 rounded-xl">
-            <MoreVertical className="w-5 h-5 text-gray-400" />
-          </button>
+          
+          {/* Menu */}
+          {isAuthor && (
+            <div className="relative">
+              <button 
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-2 hover:bg-gray-100 rounded-xl"
+              >
+                <MoreVertical className="w-5 h-5 text-gray-400" />
+              </button>
+              {showMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
+                  <div className="absolute right-0 top-10 bg-white rounded-xl shadow-xl border py-2 min-w-[140px] z-20">
+                    <button
+                      onClick={handleDelete}
+                      disabled={deleting}
+                      className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      Eliminar
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
         
         {/* Content */}
-        <div className="mb-4">
-          {post.type && (
-            <span className="inline-block px-3 py-1 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full mb-3">
-              {post.type}
-            </span>
-          )}
-          <h3 className="text-lg font-bold text-gray-800 mb-2">{post.title}</h3>
-          <p className="text-gray-600">{post.content}</p>
-        </div>
+        {post.content && (
+          <p className="text-gray-700 mb-4 whitespace-pre-wrap">{post.content}</p>
+        )}
         
-        {/* Attachment */}
-        {post.attachment && (
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-4">
+        {/* Image */}
+        {post.image_url && (
+          <div className="mb-4 rounded-xl overflow-hidden">
+            <img 
+              src={post.image_url} 
+              alt="Post" 
+              className="w-full max-h-96 object-cover"
+            />
+          </div>
+        )}
+        
+        {/* File Attachment */}
+        {post.file_url && (
+          <a 
+            href={post.file_url} 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-4 hover:bg-gray-100 transition-colors"
+          >
             <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
               <File className="w-6 h-6 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-700 truncate">{post.attachment.name}</p>
-              <p className="text-sm text-gray-400">{post.attachment.size}</p>
+              <p className="font-semibold text-gray-700 truncate">{post.file_name || "Archivo adjunto"}</p>
+              <p className="text-sm text-gray-400">Clic para descargar</p>
             </div>
-            <button className="p-2 bg-blue-500 hover:bg-blue-600 rounded-xl text-white transition-colors">
-              <Download className="w-5 h-5" />
-            </button>
-          </div>
+            <Download className="w-5 h-5 text-gray-400" />
+          </a>
         )}
       </div>
       
       {/* Actions */}
-      <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center gap-4">
-        <button className="flex items-center gap-2 text-gray-500 hover:text-rose-500 transition-colors">
-          <Heart className="w-5 h-5" />
-          <span className="text-sm font-medium">{post.likes || 0}</span>
+      <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center gap-6">
+        <button 
+          onClick={handleLike}
+          disabled={liking}
+          className={`flex items-center gap-2 transition-colors ${
+            post.user_liked ? 'text-rose-500' : 'text-gray-500 hover:text-rose-500'
+          }`}
+        >
+          <Heart className={`w-5 h-5 ${post.user_liked ? 'fill-current' : ''}`} />
+          <span className="text-sm font-medium">{post.likes_count || 0}</span>
         </button>
-        <button className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors">
+        <button 
+          onClick={handleToggleComments}
+          className="flex items-center gap-2 text-gray-500 hover:text-blue-500 transition-colors"
+        >
           <MessageSquare className="w-5 h-5" />
-          <span className="text-sm font-medium">{post.comments || 0}</span>
+          <span className="text-sm font-medium">{post.comments_count || 0}</span>
         </button>
       </div>
+      
+      {/* Comments Section */}
+      {showComments && (
+        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100">
+          {loadingComments ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+            </div>
+          ) : (
+            <>
+              {/* Comments List */}
+              <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                {comments.length === 0 ? (
+                  <p className="text-center text-gray-400 text-sm py-2">Sin comentarios aún</p>
+                ) : (
+                  comments.map(comment => (
+                    <div key={comment.id} className="flex gap-3">
+                      {comment.author?.photo_url ? (
+                        <img src={comment.author.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-400 to-gray-500 flex items-center justify-center text-white text-xs font-bold">
+                          {comment.author?.name?.charAt(0) || "U"}
+                        </div>
+                      )}
+                      <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-gray-200">
+                        <p className="text-sm font-semibold text-gray-800">{comment.author?.name}</p>
+                        <p className="text-sm text-gray-600">{comment.content}</p>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              
+              {/* Add Comment */}
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSubmitComment()}
+                  placeholder="Escribe un comentario..."
+                  className="flex-1 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <button
+                  onClick={handleSubmitComment}
+                  disabled={!newComment.trim() || submittingComment}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-300 text-white rounded-xl transition-colors"
+                >
+                  {submittingComment ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
