@@ -1093,6 +1093,16 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
   const [deleting, setDeleting] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  // Confirmation modals states
+  const [showActivateYearModal, setShowActivateYearModal] = useState(false);
+  const [yearToActivate, setYearToActivate] = useState(null);
+  const [showDeletePeriodModal, setShowDeletePeriodModal] = useState(false);
+  const [periodToDelete, setPeriodToDelete] = useState(null);
+  const [showActivatePeriodModal, setShowActivatePeriodModal] = useState(false);
+  const [periodToActivate, setPeriodToActivate] = useState(null);
+  const [deletingPeriod, setDeletingPeriod] = useState(false);
+  const [activatingPeriod, setActivatingPeriod] = useState(false);
+  
   // Detail view states
   const [selectedYear, setSelectedYear] = useState(null);
   const [periods, setPeriods] = useState([]);
