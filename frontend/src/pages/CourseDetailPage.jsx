@@ -1084,6 +1084,7 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, loading, title = "Elim
 function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommentAdded }) {
   const [showMenu, setShowMenu] = useState(false);
   const [showComments, setShowComments] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState("");
@@ -1124,17 +1125,21 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
     }
   };
   
-  const handleDelete = async () => {
-    if (!window.confirm('¿Eliminar esta publicación?')) return;
+  const handleDeleteClick = () => {
+    setShowMenu(false);
+    setShowDeleteModal(true);
+  };
+  
+  const handleDeleteConfirm = async () => {
     setDeleting(true);
     try {
       await axios.delete(`${API}/course/posts/${post.id}`, { headers });
       onDelete(post.id);
+      setShowDeleteModal(false);
     } catch (err) {
-      alert('Error al eliminar');
+      console.error('Error al eliminar:', err);
     } finally {
       setDeleting(false);
-      setShowMenu(false);
     }
   };
   
