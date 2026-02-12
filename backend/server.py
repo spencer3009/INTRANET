@@ -7227,6 +7227,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
         "weekly_hours": max(1, data.weekly_hours),
         "color": data.color,
         "status": data.status,
+        "image_url": data.image_url,
         "created_at": now,
         "updated_at": now
     }
