@@ -9,6 +9,7 @@ import logging
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict, EmailStr
 from typing import List, Optional, Literal
+from enum import Enum
 import uuid
 from datetime import datetime, timezone, timedelta
 import jwt
