@@ -97,6 +97,7 @@ function EventModal({ isOpen, onClose, event, onSave, onDelete, grades, sections
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (event) {
