@@ -4,10 +4,13 @@ import axios from "axios";
 import { 
   Bell, Plus, X, Calendar, FileText, BookOpen, AlertCircle,
   Clock, Check, MoreVertical, Edit2, Trash2, CheckCircle2,
-  ChevronDown, ChevronUp, Loader2, Sparkles
+  ChevronDown, ChevronUp, Loader2, Sparkles, Eye, BellRing
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Max characters before truncating description
+const MAX_DESCRIPTION_LENGTH = 120;
 
 // Reminder type configuration - Premium balanced colors
 const REMINDER_TYPES = {
@@ -50,53 +53,195 @@ const REMINDER_TYPES = {
 function formatDate(dateString) {
   const date = new Date(dateString);
   const now = new Date();
-  const diffDays = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+  const diffMs = date - now;
+  const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.ceil(diffMs / (1000 * 60 * 60));
   
   const options = { day: 'numeric', month: 'short' };
   const formatted = date.toLocaleDateString('es-PE', options);
   
-  if (diffDays === 0) return { text: "Hoy", formatted, isUrgent: true };
-  if (diffDays === 1) return { text: "Mañana", formatted, isUrgent: true };
+  if (diffDays === 0) return { text: "Hoy", formatted, isUrgent: true, hoursLeft: diffHours };
+  if (diffDays === 1) return { text: "Mañana", formatted, isUrgent: true, hoursLeft: diffHours };
   if (diffDays < 0) return { text: "Vencido", formatted, isPast: true };
-  if (diffDays <= 3) return { text: `En ${diffDays} días`, formatted, isUrgent: true };
+  if (diffDays <= 2) return { text: `En ${diffDays} días`, formatted, isUrgent: true, hoursLeft: diffHours };
   if (diffDays <= 7) return { text: `En ${diffDays} días`, formatted, isSoon: true };
   
   return { text: formatted, formatted, isNormal: true };
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// REMINDER CARD - Premium balanced style
+// PORTAL WRAPPER - Renders children directly to document.body
 // ══════════════════════════════════════════════════════════════════════════════
-function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
+function Portal({ children }) {
+  return createPortal(children, document.body);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REMINDER DETAIL MODAL - For viewing full content
+// ══════════════════════════════════════════════════════════════════════════════
+function ReminderDetailModal({ reminder, isOpen, onClose }) {
+  if (!isOpen || !reminder) return null;
+
+  const typeConfig = REMINDER_TYPES[reminder.reminder_type] || REMINDER_TYPES.notice;
+  const TypeIcon = typeConfig.icon;
+  const dateInfo = formatDate(reminder.date);
+
+  return (
+    <Portal>
+      <div
+        className="fixed inset-0 flex items-center justify-center p-4"
+        style={{ zIndex: 10000, position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh" }}
+        data-testid="reminder-detail-modal"
+      >
+        <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+        <div
+          className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
+          style={{ zIndex: 10001 }}
+        >
+          {/* Header */}
+          <div className={`bg-gradient-to-r ${typeConfig.color} px-6 py-5`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center`}>
+                  <TypeIcon className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 bg-white/20 text-white text-[10px] font-bold rounded uppercase">
+                      {typeConfig.label}
+                    </span>
+                    {reminder.is_important && (
+                      <span className="px-2 py-0.5 bg-amber-400 text-amber-900 text-[10px] font-bold rounded uppercase">
+                        IMPORTANTE
+                      </span>
+                    )}
+                  </div>
+                  <h2 className="text-lg font-semibold text-white mt-1">{reminder.title}</h2>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="p-6">
+            {/* Date */}
+            <div className="flex items-center gap-2 mb-4">
+              <Calendar className={`w-4 h-4 ${dateInfo.isPast ? "text-red-500" : dateInfo.isUrgent ? "text-amber-500" : "text-gray-400"}`} />
+              <span className={`text-sm font-medium ${
+                dateInfo.isPast ? "text-red-600" : dateInfo.isUrgent ? "text-amber-600" : "text-gray-600"
+              }`}>
+                {dateInfo.text} - {new Date(reminder.date).toLocaleDateString("es-PE", {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric"
+                })}
+              </span>
+              {dateInfo.isPast && (
+                <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded">VENCIDO</span>
+              )}
+            </div>
+
+            {/* Important badge */}
+            {reminder.is_important && (
+              <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-500" />
+                <span className="text-sm font-medium text-amber-700">Este recordatorio está marcado como IMPORTANTE</span>
+              </div>
+            )}
+
+            {/* Description */}
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Descripción completa</h4>
+              <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
+                {reminder.description || "Sin descripción adicional."}
+              </p>
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
+            >
+              Cerrar
+            </button>
+          </div>
+        </div>
+      </div>
+    </Portal>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REMINDER CARD - Premium balanced style with animations and "Ver completo"
+// ══════════════════════════════════════════════════════════════════════════════
+function ReminderCard({ reminder, onEdit, onDelete, onComplete, onViewFull, canEdit }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const typeConfig = REMINDER_TYPES[reminder.reminder_type] || REMINDER_TYPES.notice;
   const Icon = typeConfig.icon;
   const dateInfo = formatDate(reminder.date);
   const isCompleted = reminder.status === "completed";
+  const isImportant = reminder.is_important;
+  
+  // Check if description needs truncating
+  const description = reminder.description || "";
+  const needsTruncation = description.length > MAX_DESCRIPTION_LENGTH;
+  const truncatedDescription = needsTruncation 
+    ? description.substring(0, MAX_DESCRIPTION_LENGTH) + "..." 
+    : description;
+  
+  // Determine if we should animate (urgent within 48h)
+  const shouldAnimate = !isCompleted && (dateInfo.isUrgent || dateInfo.isPast);
   
   return (
     <div 
       className={`group relative bg-white rounded-xl overflow-hidden transition-all duration-200
         ${isCompleted ? "opacity-50" : ""}
-        border ${typeConfig.borderColor}
-        hover:shadow-md hover:border-violet-200`}
+        ${isImportant && !isCompleted ? "ring-2 ring-amber-300" : ""}
+        border ${dateInfo.isPast && !isCompleted ? "border-red-300" : dateInfo.isUrgent && !isCompleted ? "border-amber-300" : typeConfig.borderColor}
+        hover:shadow-md hover:border-violet-200
+        ${shouldAnimate ? "animate-subtle-pulse" : ""}`}
+      data-testid={`reminder-card-${reminder.id}`}
     >
       {/* Color accent bar */}
-      <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${typeConfig.color}`} />
+      <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${
+        dateInfo.isPast && !isCompleted ? "from-red-500 to-red-600" : 
+        dateInfo.isUrgent && !isCompleted ? "from-amber-500 to-orange-500" : 
+        typeConfig.color
+      }`} />
       
       <div className="pl-4 pr-3 py-3">
         <div className="flex items-start gap-3">
           {/* Type icon */}
-          <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${typeConfig.iconBg} flex items-center justify-center`}>
-            <Icon className={`w-4 h-4 ${typeConfig.iconColor}`} />
+          <div className={`flex-shrink-0 w-9 h-9 rounded-lg ${
+            isImportant && !isCompleted ? "bg-amber-100" : typeConfig.iconBg
+          } flex items-center justify-center`}>
+            {isImportant && !isCompleted ? (
+              <AlertCircle className="w-4 h-4 text-amber-600" />
+            ) : (
+              <Icon className={`w-4 h-4 ${typeConfig.iconColor}`} />
+            )}
           </div>
           
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Type badge */}
-            <span className={`inline-block px-2 py-0.5 ${typeConfig.badgeBg} text-white text-[9px] font-bold rounded uppercase mb-1`}>
-              {typeConfig.label}
-            </span>
+            {/* Badges row */}
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className={`inline-block px-2 py-0.5 ${typeConfig.badgeBg} text-white text-[9px] font-bold rounded uppercase`}>
+                {typeConfig.label}
+              </span>
+              {isImportant && !isCompleted && (
+                <span className="inline-block px-2 py-0.5 bg-amber-500 text-white text-[9px] font-bold rounded uppercase animate-pulse">
+                  IMPORTANTE
+                </span>
+              )}
+            </div>
             
             {/* Title */}
             <h4 className={`font-semibold text-gray-800 text-sm leading-tight ${isCompleted ? "line-through text-gray-400" : ""}`}>
@@ -104,13 +249,25 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
             </h4>
             
             {/* Description */}
-            {reminder.description && (
-              <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{reminder.description}</p>
+            {description && (
+              <div className="mt-0.5">
+                <p className="text-xs text-gray-500 line-clamp-2">{truncatedDescription}</p>
+                {needsTruncation && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onViewFull?.(reminder); }}
+                    className="text-xs text-violet-600 hover:text-violet-700 font-medium mt-0.5 flex items-center gap-1"
+                    data-testid="view-full-btn"
+                  >
+                    <Eye className="w-3 h-3" />
+                    Ver completo
+                  </button>
+                )}
+              </div>
             )}
             
             {/* Date */}
             <div className="flex items-center gap-2 mt-1.5">
-              <Calendar className={`w-3 h-3 ${dateInfo.isPast ? "text-red-500" : "text-gray-400"}`} />
+              <Calendar className={`w-3 h-3 ${dateInfo.isPast ? "text-red-500" : dateInfo.isUrgent ? "text-amber-500" : "text-gray-400"}`} />
               <span className={`text-xs font-medium ${
                 dateInfo.isPast ? "text-red-500" : 
                 dateInfo.isUrgent ? "text-amber-600" : 
@@ -119,7 +276,7 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
                 {dateInfo.text}
               </span>
               {dateInfo.isPast && !isCompleted && (
-                <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[9px] font-bold rounded">
+                <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[9px] font-bold rounded animate-pulse">
                   VENCIDO
                 </span>
               )}
@@ -173,15 +330,19 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
           )}
         </div>
       </div>
+
+      {/* CSS for subtle animation */}
+      <style>{`
+        @keyframes subtle-pulse {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+          50% { box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.2); }
+        }
+        .animate-subtle-pulse {
+          animation: subtle-pulse 2s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// PORTAL WRAPPER - Renders children directly to document.body
-// ══════════════════════════════════════════════════════════════════════════════
-function Portal({ children }) {
-  return createPortal(children, document.body);
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
