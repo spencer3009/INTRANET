@@ -12,7 +12,8 @@ import {
   ArrowLeft, AlertCircle, File as FileIcon, Image as ImageIcon, 
   FileVideo, Heart, MessageSquare, 
   ChevronDown, ChevronUp, User, GraduationCap,
-  PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip
+  PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
+  Activity, Megaphone, CheckCircle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
