@@ -263,20 +263,26 @@ function CreateYearModal({ isOpen, onClose, token, existingYears, onSuccess }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
-export default function AcademicYearsPage({ token, subdomain, onLogout }) {
+export default function AcademicYearsPage({ token, user, subdomain, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [years, setYears] = useState([]);
+  const [settings, setSettings] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activating, setActivating] = useState(null);
   const [deleting, setDeleting] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
   
   const loadYears = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/academic/years`, { headers });
-      setYears(res.data);
+      const [yearsRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/academic/years`, { headers }),
+        axios.get(`${API}/settings`, { headers }).catch(() => ({ data: {} }))
+      ]);
+      setYears(yearsRes.data);
+      setSettings(settingsRes.data);
     } catch (err) {
       console.error("Error loading years:", err);
     } finally {
