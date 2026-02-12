@@ -1027,7 +1027,6 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   useEffect(() => {
     if (selectedCategory === "secciones") loadSections();
     if (selectedCategory === "turnos") loadShifts();
-    if (selectedCategory === "periodos") loadPeriods();
   }, [selectedCategory]);
 
   const loadSections = async () => {
