@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
@@ -7,7 +7,7 @@ import {
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
   Users, Search, ChevronRight, Clock, MoreVertical,
   GraduationCap, Home, ArrowLeft, User, Power, PowerOff,
-  Sparkles, Star, Zap
+  Sparkles, Star, Zap, Image, Upload, Trash2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
