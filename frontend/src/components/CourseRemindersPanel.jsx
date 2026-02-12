@@ -1,0 +1,581 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { 
+  Bell, Plus, X, Calendar, FileText, BookOpen, AlertCircle,
+  Clock, Check, MoreVertical, Edit2, Trash2, CheckCircle2,
+  ChevronDown, ChevronUp, Loader2, Sparkles
+} from "lucide-react";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Reminder type configuration
+const REMINDER_TYPES = {
+  task: {
+    label: "Tarea",
+    icon: FileText,
+    color: "from-blue-500 to-indigo-500",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    textColor: "text-blue-600",
+    badgeBg: "bg-blue-500"
+  },
+  exam: {
+    label: "Examen",
+    icon: BookOpen,
+    color: "from-rose-500 to-pink-500",
+    bgColor: "bg-rose-50",
+    borderColor: "border-rose-200",
+    textColor: "text-rose-600",
+    badgeBg: "bg-rose-500"
+  },
+  notice: {
+    label: "Aviso",
+    icon: Bell,
+    color: "from-amber-500 to-orange-500",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
+    textColor: "text-amber-600",
+    badgeBg: "bg-amber-500"
+  }
+};
+
+// Format date for display
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffDays = Math.ceil((date - now) / (1000 * 60 * 60 * 24));
+  
+  const options = { day: 'numeric', month: 'short' };
+  const formatted = date.toLocaleDateString('es-PE', options);
+  
+  if (diffDays === 0) return { text: "Hoy", formatted, isUrgent: true };
+  if (diffDays === 1) return { text: "Mañana", formatted, isUrgent: true };
+  if (diffDays < 0) return { text: "Vencido", formatted, isPast: true };
+  if (diffDays <= 3) return { text: `En ${diffDays} días`, formatted, isUrgent: true };
+  if (diffDays <= 7) return { text: `En ${diffDays} días`, formatted, isSoon: true };
+  
+  return { text: formatted, formatted, isNormal: true };
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REMINDER CARD - Premium Style
+// ══════════════════════════════════════════════════════════════════════════════
+function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const typeConfig = REMINDER_TYPES[reminder.reminder_type] || REMINDER_TYPES.notice;
+  const Icon = typeConfig.icon;
+  const dateInfo = formatDate(reminder.date);
+  const isCompleted = reminder.status === "completed";
+  
+  return (
+    <div 
+      className={`group relative rounded-2xl overflow-hidden transition-all duration-300
+        ${isCompleted ? "opacity-60" : ""}
+        ${typeConfig.bgColor} border ${typeConfig.borderColor}
+        hover:shadow-lg hover:-translate-y-0.5`}
+    >
+      {/* Color accent */}
+      <div className={`absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b ${typeConfig.color}`} />
+      
+      <div className="pl-5 pr-4 py-4">
+        <div className="flex items-start gap-3">
+          {/* Type icon */}
+          <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br ${typeConfig.color} flex items-center justify-center shadow-lg`}>
+            <Icon className="w-5 h-5 text-white" />
+          </div>
+          
+          {/* Content */}
+          <div className="flex-1 min-w-0">
+            {/* Type badge */}
+            <span className={`inline-block px-2 py-0.5 ${typeConfig.badgeBg} text-white text-[10px] font-bold rounded-full uppercase mb-1`}>
+              {typeConfig.label}
+            </span>
+            
+            {/* Title */}
+            <h4 className={`font-bold text-gray-800 text-sm leading-tight ${isCompleted ? "line-through" : ""}`}>
+              {reminder.title}
+            </h4>
+            
+            {/* Description */}
+            {reminder.description && (
+              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{reminder.description}</p>
+            )}
+            
+            {/* Date */}
+            <div className="flex items-center gap-2 mt-2">
+              <Calendar className={`w-3.5 h-3.5 ${typeConfig.textColor}`} />
+              <span className={`text-xs font-semibold ${
+                dateInfo.isPast ? "text-red-500" : 
+                dateInfo.isUrgent ? "text-amber-600" : 
+                typeConfig.textColor
+              }`}>
+                {dateInfo.text}
+              </span>
+              {dateInfo.isPast && !isCompleted && (
+                <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded">
+                  VENCIDO
+                </span>
+              )}
+              {isCompleted && (
+                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded flex items-center gap-1">
+                  <Check className="w-3 h-3" /> COMPLETADO
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* Actions menu */}
+          {canEdit && !isCompleted && (
+            <div className="relative">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all opacity-0 group-hover:opacity-100"
+              >
+                <MoreVertical className="w-4 h-4" />
+              </button>
+              
+              {menuOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                  <div className="absolute right-0 top-10 z-20 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 w-40">
+                    <button
+                      onClick={() => { setMenuOpen(false); onComplete?.(reminder); }}
+                      className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 flex items-center gap-2"
+                    >
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <span>Completar</span>
+                    </button>
+                    <button
+                      onClick={() => { setMenuOpen(false); onEdit?.(reminder); }}
+                      className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2"
+                    >
+                      <Edit2 className="w-4 h-4 text-blue-500" />
+                      <span>Editar</span>
+                    </button>
+                    <button
+                      onClick={() => { setMenuOpen(false); onDelete?.(reminder); }}
+                      className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CREATE/EDIT REMINDER MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    date: "",
+    reminder_type: "task"
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (isOpen) {
+      if (reminder) {
+        setFormData({
+          title: reminder.title || "",
+          description: reminder.description || "",
+          date: reminder.date?.split('T')[0] || "",
+          reminder_type: reminder.reminder_type || "task"
+        });
+      } else {
+        // Default to tomorrow
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        setFormData({
+          title: "",
+          description: "",
+          date: tomorrow.toISOString().split('T')[0],
+          reminder_type: "task"
+        });
+      }
+      setError("");
+    }
+  }, [isOpen, reminder]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.title.trim()) {
+      setError("El título es requerido");
+      return;
+    }
+    if (!formData.date) {
+      setError("La fecha es requerida");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await onSave({
+        ...formData,
+        subject_id: subjectId
+      }, reminder?.id);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 px-6 py-5 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+          <div className="relative flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                <Bell className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">
+                  {reminder ? "Editar Recordatorio" : "Nuevo Recordatorio"}
+                </h2>
+                <p className="text-sm text-white/70">Visible para todos los estudiantes</p>
+              </div>
+            </div>
+            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl transition-colors">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6">
+          {error && (
+            <div className="mb-5 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              <span className="text-sm font-medium">{error}</span>
+            </div>
+          )}
+
+          {/* Type selector */}
+          <div className="mb-5">
+            <label className="block text-sm font-bold text-gray-700 mb-3">Tipo de Recordatorio</label>
+            <div className="grid grid-cols-3 gap-2">
+              {Object.entries(REMINDER_TYPES).map(([key, config]) => {
+                const TypeIcon = config.icon;
+                const isSelected = formData.reminder_type === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, reminder_type: key }))}
+                    className={`p-3 rounded-xl border-2 transition-all ${
+                      isSelected 
+                        ? `${config.borderColor} ${config.bgColor}` 
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${config.color} flex items-center justify-center mx-auto mb-2`}>
+                      <TypeIcon className="w-5 h-5 text-white" />
+                    </div>
+                    <span className={`text-xs font-bold ${isSelected ? config.textColor : "text-gray-500"}`}>
+                      {config.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Title */}
+          <div className="mb-4">
+            <label className="block text-sm font-bold text-gray-700 mb-2">Título *</label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+              placeholder="Ej: Entrega de proyecto final"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Date */}
+          <div className="mb-4">
+            <label className="block text-sm font-bold text-gray-700 mb-2">Fecha *</label>
+            <input
+              type="date"
+              value={formData.date}
+              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Description */}
+          <div className="mb-5">
+            <label className="block text-sm font-bold text-gray-700 mb-2">Descripción (opcional)</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+              placeholder="Detalles adicionales del recordatorio..."
+              rows={3}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-5 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-pink-500/25"
+            >
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {reminder ? "Actualizar" : "Crear"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN REMINDERS PANEL - Premium Sidebar Component
+// ══════════════════════════════════════════════════════════════════════════════
+export default function CourseRemindersPanel({ subjectId, token, userRole }) {
+  const [reminders, setReminders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingReminder, setEditingReminder] = useState(null);
+  const [showCompleted, setShowCompleted] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
+
+  const headers = { Authorization: `Bearer ${token}` };
+  const canEdit = ["teacher", "admin", "owner"].includes(userRole);
+
+  useEffect(() => {
+    loadReminders();
+  }, [subjectId]);
+
+  const loadReminders = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/course/${subjectId}/reminders`, { headers });
+      setReminders(res.data);
+    } catch (err) {
+      console.error("Error loading reminders:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async (data, reminderId) => {
+    if (reminderId) {
+      await axios.put(`${API}/course/reminders/${reminderId}`, data, { headers });
+    } else {
+      await axios.post(`${API}/course/${subjectId}/reminders`, data, { headers });
+    }
+    loadReminders();
+  };
+
+  const handleComplete = async (reminder) => {
+    await axios.post(`${API}/course/reminders/${reminder.id}/complete`, {}, { headers });
+    loadReminders();
+  };
+
+  const handleDelete = async (reminder) => {
+    await axios.delete(`${API}/course/reminders/${reminder.id}`, { headers });
+    setConfirmDelete(null);
+    loadReminders();
+  };
+
+  const activeReminders = reminders.filter(r => r.status === "active");
+  const completedReminders = reminders.filter(r => r.status === "completed");
+
+  // Separate upcoming and past
+  const now = new Date();
+  const upcomingReminders = activeReminders.filter(r => new Date(r.date) >= now);
+  const pastReminders = activeReminders.filter(r => new Date(r.date) < now);
+
+  return (
+    <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl overflow-hidden border border-rose-100 shadow-sm">
+      {/* Header */}
+      <div className="px-5 py-4 bg-gradient-to-r from-rose-500 to-pink-500 flex items-center justify-between">
+        <h4 className="font-bold text-white flex items-center gap-2">
+          <Bell className="w-4 h-4" />
+          Recordatorios
+        </h4>
+        <div className="flex items-center gap-2">
+          <span className="px-2.5 py-1 bg-white/20 rounded-full text-white text-sm font-medium">
+            {activeReminders.length}
+          </span>
+          {canEdit && (
+            <button
+              onClick={() => { setEditingReminder(null); setShowModal(true); }}
+              className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+              title="Agregar recordatorio"
+            >
+              <Plus className="w-4 h-4 text-white" />
+            </button>
+          )}
+        </div>
+      </div>
+      
+      <div className="p-4">
+        {loading ? (
+          <div className="text-center py-6">
+            <Loader2 className="w-8 h-8 text-rose-300 animate-spin mx-auto" />
+            <p className="text-sm text-gray-400 mt-2">Cargando...</p>
+          </div>
+        ) : activeReminders.length === 0 && completedReminders.length === 0 ? (
+          <div className="text-center py-6">
+            <div className="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <Sparkles className="w-7 h-7 text-rose-300" />
+            </div>
+            <p className="text-gray-500 text-sm font-medium">Sin recordatorios</p>
+            {canEdit && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="mt-3 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white text-sm font-semibold rounded-xl hover:shadow-lg transition-all"
+              >
+                <Plus className="w-4 h-4 inline mr-1" />
+                Crear primero
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {/* Past/Overdue reminders */}
+            {pastReminders.length > 0 && (
+              <div className="mb-3">
+                <p className="text-xs font-bold text-red-500 uppercase mb-2 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" /> Vencidos ({pastReminders.length})
+                </p>
+                <div className="space-y-2">
+                  {pastReminders.map(reminder => (
+                    <ReminderCard
+                      key={reminder.id}
+                      reminder={reminder}
+                      canEdit={canEdit}
+                      onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
+                      onDelete={() => setConfirmDelete(reminder)}
+                      onComplete={() => handleComplete(reminder)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming reminders */}
+            {upcomingReminders.length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase mb-2 flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> Próximos ({upcomingReminders.length})
+                </p>
+                <div className="space-y-2">
+                  {upcomingReminders.slice(0, 4).map(reminder => (
+                    <ReminderCard
+                      key={reminder.id}
+                      reminder={reminder}
+                      canEdit={canEdit}
+                      onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
+                      onDelete={() => setConfirmDelete(reminder)}
+                      onComplete={() => handleComplete(reminder)}
+                    />
+                  ))}
+                </div>
+                {upcomingReminders.length > 4 && (
+                  <p className="text-xs text-center text-rose-500 font-medium mt-2">
+                    +{upcomingReminders.length - 4} más
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Completed reminders toggle */}
+            {completedReminders.length > 0 && (
+              <div className="pt-2 border-t border-rose-200">
+                <button
+                  onClick={() => setShowCompleted(!showCompleted)}
+                  className="w-full py-2 text-xs font-medium text-rose-500 hover:text-rose-600 flex items-center justify-center gap-1"
+                >
+                  {showCompleted ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  Completados ({completedReminders.length})
+                </button>
+                {showCompleted && (
+                  <div className="space-y-2 mt-2">
+                    {completedReminders.map(reminder => (
+                      <ReminderCard
+                        key={reminder.id}
+                        reminder={reminder}
+                        canEdit={false}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Create/Edit Modal */}
+      <ReminderModal
+        isOpen={showModal}
+        onClose={() => { setShowModal(false); setEditingReminder(null); }}
+        reminder={editingReminder}
+        onSave={handleSave}
+        subjectId={subjectId}
+      />
+
+      {/* Delete Confirmation */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+            <div className="text-center">
+              <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Trash2 className="w-7 h-7 text-red-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">¿Eliminar recordatorio?</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Se eliminará "{confirmDelete.title}" permanentemente.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDelete(null)}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => handleDelete(confirmDelete)}
+                  className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold transition-colors"
+                >
+                  Eliminar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
