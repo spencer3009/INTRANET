@@ -8132,11 +8132,12 @@ class PostCommentCreate(BaseModel):
 @api_router.get("/course/{subject_id}/posts")
 async def get_course_posts(
     subject_id: str,
+    post_type: Optional[str] = Query(None, description="Filter by type: announcement, task, material, forum"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     current_user = Depends(get_current_user)
 ):
-    """Get all posts for a course/subject"""
+    """Get all posts for a course/subject, optionally filtered by type"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -8149,16 +8150,21 @@ async def get_course_posts(
     if not subject:
         raise HTTPException(status_code=404, detail="Asignatura no encontrada")
     
+    # Build query filter
+    query_filter = {"subject_id": subject_id, "school_id": school_id, "status": "active"}
+    
+    # Filter by type if specified
+    if post_type and post_type in ["announcement", "task", "material", "forum"]:
+        query_filter["post_type"] = post_type
+    
     # Get posts
     posts = await db.course_posts.find(
-        {"subject_id": subject_id, "school_id": school_id, "status": "active"},
+        query_filter,
         {"_id": 0}
     ).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
     
     # Get total count
-    total = await db.course_posts.count_documents(
-        {"subject_id": subject_id, "school_id": school_id, "status": "active"}
-    )
+    total = await db.course_posts.count_documents(query_filter)
     
     # Enrich posts with author info, likes count, user's like status, and comments count
     for post in posts:
