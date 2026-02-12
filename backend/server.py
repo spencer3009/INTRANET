@@ -9929,6 +9929,357 @@ async def archive_exam(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# EXAM QUESTIONS MODULE - Premium Implementation
+# ══════════════════════════════════════════════════════════════════════════════
+
+class QuestionType(str, Enum):
+    multiple_choice = "multiple_choice"  # Opción múltiple
+    true_false = "true_false"            # Verdadero/Falso
+    fill_blanks = "fill_blanks"          # Espacios en blanco
+
+
+class QuestionOption(BaseModel):
+    id: str
+    text: str
+    is_correct: bool = False
+
+
+class QuestionCreate(BaseModel):
+    question_type: QuestionType
+    question_text: str
+    points: float = 1.0
+    options: Optional[List[dict]] = None  # For multiple choice
+    correct_answer: Optional[str] = None  # For true/false: "true"/"false", for fill_blanks: comma-separated words
+
+
+class QuestionUpdate(BaseModel):
+    question_type: Optional[QuestionType] = None
+    question_text: Optional[str] = None
+    points: Optional[float] = None
+    options: Optional[List[dict]] = None
+    correct_answer: Optional[str] = None
+    order: Optional[int] = None
+
+
+@api_router.get("/exams/{exam_id}/questions")
+async def get_exam_questions(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get all questions for an exam"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Verify exam exists and user has access
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    # Get questions ordered
+    questions = await db.exam_questions.find(
+        {"exam_id": exam_id},
+        {"_id": 0}
+    ).sort("order", 1).to_list(200)
+    
+    # For students taking the exam, hide correct answers
+    is_student = user.get("role") == "student"
+    if is_student:
+        for q in questions:
+            # Hide correct answer
+            q.pop("correct_answer", None)
+            # For multiple choice, hide which option is correct
+            if q.get("options"):
+                for opt in q["options"]:
+                    opt.pop("is_correct", None)
+    
+    return questions
+
+
+@api_router.post("/exams/{exam_id}/questions")
+async def create_exam_question(
+    exam_id: str,
+    data: QuestionCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new question for an exam"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para crear preguntas")
+    
+    # Verify exam exists
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    # Cannot add questions to closed exams
+    if exam["status"] == ExamStatus.closed.value:
+        raise HTTPException(status_code=400, detail="No se pueden agregar preguntas a un examen cerrado")
+    
+    # Validate based on question type
+    if data.question_type == QuestionType.multiple_choice:
+        if not data.options or len(data.options) < 2:
+            raise HTTPException(status_code=400, detail="Las preguntas de opción múltiple requieren al menos 2 opciones")
+        # Check at least one correct answer
+        has_correct = any(opt.get("is_correct") for opt in data.options)
+        if not has_correct:
+            raise HTTPException(status_code=400, detail="Debe marcar al menos una respuesta correcta")
+    
+    elif data.question_type == QuestionType.true_false:
+        if not data.correct_answer or data.correct_answer not in ["true", "false"]:
+            raise HTTPException(status_code=400, detail="Debe indicar si la respuesta es verdadero o falso")
+    
+    elif data.question_type == QuestionType.fill_blanks:
+        if "_" not in data.question_text:
+            raise HTTPException(status_code=400, detail="La pregunta debe contener al menos un espacio en blanco marcado con '_'")
+        if not data.correct_answer:
+            raise HTTPException(status_code=400, detail="Debe proporcionar las palabras correctas separadas por coma")
+    
+    # Get next order number
+    last_question = await db.exam_questions.find_one(
+        {"exam_id": exam_id},
+        sort=[("order", -1)]
+    )
+    next_order = (last_question.get("order", 0) + 1) if last_question else 1
+    
+    # Create question
+    question_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Process options for multiple choice
+    options = None
+    if data.question_type == QuestionType.multiple_choice and data.options:
+        options = []
+        for i, opt in enumerate(data.options):
+            options.append({
+                "id": str(uuid.uuid4()),
+                "text": opt.get("text", ""),
+                "is_correct": opt.get("is_correct", False)
+            })
+    
+    question = {
+        "id": question_id,
+        "exam_id": exam_id,
+        "school_id": user["school_id"],
+        "question_type": data.question_type.value,
+        "question_text": data.question_text,
+        "points": data.points,
+        "options": options,
+        "correct_answer": data.correct_answer,
+        "order": next_order,
+        "created_by": user["id"],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.exam_questions.insert_one(question)
+    
+    # Update exam total points
+    await update_exam_total_points(exam_id)
+    
+    question.pop("_id", None)
+    return question
+
+
+async def update_exam_total_points(exam_id: str):
+    """Recalculate and update exam total points"""
+    pipeline = [
+        {"$match": {"exam_id": exam_id}},
+        {"$group": {"_id": None, "total": {"$sum": "$points"}}}
+    ]
+    result = await db.exam_questions.aggregate(pipeline).to_list(1)
+    total_points = result[0]["total"] if result else 0
+    
+    await db.online_exams.update_one(
+        {"id": exam_id},
+        {"$set": {"total_points": total_points, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+
+
+@api_router.put("/exams/questions/{question_id}")
+async def update_exam_question(
+    question_id: str,
+    data: QuestionUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update an exam question"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para editar preguntas")
+    
+    question = await db.exam_questions.find_one({"id": question_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not question:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    
+    # Check exam is not closed
+    exam = await db.online_exams.find_one({"id": question["exam_id"]}, {"_id": 0})
+    if exam and exam["status"] == ExamStatus.closed.value:
+        raise HTTPException(status_code=400, detail="No se pueden editar preguntas de un examen cerrado")
+    
+    # Build update
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.question_type is not None:
+        update_data["question_type"] = data.question_type.value
+    if data.question_text is not None:
+        update_data["question_text"] = data.question_text
+    if data.points is not None:
+        update_data["points"] = data.points
+    if data.correct_answer is not None:
+        update_data["correct_answer"] = data.correct_answer
+    if data.order is not None:
+        update_data["order"] = data.order
+    if data.options is not None:
+        # Process options
+        options = []
+        for opt in data.options:
+            options.append({
+                "id": opt.get("id") or str(uuid.uuid4()),
+                "text": opt.get("text", ""),
+                "is_correct": opt.get("is_correct", False)
+            })
+        update_data["options"] = options
+    
+    await db.exam_questions.update_one({"id": question_id}, {"$set": update_data})
+    
+    # Update exam total points
+    await update_exam_total_points(question["exam_id"])
+    
+    updated = await db.exam_questions.find_one({"id": question_id}, {"_id": 0})
+    return updated
+
+
+@api_router.delete("/exams/questions/{question_id}")
+async def delete_exam_question(
+    question_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete an exam question"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar preguntas")
+    
+    question = await db.exam_questions.find_one({"id": question_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not question:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    
+    # Check exam is not closed
+    exam = await db.online_exams.find_one({"id": question["exam_id"]}, {"_id": 0})
+    if exam and exam["status"] == ExamStatus.closed.value:
+        raise HTTPException(status_code=400, detail="No se pueden eliminar preguntas de un examen cerrado")
+    
+    exam_id = question["exam_id"]
+    await db.exam_questions.delete_one({"id": question_id})
+    
+    # Update exam total points
+    await update_exam_total_points(exam_id)
+    
+    # Reorder remaining questions
+    remaining = await db.exam_questions.find({"exam_id": exam_id}).sort("order", 1).to_list(200)
+    for i, q in enumerate(remaining):
+        await db.exam_questions.update_one({"id": q["id"]}, {"$set": {"order": i + 1}})
+    
+    return {"message": "Pregunta eliminada exitosamente"}
+
+
+@api_router.post("/exams/questions/{question_id}/reorder")
+async def reorder_exam_question(
+    question_id: str,
+    new_order: int,
+    current_user = Depends(get_current_user)
+):
+    """Reorder a question within an exam"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    question = await db.exam_questions.find_one({"id": question_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not question:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    
+    exam_id = question["exam_id"]
+    old_order = question["order"]
+    
+    if new_order == old_order:
+        return {"message": "Sin cambios"}
+    
+    # Get all questions for this exam
+    questions = await db.exam_questions.find({"exam_id": exam_id}).sort("order", 1).to_list(200)
+    
+    # Reorder
+    if new_order < old_order:
+        # Moving up
+        for q in questions:
+            if q["order"] >= new_order and q["order"] < old_order:
+                await db.exam_questions.update_one({"id": q["id"]}, {"$set": {"order": q["order"] + 1}})
+    else:
+        # Moving down
+        for q in questions:
+            if q["order"] > old_order and q["order"] <= new_order:
+                await db.exam_questions.update_one({"id": q["id"]}, {"$set": {"order": q["order"] - 1}})
+    
+    # Set new order for moved question
+    await db.exam_questions.update_one({"id": question_id}, {"$set": {"order": new_order}})
+    
+    return {"message": "Orden actualizado"}
+
+
+@api_router.get("/exams/{exam_id}/full")
+async def get_exam_full_detail(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get full exam details including subject info and questions count"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    # Get subject info
+    subject = await db.subjects.find_one({"id": exam["subject_id"]}, {"_id": 0})
+    if subject:
+        exam["subject_name"] = subject.get("name", "")
+        exam["subject_color"] = subject.get("color", "#6366F1")
+        
+        # Get grade info
+        if subject.get("grade_id"):
+            grade = await db.grades.find_one({"id": subject["grade_id"]}, {"_id": 0})
+            exam["grade_name"] = grade.get("nombre", "") if grade else ""
+        
+        # Get level info
+        if subject.get("level_id"):
+            level = await db.academic_levels.find_one({"id": subject["level_id"]}, {"_id": 0})
+            exam["level_name"] = level.get("nombre", "") if level else ""
+    
+    # Get questions count and total points
+    questions = await db.exam_questions.find({"exam_id": exam_id}, {"_id": 0}).to_list(200)
+    exam["questions_count"] = len(questions)
+    exam["total_points"] = sum(q.get("points", 0) for q in questions)
+    
+    # Get creator info
+    if exam.get("created_by"):
+        creator = await db.users.find_one({"id": exam["created_by"]}, {"_id": 0, "name": 1, "last_name": 1})
+        exam["creator_name"] = f"{creator.get('name', '')} {creator.get('last_name', '')}".strip() if creator else ""
+    
+    return exam
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
