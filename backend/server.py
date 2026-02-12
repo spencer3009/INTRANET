@@ -8615,6 +8615,20 @@ async def create_post_comment(
     
     await db.post_comments.insert_one(comment)
     
+    # Register activity in the course stream
+    await register_course_activity(
+        school_id=user["school_id"],
+        subject_id=post.get("subject_id"),
+        activity_type="comment_added",
+        user_id=user["id"],
+        user_name=f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        user_photo=user.get("photo_url"),
+        title="comentó en una publicación",
+        description=data.content[:80] + "..." if len(data.content) > 80 else data.content,
+        reference_id=post_id,
+        reference_type="post"
+    )
+    
     # Return comment with author info
     comment_copy = {k: v for k, v in comment.items() if k != "_id"}
     comment_copy["author"] = {
