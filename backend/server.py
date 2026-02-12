@@ -8303,7 +8303,7 @@ async def delete_course_post(
     post_id: str,
     current_user = Depends(get_current_user)
 ):
-    """Delete a post (soft delete)"""
+    """Delete a post (soft delete) and remove associated media from Cloudinary"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
@@ -8315,6 +8315,51 @@ async def delete_course_post(
     # Only author or admin can delete
     if post["author_id"] != user["id"] and user.get("role") not in ["owner", "admin"]:
         raise HTTPException(status_code=403, detail="No tienes permiso para eliminar esta publicación")
+    
+    # Delete image from Cloudinary if exists
+    if post.get("image_url") and "cloudinary.com" in post["image_url"]:
+        try:
+            # Extract public_id from URL
+            # URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{folder}/{filename}.{ext}
+            url_parts = post["image_url"].split("/upload/")
+            if len(url_parts) > 1:
+                path_with_version = url_parts[1]
+                # Remove version prefix (v1234567890/)
+                if path_with_version.startswith("v"):
+                    path_parts = path_with_version.split("/", 1)
+                    if len(path_parts) > 1:
+                        public_id = path_parts[1].rsplit(".", 1)[0]  # Remove extension
+                    else:
+                        public_id = path_with_version.rsplit(".", 1)[0]
+                else:
+                    public_id = path_with_version.rsplit(".", 1)[0]
+                
+                cloudinary.uploader.destroy(public_id)
+                print(f"Deleted image from Cloudinary: {public_id}")
+        except Exception as e:
+            print(f"Error deleting image from Cloudinary: {e}")
+    
+    # Delete file from Cloudinary if exists
+    if post.get("file_url") and "cloudinary.com" in post["file_url"]:
+        try:
+            url_parts = post["file_url"].split("/upload/")
+            if len(url_parts) > 1:
+                path_with_version = url_parts[1]
+                if path_with_version.startswith("v"):
+                    path_parts = path_with_version.split("/", 1)
+                    if len(path_parts) > 1:
+                        public_id = path_parts[1].rsplit(".", 1)[0]
+                    else:
+                        public_id = path_with_version.rsplit(".", 1)[0]
+                else:
+                    public_id = path_with_version.rsplit(".", 1)[0]
+                
+                # For raw files (PDF, DOC, etc.) use resource_type="raw"
+                resource_type = "raw" if post.get("file_type") and not post["file_type"].startswith("image/") else "image"
+                cloudinary.uploader.destroy(public_id, resource_type=resource_type)
+                print(f"Deleted file from Cloudinary: {public_id}")
+        except Exception as e:
+            print(f"Error deleting file from Cloudinary: {e}")
     
     await db.course_posts.update_one(
         {"id": post_id},
