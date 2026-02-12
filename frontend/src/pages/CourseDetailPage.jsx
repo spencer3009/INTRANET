@@ -1474,8 +1474,8 @@ function MaterialCard({ material }) {
     switch (type) {
       case "pdf": return <FileText className="w-6 h-6 text-red-500" />;
       case "video": return <FileVideo className="w-6 h-6 text-purple-500" />;
-      case "image": return <Image className="w-6 h-6 text-green-500" />;
-      default: return <File className="w-6 h-6 text-blue-500" />;
+      case "image": return <ImageIcon className="w-6 h-6 text-green-500" />;
+      default: return <FileIcon className="w-6 h-6 text-blue-500" />;
     }
   };
   
