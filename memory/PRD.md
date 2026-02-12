@@ -234,6 +234,29 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 **Cambios recientes**:
 
 ### Sesión actual (2025-02-12):
+
+1. ✅ **Sistema Unificado: Tareas, Material de Estudio y Foro** - COMPLETADO
+   - **Modelo unificado**: El modelo `CoursePost` ahora tiene un campo `post_type` con valores:
+     - `announcement` (por defecto) - Publicaciones generales del tablero
+     - `task` - Tareas del curso
+     - `material` - Material de estudio
+     - `forum` - Discusiones del foro
+   - **Título obligatorio**: Las publicaciones de tipo `task`, `material` y `forum` REQUIEREN título
+   - **Backend**:
+     - `CoursePostCreate` actualizado con `title` y `post_type`
+     - GET `/api/course/{subject_id}/posts` soporta filtro `?post_type=task|material|forum`
+     - Validación de título para tipos específicos
+   - **Frontend**:
+     - Nuevo componente `UnifiedContentFeed` reutilizable para las 3 pestañas
+     - `CreatePostModal` actualizado con campo de título y estilo según tipo
+     - `PostCard` muestra etiqueta de tipo con color distintivo
+     - `POST_TYPE_CONFIG` define íconos, colores y placeholders por tipo
+   - **Testing**: 20/20 tests pasaron (100% éxito)
+   - Archivos modificados:
+     - `/app/backend/server.py` - Modelo CoursePost actualizado, filtro por tipo
+     - `/app/frontend/src/pages/CourseDetailPage.jsx` - UnifiedContentFeed, CreatePostModal, PostCard
+
+### Sesión anterior (2025-02-12):
 1. ✅ **Header estándar en página Años Académicos** - COMPLETADO
    - Agregado `DashboardHeader` completo a `/app/frontend/src/pages/AcademicYearsPage.jsx`
    - Props correctas: `user`, `onMenuClick`, `onLogout`, `logoUrl`, `schoolName`, `subdomain`
