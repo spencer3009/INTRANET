@@ -161,6 +161,27 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 }
 ```
 
+### course_reminders (ACTUALIZADA - 2025-02-12)
+```json
+{
+  "id": "uuid",
+  "school_id": "uuid",
+  "subject_id": "uuid",
+  "academic_year_id": "uuid",
+  "title": "Entrega de proyecto final",
+  "description": "Descripción detallada...",
+  "date": "2025-02-15",
+  "reminder_type": "task|exam|notice",
+  "is_important": false,           // NUEVO - Destacar en notificaciones
+  "notify_all": false,             // NUEVO - Mostrar popup a alumnos
+  "viewed_by": ["user_id"],        // NUEVO - Tracking de visualización
+  "status": "active|completed|cancelled",
+  "created_by": "uuid",
+  "created_at": "ISO datetime",
+  "updated_at": "ISO datetime"
+}
+```
+
 ### course_posts (ACTUALIZADA - 2025-02-12)
 ```json
 {
