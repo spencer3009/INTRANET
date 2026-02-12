@@ -146,20 +146,10 @@ function CourseHeroHeader({ subject, level, grade, academicPeriod, onEdit, onVie
               <ArrowLeft className="w-6 h-6 text-white" />
             </button>
             
-            {/* Subject icon or image */}
-            {subject?.image_url ? (
-              <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-3xl overflow-hidden shadow-2xl border-4 border-white/30 ring-4 ring-white/20">
-                <img 
-                  src={subject.image_url} 
-                  alt={subject.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ) : (
-              <div className="w-20 h-20 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl border border-white/30">
-                <BookOpen className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
-              </div>
-            )}
+            {/* Subject icon in header */}
+            <div className="w-20 h-20 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl border border-white/30">
+              <BookOpen className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
+            </div>
             <div>
               <h1 className="text-3xl lg:text-4xl font-black text-white mb-2 tracking-tight">
                 {subject?.name || "Asignatura"}
