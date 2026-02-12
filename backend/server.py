@@ -8379,7 +8379,7 @@ async def create_course_post(
         user_photo=user.get("photo_url"),
         title=activity_desc,
         description=data.title or (data.content[:100] + "..." if len(data.content) > 100 else data.content),
-        reference_id=post_id,
+        reference_id=post["id"],
         reference_type="post"
     )
     
