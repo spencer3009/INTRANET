@@ -344,7 +344,7 @@ export default function NotificationBell({ token }) {
                   <Sparkles className="w-6 h-6 text-violet-300" />
                 </div>
                 <p className="text-gray-500 text-sm font-medium">¡Todo al día!</p>
-                <p className="text-gray-400 text-xs mt-1">No tienes recordatorios pendientes</p>
+                <p className="text-gray-400 text-xs mt-1">No tienes notificaciones pendientes</p>
               </div>
             ) : (
               <>
