@@ -8751,6 +8751,230 @@ async def get_course_activities(
     }
 
 
+@api_router.get("/course/{subject_id}/sidebar-summary")
+async def get_course_sidebar_summary(
+    subject_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get sidebar summary for a course - dynamic panel with:
+    - Latest news (upcoming exams, tasks, announcements, reminders)
+    - Quick access counters (materials, pending tasks, recorded classes)
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Verify subject exists
+    subject = await db.subjects.find_one({"id": subject_id}, {"_id": 0})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+    
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    
+    # Calculate date ranges
+    week_ago = (now - timedelta(days=7)).isoformat()
+    week_ahead = (now + timedelta(days=14)).isoformat()
+    
+    # ══════════════════════════════════════════════════════════════════════════
+    # 1. LATEST NEWS - Dynamic news from course data
+    # ══════════════════════════════════════════════════════════════════════════
+    news_items = []
+    
+    # 1a. Get upcoming reminders (exams, tasks, notices) - next 14 days
+    upcoming_reminders = await db.course_reminders.find(
+        {
+            "subject_id": subject_id,
+            "status": "active",
+            "date": {"$gte": now_iso[:10], "$lte": week_ahead[:10]}
+        },
+        {"_id": 0, "id": 1, "title": 1, "date": 1, "reminder_type": 1, "is_important": 1}
+    ).sort("date", 1).limit(5).to_list(5)
+    
+    for reminder in upcoming_reminders:
+        reminder_type_labels = {
+            "exam": "📝 Examen programado",
+            "task": "📋 Tarea pendiente",
+            "notice": "📢 Aviso"
+        }
+        news_items.append({
+            "id": reminder["id"],
+            "type": "reminder",
+            "subtype": reminder["reminder_type"],
+            "title": reminder["title"],
+            "date": reminder["date"],
+            "icon": reminder["reminder_type"],
+            "is_important": reminder.get("is_important", False),
+            "label": reminder_type_labels.get(reminder["reminder_type"], "Recordatorio")
+        })
+    
+    # 1b. Get recent announcements (last 7 days)
+    recent_announcements = await db.course_posts.find(
+        {
+            "subject_id": subject_id,
+            "post_type": "announcement",
+            "status": "active",
+            "created_at": {"$gte": week_ago}
+        },
+        {"_id": 0, "id": 1, "title": 1, "content": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(3).to_list(3)
+    
+    for post in recent_announcements:
+        news_items.append({
+            "id": post["id"],
+            "type": "announcement",
+            "subtype": "announcement",
+            "title": post.get("title") or (post["content"][:60] + "..." if len(post["content"]) > 60 else post["content"]),
+            "date": post["created_at"][:10],
+            "icon": "announcement",
+            "is_important": False,
+            "label": "📢 Aviso publicado"
+        })
+    
+    # 1c. Get upcoming tasks from posts (next 14 days)
+    upcoming_tasks = await db.course_posts.find(
+        {
+            "subject_id": subject_id,
+            "post_type": "task",
+            "status": "active",
+            "created_at": {"$gte": week_ago}
+        },
+        {"_id": 0, "id": 1, "title": 1, "content": 1, "created_at": 1}
+    ).sort("created_at", -1).limit(3).to_list(3)
+    
+    for task in upcoming_tasks:
+        # Check if not already in news from reminders
+        news_items.append({
+            "id": task["id"],
+            "type": "task",
+            "subtype": "task",
+            "title": task.get("title") or (task["content"][:60] + "..." if len(task["content"]) > 60 else task["content"]),
+            "date": task["created_at"][:10],
+            "icon": "task",
+            "is_important": False,
+            "label": "📋 Nueva tarea"
+        })
+    
+    # Sort news by date (most recent/upcoming first) and limit to 5
+    # First important items, then by date
+    news_items.sort(key=lambda x: (not x.get("is_important", False), x.get("date", "")))
+    news_items = news_items[:5]
+    
+    # ══════════════════════════════════════════════════════════════════════════
+    # 2. QUICK ACCESS COUNTERS - Dynamic counts from course data
+    # ══════════════════════════════════════════════════════════════════════════
+    
+    # Count materials
+    materials_count = await db.course_posts.count_documents({
+        "subject_id": subject_id,
+        "post_type": "material",
+        "status": "active"
+    })
+    
+    # Count pending tasks (tasks created in last 30 days)
+    month_ago = (now - timedelta(days=30)).isoformat()
+    pending_tasks_count = await db.course_posts.count_documents({
+        "subject_id": subject_id,
+        "post_type": "task",
+        "status": "active",
+        "created_at": {"$gte": month_ago}
+    })
+    
+    # Also count task reminders
+    pending_task_reminders = await db.course_reminders.count_documents({
+        "subject_id": subject_id,
+        "reminder_type": "task",
+        "status": "active",
+        "date": {"$gte": now_iso[:10]}
+    })
+    pending_tasks_count += pending_task_reminders
+    
+    # Count videos/recorded classes (posts with video files or type)
+    videos_count = await db.course_posts.count_documents({
+        "subject_id": subject_id,
+        "status": "active",
+        "$or": [
+            {"file_type": {"$regex": "video", "$options": "i"}},
+            {"content": {"$regex": "youtube|vimeo|video", "$options": "i"}}
+        ]
+    })
+    
+    # Count forum posts
+    forum_count = await db.course_posts.count_documents({
+        "subject_id": subject_id,
+        "post_type": "forum",
+        "status": "active"
+    })
+    
+    # Count total announcements
+    announcements_count = await db.course_posts.count_documents({
+        "subject_id": subject_id,
+        "post_type": "announcement",
+        "status": "active"
+    })
+    
+    quick_access = [
+        {
+            "id": "materials",
+            "label": "Materiales",
+            "count": materials_count,
+            "icon": "folder",
+            "color": "blue",
+            "filter": "material"
+        },
+        {
+            "id": "tasks",
+            "label": "Tareas pendientes",
+            "count": pending_tasks_count,
+            "icon": "task",
+            "color": "amber",
+            "filter": "task"
+        },
+        {
+            "id": "videos",
+            "label": "Clases grabadas",
+            "count": videos_count,
+            "icon": "video",
+            "color": "rose",
+            "filter": "video"
+        },
+        {
+            "id": "forum",
+            "label": "Foro del curso",
+            "count": forum_count,
+            "icon": "forum",
+            "color": "violet",
+            "filter": "forum"
+        }
+    ]
+    
+    # ══════════════════════════════════════════════════════════════════════════
+    # 3. COURSE STATS - Quick overview
+    # ══════════════════════════════════════════════════════════════════════════
+    total_posts = await db.course_posts.count_documents({
+        "subject_id": subject_id,
+        "status": "active"
+    })
+    
+    total_reminders = await db.course_reminders.count_documents({
+        "subject_id": subject_id,
+        "status": "active"
+    })
+    
+    return {
+        "news": news_items,
+        "quick_access": quick_access,
+        "stats": {
+            "total_posts": total_posts,
+            "total_reminders": total_reminders,
+            "materials_count": materials_count,
+            "announcements_count": announcements_count
+        }
+    }
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # COURSE REMINDERS - Premium Feature (Google Classroom Style)
 # ══════════════════════════════════════════════════════════════════════════════
