@@ -1442,25 +1442,45 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     loadSummary();
   };
 
-  const handleConfirmPayment = async (payment) => {
-    if (!window.confirm(`¿Confirmar pago de S/ ${formatNumber(payment.total_amount)}?`)) return;
+  const handleConfirmPaymentClick = (payment) => {
+    setSelectedPayment(payment);
+    setShowConfirmPaymentModal(true);
+  };
+  
+  const handleConfirmPayment = async () => {
+    if (!selectedPayment) return;
+    setProcessing(true);
     try {
-      await axios.put(`${API}/accounting/payments/${payment.id}/confirm`, {}, { headers });
+      await axios.put(`${API}/accounting/payments/${selectedPayment.id}/confirm`, {}, { headers });
       loadPayments();
       loadSummary();
+      setShowConfirmPaymentModal(false);
+      setSelectedPayment(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al confirmar pago");
+    } finally {
+      setProcessing(false);
     }
   };
 
-  const handleCancelPayment = async (payment) => {
-    if (!window.confirm(`¿Anular este pago?`)) return;
+  const handleCancelPaymentClick = (payment) => {
+    setSelectedPayment(payment);
+    setShowCancelPaymentModal(true);
+  };
+  
+  const handleCancelPayment = async () => {
+    if (!selectedPayment) return;
+    setProcessing(true);
     try {
-      await axios.put(`${API}/accounting/payments/${payment.id}/cancel`, {}, { headers });
+      await axios.put(`${API}/accounting/payments/${selectedPayment.id}/cancel`, {}, { headers });
       loadPayments();
       loadSummary();
+      setShowCancelPaymentModal(false);
+      setSelectedPayment(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al anular pago");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -1474,14 +1494,24 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     loadSummary();
   };
 
-  const handleDeleteExpense = async (expense) => {
-    if (!window.confirm(`¿Eliminar este egreso?`)) return;
+  const handleDeleteExpenseClick = (expense) => {
+    setSelectedExpense(expense);
+    setShowDeleteExpenseModal(true);
+  };
+  
+  const handleDeleteExpense = async () => {
+    if (!selectedExpense) return;
+    setProcessing(true);
     try {
-      await axios.delete(`${API}/accounting/expenses/${expense.id}`, { headers });
+      await axios.delete(`${API}/accounting/expenses/${selectedExpense.id}`, { headers });
       loadExpenses();
       loadSummary();
+      setShowDeleteExpenseModal(false);
+      setSelectedExpense(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al eliminar");
+    } finally {
+      setProcessing(false);
     }
   };
 
