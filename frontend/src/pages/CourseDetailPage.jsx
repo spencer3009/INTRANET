@@ -956,7 +956,7 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
           {/* File Preview */}
           {file && (
             <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-3">
-              <File className="w-8 h-8 text-indigo-500" />
+              <FileIcon className="w-8 h-8 text-indigo-500" />
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-gray-700 truncate">{file.name}</p>
                 <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
