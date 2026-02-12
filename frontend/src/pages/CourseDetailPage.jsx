@@ -2257,7 +2257,9 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
               <CourseRightSidebar
                 teacher={teacher}
                 students={students}
-                reminders={reminders}
+                subjectId={subjectId}
+                token={token}
+                userRole={user?.role}
               />
             </div>
           </div>
