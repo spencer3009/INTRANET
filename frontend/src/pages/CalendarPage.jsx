@@ -165,11 +165,10 @@ function EventModal({ isOpen, onClose, event, onSave, onDelete, grades, sections
   };
 
   const handleDelete = async () => {
-    if (!window.confirm("¿Estás seguro de eliminar este evento?")) return;
-    
     setSaving(true);
     try {
       await onDelete(event.id);
+      setShowDeleteConfirm(false);
       onClose();
     } catch (err) {
       setError(err.response?.data?.detail || "Error al eliminar evento");
@@ -181,6 +180,7 @@ function EventModal({ isOpen, onClose, event, onSave, onDelete, grades, sections
   if (!isOpen) return null;
 
   return (
+    <>
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
