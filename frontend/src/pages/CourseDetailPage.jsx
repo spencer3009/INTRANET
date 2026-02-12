@@ -2152,6 +2152,35 @@ function GradesContent({ grades }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// REMINDERS TAB CONTENT
+// ══════════════════════════════════════════════════════════════════════════════
+function RemindersTabContent({ subjectId, token, userRole }) {
+  return (
+    <div className="space-y-5">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
+            <Bell className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">Recordatorios del Curso</h2>
+            <p className="text-sm text-gray-500">Gestiona tareas, exámenes y avisos importantes</p>
+          </div>
+        </div>
+        
+        {/* Embedded Reminders Panel - Full width version */}
+        <CourseRemindersPanel 
+          subjectId={subjectId} 
+          token={token} 
+          userRole={userRole}
+          isFullWidth={true}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
 export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
