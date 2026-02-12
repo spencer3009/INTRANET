@@ -1396,35 +1396,64 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
 // ══════════════════════════════════════════════════════════════════════════════
 // UNIFIED CONTENT FEED - For Tasks, Materials, Forum
 // ══════════════════════════════════════════════════════════════════════════════
+const POSTS_PER_PAGE = 4;
+
 function UnifiedContentFeed({ subjectId, token, user, postType }) {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [offset, setOffset] = useState(0);
   
   const config = POST_TYPE_CONFIG[postType] || POST_TYPE_CONFIG.announcement;
   const headers = { Authorization: `Bearer ${token}` };
   
-  const loadPosts = useCallback(async () => {
+  const loadPosts = useCallback(async (loadMore = false) => {
     try {
-      const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=${postType}`, { headers });
-      setPosts(res.data.posts || []);
+      if (loadMore) {
+        setLoadingMore(true);
+      }
+      
+      const currentOffset = loadMore ? offset : 0;
+      const res = await axios.get(
+        `${API}/course/${subjectId}/posts?post_type=${postType}&limit=${POSTS_PER_PAGE}&offset=${currentOffset}`, 
+        { headers }
+      );
+      
+      const newPosts = res.data.posts || [];
+      setTotal(res.data.total || 0);
+      
+      if (loadMore) {
+        setPosts(prev => [...prev, ...newPosts]);
+        setOffset(currentOffset + POSTS_PER_PAGE);
+      } else {
+        setPosts(newPosts);
+        setOffset(POSTS_PER_PAGE);
+      }
     } catch (err) {
       console.error('Error loading posts:', err);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [subjectId, token, postType]);
+  }, [subjectId, token, postType, offset]);
   
   useEffect(() => {
-    loadPosts();
-  }, [loadPosts]);
+    setLoading(true);
+    setPosts([]);
+    setOffset(0);
+    loadPosts(false);
+  }, [subjectId, postType]);
   
   const handlePostCreated = (newPost) => {
     setPosts([newPost, ...posts]);
+    setTotal(prev => prev + 1);
   };
   
   const handlePostDeleted = (postId) => {
     setPosts(posts.filter(p => p.id !== postId));
+    setTotal(prev => prev - 1);
   };
   
   const handleLikeToggle = (postId, liked, likesCount) => {
@@ -1439,6 +1468,7 @@ function UnifiedContentFeed({ subjectId, token, user, postType }) {
     ));
   };
   
+  const hasMore = posts.length < total;
   const Icon = config.icon;
 
   if (loading) {
@@ -1504,17 +1534,48 @@ function UnifiedContentFeed({ subjectId, token, user, postType }) {
           onAction={() => setShowCreateModal(true)}
         />
       ) : (
-        posts.map((post) => (
-          <PostCard 
-            key={post.id} 
-            post={post} 
-            token={token}
-            currentUserId={user?.id}
-            onDelete={handlePostDeleted}
-            onLikeToggle={handleLikeToggle}
-            onCommentAdded={handleCommentAdded}
-          />
-        ))
+        <>
+          {posts.map((post) => (
+            <PostCard 
+              key={post.id} 
+              post={post} 
+              token={token}
+              currentUserId={user?.id}
+              onDelete={handlePostDeleted}
+              onLikeToggle={handleLikeToggle}
+              onCommentAdded={handleCommentAdded}
+            />
+          ))}
+          
+          {/* Pagination - Load More */}
+          {hasMore && (
+            <div className="flex justify-center pt-4">
+              <button
+                onClick={() => loadPosts(true)}
+                disabled={loadingMore}
+                className="px-6 py-3 bg-white border-2 border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all flex items-center gap-2 disabled:opacity-50"
+                data-testid="load-more-btn"
+              >
+                {loadingMore ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Cargando...
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-5 h-5" />
+                    Cargar más ({total - posts.length} restantes)
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+          
+          {/* Posts count indicator */}
+          <div className="text-center text-sm text-gray-400 pt-2">
+            Mostrando {posts.length} de {total} publicaciones
+          </div>
+        </>
       )}
       
       {/* Create Post Modal */}
