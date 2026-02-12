@@ -495,34 +495,12 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
         </div>
       </div>
       
-      {/* Reminders */}
-      <div className="bg-gradient-to-br from-rose-50 to-pink-50 rounded-2xl overflow-hidden border border-rose-100 shadow-sm">
-        <div className="px-5 py-4 bg-gradient-to-r from-rose-500 to-pink-500">
-          <h4 className="font-bold text-white flex items-center gap-2">
-            <Bell className="w-4 h-4" />
-            Recordatorios
-          </h4>
-        </div>
-        <div className="p-4">
-          {reminders.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-gray-500 text-sm">Sin recordatorios</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {reminders.map((reminder, idx) => (
-                <div key={idx} className="p-3 bg-white rounded-xl border border-rose-100">
-                  <p className="text-sm font-medium text-gray-700">{reminder.title}</p>
-                  <p className="text-xs text-rose-500 mt-1 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {reminder.date}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Reminders - Premium Component */}
+      <CourseRemindersPanel 
+        subjectId={subjectId} 
+        token={token} 
+        userRole={userRole}
+      />
     </div>
   );
 }
