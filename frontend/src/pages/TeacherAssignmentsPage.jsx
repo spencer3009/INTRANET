@@ -131,17 +131,17 @@ function FilterBar({ filters, setFilters, levels, grades, sections, subjects, te
             </select>
           </div>
           
-          {/* Period Filter */}
+          {/* Academic Year Filter */}
           <div>
-            <label className="block text-xs font-medium text-gray-500 mb-1">Período</label>
+            <label className="block text-xs font-medium text-gray-500 mb-1">Año Académico</label>
             <select
-              value={filters.period_id || ""}
-              onChange={(e) => setFilters({...filters, period_id: e.target.value || ""})}
+              value={filters.academic_year_id || ""}
+              onChange={(e) => setFilters({...filters, academic_year_id: e.target.value || ""})}
               className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Todos</option>
-              {periods.map(p => (
-                <option key={p.id} value={p.id}>{p.nombre}</option>
+              {academicYears.map(y => (
+                <option key={y.id} value={y.id}>{y.year} {y.status === "activo" ? "✓" : ""}</option>
               ))}
             </select>
           </div>
