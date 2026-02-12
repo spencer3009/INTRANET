@@ -268,15 +268,27 @@ function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse }) {
           )}
         </div>
         
-        {/* Subject icon */}
-        <div 
-          className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
-          style={{ 
-            background: `linear-gradient(135deg, ${subject.color}, ${subject.color}CC)`,
-          }}
-        >
-          <BookOpen className="w-7 h-7 text-white" />
-        </div>
+        {/* Subject icon or image */}
+        {subject.image_url ? (
+          <div 
+            className="w-20 h-20 rounded-2xl overflow-hidden mb-4 shadow-lg transition-transform duration-300 group-hover:scale-110 mx-auto ring-4 ring-white"
+          >
+            <img 
+              src={subject.image_url} 
+              alt={subject.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        ) : (
+          <div 
+            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
+            style={{ 
+              background: `linear-gradient(135deg, ${subject.color}, ${subject.color}CC)`,
+            }}
+          >
+            <BookOpen className="w-7 h-7 text-white" />
+          </div>
+        )}
         
         {/* Subject info */}
         <h3 className="font-bold text-gray-800 text-lg mb-1 pr-8 line-clamp-1">{subject.name}</h3>
