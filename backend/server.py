@@ -9031,12 +9031,12 @@ async def get_popup_reminders(
     # Get all subjects the user has access to (same logic as above)
     if user.get("role") in ["admin", "owner", "director", "coordinator"]:
         subjects = await db.subjects.find(
-            {"school_id": school_id, "is_active": True},
+            {"school_id": school_id},
             {"_id": 0, "id": 1, "name": 1}
         ).to_list(500)
     elif user.get("role") == "teacher":
         subjects = await db.subjects.find(
-            {"school_id": school_id, "is_active": True, "teacher_id": user_id},
+            {"school_id": school_id, "teacher_id": user_id},
             {"_id": 0, "id": 1, "name": 1}
         ).to_list(100)
     else:
@@ -9056,7 +9056,7 @@ async def get_popup_reminders(
         
         subject_ids = list(set(subject_ids))
         subjects = await db.subjects.find(
-            {"school_id": school_id, "id": {"$in": subject_ids}, "is_active": True},
+            {"school_id": school_id, "id": {"$in": subject_ids}},
             {"_id": 0, "id": 1, "name": 1}
         ).to_list(100)
     
