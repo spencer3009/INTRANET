@@ -1300,9 +1300,9 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
                 periods={periods}
                 onBack={handleBackToList}
                 onActivateYear={handleActivateYear}
-                onActivatePeriod={handleActivatePeriod}
+                onActivatePeriod={handleActivatePeriodClick}
                 onEditPeriod={handleEditPeriod}
-                onDeletePeriod={handleDeletePeriod}
+                onDeletePeriod={handleDeletePeriodClick}
                 onAddPeriod={handleAddPeriod}
                 loadingPeriods={loadingPeriods}
               />
