@@ -230,7 +230,7 @@ function CourseHeroHeader({ subject, level, grade, academicPeriod, onEdit, onVie
 function PremiumTabs({ activeTab, onTabChange }) {
   return (
     <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 p-3">
-      <div className="flex items-center justify-center overflow-x-auto hide-scrollbar gap-2">
+      <div className="flex items-center justify-start overflow-x-auto hide-scrollbar gap-2">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
