@@ -377,7 +377,7 @@ function AddSubjectCard({ onClick, theme }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SUBJECT FORM MODAL
+// SUBJECT FORM MODAL - With Premium Image Crop
 // ══════════════════════════════════════════════════════════════════════════════
 function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, preselectedLevel, preselectedGrade, token }) {
   const [formData, setFormData] = useState({
@@ -393,27 +393,40 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
   const [uploadingImage, setUploadingImage] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
+  
+  // Crop states
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState(null);
+  const [crop, setCrop] = useState();
+  const [completedCrop, setCompletedCrop] = useState(null);
+  const [scale, setScale] = useState(1);
+  const imgRef = useRef(null);
 
   useEffect(() => {
-    if (subject) {
-      setFormData({
-        name: subject.name || "", code: subject.code || "", description: subject.description || "",
-        level_id: subject.level_id || "", grade_id: subject.grade_id || "",
-        weekly_hours: subject.weekly_hours || 2, color: subject.color || "#3B82F6",
-        status: subject.status || "active", image_url: subject.image_url || ""
-      });
-      setImagePreview(subject.image_url || null);
-    } else {
-      setFormData({
-        name: "", code: "", description: "",
-        level_id: preselectedLevel || "", grade_id: preselectedGrade || "",
-        weekly_hours: 2, color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value,
-        status: "active", image_url: ""
-      });
-      setImagePreview(null);
+    if (isOpen) {
+      if (subject) {
+        setFormData({
+          name: subject.name || "", code: subject.code || "", description: subject.description || "",
+          level_id: subject.level_id || "", grade_id: subject.grade_id || "",
+          weekly_hours: subject.weekly_hours || 2, color: subject.color || "#3B82F6",
+          status: subject.status || "active", image_url: subject.image_url || ""
+        });
+        setImagePreview(subject.image_url || null);
+      } else {
+        setFormData({
+          name: "", code: "", description: "",
+          level_id: preselectedLevel || "", grade_id: preselectedGrade || "",
+          weekly_hours: 2, color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value,
+          status: "active", image_url: ""
+        });
+        setImagePreview(null);
+      }
+      setError("");
+      setUploadProgress(0);
+      setCropImageSrc(null);
+      setShowCropModal(false);
+      setScale(1);
     }
-    setError("");
-    setUploadProgress(0);
   }, [subject, isOpen, preselectedLevel, preselectedGrade]);
 
   useEffect(() => {
@@ -424,66 +437,82 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     }
   }, [formData.level_id, grades]);
 
-  // Compress and convert image to WebP
-  const compressImage = (file, maxWidth = 800, quality = 0.7) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = document.createElement('img');
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // Scale down if larger than maxWidth
-          if (width > maxWidth) {
-            height = (height * maxWidth) / width;
-            width = maxWidth;
+  // Handle image load for crop
+  const onImageLoad = useCallback((e) => {
+    const { width, height } = e.currentTarget;
+    const cropInit = centerAspectCrop(width, height, 1);
+    setCrop(cropInit);
+    setCompletedCrop(cropInit);
+  }, []);
+
+  // Create cropped image blob
+  const getCroppedImg = useCallback(async () => {
+    if (!imgRef.current || !completedCrop) return null;
+    
+    const image = imgRef.current;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) return null;
+    
+    const scaleX = image.naturalWidth / image.width;
+    const scaleY = image.naturalHeight / image.height;
+    
+    // Output size (square 800x800 for high quality)
+    const outputSize = 800;
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    
+    // Calculate crop dimensions
+    const cropX = completedCrop.x * scaleX;
+    const cropY = completedCrop.y * scaleY;
+    const cropWidth = completedCrop.width * scaleX;
+    const cropHeight = completedCrop.height * scaleY;
+    
+    // Apply scale transform
+    const scaledCropWidth = cropWidth / scale;
+    const scaledCropHeight = cropHeight / scale;
+    const offsetX = (cropWidth - scaledCropWidth) / 2;
+    const offsetY = (cropHeight - scaledCropHeight) / 2;
+    
+    ctx.drawImage(
+      image,
+      cropX + offsetX,
+      cropY + offsetY,
+      scaledCropWidth,
+      scaledCropHeight,
+      0,
+      0,
+      outputSize,
+      outputSize
+    );
+    
+    return new Promise((resolve) => {
+      canvas.toBlob(
+        (blob) => {
+          if (blob) {
+            const file = new File([blob], 'cropped-image.webp', { type: 'image/webp' });
+            resolve(file);
+          } else {
+            resolve(null);
           }
-          
-          canvas.width = width;
-          canvas.height = height;
-          
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, width, height);
-          
-          // Convert to WebP
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                // Create a new file with .webp extension
-                const webpFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), {
-                  type: 'image/webp'
-                });
-                resolve(webpFile);
-              } else {
-                reject(new Error('Failed to compress image'));
-              }
-            },
-            'image/webp',
-            quality
-          );
-        };
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.src = e.target.result;
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
+        },
+        'image/webp',
+        0.85
+      );
     });
-  };
+  }, [completedCrop, scale]);
 
   // Upload image to Cloudinary
   const uploadToCloudinary = async (file) => {
     const headers = { Authorization: `Bearer ${token}` };
     
-    // Get signature from backend
     const signatureRes = await axios.get(
       `${API}/cloudinary/signature?folder=edunet/subjects&resource_type=image`,
       { headers }
     );
     const { signature, timestamp, cloud_name, api_key, folder } = signatureRes.data;
     
-    // Upload to Cloudinary
     const formDataUpload = new FormData();
     formDataUpload.append('file', file);
     formDataUpload.append('signature', signature);
@@ -505,62 +534,70 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     return uploadRes.data.secure_url;
   };
 
-  // Handle image selection
-  const handleImageSelect = async (e) => {
+  // Handle file selection - open crop modal
+  const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError('Por favor selecciona una imagen válida');
       return;
     }
     
-    // Validate file size (max 10MB before compression)
     if (file.size > 10 * 1024 * 1024) {
       setError('La imagen no debe superar los 10MB');
       return;
     }
     
-    setUploadingImage(true);
     setError("");
-    setUploadProgress(0);
+    const reader = new FileReader();
+    reader.onload = () => {
+      setCropImageSrc(reader.result);
+      setShowCropModal(true);
+      setScale(1);
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // Apply crop and upload
+  const handleApplyCrop = async () => {
+    setUploadingImage(true);
+    setShowCropModal(false);
     
     try {
-      // Show local preview immediately
-      const localPreview = URL.createObjectURL(file);
-      setImagePreview(localPreview);
+      const croppedFile = await getCroppedImg();
+      if (!croppedFile) throw new Error('Error al recortar imagen');
       
-      // Compress and convert to WebP
-      const compressedFile = await compressImage(file);
-      console.log(`Original: ${(file.size / 1024).toFixed(1)}KB -> Compressed: ${(compressedFile.size / 1024).toFixed(1)}KB`);
+      console.log(`Cropped image size: ${(croppedFile.size / 1024).toFixed(1)}KB`);
       
-      // Upload to Cloudinary
-      const imageUrl = await uploadToCloudinary(compressedFile);
+      const imageUrl = await uploadToCloudinary(croppedFile);
       
-      // Update form data with uploaded URL
       setFormData(prev => ({ ...prev, image_url: imageUrl }));
       setImagePreview(imageUrl);
-      
-      // Clean up local preview
-      URL.revokeObjectURL(localPreview);
+      setCropImageSrc(null);
     } catch (err) {
       console.error('Error uploading image:', err);
       setError('Error al subir la imagen. Intenta de nuevo.');
-      setImagePreview(subject?.image_url || null);
     } finally {
       setUploadingImage(false);
       setUploadProgress(0);
     }
   };
 
+  // Cancel crop
+  const handleCancelCrop = () => {
+    setShowCropModal(false);
+    setCropImageSrc(null);
+    setScale(1);
+  };
+
   // Remove image
   const handleRemoveImage = () => {
     setFormData(prev => ({ ...prev, image_url: "" }));
     setImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -587,167 +624,287 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden">
-        <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-6 overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="relative flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
-                <BookOpen className="w-6 h-6 text-white" />
+    <>
+      {/* Main Modal */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
+        <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden">
+          <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-6 overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">{subject?.id ? "Editar Asignatura" : "Nueva Asignatura"}</h2>
+                  <p className="text-sm text-white/70">Complete los datos</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-xl font-bold text-white">{subject?.id ? "Editar Asignatura" : "Nueva Asignatura"}</h2>
-                <p className="text-sm text-white/70">Complete los datos</p>
+              <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+            {error && (
+              <div className="mb-5 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-center gap-3">
+                <AlertCircle className="w-5 h-5" />
+                <span className="text-sm font-medium">{error}</span>
+              </div>
+            )}
+
+            {/* IMAGE UPLOAD - FIRST ELEMENT */}
+            <div className="mb-6">
+              <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
+                <Image className="w-4 h-4 text-indigo-500" />
+                Imagen de la Asignatura
+                <span className="text-xs text-gray-400 font-normal">(Recorte cuadrado 1:1)</span>
+              </label>
+              
+              <div className="relative">
+                {imagePreview ? (
+                  <div className="relative group">
+                    <div className="w-32 h-32 mx-auto rounded-2xl overflow-hidden shadow-lg border-4 border-white ring-2 ring-gray-100">
+                      <img 
+                        src={imagePreview} 
+                        alt="Preview" 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {uploadingImage && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-32 h-32 mx-auto rounded-2xl bg-black/60 flex flex-col items-center justify-center">
+                          <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
+                          <span className="text-white text-sm font-medium">{uploadProgress}%</span>
+                        </div>
+                      </div>
+                    )}
+                    {!uploadingImage && (
+                      <div className="flex justify-center gap-2 mt-3">
+                        <label className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl text-sm font-medium cursor-pointer transition-colors flex items-center gap-2">
+                          <Crop className="w-4 h-4" />
+                          Cambiar
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            className="hidden"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleRemoveImage}
+                          className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Quitar
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-gray-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50/50 transition-all cursor-pointer group">
+                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
+                      <Upload className="w-10 h-10 text-indigo-500" />
+                    </div>
+                    <span className="text-base font-semibold text-gray-700 mb-1">Subir imagen</span>
+                    <span className="text-sm text-gray-500">PNG, JPG, WEBP (máx. 10MB)</span>
+                    <span className="text-xs text-indigo-500 mt-2 flex items-center gap-1">
+                      <Crop className="w-3 h-3" />
+                      Recorte cuadrado automático
+                    </span>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                  </label>
+                )}
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl">
-              <X className="w-5 h-5" />
+
+            {/* Form Fields */}
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Nombre *</label>
+                <input type="text" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="Ej: Matemáticas" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Código *</label>
+                <input type="text" value={formData.code} onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
+                  placeholder="Ej: MAT-01" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Nivel *</label>
+                <select value={formData.level_id} onChange={(e) => setFormData(prev => ({ ...prev, level_id: e.target.value, grade_id: "" }))}
+                  disabled={isLocked} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked ? "opacity-70" : ""}`}>
+                  <option value="">Seleccionar</option>
+                  {levels.filter(l => l.activo).map(level => (<option key={level.id} value={level.id}>{level.nombre}</option>))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Grado *</label>
+                <select value={formData.grade_id} onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value }))}
+                  disabled={isLocked || !formData.level_id} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked || !formData.level_id ? "opacity-70" : ""}`}>
+                  <option value="">Seleccionar</option>
+                  {filteredGrades.map(grade => (<option key={grade.id} value={grade.id}>{grade.nombre}</option>))}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mb-5">
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Horas Semanales</label>
+                <input type="number" min="1" max="40" value={formData.weekly_hours} onChange={(e) => setFormData(prev => ({ ...prev, weekly_hours: parseInt(e.target.value) || 1 }))}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div className="flex flex-col justify-end">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                  <p className="text-xs text-amber-700 font-medium">
+                    💡 Los profesores se asignan desde "Asignación Docente"
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-bold text-gray-700 mb-3">Color</label>
+              <div className="flex flex-wrap gap-2">
+                {SUBJECT_COLORS.map(color => (
+                  <button key={color.value} type="button" onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
+                    className={`w-10 h-10 rounded-xl transition-all duration-200 ${formData.color === color.value ? "ring-4 ring-gray-300 scale-110 shadow-lg" : "hover:scale-110"}`}
+                    style={{ backgroundColor: color.value }} title={color.label} />
+                ))}
+              </div>
+            </div>
+          </form>
+
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50">Cancelar</button>
+            <div className="flex-1" />
+            <button onClick={handleSubmit} disabled={saving || uploadingImage}
+              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+              {subject?.id ? "Actualizar" : "Crear"}
             </button>
           </div>
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
-          {error && (
-            <div className="mb-5 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-center gap-3">
-              <AlertCircle className="w-5 h-5" />
-              <span className="text-sm font-medium">{error}</span>
+      {/* Crop Modal */}
+      {showCropModal && cropImageSrc && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleCancelCrop} />
+          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <Crop className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-white">Recortar Imagen</h3>
+                    <p className="text-sm text-white/70">Ajusta el área de recorte cuadrado</p>
+                  </div>
+                </div>
+                <button onClick={handleCancelCrop} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Nombre *</label>
-              <input type="text" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Ej: Matemáticas" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Código *</label>
-              <input type="text" value={formData.code} onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                placeholder="Ej: MAT-01" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
-            </div>
-          </div>
+            {/* Crop Area */}
+            <div className="p-6 bg-gray-900">
+              <div className="relative max-h-[400px] overflow-hidden rounded-xl flex items-center justify-center">
+                <ReactCrop
+                  crop={crop}
+                  onChange={(c) => setCrop(c)}
+                  onComplete={(c) => setCompletedCrop(c)}
+                  aspect={1}
+                  circularCrop={false}
+                  className="max-h-[400px]"
+                >
+                  <img
+                    ref={imgRef}
+                    src={cropImageSrc}
+                    alt="Crop preview"
+                    onLoad={onImageLoad}
+                    style={{ transform: `scale(${scale})`, maxHeight: '400px' }}
+                    className="max-w-full"
+                  />
+                </ReactCrop>
+              </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Nivel *</label>
-              <select value={formData.level_id} onChange={(e) => setFormData(prev => ({ ...prev, level_id: e.target.value, grade_id: "" }))}
-                disabled={isLocked} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked ? "opacity-70" : ""}`}>
-                <option value="">Seleccionar</option>
-                {levels.filter(l => l.activo).map(level => (<option key={level.id} value={level.id}>{level.nombre}</option>))}
-              </select>
+              {/* Zoom Controls */}
+              <div className="mt-4 flex items-center justify-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => setScale(Math.max(0.5, scale - 0.1))}
+                  className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                  title="Alejar"
+                >
+                  <ZoomOut className="w-5 h-5" />
+                </button>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg">
+                  <span className="text-white text-sm font-medium">{Math.round(scale * 100)}%</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setScale(Math.min(3, scale + 0.1))}
+                  className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                  title="Acercar"
+                >
+                  <ZoomIn className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScale(1)}
+                  className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
+                  title="Restablecer zoom"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </button>
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Grado *</label>
-              <select value={formData.grade_id} onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value }))}
-                disabled={isLocked || !formData.level_id} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked || !formData.level_id ? "opacity-70" : ""}`}>
-                <option value="">Seleccionar</option>
-                {filteredGrades.map(grade => (<option key={grade.id} value={grade.id}>{grade.nombre}</option>))}
-              </select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-5">
-            <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">Horas Semanales</label>
-              <input type="number" min="1" max="40" value={formData.weekly_hours} onChange={(e) => setFormData(prev => ({ ...prev, weekly_hours: parseInt(e.target.value) || 1 }))}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
-            </div>
-            <div className="flex flex-col justify-end">
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                <p className="text-xs text-amber-700 font-medium">
-                  💡 Los profesores se asignan desde el módulo "Asignación Docente"
-                </p>
+            {/* Actions */}
+            <div className="px-6 py-4 bg-gray-50 flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Arrastra las esquinas para ajustar el recorte
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancelCrop}
+                  className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  onClick={handleApplyCrop}
+                  className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center gap-2"
+                >
+                  <Check className="w-4 h-4" />
+                  Aplicar Recorte
+                </button>
               </div>
             </div>
           </div>
-
-          <div className="mb-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">Color</label>
-            <div className="flex flex-wrap gap-2">
-              {SUBJECT_COLORS.map(color => (
-                <button key={color.value} type="button" onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
-                  className={`w-10 h-10 rounded-xl transition-all duration-200 ${formData.color === color.value ? "ring-4 ring-gray-300 scale-110 shadow-lg" : "hover:scale-110"}`}
-                  style={{ backgroundColor: color.value }} title={color.label} />
-              ))}
-            </div>
-          </div>
-
-          {/* Image Upload Section */}
-          <div className="mb-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">
-              <Image className="w-4 h-4 inline mr-1 text-indigo-500" />
-              Imagen de la Asignatura
-            </label>
-            <div className="border-2 border-dashed border-gray-200 rounded-2xl p-4 hover:border-indigo-300 transition-colors">
-              {imagePreview ? (
-                <div className="relative">
-                  <img 
-                    src={imagePreview} 
-                    alt="Preview" 
-                    className="w-full h-40 object-cover rounded-xl"
-                  />
-                  {uploadingImage && (
-                    <div className="absolute inset-0 bg-black/50 rounded-xl flex flex-col items-center justify-center">
-                      <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
-                      <span className="text-white text-sm font-medium">{uploadProgress}%</span>
-                    </div>
-                  )}
-                  {!uploadingImage && (
-                    <button
-                      type="button"
-                      onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors"
-                      title="Eliminar imagen"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <label className="flex flex-col items-center justify-center h-32 cursor-pointer">
-                  <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mb-3">
-                    <Upload className="w-7 h-7 text-indigo-500" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">Haz clic para subir una imagen</span>
-                  <span className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP (máx. 10MB)</span>
-                  <span className="text-xs text-indigo-500 mt-1">Se convertirá a WebP automáticamente</span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                </label>
-              )}
-              {/* Hidden input for clicking on preview to change */}
-              {imagePreview && !uploadingImage && (
-                <label className="block mt-3 text-center">
-                  <span className="text-sm text-indigo-600 hover:text-indigo-700 cursor-pointer font-medium">
-                    Cambiar imagen
-                  </span>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                    className="hidden"
-                  />
-                </label>
-              )}
-            </div>
-          </div>
-        </form>
-
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
-          <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50">Cancelar</button>
-          <div className="flex-1" />
-          <button onClick={handleSubmit} disabled={saving}
-            className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center gap-2">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            {subject?.id ? "Actualizar" : "Crear"}
+        </div>
+      )}
+    </>
+  );
+}
           </button>
         </div>
       </div>
