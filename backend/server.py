@@ -8864,6 +8864,27 @@ async def create_course_reminder(
     
     await db.course_reminders.insert_one(reminder)
     
+    # Register activity in the course stream
+    reminder_type_labels = {
+        "task": "programó una tarea",
+        "exam": "programó un examen",
+        "notice": "creó un recordatorio"
+    }
+    activity_title = reminder_type_labels.get(data.reminder_type, "creó un recordatorio")
+    
+    await register_course_activity(
+        school_id=user["school_id"],
+        subject_id=subject_id,
+        activity_type="reminder_created" if data.reminder_type == "notice" else ("exam_scheduled" if data.reminder_type == "exam" else "task_assigned"),
+        user_id=user["id"],
+        user_name=f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        user_photo=user.get("photo_url"),
+        title=activity_title,
+        description=data.title,
+        reference_id=reminder_id,
+        reference_type="reminder"
+    )
+    
     # Add creator info for response
     reminder["creator"] = {
         "id": user["id"],
