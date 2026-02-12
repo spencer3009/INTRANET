@@ -9950,6 +9950,7 @@ class QuestionCreate(BaseModel):
     points: float = 1.0
     options: Optional[List[dict]] = None  # For multiple choice
     correct_answer: Optional[str] = None  # For true/false: "true"/"false", for fill_blanks: comma-separated words
+    image_url: Optional[str] = None  # Cloudinary URL for question image
 
 
 class QuestionUpdate(BaseModel):
@@ -9959,6 +9960,7 @@ class QuestionUpdate(BaseModel):
     options: Optional[List[dict]] = None
     correct_answer: Optional[str] = None
     order: Optional[int] = None
+    image_url: Optional[str] = None  # Cloudinary URL for question image
 
 
 @api_router.get("/exams/{exam_id}/questions")
