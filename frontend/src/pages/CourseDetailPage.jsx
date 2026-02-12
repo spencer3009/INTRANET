@@ -3253,7 +3253,7 @@ function ExamsContent({ subjectId, token, userRole }) {
   }
   
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
