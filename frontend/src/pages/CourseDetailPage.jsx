@@ -2208,18 +2208,21 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       />
       
       <div className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader
-          user={user}
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-          onLogout={onLogout}
-          logoUrl={settings?.logo_url}
-          schoolName={settings?.system_name}
-          subdomain={subdomain}
-          token={token}
-        />
+        {/* Fixed Header */}
+        <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100">
+          <DashboardHeader
+            user={user}
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+            onLogout={onLogout}
+            logoUrl={settings?.logo_url}
+            schoolName={settings?.system_name}
+            subdomain={subdomain}
+            token={token}
+          />
+        </div>
 
-        {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8 overflow-auto">
+        {/* Main Content - No overflow-auto here, let body scroll */}
+        <main className="flex-1 p-6 lg:p-8">
           {/* Hero Header */}
           <CourseHeroHeader
             subject={subject}
@@ -2232,20 +2235,22 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             onBack={() => navigate("/asignaturas")}
           />
           
-          {/* Tabs */}
-          <div className="mt-6">
+          {/* Tabs - Sticky below header */}
+          <div className="mt-6 sticky top-[72px] z-30 bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 -mx-6 lg:-mx-8 px-6 lg:px-8 py-2">
             <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           
           {/* 3-Column Layout - Google Classroom Style */}
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Sidebar - Sticky */}
-            <div className="lg:col-span-3 order-2 lg:order-1 lg:sticky lg:top-6 lg:self-start">
-              <CourseInfoSidebar
-                subject={subject}
-                activities={activities}
-                news={news}
-              />
+            <div className="lg:col-span-3 order-2 lg:order-1">
+              <div className="lg:sticky lg:top-[140px] space-y-4">
+                <CourseInfoSidebar
+                  subject={subject}
+                  activities={activities}
+                  news={news}
+                />
+              </div>
             </div>
             
             {/* Main Content Area - Scrollable */}
@@ -2254,14 +2259,16 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             </div>
             
             {/* Right Sidebar - Sticky */}
-            <div className="lg:col-span-3 order-3 lg:sticky lg:top-6 lg:self-start">
-              <CourseRightSidebar
-                teacher={teacher}
-                students={students}
-                subjectId={subjectId}
-                token={token}
-                userRole={user?.role}
-              />
+            <div className="lg:col-span-3 order-3">
+              <div className="lg:sticky lg:top-[140px] space-y-4">
+                <CourseRightSidebar
+                  teacher={teacher}
+                  students={students}
+                  subjectId={subjectId}
+                  token={token}
+                  userRole={user?.role}
+                />
+              </div>
             </div>
           </div>
         </main>
