@@ -8903,13 +8903,13 @@ async def get_notification_reminders(
     if user.get("role") in ["admin", "owner", "director", "coordinator"]:
         # Admin roles see all subjects in their school
         subjects = await db.subjects.find(
-            {"school_id": school_id, "is_active": True},
+            {"school_id": school_id},
             {"_id": 0, "id": 1, "name": 1, "color": 1}
         ).to_list(500)
     elif user.get("role") == "teacher":
         # Teachers see their assigned subjects
         subjects = await db.subjects.find(
-            {"school_id": school_id, "is_active": True, "teacher_id": user_id},
+            {"school_id": school_id, "teacher_id": user_id},
             {"_id": 0, "id": 1, "name": 1, "color": 1}
         ).to_list(100)
     else:
@@ -8932,7 +8932,7 @@ async def get_notification_reminders(
         subject_ids = list(set(subject_ids))
         
         subjects = await db.subjects.find(
-            {"school_id": school_id, "id": {"$in": subject_ids}, "is_active": True},
+            {"school_id": school_id, "id": {"$in": subject_ids}},
             {"_id": 0, "id": 1, "name": 1, "color": 1}
         ).to_list(100)
     
