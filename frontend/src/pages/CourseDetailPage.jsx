@@ -3896,32 +3896,40 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           
-          {/* 3-Column Layout */}
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left Sidebar - Sticky */}
-            <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
-              <CourseInfoSidebar
-                subject={subject}
-                subjectId={subjectId}
-                token={token}
-              />
-            </aside>
+          {/* 3-Column Layout - Hide sidebars for exams tab */}
+          <div className={`mt-6 grid grid-cols-1 gap-6 items-start ${
+            activeTab === "examenes" 
+              ? "" 
+              : "lg:grid-cols-12"
+          }`}>
+            {/* Left Sidebar - Sticky (hidden on exams tab) */}
+            {activeTab !== "examenes" && (
+              <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
+                <CourseInfoSidebar
+                  subject={subject}
+                  subjectId={subjectId}
+                  token={token}
+                />
+              </aside>
+            )}
             
-            {/* Main Content Area - Normal flow, pushes page scroll */}
-            <div className="lg:col-span-6">
+            {/* Main Content Area - Full width on exams tab */}
+            <div className={activeTab === "examenes" ? "" : "lg:col-span-6"}>
               {renderTabContent()}
             </div>
             
-            {/* Right Sidebar - Sticky */}
-            <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
-              <CourseRightSidebar
-                teacher={teacher}
-                students={students}
-                subjectId={subjectId}
-                token={token}
-                userRole={user?.role}
-              />
-            </aside>
+            {/* Right Sidebar - Sticky (hidden on exams tab) */}
+            {activeTab !== "examenes" && (
+              <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
+                <CourseRightSidebar
+                  teacher={teacher}
+                  students={students}
+                  subjectId={subjectId}
+                  token={token}
+                  userRole={user?.role}
+                />
+              </aside>
+            )}
           </div>
         </main>
       </div>
