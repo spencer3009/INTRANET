@@ -558,16 +558,29 @@ function YearCard({ year, onViewDetails, onActivate, onDelete, isActivating, isD
             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </button>
           
-          {year.status !== "activo" && year.period_count === 0 && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDelete(year); }}
-              disabled={isDeleting}
-              className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-              title="Eliminar año"
-            >
-              {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
-            </button>
-          )}
+          {/* Edit and Delete buttons - always visible for non-active years */}
+          <div className="flex items-center gap-2">
+            {year.status !== "activo" && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onEdit(year); }}
+                className="p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                title="Editar año"
+              >
+                <Edit2 className="w-5 h-5" />
+              </button>
+            )}
+            
+            {year.status !== "activo" && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onDelete(year); }}
+                disabled={isDeleting}
+                className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+                title={year.period_count > 0 ? "Eliminar año (se eliminarán los períodos)" : "Eliminar año"}
+              >
+                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
