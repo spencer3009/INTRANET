@@ -8353,6 +8353,36 @@ async def create_course_post(
     
     await db.course_posts.insert_one(post)
     
+    # Register activity in the course stream
+    activity_type_map = {
+        "announcement": "announcement",
+        "material": "material_uploaded",
+        "task": "task_assigned",
+        "forum": "post_created"
+    }
+    activity_type = activity_type_map.get(data.post_type, "post_created")
+    
+    activity_title_map = {
+        "announcement": "publicó un aviso",
+        "material": "subió nuevo material",
+        "task": "asignó una tarea",
+        "forum": "publicó en el foro"
+    }
+    activity_desc = activity_title_map.get(data.post_type, "publicó algo")
+    
+    await register_course_activity(
+        school_id=user["school_id"],
+        subject_id=data.subject_id,
+        activity_type=activity_type,
+        user_id=user["id"],
+        user_name=f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        user_photo=user.get("photo_url"),
+        title=activity_desc,
+        description=data.title or (data.content[:100] + "..." if len(data.content) > 100 else data.content),
+        reference_id=post_id,
+        reference_type="post"
+    )
+    
     # Return post with author info
     post_copy = {k: v for k, v in post.items() if k != "_id"}
     post_copy["author"] = {
