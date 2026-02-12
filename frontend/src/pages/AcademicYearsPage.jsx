@@ -453,7 +453,8 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
               )}
             </div>
           )}
-        </div>
+          </div>
+        </main>
       </div>
       
       <CreateYearModal
