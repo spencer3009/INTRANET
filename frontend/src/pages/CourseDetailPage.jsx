@@ -1036,6 +1036,8 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
   
   const headers = { Authorization: `Bearer ${token}` };
   const isAuthor = post.author_id === currentUserId;
+  const config = POST_TYPE_CONFIG[post.post_type] || POST_TYPE_CONFIG.announcement;
+  const TypeIcon = config.icon;
   
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
