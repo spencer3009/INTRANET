@@ -8,40 +8,40 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Reminder type configuration - Soft, elegant colors
+// Reminder type configuration - Premium balanced colors
 const REMINDER_TYPES = {
   task: {
     label: "Tarea",
     icon: FileText,
-    color: "from-blue-400 to-blue-500",
-    bgColor: "bg-blue-50/50",
-    borderColor: "border-blue-100",
-    textColor: "text-blue-500",
-    badgeBg: "bg-blue-400",
-    iconBg: "bg-gradient-to-br from-blue-100 to-blue-200",
-    iconColor: "text-blue-500"
+    color: "from-blue-500 to-indigo-500",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    textColor: "text-blue-600",
+    badgeBg: "bg-blue-500",
+    iconBg: "bg-blue-100",
+    iconColor: "text-blue-600"
   },
   exam: {
     label: "Examen",
     icon: BookOpen,
-    color: "from-rose-400 to-rose-500",
-    bgColor: "bg-rose-50/50",
-    borderColor: "border-rose-100",
-    textColor: "text-rose-400",
-    badgeBg: "bg-rose-400",
-    iconBg: "bg-gradient-to-br from-rose-100 to-rose-200",
-    iconColor: "text-rose-500"
+    color: "from-rose-500 to-red-500",
+    bgColor: "bg-rose-50",
+    borderColor: "border-rose-200",
+    textColor: "text-rose-600",
+    badgeBg: "bg-rose-500",
+    iconBg: "bg-rose-100",
+    iconColor: "text-rose-600"
   },
   notice: {
     label: "Aviso",
     icon: Bell,
-    color: "from-amber-400 to-amber-500",
-    bgColor: "bg-amber-50/50",
-    borderColor: "border-amber-100",
-    textColor: "text-amber-500",
-    badgeBg: "bg-amber-400",
-    iconBg: "bg-gradient-to-br from-amber-100 to-amber-200",
-    iconColor: "text-amber-500"
+    color: "from-amber-500 to-orange-500",
+    bgColor: "bg-amber-50",
+    borderColor: "border-amber-200",
+    textColor: "text-amber-600",
+    badgeBg: "bg-amber-500",
+    iconBg: "bg-amber-100",
+    iconColor: "text-amber-600"
   }
 };
 
