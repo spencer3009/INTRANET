@@ -14,7 +14,7 @@ import {
   FileVideo, Heart, MessageSquare, 
   ChevronDown, ChevronUp, User, GraduationCap,
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
-  Activity, Megaphone, CheckCircle, Check
+  Activity, Megaphone, CheckCircle, Check, Lock, Play
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
