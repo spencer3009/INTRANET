@@ -1486,6 +1486,7 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
         isOpen={showDeleteModal}
         onClose={() => { setShowDeleteModal(false); setDeletingYear(null); }}
         year={deletingYear}
+        token={token}
         onConfirm={handleDeleteYearConfirm}
         loading={deleting === deletingYear?.id}
       />
