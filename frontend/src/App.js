@@ -392,7 +392,7 @@ function App() {
             path="/school/:subdomain/anos-academicos"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AcademicYearsPage token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+                <AcademicYearsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -402,7 +402,7 @@ function App() {
             path="/anos-academicos"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AcademicYearsPage token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+                <AcademicYearsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
