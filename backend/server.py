@@ -8102,6 +8102,352 @@ async def get_active_teachers(
     
     return teachers
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# COURSE FEED API - Posts, Likes, Comments
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CoursePostCreate(BaseModel):
+    subject_id: str
+    content: str = ""
+    image_url: Optional[str] = None
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    file_type: Optional[str] = None
+
+class CoursePostUpdate(BaseModel):
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    file_url: Optional[str] = None
+    file_name: Optional[str] = None
+    file_type: Optional[str] = None
+
+class PostCommentCreate(BaseModel):
+    content: str
+
+@api_router.get("/course/{subject_id}/posts")
+async def get_course_posts(
+    subject_id: str,
+    limit: int = Query(50, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    current_user = Depends(get_current_user)
+):
+    """Get all posts for a course/subject"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    user_id = user["id"]
+    
+    # Verify subject exists
+    subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+    
+    # Get posts
+    posts = await db.course_posts.find(
+        {"subject_id": subject_id, "school_id": school_id, "status": "active"},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
+    
+    # Get total count
+    total = await db.course_posts.count_documents(
+        {"subject_id": subject_id, "school_id": school_id, "status": "active"}
+    )
+    
+    # Enrich posts with author info, likes count, user's like status, and comments count
+    for post in posts:
+        # Get author info
+        author = await db.users.find_one(
+            {"id": post.get("author_id")},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}
+        )
+        post["author"] = author
+        
+        # Get likes count
+        likes_count = await db.post_likes.count_documents({"post_id": post["id"]})
+        post["likes_count"] = likes_count
+        
+        # Check if current user liked this post
+        user_like = await db.post_likes.find_one({"post_id": post["id"], "user_id": user_id})
+        post["user_liked"] = user_like is not None
+        
+        # Get comments count
+        comments_count = await db.post_comments.count_documents({"post_id": post["id"], "status": "active"})
+        post["comments_count"] = comments_count
+    
+    return {"posts": posts, "total": total}
+
+@api_router.post("/course/{subject_id}/posts")
+async def create_course_post(
+    subject_id: str,
+    data: CoursePostCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new post in a course"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Validate: must have content or attachment
+    if not data.content.strip() and not data.image_url and not data.file_url:
+        raise HTTPException(status_code=400, detail="La publicación debe tener texto, imagen o archivo")
+    
+    # Verify subject exists
+    subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+    
+    # Get active academic year
+    active_year = await db.academic_years.find_one({"school_id": school_id, "status": "activo"})
+    academic_year_id = active_year["id"] if active_year else None
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    post = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "academic_year_id": academic_year_id,
+        "author_id": user["id"],
+        "content": data.content.strip(),
+        "image_url": data.image_url,
+        "file_url": data.file_url,
+        "file_name": data.file_name,
+        "file_type": data.file_type,
+        "status": "active",
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.course_posts.insert_one(post)
+    
+    # Return post with author info
+    post_copy = {k: v for k, v in post.items() if k != "_id"}
+    post_copy["author"] = {
+        "id": user["id"],
+        "name": user.get("name", ""),
+        "last_name": user.get("last_name", ""),
+        "photo_url": user.get("photo_url"),
+        "role": user.get("role", "")
+    }
+    post_copy["likes_count"] = 0
+    post_copy["user_liked"] = False
+    post_copy["comments_count"] = 0
+    
+    return {"message": "Publicación creada", "post": post_copy}
+
+@api_router.put("/course/posts/{post_id}")
+async def update_course_post(
+    post_id: str,
+    data: CoursePostUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update a post (only author can update)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    post = await db.course_posts.find_one({"id": post_id}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Publicación no encontrada")
+    
+    # Only author or admin can update
+    if post["author_id"] != user["id"] and user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar esta publicación")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.content is not None:
+        if not data.content.strip() and not post.get("image_url") and not post.get("file_url"):
+            raise HTTPException(status_code=400, detail="La publicación debe tener contenido")
+        update_data["content"] = data.content.strip()
+    
+    if data.image_url is not None:
+        update_data["image_url"] = data.image_url
+    
+    if data.file_url is not None:
+        update_data["file_url"] = data.file_url
+        update_data["file_name"] = data.file_name
+        update_data["file_type"] = data.file_type
+    
+    await db.course_posts.update_one({"id": post_id}, {"$set": update_data})
+    
+    return {"message": "Publicación actualizada"}
+
+@api_router.delete("/course/posts/{post_id}")
+async def delete_course_post(
+    post_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a post (soft delete)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    post = await db.course_posts.find_one({"id": post_id}, {"_id": 0})
+    if not post:
+        raise HTTPException(status_code=404, detail="Publicación no encontrada")
+    
+    # Only author or admin can delete
+    if post["author_id"] != user["id"] and user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para eliminar esta publicación")
+    
+    await db.course_posts.update_one(
+        {"id": post_id},
+        {"$set": {"status": "deleted", "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Publicación eliminada"}
+
+# ═══════════════════════════════════════════════════════════════════
+# LIKES
+# ═══════════════════════════════════════════════════════════════════
+
+@api_router.post("/course/posts/{post_id}/like")
+async def toggle_post_like(
+    post_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Toggle like on a post (like/unlike)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    user_id = user["id"]
+    
+    # Check if post exists
+    post = await db.course_posts.find_one({"id": post_id, "status": "active"})
+    if not post:
+        raise HTTPException(status_code=404, detail="Publicación no encontrada")
+    
+    # Check if user already liked
+    existing_like = await db.post_likes.find_one({"post_id": post_id, "user_id": user_id})
+    
+    if existing_like:
+        # Unlike
+        await db.post_likes.delete_one({"post_id": post_id, "user_id": user_id})
+        liked = False
+    else:
+        # Like
+        like = {
+            "id": str(uuid.uuid4()),
+            "post_id": post_id,
+            "user_id": user_id,
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        await db.post_likes.insert_one(like)
+        liked = True
+    
+    # Get new likes count
+    likes_count = await db.post_likes.count_documents({"post_id": post_id})
+    
+    return {"liked": liked, "likes_count": likes_count}
+
+# ═══════════════════════════════════════════════════════════════════
+# COMMENTS
+# ═══════════════════════════════════════════════════════════════════
+
+@api_router.get("/course/posts/{post_id}/comments")
+async def get_post_comments(
+    post_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get all comments for a post"""
+    # Check if post exists
+    post = await db.course_posts.find_one({"id": post_id, "status": "active"})
+    if not post:
+        raise HTTPException(status_code=404, detail="Publicación no encontrada")
+    
+    comments = await db.post_comments.find(
+        {"post_id": post_id, "status": "active"},
+        {"_id": 0}
+    ).sort("created_at", 1).to_list(100)
+    
+    # Enrich with author info
+    for comment in comments:
+        author = await db.users.find_one(
+            {"id": comment.get("author_id")},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}
+        )
+        comment["author"] = author
+    
+    return comments
+
+@api_router.post("/course/posts/{post_id}/comments")
+async def create_post_comment(
+    post_id: str,
+    data: PostCommentCreate,
+    current_user = Depends(get_current_user)
+):
+    """Add a comment to a post"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    if not data.content.strip():
+        raise HTTPException(status_code=400, detail="El comentario no puede estar vacío")
+    
+    # Check if post exists
+    post = await db.course_posts.find_one({"id": post_id, "status": "active"})
+    if not post:
+        raise HTTPException(status_code=404, detail="Publicación no encontrada")
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    comment = {
+        "id": str(uuid.uuid4()),
+        "post_id": post_id,
+        "author_id": user["id"],
+        "content": data.content.strip(),
+        "status": "active",
+        "created_at": now
+    }
+    
+    await db.post_comments.insert_one(comment)
+    
+    # Return comment with author info
+    comment_copy = {k: v for k, v in comment.items() if k != "_id"}
+    comment_copy["author"] = {
+        "id": user["id"],
+        "name": user.get("name", ""),
+        "last_name": user.get("last_name", ""),
+        "photo_url": user.get("photo_url"),
+        "role": user.get("role", "")
+    }
+    
+    return {"message": "Comentario agregado", "comment": comment_copy}
+
+@api_router.delete("/course/comments/{comment_id}")
+async def delete_comment(
+    comment_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a comment"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    comment = await db.post_comments.find_one({"id": comment_id}, {"_id": 0})
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comentario no encontrado")
+    
+    # Only author or admin can delete
+    if comment["author_id"] != user["id"] and user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este comentario")
+    
+    await db.post_comments.update_one(
+        {"id": comment_id},
+        {"$set": {"status": "deleted", "deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Comentario eliminado"}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
