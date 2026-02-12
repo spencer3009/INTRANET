@@ -1211,9 +1211,11 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
       {/* Type Badge Banner for non-announcement posts */}
       {post.post_type && post.post_type !== "announcement" && (
-        <div className={`px-5 py-2 bg-gradient-to-r ${config.color} flex items-center gap-2`}>
-          <TypeIcon className="w-4 h-4 text-white" />
-          <span className="text-sm font-semibold text-white">{config.label}</span>
+        <div className={`px-5 py-2.5 bg-gradient-to-r ${config.color} flex items-center gap-2`}>
+          <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
+            <TypeIcon className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="text-sm font-bold text-white tracking-wide uppercase">{config.label}</span>
         </div>
       )}
       
