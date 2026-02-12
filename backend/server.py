@@ -2813,6 +2813,7 @@ class AcademicYearCreate(BaseModel):
     clone_from_year: Optional[int] = None  # Optional: clone periods from this year
 
 class AcademicYearUpdate(BaseModel):
+    year: Optional[int] = None
     status: Optional[Literal["activo", "futuro", "cerrado"]] = None
 
 class AcademicPeriodCreate(BaseModel):
