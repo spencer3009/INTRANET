@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { 
   Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
   TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle,
