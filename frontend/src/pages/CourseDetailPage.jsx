@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -13,7 +14,7 @@ import {
   FileVideo, Heart, MessageSquare, 
   ChevronDown, ChevronUp, User, GraduationCap,
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
-  Activity, Megaphone, CheckCircle
+  Activity, Megaphone, CheckCircle, Check
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
