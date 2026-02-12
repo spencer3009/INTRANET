@@ -290,34 +290,57 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, onViewFull, canE
           
           {/* Actions menu */}
           {canEdit && !isCompleted && (
-            <div className="relative z-10">
+            <div className="relative">
               <button
                 onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
                 className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all"
+                data-testid="reminder-menu-btn"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
               
               {menuOpen && (
-                <>
-                  <div className="fixed inset-0 z-[60]" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-8 z-[70] bg-white rounded-xl shadow-xl border border-gray-200 py-1 w-36">
+                <Portal>
+                  <div 
+                    className="fixed inset-0" 
+                    style={{ zIndex: 9998 }}
+                    onClick={() => setMenuOpen(false)} 
+                  />
+                  <div 
+                    className="fixed bg-white rounded-xl shadow-2xl border border-gray-200 py-1.5 w-40"
+                    style={{ 
+                      zIndex: 9999,
+                      top: menuPosition.top,
+                      left: menuPosition.left
+                    }}
+                    data-testid="reminder-actions-menu"
+                  >
                     <button
                       onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onComplete?.(reminder); }}
-                      className="w-full px-3 py-2.5 text-left text-xs text-gray-600 hover:bg-emerald-50 flex items-center gap-2"
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-600 hover:bg-emerald-50 flex items-center gap-3"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
                       <span>Completar</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit?.(reminder); }}
-                      className="w-full px-3 py-2.5 text-left text-xs text-gray-600 hover:bg-violet-50 flex items-center gap-2"
+                      className="w-full px-4 py-2.5 text-left text-sm text-gray-600 hover:bg-violet-50 flex items-center gap-3"
                     >
-                      <Edit2 className="w-3.5 h-3.5 text-violet-500" />
+                      <Edit2 className="w-4 h-4 text-violet-500" />
                       <span>Editar</span>
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete?.(reminder); }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-red-500 hover:bg-red-50 flex items-center gap-3"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Eliminar</span>
+                    </button>
+                  </div>
+                </Portal>
+              )}
+            </div>
+          )}
                       className="w-full px-3 py-2.5 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
