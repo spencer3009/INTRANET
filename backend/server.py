@@ -8624,17 +8624,15 @@ async def delete_comment(
 
 
 # CORS middleware - MUST be added before routers for proper handling
+# Using allow_origin_regex to support all subdomains of edunet.pe
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "*",
         "https://edunet.pe",
-        "https://*.edunet.pe",
-        "https://colegiodemo.edunet.pe",
-        "https://colegioelroble.edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
     ],
+    allow_origin_regex=r"https://.*\.edunet\.pe",
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
