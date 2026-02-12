@@ -7626,8 +7626,8 @@ class AcademicAssignmentCreate(BaseModel):
     grade_id: str
     section_id: str
     subject_id: str
-    period_id: Optional[str] = None
-    school_year: int = 2026
+    academic_year_id: Optional[str] = None  # Changed from period_id - assignments are ANNUAL
+    school_year: int = 2026  # Keep for backward compatibility
     role: Literal["titular", "auxiliar"] = "titular"
     status: Literal["activo", "inactivo"] = "activo"
 
@@ -7637,7 +7637,7 @@ class AcademicAssignmentUpdate(BaseModel):
     grade_id: Optional[str] = None
     section_id: Optional[str] = None
     subject_id: Optional[str] = None
-    period_id: Optional[str] = None
+    academic_year_id: Optional[str] = None  # Changed from period_id
     school_year: Optional[int] = None
     role: Optional[Literal["titular", "auxiliar"]] = None
     status: Optional[Literal["activo", "inactivo"]] = None
