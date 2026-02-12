@@ -242,7 +242,7 @@ function AssignmentCard({ assignment, onEdit, onDelete }) {
         </div>
         <div className="flex items-center gap-1.5 text-gray-600">
           <Calendar className="w-3.5 h-3.5 text-amber-500" />
-          <span>{assignment.period_name || assignment.school_year}</span>
+          <span>{assignment.academic_year || assignment.school_year}</span>
         </div>
       </div>
       
