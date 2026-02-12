@@ -2443,6 +2443,709 @@ function ConfirmExamModal({ isOpen, onClose, onConfirm, title, message, confirmT
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// EXAM DETAIL VIEW - With Questions Management
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Question type configuration
+const QUESTION_TYPES = {
+  multiple_choice: { 
+    label: "Opción múltiple", 
+    icon: CheckCircle,
+    color: "bg-blue-100 text-blue-700"
+  },
+  true_false: { 
+    label: "Verdadero / Falso", 
+    icon: Check,
+    color: "bg-emerald-100 text-emerald-700"
+  },
+  fill_blanks: { 
+    label: "Espacios en blanco", 
+    icon: Edit3,
+    color: "bg-amber-100 text-amber-700"
+  }
+};
+
+// Question Form Modal
+function QuestionFormModal({ isOpen, onClose, onSave, question }) {
+  const [questionType, setQuestionType] = useState("multiple_choice");
+  const [questionText, setQuestionText] = useState("");
+  const [points, setPoints] = useState(1);
+  const [options, setOptions] = useState([
+    { id: "1", text: "", is_correct: false },
+    { id: "2", text: "", is_correct: false }
+  ]);
+  const [correctAnswer, setCorrectAnswer] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  
+  useEffect(() => {
+    if (question) {
+      setQuestionType(question.question_type || "multiple_choice");
+      setQuestionText(question.question_text || "");
+      setPoints(question.points || 1);
+      if (question.options) {
+        setOptions(question.options);
+      }
+      setCorrectAnswer(question.correct_answer || "");
+    } else {
+      setQuestionType("multiple_choice");
+      setQuestionText("");
+      setPoints(1);
+      setOptions([
+        { id: "1", text: "", is_correct: false },
+        { id: "2", text: "", is_correct: false }
+      ]);
+      setCorrectAnswer("");
+    }
+    setError("");
+  }, [question, isOpen]);
+  
+  const addOption = () => {
+    setOptions([...options, { id: String(Date.now()), text: "", is_correct: false }]);
+  };
+  
+  const removeOption = (id) => {
+    if (options.length > 2) {
+      setOptions(options.filter(o => o.id !== id));
+    }
+  };
+  
+  const updateOption = (id, field, value) => {
+    setOptions(options.map(o => {
+      if (o.id === id) {
+        if (field === "is_correct" && value === true) {
+          // Unmark others if single correct answer
+          return { ...o, is_correct: true };
+        }
+        return { ...o, [field]: value };
+      }
+      // If marking this one correct, unmark others (for single answer)
+      if (field === "is_correct" && value === true) {
+        return { ...o, is_correct: false };
+      }
+      return o;
+    }));
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    
+    if (!questionText.trim()) {
+      setError("La pregunta es requerida");
+      return;
+    }
+    
+    // Validate based on type
+    if (questionType === "multiple_choice") {
+      const validOptions = options.filter(o => o.text.trim());
+      if (validOptions.length < 2) {
+        setError("Se requieren al menos 2 opciones");
+        return;
+      }
+      if (!options.some(o => o.is_correct)) {
+        setError("Debe marcar una respuesta correcta");
+        return;
+      }
+    }
+    
+    if (questionType === "true_false" && !correctAnswer) {
+      setError("Debe seleccionar Verdadero o Falso");
+      return;
+    }
+    
+    if (questionType === "fill_blanks") {
+      if (!questionText.includes("_")) {
+        setError("La pregunta debe contener '_' para marcar los espacios en blanco");
+        return;
+      }
+      if (!correctAnswer.trim()) {
+        setError("Debe proporcionar las palabras correctas");
+        return;
+      }
+    }
+    
+    setSaving(true);
+    try {
+      const data = {
+        question_type: questionType,
+        question_text: questionText.trim(),
+        points: parseFloat(points),
+        options: questionType === "multiple_choice" ? options.filter(o => o.text.trim()) : null,
+        correct_answer: questionType !== "multiple_choice" ? correctAnswer : null
+      };
+      
+      await onSave(data, question?.id);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Preview for fill_blanks
+  const renderFillBlanksPreview = () => {
+    if (questionType !== "fill_blanks" || !questionText.includes("_")) return null;
+    
+    const parts = questionText.split("_");
+    const answers = correctAnswer.split(",").map(a => a.trim());
+    
+    return (
+      <div className="mt-4 p-4 bg-gray-50 rounded-xl">
+        <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Vista previa</p>
+        <p className="text-gray-700">
+          {parts.map((part, i) => (
+            <span key={i}>
+              {part}
+              {i < parts.length - 1 && (
+                <span className="inline-block min-w-[80px] px-2 py-1 mx-1 bg-amber-100 text-amber-700 rounded font-medium text-center">
+                  {answers[i] || "___"}
+                </span>
+              )}
+            </span>
+          ))}
+        </p>
+      </div>
+    );
+  };
+  
+  if (!isOpen) return null;
+  
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-white">
+              {question ? "Editar Pregunta" : "Nueva Pregunta"}
+            </h2>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+          
+          {/* Question Type */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-3">Tipo de pregunta</label>
+            <div className="grid grid-cols-3 gap-3">
+              {Object.entries(QUESTION_TYPES).map(([type, config]) => {
+                const Icon = config.icon;
+                const isSelected = questionType === type;
+                return (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setQuestionType(type)}
+                    className={`p-4 rounded-xl border-2 text-center transition-all ${
+                      isSelected 
+                        ? "border-indigo-500 bg-indigo-50" 
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <Icon className={`w-6 h-6 mx-auto mb-2 ${isSelected ? "text-indigo-600" : "text-gray-400"}`} />
+                    <span className={`text-sm font-medium ${isSelected ? "text-indigo-700" : "text-gray-600"}`}>
+                      {config.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Question Text */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Pregunta *
+              {questionType === "fill_blanks" && (
+                <span className="font-normal text-gray-500 ml-2">(usa _ para espacios en blanco)</span>
+              )}
+            </label>
+            <textarea
+              value={questionText}
+              onChange={(e) => setQuestionText(e.target.value)}
+              placeholder={questionType === "fill_blanks" 
+                ? "Ej: La capital de Perú es _ y su moneda es el _" 
+                : "Escribe la pregunta aquí..."
+              }
+              rows={3}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white resize-none"
+              required
+            />
+          </div>
+          
+          {/* Points */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Puntaje</label>
+            <input
+              type="number"
+              min="0.5"
+              max="100"
+              step="0.5"
+              value={points}
+              onChange={(e) => setPoints(e.target.value)}
+              className="w-32 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </div>
+          
+          {/* Multiple Choice Options */}
+          {questionType === "multiple_choice" && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Opciones de respuesta</label>
+              <div className="space-y-3">
+                {options.map((option, idx) => (
+                  <div key={option.id} className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => updateOption(option.id, "is_correct", !option.is_correct)}
+                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
+                        option.is_correct 
+                          ? "border-emerald-500 bg-emerald-500 text-white" 
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                    >
+                      {option.is_correct && <Check className="w-4 h-4" />}
+                    </button>
+                    <input
+                      type="text"
+                      value={option.text}
+                      onChange={(e) => updateOption(option.id, "text", e.target.value)}
+                      placeholder={`Opción ${idx + 1}`}
+                      className="flex-1 px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    {options.length > 2 && (
+                      <button
+                        type="button"
+                        onClick={() => removeOption(option.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={addOption}
+                  className="w-full py-2.5 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar opción
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">Haz clic en el círculo para marcar la respuesta correcta</p>
+            </div>
+          )}
+          
+          {/* True/False */}
+          {questionType === "true_false" && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">Respuesta correcta</label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setCorrectAnswer("true")}
+                  className={`flex-1 py-4 rounded-xl border-2 font-semibold transition-all ${
+                    correctAnswer === "true"
+                      ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  ✓ Verdadero
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCorrectAnswer("false")}
+                  className={`flex-1 py-4 rounded-xl border-2 font-semibold transition-all ${
+                    correctAnswer === "false"
+                      ? "border-red-500 bg-red-50 text-red-700"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  ✗ Falso
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {/* Fill Blanks */}
+          {questionType === "fill_blanks" && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Palabras correctas <span className="font-normal text-gray-500">(separadas por coma)</span>
+              </label>
+              <input
+                type="text"
+                value={correctAnswer}
+                onChange={(e) => setCorrectAnswer(e.target.value)}
+                placeholder="Lima, nuevo sol"
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              {renderFillBlanksPreview()}
+            </div>
+          )}
+          
+          {/* Actions */}
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  {question ? "Guardar cambios" : "Agregar pregunta"}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// Main Exam Detail View Component
+function ExamDetailView({ examId, token, userRole, onBack }) {
+  const [exam, setExam] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showQuestionModal, setShowQuestionModal] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
+  
+  useEffect(() => {
+    loadExamData();
+  }, [examId]);
+  
+  const loadExamData = async () => {
+    setLoading(true);
+    try {
+      const [examRes, questionsRes] = await Promise.all([
+        axios.get(`${API}/exams/${examId}/full`, { headers }),
+        axios.get(`${API}/exams/${examId}/questions`, { headers })
+      ]);
+      setExam(examRes.data);
+      setQuestions(questionsRes.data);
+    } catch (err) {
+      console.error("Error loading exam:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleSaveQuestion = async (data, questionId) => {
+    if (questionId) {
+      await axios.put(`${API}/exams/questions/${questionId}`, data, { headers });
+    } else {
+      await axios.post(`${API}/exams/${examId}/questions`, data, { headers });
+    }
+    loadExamData();
+  };
+  
+  const handleDeleteQuestion = async (questionId) => {
+    try {
+      await axios.delete(`${API}/exams/questions/${questionId}`, { headers });
+      setDeleteConfirm(null);
+      loadExamData();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al eliminar");
+    }
+  };
+  
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return { date: "", time: "" };
+    const date = new Date(dateStr);
+    return {
+      date: date.toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
+      time: date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+      </div>
+    );
+  }
+  
+  if (!exam) {
+    return (
+      <div className="text-center py-20">
+        <AlertCircle className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+        <p className="text-gray-500">Examen no encontrado</p>
+        <button onClick={onBack} className="mt-4 text-indigo-600 hover:underline">
+          Volver a la lista
+        </button>
+      </div>
+    );
+  }
+  
+  const start = formatDateTime(exam.start_datetime);
+  const end = formatDateTime(exam.end_datetime);
+  const statusConfig = EXAM_STATUS_CONFIG[exam.status] || EXAM_STATUS_CONFIG.draft;
+  const StatusIcon = statusConfig.icon;
+  
+  return (
+    <div className="space-y-6">
+      {/* Back Button & Header */}
+      <div className="flex items-center gap-4">
+        <button
+          onClick={onBack}
+          className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </button>
+        <div className="flex-1">
+          <h2 className="text-xl font-bold text-gray-800">{exam.title}</h2>
+          <p className="text-sm text-gray-500">Gestión de preguntas del examen</p>
+        </div>
+        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${statusConfig.color}`}>
+          <StatusIcon className="w-4 h-4" />
+          {statusConfig.label.toUpperCase()}
+        </span>
+      </div>
+      
+      {/* Exam Details Card */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <FileText className="w-5 h-5" />
+            Detalles del Examen
+          </h3>
+        </div>
+        <div className="p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Curso</p>
+              <p className="font-semibold text-gray-800">{exam.subject_name || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Grado</p>
+              <p className="font-semibold text-gray-800">{exam.grade_name || "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Fecha</p>
+              <p className="font-semibold text-gray-800">{start.date}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Horario</p>
+              <p className="font-semibold text-gray-800">{start.time} - {end.time}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Nota mínima</p>
+              <p className="font-semibold text-gray-800">{exam.min_score_percentage}%</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Total preguntas</p>
+              <p className="font-semibold text-gray-800">{questions.length}</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Puntaje total</p>
+              <p className="font-semibold text-gray-800">{exam.total_points || 0} pts</p>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Estado</p>
+              <p className={`font-semibold ${statusConfig.color.replace('bg-', 'text-').split(' ')[1]}`}>
+                {statusConfig.label}
+              </p>
+            </div>
+          </div>
+          {exam.description && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Descripción</p>
+              <p className="text-gray-700">{exam.description}</p>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Questions Management */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 flex items-center justify-between">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Edit3 className="w-5 h-5" />
+            Gestión de Preguntas
+          </h3>
+          {canEdit && exam.status !== "closed" && (
+            <button
+              onClick={() => { setEditingQuestion(null); setShowQuestionModal(true); }}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg font-medium flex items-center gap-2 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Agregar Pregunta
+            </button>
+          )}
+        </div>
+        
+        <div className="p-6">
+          {questions.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-xl">
+              <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <FileText className="w-8 h-8 text-gray-400" />
+              </div>
+              <h4 className="text-lg font-semibold text-gray-700 mb-1">Sin preguntas</h4>
+              <p className="text-sm text-gray-500 mb-4">Agrega preguntas para completar este examen</p>
+              {canEdit && exam.status !== "closed" && (
+                <button
+                  onClick={() => { setEditingQuestion(null); setShowQuestionModal(true); }}
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-semibold inline-flex items-center gap-2 hover:bg-indigo-700 transition-colors"
+                >
+                  <Plus className="w-4 h-4" />
+                  Agregar primera pregunta
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-12">#</th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">Tipo</th>
+                    <th className="text-left py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Pregunta</th>
+                    <th className="text-center py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-20">Nota</th>
+                    <th className="text-right py-3 px-4 text-xs font-bold text-gray-500 uppercase tracking-wider w-32">Opciones</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {questions.map((q, idx) => {
+                    const typeConfig = QUESTION_TYPES[q.question_type] || QUESTION_TYPES.multiple_choice;
+                    const TypeIcon = typeConfig.icon;
+                    
+                    return (
+                      <tr key={q.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="py-4 px-4">
+                          <span className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-sm font-bold text-gray-600">
+                            {idx + 1}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${typeConfig.color}`}>
+                            <TypeIcon className="w-3.5 h-3.5" />
+                            {typeConfig.label}
+                          </span>
+                        </td>
+                        <td className="py-4 px-4">
+                          <p className="text-gray-800 line-clamp-2">{q.question_text}</p>
+                          {q.question_type === "multiple_choice" && q.options && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              {q.options.length} opciones • Correcta: {q.options.find(o => o.is_correct)?.text || "—"}
+                            </p>
+                          )}
+                          {q.question_type === "true_false" && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Correcta: {q.correct_answer === "true" ? "Verdadero" : "Falso"}
+                            </p>
+                          )}
+                          {q.question_type === "fill_blanks" && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Respuestas: {q.correct_answer}
+                            </p>
+                          )}
+                        </td>
+                        <td className="py-4 px-4 text-center">
+                          <span className="font-bold text-indigo-600">{q.points}</span>
+                          <span className="text-gray-400 text-sm ml-1">pts</span>
+                        </td>
+                        <td className="py-4 px-4 text-right">
+                          {canEdit && exam.status !== "closed" && (
+                            <div className="flex items-center justify-end gap-2">
+                              <button
+                                onClick={() => { setEditingQuestion(q); setShowQuestionModal(true); }}
+                                className="p-2 text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                title="Editar"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => setDeleteConfirm(q)}
+                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Eliminar"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+      
+      {/* Question Modal */}
+      <QuestionFormModal
+        isOpen={showQuestionModal}
+        onClose={() => { setShowQuestionModal(false); setEditingQuestion(null); }}
+        onSave={handleSaveQuestion}
+        question={editingQuestion}
+      />
+      
+      {/* Delete Confirmation */}
+      {deleteConfirm && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+            <h3 className="text-lg font-bold text-gray-800 mb-2">¿Eliminar pregunta?</h3>
+            <p className="text-gray-600 mb-6">Esta acción no se puede deshacer.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => handleDeleteQuestion(deleteConfirm.id)}
+                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
 // Main Exams Content Component
 function ExamsContent({ subjectId, token, userRole }) {
   const [exams, setExams] = useState([]);
