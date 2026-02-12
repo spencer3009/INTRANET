@@ -1213,7 +1213,7 @@ export default function DisciplinePage({ user, token, subdomain, onLogout }) {
               onView={handleView}
               onEdit={handleEdit}
               onStatusChange={handleStatusChangeModal}
-              onDelete={handleDelete}
+              onDelete={handleDeleteClick}
               isAdmin={isAdmin}
               currentUserId={user?.id}
             />
