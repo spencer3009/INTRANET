@@ -390,10 +390,10 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
 
   return (
     <div className="space-y-5">
-      {/* Course Card with Image */}
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+      {/* Course Card with Image - Elegant Design */}
+      <div className="bg-gradient-to-br from-indigo-50/50 to-violet-50/30 rounded-2xl p-5 border border-indigo-200/40 shadow-sm">
         {subject?.image_url ? (
-          <div className="w-full aspect-square rounded-2xl overflow-hidden mb-4 shadow-lg">
+          <div className="w-full aspect-square rounded-2xl overflow-hidden mb-4 shadow-lg ring-2 ring-white">
             <img 
               src={subject.image_url} 
               alt={subject.name}
@@ -402,18 +402,18 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
           </div>
         ) : (
           <div 
-            className="w-full aspect-square rounded-2xl flex items-center justify-center mb-4 shadow-inner"
+            className="w-full aspect-square rounded-2xl flex items-center justify-center mb-4 shadow-inner ring-2 ring-white/50"
             style={{ 
-              background: `linear-gradient(135deg, ${subject?.color || '#6366F1'}20, ${subject?.color || '#6366F1'}40)`,
-              border: `2px solid ${subject?.color || '#6366F1'}30`
+              background: `linear-gradient(135deg, ${subject?.color || '#6366F1'}15, ${subject?.color || '#6366F1'}30)`,
+              border: `2px solid ${subject?.color || '#6366F1'}25`
             }}
           >
             <BookOpen className="w-16 h-16" style={{ color: subject?.color || '#6366F1' }} />
           </div>
         )}
-        <h3 className="font-bold text-gray-800 text-center">{subject?.name}</h3>
+        <h3 className="font-bold text-slate-800 text-center text-lg">{subject?.name}</h3>
         {subject?.description && (
-          <p className="text-sm text-gray-500 text-center mt-2 line-clamp-3">{subject.description}</p>
+          <p className="text-sm text-slate-500 text-center mt-2 line-clamp-3">{subject.description}</p>
         )}
       </div>
       
