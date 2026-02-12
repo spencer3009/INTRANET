@@ -988,7 +988,7 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
         <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <label className="p-2 hover:bg-gray-200 rounded-xl cursor-pointer transition-colors">
-              <Image className="w-5 h-5 text-green-600" />
+              <ImageIcon className="w-5 h-5 text-green-600" />
               <input
                 ref={imageInputRef}
                 type="file"
