@@ -8623,6 +8623,226 @@ async def delete_comment(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# COURSE REMINDERS - Premium Feature (Google Classroom Style)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CourseReminderCreate(BaseModel):
+    subject_id: str
+    title: str
+    description: Optional[str] = None
+    date: str  # ISO date string
+    reminder_type: Literal["task", "exam", "notice"] = "notice"
+
+class CourseReminderUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    date: Optional[str] = None
+    reminder_type: Optional[Literal["task", "exam", "notice"]] = None
+    status: Optional[Literal["active", "completed", "cancelled"]] = None
+
+
+@api_router.get("/course/{subject_id}/reminders")
+async def get_course_reminders(
+    subject_id: str,
+    status: Optional[str] = Query(None, description="Filter by status: active, completed, cancelled"),
+    current_user = Depends(get_current_user)
+):
+    """Get all reminders for a course/subject"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Build query filter
+    query_filter = {
+        "school_id": user["school_id"],
+        "subject_id": subject_id
+    }
+    
+    if status:
+        query_filter["status"] = status
+    else:
+        # By default, exclude cancelled
+        query_filter["status"] = {"$ne": "cancelled"}
+    
+    # Get reminders sorted by date
+    reminders = await db.course_reminders.find(
+        query_filter,
+        {"_id": 0}
+    ).sort("date", 1).to_list(100)
+    
+    # Add creator info
+    for reminder in reminders:
+        if reminder.get("created_by"):
+            creator = await db.users.find_one(
+                {"id": reminder["created_by"]},
+                {"_id": 0, "id": 1, "name": 1, "profile_image": 1}
+            )
+            reminder["creator"] = creator
+    
+    return reminders
+
+
+@api_router.post("/course/{subject_id}/reminders")
+async def create_course_reminder(
+    subject_id: str,
+    data: CourseReminderCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new reminder for a course (teachers/admins only)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Only teachers, admins and owners can create reminders
+    if user.get("role") not in ["teacher", "admin", "owner"]:
+        raise HTTPException(status_code=403, detail="Solo docentes pueden crear recordatorios")
+    
+    # Verify subject exists
+    subject = await db.subjects.find_one({"id": subject_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not subject:
+        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
+    
+    # Get current academic year
+    current_year = await db.academic_years.find_one({
+        "school_id": user["school_id"],
+        "estado": "activo"
+    }, {"_id": 0})
+    
+    reminder_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    reminder = {
+        "id": reminder_id,
+        "school_id": user["school_id"],
+        "subject_id": subject_id,
+        "academic_year_id": current_year["id"] if current_year else None,
+        "title": data.title.strip(),
+        "description": data.description.strip() if data.description else None,
+        "date": data.date,
+        "reminder_type": data.reminder_type,
+        "status": "active",
+        "created_by": user["id"],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.course_reminders.insert_one(reminder)
+    
+    # Add creator info for response
+    reminder["creator"] = {
+        "id": user["id"],
+        "name": user.get("name"),
+        "profile_image": user.get("profile_image")
+    }
+    
+    # Remove MongoDB _id
+    reminder.pop("_id", None)
+    
+    return reminder
+
+
+@api_router.put("/course/reminders/{reminder_id}")
+async def update_course_reminder(
+    reminder_id: str,
+    data: CourseReminderUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update a course reminder"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    reminder = await db.course_reminders.find_one({"id": reminder_id}, {"_id": 0})
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Recordatorio no encontrado")
+    
+    # Only creator, admins, or owners can update
+    if reminder["created_by"] != user["id"] and user.get("role") not in ["admin", "owner"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para editar este recordatorio")
+    
+    # Build update data
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    
+    if data.title is not None:
+        update_data["title"] = data.title.strip()
+    if data.description is not None:
+        update_data["description"] = data.description.strip() if data.description else None
+    if data.date is not None:
+        update_data["date"] = data.date
+    if data.reminder_type is not None:
+        update_data["reminder_type"] = data.reminder_type
+    if data.status is not None:
+        update_data["status"] = data.status
+    
+    await db.course_reminders.update_one({"id": reminder_id}, {"$set": update_data})
+    
+    # Return updated reminder
+    updated = await db.course_reminders.find_one({"id": reminder_id}, {"_id": 0})
+    return updated
+
+
+@api_router.delete("/course/reminders/{reminder_id}")
+async def delete_course_reminder(
+    reminder_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete (cancel) a course reminder"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    reminder = await db.course_reminders.find_one({"id": reminder_id}, {"_id": 0})
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Recordatorio no encontrado")
+    
+    # Only creator, admins, or owners can delete
+    if reminder["created_by"] != user["id"] and user.get("role") not in ["admin", "owner"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para eliminar este recordatorio")
+    
+    # Soft delete by setting status to cancelled
+    await db.course_reminders.update_one(
+        {"id": reminder_id},
+        {"$set": {
+            "status": "cancelled",
+            "cancelled_at": datetime.now(timezone.utc).isoformat(),
+            "cancelled_by": user["id"]
+        }}
+    )
+    
+    return {"message": "Recordatorio eliminado"}
+
+
+@api_router.post("/course/reminders/{reminder_id}/complete")
+async def complete_course_reminder(
+    reminder_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Mark a reminder as completed"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    reminder = await db.course_reminders.find_one({"id": reminder_id}, {"_id": 0})
+    if not reminder:
+        raise HTTPException(status_code=404, detail="Recordatorio no encontrado")
+    
+    # Only creator, admins, or owners can complete
+    if reminder["created_by"] != user["id"] and user.get("role") not in ["admin", "owner"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para completar este recordatorio")
+    
+    await db.course_reminders.update_one(
+        {"id": reminder_id},
+        {"$set": {
+            "status": "completed",
+            "completed_at": datetime.now(timezone.utc).isoformat(),
+            "completed_by": user["id"]
+        }}
+    )
+    
+    return {"message": "Recordatorio marcado como completado"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
