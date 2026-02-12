@@ -367,7 +367,7 @@ function CourseInfoSidebar({ subject, activities, news }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // RIGHT SIDEBAR - TEACHER & STUDENTS
 // ══════════════════════════════════════════════════════════════════════════════
-function CourseRightSidebar({ teacher, students, reminders }) {
+function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
   const [showAllStudents, setShowAllStudents] = useState(false);
   const displayedStudents = showAllStudents ? students : students.slice(0, 6);
   
