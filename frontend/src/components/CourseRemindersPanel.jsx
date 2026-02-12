@@ -368,7 +368,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
   const [confirmDelete, setConfirmDelete] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
-  const canEdit = ["teacher", "admin", "owner"].includes(userRole);
+  const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
 
   useEffect(() => {
     loadReminders();
