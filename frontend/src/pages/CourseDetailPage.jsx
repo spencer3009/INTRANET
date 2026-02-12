@@ -2028,10 +2028,6 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   const [exams] = useState([]);
   const [threads] = useState([]);
   const [grades] = useState([]);
-  const [reminders] = useState([
-    { title: "Entrega de proyecto final", date: "27 Dic 2025" },
-    { title: "Examen parcial", date: "30 Dic 2025" },
-  ]);
 
   const headers = { Authorization: `Bearer ${token}` };
 
