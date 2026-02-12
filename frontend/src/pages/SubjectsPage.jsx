@@ -83,7 +83,7 @@ const LEVEL_THEMES = {
     icon: GraduationCap,
     gradient: "from-amber-500 via-orange-500 to-rose-500",
     softGradient: "from-amber-50 via-orange-50 to-rose-50",
-    tabActive: "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-lg shadow-amber-500/30",
+    tabActive: "bg-gradient-to-r from-amber-500 to-orange-600 !text-white shadow-lg shadow-amber-500/30",
     tabInactive: "text-amber-600 hover:bg-amber-50",
     cardBg: "bg-gradient-to-br from-amber-50 to-orange-50",
     cardBorder: "border-amber-200/60",
