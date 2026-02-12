@@ -1658,6 +1658,45 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         expense={editingExpense}
         onSave={handleSaveExpense}
       />
+      
+      {/* Confirm Payment Modal */}
+      <ConfirmModal
+        isOpen={showConfirmPaymentModal}
+        onClose={() => { setShowConfirmPaymentModal(false); setSelectedPayment(null); }}
+        onConfirm={handleConfirmPayment}
+        loading={processing}
+        title="Confirmar Pago"
+        message={`¿Confirmar el pago de S/ ${formatNumber(selectedPayment?.total_amount || 0)}? Esta acción registrará el ingreso como confirmado.`}
+        confirmText="Confirmar Pago"
+        variant="success"
+        icon="payment"
+      />
+      
+      {/* Cancel Payment Modal */}
+      <ConfirmModal
+        isOpen={showCancelPaymentModal}
+        onClose={() => { setShowCancelPaymentModal(false); setSelectedPayment(null); }}
+        onConfirm={handleCancelPayment}
+        loading={processing}
+        title="Anular Pago"
+        message="¿Estás seguro de anular este pago? Esta acción revertirá el ingreso registrado."
+        confirmText="Anular Pago"
+        variant="warning"
+        icon="ban"
+      />
+      
+      {/* Delete Expense Modal */}
+      <ConfirmModal
+        isOpen={showDeleteExpenseModal}
+        onClose={() => { setShowDeleteExpenseModal(false); setSelectedExpense(null); }}
+        onConfirm={handleDeleteExpense}
+        loading={processing}
+        title="Eliminar Egreso"
+        message={`¿Estás seguro de eliminar este egreso? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        variant="danger"
+        icon="delete"
+      />
     </div>
   );
 }
