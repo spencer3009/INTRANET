@@ -662,6 +662,72 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
               ))}
             </div>
           </div>
+
+          {/* Image Upload Section */}
+          <div className="mb-5">
+            <label className="block text-sm font-bold text-gray-700 mb-3">
+              <Image className="w-4 h-4 inline mr-1 text-indigo-500" />
+              Imagen de la Asignatura
+            </label>
+            <div className="border-2 border-dashed border-gray-200 rounded-2xl p-4 hover:border-indigo-300 transition-colors">
+              {imagePreview ? (
+                <div className="relative">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="w-full h-40 object-cover rounded-xl"
+                  />
+                  {uploadingImage && (
+                    <div className="absolute inset-0 bg-black/50 rounded-xl flex flex-col items-center justify-center">
+                      <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
+                      <span className="text-white text-sm font-medium">{uploadProgress}%</span>
+                    </div>
+                  )}
+                  {!uploadingImage && (
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-2 right-2 p-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-lg transition-colors"
+                      title="Eliminar imagen"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center h-32 cursor-pointer">
+                  <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mb-3">
+                    <Upload className="w-7 h-7 text-indigo-500" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-600">Haz clic para subir una imagen</span>
+                  <span className="text-xs text-gray-400 mt-1">PNG, JPG, WEBP (máx. 10MB)</span>
+                  <span className="text-xs text-indigo-500 mt-1">Se convertirá a WebP automáticamente</span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                </label>
+              )}
+              {/* Hidden input for clicking on preview to change */}
+              {imagePreview && !uploadingImage && (
+                <label className="block mt-3 text-center">
+                  <span className="text-sm text-indigo-600 hover:text-indigo-700 cursor-pointer font-medium">
+                    Cambiar imagen
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageSelect}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+          </div>
         </form>
 
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
