@@ -42,7 +42,7 @@ function getRoleDisplay(role, isOwner, isSuperAdmin) {
   return ROLE_DISPLAY_MAP[role] || role || "Usuario";
 }
 
-export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain }) {
+export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain, token }) {
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
