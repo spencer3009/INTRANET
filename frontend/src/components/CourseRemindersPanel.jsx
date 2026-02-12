@@ -216,13 +216,14 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, onViewFull, canE
   
   return (
     <div 
-      className={`group relative bg-white rounded-xl overflow-hidden transition-all duration-200
+      className={`group relative bg-white rounded-xl overflow-hidden transition-all duration-200 cursor-pointer
         ${isCompleted ? "opacity-50" : ""}
         ${isImportant && !isCompleted ? "ring-2 ring-amber-300" : ""}
         border ${dateInfo.isPast && !isCompleted ? "border-red-300" : dateInfo.isUrgent && !isCompleted ? "border-amber-300" : typeConfig.borderColor}
         hover:shadow-md hover:border-violet-200
         ${shouldAnimate ? "animate-subtle-pulse" : ""}`}
       data-testid={`reminder-card-${reminder.id}`}
+      onClick={() => onViewFull?.(reminder)}
     >
       {/* Color accent bar */}
       <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${
