@@ -177,7 +177,7 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CREATE/EDIT REMINDER MODAL
+// CREATE/EDIT REMINDER MODAL - Soft, elegant design
 // ══════════════════════════════════════════════════════════════════════════════
 function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
   const [formData, setFormData] = useState({
@@ -242,24 +242,23 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-        {/* Header */}
-        <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-purple-500 px-6 py-5 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-          <div className="relative flex items-center justify-between">
+      <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+        {/* Header - Soft gradient */}
+        <div className="bg-gradient-to-r from-rose-50 to-pink-50 px-6 py-5 border-b border-rose-100">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                <Bell className="w-5 h-5 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-rose-100 to-pink-100 rounded-xl flex items-center justify-center">
+                <Bell className="w-5 h-5 text-rose-400" />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">
+                <h2 className="text-base font-semibold text-gray-700">
                   {reminder ? "Editar Recordatorio" : "Nuevo Recordatorio"}
                 </h2>
-                <p className="text-sm text-white/70">Visible para todos los estudiantes</p>
+                <p className="text-xs text-gray-400">Visible para todos del curso</p>
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl transition-colors">
+            <button onClick={onClose} className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-100 rounded-lg transition-colors">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -267,15 +266,15 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
 
         <form onSubmit={handleSubmit} className="p-6">
           {error && (
-            <div className="mb-5 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-3">
-              <AlertCircle className="w-5 h-5 flex-shrink-0" />
-              <span className="text-sm font-medium">{error}</span>
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-500 rounded-xl flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              <span className="text-sm">{error}</span>
             </div>
           )}
 
-          {/* Type selector */}
+          {/* Type selector - Soft colors */}
           <div className="mb-5">
-            <label className="block text-sm font-bold text-gray-700 mb-3">Tipo de Recordatorio</label>
+            <label className="block text-sm font-medium text-gray-600 mb-3">Tipo</label>
             <div className="grid grid-cols-3 gap-2">
               {Object.entries(REMINDER_TYPES).map(([key, config]) => {
                 const TypeIcon = config.icon;
@@ -287,14 +286,14 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
                     onClick={() => setFormData(prev => ({ ...prev, reminder_type: key }))}
                     className={`p-3 rounded-xl border-2 transition-all ${
                       isSelected 
-                        ? `${config.borderColor} ${config.bgColor}` 
-                        : "border-gray-200 hover:border-gray-300"
+                        ? `${config.borderColor} ${config.bgColor} border-2` 
+                        : "border-gray-100 hover:border-gray-200 bg-gray-50/50"
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${config.color} flex items-center justify-center mx-auto mb-2`}>
-                      <TypeIcon className="w-5 h-5 text-white" />
+                    <div className={`w-9 h-9 rounded-lg ${config.iconBg} flex items-center justify-center mx-auto mb-2`}>
+                      <TypeIcon className={`w-4 h-4 ${config.iconColor}`} />
                     </div>
-                    <span className={`text-xs font-bold ${isSelected ? config.textColor : "text-gray-500"}`}>
+                    <span className={`text-xs font-medium ${isSelected ? config.textColor : "text-gray-400"}`}>
                       {config.label}
                     </span>
                   </button>
@@ -305,36 +304,36 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
 
           {/* Title */}
           <div className="mb-4">
-            <label className="block text-sm font-bold text-gray-700 mb-2">Título *</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Título *</label>
             <input
               type="text"
               value={formData.title}
               onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
               placeholder="Ej: Entrega de proyecto final"
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300"
             />
           </div>
 
           {/* Date */}
           <div className="mb-4">
-            <label className="block text-sm font-bold text-gray-700 mb-2">Fecha *</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Fecha *</label>
             <input
               type="date"
               value={formData.date}
               onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300"
             />
           </div>
 
           {/* Description */}
           <div className="mb-5">
-            <label className="block text-sm font-bold text-gray-700 mb-2">Descripción (opcional)</label>
+            <label className="block text-sm font-medium text-gray-600 mb-2">Descripción (opcional)</label>
             <textarea
               value={formData.description}
               onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Detalles adicionales del recordatorio..."
-              rows={3}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
+              placeholder="Detalles adicionales..."
+              rows={2}
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-300 resize-none"
             />
           </div>
 
@@ -343,14 +342,14 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-5 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-semibold transition-colors"
+              className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 px-5 py-3 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white rounded-xl font-semibold transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-pink-500/25"
+              className="flex-1 px-4 py-2.5 bg-rose-400 hover:bg-rose-500 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {reminder ? "Actualizar" : "Crear"}
