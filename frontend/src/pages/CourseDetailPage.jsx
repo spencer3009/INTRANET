@@ -2416,7 +2416,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           {/* 3-Column Layout */}
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
             {/* Left Sidebar - Sticky */}
-            <aside className="hidden lg:block lg:col-span-3 sticky top-[180px] self-start">
+            <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
               <CourseInfoSidebar
                 subject={subject}
                 subjectId={subjectId}
@@ -2430,7 +2430,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             </div>
             
             {/* Right Sidebar - Sticky */}
-            <aside className="hidden lg:block lg:col-span-3 sticky top-[180px] self-start">
+            <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
               <CourseRightSidebar
                 teacher={teacher}
                 students={students}
