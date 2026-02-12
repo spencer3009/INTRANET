@@ -241,6 +241,16 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
    - Header sticky en parte superior, ancho completo de pantalla
    - UI consistente con todas las demás páginas de la aplicación
 
+2. ✅ **Reorganización UX: Años y Períodos Académicos** - COMPLETADO
+   - **Cambio principal**: Los períodos ahora se gestionan EXCLUSIVAMENTE desde el módulo "Años Académicos"
+   - **Vista de detalle de año**: Al hacer clic en un año, se muestra su información y todos sus períodos
+   - **CRUD de períodos**: Crear, editar, eliminar y activar períodos desde la vista de detalle del año
+   - **Ajustes Académicos**: Eliminada la categoría "Períodos Académicos", reemplazada por tarjeta "Años y Períodos" que redirige al módulo
+   - **UX mejorada**: Jerarquía clara Año → Períodos, más intuitivo para usuarios no técnicos
+   - Archivos modificados:
+     - `/app/frontend/src/pages/AcademicYearsPage.jsx` - Vista de detalle con gestión de períodos
+     - `/app/frontend/src/pages/AcademicSettingsPage.jsx` - Eliminada categoría períodos, agregada tarjeta de redirección
+
 ### Sesión anterior (2025-02-11):
 1. ✅ **Catálogo de Tipos de Sección (section_types)** - COMPLETADO
    - Nueva colección `section_types` con catálogo centralizado (A, B, C, D, E, F, ÚNICA)
