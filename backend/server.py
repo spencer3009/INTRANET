@@ -8278,6 +8278,9 @@ async def update_course_post(
     
     update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
     
+    if data.title is not None:
+        update_data["title"] = data.title.strip()
+    
     if data.content is not None:
         if not data.content.strip() and not post.get("image_url") and not post.get("file_url"):
             raise HTTPException(status_code=400, detail="La publicación debe tener contenido")
