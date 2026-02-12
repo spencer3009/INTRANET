@@ -3046,12 +3046,75 @@ async def update_academic_year(
     
     return response
 
+@api_router.get("/academic/years/{year_id}/can-delete")
+async def check_year_can_delete(
+    year_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Check if an academic year can be safely deleted and return dependency info"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    year = await db.academic_years.find_one({
+        "id": year_id,
+        "school_id": school_id
+    }, {"_id": 0})
+    
+    if not year:
+        raise HTTPException(status_code=404, detail="Año académico no encontrado")
+    
+    # Count all dependencies
+    dependencies = {
+        "periods": await db.academic_periods.count_documents({"school_id": school_id, "academic_year_id": year_id}),
+        "assignments": await db.academic_assignments.count_documents({"school_id": school_id, "academic_year_id": year_id}),
+        "course_posts": await db.course_posts.count_documents({"school_id": school_id, "academic_year_id": year_id}),
+    }
+    
+    # Check if there are any dependencies
+    has_dependencies = any(count > 0 for count in dependencies.values())
+    
+    # Determine if can be deleted
+    can_delete = (
+        year["status"] == "futuro" and 
+        not has_dependencies
+    )
+    
+    # Build reason message
+    reasons = []
+    if year["status"] == "activo":
+        reasons.append("El año está activo. Debe activar otro año primero.")
+    elif year["status"] == "cerrado":
+        reasons.append("El año está cerrado y contiene datos históricos.")
+    
+    if dependencies["periods"] > 0:
+        reasons.append(f"Tiene {dependencies['periods']} período(s) académico(s) configurado(s).")
+    if dependencies["assignments"] > 0:
+        reasons.append(f"Tiene {dependencies['assignments']} asignación(es) docente(s).")
+    if dependencies["course_posts"] > 0:
+        reasons.append(f"Tiene {dependencies['course_posts']} publicación(es) en cursos.")
+    
+    return {
+        "can_delete": can_delete,
+        "year": year,
+        "dependencies": dependencies,
+        "has_dependencies": has_dependencies,
+        "reasons": reasons,
+        "recommended_action": "delete" if can_delete else ("close" if year["status"] == "activo" else "archive")
+    }
+
+
 @api_router.delete("/academic/years/{year_id}")
 async def delete_academic_year(
     year_id: str,
     current_user = Depends(get_current_user)
 ):
-    """Delete an academic year and its associated periods (cascade)"""
+    """
+    Delete an academic year - ONLY if it's in 'futuro' status with NO dependencies.
+    This is a safe delete for years created by mistake and never used.
+    """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -3068,24 +3131,48 @@ async def delete_academic_year(
     if not year:
         raise HTTPException(status_code=404, detail="Año académico no encontrado")
     
-    # Check if year is active
+    # RULE 1: Cannot delete active years
     if year["status"] == "activo":
-        raise HTTPException(status_code=400, detail="No se puede eliminar un año académico activo. Primero active otro año.")
+        raise HTTPException(
+            status_code=400, 
+            detail="No se puede eliminar un año académico activo. Los años activos deben cerrarse primero."
+        )
     
-    # Delete associated periods (cascade)
-    deleted_periods = await db.academic_periods.delete_many({
-        "school_id": school_id,
-        "academic_year_id": year_id
-    })
+    # RULE 2: Cannot delete closed years (historical data)
+    if year["status"] == "cerrado":
+        raise HTTPException(
+            status_code=400, 
+            detail="No se puede eliminar un año académico cerrado. Los datos históricos deben preservarse. Puede archivar el año en su lugar."
+        )
     
-    # Delete the year
+    # RULE 3: Check for ANY dependencies
+    dependencies = {
+        "periods": await db.academic_periods.count_documents({"school_id": school_id, "academic_year_id": year_id}),
+        "assignments": await db.academic_assignments.count_documents({"school_id": school_id, "academic_year_id": year_id}),
+        "course_posts": await db.course_posts.count_documents({"school_id": school_id, "academic_year_id": year_id}),
+    }
+    
+    has_dependencies = any(count > 0 for count in dependencies.values())
+    
+    if has_dependencies:
+        detail_parts = ["Este año académico no puede eliminarse porque tiene información asociada:"]
+        if dependencies["periods"] > 0:
+            detail_parts.append(f"• {dependencies['periods']} período(s) académico(s)")
+        if dependencies["assignments"] > 0:
+            detail_parts.append(f"• {dependencies['assignments']} asignación(es) docente(s)")
+        if dependencies["course_posts"] > 0:
+            detail_parts.append(f"• {dependencies['course_posts']} publicación(es) en cursos")
+        detail_parts.append("Elimine primero los datos asociados o cierre el año en su lugar.")
+        
+        raise HTTPException(status_code=400, detail=" ".join(detail_parts))
+    
+    # SAFE TO DELETE: Status is 'futuro' and no dependencies
     await db.academic_years.delete_one({"id": year_id})
     
-    message = f"Año académico {year['year']} eliminado"
-    if deleted_periods.deleted_count > 0:
-        message += f" junto con {deleted_periods.deleted_count} período(s)"
-    
-    return {"message": message, "deleted_periods_count": deleted_periods.deleted_count}
+    return {
+        "message": f"Año académico {year['year']} eliminado correctamente",
+        "deleted_year": year["year"]
+    }
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC PERIODS ENDPOINTS (Modified for Year dependency)
