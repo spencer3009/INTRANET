@@ -1031,23 +1031,10 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
 }
 
 // Helper to get correct download URL for files
-const getFileDownloadUrl = (url, fileType) => {
-  if (!url || !url.includes('cloudinary.com')) return url;
-  
-  // Check if it's a non-image file (PDF, DOC, etc.)
-  const isRawFile = fileType && !fileType.startsWith('image/');
-  
-  if (isRawFile) {
-    // Convert /image/upload/ to /raw/upload/ for non-image files
-    // Also add fl_attachment to force download
-    let newUrl = url.replace('/image/upload/', '/raw/upload/');
-    
-    // If it still has /auto/upload, change to /raw/upload
-    newUrl = newUrl.replace('/auto/upload/', '/raw/upload/');
-    
-    return newUrl;
-  }
-  
+// For files uploaded as 'raw', Cloudinary returns the correct URL automatically
+// This function adds download attribute support
+const getFileDownloadUrl = (url) => {
+  if (!url) return url;
   return url;
 };
 
