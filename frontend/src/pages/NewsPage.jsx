@@ -824,6 +824,13 @@ export default function NewsPage({ user, token, subdomain, onLogout }) {
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewingNews, setViewingNews] = useState(null);
   
+  // Confirmation modals
+  const [showPublishModal, setShowPublishModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedNews, setSelectedNews] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  
   const headers = { Authorization: `Bearer ${token}` };
   const isAdmin = ["owner", "admin", "director"].includes(user?.role);
 
