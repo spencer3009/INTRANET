@@ -1350,6 +1350,14 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [showExpenseModal, setShowExpenseModal] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   
+  // Confirmation modal states
+  const [showConfirmPaymentModal, setShowConfirmPaymentModal] = useState(false);
+  const [showCancelPaymentModal, setShowCancelPaymentModal] = useState(false);
+  const [showDeleteExpenseModal, setShowDeleteExpenseModal] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [selectedExpense, setSelectedExpense] = useState(null);
+  const [processing, setProcessing] = useState(false);
+  
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
