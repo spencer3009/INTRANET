@@ -3378,11 +3378,14 @@ async def update_academic_period(
         if existing:
             raise HTTPException(status_code=400, detail="Ya existe un período con ese nombre")
     
-    # Check for overlapping dates if dates are being changed
+    # Check for overlapping dates if dates are being changed (only within the same academic year)
     if data.fecha_inicio or data.fecha_fin:
         overlapping = await db.academic_periods.find_one({
             "school_id": user["school_id"],
+            "academic_year_id": period["academic_year_id"],  # Only check within the same academic year
             "id": {"$ne": period_id},
+            "fecha_inicio": {"$ne": None},
+            "fecha_fin": {"$ne": None},
             "$or": [
                 {"fecha_inicio": {"$lte": new_fecha_inicio}, "fecha_fin": {"$gte": new_fecha_inicio}},
                 {"fecha_inicio": {"$lte": new_fecha_fin}, "fecha_fin": {"$gte": new_fecha_fin}},
