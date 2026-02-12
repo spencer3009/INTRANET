@@ -7080,6 +7080,7 @@ class SubjectCreate(BaseModel):
     weekly_hours: int = 1
     color: str = "#3B82F6"
     status: str = "active"
+    image_url: Optional[str] = None  # Subject cover image
 
 class SubjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -7090,6 +7091,7 @@ class SubjectUpdate(BaseModel):
     weekly_hours: Optional[int] = None
     color: Optional[str] = None
     status: Optional[str] = None
+    image_url: Optional[str] = None  # Subject cover image
 
 class SubjectTeacherAssign(BaseModel):
     teacher_ids: List[str]
