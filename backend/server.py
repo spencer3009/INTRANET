@@ -7986,7 +7986,14 @@ async def update_academic_assignment(
             raise HTTPException(status_code=404, detail="Asignatura no encontrada")
         update_data["subject_id"] = data.subject_id
     
-    if data.school_year is not None:
+    if data.academic_year_id is not None:
+        academic_year = await db.academic_years.find_one({"id": data.academic_year_id, "school_id": school_id})
+        if not academic_year:
+            raise HTTPException(status_code=404, detail="Año académico no encontrado")
+        update_data["academic_year_id"] = data.academic_year_id
+        update_data["school_year"] = academic_year.get("year", data.school_year if data.school_year else assignment.get("school_year"))
+    
+    if data.school_year is not None and data.academic_year_id is None:
         update_data["school_year"] = data.school_year
     
     if data.role is not None:
