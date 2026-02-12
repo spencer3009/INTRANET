@@ -930,6 +930,9 @@ export default function DisciplinePage({ user, token, subdomain, onLogout }) {
   const [viewingReport, setViewingReport] = useState(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusReport, setStatusReport] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletingReport, setDeletingReport] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
   const isAdmin = ["owner", "admin", "director"].includes(user?.role);
