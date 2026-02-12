@@ -5,11 +5,12 @@ import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
-  Users, Search, ChevronRight, Clock, MoreVertical,
-  GraduationCap, Home, ArrowLeft, User, Power, PowerOff,
-  Sparkles, Star, Zap, Image, Upload, Trash2, Crop, ZoomIn, ZoomOut, RotateCcw
+  Clock, MoreVertical, GraduationCap, ArrowRight, User, Power, PowerOff,
+  Image, Upload, Trash2, Crop, ZoomIn, ZoomOut, RotateCcw,
+  Baby, Backpack, Settings2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -30,6 +31,22 @@ const SUBJECT_COLORS = [
   { value: "#A855F7", label: "Púrpura" },
 ];
 
+// Level icons mapping
+const LEVEL_ICONS = {
+  "inicial": Baby,
+  "primaria": Backpack,
+  "secundaria": GraduationCap,
+};
+
+// Helper to get icon for level
+function getLevelIcon(levelName) {
+  const name = levelName?.toLowerCase() || "";
+  if (name.includes("inicial")) return Baby;
+  if (name.includes("primaria")) return Backpack;
+  if (name.includes("secundaria")) return GraduationCap;
+  return GraduationCap;
+}
+
 // Helper function to create centered aspect crop
 function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
   return centerCrop(
@@ -39,204 +56,68 @@ function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
   );
 }
 
-// Vibrant level themes
-const LEVEL_THEMES = {
-  0: { 
-    name: "Inicial",
-    gradient: "from-violet-400 via-purple-400 to-fuchsia-400",
-    cardGradient: "from-violet-400 to-purple-500",
-    bg: "bg-gradient-to-br from-violet-50 via-purple-50 to-fuchsia-50",
-    sectionBg: "bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-fuchsia-400/10",
-    border: "border-violet-200",
-    text: "text-violet-600",
-    badge: "bg-violet-500",
-    iconBg: "bg-gradient-to-br from-violet-400 to-purple-500",
-    cardBorder: "border-violet-300/50",
-    hoverGlow: "hover:shadow-violet-300/50",
-    lightCard: "from-violet-100/80 to-purple-100/60"
-  },
-  1: { 
-    name: "Primaria",
-    gradient: "from-blue-500 via-indigo-500 to-purple-500",
-    cardGradient: "from-blue-400 to-indigo-500",
-    bg: "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50",
-    sectionBg: "bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-400/10",
-    border: "border-blue-200",
-    text: "text-blue-600",
-    badge: "bg-blue-500",
-    iconBg: "bg-gradient-to-br from-blue-500 to-indigo-600",
-    cardBorder: "border-blue-300/50",
-    hoverGlow: "hover:shadow-blue-300/50",
-    lightCard: "from-blue-100/80 to-indigo-100/60"
-  },
-  2: { 
-    name: "Secundaria",
-    gradient: "from-emerald-500 via-teal-500 to-cyan-500",
-    cardGradient: "from-emerald-400 to-teal-500",
-    bg: "bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50",
-    sectionBg: "bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-400/10",
-    border: "border-emerald-200",
-    text: "text-emerald-600",
-    badge: "bg-emerald-500",
-    iconBg: "bg-gradient-to-br from-emerald-500 to-teal-600",
-    cardBorder: "border-emerald-300/50",
-    hoverGlow: "hover:shadow-emerald-300/50",
-    lightCard: "from-emerald-100/80 to-teal-100/60"
-  },
-  3: { 
-    name: "Extra",
-    gradient: "from-amber-500 via-orange-500 to-red-500",
-    cardGradient: "from-amber-400 to-orange-500",
-    bg: "bg-gradient-to-br from-amber-50 via-orange-50 to-red-50",
-    sectionBg: "bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-400/10",
-    border: "border-amber-200",
-    text: "text-amber-600",
-    badge: "bg-amber-500",
-    iconBg: "bg-gradient-to-br from-amber-500 to-orange-600",
-    cardBorder: "border-amber-300/50",
-    hoverGlow: "hover:shadow-amber-300/50",
-    lightCard: "from-amber-100/80 to-orange-100/60"
-  },
-};
-
 // ══════════════════════════════════════════════════════════════════════════════
-// SKELETON LOADERS
+// PREMIUM GRADE CARD - Large, clean, Notion-style
 // ══════════════════════════════════════════════════════════════════════════════
-function LevelsSkeleton() {
-  return (
-    <div className="space-y-8">
-      {[1, 2, 3].map(i => (
-        <div key={i} className="animate-pulse bg-white/50 rounded-3xl p-8">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 bg-gray-200 rounded-2xl" />
-            <div className="flex-1">
-              <div className="h-8 bg-gray-200 rounded-lg w-40 mb-2" />
-              <div className="h-4 bg-gray-100 rounded w-28" />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
-            {[1, 2, 3, 4].map(j => (
-              <div key={j} className="h-32 bg-gray-200 rounded-2xl" />
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// BREADCRUMB
-// ══════════════════════════════════════════════════════════════════════════════
-function Breadcrumb({ items, onNavigate, theme }) {
-  return (
-    <nav className="flex items-center gap-2 text-sm mb-8">
-      {items.map((item, index) => (
-        <div key={index} className="flex items-center">
-          {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400 mx-1" />}
-          <button
-            onClick={() => onNavigate(index)}
-            className={`flex items-center gap-1.5 px-4 py-2 rounded-full transition-all duration-300 ${
-              index === items.length - 1
-                ? `bg-gradient-to-r ${theme?.gradient || 'from-blue-500 to-indigo-500'} text-white font-bold shadow-lg`
-                : "text-gray-500 hover:text-gray-700 hover:bg-white/80"
-            }`}
-          >
-            {index === 0 && <Home className="w-4 h-4" />}
-            <span>{item.label}</span>
-          </button>
-        </div>
-      ))}
-    </nav>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// COLORFUL GRADE CARD
-// ══════════════════════════════════════════════════════════════════════════════
-function GradeCard({ grade, theme, subjectCount, onClick }) {
-  const hasSubjects = subjectCount > 0;
-  
+function PremiumGradeCard({ grade, subjectCount, onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 ease-out text-left
-        bg-gradient-to-br ${theme.lightCard}
-        border-2 ${theme.cardBorder}
-        shadow-lg ${theme.hoverGlow}
-        hover:shadow-2xl hover:-translate-y-2 hover:scale-[1.02]
-        active:scale-[0.98]
-      `}
       data-testid={`grade-card-${grade.id}`}
+      className="group relative bg-white border border-slate-200 rounded-2xl p-8 text-left
+        shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]
+        hover:-translate-y-1 transition-all duration-300 ease-out
+        focus:outline-none focus:ring-2 focus:ring-[#001f4b] focus:ring-offset-2"
     >
-      {/* Decorative circles */}
-      <div className={`absolute -top-6 -right-6 w-20 h-20 bg-gradient-to-br ${theme.cardGradient} rounded-full opacity-20 group-hover:opacity-40 transition-opacity`} />
-      <div className={`absolute -bottom-4 -left-4 w-16 h-16 bg-gradient-to-br ${theme.cardGradient} rounded-full opacity-10 group-hover:opacity-30 transition-opacity`} />
-      
-      {/* Subject count badge */}
-      {hasSubjects && (
-        <div className={`absolute -top-2 -right-2 min-w-[32px] h-8 px-2.5 ${theme.badge} text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg ring-4 ring-white z-10`}>
-          {subjectCount}
-        </div>
-      )}
-      
       {/* Icon */}
-      <div className={`relative w-16 h-16 ${theme.iconBg} rounded-2xl flex items-center justify-center mb-3 shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
-        <GraduationCap className="w-8 h-8 text-white" />
-        <Sparkles className="absolute -top-1 -right-1 w-5 h-5 text-yellow-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="w-14 h-14 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl flex items-center justify-center mb-6 group-hover:scale-105 transition-transform duration-300">
+        <GraduationCap className="w-7 h-7 text-[#001f4b]" />
       </div>
       
       {/* Grade name */}
-      <h3 className="font-bold text-gray-800 text-xl mb-1">{grade.nombre}</h3>
-      <p className={`text-sm font-medium ${hasSubjects ? theme.text : 'text-gray-400'}`}>
-        {subjectCount === 0 ? "Sin asignaturas" : `${subjectCount} materia${subjectCount !== 1 ? "s" : ""}`}
+      <h3 className="text-2xl font-semibold text-[#0F172A] mb-2 tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+        {grade.nombre}
+      </h3>
+      
+      {/* Subject count */}
+      <p className="text-base text-[#64748B] mb-6">
+        {subjectCount === 0 ? "Sin asignaturas" : `${subjectCount} asignatura${subjectCount !== 1 ? "s" : ""}`}
       </p>
       
-      {/* Hover indicator */}
-      <div className={`absolute bottom-3 right-3 w-8 h-8 rounded-full bg-gradient-to-r ${theme.cardGradient} flex items-center justify-center opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300`}>
-        <ChevronRight className="w-5 h-5 text-white" />
+      {/* Action button */}
+      <div className="flex items-center gap-2 text-[#001f4b] font-medium group-hover:gap-3 transition-all duration-300">
+        <Settings2 className="w-4 h-4" />
+        <span>Gestionar asignaturas</span>
+        <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
       </div>
     </button>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// COLORFUL SUBJECT CARD
+// SUBJECT CARD - Premium style
 // ══════════════════════════════════════════════════════════════════════════════
 function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse }) {
   const [menuOpen, setMenuOpen] = useState(false);
   
-  // Generate a lighter background color from the subject color
-  const bgColor = subject.color + "15";
-  const borderColor = subject.color + "40";
-  
   return (
     <div 
       onClick={() => onViewCourse && onViewCourse(subject)}
-      className={`group relative rounded-2xl overflow-hidden transition-all duration-300 ease-out cursor-pointer
-        shadow-lg hover:shadow-2xl
-        hover:-translate-y-2 hover:scale-[1.02]
-        ${subject.status === "inactive" ? "opacity-50 grayscale" : ""}
-      `}
-      style={{ 
-        background: `linear-gradient(135deg, ${bgColor}, white)`,
-        borderWidth: '2px',
-        borderColor: borderColor
-      }}
       data-testid={`subject-card-${subject.id}`}
+      className={`group relative bg-white border border-slate-200 rounded-2xl overflow-hidden cursor-pointer
+        shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)]
+        hover:-translate-y-1 transition-all duration-300
+        ${subject.status === "inactive" ? "opacity-60" : ""}`}
     >
-      {/* Color accent bar */}
-      <div 
-        className="h-1.5 w-full"
-        style={{ background: `linear-gradient(90deg, ${subject.color}, ${subject.color}99)` }}
-      />
+      {/* Color accent */}
+      <div className="h-1.5 w-full" style={{ backgroundColor: subject.color }} />
       
-      <div className="p-5">
+      <div className="p-6">
         {/* Menu */}
-        <div className="absolute top-4 right-3 z-10">
+        <div className="absolute top-5 right-4 z-10">
           <button
             onClick={(e) => { e.stopPropagation(); setMenuOpen(!menuOpen); }}
-            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white/80 rounded-xl transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-sm"
+            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors opacity-0 group-hover:opacity-100"
           >
             <MoreVertical className="w-4 h-4" />
           </button>
@@ -244,106 +125,78 @@ function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse }) {
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-10" onClick={(e) => { e.stopPropagation(); setMenuOpen(false); }} />
-              <div className="absolute right-0 top-10 z-20 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 w-52">
+              <div className="absolute right-0 top-10 z-20 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 w-44">
                 <button
                   onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onEdit(subject); }}
-                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
                 >
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Edit2 className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <span className="font-medium">Editar</span>
+                  <Edit2 className="w-4 h-4 text-slate-400" />
+                  <span>Editar</span>
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onToggleStatus(subject); }}
-                  className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3"
+                  className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"
                 >
-                  <div className={`w-8 h-8 ${subject.status === "active" ? "bg-amber-100" : "bg-emerald-100"} rounded-lg flex items-center justify-center`}>
-                    {subject.status === "active" ? <PowerOff className="w-4 h-4 text-amber-600" /> : <Power className="w-4 h-4 text-emerald-600" />}
-                  </div>
-                  <span className="font-medium">{subject.status === "active" ? "Desactivar" : "Activar"}</span>
+                  {subject.status === "active" ? (
+                    <><PowerOff className="w-4 h-4 text-amber-500" /><span>Desactivar</span></>
+                  ) : (
+                    <><Power className="w-4 h-4 text-emerald-500" /><span>Activar</span></>
+                  )}
                 </button>
               </div>
             </>
           )}
         </div>
         
-        {/* Subject icon or image */}
+        {/* Subject icon/image */}
         {subject.image_url ? (
-          <div 
-            className="w-20 h-20 rounded-2xl overflow-hidden mb-4 shadow-lg transition-transform duration-300 group-hover:scale-110 mx-auto ring-4 ring-white"
-          >
-            <img 
-              src={subject.image_url} 
-              alt={subject.name}
-              className="w-full h-full object-cover"
-            />
+          <div className="w-16 h-16 rounded-xl overflow-hidden mb-4 shadow-sm border border-slate-100">
+            <img src={subject.image_url} alt={subject.name} className="w-full h-full object-cover" />
           </div>
         ) : (
-          <div 
-            className="w-14 h-14 rounded-2xl flex items-center justify-center mb-4 shadow-lg transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
-            style={{ 
-              background: `linear-gradient(135deg, ${subject.color}, ${subject.color}CC)`,
-            }}
-          >
-            <BookOpen className="w-7 h-7 text-white" />
+          <div className="w-16 h-16 rounded-xl flex items-center justify-center mb-4 shadow-sm" style={{ backgroundColor: subject.color + '15' }}>
+            <BookOpen className="w-8 h-8" style={{ color: subject.color }} />
           </div>
         )}
         
         {/* Subject info */}
-        <h3 className="font-bold text-gray-800 text-lg mb-1 pr-8 line-clamp-1">{subject.name}</h3>
+        <h3 className="font-semibold text-[#0F172A] text-lg mb-2 pr-8 line-clamp-1">{subject.name}</h3>
         <div className="flex items-center gap-2 mb-4">
-          <span 
-            className="px-3 py-1 rounded-full text-xs font-bold text-white"
-            style={{ backgroundColor: subject.color }}
-          >
+          <span className="px-2.5 py-1 rounded-lg text-xs font-medium text-white" style={{ backgroundColor: subject.color }}>
             {subject.code}
           </span>
           {subject.weekly_hours && (
-            <span className="flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-              <Clock className="w-3 h-3" />
-              {subject.weekly_hours}h
+            <span className="flex items-center gap-1 text-xs text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
+              <Clock className="w-3 h-3" />{subject.weekly_hours}h
             </span>
           )}
         </div>
         
-        {/* Teacher assignment - show assigned teacher or "Sin asignar" */}
-        <div className="flex items-center gap-3 pt-4 border-t border-gray-200/50">
+        {/* Teacher */}
+        <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
           {subject.primary_teacher ? (
             <>
-              <div className="w-10 h-10 rounded-xl overflow-hidden border-2 border-emerald-200 shadow-sm">
+              <div className="w-9 h-9 rounded-lg overflow-hidden border border-slate-200">
                 {subject.primary_teacher.profile_image ? (
-                  <img 
-                    src={subject.primary_teacher.profile_image} 
-                    alt={subject.primary_teacher.name} 
-                    className="w-full h-full object-cover"
-                  />
+                  <img src={subject.primary_teacher.profile_image} alt={subject.primary_teacher.name} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">
-                      {subject.primary_teacher.name?.charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-full h-full bg-gradient-to-br from-[#001f4b] to-[#001636] flex items-center justify-center">
+                    <span className="text-white font-medium text-sm">{subject.primary_teacher.name?.charAt(0).toUpperCase()}</span>
                   </div>
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-700 font-medium truncate">{subject.primary_teacher.name}</p>
-                <p className="text-xs text-emerald-600 capitalize">{subject.primary_teacher.role || "Titular"}</p>
+                <p className="text-sm text-slate-700 font-medium truncate">{subject.primary_teacher.name}</p>
+                <p className="text-xs text-slate-400">Titular</p>
               </div>
-              {subject.teacher_count > 1 && (
-                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded-full">
-                  +{subject.teacher_count - 1}
-                </span>
-              )}
             </>
           ) : (
             <>
-              <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-300">
-                <User className="w-5 h-5 text-gray-300" />
+              <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center border-2 border-dashed border-slate-200">
+                <User className="w-4 h-4 text-slate-300" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-400 font-medium">Sin asignar</p>
-                <p className="text-xs text-gray-300">Ir a Asignación Docente</p>
+                <p className="text-sm text-slate-400">Sin asignar</p>
               </div>
             </>
           )}
@@ -356,34 +209,21 @@ function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // ADD SUBJECT CARD
 // ══════════════════════════════════════════════════════════════════════════════
-function AddSubjectCard({ onClick, theme }) {
+function AddSubjectCard({ onClick }) {
   return (
     <button
       onClick={onClick}
-      className={`group relative rounded-2xl p-5 
-        bg-gradient-to-br from-white via-gray-50 to-white
-        border-2 border-dashed ${theme.border}
-        hover:border-solid hover:bg-gradient-to-br ${theme.lightCard}
-        hover:shadow-xl ${theme.hoverGlow}
-        hover:-translate-y-2 hover:scale-[1.02]
-        transition-all duration-300 ease-out
-        flex flex-col items-center justify-center min-h-[220px]
-      `}
       data-testid="add-subject-card"
+      className="group relative bg-white border-2 border-dashed border-slate-200 rounded-2xl p-6
+        hover:border-[#001f4b] hover:bg-slate-50/50
+        transition-all duration-300 flex flex-col items-center justify-center min-h-[240px]
+        focus:outline-none focus:ring-2 focus:ring-[#001f4b] focus:ring-offset-2"
     >
-      {/* Animated icon */}
-      <div className="relative mb-4">
-        <div className={`absolute inset-0 bg-gradient-to-br ${theme.cardGradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-300`} />
-        <div className={`relative w-16 h-16 bg-gradient-to-br ${theme.iconBg} rounded-2xl flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110 group-hover:rotate-6`}>
-          <Plus className="w-8 h-8 text-white transition-transform duration-300 group-hover:rotate-90" />
-        </div>
+      <div className="w-14 h-14 bg-slate-100 group-hover:bg-[#001f4b] rounded-xl flex items-center justify-center mb-4 transition-colors duration-300">
+        <Plus className="w-7 h-7 text-slate-400 group-hover:text-white transition-colors duration-300" />
       </div>
-      
-      <span className={`text-base font-bold ${theme.text} transition-colors duration-300`}>Nueva asignatura</span>
-      <span className="text-sm text-gray-400 mt-1">Agregar materia</span>
-      
-      {/* Sparkle */}
-      <Star className={`absolute top-4 right-4 w-5 h-5 text-gray-200 group-hover:text-yellow-400 transition-all duration-300 group-hover:rotate-12`} />
+      <span className="text-base font-semibold text-slate-600 group-hover:text-[#001f4b] transition-colors">Nueva asignatura</span>
+      <span className="text-sm text-slate-400 mt-1">Agregar materia</span>
     </button>
   );
 }
@@ -449,7 +289,6 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     }
   }, [formData.level_id, grades]);
 
-  // Handle image load for crop
   const onImageLoad = useCallback((e) => {
     const { width, height } = e.currentTarget;
     const cropInit = centerAspectCrop(width, height, 1);
@@ -457,72 +296,41 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     setCompletedCrop(cropInit);
   }, []);
 
-  // Create cropped image blob
   const getCroppedImg = useCallback(async () => {
     if (!imgRef.current || !completedCrop) return null;
-    
     const image = imgRef.current;
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
     if (!ctx) return null;
     
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
-    
-    // Output size (square 800x800 for high quality)
     const outputSize = 800;
     canvas.width = outputSize;
     canvas.height = outputSize;
     
-    // Calculate crop dimensions
     const cropX = completedCrop.x * scaleX;
     const cropY = completedCrop.y * scaleY;
     const cropWidth = completedCrop.width * scaleX;
     const cropHeight = completedCrop.height * scaleY;
-    
-    // Apply scale transform
     const scaledCropWidth = cropWidth / scale;
     const scaledCropHeight = cropHeight / scale;
     const offsetX = (cropWidth - scaledCropWidth) / 2;
     const offsetY = (cropHeight - scaledCropHeight) / 2;
     
-    ctx.drawImage(
-      image,
-      cropX + offsetX,
-      cropY + offsetY,
-      scaledCropWidth,
-      scaledCropHeight,
-      0,
-      0,
-      outputSize,
-      outputSize
-    );
+    ctx.drawImage(image, cropX + offsetX, cropY + offsetY, scaledCropWidth, scaledCropHeight, 0, 0, outputSize, outputSize);
     
     return new Promise((resolve) => {
-      canvas.toBlob(
-        (blob) => {
-          if (blob) {
-            const file = new File([blob], 'cropped-image.webp', { type: 'image/webp' });
-            resolve(file);
-          } else {
-            resolve(null);
-          }
-        },
-        'image/webp',
-        0.85
-      );
+      canvas.toBlob((blob) => {
+        if (blob) resolve(new File([blob], 'cropped-image.webp', { type: 'image/webp' }));
+        else resolve(null);
+      }, 'image/webp', 0.85);
     });
   }, [completedCrop, scale]);
 
-  // Upload image to Cloudinary
   const uploadToCloudinary = async (file) => {
     const headers = { Authorization: `Bearer ${token}` };
-    
-    const signatureRes = await axios.get(
-      `${API}/cloudinary/signature?folder=edunet/subjects&resource_type=image`,
-      { headers }
-    );
+    const signatureRes = await axios.get(`${API}/cloudinary/signature?folder=edunet/subjects&resource_type=image`, { headers });
     const { signature, timestamp, cloud_name, api_key, folder } = signatureRes.data;
     
     const formDataUpload = new FormData();
@@ -532,61 +340,32 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     formDataUpload.append('api_key', api_key);
     formDataUpload.append('folder', folder);
     
-    const uploadRes = await axios.post(
-      `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
-      formDataUpload,
-      {
-        onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(progress);
-        }
-      }
-    );
-    
+    const uploadRes = await axios.post(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, formDataUpload, {
+      onUploadProgress: (progressEvent) => setUploadProgress(Math.round((progressEvent.loaded * 100) / progressEvent.total))
+    });
     return uploadRes.data.secure_url;
   };
 
-  // Handle file selection - open crop modal
   const handleImageSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-      setError('Por favor selecciona una imagen válida');
-      return;
-    }
-    
-    if (file.size > 10 * 1024 * 1024) {
-      setError('La imagen no debe superar los 10MB');
-      return;
-    }
+    if (!file.type.startsWith('image/')) { setError('Por favor selecciona una imagen válida'); return; }
+    if (file.size > 10 * 1024 * 1024) { setError('La imagen no debe superar los 10MB'); return; }
     
     setError("");
     const reader = new FileReader();
-    reader.onload = () => {
-      setCropImageSrc(reader.result);
-      setShowCropModal(true);
-      setScale(1);
-    };
+    reader.onload = () => { setCropImageSrc(reader.result); setShowCropModal(true); setScale(1); };
     reader.readAsDataURL(file);
-    
-    // Reset input
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // Apply crop and upload
   const handleApplyCrop = async () => {
     setUploadingImage(true);
     setShowCropModal(false);
-    
     try {
       const croppedFile = await getCroppedImg();
       if (!croppedFile) throw new Error('Error al recortar imagen');
-      
-      console.log(`Cropped image size: ${(croppedFile.size / 1024).toFixed(1)}KB`);
-      
       const imageUrl = await uploadToCloudinary(croppedFile);
-      
       setFormData(prev => ({ ...prev, image_url: imageUrl }));
       setImagePreview(imageUrl);
       setCropImageSrc(null);
@@ -599,18 +378,8 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     }
   };
 
-  // Cancel crop
-  const handleCancelCrop = () => {
-    setShowCropModal(false);
-    setCropImageSrc(null);
-    setScale(1);
-  };
-
-  // Remove image
-  const handleRemoveImage = () => {
-    setFormData(prev => ({ ...prev, image_url: "" }));
-    setImagePreview(null);
-  };
+  const handleCancelCrop = () => { setShowCropModal(false); setCropImageSrc(null); setScale(1); };
+  const handleRemoveImage = () => { setFormData(prev => ({ ...prev, image_url: "" })); setImagePreview(null); };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -632,140 +401,107 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
   };
 
   const isLocked = preselectedLevel && preselectedGrade;
-
   if (!isOpen) return null;
 
   return (
     <>
-      {/* Main Modal */}
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-gray-900/70 backdrop-blur-md" onClick={onClose} />
-        <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden">
-          <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 px-6 py-6 overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
-            <div className="relative flex items-center justify-between">
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden">
+          {/* Header */}
+          <div className="bg-[#001f4b] px-6 py-5">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
-                  <BookOpen className="w-6 h-6 text-white" />
+                <div className="w-11 h-11 bg-white/10 rounded-xl flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-white">{subject?.id ? "Editar Asignatura" : "Nueva Asignatura"}</h2>
-                  <p className="text-sm text-white/70">Complete los datos</p>
+                  <h2 className="text-lg font-semibold text-white">{subject?.id ? "Editar Asignatura" : "Nueva Asignatura"}</h2>
+                  <p className="text-sm text-white/60">Complete los datos requeridos</p>
                 </div>
               </div>
-              <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl">
+              <button onClick={onClose} className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+          <form onSubmit={handleSubmit} className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
             {error && (
-              <div className="mb-5 p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl flex items-center gap-3">
-                <AlertCircle className="w-5 h-5" />
+              <div className="mb-5 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
                 <span className="text-sm font-medium">{error}</span>
               </div>
             )}
 
-            {/* IMAGE UPLOAD - FIRST ELEMENT */}
+            {/* Image Upload */}
             <div className="mb-6">
-              <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-3">
-                <Image className="w-4 h-4 text-indigo-500" />
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
+                <Image className="w-4 h-4 text-slate-400" />
                 Imagen de la Asignatura
-                <span className="text-xs text-gray-400 font-normal">(Recorte cuadrado 1:1)</span>
               </label>
               
-              <div className="relative">
-                {imagePreview ? (
-                  <div className="relative group">
-                    <div className="w-32 h-32 mx-auto rounded-2xl overflow-hidden shadow-lg border-4 border-white ring-2 ring-gray-100">
-                      <img 
-                        src={imagePreview} 
-                        alt="Preview" 
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    {uploadingImage && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-32 h-32 mx-auto rounded-2xl bg-black/60 flex flex-col items-center justify-center">
-                          <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
-                          <span className="text-white text-sm font-medium">{uploadProgress}%</span>
-                        </div>
-                      </div>
-                    )}
-                    {!uploadingImage && (
-                      <div className="flex justify-center gap-2 mt-3">
-                        <label className="px-4 py-2 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-xl text-sm font-medium cursor-pointer transition-colors flex items-center gap-2">
-                          <Crop className="w-4 h-4" />
-                          Cambiar
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageSelect}
-                            className="hidden"
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={handleRemoveImage}
-                          className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-xl text-sm font-medium transition-colors flex items-center gap-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Quitar
-                        </button>
-                      </div>
-                    )}
+              {imagePreview ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-24 h-24 rounded-xl overflow-hidden border-2 border-slate-200 shadow-sm">
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
                   </div>
-                ) : (
-                  <label className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-gray-200 rounded-2xl hover:border-indigo-400 hover:bg-indigo-50/50 transition-all cursor-pointer group">
-                    <div className="w-20 h-20 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform shadow-lg">
-                      <Upload className="w-10 h-10 text-indigo-500" />
+                  {uploadingImage ? (
+                    <div className="flex items-center gap-2 text-slate-500">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-sm">{uploadProgress}%</span>
                     </div>
-                    <span className="text-base font-semibold text-gray-700 mb-1">Subir imagen</span>
-                    <span className="text-sm text-gray-500">PNG, JPG, WEBP (máx. 10MB)</span>
-                    <span className="text-xs text-indigo-500 mt-2 flex items-center gap-1">
-                      <Crop className="w-3 h-3" />
-                      Recorte cuadrado automático
-                    </span>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageSelect}
-                      className="hidden"
-                    />
-                  </label>
-                )}
-              </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <label className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium cursor-pointer transition-colors flex items-center gap-2">
+                        <Crop className="w-4 h-4" /> Cambiar
+                        <input type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                      </label>
+                      <button type="button" onClick={handleRemoveImage} className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
+                        <Trash2 className="w-4 h-4" /> Quitar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center py-8 px-4 border-2 border-dashed border-slate-200 rounded-xl hover:border-[#001f4b] hover:bg-slate-50 transition-all cursor-pointer">
+                  <div className="w-14 h-14 bg-slate-100 rounded-xl flex items-center justify-center mb-3">
+                    <Upload className="w-7 h-7 text-slate-400" />
+                  </div>
+                  <span className="text-sm font-medium text-slate-600">Subir imagen</span>
+                  <span className="text-xs text-slate-400 mt-1">PNG, JPG, WEBP (máx. 10MB)</span>
+                  <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageSelect} className="hidden" />
+                </label>
+              )}
             </div>
 
             {/* Form Fields */}
             <div className="grid grid-cols-2 gap-4 mb-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Nombre *</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre *</label>
                 <input type="text" value={formData.name} onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                  placeholder="Ej: Matemáticas" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  placeholder="Ej: Matemáticas" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001f4b] focus:border-transparent" />
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Código *</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Código *</label>
                 <input type="text" value={formData.code} onChange={(e) => setFormData(prev => ({ ...prev, code: e.target.value.toUpperCase() }))}
-                  placeholder="Ej: MAT-01" className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 uppercase" />
+                  placeholder="Ej: MAT-01" className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001f4b] uppercase" />
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Nivel *</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Nivel *</label>
                 <select value={formData.level_id} onChange={(e) => setFormData(prev => ({ ...prev, level_id: e.target.value, grade_id: "" }))}
-                  disabled={isLocked} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked ? "opacity-70" : ""}`}>
+                  disabled={isLocked} className={`w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001f4b] ${isLocked ? "opacity-60" : ""}`}>
                   <option value="">Seleccionar</option>
                   {levels.filter(l => l.activo).map(level => (<option key={level.id} value={level.id}>{level.nombre}</option>))}
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Grado *</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Grado *</label>
                 <select value={formData.grade_id} onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value }))}
-                  disabled={isLocked || !formData.level_id} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 ${isLocked || !formData.level_id ? "opacity-70" : ""}`}>
+                  disabled={isLocked || !formData.level_id} className={`w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001f4b] ${isLocked || !formData.level_id ? "opacity-60" : ""}`}>
                   <option value="">Seleccionar</option>
                   {filteredGrades.map(grade => (<option key={grade.id} value={grade.id}>{grade.nombre}</option>))}
                 </select>
@@ -774,36 +510,34 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
 
             <div className="grid grid-cols-2 gap-4 mb-5">
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Horas Semanales</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Horas Semanales</label>
                 <input type="number" min="1" max="40" value={formData.weekly_hours} onChange={(e) => setFormData(prev => ({ ...prev, weekly_hours: parseInt(e.target.value) || 1 }))}
-                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001f4b]" />
               </div>
               <div className="flex flex-col justify-end">
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                  <p className="text-xs text-amber-700 font-medium">
-                    💡 Los profesores se asignan desde "Asignación Docente"
-                  </p>
+                  <p className="text-xs text-amber-700">💡 Los profesores se asignan desde "Asignación Docente"</p>
                 </div>
               </div>
             </div>
 
             <div className="mb-5">
-              <label className="block text-sm font-bold text-gray-700 mb-3">Color</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-3">Color</label>
               <div className="flex flex-wrap gap-2">
                 {SUBJECT_COLORS.map(color => (
                   <button key={color.value} type="button" onClick={() => setFormData(prev => ({ ...prev, color: color.value }))}
-                    className={`w-10 h-10 rounded-xl transition-all duration-200 ${formData.color === color.value ? "ring-4 ring-gray-300 scale-110 shadow-lg" : "hover:scale-110"}`}
+                    className={`w-9 h-9 rounded-lg transition-all duration-200 ${formData.color === color.value ? "ring-2 ring-offset-2 ring-[#001f4b] scale-110" : "hover:scale-110"}`}
                     style={{ backgroundColor: color.value }} title={color.label} />
                 ))}
               </div>
             </div>
           </form>
 
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-3">
-            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl font-semibold hover:bg-gray-50">Cancelar</button>
+          <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+            <button type="button" onClick={onClose} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-600 rounded-xl font-medium hover:bg-slate-50 transition-colors">Cancelar</button>
             <div className="flex-1" />
             <button onClick={handleSubmit} disabled={saving || uploadingImage}
-              className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center gap-2">
+              className="px-6 py-2.5 bg-[#001f4b] hover:bg-[#001636] text-white rounded-xl font-medium transition-colors disabled:opacity-50 flex items-center gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {subject?.id ? "Actualizar" : "Crear"}
             </button>
@@ -814,100 +548,43 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
       {/* Crop Modal */}
       {showCropModal && cropImageSrc && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleCancelCrop} />
-          <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4">
+          <div className="absolute inset-0 bg-black/80" onClick={handleCancelCrop} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+            <div className="bg-[#001f4b] px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                    <Crop className="w-5 h-5 text-white" />
-                  </div>
+                  <Crop className="w-5 h-5 text-white" />
                   <div>
-                    <h3 className="text-lg font-bold text-white">Recortar Imagen</h3>
-                    <p className="text-sm text-white/70">Ajusta el área de recorte cuadrado</p>
+                    <h3 className="text-lg font-semibold text-white">Recortar Imagen</h3>
+                    <p className="text-sm text-white/60">Ajusta el área de recorte</p>
                   </div>
                 </div>
-                <button onClick={handleCancelCrop} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-xl">
+                <button onClick={handleCancelCrop} className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg">
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* Crop Area */}
-            <div className="p-6 bg-gray-900">
+            <div className="p-6 bg-slate-900">
               <div className="relative max-h-[400px] overflow-hidden rounded-xl flex items-center justify-center">
-                <ReactCrop
-                  crop={crop}
-                  onChange={(c) => setCrop(c)}
-                  onComplete={(c) => setCompletedCrop(c)}
-                  aspect={1}
-                  circularCrop={false}
-                  className="max-h-[400px]"
-                >
-                  <img
-                    ref={imgRef}
-                    src={cropImageSrc}
-                    alt="Crop preview"
-                    onLoad={onImageLoad}
-                    style={{ transform: `scale(${scale})`, maxHeight: '400px' }}
-                    className="max-w-full"
-                  />
+                <ReactCrop crop={crop} onChange={(c) => setCrop(c)} onComplete={(c) => setCompletedCrop(c)} aspect={1} className="max-h-[400px]">
+                  <img ref={imgRef} src={cropImageSrc} alt="Crop preview" onLoad={onImageLoad} style={{ transform: `scale(${scale})`, maxHeight: '400px' }} className="max-w-full" />
                 </ReactCrop>
               </div>
-
-              {/* Zoom Controls */}
               <div className="mt-4 flex items-center justify-center gap-4">
-                <button
-                  type="button"
-                  onClick={() => setScale(Math.max(0.5, scale - 0.1))}
-                  className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-                  title="Alejar"
-                >
-                  <ZoomOut className="w-5 h-5" />
-                </button>
-                <div className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg">
-                  <span className="text-white text-sm font-medium">{Math.round(scale * 100)}%</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setScale(Math.min(3, scale + 0.1))}
-                  className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-                  title="Acercar"
-                >
-                  <ZoomIn className="w-5 h-5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScale(1)}
-                  className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition-colors"
-                  title="Restablecer zoom"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </button>
+                <button type="button" onClick={() => setScale(Math.max(0.5, scale - 0.1))} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg"><ZoomOut className="w-5 h-5" /></button>
+                <span className="text-white text-sm px-3">{Math.round(scale * 100)}%</span>
+                <button type="button" onClick={() => setScale(Math.min(3, scale + 0.1))} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg"><ZoomIn className="w-5 h-5" /></button>
+                <button type="button" onClick={() => setScale(1)} className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg"><RotateCcw className="w-5 h-5" /></button>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="px-6 py-4 bg-gray-50 flex items-center justify-between">
-              <p className="text-sm text-gray-500">
-                Arrastra las esquinas para ajustar el recorte
-              </p>
+            <div className="px-6 py-4 bg-slate-50 flex items-center justify-between">
+              <p className="text-sm text-slate-500">Arrastra las esquinas para ajustar</p>
               <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={handleCancelCrop}
-                  className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="button"
-                  onClick={handleApplyCrop}
-                  className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center gap-2"
-                >
-                  <Check className="w-4 h-4" />
-                  Aplicar Recorte
+                <button type="button" onClick={handleCancelCrop} className="px-5 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl font-medium hover:bg-slate-50">Cancelar</button>
+                <button type="button" onClick={handleApplyCrop} className="px-6 py-2.5 bg-[#001f4b] text-white rounded-xl font-medium hover:bg-[#001636] flex items-center gap-2">
+                  <Check className="w-4 h-4" /> Aplicar
                 </button>
               </div>
             </div>
@@ -919,122 +596,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// LEVELS VIEW - COLORFUL
-// ══════════════════════════════════════════════════════════════════════════════
-function LevelsView({ levels, grades, subjects, onSelectGrade }) {
-  const gradesByLevel = {};
-  levels.forEach(level => { gradesByLevel[level.id] = grades.filter(g => g.nivel_id === level.id && g.activo); });
-  
-  const subjectCountByGrade = {};
-  subjects.forEach(subject => { if (subject.grade_id) { subjectCountByGrade[subject.grade_id] = (subjectCountByGrade[subject.grade_id] || 0) + 1; } });
-
-  return (
-    <div className="space-y-8">
-      {levels.filter(l => l.activo).map((level, levelIndex) => {
-        const levelGrades = gradesByLevel[level.id] || [];
-        const theme = LEVEL_THEMES[levelIndex % Object.keys(LEVEL_THEMES).length];
-        const totalSubjects = levelGrades.reduce((sum, g) => sum + (subjectCountByGrade[g.id] || 0), 0);
-        
-        return (
-          <div key={level.id} className={`relative ${theme.bg} rounded-3xl p-6 lg:p-8 border-2 ${theme.border} shadow-xl overflow-hidden`}>
-            {/* Decorative elements */}
-            <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${theme.gradient} opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl`} />
-            <div className={`absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-br ${theme.gradient} opacity-5 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl`} />
-            
-            {/* Header */}
-            <div className="relative flex items-center gap-5 mb-6">
-              <div className={`w-20 h-20 ${theme.iconBg} rounded-3xl flex items-center justify-center shadow-2xl`}>
-                <GraduationCap className="w-10 h-10 text-white" />
-              </div>
-              <div className="flex-1">
-                <h2 className="text-3xl font-black text-gray-800">{level.nombre}</h2>
-                <p className={`text-base ${theme.text} font-semibold`}>
-                  {levelGrades.length} grado{levelGrades.length !== 1 ? "s" : ""} • {totalSubjects} materia{totalSubjects !== 1 ? "s" : ""}
-                </p>
-              </div>
-              <div className={`hidden sm:flex items-center gap-3 px-5 py-3 bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border ${theme.border}`}>
-                <BookOpen className={`w-6 h-6 ${theme.text}`} />
-                <span className={`text-2xl font-black ${theme.text}`}>{totalSubjects}</span>
-              </div>
-            </div>
-            
-            {/* Grades grid */}
-            {levelGrades.length === 0 ? (
-              <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-10 text-center border-2 border-dashed border-gray-200">
-                <GraduationCap className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-lg font-bold text-gray-500 mb-2">Sin grados configurados</h3>
-                <p className="text-sm text-gray-400">Configura los grados en Ajustes Académicos</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-4">
-                {levelGrades.map(grade => (
-                  <GradeCard key={grade.id} grade={grade} theme={theme} subjectCount={subjectCountByGrade[grade.id] || 0} onClick={() => onSelectGrade(level, grade)} />
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// GRADE SUBJECTS VIEW
-// ══════════════════════════════════════════════════════════════════════════════
-function GradeSubjectsView({ level, grade, subjects, onAddSubject, onEditSubject, onToggleStatus, onViewCourse, levelColorIndex }) {
-  const theme = LEVEL_THEMES[levelColorIndex % Object.keys(LEVEL_THEMES).length];
-
-  return (
-    <div>
-      {/* Header */}
-      <div className={`relative ${theme.bg} rounded-3xl p-8 mb-8 border-2 ${theme.border} shadow-xl overflow-hidden`}>
-        <div className={`absolute top-0 right-0 w-96 h-96 bg-gradient-to-br ${theme.gradient} opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl`} />
-        <div className="relative flex items-center gap-6">
-          <div className={`w-24 h-24 ${theme.iconBg} rounded-3xl flex items-center justify-center shadow-2xl`}>
-            <GraduationCap className="w-12 h-12 text-white" />
-          </div>
-          <div className="flex-1">
-            <p className={`text-lg font-bold ${theme.text} mb-1`}>{level.nombre}</p>
-            <h2 className="text-4xl font-black text-gray-800">{grade.nombre}</h2>
-          </div>
-          <div className="text-right">
-            <p className={`text-5xl font-black ${theme.text}`}>{subjects.length}</p>
-            <p className="text-base text-gray-500 font-semibold">materia{subjects.length !== 1 ? "s" : ""}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Subjects grid */}
-      {subjects.length === 0 ? (
-        <div className={`${theme.bg} rounded-3xl p-16 text-center border-2 border-dashed ${theme.border}`}>
-          <div className={`w-24 h-24 ${theme.iconBg} rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl opacity-50`}>
-            <BookOpen className="w-12 h-12 text-white" />
-          </div>
-          <h3 className="text-2xl font-black text-gray-700 mb-3">Sin asignaturas</h3>
-          <p className="text-gray-500 mb-8 max-w-md mx-auto">Este grado aún no tiene materias configuradas. ¡Agrega la primera!</p>
-          <button onClick={onAddSubject}
-            className={`px-8 py-4 bg-gradient-to-r ${theme.gradient} text-white rounded-2xl font-bold hover:shadow-2xl hover:scale-[1.02] transition-all duration-300 inline-flex items-center gap-3`}>
-            <Plus className="w-6 h-6" />
-            Agregar Asignatura
-            <Zap className="w-5 h-5" />
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-          {subjects.map(subject => (
-            <SubjectCard key={subject.id} subject={subject}
-              onEdit={() => onEditSubject(subject)} onToggleStatus={() => onToggleStatus(subject)} onViewCourse={() => onViewCourse(subject)} />
-          ))}
-          <AddSubjectCard onClick={onAddSubject} theme={theme} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE
+// MAIN PAGE - Premium Tabbed Design
 // ══════════════════════════════════════════════════════════════════════════════
 export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const navigate = useNavigate();
@@ -1048,7 +610,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedGrade, setSelectedGrade] = useState(null);
-  const [levelColorIndex, setLevelColorIndex] = useState(0);
+  const [activeTab, setActiveTab] = useState("");
   
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
@@ -1061,37 +623,65 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
     setLoading(true);
     try {
       const [settingsRes, levelsRes, gradesRes, subjectsRes] = await Promise.all([
-        axios.get(`${API}/settings`, { headers }), axios.get(`${API}/academic/levels`, { headers }),
-        axios.get(`${API}/academic/grades`, { headers }), axios.get(`${API}/academic/subjects`, { headers })
+        axios.get(`${API}/settings`, { headers }),
+        axios.get(`${API}/academic/levels`, { headers }),
+        axios.get(`${API}/academic/grades`, { headers }),
+        axios.get(`${API}/academic/subjects`, { headers })
       ]);
       
-      setSettings(settingsRes.data); setLevels(levelsRes.data || []); setGrades(gradesRes.data || []);
+      setSettings(settingsRes.data);
+      const activeLevels = (levelsRes.data || []).filter(l => l.activo);
+      setLevels(activeLevels);
+      setGrades(gradesRes.data || []);
       setSubjects(subjectsRes.data || []);
+      
+      // Set first level as active tab
+      if (activeLevels.length > 0) {
+        setActiveTab(activeLevels[0].id);
+      }
     } catch (err) { 
       console.error("SubjectsPage load error:", err); 
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const loadSubjects = async () => {
-    try { const res = await axios.get(`${API}/academic/subjects`, { headers }); setSubjects(res.data); } catch (err) { console.error(err); }
+    try { 
+      const res = await axios.get(`${API}/academic/subjects`, { headers }); 
+      setSubjects(res.data); 
+    } catch (err) { console.error(err); }
   };
 
   const handleSelectGrade = (level, grade) => {
-    setLevelColorIndex(levels.findIndex(l => l.id === level.id));
-    setSelectedLevel(level); setSelectedGrade(grade);
+    setSelectedLevel(level);
+    setSelectedGrade(grade);
   };
 
-  const handleNavigate = (index) => { if (index === 0) { setSelectedLevel(null); setSelectedGrade(null); } };
+  const handleBackToLevels = () => {
+    setSelectedLevel(null);
+    setSelectedGrade(null);
+  };
 
   const handleSaveSubject = async (data) => {
-    const subjectData = { name: data.name, code: data.code, description: data.description, level_id: data.level_id, grade_id: data.grade_id, weekly_hours: data.weekly_hours, color: data.color, status: data.status, image_url: data.image_url || null };
-    if (editingSubject?.id) { await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers }); }
-    else { await axios.post(`${API}/academic/subjects`, subjectData, { headers }); }
+    const subjectData = {
+      name: data.name, code: data.code, description: data.description,
+      level_id: data.level_id, grade_id: data.grade_id,
+      weekly_hours: data.weekly_hours, color: data.color,
+      status: data.status, image_url: data.image_url || null
+    };
+    if (editingSubject?.id) {
+      await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers });
+    } else {
+      await axios.post(`${API}/academic/subjects`, subjectData, { headers });
+    }
     loadSubjects();
   };
 
   const handleToggleStatus = async (subject) => {
-    await axios.put(`${API}/academic/subjects/${subject.id}`, { status: subject.status === "active" ? "inactive" : "active" }, { headers });
+    await axios.put(`${API}/academic/subjects/${subject.id}`, { 
+      status: subject.status === "active" ? "inactive" : "active" 
+    }, { headers });
     loadSubjects();
   };
 
@@ -1103,28 +693,31 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
     }
   };
 
-  const breadcrumbItems = [{ label: "Asignaturas" }];
-  if (selectedLevel) breadcrumbItems.push({ label: selectedLevel.nombre });
-  if (selectedGrade) breadcrumbItems.push({ label: selectedGrade.nombre });
+  // Compute subject counts
+  const subjectCountByGrade = {};
+  subjects.forEach(subject => {
+    if (subject.grade_id) {
+      subjectCountByGrade[subject.grade_id] = (subjectCountByGrade[subject.grade_id] || 0) + 1;
+    }
+  });
 
   const gradeSubjects = selectedGrade ? subjects.filter(s => s.grade_id === selectedGrade.id) : [];
-  const currentTheme = LEVEL_THEMES[levelColorIndex % Object.keys(LEVEL_THEMES).length];
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl animate-pulse">
-            <Loader2 className="w-10 h-10 text-white animate-spin" />
+          <div className="w-16 h-16 bg-[#001f4b] rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Loader2 className="w-8 h-8 text-white animate-spin" />
           </div>
-          <p className="text-gray-500 font-medium">Cargando asignaturas...</p>
+          <p className="text-slate-500 font-medium">Cargando asignaturas...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100 flex">
+    <div className="min-h-screen bg-[#F8FAFC] flex">
       <Sidebar user={user} settings={settings} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} subdomain={subdomain} onLogout={onLogout} />
       
       <div className="flex-1 flex flex-col min-w-0">
@@ -1137,41 +730,176 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
           subdomain={subdomain}
         />
 
-        <main className="flex-1 p-6 lg:p-8">
-          <div className="mb-8">
-            <div className="flex items-center gap-4 mb-4">
-              {selectedGrade && (
-                <button onClick={() => handleNavigate(0)} className="p-3 bg-white hover:bg-gray-50 rounded-xl shadow-lg border border-gray-100 hover:scale-105 transition-all">
-                  <ArrowLeft className="w-5 h-5 text-gray-500" />
-                </button>
-              )}
-              <div className={`w-16 h-16 bg-gradient-to-br ${selectedGrade ? currentTheme?.gradient || 'from-blue-500 to-indigo-500' : 'from-blue-600 to-indigo-700'} rounded-2xl flex items-center justify-center shadow-xl`}>
-                <BookOpen className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-3xl lg:text-4xl font-black text-gray-800">Asignaturas</h1>
-                <p className="text-gray-500 font-medium">{selectedGrade ? `${selectedLevel?.nombre} - ${selectedGrade?.nombre}` : "Gestiona las materias por nivel y grado"}</p>
+        <main className="flex-1 p-8 md:p-12">
+          <div className="max-w-7xl mx-auto">
+            
+            {/* Page Header */}
+            <div className="mb-12">
+              <div className="flex items-center gap-5 mb-2">
+                {selectedGrade && (
+                  <button 
+                    onClick={handleBackToLevels}
+                    data-testid="back-to-levels"
+                    className="p-3 bg-white hover:bg-slate-50 rounded-xl shadow-sm border border-slate-200 transition-colors"
+                  >
+                    <ArrowRight className="w-5 h-5 text-slate-500 rotate-180" />
+                  </button>
+                )}
+                <div className="w-14 h-14 bg-[#001f4b] rounded-2xl flex items-center justify-center shadow-lg">
+                  <BookOpen className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold text-[#0F172A] tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    Asignaturas
+                  </h1>
+                  <p className="text-lg text-[#64748B]">
+                    {selectedGrade 
+                      ? `${selectedLevel?.nombre} — ${selectedGrade?.nombre}`
+                      : "Gestiona las materias por nivel y grado"
+                    }
+                  </p>
+                </div>
               </div>
             </div>
-            {selectedGrade && <Breadcrumb items={breadcrumbItems} onNavigate={handleNavigate} theme={currentTheme} />}
-          </div>
 
-          {!selectedGrade ? (
-            <LevelsView levels={levels} grades={grades} subjects={subjects} onSelectGrade={handleSelectGrade} />
-          ) : (
-            <GradeSubjectsView level={selectedLevel} grade={selectedGrade} subjects={gradeSubjects}
-              levelColorIndex={levelColorIndex}
-              onAddSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}
-              onEditSubject={(s) => { setEditingSubject(s); setShowSubjectModal(true); }}
-              onToggleStatus={handleToggleStatus}
-              onViewCourse={handleViewCourse} />
-          )}
+            {/* MAIN CONTENT */}
+            {!selectedGrade ? (
+              // ════════════════════════════════════════════════════════════════
+              // LEVELS VIEW WITH TABS
+              // ════════════════════════════════════════════════════════════════
+              levels.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
+                  <GraduationCap className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-slate-700 mb-2">Sin niveles configurados</h3>
+                  <p className="text-slate-500">Configura los niveles en Ajustes Académicos</p>
+                </div>
+              ) : (
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  {/* Tab List - Premium Style */}
+                  <TabsList className="w-full max-w-2xl mx-auto mb-12 p-1.5 bg-slate-100/70 rounded-2xl h-auto flex gap-1" data-testid="level-tabs">
+                    {levels.map((level) => {
+                      const LevelIcon = getLevelIcon(level.nombre);
+                      const levelGrades = grades.filter(g => g.nivel_id === level.id && g.activo);
+                      const totalSubjects = levelGrades.reduce((sum, g) => sum + (subjectCountByGrade[g.id] || 0), 0);
+                      
+                      return (
+                        <TabsTrigger
+                          key={level.id}
+                          value={level.id}
+                          data-testid={`tab-${level.nombre.toLowerCase().replace(/\s+/g, '-')}`}
+                          className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-xl font-semibold transition-all duration-200
+                            data-[state=active]:bg-white data-[state=active]:text-[#001f4b] data-[state=active]:shadow-sm
+                            data-[state=inactive]:text-[#64748B] data-[state=inactive]:hover:text-[#0F172A] data-[state=inactive]:hover:bg-white/50"
+                        >
+                          <LevelIcon className="w-5 h-5" />
+                          <span>{level.nombre}</span>
+                          <span className="px-2 py-0.5 text-xs font-bold bg-slate-200/80 data-[state=active]:bg-[#001f4b]/10 rounded-full">
+                            {totalSubjects}
+                          </span>
+                        </TabsTrigger>
+                      );
+                    })}
+                  </TabsList>
+
+                  {/* Tab Contents */}
+                  {levels.map((level) => {
+                    const levelGrades = grades.filter(g => g.nivel_id === level.id && g.activo);
+                    
+                    return (
+                      <TabsContent key={level.id} value={level.id} className="mt-0 focus-visible:outline-none focus-visible:ring-0">
+                        {levelGrades.length === 0 ? (
+                          <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
+                            <GraduationCap className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold text-slate-700 mb-2">Sin grados en {level.nombre}</h3>
+                            <p className="text-slate-500">Configura los grados en Ajustes Académicos</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {levelGrades.map(grade => (
+                              <PremiumGradeCard
+                                key={grade.id}
+                                grade={grade}
+                                subjectCount={subjectCountByGrade[grade.id] || 0}
+                                onClick={() => handleSelectGrade(level, grade)}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </TabsContent>
+                    );
+                  })}
+                </Tabs>
+              )
+            ) : (
+              // ════════════════════════════════════════════════════════════════
+              // GRADE SUBJECTS VIEW
+              // ════════════════════════════════════════════════════════════════
+              <div>
+                {/* Grade Header */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-8 mb-8 shadow-sm">
+                  <div className="flex items-center gap-6">
+                    <div className="w-16 h-16 bg-gradient-to-br from-slate-100 to-slate-50 rounded-2xl flex items-center justify-center">
+                      <GraduationCap className="w-8 h-8 text-[#001f4b]" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-base text-[#64748B] font-medium mb-1">{selectedLevel.nombre}</p>
+                      <h2 className="text-3xl font-bold text-[#0F172A]" style={{ fontFamily: 'Manrope, sans-serif' }}>{selectedGrade.nombre}</h2>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-4xl font-bold text-[#001f4b]">{gradeSubjects.length}</p>
+                      <p className="text-base text-[#64748B]">asignatura{gradeSubjects.length !== 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Subjects Grid */}
+                {gradeSubjects.length === 0 ? (
+                  <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-16 text-center">
+                    <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                      <BookOpen className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <h3 className="text-xl font-semibold text-slate-700 mb-2">Sin asignaturas</h3>
+                    <p className="text-slate-500 mb-8 max-w-md mx-auto">Este grado aún no tiene materias configuradas</p>
+                    <button
+                      onClick={() => { setEditingSubject(null); setShowSubjectModal(true); }}
+                      data-testid="add-first-subject"
+                      className="px-8 py-4 bg-[#001f4b] hover:bg-[#001636] text-white rounded-xl font-semibold transition-colors inline-flex items-center gap-3"
+                    >
+                      <Plus className="w-5 h-5" />
+                      Agregar Primera Asignatura
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    {gradeSubjects.map(subject => (
+                      <SubjectCard
+                        key={subject.id}
+                        subject={subject}
+                        onEdit={() => { setEditingSubject(subject); setShowSubjectModal(true); }}
+                        onToggleStatus={() => handleToggleStatus(subject)}
+                        onViewCourse={() => handleViewCourse(subject)}
+                      />
+                    ))}
+                    <AddSubjectCard onClick={() => { setEditingSubject(null); setShowSubjectModal(true); }} />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </main>
       </div>
 
-      <SubjectFormModal isOpen={showSubjectModal} onClose={() => { setShowSubjectModal(false); setEditingSubject(null); }}
-        subject={editingSubject} onSave={handleSaveSubject} levels={levels} grades={grades}
-        preselectedLevel={selectedLevel?.id} preselectedGrade={selectedGrade?.id} token={token} />
+      <SubjectFormModal
+        isOpen={showSubjectModal}
+        onClose={() => { setShowSubjectModal(false); setEditingSubject(null); }}
+        subject={editingSubject}
+        onSave={handleSaveSubject}
+        levels={levels}
+        grades={grades}
+        preselectedLevel={selectedLevel?.id}
+        preselectedGrade={selectedGrade?.id}
+        token={token}
+      />
     </div>
   );
 }
