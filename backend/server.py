@@ -7316,6 +7316,22 @@ async def update_subject(subject_id: str, data: SubjectUpdate, current_user = De
     if data.status is not None:
         update_data["status"] = data.status
     
+    if data.image_url is not None:
+        # Delete old image from Cloudinary if exists and is being replaced
+        old_image = subject.get("image_url")
+        if old_image and "cloudinary.com" in old_image and data.image_url != old_image:
+            try:
+                parts = old_image.split("/upload/")
+                if len(parts) > 1:
+                    path_part = parts[1]
+                    public_id = path_part.rsplit(".", 1)[0]
+                    if "/" in public_id:
+                        public_id = public_id.split("/", 1)[1] if public_id.startswith("v") else public_id
+                    cloudinary.uploader.destroy(public_id)
+            except Exception as e:
+                logger.warning(f"Failed to delete old subject image: {e}")
+        update_data["image_url"] = data.image_url
+    
     await db.subjects.update_one({"id": subject_id}, {"$set": update_data})
     
     updated_subject = await db.subjects.find_one({"id": subject_id}, {"_id": 0})
