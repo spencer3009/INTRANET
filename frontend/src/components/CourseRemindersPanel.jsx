@@ -614,6 +614,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
   const [editingReminder, setEditingReminder] = useState(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [detailReminder, setDetailReminder] = useState(null); // For viewing full content
 
   const headers = { Authorization: `Bearer ${token}` };
   const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
