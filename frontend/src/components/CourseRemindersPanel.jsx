@@ -183,6 +183,8 @@ function ReminderDetailModal({ reminder, isOpen, onClose }) {
 // ══════════════════════════════════════════════════════════════════════════════
 function ReminderCard({ reminder, onEdit, onDelete, onComplete, onViewFull, canEdit }) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const menuButtonRef = useRef(null);
   const typeConfig = REMINDER_TYPES[reminder.reminder_type] || REMINDER_TYPES.notice;
   const Icon = typeConfig.icon;
   const dateInfo = formatDate(reminder.date);
@@ -198,6 +200,19 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, onViewFull, canE
   
   // Determine if we should animate (urgent within 48h)
   const shouldAnimate = !isCompleted && (dateInfo.isUrgent || dateInfo.isPast);
+  
+  // Handle menu open with position calculation
+  const handleMenuClick = (e) => {
+    e.stopPropagation();
+    if (menuButtonRef.current) {
+      const rect = menuButtonRef.current.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.bottom + 4,
+        left: rect.right - 160 // 160 is menu width (w-40)
+      });
+    }
+    setMenuOpen(!menuOpen);
+  };
   
   return (
     <div 
