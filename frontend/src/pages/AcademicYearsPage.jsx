@@ -554,30 +554,42 @@ function YearCard({ year, onViewDetails, onActivate, onEdit, onDelete, isActivat
             className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all group-hover:bg-indigo-100 group-hover:text-indigo-700"
           >
             <Settings className="w-4 h-4" />
-            Gestionar
+            {year.status === "cerrado" ? "Ver detalles" : "Gestionar"}
             <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
           </button>
           
-          {/* Edit and Delete buttons - always visible for non-active years */}
+          {/* Action buttons based on status */}
           <div className="flex items-center gap-2">
-            {year.status !== "activo" && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onEdit(year); }}
-                className="p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
-                title="Editar año"
-              >
-                <Edit2 className="w-5 h-5" />
-              </button>
+            {/* FUTURO: Can edit and potentially delete */}
+            {year.status === "futuro" && (
+              <>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onEdit(year); }}
+                  className="p-2.5 text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors"
+                  title="Editar año"
+                >
+                  <Edit2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(year); }}
+                  disabled={isDeleting}
+                  className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
+                  title="Verificar eliminación"
+                >
+                  {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                </button>
+              </>
             )}
             
-            {year.status !== "activo" && (
+            {/* CERRADO: Can archive (read-only otherwise) */}
+            {year.status === "cerrado" && (
               <button
-                onClick={(e) => { e.stopPropagation(); onDelete(year); }}
-                disabled={isDeleting}
-                className="p-2.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors disabled:opacity-50"
-                title={year.period_count > 0 ? "Eliminar año (se eliminarán los períodos)" : "Eliminar año"}
+                onClick={(e) => { e.stopPropagation(); onArchive && onArchive(year); }}
+                className="px-4 py-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors flex items-center gap-2 text-sm font-medium"
+                title="Archivar año"
               >
-                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                <Archive className="w-4 h-4" />
+                Archivar
               </button>
             )}
           </div>
