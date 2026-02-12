@@ -830,7 +830,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
       section_id: "",
       subject_id: "",
       teacher_id: "",
-      period_id: ""
+      academic_year_id: ""
     });
   };
   
