@@ -178,7 +178,14 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CREATE/EDIT REMINDER MODAL - Premium violet theme
+// PORTAL WRAPPER - Renders children directly to document.body
+// ══════════════════════════════════════════════════════════════════════════════
+function Portal({ children }) {
+  return createPortal(children, document.body);
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// CREATE/EDIT REMINDER MODAL - Premium violet theme (with Portal)
 // ══════════════════════════════════════════════════════════════════════════════
 function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
   const [formData, setFormData] = useState({
@@ -241,124 +248,144 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
 
   if (!isOpen) return null;
 
+  // Use Portal to render modal at document.body level - bypasses all stacking contexts
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden z-[9999]">
-        {/* Header - Premium violet gradient */}
-        <div className="bg-gradient-to-r from-violet-500 to-purple-500 px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <Bell className="w-5 h-5 text-white" />
+    <Portal>
+      <div 
+        className="fixed inset-0 flex items-center justify-center p-4"
+        style={{ zIndex: 10000, position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
+        data-testid="reminder-modal-overlay"
+      >
+        <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+        <div 
+          className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden"
+          style={{ zIndex: 10001 }}
+          data-testid="reminder-modal-content"
+        >
+          {/* Header - Premium violet gradient */}
+          <div className="bg-gradient-to-r from-violet-500 to-purple-500 px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Bell className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-base font-semibold text-white">
+                    {reminder ? "Editar Recordatorio" : "Nuevo Recordatorio"}
+                  </h2>
+                  <p className="text-xs text-white/70">Visible para todo el curso</p>
+                </div>
               </div>
-              <div>
-                <h2 className="text-base font-semibold text-white">
-                  {reminder ? "Editar Recordatorio" : "Nuevo Recordatorio"}
-                </h2>
-                <p className="text-xs text-white/70">Visible para todo el curso</p>
+              <button 
+                onClick={onClose} 
+                className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
+                data-testid="reminder-modal-close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="p-6">
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+
+            {/* Type selector */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-3">Tipo</label>
+              <div className="grid grid-cols-3 gap-2">
+                {Object.entries(REMINDER_TYPES).map(([key, config]) => {
+                  const TypeIcon = config.icon;
+                  const isSelected = formData.reminder_type === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, reminder_type: key }))}
+                      className={`p-3 rounded-xl border-2 transition-all ${
+                        isSelected 
+                          ? `${config.borderColor} ${config.bgColor}` 
+                          : "border-gray-100 hover:border-gray-200 bg-gray-50"
+                      }`}
+                    >
+                      <div className={`w-9 h-9 rounded-lg ${config.iconBg} flex items-center justify-center mx-auto mb-2`}>
+                        <TypeIcon className={`w-4 h-4 ${config.iconColor}`} />
+                      </div>
+                      <span className={`text-xs font-semibold ${isSelected ? config.textColor : "text-gray-500"}`}>
+                        {config.label}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors">
-              <X className="w-5 h-5" />
-            </button>
-          </div>
+
+            {/* Title */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Título *</label>
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Ej: Entrega de proyecto final"
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400"
+                data-testid="reminder-title-input"
+              />
+            </div>
+
+            {/* Date */}
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Fecha *</label>
+              <input
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400"
+                data-testid="reminder-date-input"
+              />
+            </div>
+
+            {/* Description */}
+            <div className="mb-5">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Descripción (opcional)</label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Detalles adicionales..."
+                rows={2}
+                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 resize-none"
+                data-testid="reminder-description-input"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
+                data-testid="reminder-cancel-btn"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-violet-500/25"
+                data-testid="reminder-submit-btn"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                {reminder ? "Actualizar" : "Crear"}
+              </button>
+            </div>
+          </form>
         </div>
-
-        <form onSubmit={handleSubmit} className="p-6">
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 flex-shrink-0" />
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-
-          {/* Type selector */}
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-gray-700 mb-3">Tipo</label>
-            <div className="grid grid-cols-3 gap-2">
-              {Object.entries(REMINDER_TYPES).map(([key, config]) => {
-                const TypeIcon = config.icon;
-                const isSelected = formData.reminder_type === key;
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setFormData(prev => ({ ...prev, reminder_type: key }))}
-                    className={`p-3 rounded-xl border-2 transition-all ${
-                      isSelected 
-                        ? `${config.borderColor} ${config.bgColor}` 
-                        : "border-gray-100 hover:border-gray-200 bg-gray-50"
-                    }`}
-                  >
-                    <div className={`w-9 h-9 rounded-lg ${config.iconBg} flex items-center justify-center mx-auto mb-2`}>
-                      <TypeIcon className={`w-4 h-4 ${config.iconColor}`} />
-                    </div>
-                    <span className={`text-xs font-semibold ${isSelected ? config.textColor : "text-gray-500"}`}>
-                      {config.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Title */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Título *</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-              placeholder="Ej: Entrega de proyecto final"
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400"
-            />
-          </div>
-
-          {/* Date */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Fecha *</label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400"
-            />
-          </div>
-
-          {/* Description */}
-          <div className="mb-5">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Descripción (opcional)</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-              placeholder="Detalles adicionales..."
-              rows={2}
-              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-300 focus:border-violet-400 resize-none"
-            />
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white rounded-xl text-sm font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-violet-500/25"
-            >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-              {reminder ? "Actualizar" : "Crear"}
-            </button>
-          </div>
-        </form>
       </div>
-    </div>
+    </Portal>
   );
 }
 
