@@ -368,14 +368,20 @@ function AddSubjectCard({ onClick, theme }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBJECT FORM MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, preselectedLevel, preselectedGrade }) {
+function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, preselectedLevel, preselectedGrade, token }) {
   const [formData, setFormData] = useState({
     name: "", code: "", description: "", level_id: "", grade_id: "",
-    weekly_hours: 2, color: "#3B82F6", status: "active"
+    weekly_hours: 2, color: "#3B82F6", status: "active", image_url: ""
   });
   const [filteredGrades, setFilteredGrades] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  
+  // Image upload states
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     if (subject) {
@@ -383,17 +389,20 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
         name: subject.name || "", code: subject.code || "", description: subject.description || "",
         level_id: subject.level_id || "", grade_id: subject.grade_id || "",
         weekly_hours: subject.weekly_hours || 2, color: subject.color || "#3B82F6",
-        status: subject.status || "active"
+        status: subject.status || "active", image_url: subject.image_url || ""
       });
+      setImagePreview(subject.image_url || null);
     } else {
       setFormData({
         name: "", code: "", description: "",
         level_id: preselectedLevel || "", grade_id: preselectedGrade || "",
         weekly_hours: 2, color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value,
-        status: "active"
+        status: "active", image_url: ""
       });
+      setImagePreview(null);
     }
     setError("");
+    setUploadProgress(0);
   }, [subject, isOpen, preselectedLevel, preselectedGrade]);
 
   useEffect(() => {
@@ -403,6 +412,145 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
       setFilteredGrades([]);
     }
   }, [formData.level_id, grades]);
+
+  // Compress and convert image to WebP
+  const compressImage = (file, maxWidth = 800, quality = 0.7) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement('img');
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Scale down if larger than maxWidth
+          if (width > maxWidth) {
+            height = (height * maxWidth) / width;
+            width = maxWidth;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Convert to WebP
+          canvas.toBlob(
+            (blob) => {
+              if (blob) {
+                // Create a new file with .webp extension
+                const webpFile = new File([blob], file.name.replace(/\.[^/.]+$/, '.webp'), {
+                  type: 'image/webp'
+                });
+                resolve(webpFile);
+              } else {
+                reject(new Error('Failed to compress image'));
+              }
+            },
+            'image/webp',
+            quality
+          );
+        };
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target.result;
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Upload image to Cloudinary
+  const uploadToCloudinary = async (file) => {
+    const headers = { Authorization: `Bearer ${token}` };
+    
+    // Get signature from backend
+    const signatureRes = await axios.get(
+      `${API}/cloudinary/signature?folder=edunet/subjects&resource_type=image`,
+      { headers }
+    );
+    const { signature, timestamp, cloud_name, api_key, folder } = signatureRes.data;
+    
+    // Upload to Cloudinary
+    const formDataUpload = new FormData();
+    formDataUpload.append('file', file);
+    formDataUpload.append('signature', signature);
+    formDataUpload.append('timestamp', timestamp);
+    formDataUpload.append('api_key', api_key);
+    formDataUpload.append('folder', folder);
+    
+    const uploadRes = await axios.post(
+      `https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`,
+      formDataUpload,
+      {
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(progress);
+        }
+      }
+    );
+    
+    return uploadRes.data.secure_url;
+  };
+
+  // Handle image selection
+  const handleImageSelect = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('Por favor selecciona una imagen válida');
+      return;
+    }
+    
+    // Validate file size (max 10MB before compression)
+    if (file.size > 10 * 1024 * 1024) {
+      setError('La imagen no debe superar los 10MB');
+      return;
+    }
+    
+    setUploadingImage(true);
+    setError("");
+    setUploadProgress(0);
+    
+    try {
+      // Show local preview immediately
+      const localPreview = URL.createObjectURL(file);
+      setImagePreview(localPreview);
+      
+      // Compress and convert to WebP
+      const compressedFile = await compressImage(file);
+      console.log(`Original: ${(file.size / 1024).toFixed(1)}KB -> Compressed: ${(compressedFile.size / 1024).toFixed(1)}KB`);
+      
+      // Upload to Cloudinary
+      const imageUrl = await uploadToCloudinary(compressedFile);
+      
+      // Update form data with uploaded URL
+      setFormData(prev => ({ ...prev, image_url: imageUrl }));
+      setImagePreview(imageUrl);
+      
+      // Clean up local preview
+      URL.revokeObjectURL(localPreview);
+    } catch (err) {
+      console.error('Error uploading image:', err);
+      setError('Error al subir la imagen. Intenta de nuevo.');
+      setImagePreview(subject?.image_url || null);
+    } finally {
+      setUploadingImage(false);
+      setUploadProgress(0);
+    }
+  };
+
+  // Remove image
+  const handleRemoveImage = () => {
+    setFormData(prev => ({ ...prev, image_url: "" }));
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
