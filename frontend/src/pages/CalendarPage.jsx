@@ -410,7 +410,7 @@ function EventModal({ isOpen, onClose, event, onSave, onDelete, grades, sections
             {event?.id && isAdmin && (
               <button
                 type="button"
-                onClick={handleDelete}
+                onClick={() => setShowDeleteConfirm(true)}
                 disabled={saving}
                 className="px-4 py-3 bg-red-100 text-red-700 rounded-xl font-semibold hover:bg-red-200 transition-colors flex items-center gap-2"
               >
@@ -440,6 +440,19 @@ function EventModal({ isOpen, onClose, event, onSave, onDelete, grades, sections
         </form>
       </div>
     </div>
+    
+    <ConfirmModal
+      isOpen={showDeleteConfirm}
+      onClose={() => setShowDeleteConfirm(false)}
+      onConfirm={handleDelete}
+      loading={saving}
+      title="Eliminar Evento"
+      message={`¿Estás seguro de eliminar el evento "${formData.title}"? Esta acción no se puede deshacer.`}
+      confirmText="Eliminar"
+      variant="danger"
+      icon="delete"
+    />
+    </>
   );
 }
 
