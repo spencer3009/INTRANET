@@ -843,12 +843,13 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
       // Upload image if present
       if (imageFile) {
         const compressedImage = await compressImageForPost(imageFile);
-        imageUrl = await uploadToCloudinary(compressedImage, 'edunet/posts');
+        imageUrl = await uploadToCloudinary(compressedImage, 'edunet/posts', false);
       }
       
-      // Upload file if present
+      // Upload file if present (use raw for non-image files like PDF, DOC, etc.)
       if (file) {
-        fileUrl = await uploadToCloudinary(file, 'edunet/posts');
+        const isRawFile = !file.type.startsWith('image/');
+        fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
         fileName = file.name;
         fileType = file.type;
       }
