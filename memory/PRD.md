@@ -218,7 +218,9 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 - `/app/frontend/src/pages/SubjectsPage.jsx` - Asignaturas
 - `/app/frontend/src/pages/UsersPage.jsx` - Gestión usuarios
 - `/app/frontend/src/pages/AcademicSettingsPage.jsx` - Config académica
+- `/app/frontend/src/pages/AcademicYearsPage.jsx` - Años Académicos (NUEVO)
 - `/app/frontend/src/pages/DashboardPage.jsx` - Dashboard
+- `/app/frontend/src/pages/CourseDetailPage.jsx` - Detalle de curso
 
 ### Frontend - Componentes
 - `/app/frontend/src/components/Sidebar.jsx` - Navegación
