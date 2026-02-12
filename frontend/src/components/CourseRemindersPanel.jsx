@@ -353,7 +353,9 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
     title: "",
     description: "",
     date: "",
-    reminder_type: "task"
+    reminder_type: "task",
+    is_important: false,
+    notify_all: false
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -365,7 +367,9 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
           title: reminder.title || "",
           description: reminder.description || "",
           date: reminder.date?.split('T')[0] || "",
-          reminder_type: reminder.reminder_type || "task"
+          reminder_type: reminder.reminder_type || "task",
+          is_important: reminder.is_important || false,
+          notify_all: reminder.notify_all || false
         });
       } else {
         // Default to tomorrow
@@ -375,7 +379,9 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
           title: "",
           description: "",
           date: tomorrow.toISOString().split('T')[0],
-          reminder_type: "task"
+          reminder_type: "task",
+          is_important: false,
+          notify_all: false
         });
       }
       setError("");
