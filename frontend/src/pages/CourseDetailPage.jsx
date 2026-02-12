@@ -1985,48 +1985,774 @@ function TaskCard({ task }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // EXAMS TAB CONTENT
 // ══════════════════════════════════════════════════════════════════════════════
-function ExamsContent({ exams, onCreateExam }) {
+// ══════════════════════════════════════════════════════════════════════════════
+// ONLINE EXAMS TAB CONTENT - Premium Implementation
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Exam status configuration
+const EXAM_STATUS_CONFIG = {
+  draft: { 
+    label: "Borrador", 
+    color: "bg-gray-100 text-gray-600",
+    icon: Edit3,
+    description: "Solo visible para el profesor"
+  },
+  scheduled: { 
+    label: "Programado", 
+    color: "bg-amber-100 text-amber-700",
+    icon: Clock,
+    description: "Programado, no visible para estudiantes"
+  },
+  published: { 
+    label: "Publicado", 
+    color: "bg-emerald-100 text-emerald-700",
+    icon: CheckCircle,
+    description: "Visible para estudiantes"
+  },
+  closed: { 
+    label: "Cerrado", 
+    color: "bg-red-100 text-red-700",
+    icon: X,
+    description: "Examen finalizado"
+  }
+};
+
+// Time picker component with circular dial
+function TimePicker({ value, onChange, label }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hours, setHours] = useState(value ? parseInt(value.split(':')[0]) : 9);
+  const [minutes, setMinutes] = useState(value ? parseInt(value.split(':')[1]) : 0);
+  const [selectingHours, setSelectingHours] = useState(true);
+  const dialRef = useRef(null);
+  
+  useEffect(() => {
+    if (value) {
+      const [h, m] = value.split(':');
+      setHours(parseInt(h));
+      setMinutes(parseInt(m));
+    }
+  }, [value]);
+  
+  const handleDialClick = (e) => {
+    if (!dialRef.current) return;
+    
+    const rect = dialRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const x = e.clientX - rect.left - centerX;
+    const y = e.clientY - rect.top - centerY;
+    
+    let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
+    if (angle < 0) angle += 360;
+    
+    if (selectingHours) {
+      const hour = Math.round(angle / 30) % 12 || 12;
+      setHours(hour > 12 ? hour - 12 : hour);
+    } else {
+      const minute = Math.round(angle / 6) % 60;
+      setMinutes(minute);
+    }
+  };
+  
+  const confirmTime = () => {
+    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    onChange(timeStr);
+    setIsOpen(false);
+  };
+  
+  const hourNumbers = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const minuteNumbers = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+  
   return (
-    <div className="space-y-5">
-      <div className="flex justify-end">
-        <button
-          onClick={onCreateExam}
-          className="px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Crear examen
-        </button>
+    <div className="relative">
+      <label className="block text-sm font-semibold text-gray-700 mb-2">{label}</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-left flex items-center gap-3 hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+      >
+        <Clock className="w-5 h-5 text-gray-400" />
+        <span className="text-gray-700 font-medium">
+          {value || "Seleccionar hora"}
+        </span>
+      </button>
+      
+      {isOpen && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden w-[320px]">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
+              <p className="text-indigo-200 text-sm mb-1">Seleccionar hora</p>
+              <div className="flex items-baseline gap-1">
+                <button
+                  onClick={() => setSelectingHours(true)}
+                  className={`text-5xl font-light transition-colors ${selectingHours ? 'text-white' : 'text-white/50'}`}
+                >
+                  {hours.toString().padStart(2, '0')}
+                </button>
+                <span className="text-5xl font-light text-white/50">:</span>
+                <button
+                  onClick={() => setSelectingHours(false)}
+                  className={`text-5xl font-light transition-colors ${!selectingHours ? 'text-white' : 'text-white/50'}`}
+                >
+                  {minutes.toString().padStart(2, '0')}
+                </button>
+              </div>
+            </div>
+            
+            {/* Clock Dial */}
+            <div className="p-6">
+              <div 
+                ref={dialRef}
+                onClick={handleDialClick}
+                className="relative w-[240px] h-[240px] mx-auto rounded-full bg-gray-100 cursor-pointer"
+              >
+                {/* Center dot */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-indigo-600 rounded-full z-10" />
+                
+                {/* Hand */}
+                <div 
+                  className="absolute top-1/2 left-1/2 origin-bottom bg-indigo-600 rounded-full z-5"
+                  style={{
+                    width: '2px',
+                    height: '80px',
+                    transform: `translateX(-50%) rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
+                    transformOrigin: 'center bottom'
+                  }}
+                />
+                
+                {/* Numbers */}
+                {(selectingHours ? hourNumbers : minuteNumbers).map((num, idx) => {
+                  const angle = (idx * 30 - 90) * (Math.PI / 180);
+                  const radius = 90;
+                  const x = 120 + radius * Math.cos(angle);
+                  const y = 120 + radius * Math.sin(angle);
+                  const isSelected = selectingHours ? num === hours : num === minutes;
+                  
+                  return (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (selectingHours) {
+                          setHours(num);
+                        } else {
+                          setMinutes(num);
+                        }
+                      }}
+                      className={`absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                        isSelected 
+                          ? 'bg-indigo-600 text-white' 
+                          : 'hover:bg-indigo-100 text-gray-700'
+                      }`}
+                      style={{ left: x, top: y }}
+                    >
+                      {selectingHours ? num : num.toString().padStart(2, '0')}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="px-6 pb-6 flex justify-end gap-3">
+              <button
+                onClick={() => setIsOpen(false)}
+                className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmTime}
+                className="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors"
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+// Exam Modal for Create/Edit
+function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [date, setDate] = useState("");
+  const [startTime, setStartTime] = useState("09:00");
+  const [endTime, setEndTime] = useState("11:00");
+  const [minScore, setMinScore] = useState(60);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  
+  useEffect(() => {
+    if (exam) {
+      setTitle(exam.title || "");
+      setDescription(exam.description || "");
+      if (exam.start_datetime) {
+        const startDt = new Date(exam.start_datetime);
+        setDate(startDt.toISOString().split('T')[0]);
+        setStartTime(`${startDt.getHours().toString().padStart(2, '0')}:${startDt.getMinutes().toString().padStart(2, '0')}`);
+      }
+      if (exam.end_datetime) {
+        const endDt = new Date(exam.end_datetime);
+        setEndTime(`${endDt.getHours().toString().padStart(2, '0')}:${endDt.getMinutes().toString().padStart(2, '0')}`);
+      }
+      setMinScore(exam.min_score_percentage || 60);
+    } else {
+      setTitle("");
+      setDescription("");
+      setDate("");
+      setStartTime("09:00");
+      setEndTime("11:00");
+      setMinScore(60);
+    }
+    setError("");
+  }, [exam, isOpen]);
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    
+    if (!title.trim()) {
+      setError("El título es requerido");
+      return;
+    }
+    if (!date) {
+      setError("La fecha es requerida");
+      return;
+    }
+    if (!startTime || !endTime) {
+      setError("Las horas de inicio y fin son requeridas");
+      return;
+    }
+    
+    // Combine date and time
+    const startDatetime = new Date(`${date}T${startTime}:00`).toISOString();
+    const endDatetime = new Date(`${date}T${endTime}:00`).toISOString();
+    
+    // Validate end > start
+    if (new Date(endDatetime) <= new Date(startDatetime)) {
+      setError("La hora de fin debe ser posterior a la hora de inicio");
+      return;
+    }
+    
+    setSaving(true);
+    try {
+      await onSave({
+        title: title.trim(),
+        description: description.trim(),
+        start_datetime: startDatetime,
+        end_datetime: endDatetime,
+        min_score_percentage: minScore
+      }, exam?.id);
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar");
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  if (!isOpen) return null;
+  
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                <FlaskConical className="w-5 h-5 text-white" />
+              </div>
+              <h2 className="text-lg font-semibold text-white">
+                {exam ? "Editar Examen" : "Nuevo Examen"}
+              </h2>
+            </div>
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+          
+          {/* Title */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Título del examen *
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ej: Examen Trimestral - Unidad 1"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+              required
+            />
+          </div>
+          
+          {/* Date */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Fecha *
+            </label>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+              required
+            />
+          </div>
+          
+          {/* Time pickers */}
+          <div className="grid grid-cols-2 gap-4">
+            <TimePicker 
+              label="Hora de inicio *"
+              value={startTime}
+              onChange={setStartTime}
+            />
+            <TimePicker 
+              label="Hora límite *"
+              value={endTime}
+              onChange={setEndTime}
+            />
+          </div>
+          
+          {/* Min Score */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Porcentaje mínimo de aprobación
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={minScore}
+                onChange={(e) => setMinScore(parseInt(e.target.value))}
+                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
+              />
+              <span className="w-16 px-3 py-2 bg-purple-100 text-purple-700 font-bold rounded-lg text-center">
+                {minScore}%
+              </span>
+            </div>
+          </div>
+          
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Descripción (opcional)
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Instrucciones o detalles del examen..."
+              rows={3}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all resize-none"
+            />
+          </div>
+          
+          {/* Actions */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  {exam ? "Guardar cambios" : "Crear examen"}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// Confirm Modal Component
+function ConfirmExamModal({ isOpen, onClose, onConfirm, title, message, confirmText, confirmColor = "red" }) {
+  if (!isOpen) return null;
+  
+  const colorClasses = {
+    red: "bg-red-500 hover:bg-red-600",
+    green: "bg-emerald-500 hover:bg-emerald-600",
+    amber: "bg-amber-500 hover:bg-amber-600",
+    purple: "bg-purple-500 hover:bg-purple-600"
+  };
+  
+  return createPortal(
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <h3 className="text-lg font-bold text-gray-800 mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{message}</p>
+        <div className="flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`flex-1 px-4 py-2.5 text-white rounded-xl font-medium transition-colors ${colorClasses[confirmColor]}`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// Main Exams Content Component
+function ExamsContent({ subjectId, token, userRole }) {
+  const [exams, setExams] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingExam, setEditingExam] = useState(null);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [expandedExam, setExpandedExam] = useState(null);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
+  
+  useEffect(() => {
+    loadExams();
+  }, [subjectId]);
+  
+  const loadExams = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/course/${subjectId}/exams`, { headers });
+      setExams(res.data);
+    } catch (err) {
+      console.error("Error loading exams:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleSave = async (data, examId) => {
+    if (examId) {
+      await axios.put(`${API}/exams/${examId}`, data, { headers });
+    } else {
+      await axios.post(`${API}/course/${subjectId}/exams`, data, { headers });
+    }
+    loadExams();
+  };
+  
+  const handlePublish = async (exam) => {
+    setActionLoading(true);
+    try {
+      await axios.post(`${API}/exams/${exam.id}/publish`, {}, { headers });
+      loadExams();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al publicar");
+    } finally {
+      setActionLoading(false);
+      setConfirmAction(null);
+    }
+  };
+  
+  const handleClose = async (exam) => {
+    setActionLoading(true);
+    try {
+      await axios.post(`${API}/exams/${exam.id}/close`, {}, { headers });
+      loadExams();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al cerrar");
+    } finally {
+      setActionLoading(false);
+      setConfirmAction(null);
+    }
+  };
+  
+  const handleDelete = async (exam) => {
+    setActionLoading(true);
+    try {
+      await axios.delete(`${API}/exams/${exam.id}`, { headers });
+      loadExams();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al eliminar");
+    } finally {
+      setActionLoading(false);
+      setConfirmAction(null);
+    }
+  };
+  
+  const formatDateTime = (dateStr) => {
+    const date = new Date(dateStr);
+    return {
+      date: date.toLocaleDateString('es-PE', { weekday: 'short', day: 'numeric', month: 'short' }),
+      time: date.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+    };
+  };
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">Exámenes en Línea</h2>
+          <p className="text-sm text-gray-500 mt-1">Gestiona las evaluaciones del curso</p>
+        </div>
+        {canEdit && (
+          <button
+            onClick={() => { setEditingExam(null); setShowModal(true); }}
+            className="px-5 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
+          >
+            <Plus className="w-5 h-5" />
+            Nuevo examen
+          </button>
+        )}
       </div>
       
+      {/* Exams List */}
       {exams.length === 0 ? (
         <EmptyState
           icon={FlaskConical}
           title="Sin exámenes"
           description="No hay exámenes programados para este curso. Crea un examen para evaluar a tus estudiantes."
-          action="Crear examen"
-          onAction={onCreateExam}
+          action={canEdit ? "Crear examen" : null}
+          onAction={() => { setEditingExam(null); setShowModal(true); }}
         />
       ) : (
-        <div className="grid md:grid-cols-2 gap-4">
-          {exams.map((exam, idx) => (
-            <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-all">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-md">
-                  <FlaskConical className="w-6 h-6 text-white" />
+        <div className="space-y-4">
+          {exams.map((exam) => {
+            const statusConfig = EXAM_STATUS_CONFIG[exam.status] || EXAM_STATUS_CONFIG.draft;
+            const StatusIcon = statusConfig.icon;
+            const start = formatDateTime(exam.start_datetime);
+            const end = formatDateTime(exam.end_datetime);
+            const isExpanded = expandedExam === exam.id;
+            
+            return (
+              <div 
+                key={exam.id}
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all"
+              >
+                {/* Main Row */}
+                <div className="p-5">
+                  <div className="flex items-start gap-4">
+                    {/* Icon */}
+                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg flex-shrink-0">
+                      <FlaskConical className="w-7 h-7 text-white" />
+                    </div>
+                    
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${statusConfig.color}`}>
+                              <StatusIcon className="w-3.5 h-3.5" />
+                              {statusConfig.label.toUpperCase()}
+                            </span>
+                            {exam.has_attempts && (
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                {exam.attempts_count} intentos
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-lg font-bold text-gray-800">{exam.title}</h3>
+                          {exam.description && (
+                            <p className="text-sm text-gray-500 mt-1 line-clamp-1">{exam.description}</p>
+                          )}
+                        </div>
+                        
+                        {/* Date/Time Badge */}
+                        <div className="text-right flex-shrink-0">
+                          <div className="px-3 py-2 bg-gray-50 rounded-xl">
+                            <p className="text-sm font-semibold text-gray-700">{start.date}</p>
+                            <p className="text-xs text-gray-500">{start.time} - {end.time}</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Actions */}
+                      {canEdit && (
+                        <div className="flex items-center gap-2 mt-4">
+                          <button
+                            onClick={() => setExpandedExam(isExpanded ? null : exam.id)}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-1.5"
+                          >
+                            <FileText className="w-4 h-4" />
+                            DETALLES
+                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                          </button>
+                          
+                          {(exam.status === 'draft' || exam.status === 'scheduled') && (
+                            <button
+                              onClick={() => setConfirmAction({ type: 'publish', exam })}
+                              className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-200 transition-colors flex items-center gap-1.5"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              PUBLICAR EXAMEN
+                            </button>
+                          )}
+                          
+                          {exam.status === 'published' && (
+                            <button
+                              onClick={() => setConfirmAction({ type: 'close', exam })}
+                              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200 transition-colors flex items-center gap-1.5"
+                            >
+                              <X className="w-4 h-4" />
+                              CERRAR EXAMEN
+                            </button>
+                          )}
+                          
+                          {!exam.has_attempts && exam.status !== 'closed' && (
+                            <button
+                              onClick={() => setConfirmAction({ type: 'delete', exam })}
+                              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors flex items-center gap-1.5"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              ELIMINAR
+                            </button>
+                          )}
+                          
+                          {(exam.has_attempts || exam.status === 'closed') && (
+                            <span className="px-3 py-2 text-gray-400 text-xs italic">
+                              {exam.status === 'closed' ? 'Examen cerrado - Solo lectura' : 'No se puede eliminar (tiene intentos)'}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-gray-800">{exam.title}</h4>
-                  <p className="text-sm text-gray-400">{exam.date}</p>
-                </div>
+                
+                {/* Expanded Details */}
+                {isExpanded && (
+                  <div className="px-5 pb-5 pt-0">
+                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider">Estado</p>
+                          <p className="font-semibold text-gray-800">{statusConfig.label}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider">Fecha</p>
+                          <p className="font-semibold text-gray-800">{start.date}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider">Horario</p>
+                          <p className="font-semibold text-gray-800">{start.time} - {end.time}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider">Nota mínima</p>
+                          <p className="font-semibold text-gray-800">{exam.min_score_percentage}%</p>
+                        </div>
+                      </div>
+                      {exam.description && (
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Descripción</p>
+                          <p className="text-gray-700">{exam.description}</p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 pt-2">
+                        <button
+                          onClick={() => { setEditingExam(exam); setShowModal(true); }}
+                          className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-1.5"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          Editar
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">{exam.questions} preguntas</span>
-                <span className="font-bold text-purple-600">{exam.duration}</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
+      
+      {/* Exam Modal */}
+      <ExamModal
+        isOpen={showModal}
+        onClose={() => { setShowModal(false); setEditingExam(null); }}
+        onSave={handleSave}
+        exam={editingExam}
+        subjectId={subjectId}
+      />
+      
+      {/* Confirm Modals */}
+      <ConfirmExamModal
+        isOpen={confirmAction?.type === 'publish'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => handlePublish(confirmAction?.exam)}
+        title="¿Publicar examen?"
+        message="El examen será visible para todos los estudiantes del curso. Podrán acceder durante el horario programado."
+        confirmText="Publicar"
+        confirmColor="green"
+      />
+      
+      <ConfirmExamModal
+        isOpen={confirmAction?.type === 'close'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => handleClose(confirmAction?.exam)}
+        title="¿Cerrar examen?"
+        message="Los estudiantes ya no podrán acceder al examen. Esta acción no se puede deshacer."
+        confirmText="Cerrar examen"
+        confirmColor="amber"
+      />
+      
+      <ConfirmExamModal
+        isOpen={confirmAction?.type === 'delete'}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => handleDelete(confirmAction?.exam)}
+        title="¿Eliminar examen?"
+        message="Esta acción eliminará permanentemente el examen. No se puede deshacer."
+        confirmText="Eliminar"
+        confirmColor="red"
+      />
     </div>
   );
 }
