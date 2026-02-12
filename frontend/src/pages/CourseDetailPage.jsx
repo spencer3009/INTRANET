@@ -1295,7 +1295,145 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MATERIAL TAB CONTENT
+// UNIFIED CONTENT FEED - For Tasks, Materials, Forum
+// ══════════════════════════════════════════════════════════════════════════════
+function UnifiedContentFeed({ subjectId, token, user, postType }) {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  const config = POST_TYPE_CONFIG[postType] || POST_TYPE_CONFIG.announcement;
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  const loadPosts = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=${postType}`, { headers });
+      setPosts(res.data.posts || []);
+    } catch (err) {
+      console.error('Error loading posts:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [subjectId, token, postType]);
+  
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
+  
+  const handlePostCreated = (newPost) => {
+    setPosts([newPost, ...posts]);
+  };
+  
+  const handlePostDeleted = (postId) => {
+    setPosts(posts.filter(p => p.id !== postId));
+  };
+  
+  const handleLikeToggle = (postId, liked, likesCount) => {
+    setPosts(posts.map(p => 
+      p.id === postId ? { ...p, user_liked: liked, likes_count: likesCount } : p
+    ));
+  };
+  
+  const handleCommentAdded = (postId) => {
+    setPosts(posts.map(p => 
+      p.id === postId ? { ...p, comments_count: (p.comments_count || 0) + 1 } : p
+    ));
+  };
+  
+  const Icon = config.icon;
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+      </div>
+    );
+  }
+
+  const getEmptyMessage = () => {
+    switch (postType) {
+      case "task":
+        return {
+          title: "Sin tareas",
+          description: "No hay tareas asignadas para este curso. Crea la primera tarea para tus estudiantes.",
+          action: "Nueva tarea"
+        };
+      case "material":
+        return {
+          title: "Sin material de estudio",
+          description: "Aún no hay materiales disponibles para este curso. Sube el primer archivo para tus estudiantes.",
+          action: "Subir material"
+        };
+      case "forum":
+        return {
+          title: "Sin discusiones",
+          description: "El foro está vacío. Inicia una discusión para interactuar con la clase.",
+          action: "Nueva discusión"
+        };
+      default:
+        return {
+          title: "Sin publicaciones",
+          description: "Aún no hay publicaciones en este curso.",
+          action: "Nueva publicación"
+        };
+    }
+  };
+  
+  const emptyMsg = getEmptyMessage();
+
+  return (
+    <div className="space-y-5">
+      {/* Create Button */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className={`px-5 py-3 bg-gradient-to-r ${config.color} text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2`}
+          data-testid={`create-${postType}-btn`}
+        >
+          <Plus className="w-5 h-5" />
+          {emptyMsg.action}
+        </button>
+      </div>
+      
+      {/* Posts Feed */}
+      {posts.length === 0 ? (
+        <EmptyState
+          icon={Icon}
+          title={emptyMsg.title}
+          description={emptyMsg.description}
+          action={emptyMsg.action}
+          onAction={() => setShowCreateModal(true)}
+        />
+      ) : (
+        posts.map((post) => (
+          <PostCard 
+            key={post.id} 
+            post={post} 
+            token={token}
+            currentUserId={user?.id}
+            onDelete={handlePostDeleted}
+            onLikeToggle={handleLikeToggle}
+            onCommentAdded={handleCommentAdded}
+          />
+        ))
+      )}
+      
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        subjectId={subjectId}
+        token={token}
+        user={user}
+        onPostCreated={handlePostCreated}
+        postType={postType}
+      />
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MATERIAL TAB CONTENT (Legacy - keeping for reference but unused)
 // ══════════════════════════════════════════════════════════════════════════════
 function MaterialContent({ materials, onUpload }) {
   return (
