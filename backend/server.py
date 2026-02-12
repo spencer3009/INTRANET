@@ -10223,6 +10223,45 @@ async def delete_exam_question(
     return {"message": "Pregunta eliminada exitosamente"}
 
 
+
+@api_router.delete("/exams/questions/{question_id}/image")
+async def delete_question_image(
+    question_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete only the image from a question"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    
+    question = await db.exam_questions.find_one({"id": question_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not question:
+        raise HTTPException(status_code=404, detail="Pregunta no encontrada")
+    
+    # Delete from Cloudinary
+    if question.get("image_url") and "cloudinary.com" in question["image_url"]:
+        try:
+            parts = question["image_url"].split("/upload/")
+            if len(parts) > 1:
+                public_id_with_ext = parts[1].split("/", 1)[-1] if "/" in parts[1] else parts[1]
+                public_id = public_id_with_ext.rsplit(".", 1)[0]
+                cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            print(f"Error deleting question image: {e}")
+    
+    # Remove image_url from question
+    await db.exam_questions.update_one(
+        {"id": question_id},
+        {"$set": {"image_url": None, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": "Imagen eliminada exitosamente"}
+
+
 @api_router.post("/exams/questions/{question_id}/reorder")
 async def reorder_exam_question(
     question_id: str,
