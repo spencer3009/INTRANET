@@ -1209,16 +1209,6 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-      {/* Type Badge Banner for non-announcement posts */}
-      {post.post_type && post.post_type !== "announcement" && (
-        <div className={`px-5 py-2.5 bg-gradient-to-r ${config.color} flex items-center gap-2`}>
-          <div className="w-6 h-6 bg-white/20 rounded-lg flex items-center justify-center">
-            <TypeIcon className="w-3.5 h-3.5 text-white" />
-          </div>
-          <span className="text-sm font-bold text-white tracking-wide uppercase">{config.label}</span>
-        </div>
-      )}
-      
       <div className="p-5">
         {/* Author Header */}
         <div className="flex items-center gap-4 mb-4">
@@ -1266,6 +1256,16 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
             </div>
           )}
         </div>
+        
+        {/* Type Badge (small, always blue, above title) */}
+        {post.post_type && post.post_type !== "announcement" && (
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 text-xs font-semibold rounded-full">
+              <TypeIcon className="w-3.5 h-3.5" />
+              {config.label}
+            </span>
+          </div>
+        )}
         
         {/* Title (for task, material, forum) */}
         {post.title && (
