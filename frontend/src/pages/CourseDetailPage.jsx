@@ -3373,6 +3373,7 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
         onClose={() => { setShowQuestionModal(false); setEditingQuestion(null); }}
         onSave={handleSaveQuestion}
         question={editingQuestion}
+        token={token}
       />
       
       {/* Delete Confirmation */}
