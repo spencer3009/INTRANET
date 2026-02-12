@@ -1214,6 +1214,7 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
               <button 
                 onClick={() => setShowMenu(!showMenu)}
                 className="p-2 hover:bg-gray-100 rounded-xl"
+                data-testid="post-menu-btn"
               >
                 <MoreVertical className="w-5 h-5 text-gray-400" />
               </button>
@@ -1222,11 +1223,11 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
                   <div className="fixed inset-0 z-10" onClick={() => setShowMenu(false)} />
                   <div className="absolute right-0 top-10 bg-white rounded-xl shadow-xl border py-2 min-w-[140px] z-20">
                     <button
-                      onClick={handleDelete}
-                      disabled={deleting}
+                      onClick={handleDeleteClick}
                       className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      data-testid="delete-post-menu-btn"
                     >
-                      {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      <Trash2 className="w-4 h-4" />
                       Eliminar
                     </button>
                   </div>
