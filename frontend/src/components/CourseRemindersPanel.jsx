@@ -580,36 +580,48 @@ export default function CourseRemindersPanel({ subjectId, token, userRole }) {
         subjectId={subjectId}
       />
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation - Using Portal */}
       {confirmDelete && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 z-[9999]">
-            <div className="text-center">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Trash2 className="w-6 h-6 text-red-500" />
-              </div>
-              <h3 className="text-base font-semibold text-gray-700 mb-2">¿Eliminar recordatorio?</h3>
-              <p className="text-sm text-gray-500 mb-5">
-                Se eliminará "{confirmDelete.title}"
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setConfirmDelete(null)}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={() => handleDelete(confirmDelete)}
-                  className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-colors"
-                >
-                  Eliminar
-                </button>
+        <Portal>
+          <div 
+            className="fixed inset-0 flex items-center justify-center p-4"
+            style={{ zIndex: 10000, position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}
+            data-testid="delete-confirm-overlay"
+          >
+            <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
+            <div 
+              className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm p-6"
+              style={{ zIndex: 10001 }}
+              data-testid="delete-confirm-content"
+            >
+              <div className="text-center">
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mx-auto mb-4">
+                  <Trash2 className="w-6 h-6 text-red-500" />
+                </div>
+                <h3 className="text-base font-semibold text-gray-700 mb-2">¿Eliminar recordatorio?</h3>
+                <p className="text-sm text-gray-500 mb-5">
+                  Se eliminará "{confirmDelete.title}"
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setConfirmDelete(null)}
+                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-xl text-sm font-medium transition-colors"
+                    data-testid="delete-confirm-cancel"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={() => handleDelete(confirmDelete)}
+                    className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-colors"
+                    data-testid="delete-confirm-submit"
+                  >
+                    Eliminar
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Portal>
       )}
     </div>
   );
