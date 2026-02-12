@@ -2452,6 +2452,7 @@ function ExamsContent({ subjectId, token, userRole }) {
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [expandedExam, setExpandedExam] = useState(null);
+  const [selectedExamId, setSelectedExamId] = useState(null); // For detail view
   
   const headers = { Authorization: `Bearer ${token}` };
   const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
