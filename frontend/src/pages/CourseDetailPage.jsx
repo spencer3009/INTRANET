@@ -1703,7 +1703,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   const renderTabContent = () => {
     switch (activeTab) {
       case "tablero":
-        return <DashboardContent posts={posts} onCreatePost={() => {}} />;
+        return <DashboardContent subjectId={subjectId} token={token} user={user} />;
       case "tareas":
         return <TasksContent tasks={tasks} onCreateTask={() => {}} />;
       case "material":
@@ -1715,7 +1715,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       case "calificaciones":
         return <GradesContent grades={grades} />;
       default:
-        return <DashboardContent posts={posts} onCreatePost={() => {}} />;
+        return <DashboardContent subjectId={subjectId} token={token} user={user} />;
     }
   };
 
