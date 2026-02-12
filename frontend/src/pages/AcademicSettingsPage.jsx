@@ -1590,7 +1590,6 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           {selectedCategory === "grados" && renderGrados()}
           {selectedCategory === "secciones" && renderSecciones()}
           {selectedCategory === "turnos" && renderTurnos()}
-          {selectedCategory === "periodos" && renderPeriodos()}
         </main>
       </div>
       <LevelModal isOpen={showLevelModal} onClose={() => { setShowLevelModal(false); setEditingLevel(null); }} token={token} level={editingLevel} onSuccess={handleLevelSuccess} />
