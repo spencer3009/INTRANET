@@ -3316,22 +3316,33 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
                           </span>
                         </td>
                         <td className="py-4 px-4">
-                          <p className="text-gray-800 line-clamp-2">{q.question_text}</p>
-                          {q.question_type === "multiple_choice" && q.options && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              {q.options.length} opciones • Correcta: {q.options.find(o => o.is_correct)?.text || "—"}
-                            </p>
-                          )}
-                          {q.question_type === "true_false" && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Correcta: {q.correct_answer === "true" ? "Verdadero" : "Falso"}
-                            </p>
-                          )}
-                          {q.question_type === "fill_blanks" && (
-                            <p className="text-xs text-gray-500 mt-1">
-                              Respuestas: {q.correct_answer}
-                            </p>
-                          )}
+                          <div className="flex items-start gap-3">
+                            {q.image_url && (
+                              <img 
+                                src={q.image_url} 
+                                alt="" 
+                                className="w-12 h-12 object-cover rounded-lg flex-shrink-0 border border-gray-200"
+                              />
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-gray-800 line-clamp-2">{q.question_text}</p>
+                              {q.question_type === "multiple_choice" && q.options && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {q.options.length} opciones • Correcta: {q.options.find(o => o.is_correct)?.text || "—"}
+                                </p>
+                              )}
+                              {q.question_type === "true_false" && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Correcta: {q.correct_answer === "true" ? "Verdadero" : "Falso"}
+                                </p>
+                              )}
+                              {q.question_type === "fill_blanks" && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Respuestas: {q.correct_answer}
+                                </p>
+                              )}
+                            </div>
+                          </div>
                         </td>
                         <td className="py-4 px-4 text-center">
                           <span className="font-bold text-indigo-600">{q.points}</span>
