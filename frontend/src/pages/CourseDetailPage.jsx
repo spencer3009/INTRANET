@@ -2529,6 +2529,18 @@ function ExamsContent({ subjectId, token, userRole }) {
     };
   };
   
+  // If an exam is selected, show its detail view
+  if (selectedExamId) {
+    return (
+      <ExamDetailView 
+        examId={selectedExamId}
+        token={token}
+        userRole={userRole}
+        onBack={() => { setSelectedExamId(null); loadExams(); }}
+      />
+    );
+  }
+  
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
