@@ -2918,7 +2918,7 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
   const StatusIcon = statusConfig.icon;
   
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-40">
       {/* Back Button & Header */}
       <div className="flex items-center gap-4">
         <button
