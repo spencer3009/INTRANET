@@ -2215,6 +2215,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           logoUrl={settings?.logo_url}
           schoolName={settings?.system_name}
           subdomain={subdomain}
+          token={token}
         />
 
         {/* Main Content */}
