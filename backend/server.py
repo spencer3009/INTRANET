@@ -8724,6 +8724,9 @@ async def create_course_reminder(
         "description": data.description.strip() if data.description else None,
         "date": data.date,
         "reminder_type": data.reminder_type,
+        "is_important": data.is_important,
+        "notify_all": data.notify_all,
+        "viewed_by": [],  # Track which users have seen this reminder
         "status": "active",
         "created_by": user["id"],
         "created_at": now,
