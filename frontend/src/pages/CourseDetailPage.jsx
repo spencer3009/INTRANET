@@ -417,54 +417,61 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
         )}
       </div>
       
-      {/* Activity Feed - Real-time from API */}
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-        <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+      {/* Activity Feed - Real-time from API - Elegant Design */}
+      <div className="bg-gradient-to-br from-emerald-50/40 to-teal-50/20 rounded-2xl p-5 border border-emerald-200/40 shadow-sm">
+        <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm relative">
+            <Activity className="w-3.5 h-3.5 text-white" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-white animate-pulse" />
+          </div>
           Actividad del curso
         </h4>
         {loadingActivities ? (
           <div className="flex items-center justify-center py-6">
-            <Loader2 className="w-5 h-5 text-indigo-400 animate-spin" />
+            <Loader2 className="w-5 h-5 text-emerald-500 animate-spin" />
           </div>
         ) : activities.length === 0 ? (
-          <div className="text-center py-6">
-            <Activity className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">Sin actividad reciente</p>
-            <p className="text-xs text-gray-300 mt-1">Las acciones en el curso aparecerán aquí</p>
+          <div className="text-center py-6 bg-white/60 rounded-xl border border-emerald-100/50">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center mx-auto mb-3">
+              <Activity className="w-6 h-6 text-emerald-400" />
+            </div>
+            <p className="text-sm text-slate-500 font-medium">Sin actividad reciente</p>
+            <p className="text-xs text-slate-400 mt-1">Las acciones en el curso aparecerán aquí</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-2.5">
             {activities.slice(0, 6).map((activity) => {
               const style = getActivityStyle(activity.activity_type);
               const IconComponent = style.icon;
               return (
                 <div 
                   key={activity.id} 
-                  className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer group"
+                  className="flex items-start gap-3 p-3 bg-white/80 border border-slate-200/50 rounded-xl hover:bg-white hover:border-slate-300/60 hover:shadow-sm transition-all cursor-pointer group"
                 >
                   {activity.user_photo ? (
                     <img 
                       src={activity.user_photo} 
                       alt={activity.user_name}
-                      className="w-9 h-9 rounded-full object-cover flex-shrink-0 ring-2 ring-white"
+                      className="w-10 h-10 rounded-full object-cover flex-shrink-0 ring-2 ring-white shadow-sm"
                     />
                   ) : (
-                    <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${style.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-md`}>
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${style.color} flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-md`}>
                       {activity.user_name?.charAt(0) || "U"}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-gray-700 line-clamp-2">
-                      <span className="font-semibold">{activity.user_name}</span>{" "}
-                      <span className="text-gray-500">{activity.title}</span>
+                    <p className="text-sm text-slate-700 line-clamp-2">
+                      <span className="font-semibold text-slate-800">{activity.user_name}</span>{" "}
+                      <span className="text-slate-500">{activity.title}</span>
                     </p>
                     {activity.description && (
-                      <p className="text-xs text-gray-500 mt-0.5 line-clamp-1 italic">"{activity.description}"</p>
+                      <p className="text-xs text-slate-500 mt-1 line-clamp-1 italic bg-slate-50/80 px-2 py-1 rounded">"{activity.description}"</p>
                     )}
-                    <div className="flex items-center gap-2 mt-1">
-                      <IconComponent className="w-3 h-3 text-gray-400" />
-                      <p className="text-xs text-gray-400">{formatTimeAgo(activity.created_at)}</p>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <div className={`w-5 h-5 rounded bg-gradient-to-br ${style.color} flex items-center justify-center`}>
+                        <IconComponent className="w-3 h-3 text-white" />
+                      </div>
+                      <p className="text-xs text-slate-400 font-medium">{formatTimeAgo(activity.created_at)}</p>
                     </div>
                   </div>
                 </div>
