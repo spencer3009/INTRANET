@@ -1618,8 +1618,8 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               onPageChange={setPaymentsPage}
               onCreateNew={() => { setEditingPayment(null); setShowPaymentModal(true); }}
               onEdit={(p) => { setEditingPayment(p); setShowPaymentModal(true); }}
-              onConfirm={handleConfirmPayment}
-              onCancel={handleCancelPayment}
+              onConfirm={handleConfirmPaymentClick}
+              onCancel={handleCancelPaymentClick}
               filterStatus={filterPaymentStatus}
               setFilterStatus={setFilterPaymentStatus}
             />
@@ -1634,7 +1634,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               onPageChange={setExpensesPage}
               onCreateNew={() => { setEditingExpense(null); setShowExpenseModal(true); }}
               onEdit={(e) => { setEditingExpense(e); setShowExpenseModal(true); }}
-              onDelete={handleDeleteExpense}
+              onDelete={handleDeleteExpenseClick}
               filterCategory={filterExpenseCategory}
               setFilterCategory={setFilterExpenseCategory}
             />
