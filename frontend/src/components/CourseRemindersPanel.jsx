@@ -64,7 +64,7 @@ function formatDate(dateString) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// REMINDER CARD - Premium Style
+// REMINDER CARD - Soft, elegant style
 // ══════════════════════════════════════════════════════════════════════════════
 function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -75,56 +75,56 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
   
   return (
     <div 
-      className={`group relative rounded-2xl overflow-hidden transition-all duration-300
-        ${isCompleted ? "opacity-60" : ""}
-        ${typeConfig.bgColor} border ${typeConfig.borderColor}
-        hover:shadow-lg hover:-translate-y-0.5`}
+      className={`group relative bg-white rounded-xl overflow-hidden transition-all duration-300
+        ${isCompleted ? "opacity-50" : ""}
+        border ${typeConfig.borderColor}
+        hover:shadow-md`}
     >
-      {/* Color accent */}
-      <div className={`absolute top-0 left-0 w-1.5 h-full bg-gradient-to-b ${typeConfig.color}`} />
+      {/* Subtle color accent */}
+      <div className={`absolute top-0 left-0 w-1 h-full bg-gradient-to-b ${typeConfig.color} opacity-60`} />
       
-      <div className="pl-5 pr-4 py-4">
+      <div className="pl-4 pr-3 py-3">
         <div className="flex items-start gap-3">
-          {/* Type icon */}
-          <div className={`flex-shrink-0 w-10 h-10 rounded-xl bg-gradient-to-br ${typeConfig.color} flex items-center justify-center shadow-lg`}>
-            <Icon className="w-5 h-5 text-white" />
+          {/* Type icon - softer */}
+          <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${typeConfig.iconBg} flex items-center justify-center`}>
+            <Icon className={`w-5 h-5 ${typeConfig.iconColor}`} />
           </div>
           
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Type badge */}
-            <span className={`inline-block px-2 py-0.5 ${typeConfig.badgeBg} text-white text-[10px] font-bold rounded-full uppercase mb-1`}>
+            {/* Type badge - smaller and softer */}
+            <span className={`inline-block px-2 py-0.5 ${typeConfig.badgeBg} text-white text-[9px] font-semibold rounded-md uppercase mb-1 opacity-80`}>
               {typeConfig.label}
             </span>
             
             {/* Title */}
-            <h4 className={`font-bold text-gray-800 text-sm leading-tight ${isCompleted ? "line-through" : ""}`}>
+            <h4 className={`font-semibold text-gray-700 text-sm leading-tight ${isCompleted ? "line-through text-gray-400" : ""}`}>
               {reminder.title}
             </h4>
             
             {/* Description */}
             {reminder.description && (
-              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{reminder.description}</p>
+              <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{reminder.description}</p>
             )}
             
-            {/* Date */}
-            <div className="flex items-center gap-2 mt-2">
-              <Calendar className={`w-3.5 h-3.5 ${typeConfig.textColor}`} />
-              <span className={`text-xs font-semibold ${
-                dateInfo.isPast ? "text-red-500" : 
-                dateInfo.isUrgent ? "text-amber-600" : 
-                typeConfig.textColor
+            {/* Date - softer colors */}
+            <div className="flex items-center gap-2 mt-1.5">
+              <Calendar className={`w-3 h-3 ${dateInfo.isPast ? "text-red-400" : "text-gray-400"}`} />
+              <span className={`text-xs font-medium ${
+                dateInfo.isPast ? "text-red-400" : 
+                dateInfo.isUrgent ? "text-amber-500" : 
+                "text-gray-400"
               }`}>
                 {dateInfo.text}
               </span>
               {dateInfo.isPast && !isCompleted && (
-                <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded">
+                <span className="px-1.5 py-0.5 bg-red-50 text-red-400 text-[9px] font-medium rounded">
                   VENCIDO
                 </span>
               )}
               {isCompleted && (
-                <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-600 text-[10px] font-bold rounded flex items-center gap-1">
-                  <Check className="w-3 h-3" /> COMPLETADO
+                <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-500 text-[9px] font-medium rounded flex items-center gap-1">
+                  <Check className="w-2.5 h-2.5" /> LISTO
                 </span>
               )}
             </div>
@@ -135,7 +135,7 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
             <div className="relative">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-white rounded-lg transition-all opacity-0 group-hover:opacity-100"
+                className="p-1.5 text-gray-300 hover:text-gray-500 hover:bg-gray-50 rounded-lg transition-all opacity-0 group-hover:opacity-100"
               >
                 <MoreVertical className="w-4 h-4" />
               </button>
@@ -143,26 +143,26 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, canEdit }) {
               {menuOpen && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
-                  <div className="absolute right-0 top-10 z-20 bg-white rounded-xl shadow-2xl border border-gray-100 py-1.5 w-40">
+                  <div className="absolute right-0 top-8 z-20 bg-white rounded-xl shadow-lg border border-gray-100 py-1 w-36">
                     <button
                       onClick={() => { setMenuOpen(false); onComplete?.(reminder); }}
-                      className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-emerald-50 flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-xs text-gray-600 hover:bg-gray-50 flex items-center gap-2"
                     >
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
                       <span>Completar</span>
                     </button>
                     <button
                       onClick={() => { setMenuOpen(false); onEdit?.(reminder); }}
-                      className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50 flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-xs text-gray-600 hover:bg-gray-50 flex items-center gap-2"
                     >
-                      <Edit2 className="w-4 h-4 text-blue-500" />
+                      <Edit2 className="w-3.5 h-3.5 text-blue-400" />
                       <span>Editar</span>
                     </button>
                     <button
                       onClick={() => { setMenuOpen(false); onDelete?.(reminder); }}
-                      className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                      className="w-full px-3 py-2 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2"
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <Trash2 className="w-3.5 h-3.5" />
                       <span>Eliminar</span>
                     </button>
                   </div>
