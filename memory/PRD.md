@@ -256,9 +256,52 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 **Fecha**: 2025-02-12
 **Cambios recientes**:
 
-### Sesión actual (2025-02-12):
+### Sesión actual (2025-02-12) - Sistema de Alertas Educativas:
 
-1. ✅ **Sistema Unificado: Tareas, Material de Estudio y Foro** - COMPLETADO
+1. ✅ **Sistema de Alertas Educativas Premium** - COMPLETADO
+   - **Objetivo**: "Un alumno no puede decir: no lo vi"
+   
+   - **Campana de Notificaciones Global** (`NotificationBell.jsx`):
+     - Badge con contador de recordatorios pendientes de TODOS los cursos del usuario
+     - Dropdown con secciones: Importantes, Próximos a vencer (≤48h), Nuevos
+     - Modal de detalle completo para recordatorios largos
+     - Auto-actualización cada minuto
+   
+   - **Popup Inteligente** (`ReminderPopup.jsx`):
+     - Aparece automáticamente al cargar el dashboard
+     - Reglas: Solo para recordatorios importantes, ≤24h, o vencidos no vistos
+     - Control: Máximo 1 popup por recordatorio por día
+     - Botones: "Ver recordatorio" | "Recordármelo luego"
+     - Usa `createPortal` para z-index correcto
+   
+   - **Panel de Recordatorios Mejorado** (`CourseRemindersPanel.jsx`):
+     - Jerarquía visual: 🔴 Vencidos, 🟠 Próximos (48h), 🔵 Normales
+     - Animación sutil para recordatorios urgentes
+     - Badge "IMPORTANTE" para recordatorios marcados
+     - Textos largos (>120 chars) con botón "Ver completo"
+     - Modal de lectura completa (`ReminderDetailModal`)
+     - **TODOS los modales usan `createPortal` (z-index fix definitivo)**
+   
+   - **Control del Profesor** (Checkboxes en modal de crear/editar):
+     - ☑️ "Marcar como IMPORTANTE" - Destaca en campana y panel
+     - ☑️ "Notificar a todos los alumnos" - Muestra popup al ingresar
+   
+   - **Backend** (nuevos campos y endpoints):
+     - `CourseReminder`: `is_important`, `notify_all`, `viewed_by[]`
+     - `GET /api/notifications/reminders` - Para campana global
+     - `GET /api/notifications/reminders/popup` - Para popup inteligente
+     - `POST /api/course/reminders/{id}/mark-viewed` - Marcar como visto
+     - `POST /api/notifications/reminders/{id}/dismiss-popup` - Descartar popup
+   
+   - **Archivos creados/modificados**:
+     - `/app/frontend/src/components/NotificationBell.jsx` - NUEVO
+     - `/app/frontend/src/components/ReminderPopup.jsx` - NUEVO
+     - `/app/frontend/src/components/CourseRemindersPanel.jsx` - ACTUALIZADO
+     - `/app/frontend/src/components/DashboardHeader.jsx` - ACTUALIZADO
+     - `/app/frontend/src/pages/DashboardPage.jsx` - ACTUALIZADO
+     - `/app/backend/server.py` - ACTUALIZADO (modelo + endpoints)
+
+### Sesión anterior (2025-02-12):
    - **Modelo unificado**: El modelo `CoursePost` ahora tiene un campo `post_type` con valores:
      - `announcement` (por defecto) - Publicaciones generales del tablero
      - `task` - Tareas del curso
