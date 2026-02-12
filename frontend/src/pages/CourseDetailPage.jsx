@@ -1023,6 +1023,63 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// DELETE CONFIRMATION MODAL - Professional confirmation dialog
+// ══════════════════════════════════════════════════════════════════════════════
+function DeleteConfirmModal({ isOpen, onClose, onConfirm, loading, title = "Eliminar publicación", message = "¿Estás seguro de que deseas eliminar esta publicación? Esta acción no se puede deshacer." }) {
+  if (!isOpen) return null;
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
+        {/* Header with warning icon */}
+        <div className="p-6 pb-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <Trash2 className="w-6 h-6 text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+              <p className="mt-2 text-sm text-gray-500">{message}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Actions */}
+        <div className="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors disabled:opacity-50"
+            data-testid="cancel-delete-btn"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="px-5 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            data-testid="confirm-delete-btn"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Eliminando...
+              </>
+            ) : (
+              <>
+                <Trash2 className="w-4 h-4" />
+                Eliminar
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Post Card Component
 function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommentAdded }) {
   const [showMenu, setShowMenu] = useState(false);
