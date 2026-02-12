@@ -10198,6 +10198,17 @@ async def delete_exam_question(
     if exam and exam["status"] == ExamStatus.closed.value:
         raise HTTPException(status_code=400, detail="No se pueden eliminar preguntas de un examen cerrado")
     
+    # Delete image from Cloudinary if exists
+    if question.get("image_url") and "cloudinary.com" in question["image_url"]:
+        try:
+            parts = question["image_url"].split("/upload/")
+            if len(parts) > 1:
+                public_id_with_ext = parts[1].split("/", 1)[-1] if "/" in parts[1] else parts[1]
+                public_id = public_id_with_ext.rsplit(".", 1)[0]
+                cloudinary.uploader.destroy(public_id)
+        except Exception as e:
+            print(f"Error deleting question image from Cloudinary: {e}")
+    
     exam_id = question["exam_id"]
     await db.exam_questions.delete_one({"id": question_id})
     
