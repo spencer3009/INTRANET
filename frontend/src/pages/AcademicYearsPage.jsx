@@ -1051,9 +1051,6 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
       setDeleting(null);
     }
   };
-      setDeleting(null);
-    }
-  };
   
   const handleViewDetails = (year) => {
     setSelectedYear(year);
