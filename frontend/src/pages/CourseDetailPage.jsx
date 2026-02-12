@@ -262,9 +262,11 @@ function PremiumTabs({ activeTab, onTabChange }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // LEFT SIDEBAR - COURSE INFO
 // ══════════════════════════════════════════════════════════════════════════════
-function CourseInfoSidebar({ subject, news, subjectId, token }) {
+function CourseInfoSidebar({ subject, subjectId, token }) {
   const [activities, setActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
+  const [sidebarData, setSidebarData] = useState({ news: [], quick_access: [], stats: {} });
+  const [loadingSidebar, setLoadingSidebar] = useState(true);
 
   // Load activities from API
   useEffect(() => {
@@ -287,6 +289,27 @@ function CourseInfoSidebar({ subject, news, subjectId, token }) {
     loadActivities();
   }, [subjectId, token]);
 
+  // Load sidebar summary (news + quick access)
+  useEffect(() => {
+    const loadSidebarData = async () => {
+      if (!subjectId || !token) return;
+      
+      try {
+        const res = await axios.get(
+          `${process.env.REACT_APP_BACKEND_URL}/api/course/${subjectId}/sidebar-summary`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setSidebarData(res.data);
+      } catch (err) {
+        console.error("Error loading sidebar data:", err);
+      } finally {
+        setLoadingSidebar(false);
+      }
+    };
+    
+    loadSidebarData();
+  }, [subjectId, token]);
+
   // Format relative time
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);
@@ -304,6 +327,20 @@ function CourseInfoSidebar({ subject, news, subjectId, token }) {
     return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
   };
 
+  // Format future date
+  const formatFutureDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = date - now;
+    const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) return "Vencido";
+    if (diffDays === 0) return "Hoy";
+    if (diffDays === 1) return "Mañana";
+    if (diffDays <= 7) return `En ${diffDays} días`;
+    return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
+  };
+
   // Get activity icon and color based on type
   const getActivityStyle = (type) => {
     const styles = {
@@ -317,6 +354,38 @@ function CourseInfoSidebar({ subject, news, subjectId, token }) {
       exam_scheduled: { icon: BookOpen, color: "from-red-400 to-rose-500" }
     };
     return styles[type] || { icon: Activity, color: "from-gray-400 to-gray-500" };
+  };
+
+  // Get news item icon
+  const getNewsIcon = (iconType) => {
+    const icons = {
+      exam: { icon: BookOpen, color: "from-red-400 to-rose-500", bg: "bg-red-100", text: "text-red-600" },
+      task: { icon: PenTool, color: "from-amber-400 to-orange-500", bg: "bg-amber-100", text: "text-amber-600" },
+      notice: { icon: Bell, color: "from-violet-400 to-purple-500", bg: "bg-violet-100", text: "text-violet-600" },
+      announcement: { icon: Megaphone, color: "from-blue-400 to-cyan-500", bg: "bg-blue-100", text: "text-blue-600" }
+    };
+    return icons[iconType] || icons.notice;
+  };
+
+  // Get quick access icon
+  const getQuickAccessIcon = (iconType) => {
+    const icons = {
+      folder: FolderOpen,
+      task: PenTool,
+      video: FileVideo,
+      forum: MessageSquare
+    };
+    return icons[iconType] || FolderOpen;
+  };
+
+  const getQuickAccessColor = (color) => {
+    const colors = {
+      blue: "from-blue-400 to-blue-600",
+      amber: "from-amber-400 to-orange-500",
+      rose: "from-rose-400 to-pink-500",
+      violet: "from-violet-400 to-purple-500"
+    };
+    return colors[color] || "from-gray-400 to-gray-500";
   };
 
   return (
@@ -405,47 +474,97 @@ function CourseInfoSidebar({ subject, news, subjectId, token }) {
         )}
       </div>
       
-      {/* News Section */}
+      {/* Latest News - Dynamic from API */}
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
         <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2">
           <Bell className="w-4 h-4 text-amber-500" />
           Últimas noticias
         </h4>
-        {news.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">Sin noticias</p>
+        {loadingSidebar ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-5 h-5 text-amber-400 animate-spin" />
+          </div>
+        ) : sidebarData.news.length === 0 ? (
+          <div className="text-center py-6">
+            <Bell className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">Sin novedades</p>
+            <p className="text-xs text-gray-300 mt-1">Los eventos próximos aparecerán aquí</p>
+          </div>
         ) : (
           <div className="space-y-3">
-            {news.slice(0, 3).map((item, idx) => (
-              <div key={idx} className="p-3 bg-amber-50 rounded-xl border border-amber-100">
-                <p className="text-sm font-medium text-gray-700 line-clamp-2">{item.title}</p>
-                <p className="text-xs text-gray-400 mt-1">{item.date}</p>
-              </div>
-            ))}
+            {sidebarData.news.map((item) => {
+              const newsStyle = getNewsIcon(item.icon);
+              const NewsIcon = newsStyle.icon;
+              const isUpcoming = new Date(item.date) > new Date();
+              return (
+                <div 
+                  key={item.id} 
+                  className={`p-3 rounded-xl border transition-all hover:shadow-md cursor-pointer ${
+                    item.is_important 
+                      ? "bg-amber-50 border-amber-200" 
+                      : `${newsStyle.bg} border-gray-100`
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-8 h-8 rounded-lg ${newsStyle.bg} flex items-center justify-center flex-shrink-0`}>
+                      <NewsIcon className={`w-4 h-4 ${newsStyle.text}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-700 line-clamp-2">{item.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Calendar className="w-3 h-3 text-gray-400" />
+                        <span className={`text-xs font-medium ${
+                          isUpcoming ? "text-emerald-600" : "text-gray-500"
+                        }`}>
+                          {isUpcoming ? formatFutureDate(item.date) : formatTimeAgo(item.date)}
+                        </span>
+                        {item.is_important && (
+                          <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[8px] font-bold rounded">
+                            IMPORTANTE
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
       
-      {/* Quick Links */}
+      {/* Quick Access - Dynamic from API */}
       <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
         <h4 className="font-bold text-gray-700 mb-4">Accesos rápidos</h4>
-        <div className="space-y-2">
-          {[
-            { icon: FolderOpen, label: "Materiales", color: "from-blue-400 to-blue-600" },
-            { icon: PenTool, label: "Tareas pendientes", color: "from-amber-400 to-orange-500" },
-            { icon: FileVideo, label: "Clases grabadas", color: "from-rose-400 to-pink-500" },
-          ].map((link, idx) => (
-            <button
-              key={idx}
-              className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all group"
-            >
-              <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${link.color} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
-                <link.icon className="w-4 h-4 text-white" />
-              </div>
-              <span className="text-sm font-medium text-gray-700">{link.label}</span>
-              <ChevronRight className="w-4 h-4 text-gray-400 ml-auto" />
-            </button>
-          ))}
-        </div>
+        {loadingSidebar ? (
+          <div className="flex items-center justify-center py-6">
+            <Loader2 className="w-5 h-5 text-violet-400 animate-spin" />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {sidebarData.quick_access.map((link) => {
+              const LinkIcon = getQuickAccessIcon(link.icon);
+              const colorClass = getQuickAccessColor(link.color);
+              return (
+                <button
+                  key={link.id}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all group"
+                >
+                  <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${colorClass} flex items-center justify-center shadow-md group-hover:scale-110 transition-transform`}>
+                    <LinkIcon className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-700 flex-1 text-left">{link.label}</span>
+                  {link.count > 0 && (
+                    <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs font-semibold rounded-full">
+                      {link.count}
+                    </span>
+                  )}
+                  <ChevronRight className="w-4 h-4 text-gray-400" />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
