@@ -7863,28 +7863,34 @@ async def create_academic_assignment(
     if not subject:
         raise HTTPException(status_code=404, detail="Asignatura no encontrada")
     
-    # Validate period if provided
-    period = None
-    period_name = None
-    if data.period_id:
-        period = await db.academic_periods.find_one({
-            "id": data.period_id,
+    # Validate academic year if provided
+    academic_year = None
+    if data.academic_year_id:
+        academic_year = await db.academic_years.find_one({
+            "id": data.academic_year_id,
             "school_id": school_id
         })
-        if not period:
-            raise HTTPException(status_code=404, detail="Período académico no encontrado")
-        period_name = period.get("nombre", "")
+        if not academic_year:
+            raise HTTPException(status_code=404, detail="Año académico no encontrado")
+        # Update school_year from the academic year
+        data.school_year = academic_year.get("year", data.school_year)
     
-    # Check for exact duplicate
-    duplicate = await db.academic_assignments.find_one({
+    # Check for exact duplicate - now using academic_year_id
+    duplicate_query = {
         "school_id": school_id,
         "teacher_id": data.teacher_id,
         "level_id": data.level_id,
         "grade_id": data.grade_id,
         "section_id": data.section_id,
         "subject_id": data.subject_id,
-        "school_year": data.school_year
-    })
+    }
+    # Add year criterion
+    if data.academic_year_id:
+        duplicate_query["academic_year_id"] = data.academic_year_id
+    else:
+        duplicate_query["school_year"] = data.school_year
+    
+    duplicate = await db.academic_assignments.find_one(duplicate_query)
     if duplicate:
         raise HTTPException(
             status_code=400,
