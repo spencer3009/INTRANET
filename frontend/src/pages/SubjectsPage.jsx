@@ -30,6 +30,15 @@ const SUBJECT_COLORS = [
   { value: "#A855F7", label: "Púrpura" },
 ];
 
+// Helper function to create centered aspect crop
+function centerAspectCrop(mediaWidth, mediaHeight, aspect) {
+  return centerCrop(
+    makeAspectCrop({ unit: '%', width: 90 }, aspect, mediaWidth, mediaHeight),
+    mediaWidth,
+    mediaHeight
+  );
+}
+
 // Vibrant level themes
 const LEVEL_THEMES = {
   0: { 
