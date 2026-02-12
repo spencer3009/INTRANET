@@ -1536,6 +1536,48 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
         academicYear={selectedYear}
         onSuccess={handlePeriodSuccess}
       />
+      
+      {/* Activate Year Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showActivateYearModal}
+        onClose={() => { setShowActivateYearModal(false); setYearToActivate(null); }}
+        onConfirm={handleActivateYearConfirm}
+        loading={activating === yearToActivate?.id}
+        title={`Activar Año ${yearToActivate?.year}`}
+        message="Al activar este año, el año activo actual será cerrado automáticamente. Esta acción reorganizará el flujo académico."
+        confirmText="Activar"
+        cancelText="Cancelar"
+        variant="success"
+        icon="power"
+      />
+      
+      {/* Delete Period Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeletePeriodModal}
+        onClose={() => { setShowDeletePeriodModal(false); setPeriodToDelete(null); }}
+        onConfirm={handleDeletePeriodConfirm}
+        loading={deletingPeriod}
+        title="Eliminar Período"
+        message={`¿Estás seguro de eliminar el período "${periodToDelete?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        variant="danger"
+        icon="delete"
+      />
+      
+      {/* Activate Period Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showActivatePeriodModal}
+        onClose={() => { setShowActivatePeriodModal(false); setPeriodToActivate(null); }}
+        onConfirm={handleActivatePeriodConfirm}
+        loading={activatingPeriod}
+        title={`Activar Período "${periodToActivate?.nombre}"`}
+        message="Al activar este período, el período activo actual será desactivado. Los docentes y estudiantes verán este período como el actual."
+        confirmText="Activar"
+        cancelText="Cancelar"
+        variant="success"
+        icon="power"
+      />
     </div>
   );
 }
