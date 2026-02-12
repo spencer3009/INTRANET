@@ -902,23 +902,43 @@ export default function NewsPage({ user, token, subdomain, onLogout }) {
     loadNews();
   };
 
-  const handlePublish = async (news) => {
-    if (!window.confirm(`¿Publicar la noticia "${news.title}"?`)) return;
+  const handlePublishClick = (news) => {
+    setSelectedNews(news);
+    setShowPublishModal(true);
+  };
+  
+  const handlePublishConfirm = async () => {
+    if (!selectedNews) return;
+    setProcessing(true);
     try {
-      await axios.put(`${API}/news/${news.id}/publish`, {}, { headers });
+      await axios.put(`${API}/news/${selectedNews.id}/publish`, {}, { headers });
       loadNews();
+      setShowPublishModal(false);
+      setSelectedNews(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al publicar");
+    } finally {
+      setProcessing(false);
     }
   };
 
-  const handleArchive = async (news) => {
-    if (!window.confirm(`¿Archivar la noticia "${news.title}"?`)) return;
+  const handleArchiveClick = (news) => {
+    setSelectedNews(news);
+    setShowArchiveModal(true);
+  };
+  
+  const handleArchiveConfirm = async () => {
+    if (!selectedNews) return;
+    setProcessing(true);
     try {
-      await axios.put(`${API}/news/${news.id}/archive`, {}, { headers });
+      await axios.put(`${API}/news/${selectedNews.id}/archive`, {}, { headers });
       loadNews();
+      setShowArchiveModal(false);
+      setSelectedNews(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al archivar");
+    } finally {
+      setProcessing(false);
     }
   };
 
@@ -931,13 +951,23 @@ export default function NewsPage({ user, token, subdomain, onLogout }) {
     }
   };
 
-  const handleDelete = async (news) => {
-    if (!window.confirm(`¿Eliminar la noticia "${news.title}"? Esta acción no se puede deshacer.`)) return;
+  const handleDeleteClick = (news) => {
+    setSelectedNews(news);
+    setShowDeleteModal(true);
+  };
+  
+  const handleDeleteConfirm = async () => {
+    if (!selectedNews) return;
+    setProcessing(true);
     try {
-      await axios.delete(`${API}/news/${news.id}`, { headers });
+      await axios.delete(`${API}/news/${selectedNews.id}`, { headers });
       loadNews();
+      setShowDeleteModal(false);
+      setSelectedNews(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al eliminar");
+    } finally {
+      setProcessing(false);
     }
   };
 
