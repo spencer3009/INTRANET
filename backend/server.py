@@ -8206,6 +8206,11 @@ async def create_course_post(
     if not data.content.strip() and not data.image_url and not data.file_url:
         raise HTTPException(status_code=400, detail="La publicación debe tener texto, imagen o archivo")
     
+    # For task, material, forum - title is required
+    if data.post_type in ["task", "material", "forum"]:
+        if not data.title or not data.title.strip():
+            raise HTTPException(status_code=400, detail="El título es obligatorio para este tipo de publicación")
+    
     # Verify subject exists
     subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id})
     if not subject:
@@ -8223,7 +8228,9 @@ async def create_course_post(
         "subject_id": subject_id,
         "academic_year_id": academic_year_id,
         "author_id": user["id"],
+        "title": data.title.strip() if data.title else None,
         "content": data.content.strip(),
+        "post_type": data.post_type,
         "image_url": data.image_url,
         "file_url": data.file_url,
         "file_name": data.file_name,
