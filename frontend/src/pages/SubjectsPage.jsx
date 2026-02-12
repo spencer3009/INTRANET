@@ -1,13 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
   Users, Search, ChevronRight, Clock, MoreVertical,
   GraduationCap, Home, ArrowLeft, User, Power, PowerOff,
-  Sparkles, Star, Zap, Image, Upload, Trash2
+  Sparkles, Star, Zap, Image, Upload, Trash2, Crop, ZoomIn, ZoomOut, RotateCcw
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
