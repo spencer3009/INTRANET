@@ -2631,7 +2631,15 @@ function ExamsContent({ subjectId, token, userRole }) {
                       
                       {/* Actions */}
                       {canEdit && (
-                        <div className="flex items-center gap-2 mt-4">
+                        <div className="flex items-center gap-2 mt-4 flex-wrap">
+                          <button
+                            onClick={() => setSelectedExamId(exam.id)}
+                            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-1.5"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                            GESTIONAR PREGUNTAS
+                          </button>
+                          
                           <button
                             onClick={() => setExpandedExam(isExpanded ? null : exam.id)}
                             className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-1.5"
