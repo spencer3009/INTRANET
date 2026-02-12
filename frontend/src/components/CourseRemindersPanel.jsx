@@ -341,16 +341,6 @@ function ReminderCard({ reminder, onEdit, onDelete, onComplete, onViewFull, canE
               )}
             </div>
           )}
-                      className="w-full px-3 py-2.5 text-left text-xs text-red-500 hover:bg-red-50 flex items-center gap-2"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                      <span>Eliminar</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
         </div>
       </div>
 
