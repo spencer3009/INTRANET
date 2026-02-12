@@ -203,11 +203,13 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 
 ### P0 - Prioridad Alta
 - [x] ✅ Catálogo de Tipos de Sección (section_types) - COMPLETADO 2025-02-11
+- [x] ✅ Sistema de Alertas Educativas Premium (Recordatorios) - COMPLETADO 2025-02-12
 
 ### P1 - Prioridad Media
 - [ ] Refactorizar `UsersPage.jsx` (>2000 líneas)
 - [ ] Refactorizar `CarouselManager.jsx` (~760 líneas)
 - [ ] Sección "Asignaciones Académicas" en detalle de usuario/profesor
+- [ ] Completar reemplazo de `window.confirm` por ConfirmModal (en progreso)
 
 ### P2 - Módulos Futuros
 - [ ] Matrículas
