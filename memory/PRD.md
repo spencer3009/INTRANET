@@ -251,6 +251,18 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
      - `/app/frontend/src/pages/AcademicYearsPage.jsx` - Vista de detalle con gestión de períodos
      - `/app/frontend/src/pages/AcademicSettingsPage.jsx` - Eliminada categoría períodos, agregada tarjeta de redirección
 
+3. ✅ **Ajuste de Arquitectura: Asignación Docente ANUAL** - COMPLETADO
+   - **Cambio principal**: La asignación docente ahora es ANUAL, no por período
+   - **Frontend**: Reemplazado selector de "Período Académico" por "Año Académico"
+   - **Backend**: Modelo cambiado de `period_id` a `academic_year_id`
+   - **Beneficios**:
+     - Reduce drásticamente el trabajo operativo (no hay que reasignar por bimestre)
+     - Evita errores humanos
+     - Alinea el sistema a la realidad de colegios
+   - Archivos modificados:
+     - `/app/frontend/src/pages/TeacherAssignmentsPage.jsx` - Selector de año en lugar de período
+     - `/app/backend/server.py` - Modelos y endpoints actualizados
+
 ### Sesión anterior (2025-02-11):
 1. ✅ **Catálogo de Tipos de Sección (section_types)** - COMPLETADO
    - Nueva colección `section_types` con catálogo centralizado (A, B, C, D, E, F, ÚNICA)
