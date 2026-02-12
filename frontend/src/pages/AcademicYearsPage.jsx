@@ -1337,6 +1337,23 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
         onSuccess={loadYears}
       />
       
+      <EditYearModal
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setEditingYear(null); }}
+        token={token}
+        year={editingYear}
+        existingYears={years}
+        onSuccess={loadYears}
+      />
+      
+      <DeleteYearModal
+        isOpen={showDeleteModal}
+        onClose={() => { setShowDeleteModal(false); setDeletingYear(null); }}
+        year={deletingYear}
+        onConfirm={handleDeleteYearConfirm}
+        loading={deleting === deletingYear?.id}
+      />
+      
       <PeriodModal
         isOpen={showPeriodModal}
         onClose={() => { setShowPeriodModal(false); setEditingPeriod(null); }}
