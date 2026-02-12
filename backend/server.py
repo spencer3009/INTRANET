@@ -7695,9 +7695,9 @@ async def get_academic_assignments(
         sections = await db.sections.find({"id": {"$in": section_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)
         subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0, "id": 1, "name": 1, "code": 1, "color": 1}).to_list(500)
         
-        # Get periods for assignments that have period_id
-        period_ids = list(set([a.get("period_id") for a in assignments if a.get("period_id")]))
-        periods = await db.academic_periods.find({"id": {"$in": period_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50) if period_ids else []
+        # Get academic years for assignments that have academic_year_id
+        year_ids = list(set([a.get("academic_year_id") for a in assignments if a.get("academic_year_id")]))
+        years = await db.academic_years.find({"id": {"$in": year_ids}}, {"_id": 0, "id": 1, "year": 1, "status": 1}).to_list(50) if year_ids else []
         
         # Create lookup maps
         teachers_map = {t["id"]: t for t in teachers}
@@ -7705,7 +7705,7 @@ async def get_academic_assignments(
         grades_map = {g["id"]: g for g in grades}
         sections_map = {s["id"]: s for s in sections}
         subjects_map = {s["id"]: s for s in subjects}
-        periods_map = {p["id"]: p for p in periods}
+        years_map = {y["id"]: y for y in years}
         
         # Enrich assignments
         for a in assignments:
