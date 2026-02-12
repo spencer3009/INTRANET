@@ -755,7 +755,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
                       onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
                       onComplete={() => handleComplete(reminder)}
                       onDelete={() => setConfirmDelete(reminder)}
-                      onViewDetail={() => setDetailReminder(reminder)}
+                      onViewFull={() => setDetailReminder(reminder)}
                     />
                   ))}
                 </div>
@@ -778,7 +778,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
                       onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
                       onComplete={() => handleComplete(reminder)}
                       onDelete={() => setConfirmDelete(reminder)}
-                      onViewDetail={() => setDetailReminder(reminder)}
+                      onViewFull={() => setDetailReminder(reminder)}
                     />
                   ))}
                 </div>
@@ -801,8 +801,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
                       onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
                       onComplete={() => handleComplete(reminder)}
                       onDelete={() => setConfirmDelete(reminder)}
-                      onViewDetail={() => setDetailReminder(reminder)}
-                      isCompleted
+                      onViewFull={() => setDetailReminder(reminder)}
                     />
                   ))}
                 </div>
