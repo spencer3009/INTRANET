@@ -530,6 +530,9 @@ function CourseRightSidebar({ teacher, students, reminders }) {
 // DASHBOARD TAB CONTENT (TIMELINE FEED) - FUNCTIONAL
 // ══════════════════════════════════════════════════════════════════════════════
 
+// Pagination constant
+const POSTS_PER_PAGE = 4;
+
 // Helper to compress image to WebP (max 500px width)
 const compressImageForPost = (file) => {
   return new Promise((resolve, reject) => {
