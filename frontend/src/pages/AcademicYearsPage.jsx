@@ -737,6 +737,218 @@ function CreateYearModal({ isOpen, onClose, token, existingYears, onSuccess }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// EDIT YEAR MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function EditYearModal({ isOpen, onClose, token, year, existingYears, onSuccess }) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [form, setForm] = useState({ year: "", status: "futuro" });
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  useEffect(() => {
+    if (isOpen && year) {
+      setForm({
+        year: year.year,
+        status: year.status
+      });
+      setError("");
+    }
+  }, [isOpen, year]);
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    
+    // Check if year already exists (except current)
+    const yearExists = existingYears.some(y => y.year === parseInt(form.year) && y.id !== year.id);
+    if (yearExists) {
+      setError(`El año ${form.year} ya existe`);
+      setLoading(false);
+      return;
+    }
+    
+    try {
+      await axios.put(`${API}/academic/years/${year.id}`, {
+        year: parseInt(form.year),
+        status: form.status
+      }, { headers });
+      onSuccess();
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar año académico");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  if (!isOpen || !year) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-500 to-violet-600 px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+              <Edit2 className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-white">Editar Año Académico</h2>
+              <p className="text-white/70 text-sm">Modificar información del año {year.year}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 flex-shrink-0" />
+              {error}
+            </div>
+          )}
+          
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Año</label>
+            <input
+              type="number"
+              value={form.year}
+              onChange={(e) => setForm({ ...form, year: e.target.value })}
+              className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 font-bold text-2xl text-center"
+              min="2020"
+              max="2100"
+              required
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Estado</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, status: "futuro" })}
+                className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  form.status === "futuro"
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-slate-200 hover:border-slate-300 text-slate-600"
+                }`}
+              >
+                <Clock className="w-6 h-6" />
+                <span className="font-semibold">Futuro</span>
+                <span className="text-xs opacity-70">Solo configuración</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, status: "cerrado" })}
+                className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${
+                  form.status === "cerrado"
+                    ? "border-slate-500 bg-slate-50 text-slate-700"
+                    : "border-slate-200 hover:border-slate-300 text-slate-600"
+                }`}
+              >
+                <Lock className="w-6 h-6" />
+                <span className="font-semibold">Cerrado</span>
+                <span className="text-xs opacity-70">Solo lectura</span>
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Para activar un año, usa el botón "Activar" en la tarjeta del año.
+            </p>
+          </div>
+          
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+              Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DELETE CONFIRMATION MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function DeleteYearModal({ isOpen, onClose, year, onConfirm, loading }) {
+  if (!isOpen || !year) return null;
+  
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
+        <div className="p-6">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-14 h-14 bg-red-100 rounded-2xl flex items-center justify-center flex-shrink-0">
+              <Trash2 className="w-7 h-7 text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">Eliminar Año {year.year}</h3>
+              <p className="text-slate-500 mt-1">
+                ¿Estás seguro de que deseas eliminar este año académico?
+              </p>
+            </div>
+          </div>
+          
+          {year.period_count > 0 && (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-semibold text-amber-800">Advertencia</p>
+                  <p className="text-sm text-amber-700">
+                    Este año tiene <strong>{year.period_count} período(s)</strong> configurado(s). 
+                    Al eliminar el año, también se eliminarán todos sus períodos.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <div className="p-4 bg-slate-50 rounded-xl mb-6">
+            <p className="text-sm text-slate-600">
+              Esta acción <strong>no se puede deshacer</strong>. Toda la información asociada a este año académico será eliminada permanentemente.
+            </p>
+          </div>
+          
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => onConfirm(year)}
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+              Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function AcademicYearsPage({ token, user, subdomain, onLogout }) {
@@ -744,6 +956,10 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
   const [years, setYears] = useState([]);
   const [settings, setSettings] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [editingYear, setEditingYear] = useState(null);
+  const [deletingYear, setDeletingYear] = useState(null);
   const [activating, setActivating] = useState(null);
   const [deleting, setDeleting] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
