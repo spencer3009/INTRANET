@@ -445,7 +445,7 @@ function YearDetailView({ year, periods, onBack, onActivateYear, onActivatePerio
 // ══════════════════════════════════════════════════════════════════════════════
 // YEAR CARD - Premium Design
 // ══════════════════════════════════════════════════════════════════════════════
-function YearCard({ year, onViewDetails, onActivate, onEdit, onDelete, isActivating, isDeleting }) {
+function YearCard({ year, onViewDetails, onActivate, onEdit, onDelete, onArchive, isActivating, isDeleting }) {
   const StatusIcon = STATUS_ICONS[year.status];
   
   const getGradient = () => {
