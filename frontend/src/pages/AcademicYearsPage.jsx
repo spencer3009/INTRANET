@@ -1150,16 +1150,23 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
     }
   }, [selectedYear]);
   
-  const handleActivateYear = async (year) => {
-    if (!window.confirm(`¿Activar el año ${year.year}? El año activo actual será cerrado.`)) return;
+  const handleActivateYear = (year) => {
+    setYearToActivate(year);
+    setShowActivateYearModal(true);
+  };
+  
+  const handleActivateYearConfirm = async () => {
+    if (!yearToActivate) return;
     
-    setActivating(year.id);
+    setActivating(yearToActivate.id);
     try {
-      await axios.put(`${API}/academic/years/${year.id}`, { status: "activo" }, { headers });
+      await axios.put(`${API}/academic/years/${yearToActivate.id}`, { status: "activo" }, { headers });
       loadYears();
-      if (selectedYear?.id === year.id) {
-        setSelectedYear({ ...year, status: "activo" });
+      if (selectedYear?.id === yearToActivate.id) {
+        setSelectedYear({ ...yearToActivate, status: "activo" });
       }
+      setShowActivateYearModal(false);
+      setYearToActivate(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al activar año");
     } finally {
@@ -1168,7 +1175,6 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
   };
   
   const handleArchiveYear = async (year) => {
-    // For now, archiving means setting a flag. We can implement a full archive feature later.
     alert(`Función de archivar disponible próximamente. El año ${year.year} permanecerá en la sección "Cerrados".`);
   };
   
