@@ -443,83 +443,131 @@ function YearDetailView({ year, periods, onBack, onActivateYear, onActivatePerio
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// YEAR CARD COMPONENT
+// YEAR CARD - Premium Design
 // ══════════════════════════════════════════════════════════════════════════════
-function YearCard({ year, onActivate, onViewDetails, onDelete, isDeleting }) {
+function YearCard({ year, onViewDetails, onActivate, onDelete, isActivating, isDeleting }) {
   const StatusIcon = STATUS_ICONS[year.status];
+  
+  const getGradient = () => {
+    switch (year.status) {
+      case "activo":
+        return "from-emerald-500 via-emerald-600 to-teal-600";
+      case "futuro":
+        return "from-blue-500 via-indigo-500 to-violet-600";
+      default:
+        return "from-slate-400 via-slate-500 to-slate-600";
+    }
+  };
   
   return (
     <div 
       onClick={() => onViewDetails(year)}
-      className={`bg-white rounded-2xl border-2 transition-all hover:shadow-lg cursor-pointer ${
+      className={`group relative bg-white rounded-3xl overflow-hidden transition-all duration-300 cursor-pointer hover:shadow-2xl hover:-translate-y-1 ${
         year.status === "activo" 
-          ? "border-emerald-300 shadow-emerald-100" 
-          : "border-slate-200 hover:border-slate-300"
+          ? "ring-2 ring-emerald-400 shadow-lg shadow-emerald-100" 
+          : "shadow-lg hover:ring-2 hover:ring-slate-200"
       }`}
     >
-      <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
+      {/* Decorative gradient bar */}
+      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${getGradient()}`} />
+      
+      {/* Active indicator glow */}
+      {year.status === "activo" && (
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-emerald-400/20 rounded-full blur-3xl" />
+      )}
+      
+      <div className="relative p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${
-              year.status === "activo"
-                ? "bg-gradient-to-br from-emerald-400 to-teal-500"
-                : year.status === "futuro"
-                  ? "bg-gradient-to-br from-blue-400 to-indigo-500"
-                  : "bg-slate-300"
-            }`}>
-              <span className="text-2xl font-black text-white">{year.year}</span>
+            {/* Year Badge */}
+            <div className={`relative w-20 h-20 rounded-2xl bg-gradient-to-br ${getGradient()} flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform duration-300`}>
+              <span className="text-3xl font-black text-white tracking-tight">{year.year}</span>
+              {year.status === "activo" && (
+                <div className="absolute -top-1 -right-1 w-5 h-5 bg-emerald-400 rounded-full flex items-center justify-center ring-2 ring-white">
+                  <Check className="w-3 h-3 text-white" />
+                </div>
+              )}
             </div>
+            
             <div>
-              <h3 className="text-2xl font-bold text-slate-800">{year.year}</h3>
-              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium border ${STATUS_COLORS[year.status]}`}>
+              <h3 className="text-2xl font-bold text-slate-800 group-hover:text-slate-900 transition-colors">
+                Año {year.year}
+              </h3>
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${STATUS_COLORS[year.status]}`}>
                 <StatusIcon className="w-3.5 h-3.5" />
                 {STATUS_LABELS[year.status]}
               </span>
             </div>
           </div>
           
+          {/* Quick Activate Button */}
           {year.status !== "activo" && (
             <button
               onClick={(e) => { e.stopPropagation(); onActivate(year); }}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+              disabled={isActivating}
+              className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl font-semibold text-sm transition-all shadow-md hover:shadow-lg flex items-center gap-2 disabled:opacity-50"
             >
-              <Check className="w-4 h-4" />
+              {isActivating ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
               Activar
             </button>
           )}
         </div>
         
+        {/* Stats Row */}
+        <div className="grid grid-cols-2 gap-4 mb-6">
+          <div className="bg-slate-50 rounded-2xl p-4 text-center group-hover:bg-slate-100 transition-colors">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <CalendarDays className="w-5 h-5 text-indigo-500" />
+              <span className="text-2xl font-bold text-slate-800">{year.period_count || 0}</span>
+            </div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Períodos</p>
+          </div>
+          <div className="bg-slate-50 rounded-2xl p-4 text-center group-hover:bg-slate-100 transition-colors">
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <PlayCircle className={`w-5 h-5 ${year.active_period_name ? 'text-emerald-500' : 'text-slate-300'}`} />
+              <span className="text-2xl font-bold text-slate-800">{year.active_period_name ? "1" : "0"}</span>
+            </div>
+            <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Activo</p>
+          </div>
+        </div>
+        
+        {/* Active Period Info */}
+        {year.active_period_name && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-2xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-md">
+                <CalendarDays className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Período Activo</p>
+                <p className="font-bold text-emerald-800">{year.active_period_name}</p>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Actions Footer */}
         <div className="flex items-center justify-between pt-4 border-t border-slate-100">
-          <div className="flex items-center gap-2 text-slate-600">
-            <CalendarDays className="w-5 h-5 text-purple-500" />
-            <span className="font-medium">{year.period_count || 0} períodos</span>
-            {year.active_period_name && (
-              <span className="text-emerald-600 text-sm ml-2">
-                (Activo: {year.active_period_name})
-              </span>
-            )}
-          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); onViewDetails(year); }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold text-sm transition-all group-hover:bg-indigo-100 group-hover:text-indigo-700"
+          >
+            <Settings className="w-4 h-4" />
+            Gestionar
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+          </button>
           
-          <div className="flex items-center gap-2">
+          {year.status !== "activo" && year.period_count === 0 && (
             <button
-              onClick={(e) => { e.stopPropagation(); onViewDetails(year); }}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors flex items-center gap-2"
+              onClick={(e) => { e.stopPropagation(); onDelete(year); }}
+              disabled={isDeleting}
+              className="p-2.5 text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+              title="Eliminar año"
             >
-              Gestionar
-              <ChevronRight className="w-4 h-4" />
+              {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
             </button>
-            
-            {year.status !== "activo" && year.period_count === 0 && (
-              <button
-                onClick={(e) => { e.stopPropagation(); onDelete(year); }}
-                disabled={isDeleting}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                title="Eliminar año"
-              >
-                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
-              </button>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>
