@@ -3368,15 +3368,16 @@ async def update_academic_period(
     if new_fecha_inicio >= new_fecha_fin:
         raise HTTPException(status_code=400, detail="La fecha de inicio debe ser anterior a la fecha de fin")
     
-    # Check for duplicate name if name is being changed
+    # Check for duplicate name if name is being changed (only within the same academic year)
     if data.nombre and data.nombre.lower() != period["nombre"].lower():
         existing = await db.academic_periods.find_one({
             "school_id": user["school_id"],
+            "academic_year_id": period["academic_year_id"],  # Only check within the same academic year
             "nombre": {"$regex": f"^{re.escape(data.nombre)}$", "$options": "i"},
             "id": {"$ne": period_id}
         })
         if existing:
-            raise HTTPException(status_code=400, detail="Ya existe un período con ese nombre")
+            raise HTTPException(status_code=400, detail="Ya existe un período con ese nombre en este año académico")
     
     # Check for overlapping dates if dates are being changed (only within the same academic year)
     if data.fecha_inicio or data.fecha_fin:
