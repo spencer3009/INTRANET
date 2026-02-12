@@ -793,7 +793,7 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
       `${API}/cloudinary/signature?folder=${folder}&resource_type=${resourceType}`,
       { headers }
     );
-    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder } = signatureRes.data;
+    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder, access_mode } = signatureRes.data;
     
     const formData = new FormData();
     formData.append('file', fileToUpload);
@@ -801,6 +801,11 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
     formData.append('timestamp', timestamp);
     formData.append('api_key', api_key);
     formData.append('folder', uploadFolder);
+    
+    // For raw files, add access_mode to make them publicly accessible
+    if (access_mode) {
+      formData.append('access_mode', access_mode);
+    }
     
     // Use raw endpoint for non-image files, auto for others
     const uploadEndpoint = isRawFile ? 'raw' : 'auto';
