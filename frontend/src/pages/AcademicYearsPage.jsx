@@ -1223,33 +1223,53 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
     setShowPeriodModal(true);
   };
   
-  const handleDeletePeriod = async (period) => {
-    if (!window.confirm(`¿Eliminar el período "${period.nombre}"? Esta acción no se puede deshacer.`)) return;
+  const handleDeletePeriodClick = (period) => {
+    setPeriodToDelete(period);
+    setShowDeletePeriodModal(true);
+  };
+  
+  const handleDeletePeriodConfirm = async () => {
+    if (!periodToDelete) return;
     
+    setDeletingPeriod(true);
     try {
-      await axios.delete(`${API}/academic/periods/${period.id}`, { headers });
+      await axios.delete(`${API}/academic/periods/${periodToDelete.id}`, { headers });
       loadPeriods(selectedYear.id);
-      loadYears(); // Update period count
+      loadYears();
+      setShowDeletePeriodModal(false);
+      setPeriodToDelete(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al eliminar período");
+    } finally {
+      setDeletingPeriod(false);
     }
   };
   
-  const handleActivatePeriod = async (period) => {
-    if (!window.confirm(`¿Activar el período "${period.nombre}"? El período activo actual será desactivado.`)) return;
+  const handleActivatePeriodClick = (period) => {
+    setPeriodToActivate(period);
+    setShowActivatePeriodModal(true);
+  };
+  
+  const handleActivatePeriodConfirm = async () => {
+    if (!periodToActivate) return;
     
+    setActivatingPeriod(true);
     try {
-      await axios.post(`${API}/academic/periods/${period.id}/activate`, {}, { headers });
+      await axios.post(`${API}/academic/periods/${periodToActivate.id}/activate`, {}, { headers });
       loadPeriods(selectedYear.id);
-      loadYears(); // Update active period name
+      loadYears();
+      setShowActivatePeriodModal(false);
+      setPeriodToActivate(null);
     } catch (err) {
       alert(err.response?.data?.detail || "Error al activar período");
+    } finally {
+      setActivatingPeriod(false);
     }
   };
   
   const handlePeriodSuccess = () => {
     loadPeriods(selectedYear.id);
-    loadYears(); // Update period count
+    loadYears();
   };
   
   // Separate years by status
