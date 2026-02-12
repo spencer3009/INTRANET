@@ -324,7 +324,8 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
   
   const handleViewPeriods = (year) => {
     // Navigate to periods page with year filter
-    window.location.href = `/academic-settings?year=${year.id}&tab=periodos`;
+    const basePath = subdomain ? `/school/${subdomain}` : "";
+    window.location.href = `${basePath}/academic-settings?year=${year.id}&tab=periodos`;
   };
   
   // Separate years by status
@@ -334,12 +335,20 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-emerald-50/30 to-teal-50/20 flex">
-      <Sidebar subdomain={subdomain} />
+      <Sidebar user={user} settings={settings} isOpen={sidebarOpen} setIsOpen={setSidebarOpen} subdomain={subdomain} onLogout={onLogout} />
       
-      <div className="flex-1 ml-20 p-6">
-        <DashboardHeader title="Años Académicos" subtitle="Gestión de ciclos escolares" />
+      <div className="flex-1 flex flex-col min-w-0">
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={settings?.system_name}
+          subdomain={subdomain}
+        />
         
-        <div className="max-w-5xl mx-auto">
+        <main className="flex-1 p-6 lg:p-8">
+          <div className="max-w-5xl mx-auto">
           {/* Header with Create Button */}
           <div className="flex items-center justify-between mb-8">
             <div>
