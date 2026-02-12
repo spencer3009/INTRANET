@@ -416,8 +416,8 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
       return;
     }
     
-    if (!form.period_id) {
-      setError("Selecciona un período académico");
+    if (!form.academic_year_id) {
+      setError("Selecciona un año académico");
       return;
     }
     
@@ -425,9 +425,9 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
     setError("");
     
     try {
-      // Get the period to extract school_year for backward compatibility
-      const selectedPeriod = academicData.periods?.find(p => p.id === form.period_id);
-      const schoolYear = selectedPeriod ? parseInt(selectedPeriod.nombre.match(/\d{4}/)?.[0] || new Date().getFullYear()) : new Date().getFullYear();
+      // Get the year to extract school_year for backward compatibility
+      const selectedYear = academicData.academicYears?.find(y => y.id === form.academic_year_id);
+      const schoolYear = selectedYear?.year || new Date().getFullYear();
       
       const submitData = {
         ...form,
