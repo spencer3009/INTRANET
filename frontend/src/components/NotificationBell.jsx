@@ -322,7 +322,7 @@ export default function NotificationBell({ token }) {
           <div className="px-4 py-3 bg-gradient-to-r from-violet-500 to-purple-500 flex items-center justify-between">
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Bell className="w-4 h-4" />
-              Recordatorios
+              Notificaciones
             </h3>
             {totalCount > 0 && (
               <span className="px-2 py-0.5 bg-white/20 text-white rounded-full text-xs font-medium">
