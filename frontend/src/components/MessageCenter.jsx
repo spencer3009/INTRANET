@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import {
   MessageSquare, X, Send, Megaphone, HeadphonesIcon, GraduationCap,
-  ChevronRight, AlertCircle, Clock, CheckCircle, Loader2, Plus,
+  ChevronRight, ChevronDown, AlertCircle, Clock, CheckCircle, Loader2, Plus,
   User, Search, ArrowLeft, Paperclip, MoreVertical, Filter,
   Bell, AlertTriangle, Info, Trash2, Pencil, Check
 } from "lucide-react";
