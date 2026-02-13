@@ -29,6 +29,7 @@ export default function StudentProfilePage({ user, token, onLogout }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState(null);
+  const [settings, setSettings] = useState(null);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
@@ -52,14 +53,24 @@ export default function StudentProfilePage({ user, token, onLogout }) {
   const loadProfile = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/student/profile`, { headers });
-      setProfile(res.data);
+      const [profileRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/student/profile`, { headers }),
+        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+      ]);
+      setProfile(profileRes.data);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+      }
     } catch (err) {
       console.error("Error loading profile:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Get display values from settings
+  const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
+  const logoUrl = settings?.logo_url;
 
   const handlePasswordChange = async (e) => {
     e.preventDefault();
