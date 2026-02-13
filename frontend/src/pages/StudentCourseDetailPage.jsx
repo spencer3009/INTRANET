@@ -1067,6 +1067,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             students={students}
             tasks={tasks}
             materials={materials}
+            forumPosts={forumPosts}
             reminders={reminders}
             onViewPost={() => {}}
             token={token}
@@ -1090,6 +1091,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             students={students}
             tasks={tasks}
             materials={materials}
+            forumPosts={forumPosts}
             reminders={reminders}
             onViewPost={() => {}}
             token={token}
