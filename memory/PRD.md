@@ -14,22 +14,26 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 
 ## Refactorización de Código (En Progreso)
 
-### CourseDetailPage.jsx (7,242 líneas → En extracción)
+### CourseDetailPage.jsx (7,242 líneas → Extracción parcial completada)
 **Componentes extraídos a `/app/frontend/src/components/course/`:**
-- `TasksTableContent.jsx` - Tabla de tareas con vista detallada y entregas
-- `PremiumTaskModal.jsx` - Modal premium para crear tareas + TaskTimePicker
+- ✅ `TasksTableContent.jsx` (~630 líneas) - Tabla de tareas con vista detallada y entregas
+- ✅ `PremiumTaskModal.jsx` (~500 líneas) - Modal premium para crear tareas + TaskTimePicker
+- ✅ `MaterialTableContent.jsx` (~400 líneas) - Gestión de materiales de estudio
+- ✅ `ForumContent.jsx` (~380 líneas) - Contenido del foro de discusión
+- ✅ `PremiumForumModal.jsx` (~380 líneas) - Modal para crear temas del foro
+- ✅ `ExamsContent.jsx` (~500 líneas) - Gestión de exámenes + ExamDetailView + modales
 
-**Pendientes de extraer:**
-- `MaterialTableContent` (~450 líneas) - Gestión de materiales
-- `ForumContent` (~435 líneas) - Contenido del foro
-- `ExamsContent` (~340 líneas) - Gestión de exámenes
-- `ExamDetailView` (~330 líneas) - Vista detallada de examen
+**Pendientes de extraer (para sesión futura):**
 - `DashboardContent` (~210 líneas) - Dashboard del curso
 - `PostCard` (~300 líneas) - Tarjeta de publicación
-- `PremiumForumModal` (~320 líneas) - Modal de foro
-- Otros componentes menores
+- `GradesContent` (~100 líneas) - Contenido de calificaciones
+- `AttendanceContent` (~300 líneas) - Contenido de asistencia
+- `RemindersTabContent` (~150 líneas) - Recordatorios
 
 **Archivo índice:** `/app/frontend/src/components/course/index.js`
+
+**NOTA**: Los componentes extraídos AÚN NO están integrados al archivo principal. 
+La integración se realizará en una sesión dedicada con checklist de pruebas.
 
 ---
 
