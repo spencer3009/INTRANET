@@ -10034,28 +10034,37 @@ async def edit_academic_message(thread_id: str, message_id: str, data: dict, cur
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
+    # First find the thread
     thread = await db.academic_threads.find_one({
         "id": thread_id, 
         "school_id": user["school_id"],
-        "participant_ids": user["id"],
-        "messages.id": message_id,
-        "messages.sender_id": user["id"]
+        "participant_ids": user["id"]
     }, {"_id": 0})
     
     if not thread:
+        raise HTTPException(status_code=404, detail="Conversación no encontrada")
+    
+    # Find the message and verify ownership
+    message = next((m for m in thread.get("messages", []) if m["id"] == message_id and m["sender_id"] == user["id"]), None)
+    if not message:
         raise HTTPException(status_code=404, detail="Mensaje no encontrado o no tienes permisos")
+    
+    if message.get("deleted"):
+        raise HTTPException(status_code=400, detail="No se puede editar un mensaje eliminado")
     
     new_content = data.get("content", "").strip()
     if not new_content:
         raise HTTPException(status_code=400, detail="El contenido no puede estar vacío")
     
+    # Update using arrayFilters for precise update
     await db.academic_threads.update_one(
-        {"id": thread_id, "messages.id": message_id},
+        {"id": thread_id},
         {"$set": {
-            "messages.$.content": new_content,
-            "messages.$.edited": True,
-            "messages.$.edited_at": datetime.now(timezone.utc).isoformat()
-        }}
+            "messages.$[msg].content": new_content,
+            "messages.$[msg].edited": True,
+            "messages.$[msg].edited_at": datetime.now(timezone.utc).isoformat()
+        }},
+        array_filters=[{"msg.id": message_id}]
     )
     return {"message": "Mensaje editado"}
 
