@@ -10075,24 +10075,30 @@ async def delete_academic_message(thread_id: str, message_id: str, current_user 
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
+    # First find the thread
     thread = await db.academic_threads.find_one({
         "id": thread_id, 
         "school_id": user["school_id"],
-        "participant_ids": user["id"],
-        "messages.id": message_id,
-        "messages.sender_id": user["id"]
+        "participant_ids": user["id"]
     }, {"_id": 0})
     
     if not thread:
+        raise HTTPException(status_code=404, detail="Conversación no encontrada")
+    
+    # Find the message and verify ownership
+    message = next((m for m in thread.get("messages", []) if m["id"] == message_id and m["sender_id"] == user["id"]), None)
+    if not message:
         raise HTTPException(status_code=404, detail="Mensaje no encontrado o no tienes permisos")
     
+    # Update using arrayFilters for precise update
     await db.academic_threads.update_one(
-        {"id": thread_id, "messages.id": message_id},
+        {"id": thread_id},
         {"$set": {
-            "messages.$.content": "Este mensaje fue eliminado",
-            "messages.$.deleted": True,
-            "messages.$.deleted_at": datetime.now(timezone.utc).isoformat()
-        }}
+            "messages.$[msg].content": "Este mensaje fue eliminado",
+            "messages.$[msg].deleted": True,
+            "messages.$[msg].deleted_at": datetime.now(timezone.utc).isoformat()
+        }},
+        array_filters=[{"msg.id": message_id}]
     )
     return {"message": "Mensaje eliminado"}
 
