@@ -39,6 +39,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
   const [studentProfile, setStudentProfile] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [courses, setCourses] = useState([]);
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -49,21 +50,29 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, dashboardRes, coursesRes] = await Promise.all([
+      const [profileRes, dashboardRes, coursesRes, settingsRes] = await Promise.all([
         axios.get(`${API}/api/student/profile`, { headers }),
         axios.get(`${API}/api/student/dashboard`, { headers }),
-        axios.get(`${API}/api/student/courses`, { headers })
+        axios.get(`${API}/api/student/courses`, { headers }),
+        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
       ]);
       
       setStudentProfile(profileRes.data);
       setDashboardData(dashboardRes.data);
       setCourses(coursesRes.data.courses || []);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+      }
     } catch (err) {
       console.error("Error loading student data:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Get display values from settings
+  const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
+  const logoUrl = settings?.logo_url;
 
   const navigateTo = (path) => {
     if (subdomain) {
