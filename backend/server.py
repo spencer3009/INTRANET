@@ -1202,6 +1202,57 @@ async def get_student_courses(current_user = Depends(get_current_user)):
     
     return {"courses": courses}
 
+@api_router.get("/student/schedule")
+async def get_student_schedule(current_user = Depends(get_current_user)):
+    """
+    Get schedule for student based on their section/grade.
+    Returns the weekly class schedule configured by admin.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    grado_id = user.get("grado_id")
+    
+    if not seccion_id and not grado_id:
+        return []
+    
+    # Build query - get schedules for student's section or grade
+    query = {
+        "school_id": school_id,
+        "tipo": "clases"
+    }
+    
+    # Try section first, then grade
+    if seccion_id:
+        query["seccion_id"] = seccion_id
+    elif grado_id:
+        query["grado_id"] = grado_id
+    
+    schedules = await db.schedules.find(query, {"_id": 0}).sort([("dia", 1), ("hora_inicio", 1)]).to_list(100)
+    
+    # Enrich with teacher and subject info
+    enriched_schedules = []
+    for schedule in schedules:
+        # Get teacher name if profesor_id exists
+        profesor_nombre = None
+        if schedule.get("profesor_id"):
+            teacher = await db.users.find_one({"id": schedule["profesor_id"]}, {"_id": 0, "name": 1, "last_name": 1})
+            if teacher:
+                profesor_nombre = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+        
+        enriched_schedules.append({
+            **schedule,
+            "profesor_nombre": profesor_nombre or schedule.get("profesor_nombre")
+        })
+    
+    return enriched_schedules
+
 @api_router.get("/student/dashboard")
 async def get_student_dashboard(current_user = Depends(get_current_user)):
     """
