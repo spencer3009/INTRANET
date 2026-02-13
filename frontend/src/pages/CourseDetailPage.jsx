@@ -2112,33 +2112,11 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Instrucciones
             </label>
-            <div className="quill-task-editor rounded-xl overflow-hidden border-2 border-slate-200 focus-within:border-amber-400 transition-all">
-              <ReactQuill
-                value={description}
-                onChange={setDescription}
-                placeholder="Describe las instrucciones y requisitos de la tarea..."
-                theme="snow"
-                modules={{
-                  toolbar: [
-                    [{ 'header': [1, 2, 3, false] }],
-                    ['bold', 'italic', 'underline', 'strike'],
-                    [{ 'color': [] }, { 'background': [] }],
-                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                    [{ 'indent': '-1' }, { 'indent': '+1' }],
-                    [{ 'align': [] }],
-                    ['link', 'image'],
-                    ['blockquote', 'code-block'],
-                    ['clean']
-                  ]
-                }}
-                formats={[
-                  'header', 'bold', 'italic', 'underline', 'strike',
-                  'color', 'background', 'list', 'bullet', 'indent',
-                  'align', 'link', 'image', 'blockquote', 'code-block'
-                ]}
-                data-testid="task-description-input"
-              />
-            </div>
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+              placeholder="Describe las instrucciones y requisitos de la tarea..."
+            />
           </div>
           
           {/* File Attachment */}
