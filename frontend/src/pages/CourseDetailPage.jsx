@@ -3033,9 +3033,9 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
       return;
     }
     
-    // Combine date and time
-    const startDatetime = new Date(`${date}T${startTime}:00`).toISOString();
-    const endDatetime = new Date(`${date}T${endTime}:00`).toISOString();
+    // Combine date and time (time already includes seconds as HH:MM:SS)
+    const startDatetime = new Date(`${date}T${startTime}`).toISOString();
+    const endDatetime = new Date(`${date}T${endTime}`).toISOString();
     
     // Validate end > start
     if (new Date(endDatetime) <= new Date(startDatetime)) {
