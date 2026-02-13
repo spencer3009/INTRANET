@@ -1155,8 +1155,8 @@ function ExamsContent({ exams, studentId }) {
   );
 }
 
-// Forum Content (Read-only) - Fixed to render HTML content
-function ForumContent({ posts }) {
+// Forum Content - Interactive for students
+function ForumContent({ posts, token, user }) {
   if (posts.length === 0) {
     return (
       <EmptyState
@@ -1169,35 +1169,13 @@ function ForumContent({ posts }) {
 
   return (
     <div className="space-y-4">
-      {posts.map((post) => {
-        const authorObj = post.author || {};
-        const authorName = authorObj.name || post.author_name || 'Usuario';
-        
-        return (
-          <div key={post.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow cursor-pointer">
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="w-5 h-5 text-purple-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-slate-800">{post.title}</h3>
-                {/* Render HTML content properly */}
-                <div 
-                  className="prose prose-sm max-w-none text-slate-600 mt-1 line-clamp-3"
-                  dangerouslySetInnerHTML={{ __html: post.content || '' }}
-                />
-                <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                  <span>{authorName}</span>
-                  <span>{new Date(post.created_at).toLocaleDateString("es-PE")}</span>
-                  {post.comments_count !== undefined && (
-                    <span className="flex items-center gap-1">
-                      <MessageCircle className="w-3.5 h-3.5" />
-                      {post.comments_count} respuestas
-                    </span>
-                  )}
-                </div>
-              </div>
-              <ChevronRight className="w-5 h-5 text-slate-400" />
+      {/* Forum Posts */}
+      {posts.map((post) => (
+        <PostCard key={post.id} post={{...post, post_type: 'forum'}} token={token} user={user} />
+      ))}
+    </div>
+  );
+}
             </div>
           </div>
         );
