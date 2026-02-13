@@ -280,14 +280,6 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
               </div>
               );
             })}
-                        {file.name}
-                        <Download className="w-3 h-3" />
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
           </div>
         ) : (
           <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
