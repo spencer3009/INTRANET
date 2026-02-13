@@ -1700,7 +1700,7 @@ async def get_teacher_tasks(current_user = Depends(get_current_user)):
     school_id = user.get("school_id")
     
     # Get teacher assignments
-    assignments = await db.teacher_assignments.find({
+    assignments = await db.academic_assignments.find({
         "school_id": school_id,
         "teacher_id": user["id"]
     }, {"_id": 0}).to_list(100)
@@ -1725,8 +1725,8 @@ async def get_teacher_tasks(current_user = Depends(get_current_user)):
         # Get assignment for section info
         assignment = next((a for a in assignments if a.get("subject_id") == task.get("subject_id")), None)
         section = None
-        if assignment and assignment.get("seccion_id"):
-            section = await db.sections.find_one({"id": assignment.get("seccion_id"), "school_id": school_id}, {"_id": 0})
+        if assignment and assignment.get("section_id"):
+            section = await db.sections.find_one({"id": assignment.get("section_id"), "school_id": school_id}, {"_id": 0})
         
         # Count submissions and pending reviews
         submissions = task.get("submissions", [])
