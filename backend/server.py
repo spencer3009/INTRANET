@@ -9882,6 +9882,8 @@ async def create_support_ticket(data: SupportTicketCreate, current_user = Depend
     }
     
     await db.support_tickets.insert_one(ticket)
+    # Remove _id added by MongoDB before returning
+    ticket.pop("_id", None)
     return {"message": "Ticket creado", "data": ticket}
 
 @api_router.get("/messaging/support")
