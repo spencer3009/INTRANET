@@ -829,6 +829,7 @@ function AcademicTab({ token, user, onRefreshStats }) {
   const [loading, setLoading] = useState(true);
   const [selectedThread, setSelectedThread] = useState(null);
   const [selectedContact, setSelectedContact] = useState(null);
+  const [conversationMessages, setConversationMessages] = useState([]); // Messages in current conversation
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
