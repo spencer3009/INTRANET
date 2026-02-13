@@ -1015,8 +1015,6 @@ function AcademicTab({ token, user, onRefreshStats }) {
             <p className="text-xs text-slate-400">{getRoleLabel(selectedContact.role)}</p>
           </div>
         </div>
-          </div>
-        </div>
         
         <div className="flex-1" />
         
