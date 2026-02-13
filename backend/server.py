@@ -10014,6 +10014,21 @@ async def publish_exam(
     except Exception as e:
         print(f"Error logging activity: {e}")
     
+    # Create notification for exam publication
+    try:
+        await create_notification_for_subject(
+            school_id=user["school_id"],
+            subject_id=exam["subject_id"],
+            title="Nuevo examen publicado",
+            message=f"Se ha publicado un nuevo examen: {exam['title']}",
+            notification_type="exam",
+            reference_id=exam_id,
+            author_id=user["id"],
+            author_name=f"{user.get('name', '')} {user.get('last_name', '')}".strip()
+        )
+    except Exception as e:
+        print(f"Error creating notification: {e}")
+    
     return {"message": "Examen publicado exitosamente", "status": ExamStatus.published.value}
 
 
