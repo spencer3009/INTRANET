@@ -1495,7 +1495,7 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
     school_id = user.get("school_id")
     
     # Get teacher assignments
-    assignments = await db.teacher_assignments.find({
+    assignments = await db.academic_assignments.find({
         "school_id": school_id,
         "teacher_id": user["id"]
     }, {"_id": 0}).to_list(100)
@@ -1503,15 +1503,15 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
     courses = []
     for assignment in assignments:
         subject = await db.subjects.find_one({"id": assignment.get("subject_id"), "school_id": school_id}, {"_id": 0})
-        section = await db.sections.find_one({"id": assignment.get("seccion_id"), "school_id": school_id}, {"_id": 0})
-        grade = await db.grades.find_one({"id": assignment.get("grado_id"), "school_id": school_id}, {"_id": 0})
+        section = await db.sections.find_one({"id": assignment.get("section_id"), "school_id": school_id}, {"_id": 0})
+        grade = await db.grades.find_one({"id": assignment.get("grade_id"), "school_id": school_id}, {"_id": 0})
         
         if subject:
             # Count students
             students_count = await db.users.count_documents({
                 "school_id": school_id,
                 "role": "student",
-                "seccion_id": assignment.get("seccion_id")
+                "seccion_id": assignment.get("section_id")
             })
             
             # Count materials and tasks
@@ -1532,9 +1532,9 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
                 "description": subject.get("description"),
                 "color": subject.get("color"),
                 "image_url": subject.get("image_url"),
-                "section_id": assignment.get("seccion_id"),
+                "section_id": assignment.get("section_id"),
                 "section_name": section.get("nombre") if section else None,
-                "grade_id": assignment.get("grado_id"),
+                "grade_id": assignment.get("grade_id"),
                 "grade_name": grade.get("nombre") if grade else None,
                 "students_count": students_count,
                 "materials_count": materials_count,
