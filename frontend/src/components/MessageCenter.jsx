@@ -949,6 +949,37 @@ function AcademicTab({ token, user, onRefreshStats }) {
     }
   };
 
+  // Edit message
+  const handleEditMessage = async (messageId) => {
+    if (!editText.trim() || !selectedThread) return;
+    
+    try {
+      await axios.put(`${API}/messaging/academic/${selectedThread.id}/messages/${messageId}`, {
+        content: editText.trim()
+      }, { headers });
+      
+      setEditingMessage(null);
+      setEditText("");
+      setActiveMessageMenu(null);
+      loadThread(selectedThread.id);
+    } catch (err) {
+      console.error("Error editing message:", err);
+    }
+  };
+
+  // Delete message
+  const handleDeleteMessage = async (messageId) => {
+    if (!selectedThread) return;
+    
+    try {
+      await axios.delete(`${API}/messaging/academic/${selectedThread.id}/messages/${messageId}`, { headers });
+      setActiveMessageMenu(null);
+      loadThread(selectedThread.id);
+    } catch (err) {
+      console.error("Error deleting message:", err);
+    }
+  };
+
   // Filter contacts by search query
   const filteredContacts = contacts.filter(contact => 
     contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
