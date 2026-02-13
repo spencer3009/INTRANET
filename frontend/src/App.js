@@ -605,7 +605,7 @@ function App() {
             path="/admin/students"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
+                {!isAdminOnly(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminStudentsPage user={user} token={token} onLogout={handleLogout} />
@@ -617,7 +617,7 @@ function App() {
             path="/admin/teachers"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
+                {!isAdminOnly(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminTeachersPage user={user} token={token} onLogout={handleLogout} />
@@ -631,7 +631,7 @@ function App() {
             path="/school/:subdomain/admin"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
+                {!isAdminOnly(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminDashboardPage user={user} token={token} onLogout={handleLogout} />
@@ -643,7 +643,7 @@ function App() {
             path="/school/:subdomain/admin/users"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
+                {!isAdminOnly(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminUsersPage user={user} token={token} onLogout={handleLogout} />
@@ -655,7 +655,7 @@ function App() {
             path="/school/:subdomain/admin/students"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
+                {!isAdminOnly(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminStudentsPage user={user} token={token} onLogout={handleLogout} />
@@ -667,7 +667,7 @@ function App() {
             path="/school/:subdomain/admin/teachers"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
+                {!isAdminOnly(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminTeachersPage user={user} token={token} onLogout={handleLogout} />
@@ -688,7 +688,7 @@ function App() {
                   <Navigate to={`/school/${user?.subdomain}/student`} replace />
                 ) : isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher`} replace />
-                ) : isAdmin(user) ? (
+                ) : isAdminOnly(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
