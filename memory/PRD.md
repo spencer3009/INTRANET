@@ -12,6 +12,27 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 
 ---
 
+## Refactorización de Código (En Progreso)
+
+### CourseDetailPage.jsx (7,242 líneas → En extracción)
+**Componentes extraídos a `/app/frontend/src/components/course/`:**
+- `TasksTableContent.jsx` - Tabla de tareas con vista detallada y entregas
+- `PremiumTaskModal.jsx` - Modal premium para crear tareas + TaskTimePicker
+
+**Pendientes de extraer:**
+- `MaterialTableContent` (~450 líneas) - Gestión de materiales
+- `ForumContent` (~435 líneas) - Contenido del foro
+- `ExamsContent` (~340 líneas) - Gestión de exámenes
+- `ExamDetailView` (~330 líneas) - Vista detallada de examen
+- `DashboardContent` (~210 líneas) - Dashboard del curso
+- `PostCard` (~300 líneas) - Tarjeta de publicación
+- `PremiumForumModal` (~320 líneas) - Modal de foro
+- Otros componentes menores
+
+**Archivo índice:** `/app/frontend/src/components/course/index.js`
+
+---
+
 ## Módulos Implementados
 
 ### ✅ Autenticación y Usuarios
