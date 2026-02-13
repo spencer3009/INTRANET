@@ -2819,23 +2819,30 @@ function TimePicker({ value, onChange, label }) {
       {isOpen && createPortal(
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden w-[320px]">
+          <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden w-[340px]">
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
               <p className="text-indigo-200 text-sm mb-1">Seleccionar hora</p>
-              <div className="flex items-baseline gap-1">
+              <div className="flex items-baseline gap-1 justify-center">
                 <button
-                  onClick={() => setSelectingHours(true)}
-                  className={`text-5xl font-light transition-colors ${selectingHours ? 'text-white' : 'text-white/50'}`}
+                  onClick={() => setSelectingMode('hours')}
+                  className={`text-4xl font-light transition-all ${selectingMode === 'hours' ? 'text-white scale-110' : 'text-white/50'}`}
                 >
                   {hours.toString().padStart(2, '0')}
                 </button>
-                <span className="text-5xl font-light text-white/50">:</span>
+                <span className="text-4xl font-light text-white/50">:</span>
                 <button
-                  onClick={() => setSelectingHours(false)}
-                  className={`text-5xl font-light transition-colors ${!selectingHours ? 'text-white' : 'text-white/50'}`}
+                  onClick={() => setSelectingMode('minutes')}
+                  className={`text-4xl font-light transition-all ${selectingMode === 'minutes' ? 'text-white scale-110' : 'text-white/50'}`}
                 >
                   {minutes.toString().padStart(2, '0')}
+                </button>
+                <span className="text-4xl font-light text-white/50">:</span>
+                <button
+                  onClick={() => setSelectingMode('seconds')}
+                  className={`text-4xl font-light transition-all ${selectingMode === 'seconds' ? 'text-white scale-110' : 'text-white/50'}`}
+                >
+                  {seconds.toString().padStart(2, '0')}
                 </button>
               </div>
             </div>
@@ -2859,7 +2866,7 @@ function TimePicker({ value, onChange, label }) {
                     marginTop: '-80px',
                     background: 'linear-gradient(to bottom, #4f46e5, #7c3aed)',
                     transformOrigin: 'bottom center',
-                    transform: `rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
+                    transform: `rotate(${currentAngle}deg)`,
                     borderRadius: '2px'
                   }}
                 />
@@ -2868,15 +2875,15 @@ function TimePicker({ value, onChange, label }) {
                 <div 
                   className="absolute w-10 h-10 rounded-full bg-indigo-600 z-5 shadow-lg flex items-center justify-center"
                   style={{
-                    left: `calc(50% + ${80 * Math.sin((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
-                    top: `calc(50% - ${80 * Math.cos((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
+                    left: `calc(50% + ${80 * Math.sin(currentAngle * Math.PI / 180)}px)`,
+                    top: `calc(50% - ${80 * Math.cos(currentAngle * Math.PI / 180)}px)`,
                     transform: 'translate(-50%, -50%)'
                   }}
                 >
                   <span className="text-white text-xs font-bold">
-                    {selectingHours 
+                    {selectingMode === 'hours' 
                       ? (hours === 0 ? 12 : hours > 12 ? hours - 12 : hours) 
-                      : minutes.toString().padStart(2, '0')
+                      : currentValue.toString().padStart(2, '0')
                     }
                   </span>
                 </div>
@@ -2885,14 +2892,14 @@ function TimePicker({ value, onChange, label }) {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-indigo-600 rounded-full z-20 shadow-lg" />
                 
                 {/* Numbers */}
-                {(selectingHours ? hourNumbers : minuteNumbers).map((num, idx) => {
+                {currentNumbers.map((num, idx) => {
                   const angle = (idx * 30 - 90) * (Math.PI / 180);
                   const radius = 90;
                   const x = 120 + radius * Math.cos(angle);
                   const y = 120 + radius * Math.sin(angle);
-                  const isSelected = selectingHours 
+                  const isSelected = selectingMode === 'hours' 
                     ? (num === hours || (num === 12 && hours === 0))
-                    : num === minutes;
+                    : num === currentValue;
                   
                   return (
                     <button
@@ -2900,10 +2907,12 @@ function TimePicker({ value, onChange, label }) {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (selectingHours) {
+                        if (selectingMode === 'hours') {
                           setHours(num);
-                        } else {
+                        } else if (selectingMode === 'minutes') {
                           setMinutes(num);
+                        } else {
+                          setSeconds(num);
                         }
                       }}
                       className={`absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
@@ -2913,10 +2922,32 @@ function TimePicker({ value, onChange, label }) {
                       }`}
                       style={{ left: x, top: y }}
                     >
-                      {selectingHours ? num : num.toString().padStart(2, '0')}
+                      {selectingMode === 'hours' ? num : num.toString().padStart(2, '0')}
                     </button>
                   );
                 })}
+              </div>
+              
+              {/* Mode indicator */}
+              <div className="flex justify-center mt-4 gap-2">
+                <button
+                  onClick={() => setSelectingMode('hours')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${selectingMode === 'hours' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`}
+                >
+                  Horas
+                </button>
+                <button
+                  onClick={() => setSelectingMode('minutes')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${selectingMode === 'minutes' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`}
+                >
+                  Minutos
+                </button>
+                <button
+                  onClick={() => setSelectingMode('seconds')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${selectingMode === 'seconds' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`}
+                >
+                  Segundos
+                </button>
               </div>
             </div>
             
@@ -2929,8 +2960,14 @@ function TimePicker({ value, onChange, label }) {
                 Cancelar
               </button>
               <button
+                onClick={goNext}
+                className={`px-5 py-2.5 font-medium rounded-xl transition-all ${selectingMode !== 'seconds' ? 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' : 'hidden'}`}
+              >
+                Siguiente
+              </button>
+              <button
                 onClick={confirmTime}
-                className="px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors"
+                className={`px-5 py-2.5 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition-colors ${selectingMode === 'seconds' ? '' : 'hidden'}`}
               >
                 Aceptar
               </button>
