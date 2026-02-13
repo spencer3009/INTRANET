@@ -9511,6 +9511,180 @@ async def dismiss_popup_reminder(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# GENERAL NOTIFICATIONS SYSTEM
+# ══════════════════════════════════════════════════════════════════════════════
+
+class NotificationType(str, Enum):
+    task = "task"
+    exam = "exam"
+    material = "material"
+    forum = "forum"
+    reminder = "reminder"
+    announcement = "announcement"
+
+class NotificationCreate(BaseModel):
+    title: str
+    message: str
+    notification_type: NotificationType
+    subject_id: Optional[str] = None
+    reference_id: Optional[str] = None  # ID of the task/exam/material/forum post
+    reference_url: Optional[str] = None
+
+async def create_notification_for_subject(
+    school_id: str,
+    subject_id: str,
+    title: str,
+    message: str,
+    notification_type: str,
+    reference_id: str = None,
+    author_id: str = None,
+    author_name: str = None
+):
+    """Helper function to create a notification for a subject"""
+    # Get subject info
+    subject = await db.subjects.find_one({"id": subject_id}, {"_id": 0, "name": 1, "grade_id": 1})
+    
+    notification = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "subject_name": subject.get("name") if subject else None,
+        "title": title,
+        "message": message,
+        "notification_type": notification_type,
+        "reference_id": reference_id,
+        "author_id": author_id,
+        "author_name": author_name,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "read_by": []  # List of user IDs who have read this notification
+    }
+    
+    await db.notifications.insert_one(notification)
+    return notification
+
+@api_router.get("/notifications/all")
+async def get_all_notifications(
+    limit: int = 50,
+    current_user = Depends(get_current_user)
+):
+    """Get all notifications for the current user (from their subjects)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    user_id = user["id"]
+    school_id = user["school_id"]
+    
+    # Get all subjects the user has access to
+    if user.get("role") in ["admin", "owner", "director", "coordinator"]:
+        subjects = await db.subjects.find(
+            {"school_id": school_id},
+            {"_id": 0, "id": 1}
+        ).to_list(500)
+    elif user.get("role") == "teacher":
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "teacher_id": user_id},
+            {"_id": 0, "id": 1}
+        ).to_list(100)
+    else:
+        # Students get notifications from enrolled subjects
+        enrollments = await db.enrollments.find(
+            {"school_id": school_id, "user_id": user_id, "status": "active"},
+            {"_id": 0, "subject_ids": 1}
+        ).to_list(100)
+        
+        subject_ids = []
+        for enrollment in enrollments:
+            subject_ids.extend(enrollment.get("subject_ids", []))
+        
+        if user.get("grade_id"):
+            grade = await db.grades.find_one({"id": user["grade_id"]}, {"_id": 0})
+            if grade and grade.get("subjects"):
+                subject_ids.extend([s.get("subject_id") for s in grade["subjects"] if s.get("subject_id")])
+        
+        subjects = [{"id": sid} for sid in list(set(subject_ids))]
+    
+    subject_ids = [s["id"] for s in subjects]
+    
+    # Get notifications from these subjects OR school-wide notifications
+    notifications = await db.notifications.find(
+        {
+            "school_id": school_id,
+            "$or": [
+                {"subject_id": {"$in": subject_ids}},
+                {"subject_id": None}  # School-wide notifications
+            ]
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    # Mark which ones are read
+    for notif in notifications:
+        notif["is_read"] = user_id in notif.get("read_by", [])
+    
+    # Count unread
+    unread_count = sum(1 for n in notifications if not n["is_read"])
+    
+    return {
+        "notifications": notifications,
+        "unread_count": unread_count,
+        "total_count": len(notifications)
+    }
+
+@api_router.post("/notifications/{notification_id}/read")
+async def mark_notification_read(
+    notification_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Mark a notification as read"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    await db.notifications.update_one(
+        {"id": notification_id},
+        {"$addToSet": {"read_by": user["id"]}}
+    )
+    
+    return {"message": "Notificación marcada como leída"}
+
+@api_router.post("/notifications/read-all")
+async def mark_all_notifications_read(
+    current_user = Depends(get_current_user)
+):
+    """Mark all notifications as read for the current user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get user's subjects
+    school_id = user["school_id"]
+    user_id = user["id"]
+    
+    if user.get("role") in ["admin", "owner", "director", "coordinator"]:
+        subjects = await db.subjects.find({"school_id": school_id}, {"_id": 0, "id": 1}).to_list(500)
+    elif user.get("role") == "teacher":
+        subjects = await db.subjects.find({"school_id": school_id, "teacher_id": user_id}, {"_id": 0, "id": 1}).to_list(100)
+    else:
+        subjects = []
+    
+    subject_ids = [s["id"] for s in subjects]
+    
+    await db.notifications.update_many(
+        {
+            "school_id": school_id,
+            "$or": [
+                {"subject_id": {"$in": subject_ids}},
+                {"subject_id": None}
+            ]
+        },
+        {"$addToSet": {"read_by": user_id}}
+    )
+    
+    return {"message": "Todas las notificaciones marcadas como leídas"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # ONLINE EXAMS MODULE - Premium Implementation
 # ══════════════════════════════════════════════════════════════════════════════
 
