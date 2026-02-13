@@ -3226,9 +3226,18 @@ function UnifiedContentFeed({ subjectId, token, user, postType }) {
         </>
       )}
       
-      {/* Create Post Modal - Use Premium modal for tasks */}
+      {/* Create Post Modal - Use Premium modal for tasks and forum */}
       {postType === "task" ? (
         <PremiumTaskModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          subjectId={subjectId}
+          token={token}
+          user={user}
+          onPostCreated={handlePostCreated}
+        />
+      ) : postType === "forum" ? (
+        <PremiumForumModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           subjectId={subjectId}
