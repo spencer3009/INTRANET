@@ -10009,6 +10009,8 @@ async def send_academic_message(data: AcademicMessageCreate, current_user = Depe
             "unread_by": []
         }
         await db.academic_threads.insert_one(thread)
+        # Remove _id added by MongoDB
+        thread.pop("_id", None)
     
     message = {
         "id": str(uuid.uuid4()),
