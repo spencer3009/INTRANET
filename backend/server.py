@@ -1273,11 +1273,36 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         "justified": sum(1 for a in attendance_records if a.get("status") == "justified")
     }
     
+    # Calculate average grade from graded submissions
+    average_grade = None
+    if subject_ids:
+        all_grades = []
+        # Get all tasks with submissions for this student
+        tasks_with_grades = await db.course_posts.find({
+            "school_id": school_id,
+            "subject_id": {"$in": subject_ids},
+            "type": "task",
+            "submissions.student_id": user["id"],
+            "submissions.grade": {"$exists": True, "$ne": None}
+        }, {"_id": 0, "submissions": 1, "max_grade": 1}).to_list(500)
+        
+        for task in tasks_with_grades:
+            max_grade = task.get("max_grade", 20)
+            for sub in task.get("submissions", []):
+                if sub.get("student_id") == user["id"] and sub.get("grade") is not None:
+                    # Normalize to 20-point scale
+                    normalized_grade = (sub["grade"] / max_grade) * 20 if max_grade > 0 else sub["grade"]
+                    all_grades.append(normalized_grade)
+        
+        if all_grades:
+            average_grade = sum(all_grades) / len(all_grades)
+    
     return {
         "upcoming_tasks": upcoming_tasks,
         "recent_announcements": recent_announcements,
         "attendance_summary": attendance_summary,
-        "courses_count": len(subject_ids)
+        "courses_count": len(subject_ids),
+        "average_grade": average_grade
     }
 
 @api_router.get("/attendance/student")
