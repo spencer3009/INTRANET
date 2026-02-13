@@ -274,10 +274,54 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 ---
 
 ## Última Actualización
-**Fecha**: 2025-02-12
+**Fecha**: 2025-02-13
 **Cambios recientes**:
 
-### Sesión actual (2025-02-12) - Sistema de Alertas Educativas:
+### Sesión actual (2025-02-13) - Centro de Mensajes Fase 1:
+
+1. ✅ **Centro de Mensajes - Fase 1 (Mensajes Institucionales)** - COMPLETADO
+   - **Objetivo**: Módulo de comunicación institucional premium para admins/directores
+   
+   - **Botón Flotante Global**:
+     - Posición fija: esquina inferior derecha (fixed bottom-6 right-6)
+     - Badge con contador de mensajes no leídos
+     - data-testid="message-center-btn" para testing
+     - Visible en DashboardPage y CourseDetailPage
+   
+   - **Drawer (Panel Lateral)**:
+     - Animación slide-in-right desde la derecha
+     - Header con gradiente indigo→purple
+     - 3 pestañas: Comunicados, Soporte, Mensajes
+     - Usa createPortal para z-index correcto
+   
+   - **Mensajes Institucionales (Fase 1)**:
+     - Crear comunicado: título, contenido, prioridad (Normal/Importante/Urgente)
+     - Lista de comunicados con preview, fecha, badge de prioridad
+     - Indicador de no leído (punto azul)
+     - Vista de detalle con autor, foto, fecha completa, contenido
+     - Marcar como leído al hacer clic
+   
+   - **Permisos**:
+     - Solo admin/owner/director/coordinator pueden crear comunicados
+     - Todos los usuarios pueden ver los comunicados de su colegio
+   
+   - **Backend Endpoints**:
+     - `POST /api/messaging/institutional` - Crear comunicado
+     - `GET /api/messaging/institutional` - Listar comunicados
+     - `POST /api/messaging/institutional/{id}/read` - Marcar como leído
+     - `DELETE /api/messaging/institutional/{id}` - Eliminar (soft delete)
+     - `GET /api/messaging/stats` - Contadores de no leídos
+   
+   - **Bug Fix**: Corregido error de serialización ObjectId en endpoints POST
+   
+   - **Archivos modificados**:
+     - `/app/frontend/src/pages/DashboardPage.jsx` - Import + render MessageCenter
+     - `/app/frontend/src/pages/CourseDetailPage.jsx` - Import + render MessageCenter
+     - `/app/backend/server.py` - Fix ObjectId serialization
+   
+   - **Testing**: 100% tests pasados (13/13 backend + UI verification)
+
+### Sesión anterior (2025-02-12) - Sistema de Alertas Educativas:
 
 1. ✅ **Sistema de Alertas Educativas Premium** - COMPLETADO
    - **Objetivo**: "Un alumno no puede decir: no lo vi"
