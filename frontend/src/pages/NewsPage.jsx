@@ -1081,7 +1081,7 @@ export default function NewsPage({ user, token, subdomain, onLogout }) {
                     isAdmin={isAdmin}
                     onView={handleView}
                     onEdit={handleEdit}
-                    onPublish={handlePublish}
+                    onPublish={handlePublishClick}
                     onArchive={handleArchive}
                     onPin={handlePin}
                     onDelete={handleDelete}
