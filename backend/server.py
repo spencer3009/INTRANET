@@ -2009,6 +2009,576 @@ async def get_school_info(current_user=Depends(require_school)):
     return school
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ADMIN PORTAL - GESTIÓN ACADÉMICA ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AdminGradeUpdate(BaseModel):
+    grade: float
+    motivo: str = Field(..., min_length=5, description="Motivo de la corrección administrativa")
+
+@api_router.get("/admin/grades")
+async def get_admin_grades(
+    level_id: Optional[str] = None,
+    grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    subject_id: Optional[str] = None,
+    period_id: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all grades for admin view with filters."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    
+    # Build query
+    query = {"school_id": school_id}
+    if section_id:
+        query["section_id"] = section_id
+    if subject_id:
+        query["subject_id"] = subject_id
+    if period_id:
+        query["period_id"] = period_id
+    
+    # Get grades
+    grades = await db.student_grades.find(query, {"_id": 0}).to_list(1000)
+    
+    # Enrich with student, subject, section info
+    enriched_grades = []
+    for g in grades:
+        student = await db.users.find_one({"id": g.get("student_id")}, {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1})
+        subject = await db.subjects.find_one({"id": g.get("subject_id")}, {"_id": 0, "name": 1})
+        section = await db.sections.find_one({"id": g.get("section_id")}, {"_id": 0, "nombre": 1})
+        teacher = await db.users.find_one({"id": g.get("teacher_id")}, {"_id": 0, "name": 1, "last_name": 1}) if g.get("teacher_id") else None
+        
+        enriched_grades.append({
+            **g,
+            "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip() if student else "Desconocido",
+            "student_photo": student.get("photo_url") if student else None,
+            "subject_name": subject.get("name") if subject else "Sin asignatura",
+            "section_name": section.get("nombre") if section else "Sin sección",
+            "teacher_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip() if teacher else None
+        })
+    
+    return {"grades": enriched_grades, "total": len(enriched_grades)}
+
+@api_router.get("/admin/grades/summary")
+async def get_admin_grades_summary(
+    level_id: Optional[str] = None,
+    grade_id: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get grades summary by section for admin dashboard."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    
+    # Get sections with optional filter
+    section_query = {"school_id": school_id, "activo": True}
+    if grade_id:
+        section_query["grado_id"] = grade_id
+    
+    sections = await db.sections.find(section_query, {"_id": 0}).to_list(100)
+    
+    summary = []
+    for section in sections:
+        # Count students in section
+        students_count = await db.users.count_documents({
+            "school_id": school_id,
+            "role": "student",
+            "seccion_id": section["id"]
+        })
+        
+        # Get grades for this section
+        grades = await db.student_grades.find({
+            "school_id": school_id,
+            "section_id": section["id"]
+        }, {"_id": 0, "grade": 1}).to_list(1000)
+        
+        grade_values = [g["grade"] for g in grades if g.get("grade") is not None]
+        avg_grade = sum(grade_values) / len(grade_values) if grade_values else None
+        
+        # Get grade info
+        grade = await db.grades.find_one({"id": section.get("grado_id")}, {"_id": 0, "nombre": 1, "nivel_id": 1})
+        level = await db.academic_levels.find_one({"id": grade.get("nivel_id")}, {"_id": 0, "nombre": 1}) if grade else None
+        
+        summary.append({
+            "section_id": section["id"],
+            "section_name": section.get("nombre"),
+            "grade_name": grade.get("nombre") if grade else None,
+            "level_name": level.get("nombre") if level else None,
+            "students_count": students_count,
+            "grades_count": len(grade_values),
+            "average_grade": round(avg_grade, 2) if avg_grade else None
+        })
+    
+    return {"summary": summary}
+
+@api_router.put("/admin/grades/{grade_id}")
+async def update_admin_grade(
+    grade_id: str,
+    data: AdminGradeUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update a grade with administrative reason (audit trail)."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar notas")
+    
+    school_id = user["school_id"]
+    
+    # Find the grade
+    grade_doc = await db.student_grades.find_one({"id": grade_id, "school_id": school_id})
+    if not grade_doc:
+        raise HTTPException(status_code=404, detail="Nota no encontrada")
+    
+    old_grade = grade_doc.get("grade")
+    
+    # Create audit log entry
+    audit_entry = {
+        "old_grade": old_grade,
+        "new_grade": data.grade,
+        "motivo": data.motivo,
+        "admin_id": user["id"],
+        "admin_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Update grade with audit trail
+    await db.student_grades.update_one(
+        {"id": grade_id},
+        {
+            "$set": {
+                "grade": data.grade,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "last_admin_edit": audit_entry
+            },
+            "$push": {
+                "admin_edits": audit_entry
+            }
+        }
+    )
+    
+    return {"message": "Nota actualizada correctamente", "old_grade": old_grade, "new_grade": data.grade}
+
+# Admin Attendance Endpoints
+@api_router.get("/admin/attendance")
+async def get_admin_attendance(
+    section_id: Optional[str] = None,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get attendance records for admin view with filters."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    
+    # Build query
+    query = {"school_id": school_id}
+    if section_id:
+        query["section_id"] = section_id
+    if status:
+        query["status"] = status
+    if date_from and date_to:
+        query["date"] = {"$gte": date_from, "$lte": date_to}
+    elif date_from:
+        query["date"] = {"$gte": date_from}
+    elif date_to:
+        query["date"] = {"$lte": date_to}
+    
+    records = await db.attendance.find(query, {"_id": 0}).sort("date", -1).to_list(1000)
+    
+    # Enrich with student info
+    enriched = []
+    for r in records:
+        student = await db.users.find_one({"id": r.get("student_id")}, {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1})
+        section = await db.sections.find_one({"id": r.get("section_id")}, {"_id": 0, "nombre": 1})
+        
+        enriched.append({
+            **r,
+            "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip() if student else "Desconocido",
+            "student_photo": student.get("photo_url") if student else None,
+            "section_name": section.get("nombre") if section else None
+        })
+    
+    return {"records": enriched, "total": len(enriched)}
+
+@api_router.get("/admin/attendance/summary")
+async def get_admin_attendance_summary(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get attendance summary by section."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    
+    # Default to last 30 days
+    if not date_from:
+        date_from = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    if not date_to:
+        date_to = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    sections = await db.sections.find({"school_id": school_id, "activo": True}, {"_id": 0}).to_list(100)
+    
+    summary = []
+    for section in sections:
+        # Get attendance records for this section
+        records = await db.attendance.find({
+            "school_id": school_id,
+            "section_id": section["id"],
+            "date": {"$gte": date_from, "$lte": date_to}
+        }, {"_id": 0, "status": 1}).to_list(5000)
+        
+        present = sum(1 for r in records if r.get("status") == "present")
+        absent = sum(1 for r in records if r.get("status") == "absent")
+        late = sum(1 for r in records if r.get("status") == "late")
+        justified = sum(1 for r in records if r.get("status") == "justified")
+        total = len(records)
+        
+        # Get grade info
+        grade = await db.grades.find_one({"id": section.get("grado_id")}, {"_id": 0, "nombre": 1, "nivel_id": 1})
+        level = await db.academic_levels.find_one({"id": grade.get("nivel_id")}, {"_id": 0, "nombre": 1}) if grade else None
+        
+        summary.append({
+            "section_id": section["id"],
+            "section_name": section.get("nombre"),
+            "grade_name": grade.get("nombre") if grade else None,
+            "level_name": level.get("nombre") if level else None,
+            "present": present,
+            "absent": absent,
+            "late": late,
+            "justified": justified,
+            "total": total,
+            "attendance_rate": round((present / total) * 100, 1) if total > 0 else 0
+        })
+    
+    return {"summary": summary, "date_range": {"from": date_from, "to": date_to}}
+
+class AdminAttendanceUpdate(BaseModel):
+    status: Literal["present", "absent", "late", "justified"]
+    motivo: str = Field(..., min_length=5, description="Motivo de la corrección")
+
+@api_router.put("/admin/attendance/{record_id}")
+async def update_admin_attendance(
+    record_id: str,
+    data: AdminAttendanceUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update attendance record with administrative reason."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden corregir asistencia")
+    
+    school_id = user["school_id"]
+    
+    record = await db.attendance.find_one({"id": record_id, "school_id": school_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    
+    old_status = record.get("status")
+    
+    # Create audit entry
+    audit_entry = {
+        "old_status": old_status,
+        "new_status": data.status,
+        "motivo": data.motivo,
+        "admin_id": user["id"],
+        "admin_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.attendance.update_one(
+        {"id": record_id},
+        {
+            "$set": {
+                "status": data.status,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+                "last_admin_edit": audit_entry
+            },
+            "$push": {
+                "admin_edits": audit_entry
+            }
+        }
+    )
+    
+    return {"message": "Asistencia actualizada correctamente", "old_status": old_status, "new_status": data.status}
+
+# Admin Tasks Endpoints
+@api_router.get("/admin/tasks")
+async def get_admin_tasks(
+    subject_id: Optional[str] = None,
+    teacher_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all tasks for admin view."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    
+    # Build query
+    query = {"school_id": school_id, "type": "task"}
+    if subject_id:
+        query["subject_id"] = subject_id
+    if teacher_id:
+        query["created_by"] = teacher_id
+    
+    tasks = await db.course_posts.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    # Determine status and enrich
+    now = datetime.now(timezone.utc).isoformat()
+    enriched = []
+    for t in tasks:
+        subject = await db.subjects.find_one({"id": t.get("subject_id")}, {"_id": 0, "name": 1})
+        teacher = await db.users.find_one({"id": t.get("created_by")}, {"_id": 0, "name": 1, "last_name": 1})
+        
+        submissions = t.get("submissions", [])
+        submissions_count = len(submissions)
+        graded_count = sum(1 for s in submissions if s.get("grade") is not None)
+        
+        # Calculate task status
+        due_date = t.get("due_date")
+        task_status = "active"
+        if due_date and due_date < now:
+            task_status = "expired"
+        if t.get("status") == "closed":
+            task_status = "closed"
+        
+        # Filter by status if provided
+        if status and task_status != status:
+            continue
+        
+        enriched.append({
+            "id": t["id"],
+            "title": t.get("title"),
+            "due_date": due_date,
+            "created_at": t.get("created_at"),
+            "subject_id": t.get("subject_id"),
+            "subject_name": subject.get("name") if subject else "Sin asignatura",
+            "teacher_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip() if teacher else "Desconocido",
+            "submissions_count": submissions_count,
+            "graded_count": graded_count,
+            "status": task_status,
+            "max_grade": t.get("max_grade", 20)
+        })
+    
+    return {"tasks": enriched, "total": len(enriched)}
+
+@api_router.get("/admin/tasks/summary")
+async def get_admin_tasks_summary(current_user = Depends(get_current_user)):
+    """Get tasks summary for admin dashboard."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Count tasks by status
+    all_tasks = await db.course_posts.find({"school_id": school_id, "type": "task"}, {"_id": 0, "due_date": 1, "status": 1, "submissions": 1}).to_list(1000)
+    
+    active = 0
+    expired = 0
+    closed = 0
+    total_submissions = 0
+    total_graded = 0
+    
+    for t in all_tasks:
+        due_date = t.get("due_date")
+        if t.get("status") == "closed":
+            closed += 1
+        elif due_date and due_date < now:
+            expired += 1
+        else:
+            active += 1
+        
+        submissions = t.get("submissions", [])
+        total_submissions += len(submissions)
+        total_graded += sum(1 for s in submissions if s.get("grade") is not None)
+    
+    return {
+        "total": len(all_tasks),
+        "active": active,
+        "expired": expired,
+        "closed": closed,
+        "total_submissions": total_submissions,
+        "total_graded": total_graded,
+        "pending_grading": total_submissions - total_graded
+    }
+
+class AdminTaskStatusUpdate(BaseModel):
+    status: Literal["active", "closed"]
+
+@api_router.put("/admin/tasks/{task_id}/status")
+async def update_admin_task_status(
+    task_id: str,
+    data: AdminTaskStatusUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update task status (close/reopen)."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden cambiar estado")
+    
+    school_id = user["school_id"]
+    
+    task = await db.course_posts.find_one({"id": task_id, "school_id": school_id, "type": "task"})
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    
+    new_status = "closed" if data.status == "closed" else None
+    
+    await db.course_posts.update_one(
+        {"id": task_id},
+        {"$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"message": f"Estado de tarea actualizado a {data.status}"}
+
+# Admin Exams Endpoints
+@api_router.get("/admin/exams")
+async def get_admin_exams(
+    subject_id: Optional[str] = None,
+    status: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all exams for admin view."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    
+    query = {"school_id": school_id}
+    if subject_id:
+        query["subject_id"] = subject_id
+    if status:
+        query["status"] = status
+    
+    exams = await db.exams.find(query, {"_id": 0}).sort("created_at", -1).to_list(500)
+    
+    enriched = []
+    for e in exams:
+        subject = await db.subjects.find_one({"id": e.get("subject_id")}, {"_id": 0, "name": 1})
+        teacher = await db.users.find_one({"id": e.get("created_by")}, {"_id": 0, "name": 1, "last_name": 1})
+        
+        enriched.append({
+            **e,
+            "subject_name": subject.get("name") if subject else "Sin asignatura",
+            "teacher_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip() if teacher else "Desconocido"
+        })
+    
+    return {"exams": enriched, "total": len(enriched)}
+
+@api_router.get("/admin/exams/summary")
+async def get_admin_exams_summary(current_user = Depends(get_current_user)):
+    """Get exams summary for admin dashboard."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    
+    # Count by status
+    draft = await db.exams.count_documents({"school_id": school_id, "status": "draft"})
+    published = await db.exams.count_documents({"school_id": school_id, "status": "published"})
+    scheduled = await db.exams.count_documents({"school_id": school_id, "status": "scheduled"})
+    closed = await db.exams.count_documents({"school_id": school_id, "status": "closed"})
+    archived = await db.exams.count_documents({"school_id": school_id, "status": "archived"})
+    
+    return {
+        "total": draft + published + scheduled + closed + archived,
+        "draft": draft,
+        "published": published,
+        "scheduled": scheduled,
+        "closed": closed,
+        "archived": archived
+    }
+
+class AdminExamUpdate(BaseModel):
+    status: Optional[Literal["draft", "published", "scheduled", "closed", "archived"]] = None
+    scheduled_date: Optional[str] = None
+    scheduled_time: Optional[str] = None
+
+@api_router.put("/admin/exams/{exam_id}")
+async def update_admin_exam(
+    exam_id: str,
+    data: AdminExamUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update exam status/schedule from admin."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar exámenes")
+    
+    school_id = user["school_id"]
+    
+    exam = await db.exams.find_one({"id": exam_id, "school_id": school_id})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    update_data = {"updated_at": datetime.now(timezone.utc).isoformat()}
+    if data.status:
+        update_data["status"] = data.status
+    if data.scheduled_date:
+        update_data["scheduled_date"] = data.scheduled_date
+    if data.scheduled_time:
+        update_data["scheduled_time"] = data.scheduled_time
+    
+    await db.exams.update_one({"id": exam_id}, {"$set": update_data})
+    
+    return {"message": "Examen actualizado correctamente"}
+
+# ══════════════════════════════════════════════════════════════════════════════
 # DEMO DATA MANAGEMENT
 # ══════════════════════════════════════════════════════════════════════════════
 
