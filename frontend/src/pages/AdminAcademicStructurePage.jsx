@@ -117,7 +117,7 @@ function AcademicYearsTab({ token, headers }) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({ year: new Date().getFullYear() + 1, status: "planificado" });
+  const [formData, setFormData] = useState({ year: new Date().getFullYear() + 1, status: "futuro" });
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -149,7 +149,7 @@ function AcademicYearsTab({ token, headers }) {
       loadData();
       setShowModal(false);
       setEditingItem(null);
-      setFormData({ year: new Date().getFullYear() + 1, status: "planificado" });
+      setFormData({ year: new Date().getFullYear() + 1, status: "futuro" });
     } catch (err) {
       alert(err.response?.data?.detail || "Error al guardar");
     } finally {
