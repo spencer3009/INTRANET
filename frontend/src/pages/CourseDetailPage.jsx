@@ -7,6 +7,8 @@ import DashboardHeader from "../components/DashboardHeader";
 import CourseRemindersPanel from "../components/CourseRemindersPanel";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
+import ReactQuill from "react-quill";
+import "react-quill/dist/quill.snow.css";
 import {
   BookOpen, Users, Edit3, ChevronRight, Clock, 
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
