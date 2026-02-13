@@ -210,17 +210,24 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
         {/* Recent Activity Feed */}
         {recentActivity.length > 0 ? (
           <div className="space-y-4">
-            {recentActivity.map((item) => (
+            {recentActivity.map((item) => {
+              // Use post_type (from API) or type field
+              const itemType = item.post_type || item.type || 'announcement';
+              
+              return (
               <div key={item.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
                 <div className="flex items-start gap-4">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    item.type === 'task' ? 'bg-amber-100' : 
-                    item.type === 'material' ? 'bg-indigo-100' : 'bg-cyan-100'
+                    itemType === 'task' ? 'bg-amber-100' : 
+                    itemType === 'material' ? 'bg-indigo-100' : 
+                    itemType === 'forum' ? 'bg-purple-100' : 'bg-cyan-100'
                   }`}>
-                    {item.type === 'task' ? (
+                    {itemType === 'task' ? (
                       <FileText className="w-5 h-5 text-amber-600" />
-                    ) : item.type === 'material' ? (
+                    ) : itemType === 'material' ? (
                       <FolderOpen className="w-5 h-5 text-indigo-600" />
+                    ) : itemType === 'forum' ? (
+                      <MessageCircle className="w-5 h-5 text-purple-600" />
                     ) : (
                       <Bell className="w-5 h-5 text-cyan-600" />
                     )}
@@ -228,13 +235,14 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                        item.type === 'task' ? 'bg-amber-100 text-amber-700' : 
-                        item.type === 'material' ? 'bg-indigo-100 text-indigo-700' : 'bg-cyan-100 text-cyan-700'
+                        itemType === 'task' ? 'bg-amber-100 text-amber-700' : 
+                        itemType === 'material' ? 'bg-indigo-100 text-indigo-700' : 
+                        itemType === 'forum' ? 'bg-purple-100 text-purple-700' : 'bg-cyan-100 text-cyan-700'
                       }`}>
-                        {item.type === 'task' ? 'Tarea' : item.type === 'material' ? 'Material' : 'Anuncio'}
+                        {itemType === 'task' ? 'Tarea' : itemType === 'material' ? 'Material' : itemType === 'forum' ? 'Foro' : 'Anuncio'}
                       </span>
                     </div>
-                    <h3 className="font-semibold text-slate-800">{item.title}</h3>
+                    <h3 className="font-semibold text-slate-800">{item.title || 'Sin título'}</h3>
                     <p className="text-sm text-slate-500 mt-1 line-clamp-2">{item.content || item.description}</p>
                     <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
                       <span className="flex items-center gap-1">
@@ -263,6 +271,15 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                         className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-sm text-slate-700 hover:bg-slate-200 transition-colors"
                       >
                         <FileIcon className="w-4 h-4" />
+                        {file.name}
+                        <Download className="w-3 h-3" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+              );
+            })}
                         {file.name}
                         <Download className="w-3 h-3" />
                       </a>
