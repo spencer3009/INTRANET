@@ -370,6 +370,8 @@ function App() {
                   <Navigate to="/student" replace />
                 ) : isTeacher(user) ? (
                   <Navigate to="/teacher" replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to="/admin" replace />
                 ) : (
                   <DashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
