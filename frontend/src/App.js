@@ -701,7 +701,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher`} replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -715,7 +715,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher/courses`} replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -729,7 +729,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher/courses`} replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -743,7 +743,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher/tasks`} replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <StudentTasksPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -757,7 +757,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher/grades`} replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <StudentGradesPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -771,7 +771,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher/attendance`} replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <StudentAttendancePage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -785,7 +785,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher/messages`} replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -799,7 +799,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher/profile`} replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <StudentProfilePage user={user} token={token} onLogout={handleLogout} />
                 )}
