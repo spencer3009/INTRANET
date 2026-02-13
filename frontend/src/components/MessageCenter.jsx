@@ -1014,19 +1014,96 @@ function AcademicTab({ token, user, onRefreshStats }) {
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setActiveMessageMenu(null)}>
           {selectedThread.messages?.map((msg) => {
             const isMe = msg.sender_id === user?.id;
+            const isDeleted = msg.deleted;
+            const isEditing = editingMessage === msg.id;
+            
             return (
               <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[80%]`}>
-                  <div className={`px-4 py-3 rounded-2xl ${
-                    isMe
-                      ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-tr-none"
-                      : "bg-slate-100 text-slate-800 rounded-tl-none"
-                  }`}>
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                <div className={`max-w-[80%] relative group`}>
+                  {/* Message bubble */}
+                  <div 
+                    className={`relative ${isEditing ? "" : "cursor-pointer"}`}
+                    onClick={(e) => {
+                      if (isMe && !isDeleted && !isEditing) {
+                        e.stopPropagation();
+                        setActiveMessageMenu(activeMessageMenu === msg.id ? null : msg.id);
+                      }
+                    }}
+                  >
+                    {isEditing ? (
+                      // Edit mode
+                      <div className="bg-white border-2 border-amber-400 rounded-2xl p-2 shadow-lg">
+                        <textarea
+                          value={editText}
+                          onChange={(e) => setEditText(e.target.value)}
+                          className="w-full p-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:border-amber-400 resize-none"
+                          rows={2}
+                          autoFocus
+                        />
+                        <div className="flex justify-end gap-2 mt-2">
+                          <button
+                            onClick={() => { setEditingMessage(null); setEditText(""); }}
+                            className="px-3 py-1 text-xs text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            onClick={() => handleEditMessage(msg.id)}
+                            disabled={!editText.trim()}
+                            className="px-3 py-1 text-xs bg-amber-500 text-white hover:bg-amber-600 disabled:bg-slate-300 rounded-lg transition-colors flex items-center gap-1"
+                          >
+                            <Check className="w-3 h-3" /> Guardar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // Normal message view
+                      <div className={`px-4 py-3 rounded-2xl ${
+                        isDeleted
+                          ? "bg-slate-200 text-slate-500 italic"
+                          : isMe
+                            ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-tr-none"
+                            : "bg-slate-100 text-slate-800 rounded-tl-none"
+                      }`}>
+                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        {msg.edited && !isDeleted && (
+                          <p className={`text-[10px] mt-1 ${isMe ? "text-white/70" : "text-slate-400"}`}>
+                            (editado)
+                          </p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Context menu for own messages */}
+                    {isMe && !isDeleted && !isEditing && activeMessageMenu === msg.id && (
+                      <div 
+                        className="absolute bottom-full right-0 mb-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={() => { 
+                            setEditText(msg.content); 
+                            setEditingMessage(msg.id);
+                            setActiveMessageMenu(null);
+                          }}
+                          className="w-full px-4 py-2.5 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                        >
+                          <Pencil className="w-4 h-4 text-slate-500" /> Editar
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMessage(msg.id)}
+                          className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" /> Eliminar
+                        </button>
+                      </div>
+                    )}
                   </div>
+                  
+                  {/* Timestamp */}
                   <p className={`text-[10px] text-slate-400 mt-1 ${isMe ? "text-right" : ""}`}>
                     {new Date(msg.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
                   </p>
