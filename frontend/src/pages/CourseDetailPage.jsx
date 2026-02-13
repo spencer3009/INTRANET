@@ -6862,6 +6862,9 @@ function MaterialTableContent({ subjectId, token, user }) {
 // REMINDERS TAB CONTENT
 // ══════════════════════════════════════════════════════════════════════════════
 function RemindersTabContent({ subjectId, token, userRole }) {
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
+  
   return (
     <div className="space-y-6 pt-6 pb-48">
       {/* Header */}
@@ -6870,6 +6873,15 @@ function RemindersTabContent({ subjectId, token, userRole }) {
           <h2 className="text-2xl font-bold text-slate-800">Recordatorios</h2>
           <div className="w-8 h-1 bg-violet-500 rounded-full mt-2"></div>
         </div>
+        {canEdit && (
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-14 h-14 bg-violet-500 hover:bg-violet-600 text-white rounded-2xl font-semibold transition-all flex items-center justify-center shadow-lg shadow-violet-500/25"
+            data-testid="create-reminder-btn"
+          >
+            <Plus className="w-6 h-6" />
+          </button>
+        )}
       </div>
       
       {/* Reminders Panel - Full width */}
@@ -6878,6 +6890,8 @@ function RemindersTabContent({ subjectId, token, userRole }) {
         token={token} 
         userRole={userRole}
         isFullWidth={true}
+        externalShowModal={showCreateModal}
+        onExternalModalClose={() => setShowCreateModal(false)}
       />
     </div>
   );
