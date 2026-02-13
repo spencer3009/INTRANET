@@ -31,6 +31,14 @@ import StudentTasksPage from "@/pages/StudentTasksPage";
 import StudentGradesPage from "@/pages/StudentGradesPage";
 import StudentAttendancePage from "@/pages/StudentAttendancePage";
 import StudentProfilePage from "@/pages/StudentProfilePage";
+import TeacherDashboardPage from "@/pages/TeacherDashboardPage";
+import TeacherCoursesPage from "@/pages/TeacherCoursesPage";
+import TeacherStudentsPage from "@/pages/TeacherStudentsPage";
+import TeacherAssignmentsViewPage from "@/pages/TeacherAssignmentsViewPage";
+import TeacherGradesPage from "@/pages/TeacherGradesPage";
+import TeacherAttendancePage from "@/pages/TeacherAttendancePage";
+import TeacherMessagesPage from "@/pages/TeacherMessagesPage";
+import TeacherProfilePage from "@/pages/TeacherProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
