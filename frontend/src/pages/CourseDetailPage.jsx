@@ -4215,6 +4215,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
                   subject={subject}
                   subjectId={subjectId}
                   token={token}
+                  onActivityClick={handleActivityClick}
                 />
               </aside>
             )}
