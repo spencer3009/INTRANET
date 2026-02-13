@@ -132,67 +132,73 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
 
         {/* Dashboard Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          {/* Quick Stats */}
+          {/* Quick Stats - Solid Color Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {/* Mis Cursos - Azul Oscuro */}
             <div 
               onClick={() => navigateTo("/student/courses")}
-              className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-cyan-300 hover:shadow-md transition-all cursor-pointer group"
+              className="bg-[#0f172a] rounded-2xl p-5 hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
+              data-testid="stat-card-courses"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-cyan-100 flex items-center justify-center group-hover:bg-cyan-200 transition-colors">
-                  <BookOpen className="w-6 h-6 text-cyan-600" />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <BookOpen className="w-4 h-4 text-white/80" />
+                  </div>
+                  <span className="text-sm font-medium text-white/80">Mis Cursos</span>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-800">{dashboardData?.courses_count || 0}</p>
-                  <p className="text-sm text-slate-500">Mis Cursos</p>
-                </div>
+                <p className="text-3xl font-bold text-white">{dashboardData?.courses_count || 0}</p>
               </div>
             </div>
 
+            {/* Tareas Pendientes - Azul Claro */}
             <div 
               onClick={() => navigateTo("/student/tasks")}
-              className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-amber-300 hover:shadow-md transition-all cursor-pointer group"
+              className="bg-[#5b8dee] rounded-2xl p-5 hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
+              data-testid="stat-card-tasks"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center group-hover:bg-amber-200 transition-colors">
-                  <ClipboardList className="w-6 h-6 text-amber-600" />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <ClipboardList className="w-4 h-4 text-white/80" />
+                  </div>
+                  <span className="text-sm font-medium text-white/80">Tareas Pendientes</span>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-800">{dashboardData?.upcoming_tasks?.length || 0}</p>
-                  <p className="text-sm text-slate-500">Tareas Pendientes</p>
-                </div>
+                <p className="text-3xl font-bold text-white">{dashboardData?.upcoming_tasks?.length || 0}</p>
               </div>
             </div>
 
+            {/* Asistencias - Verde */}
             <div 
               onClick={() => navigateTo("/student/attendance")}
-              className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-emerald-300 hover:shadow-md transition-all cursor-pointer group"
+              className="bg-[#22c55e] rounded-2xl p-5 hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
+              data-testid="stat-card-attendance"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                  <CalendarCheck className="w-6 h-6 text-emerald-600" />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <CalendarCheck className="w-4 h-4 text-white/80" />
+                  </div>
+                  <span className="text-sm font-medium text-white/80">Asistencias</span>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-800">
-                    {dashboardData?.attendance_summary?.present || 0}
-                  </p>
-                  <p className="text-sm text-slate-500">Asistencias</p>
-                </div>
+                <p className="text-3xl font-bold text-white">{dashboardData?.attendance_summary?.present || 0}</p>
               </div>
             </div>
 
+            {/* Mensajes - Amarillo */}
             <div 
               onClick={() => navigateTo("/student/messages")}
-              className="bg-white rounded-2xl p-4 border border-slate-200 hover:border-indigo-300 hover:shadow-md transition-all cursor-pointer group"
+              className="bg-[#d4a912] rounded-2xl p-5 hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
+              data-testid="stat-card-messages"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center group-hover:bg-indigo-200 transition-colors">
-                  <Bell className="w-6 h-6 text-indigo-600" />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
+                    <Bell className="w-4 h-4 text-white/80" />
+                  </div>
+                  <span className="text-sm font-medium text-white/80">Mensajes</span>
                 </div>
-                <div>
-                  <p className="text-2xl font-bold text-slate-800">{studentProfile?.unread_messages || 0}</p>
-                  <p className="text-sm text-slate-500">Mensajes</p>
-                </div>
+                <p className="text-3xl font-bold text-white">{studentProfile?.unread_messages || 0}</p>
               </div>
             </div>
           </div>
