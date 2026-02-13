@@ -571,6 +571,108 @@ function App() {
           />
           
           {/* ════════════════════════════════════════════════════════════════════
+              ADMIN PORTAL - Direct path (for subdomain mode)
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminDashboardPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminUsersPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/students"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminStudentsPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/teachers"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminTeachersPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Admin Portal - Route based for school subdomain */}
+          <Route
+            path="/school/:subdomain/admin"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminDashboardPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/school/:subdomain/admin/users"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminUsersPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/school/:subdomain/admin/students"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminStudentsPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/school/:subdomain/admin/teachers"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdmin(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminTeachersPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* ════════════════════════════════════════════════════════════════════
               SCHOOL ROUTES - Route-based multi-tenancy (for preview/non-wildcard)
               Pattern: /school/:subdomain/dashboard/*
           ════════════════════════════════════════════════════════════════════ */}
