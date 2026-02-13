@@ -1051,6 +1051,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             materials={materials}
             reminders={reminders}
             onViewPost={() => {}}
+            token={token}
+            user={user}
           />
         );
       case "tareas":
@@ -1072,6 +1074,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             materials={materials}
             reminders={reminders}
             onViewPost={() => {}}
+            token={token}
+            user={user}
           />
         );
     }
