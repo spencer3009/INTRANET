@@ -440,8 +440,8 @@ function CourseInfoSidebar({ subject, subjectId, token }) {
             <p className="text-xs text-slate-400 mt-1">Las acciones en el curso aparecerán aquí</p>
           </div>
         ) : (
-          <div className="space-y-2.5 max-h-[400px] overflow-y-auto custom-scroll pr-1">
-            {activities.slice(0, 10).map((activity) => {
+          <div className="space-y-2.5">
+            {activities.slice(0, 7).map((activity) => {
               const style = getActivityStyle(activity.activity_type);
               const IconComponent = style.icon;
               return (
