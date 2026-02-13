@@ -2440,9 +2440,16 @@ function PostCard({ post, token, currentUserId, onDelete, onLikeToggle, onCommen
           <h3 className="text-lg font-bold text-gray-800 mb-2">{post.title}</h3>
         )}
         
-        {/* Content */}
+        {/* Content - Render HTML if present, otherwise plain text */}
         {post.content && (
-          <p className="text-gray-700 mb-4 whitespace-pre-wrap">{post.content}</p>
+          post.content.includes('<') && post.content.includes('>') ? (
+            <div 
+              className="text-gray-700 mb-4 prose prose-sm max-w-none [&_p]:mb-2 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4 [&_h1]:text-xl [&_h1]:font-bold [&_h2]:text-lg [&_h2]:font-bold [&_h3]:text-base [&_h3]:font-semibold [&_blockquote]:border-l-4 [&_blockquote]:border-gray-300 [&_blockquote]:pl-4 [&_blockquote]:italic [&_code]:bg-gray-100 [&_code]:px-1 [&_code]:rounded [&_pre]:bg-gray-100 [&_pre]:p-3 [&_pre]:rounded-lg [&_a]:text-blue-600 [&_a]:underline"
+              dangerouslySetInnerHTML={{ __html: post.content }}
+            />
+          ) : (
+            <p className="text-gray-700 mb-4 whitespace-pre-wrap">{post.content}</p>
+          )
         )}
         
         {/* Image */}
