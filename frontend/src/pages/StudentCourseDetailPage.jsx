@@ -899,7 +899,7 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
   );
 }
 
-// Material Content (Read-only)
+// Material Content - Table view like owner's portal (Read-only)
 function MaterialContent({ materials }) {
   if (materials.length === 0) {
     return (
@@ -911,46 +911,102 @@ function MaterialContent({ materials }) {
     );
   }
 
+  // Get file icon based on extension
+  const getFileIcon = (filename) => {
+    const ext = filename?.split('.').pop()?.toLowerCase();
+    if (['pdf'].includes(ext)) return { icon: FileIcon, color: 'text-red-500 bg-red-50' };
+    if (['doc', 'docx'].includes(ext)) return { icon: FileIcon, color: 'text-blue-500 bg-blue-50' };
+    if (['xls', 'xlsx'].includes(ext)) return { icon: FileIcon, color: 'text-green-500 bg-green-50' };
+    if (['ppt', 'pptx'].includes(ext)) return { icon: FileIcon, color: 'text-orange-500 bg-orange-50' };
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return { icon: FileIcon, color: 'text-purple-500 bg-purple-50' };
+    if (['mp4', 'avi', 'mov'].includes(ext)) return { icon: Play, color: 'text-pink-500 bg-pink-50' };
+    return { icon: FileIcon, color: 'text-slate-500 bg-slate-50' };
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {materials.map((material) => (
-        <div key={material.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center flex-shrink-0">
-              <FolderOpen className="w-6 h-6 text-indigo-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-slate-800 truncate">{material.title}</h3>
-              <p className="text-sm text-slate-500 mt-1 line-clamp-2">{material.description || material.content}</p>
-              <div className="flex items-center gap-2 mt-3 text-xs text-slate-400">
-                <Calendar className="w-3.5 h-3.5" />
-                {new Date(material.created_at).toLocaleDateString("es-PE")}
-              </div>
-            </div>
-          </div>
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      {/* Table Header */}
+      <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="col-span-5">Nombre del archivo</div>
+        <div className="col-span-2">Tipo</div>
+        <div className="col-span-3">Fecha de subida</div>
+        <div className="col-span-2 text-center">Descargar</div>
+      </div>
+      
+      {/* Table Body */}
+      <div className="divide-y divide-slate-100">
+        {materials.map((material) => {
+          const hasAttachments = material.attachments?.length > 0;
           
-          {/* Files */}
-          {material.attachments?.length > 0 && (
-            <div className="mt-4 pt-4 border-t border-slate-100">
-              <div className="space-y-2">
-                {material.attachments.map((file, idx) => (
-                  <a
-                    key={idx}
-                    href={file.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 transition-colors group"
-                  >
-                    <FileIcon className="w-5 h-5 text-slate-400" />
-                    <span className="flex-1 text-sm text-slate-700 truncate">{file.name}</span>
-                    <Download className="w-4 h-4 text-slate-400 group-hover:text-cyan-500" />
-                  </a>
-                ))}
+          return (
+            <div key={material.id}>
+              {/* Material Title Row */}
+              <div className="px-6 py-3 bg-indigo-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <FolderOpen className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-slate-800">{material.title}</h3>
+                    {material.description && (
+                      <p className="text-xs text-slate-500 mt-0.5">{material.description}</p>
+                    )}
+                  </div>
+                </div>
               </div>
+              
+              {/* Files */}
+              {hasAttachments ? (
+                material.attachments.map((file, idx) => {
+                  const fileStyle = getFileIcon(file.name);
+                  const FileIconComp = fileStyle.icon;
+                  
+                  return (
+                    <div key={idx} className="grid grid-cols-12 gap-4 px-6 py-3 items-center hover:bg-slate-50 transition-colors">
+                      {/* File Name */}
+                      <div className="col-span-5 flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${fileStyle.color}`}>
+                          <FileIconComp className="w-4 h-4" />
+                        </div>
+                        <span className="text-sm text-slate-700 truncate">{file.name}</span>
+                      </div>
+                      
+                      {/* Type */}
+                      <div className="col-span-2">
+                        <span className="text-xs text-slate-500 uppercase">
+                          {file.name?.split('.').pop() || 'archivo'}
+                        </span>
+                      </div>
+                      
+                      {/* Date */}
+                      <div className="col-span-3 text-sm text-slate-500">
+                        {new Date(material.created_at).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}
+                      </div>
+                      
+                      {/* Download */}
+                      <div className="col-span-2 text-center">
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex p-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+                          title="Descargar"
+                        >
+                          <Download className="w-4 h-4" />
+                        </a>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="px-6 py-3 text-sm text-slate-400 italic">
+                  Sin archivos adjuntos
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      ))}
+          );
+        })}
+      </div>
     </div>
   );
 }
