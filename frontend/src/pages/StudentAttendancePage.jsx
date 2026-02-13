@@ -33,12 +33,28 @@ export default function StudentAttendancePage({ user, token, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [attendance, setAttendance] = useState([]);
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
+    loadSettings();
+  }, [token]);
+
+  useEffect(() => {
     loadAttendance();
   }, [token, selectedMonth]);
+
+  const loadSettings = async () => {
+    try {
+      const res = await axios.get(`${API}/api/settings`, { headers });
+      if (res.data) {
+        setSettings(res.data);
+      }
+    } catch (err) {
+      console.error("Error loading settings:", err);
+    }
+  };
 
   const loadAttendance = async () => {
     setLoading(true);
@@ -62,6 +78,10 @@ export default function StudentAttendancePage({ user, token, onLogout }) {
       setLoading(false);
     }
   };
+
+  // Get display values from settings
+  const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
+  const logoUrl = settings?.logo_url;
 
   // Navigate months
   const prevMonth = () => {
