@@ -1375,34 +1375,37 @@ async def get_teacher_dashboard(current_user = Depends(get_current_user)):
     school_id = user.get("school_id")
     
     # Get teacher assignments
-    assignments = await db.teacher_assignments.find({
+    assignments = await db.academic_assignments.find({
         "school_id": school_id,
         "teacher_id": user["id"]
     }, {"_id": 0}).to_list(100)
     
     subject_ids = list(set([a.get("subject_id") for a in assignments if a.get("subject_id")]))
-    section_ids = list(set([a.get("seccion_id") for a in assignments if a.get("seccion_id")]))
+    section_ids = list(set([a.get("section_id") for a in assignments if a.get("section_id")]))
     
     # Get courses with section info
     courses = []
     for assignment in assignments:
         subject = await db.subjects.find_one({"id": assignment.get("subject_id"), "school_id": school_id}, {"_id": 0})
-        section = await db.sections.find_one({"id": assignment.get("seccion_id"), "school_id": school_id}, {"_id": 0})
+        section = await db.sections.find_one({"id": assignment.get("section_id"), "school_id": school_id}, {"_id": 0})
+        grade = await db.grades.find_one({"id": assignment.get("grade_id"), "school_id": school_id}, {"_id": 0})
         
         if subject:
             # Count students in this section
             students_count = await db.users.count_documents({
                 "school_id": school_id,
                 "role": "student",
-                "seccion_id": assignment.get("seccion_id")
+                "seccion_id": assignment.get("section_id")
             })
             
             courses.append({
                 "id": subject["id"],
                 "name": subject.get("name"),
                 "color": subject.get("color"),
-                "section_id": assignment.get("seccion_id"),
+                "image_url": subject.get("image_url"),
+                "section_id": assignment.get("section_id"),
                 "section_name": section.get("nombre") if section else None,
+                "grade_name": grade.get("nombre") if grade else None,
                 "students_count": students_count
             })
     
