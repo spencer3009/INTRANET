@@ -107,7 +107,7 @@ function CourseTabs({ activeTab, onTabChange }) {
   );
 }
 
-// Dashboard/Tablero Content - 3 Column Layout
+// Dashboard/Tablero Content - 3 Column Layout (matching owner's portal design)
 function DashboardContent({ subject, teacher, posts, students, tasks, materials, reminders, onViewPost }) {
   const baseColor = subject?.color || "#06b6d4";
   
@@ -116,9 +116,6 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
     .filter(t => new Date(t.due_date) > new Date())
     .slice(0, 3);
   
-  // Get recent materials
-  const recentMaterials = materials.slice(0, 3);
-  
   // Get recent activity (all posts combined)
   const recentActivity = [...posts, ...tasks.slice(0, 2), ...materials.slice(0, 2)]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -126,74 +123,89 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      {/* Left Column - Course Image & Activity */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* LEFT COLUMN - Course Image & Activity */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <div className="lg:col-span-3 space-y-4">
-        {/* Course Image Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        {/* Course Image Card - Elegant Design */}
+        <div className="bg-gradient-to-br from-indigo-50/50 to-violet-50/30 rounded-2xl p-4 border border-indigo-200/40 shadow-sm">
           {subject?.image_url ? (
-            <img 
-              src={subject.image_url} 
-              alt={subject.name}
-              className="w-full h-40 object-cover"
-            />
+            <div className="w-full aspect-square rounded-2xl overflow-hidden mb-4 shadow-lg ring-2 ring-white">
+              <img 
+                src={subject.image_url} 
+                alt={subject.name}
+                className="w-full h-full object-cover"
+              />
+            </div>
           ) : (
             <div 
-              className="w-full h-40 flex items-center justify-center"
-              style={{ backgroundColor: baseColor }}
+              className="w-full aspect-square rounded-2xl flex items-center justify-center mb-4 shadow-inner ring-2 ring-white/50"
+              style={{ 
+                background: `linear-gradient(135deg, ${baseColor}15, ${baseColor}30)`,
+                border: `2px solid ${baseColor}25`
+              }}
             >
-              <BookOpen className="w-16 h-16 text-white/50" />
+              <BookOpen className="w-16 h-16" style={{ color: baseColor }} />
             </div>
           )}
-          <div className="p-4">
-            <h3 className="font-semibold text-slate-800 text-sm">{subject?.name}</h3>
-            <p className="text-xs text-slate-500 mt-1">{subject?.description || "Sin descripción"}</p>
-          </div>
+          <h3 className="font-bold text-slate-800 text-center text-lg">{subject?.name}</h3>
+          {subject?.description && (
+            <p className="text-sm text-slate-500 text-center mt-2 line-clamp-3">{subject.description}</p>
+          )}
         </div>
 
-        {/* Activity Summary */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4">
-          <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
-            <LayoutDashboard className="w-4 h-4 text-slate-400" />
-            Actividad del Curso
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Tareas</span>
-              <span className="font-semibold text-slate-800">{tasks.length}</span>
+        {/* Activity Summary - Green themed like owner's portal */}
+        <div className="bg-gradient-to-br from-emerald-50/40 to-teal-50/20 rounded-2xl p-4 border border-emerald-200/40 shadow-sm">
+          <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm relative">
+              <LayoutDashboard className="w-3.5 h-3.5 text-white" />
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-white animate-pulse" />
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Materiales</span>
-              <span className="font-semibold text-slate-800">{materials.length}</span>
+            Actividad del curso
+          </h4>
+          
+          {/* Activity Stats */}
+          <div className="space-y-3 text-sm">
+            <div className="flex items-center justify-between p-2 bg-white/60 rounded-lg">
+              <span className="text-slate-600 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-amber-500" />
+                Tareas
+              </span>
+              <span className="font-bold text-slate-800 bg-amber-100 px-2.5 py-0.5 rounded-full text-xs">{tasks.length}</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-slate-500">Publicaciones</span>
-              <span className="font-semibold text-slate-800">{posts.length}</span>
+            <div className="flex items-center justify-between p-2 bg-white/60 rounded-lg">
+              <span className="text-slate-600 flex items-center gap-2">
+                <FolderOpen className="w-4 h-4 text-indigo-500" />
+                Materiales
+              </span>
+              <span className="font-bold text-slate-800 bg-indigo-100 px-2.5 py-0.5 rounded-full text-xs">{materials.length}</span>
+            </div>
+            <div className="flex items-center justify-between p-2 bg-white/60 rounded-lg">
+              <span className="text-slate-600 flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-cyan-500" />
+                Publicaciones
+              </span>
+              <span className="font-bold text-slate-800 bg-cyan-100 px-2.5 py-0.5 rounded-full text-xs">{posts.length}</span>
             </div>
           </div>
         </div>
-
-        {/* Recent Materials */}
-        {recentMaterials.length > 0 && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
-              <FolderOpen className="w-4 h-4 text-indigo-500" />
-              Material Reciente
-            </h3>
-            <div className="space-y-2">
-              {recentMaterials.map((mat) => (
-                <div key={mat.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors">
-                  <FileIcon className="w-4 h-4 text-indigo-500 flex-shrink-0" />
-                  <span className="text-sm text-slate-700 truncate">{mat.title}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Center Column - Posts/Feed */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* CENTER COLUMN - Posts/Feed (Read-only for students) */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <div className="lg:col-span-6 space-y-4">
-        {/* No input field for students - read only */}
+        {/* Read-only notice for students */}
+        <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white font-bold shadow-md">
+              <BookOpen className="w-6 h-6" />
+            </div>
+            <div className="flex-1 px-4 py-3 bg-slate-100 rounded-xl text-slate-500 text-sm">
+              Publicaciones del curso
+            </div>
+          </div>
+        </div>
         
         {/* Recent Activity Feed */}
         {recentActivity.length > 0 ? (
@@ -263,109 +275,166 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
         ) : (
           <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
             <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <LayoutDashboard className="w-8 h-8 text-slate-400" />
+              <MessageCircle className="w-8 h-8 text-slate-400" />
             </div>
-            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin actividad reciente</h3>
-            <p className="text-slate-500">El profesor aún no ha publicado contenido en este curso.</p>
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin publicaciones</h3>
+            <p className="text-slate-500">Aún no hay publicaciones en este curso.</p>
           </div>
         )}
       </div>
 
-      {/* Right Column - Teacher, Students, Reminders */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
+      {/* RIGHT COLUMN - Teacher, Students, Reminders */}
+      {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <div className="lg:col-span-3 space-y-4">
-        {/* Teacher Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4">
-          <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
-            <User className="w-4 h-4 text-slate-400" />
-            Profesor del Curso
-          </h3>
-          <div className="flex items-center gap-3">
-            {teacher?.photo_url ? (
-              <img 
-                src={teacher.photo_url} 
-                alt={teacher.name}
-                className="w-12 h-12 rounded-full object-cover"
-              />
+        {/* Teacher Card - Orange gradient header like owner's portal */}
+        <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl overflow-hidden border border-amber-100 shadow-sm">
+          <div className="px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500">
+            <h4 className="font-bold text-white flex items-center gap-2 text-sm">
+              <User className="w-4 h-4" />
+              Profesor del curso
+            </h4>
+          </div>
+          <div className="p-4">
+            {teacher ? (
+              <div className="text-center">
+                {teacher.photo_url ? (
+                  <img
+                    src={teacher.photo_url}
+                    alt={teacher.name}
+                    className="w-20 h-20 rounded-2xl object-cover mx-auto mb-3 shadow-lg ring-4 ring-white"
+                  />
+                ) : (
+                  <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center mx-auto mb-3 shadow-lg ring-4 ring-white text-white text-2xl font-bold">
+                    {teacher.name?.charAt(0)}
+                  </div>
+                )}
+                <h5 className="font-bold text-gray-800">{teacher.name} {teacher.last_name || ''}</h5>
+                <span className="inline-block px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full mt-2">
+                  Profesor
+                </span>
+              </div>
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white font-semibold">
-                {teacher?.name?.charAt(0) || "P"}
+              <div className="text-center py-4">
+                <div className="w-16 h-16 rounded-2xl bg-gray-200 flex items-center justify-center mx-auto mb-3">
+                  <User className="w-8 h-8 text-gray-400" />
+                </div>
+                <p className="text-gray-500 text-sm">Sin profesor asignado</p>
               </div>
             )}
-            <div>
-              <p className="font-semibold text-slate-800">{teacher?.name || "Sin asignar"}</p>
-              <p className="text-xs text-slate-500">Docente</p>
-            </div>
           </div>
         </div>
 
-        {/* Students Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-4">
-          <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
-            <Users className="w-4 h-4 text-slate-400" />
-            Compañeros de Clase
-          </h3>
-          {students.length > 0 ? (
-            <>
-              <div className="flex -space-x-2 mb-2">
-                {students.slice(0, 5).map((student, idx) => (
-                  <div
+        {/* Students Card - Green/Teal gradient like owner's portal */}
+        <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl overflow-hidden border border-emerald-100 shadow-sm">
+          <div className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 flex items-center justify-between">
+            <h4 className="font-bold text-white flex items-center gap-2 text-sm">
+              <Users className="w-4 h-4" />
+              Estudiantes
+            </h4>
+            <span className="px-2.5 py-1 bg-white/20 rounded-full text-white text-xs font-bold">
+              {students.length}
+            </span>
+          </div>
+          <div className="p-4">
+            {students.length > 0 ? (
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {students.slice(0, 8).map((student, idx) => (
+                  <div 
                     key={student.id || idx}
-                    className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 border-2 border-white flex items-center justify-center text-white text-xs font-semibold"
-                    title={student.name}
+                    className="flex items-center gap-3 p-2 bg-white rounded-xl hover:bg-emerald-100/50 transition-colors"
                   >
-                    {student.name?.charAt(0) || "?"}
+                    {student.photo_url ? (
+                      <img
+                        src={student.photo_url}
+                        alt={student.name}
+                        className="w-9 h-9 rounded-full object-cover ring-2 ring-emerald-200"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-emerald-200">
+                        {student.name?.charAt(0)}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-gray-800 truncate">
+                        {student.name} {student.last_name?.charAt(0) || ''}.
+                      </p>
+                    </div>
                   </div>
                 ))}
-                {students.length > 5 && (
-                  <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-slate-600 text-xs font-semibold">
-                    +{students.length - 5}
+                {students.length > 8 && (
+                  <div className="text-center pt-2">
+                    <span className="text-xs text-emerald-600 font-medium">
+                      +{students.length - 8} más estudiantes
+                    </span>
                   </div>
                 )}
               </div>
-              <p className="text-xs text-slate-500">{students.length} estudiante{students.length !== 1 ? 's' : ''}</p>
-            </>
-          ) : (
-            <p className="text-sm text-slate-500">Sin información de compañeros</p>
-          )}
+            ) : (
+              <div className="text-center py-4">
+                <Users className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">Sin estudiantes matriculados</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Upcoming Tasks */}
-        {upcomingTasks.length > 0 && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
-              <Clock className="w-4 h-4 text-amber-500" />
-              Próximas Entregas
-            </h3>
-            <div className="space-y-2">
-              {upcomingTasks.map((task) => (
-                <div key={task.id} className="p-2 bg-amber-50 rounded-lg border border-amber-100">
-                  <p className="text-sm font-medium text-slate-800 truncate">{task.title}</p>
-                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(task.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
-                  </p>
-                </div>
-              ))}
+        {/* Reminders Card - Purple/Blue gradient like owner's portal */}
+        <div className="bg-gradient-to-br from-violet-50 to-indigo-50 rounded-2xl overflow-hidden border border-violet-100 shadow-sm">
+          <div className="px-4 py-3 bg-gradient-to-r from-violet-500 to-indigo-500 flex items-center justify-between">
+            <h4 className="font-bold text-white flex items-center gap-2 text-sm">
+              <Bell className="w-4 h-4" />
+              Recordatorios
+            </h4>
+            <div className="w-7 h-7 bg-white/20 rounded-lg flex items-center justify-center">
+              <MessageCircle className="w-4 h-4 text-white" />
             </div>
           </div>
-        )}
+          <div className="p-4">
+            {reminders.length > 0 ? (
+              <div className="space-y-2">
+                {reminders.slice(0, 4).map((reminder, idx) => (
+                  <div key={reminder.id || idx} className="p-3 bg-white rounded-xl border border-violet-100">
+                    <p className="text-sm font-medium text-slate-800">{reminder.title || reminder.message}</p>
+                    {reminder.date && (
+                      <p className="text-xs text-violet-600 mt-1 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(reminder.date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <Bell className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500 text-sm">Sin recordatorios</p>
+              </div>
+            )}
+          </div>
+        </div>
 
-        {/* Reminders */}
-        {reminders.length > 0 && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-4">
-            <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
-              <Bell className="w-4 h-4 text-red-500" />
-              Recordatorios
-            </h3>
-            <div className="space-y-2">
-              {reminders.map((reminder, idx) => (
-                <div key={idx} className="p-2 bg-red-50 rounded-lg border border-red-100">
-                  <p className="text-sm text-slate-800">{reminder.title || reminder.message}</p>
-                  {reminder.date && (
-                    <p className="text-xs text-red-600 mt-1">{new Date(reminder.date).toLocaleDateString("es-PE")}</p>
-                  )}
-                </div>
-              ))}
+        {/* Upcoming Tasks Card */}
+        {upcomingTasks.length > 0 && (
+          <div className="bg-gradient-to-br from-amber-50 to-yellow-50 rounded-2xl overflow-hidden border border-amber-100 shadow-sm">
+            <div className="px-4 py-3 bg-gradient-to-r from-amber-500 to-yellow-500">
+              <h4 className="font-bold text-white flex items-center gap-2 text-sm">
+                <Clock className="w-4 h-4" />
+                Próximas Entregas
+              </h4>
+            </div>
+            <div className="p-4">
+              <div className="space-y-2">
+                {upcomingTasks.map((task) => (
+                  <div key={task.id} className="p-3 bg-white rounded-xl border border-amber-100">
+                    <p className="text-sm font-medium text-slate-800 truncate">{task.title}</p>
+                    <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      {new Date(task.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
