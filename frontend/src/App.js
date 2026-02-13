@@ -26,6 +26,11 @@ import CourseDetailPage from "@/pages/CourseDetailPage";
 import ProfilePage from "@/pages/ProfilePage";
 import TeacherAssignmentsPage from "@/pages/TeacherAssignmentsPage";
 import StudentDashboardPage from "@/pages/StudentDashboardPage";
+import StudentCoursesPage from "@/pages/StudentCoursesPage";
+import StudentTasksPage from "@/pages/StudentTasksPage";
+import StudentGradesPage from "@/pages/StudentGradesPage";
+import StudentAttendancePage from "@/pages/StudentAttendancePage";
+import StudentProfilePage from "@/pages/StudentProfilePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
