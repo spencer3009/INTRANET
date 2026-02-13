@@ -1218,14 +1218,15 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")
     
-    # Get student's courses
+    # Get student's courses from academic_assignments
     subject_ids = []
     if seccion_id:
-        assignments = await db.teacher_assignments.find({
+        assignments = await db.academic_assignments.find({
             "school_id": school_id,
-            "seccion_id": seccion_id
+            "section_id": seccion_id,
+            "status": "activo"
         }, {"_id": 0}).to_list(100)
-        subject_ids = list(set([a["subject_id"] for a in assignments]))
+        subject_ids = list(set([a.get("subject_id") for a in assignments if a.get("subject_id")]))
     
     # Upcoming tasks (next 7 days)
     upcoming_tasks = []
