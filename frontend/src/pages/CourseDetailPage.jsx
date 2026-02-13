@@ -2885,20 +2885,21 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
           
           {/* Image Upload */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Imagen (opcional)
+            <label className="block text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <ImageIcon className="w-4 h-4 text-indigo-500" />
+              Imagen de la Pregunta
             </label>
             {imageUrl ? (
               <div className="relative inline-block">
                 <img 
                   src={imageUrl} 
                   alt="Pregunta" 
-                  className="w-32 h-32 object-cover rounded-xl border-2 border-gray-200"
+                  className="w-40 h-40 object-cover rounded-xl border-2 border-gray-200"
                 />
                 <button
                   type="button"
                   onClick={handleRemoveImage}
-                  className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow-md"
+                  className="absolute -top-2 -right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 shadow-lg"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -2915,10 +2916,13 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="px-4 py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-indigo-400 hover:text-indigo-600 transition-colors flex items-center gap-2"
+                  className="w-full py-10 border-2 border-dashed border-gray-300 rounded-2xl text-gray-400 hover:border-indigo-400 hover:bg-indigo-50/30 transition-all flex flex-col items-center justify-center gap-3"
                 >
-                  <Camera className="w-5 h-5" />
-                  Agregar imagen
+                  <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center shadow-sm">
+                    <Upload className="w-8 h-8 text-indigo-500" />
+                  </div>
+                  <span className="text-lg font-semibold text-gray-600">Subir imagen</span>
+                  <span className="text-sm text-gray-400">PNG, JPG, WEBP (máx. 10MB)</span>
                 </button>
               </div>
             )}
