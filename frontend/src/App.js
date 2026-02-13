@@ -695,6 +695,66 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/admin/settings"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdminOnly(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminSettingsPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/branding"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdminOnly(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminBrandingPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/announcements"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdminOnly(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminAnnouncementsPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/messages"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdminOnly(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminMessagesPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/roles"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdminOnly(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminRolesPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
           
           {/* Admin Portal - Route based for school subdomain */}
           <Route
