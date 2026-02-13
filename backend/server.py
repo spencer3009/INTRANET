@@ -1034,6 +1034,249 @@ async def get_metrics(current_user=Depends(require_school)):
         "avg_students": students_count,  # Use real count
     }
 
+# ══════════════════════════════════════════════════════════════════════════════
+# STUDENT PORTAL ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/student/profile")
+async def get_student_profile(current_user = Depends(get_current_user)):
+    """
+    Get complete student profile with academic context.
+    Returns all necessary info for student portal navigation.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    
+    school_id = user.get("school_id")
+    
+    # Get academic context
+    nivel = None
+    grado = None
+    seccion = None
+    turno = None
+    
+    if user.get("nivel_id"):
+        nivel = await db.academic_levels.find_one({"id": user["nivel_id"], "school_id": school_id}, {"_id": 0})
+    
+    if user.get("grado_id"):
+        grado = await db.grades.find_one({"id": user["grado_id"], "school_id": school_id}, {"_id": 0})
+    
+    if user.get("seccion_id"):
+        seccion = await db.sections.find_one({"id": user["seccion_id"], "school_id": school_id}, {"_id": 0})
+    
+    if user.get("turno_id"):
+        turno = await db.shifts.find_one({"id": user["turno_id"], "school_id": school_id}, {"_id": 0})
+    
+    # Get enrolled courses (subjects assigned to student's section)
+    courses = []
+    if user.get("seccion_id"):
+        # Get subjects assigned to this section via teacher assignments
+        assignments = await db.teacher_assignments.find({
+            "school_id": school_id,
+            "seccion_id": user["seccion_id"]
+        }, {"_id": 0}).to_list(100)
+        
+        subject_ids = list(set([a["subject_id"] for a in assignments]))
+        if subject_ids:
+            courses = await db.subjects.find({
+                "id": {"$in": subject_ids},
+                "school_id": school_id
+            }, {"_id": 0}).to_list(100)
+    
+    # Get pending tasks count
+    pending_tasks = 0
+    if courses:
+        subject_ids = [c["id"] for c in courses]
+        pending_tasks = await db.course_posts.count_documents({
+            "school_id": school_id,
+            "subject_id": {"$in": subject_ids},
+            "type": "task",
+            "due_date": {"$gte": datetime.now(timezone.utc).isoformat()}
+        })
+    
+    # Get unread messages count
+    unread_messages = await db.institutional_messages.count_documents({
+        "school_id": school_id,
+        "read_by": {"$ne": user["id"]}
+    })
+    
+    return {
+        "user": {
+            "id": user["id"],
+            "name": user.get("name", ""),
+            "last_name": user.get("last_name", ""),
+            "email": user.get("email"),
+            "photo_url": user.get("photo_url"),
+            "role": user.get("role")
+        },
+        "academic": {
+            "nivel": nivel,
+            "grado": grado,
+            "seccion": seccion,
+            "turno": turno,
+            "nivel_id": user.get("nivel_id"),
+            "grado_id": user.get("grado_id"),
+            "seccion_id": user.get("seccion_id"),
+            "turno_id": user.get("turno_id")
+        },
+        "courses_count": len(courses),
+        "pending_tasks": pending_tasks,
+        "unread_messages": unread_messages,
+        "school_id": school_id
+    }
+
+@api_router.get("/student/courses")
+async def get_student_courses(current_user = Depends(get_current_user)):
+    """
+    Get courses/subjects assigned to student's section.
+    Includes teacher info for each course.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    
+    if not seccion_id:
+        return {"courses": [], "message": "No tienes una sección asignada"}
+    
+    # Get teacher assignments for this section
+    assignments = await db.teacher_assignments.find({
+        "school_id": school_id,
+        "seccion_id": seccion_id
+    }, {"_id": 0}).to_list(100)
+    
+    # Build courses with teacher info
+    courses = []
+    for assignment in assignments:
+        subject = await db.subjects.find_one({"id": assignment["subject_id"], "school_id": school_id}, {"_id": 0})
+        if subject:
+            teacher = await db.users.find_one({"id": assignment["teacher_id"]}, {"_id": 0, "password": 0})
+            
+            # Count materials, tasks, etc. for this subject
+            materials_count = await db.course_posts.count_documents({
+                "school_id": school_id,
+                "subject_id": subject["id"],
+                "type": "material"
+            })
+            tasks_count = await db.course_posts.count_documents({
+                "school_id": school_id,
+                "subject_id": subject["id"],
+                "type": "task"
+            })
+            
+            courses.append({
+                "id": subject["id"],
+                "name": subject.get("name"),
+                "description": subject.get("description"),
+                "image_url": subject.get("image_url"),
+                "color": subject.get("color"),
+                "teacher": {
+                    "id": teacher["id"] if teacher else None,
+                    "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip() if teacher else "Sin asignar",
+                    "photo_url": teacher.get("photo_url") if teacher else None
+                },
+                "materials_count": materials_count,
+                "tasks_count": tasks_count
+            })
+    
+    return {"courses": courses}
+
+@api_router.get("/student/dashboard")
+async def get_student_dashboard(current_user = Depends(get_current_user)):
+    """
+    Get dashboard data for student portal.
+    Includes upcoming tasks, recent announcements, schedule preview.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    
+    # Get student's courses
+    subject_ids = []
+    if seccion_id:
+        assignments = await db.teacher_assignments.find({
+            "school_id": school_id,
+            "seccion_id": seccion_id
+        }, {"_id": 0}).to_list(100)
+        subject_ids = list(set([a["subject_id"] for a in assignments]))
+    
+    # Upcoming tasks (next 7 days)
+    upcoming_tasks = []
+    if subject_ids:
+        now = datetime.now(timezone.utc)
+        week_later = now + timedelta(days=7)
+        tasks = await db.course_posts.find({
+            "school_id": school_id,
+            "subject_id": {"$in": subject_ids},
+            "type": "task",
+            "due_date": {"$gte": now.isoformat(), "$lte": week_later.isoformat()}
+        }, {"_id": 0}).sort("due_date", 1).to_list(10)
+        
+        for task in tasks:
+            subject = await db.subjects.find_one({"id": task["subject_id"]}, {"_id": 0})
+            upcoming_tasks.append({
+                "id": task["id"],
+                "title": task.get("title"),
+                "subject_name": subject.get("name") if subject else "Sin asignatura",
+                "subject_color": subject.get("color") if subject else "#6366f1",
+                "due_date": task.get("due_date"),
+                "subject_id": task["subject_id"]
+            })
+    
+    # Recent announcements (institutional messages)
+    announcements = await db.institutional_messages.find({
+        "school_id": school_id,
+        "status": "active"
+    }, {"_id": 0}).sort("created_at", -1).limit(5).to_list(5)
+    
+    # Format announcements
+    recent_announcements = []
+    for ann in announcements:
+        recent_announcements.append({
+            "id": ann["id"],
+            "title": ann.get("title"),
+            "priority": ann.get("priority", "normal"),
+            "created_at": ann.get("created_at"),
+            "is_read": user["id"] in ann.get("read_by", [])
+        })
+    
+    # Get attendance summary (last 30 days)
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    attendance_records = await db.attendance.find({
+        "school_id": school_id,
+        "student_id": user["id"],
+        "date": {"$gte": thirty_days_ago}
+    }, {"_id": 0}).to_list(100)
+    
+    attendance_summary = {
+        "present": sum(1 for a in attendance_records if a.get("status") == "present"),
+        "absent": sum(1 for a in attendance_records if a.get("status") == "absent"),
+        "late": sum(1 for a in attendance_records if a.get("status") == "late"),
+        "justified": sum(1 for a in attendance_records if a.get("status") == "justified")
+    }
+    
+    return {
+        "upcoming_tasks": upcoming_tasks,
+        "recent_announcements": recent_announcements,
+        "attendance_summary": attendance_summary,
+        "courses_count": len(subject_ids)
+    }
+
 @api_router.get("/dashboard/events", response_model=List[EventResponse])
 async def get_events(current_user=Depends(require_school)):
     """Get events for current tenant - REQUIRES SCHOOL"""
