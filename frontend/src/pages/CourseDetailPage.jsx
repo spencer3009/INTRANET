@@ -2257,16 +2257,27 @@ function UnifiedContentFeed({ subjectId, token, user, postType }) {
         </>
       )}
       
-      {/* Create Post Modal */}
-      <CreatePostModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        subjectId={subjectId}
-        token={token}
-        user={user}
-        onPostCreated={handlePostCreated}
-        postType={postType}
-      />
+      {/* Create Post Modal - Use Premium modal for tasks */}
+      {postType === "task" ? (
+        <PremiumTaskModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          subjectId={subjectId}
+          token={token}
+          user={user}
+          onPostCreated={handlePostCreated}
+        />
+      ) : (
+        <CreatePostModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          subjectId={subjectId}
+          token={token}
+          user={user}
+          onPostCreated={handlePostCreated}
+          postType={postType}
+        />
+      )}
     </div>
   );
 }
