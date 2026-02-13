@@ -6394,7 +6394,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       case "tablero":
         return <DashboardContent subjectId={subjectId} token={token} user={user} />;
       case "tareas":
-        return <UnifiedContentFeed subjectId={subjectId} token={token} user={user} postType="task" />;
+        return <TasksTableContent subjectId={subjectId} token={token} user={user} students={students} subject={subject} levelName={levelName} gradeName={gradeName} />;
       case "material":
         return <UnifiedContentFeed subjectId={subjectId} token={token} user={user} postType="material" />;
       case "examenes":
