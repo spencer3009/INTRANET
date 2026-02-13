@@ -107,6 +107,66 @@ def is_admin_user(user: dict) -> bool:
     return user.get("role") in ["owner", "admin", "director"]
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ROLE-BASED ACCESS CONTROL (RBAC)
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Role hierarchy (higher = more permissions)
+ROLE_HIERARCHY = {
+    "owner": 100,
+    "admin": 90,
+    "director": 80,
+    "coordinator": 70,
+    "teacher": 50,
+    "auxiliar": 40,
+    "parent": 20,
+    "student": 10
+}
+
+# Admin roles that can access administrative functions
+ADMIN_ROLES = ["owner", "admin", "director", "coordinator"]
+
+# Staff roles (non-students)
+STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "auxiliar"]
+
+def has_role(user: dict, allowed_roles: list) -> bool:
+    """Check if user has one of the allowed roles"""
+    return user.get("role") in allowed_roles
+
+def is_student(user: dict) -> bool:
+    """Check if user is a student"""
+    return user.get("role") == "student"
+
+def is_parent(user: dict) -> bool:
+    """Check if user is a parent"""
+    return user.get("role") == "parent"
+
+def is_staff(user: dict) -> bool:
+    """Check if user is a staff member (not student or parent)"""
+    return user.get("role") in STAFF_ROLES
+
+def require_role(allowed_roles: list):
+    """
+    Dependency that checks if user has one of the allowed roles.
+    Usage: current_user = Depends(require_role(["admin", "director"]))
+    """
+    async def check_role(current_user = Depends(get_current_user)):
+        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=403, detail="Usuario no encontrado")
+        if user.get("role") not in allowed_roles:
+            raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta función")
+        return user
+    return check_role
+
+def require_admin():
+    """Dependency that requires admin-level access"""
+    return require_role(ADMIN_ROLES)
+
+def require_staff():
+    """Dependency that requires staff access (not students or parents)"""
+    return require_role(STAFF_ROLES)
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MULTI-TENANT HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
