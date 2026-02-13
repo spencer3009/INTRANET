@@ -3009,8 +3009,8 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
       setTitle("");
       setDescription("");
       setDate("");
-      setStartTime("09:00");
-      setEndTime("11:00");
+      setStartTime("09:00:00");
+      setEndTime("11:00:00");
       setMinScore(60);
     }
     setError("");
