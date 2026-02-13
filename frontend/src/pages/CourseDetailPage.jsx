@@ -6648,23 +6648,21 @@ function MaterialTableContent({ subjectId, token, user }) {
             materials.map((material) => {
               const fileInfo = extractFileInfo(material);
               return (
-                <div key={material.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
-                  {/* Title */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-slate-800 truncate">{material.title}</p>
-                  </div>
-                  
-                  {/* File info */}
-                  <div className="flex items-center gap-2 px-4 flex-shrink-0">
-                    {getFileIcon(material)}
-                    <span className="text-sm text-slate-600">{fileInfo.name}</span>
-                    {fileInfo.size && (
-                      <span className="text-xs text-slate-400">({fileInfo.size})</span>
-                    )}
+                <div key={material.id} className="flex items-center px-6 py-4 hover:bg-slate-50 transition-colors">
+                  {/* Title and File info together */}
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <p className="font-semibold text-slate-800">{material.title}</p>
+                    <div className="flex items-center gap-2 text-slate-500">
+                      {getFileIcon(material)}
+                      <span className="text-sm">{fileInfo.name}</span>
+                      {fileInfo.size && (
+                        <span className="text-xs text-slate-400">({fileInfo.size})</span>
+                      )}
+                    </div>
                   </div>
                   
                   {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                     <button
                       onClick={() => handleDownload(material)}
                       className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
