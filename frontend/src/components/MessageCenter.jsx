@@ -924,9 +924,14 @@ function AcademicTab({ token, user, onRefreshStats }) {
       
       setMessageText("");
       
-      // If we're in a thread, reload it to get updated messages
-      if (selectedThread && res.data.thread_id) {
-        loadThread(res.data.thread_id);
+      // Always load the thread after sending to ensure messages are synced
+      if (res.data.thread_id) {
+        // Transition from compose view to thread view
+        if (selectedContact && !selectedThread) {
+          setSelectedContact(null);
+          setConversationMessages([]);
+        }
+        await loadThread(res.data.thread_id);
       }
       
       loadThreads();
