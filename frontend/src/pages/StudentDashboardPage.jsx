@@ -203,6 +203,75 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
             </div>
           </div>
 
+          {/* Progress Bars - Promedio y Asistencia */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {/* Promedio General */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200" data-testid="progress-average">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5 text-indigo-500" />
+                  <span className="font-semibold text-slate-800">Promedio General</span>
+                </div>
+                <span className="text-2xl font-bold text-indigo-600">
+                  {dashboardData?.average_grade?.toFixed(1) || "N/A"}
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500"
+                  style={{ width: `${Math.min((dashboardData?.average_grade || 0) / 20 * 100, 100)}%` }}
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                Escala de 0 a 20
+              </p>
+            </div>
+
+            {/* Asistencia */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200" data-testid="progress-attendance">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <CalendarCheck className="w-5 h-5 text-emerald-500" />
+                  <span className="font-semibold text-slate-800">Asistencia</span>
+                </div>
+                <span className="text-2xl font-bold text-emerald-600">
+                  {(() => {
+                    const summary = dashboardData?.attendance_summary;
+                    if (!summary) return "N/A";
+                    const total = (summary.present || 0) + (summary.absent || 0) + (summary.late || 0) + (summary.justified || 0);
+                    if (total === 0) return "N/A";
+                    const attended = (summary.present || 0) + (summary.justified || 0);
+                    return `${Math.round((attended / total) * 100)}%`;
+                  })()}
+                </span>
+              </div>
+              <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500"
+                  style={{ 
+                    width: `${(() => {
+                      const summary = dashboardData?.attendance_summary;
+                      if (!summary) return 0;
+                      const total = (summary.present || 0) + (summary.absent || 0) + (summary.late || 0) + (summary.justified || 0);
+                      if (total === 0) return 0;
+                      const attended = (summary.present || 0) + (summary.justified || 0);
+                      return (attended / total) * 100;
+                    })()}%` 
+                  }}
+                />
+              </div>
+              <p className="text-xs text-slate-500 mt-2">
+                {(() => {
+                  const summary = dashboardData?.attendance_summary;
+                  if (!summary) return "Sin datos de asistencia";
+                  const total = (summary.present || 0) + (summary.absent || 0) + (summary.late || 0) + (summary.justified || 0);
+                  const attended = (summary.present || 0) + (summary.justified || 0);
+                  return `${attended} de ${total} días registrados`;
+                })()}
+              </p>
+            </div>
+          </div>
+
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Upcoming Tasks */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden">
