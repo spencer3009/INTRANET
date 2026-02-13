@@ -62,9 +62,9 @@ export default function MessageCenter({ token, user }) {
   }, [token]);
 
   const tabs = [
+    { id: "academic", label: "Mensajes", icon: GraduationCap, count: stats.academic },
     { id: "institutional", label: "Comunicados", icon: Megaphone, count: stats.institutional },
-    { id: "support", label: "Soporte", icon: HeadphonesIcon, count: stats.support },
-    { id: "academic", label: "Mensajes", icon: GraduationCap, count: stats.academic }
+    { id: "support", label: "Soporte", icon: HeadphonesIcon, count: stats.support }
   ];
 
   return (
