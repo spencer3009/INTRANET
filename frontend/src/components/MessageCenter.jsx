@@ -871,6 +871,24 @@ function AcademicTab({ token, user, onRefreshStats }) {
     }
   };
 
+  // Handle contact selection - check if thread exists
+  const handleSelectContact = async (contact) => {
+    // First, check if there's already a thread with this contact
+    const currentThreads = await loadThreads();
+    const existingThread = currentThreads.find(t => 
+      t.participant_ids?.includes(contact.id)
+    );
+    
+    if (existingThread) {
+      // Thread exists, load it
+      loadThread(existingThread.id);
+    } else {
+      // No thread exists, show compose view
+      setSelectedContact(contact);
+      setConversationMessages([]);
+    }
+  };
+
   useEffect(() => {
     loadThreads();
     loadContacts();
