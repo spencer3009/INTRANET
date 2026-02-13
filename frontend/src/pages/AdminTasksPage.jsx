@@ -96,15 +96,15 @@ export default function AdminTasksPage({ user, token, onLogout }) {
     try {
       const [settingsRes, subjectsRes, teachersRes, summaryRes, tasksRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
-        axios.get(`${API}/subjects`, { headers }),
-        axios.get(`${API}/admin/teachers`, { headers }).catch(() => ({ data: { teachers: [] } })),
+        axios.get(`${API}/academic/subjects`, { headers }),
+        axios.get(`${API}/users/teachers/active`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/admin/tasks/summary`, { headers }),
         axios.get(`${API}/admin/tasks`, { headers })
       ]);
       
       if (settingsRes.data) setSettings(settingsRes.data);
       setSubjects(subjectsRes.data || []);
-      setTeachers(teachersRes.data?.teachers || []);
+      setTeachers(teachersRes.data || []);
       setSummary(summaryRes.data || {});
       setTasks(tasksRes.data?.tasks || []);
     } catch (err) {
