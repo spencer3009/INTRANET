@@ -625,7 +625,7 @@ function ReminderModal({ isOpen, onClose, reminder, onSave, subjectId }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN REMINDERS PANEL - Premium violet design
 // ══════════════════════════════════════════════════════════════════════════════
-export default function CourseRemindersPanel({ subjectId, token, userRole, isFullWidth = false }) {
+export default function CourseRemindersPanel({ subjectId, token, userRole, isFullWidth = false, externalShowModal = false, onExternalModalClose = null }) {
   const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -636,6 +636,22 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
 
   const headers = { Authorization: `Bearer ${token}` };
   const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
+  
+  // Handle external modal control
+  useEffect(() => {
+    if (externalShowModal) {
+      setEditingReminder(null);
+      setShowModal(true);
+    }
+  }, [externalShowModal]);
+  
+  const handleModalClose = () => {
+    setShowModal(false);
+    setEditingReminder(null);
+    if (onExternalModalClose) {
+      onExternalModalClose();
+    }
+  };
 
   useEffect(() => {
     loadReminders();
