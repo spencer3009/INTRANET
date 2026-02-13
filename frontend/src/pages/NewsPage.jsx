@@ -1082,9 +1082,9 @@ export default function NewsPage({ user, token, subdomain, onLogout }) {
                     onView={handleView}
                     onEdit={handleEdit}
                     onPublish={handlePublishClick}
-                    onArchive={handleArchive}
+                    onArchive={handleArchiveClick}
                     onPin={handlePin}
-                    onDelete={handleDelete}
+                    onDelete={handleDeleteClick}
                   />
                 ))}
               </div>
