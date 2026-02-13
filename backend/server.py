@@ -1198,7 +1198,7 @@ async def generate_cloudinary_signature(
     Requires authentication.
     resource_type: image, video, raw (for PDF/DOC), or auto
     """
-    ALLOWED_FOLDERS = ("edunet/logos", "edunet/uploads", "edunet/media", "edunet/users", "edunet/academic", "edunet/banners", "edunet/news", "edunet/messages", "edunet/discipline", "edunet/subjects", "edunet/posts")
+    ALLOWED_FOLDERS = ("edunet/logos", "edunet/uploads", "edunet/media", "edunet/users", "edunet/academic", "edunet/banners", "edunet/news", "edunet/messages", "edunet/discipline", "edunet/subjects", "edunet/posts", "edunet/exam-questions")
     if not any(folder.startswith(f) for f in ALLOWED_FOLDERS):
         raise HTTPException(status_code=400, detail="Carpeta no permitida")
 
