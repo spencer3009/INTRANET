@@ -10052,6 +10052,14 @@ async def get_academic_thread(thread_id: str, current_user = Depends(get_current
     if not thread:
         raise HTTPException(status_code=404, detail="Conversación no encontrada")
     
+    # Calculate other_participant for the current user
+    other_participant = None
+    for p in thread.get("participants", []):
+        if p.get("id") != user["id"]:
+            other_participant = p
+            break
+    thread["other_participant"] = other_participant
+    
     await db.academic_threads.update_one({"id": thread_id}, {"$pull": {"unread_by": user["id"]}})
     return thread
 
