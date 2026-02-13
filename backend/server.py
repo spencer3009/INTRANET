@@ -5083,6 +5083,107 @@ async def delete_academic_period(
     
     return {"message": "Período eliminado correctamente"}
 
+class ClonePeriodsRequest(BaseModel):
+    source_year_id: str
+    target_year_id: str
+
+@api_router.post("/academic/periods/clone")
+async def clone_periods_to_year(
+    data: ClonePeriodsRequest,
+    current_user = Depends(get_current_user)
+):
+    """Clone periods from one academic year to another."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden clonar períodos")
+    
+    school_id = user["school_id"]
+    
+    # Verify source year exists and has periods
+    source_year = await db.academic_years.find_one({
+        "id": data.source_year_id,
+        "school_id": school_id
+    })
+    if not source_year:
+        raise HTTPException(status_code=404, detail="Año origen no encontrado")
+    
+    # Verify target year exists
+    target_year = await db.academic_years.find_one({
+        "id": data.target_year_id,
+        "school_id": school_id
+    })
+    if not target_year:
+        raise HTTPException(status_code=404, detail="Año destino no encontrado")
+    
+    # Check if target year already has periods
+    existing_periods = await db.academic_periods.count_documents({
+        "school_id": school_id,
+        "academic_year_id": data.target_year_id
+    })
+    if existing_periods > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"El año {target_year['year']} ya tiene {existing_periods} período(s). Elimínalos primero si deseas clonar."
+        )
+    
+    # Get source periods
+    source_periods = await db.academic_periods.find({
+        "school_id": school_id,
+        "academic_year_id": data.source_year_id
+    }, {"_id": 0}).sort("orden", 1).to_list(20)
+    
+    if not source_periods:
+        raise HTTPException(status_code=400, detail="El año origen no tiene períodos para clonar")
+    
+    # Calculate year difference for date adjustment
+    year_diff = target_year["year"] - source_year["year"]
+    
+    # Clone periods
+    cloned = []
+    for sp in source_periods:
+        # Adjust dates if present
+        new_fecha_inicio = None
+        new_fecha_fin = None
+        
+        if sp.get("fecha_inicio"):
+            try:
+                fecha = datetime.strptime(sp["fecha_inicio"], "%Y-%m-%d")
+                new_fecha_inicio = fecha.replace(year=fecha.year + year_diff).strftime("%Y-%m-%d")
+            except:
+                new_fecha_inicio = sp["fecha_inicio"]
+        
+        if sp.get("fecha_fin"):
+            try:
+                fecha = datetime.strptime(sp["fecha_fin"], "%Y-%m-%d")
+                new_fecha_fin = fecha.replace(year=fecha.year + year_diff).strftime("%Y-%m-%d")
+            except:
+                new_fecha_fin = sp["fecha_fin"]
+        
+        new_period = {
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "academic_year_id": data.target_year_id,
+            "nombre": sp["nombre"],
+            "fecha_inicio": new_fecha_inicio,
+            "fecha_fin": new_fecha_fin,
+            "orden": sp["orden"],
+            "activo": False,  # New periods start inactive
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.academic_periods.insert_one(new_period)
+        del new_period["_id"]
+        cloned.append(new_period)
+    
+    return {
+        "message": f"Se clonaron {len(cloned)} período(s) del año {source_year['year']} al año {target_year['year']}",
+        "cloned_periods": cloned
+    }
+
 @api_router.post("/academic/migrate-to-years")
 async def migrate_periods_to_years(
     current_user = Depends(get_current_user)
