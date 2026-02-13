@@ -833,6 +833,9 @@ function AcademicTab({ token, user, onRefreshStats }) {
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeMessageMenu, setActiveMessageMenu] = useState(null); // ID of message with open menu
+  const [editingMessage, setEditingMessage] = useState(null); // Message being edited
+  const [editText, setEditText] = useState("");
 
   const headers = { Authorization: `Bearer ${token}` };
 
