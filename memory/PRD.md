@@ -88,7 +88,7 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 - Registro de pagos
 - Integración futura con SUNAT
 
-### ✅ Portal de Estudiantes (NUEVO - 2025-02-13)
+### ✅ Portal de Estudiantes (NUEVO - 2025-02-13, ACTUALIZADO - 2025-02-14)
 - Dashboard con resumen de clases, tareas y anuncios
 - Vista de cursos asignados y materiales
 - Vista de tareas pendientes y entregas
@@ -97,6 +97,11 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 - Mensajería con profesores/coordinadores
 - Perfil personal
 - Seguridad: Solo puede ver datos de su `school_id` y `section_id`
+- **NUEVO Header Unificado (StudentHeader.jsx)**: 
+  - Idéntico al header del Portal del Propietario
+  - Incluye: logo, mensaje de bienvenida, fecha, búsqueda, notificaciones
+  - Menú dropdown del perfil con "Mi Perfil" y "Cerrar sesión"
+  - Aplicado a todas las páginas del Portal del Alumno
 
 ### ✅ Portal de Profesores (NUEVO - 2025-02-13)
 **Layout y Sidebar (TeacherSidebar.jsx)**
