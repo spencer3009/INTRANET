@@ -165,6 +165,34 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 - Password: `test123`
 - Subdominio: `demosettings`
 
+### ✅ Portal de Administradores - FASE 3 (NUEVO - 2025-02-13)
+**Gestión Académica - 4 módulos implementados:**
+
+1. **Gestión de Notas** (`/admin/grades-management`)
+   - Vista resumen por sección con promedios
+   - Vista detalle con filtros (Nivel, Grado, Sección, Asignatura)
+   - Edición administrativa con motivo obligatorio (audit trail)
+   - API: `/api/admin/grades`, `/api/admin/grades/summary`
+
+2. **Gestión de Asistencia** (`/admin/attendance`)
+   - Resumen por sección: presentes, ausentes, tardanzas, justificados
+   - Vista de registros individuales con filtros
+   - Corrección administrativa con motivo (audit trail)
+   - Filtro por rango de fechas
+   - API: `/api/admin/attendance`, `/api/admin/attendance/summary`
+
+3. **Gestión de Tareas** (`/admin/tasks`)
+   - Cards resumen: Total, Activas, Vencidas, Cerradas, Entregas, Sin calificar
+   - Control de estado: cerrar/reabrir tareas
+   - Filtros: Asignatura, Profesor, Estado
+   - API: `/api/admin/tasks`, `/api/admin/tasks/summary`, `/api/admin/tasks/{id}/status`
+
+4. **Gestión de Exámenes** (`/admin/exams`)
+   - Cards resumen: Total, Borradores, Publicados, Programados, Cerrados, Archivados
+   - Edición de estado y fecha programada
+   - Filtros: Asignatura, Estado
+   - API: `/api/admin/exams`, `/api/admin/exams/summary`, `/api/admin/exams/{id}`
+
 ---
 
 ## Decisiones Arquitectónicas Clave
