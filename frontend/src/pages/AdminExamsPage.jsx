@@ -193,7 +193,7 @@ export default function AdminExamsPage({ user, token, onLogout }) {
     try {
       const [settingsRes, subjectsRes, summaryRes, examsRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
-        axios.get(`${API}/subjects`, { headers }),
+        axios.get(`${API}/academic/subjects`, { headers }),
         axios.get(`${API}/admin/exams/summary`, { headers }),
         axios.get(`${API}/admin/exams`, { headers })
       ]);
