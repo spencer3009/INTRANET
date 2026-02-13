@@ -373,7 +373,7 @@ function PostCard({ post, token, user }) {
 }
 
 // Dashboard/Tablero Content - 3 Column Layout (matching owner's portal design)
-function DashboardContent({ subject, teacher, posts, students, tasks, materials, reminders, onViewPost, token, user }) {
+function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, reminders, onViewPost, token, user }) {
   const baseColor = subject?.color || "#06b6d4";
   
   // Helper function to get time ago
@@ -397,10 +397,11 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
     .filter(t => new Date(t.due_date) > new Date())
     .slice(0, 3);
   
-  // Get recent activity (all posts combined)
-  const recentActivity = [...posts, ...tasks.slice(0, 2), ...materials.slice(0, 2)]
+  // Get recent activity (all posts combined including forum posts)
+  const allForumPosts = (forumPosts || []).map(p => ({ ...p, post_type: 'forum' }));
+  const recentActivity = [...posts, ...tasks.slice(0, 3), ...materials.slice(0, 3), ...allForumPosts]
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 5);
+    .slice(0, 10);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
