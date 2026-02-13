@@ -51,9 +51,9 @@ const NAV_SECTIONS = [
     id: "gestion",
     label: "GESTIÓN ACADÉMICA",
     items: [
-      { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/admin/assignments" },
       { id: "notas", label: "Notas", icon: BarChart3, route: "/admin/grades-management" },
       { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/admin/attendance" },
+      { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/admin/tasks" },
       { id: "examenes", label: "Exámenes", icon: FileEdit, route: "/admin/exams" },
     ]
   },
