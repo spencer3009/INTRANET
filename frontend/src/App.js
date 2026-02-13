@@ -519,6 +519,8 @@ function App() {
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 {isStudent(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/student`} replace />
+                ) : isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher`} replace />
                 ) : (
                   <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
                 )}
