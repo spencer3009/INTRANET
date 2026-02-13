@@ -52,6 +52,7 @@ const STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "au
 
 const isStudent = (user) => user?.role === "student";
 const isParent = (user) => user?.role === "parent";
+const isTeacher = (user) => user?.role === "teacher";
 const isStaff = (user) => STAFF_ROLES.includes(user?.role);
 const isAdmin = (user) => ADMIN_ROLES.includes(user?.role);
 
