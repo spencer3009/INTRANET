@@ -1896,8 +1896,8 @@ class SaveAttendanceRequest(BaseModel):
     records: List[AttendanceRecord]
 
 @api_router.post("/teacher/attendance")
-async def save_teacher_attendance(data: SaveAttendanceRequest, current_user = Depends(get_current_user)):
-    """Save attendance records for a section."""
+async def save_teacher_student_attendance(data: SaveAttendanceRequest, current_user = Depends(get_current_user)):
+    """Save attendance records for a section (teacher recording student attendance)."""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
