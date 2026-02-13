@@ -107,8 +107,265 @@ function CourseTabs({ activeTab, onTabChange }) {
   );
 }
 
+// Post Card Component with like and comment functionality
+function PostCard({ post, token, user }) {
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [liking, setLiking] = useState(false);
+  const [liked, setLiked] = useState(post.user_liked || false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  const itemType = post.post_type || post.type || 'announcement';
+  const authorObj = post.author || {};
+  const authorName = authorObj.name || post.author_name || post.created_by_name || 'Profesor';
+  const authorPhoto = authorObj.photo_url || post.author_photo || post.created_by_photo;
+  
+  const getTimeAgo = (dateStr) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Ahora mismo';
+    if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins !== 1 ? 's' : ''}`;
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours !== 1 ? 's' : ''}`;
+    if (diffDays < 7) return `Hace ${diffDays} día${diffDays !== 1 ? 's' : ''}`;
+    return date.toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" });
+  };
+  
+  const handleLike = async () => {
+    if (liking) return;
+    setLiking(true);
+    try {
+      const res = await axios.post(`${API}/api/course/posts/${post.id}/like`, {}, { headers });
+      setLiked(res.data.liked);
+      setLikesCount(res.data.likes_count);
+    } catch (err) {
+      console.error('Error liking:', err);
+    } finally {
+      setLiking(false);
+    }
+  };
+  
+  const loadComments = async () => {
+    setLoadingComments(true);
+    try {
+      const res = await axios.get(`${API}/api/course/posts/${post.id}/comments`, { headers });
+      setComments(res.data || []);
+    } catch (err) {
+      console.error('Error loading comments:', err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+  
+  const handleToggleComments = () => {
+    if (!showComments && comments.length === 0) {
+      loadComments();
+    }
+    setShowComments(!showComments);
+  };
+  
+  const handleSubmitComment = async () => {
+    if (!newComment.trim() || submittingComment) return;
+    setSubmittingComment(true);
+    try {
+      const res = await axios.post(`${API}/api/course/posts/${post.id}/comments`, {
+        content: newComment.trim()
+      }, { headers });
+      setComments([...comments, res.data.comment || res.data]);
+      setNewComment("");
+      setCommentsCount(prev => prev + 1);
+    } catch (err) {
+      console.error('Error commenting:', err);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+  
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-md transition-shadow">
+      {/* Post Header - Author info */}
+      <div className="p-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {authorPhoto ? (
+            <img 
+              src={authorPhoto} 
+              alt={authorName}
+              className="w-12 h-12 rounded-full object-cover"
+            />
+          ) : (
+            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white font-bold">
+              {authorName?.charAt(0) || 'P'}
+            </div>
+          )}
+          <div>
+            <h4 className="font-semibold text-slate-800">{authorName}</h4>
+            <p className="text-xs text-slate-400">{getTimeAgo(post.created_at)}</p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Post Type Badge */}
+      <div className="px-4 pb-2">
+        <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
+          itemType === 'task' ? 'bg-amber-100 text-amber-700' : 
+          itemType === 'material' ? 'bg-indigo-100 text-indigo-700' : 
+          itemType === 'forum' ? 'bg-purple-100 text-purple-700' : 'bg-cyan-100 text-cyan-700'
+        }`}>
+          {itemType === 'task' ? (
+            <FileText className="w-3.5 h-3.5" />
+          ) : itemType === 'material' ? (
+            <FolderOpen className="w-3.5 h-3.5" />
+          ) : itemType === 'forum' ? (
+            <MessageCircle className="w-3.5 h-3.5" />
+          ) : (
+            <Bell className="w-3.5 h-3.5" />
+          )}
+          {itemType === 'task' ? 'Tarea' : itemType === 'material' ? 'Material' : itemType === 'forum' ? 'Foro' : 'Anuncio'}
+        </span>
+      </div>
+      
+      {/* Post Content */}
+      <div className="px-4 pb-4">
+        {post.title && (
+          <h3 className="font-bold text-lg text-slate-800 mb-2">{post.title}</h3>
+        )}
+        {/* Render HTML content properly */}
+        {(post.content || post.description) && (
+          <div 
+            className="prose prose-sm max-w-none text-slate-600"
+            dangerouslySetInnerHTML={{ 
+              __html: post.content || post.description || '' 
+            }}
+          />
+        )}
+        
+        {/* Due date for tasks */}
+        {post.due_date && (
+          <div className="mt-3 flex items-center gap-2 text-amber-600 text-sm font-medium">
+            <Clock className="w-4 h-4" />
+            Fecha de entrega: {new Date(post.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}
+          </div>
+        )}
+      </div>
+      
+      {/* Attachments */}
+      {post.attachments?.length > 0 && (
+        <div className="px-4 pb-4 flex flex-wrap gap-2">
+          {post.attachments.map((file, idx) => (
+            <a
+              key={idx}
+              href={file.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm text-slate-700 hover:bg-slate-200 transition-colors"
+            >
+              <FileIcon className="w-4 h-4" />
+              {file.name}
+              <Download className="w-3.5 h-3.5" />
+            </a>
+          ))}
+        </div>
+      )}
+      
+      {/* Post Actions - Like and Comment */}
+      <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-6">
+        <button 
+          onClick={handleLike}
+          disabled={liking}
+          className={`flex items-center gap-2 transition-colors ${
+            liked ? 'text-red-500' : 'text-slate-500 hover:text-red-500'
+          } ${liking ? 'opacity-50' : ''}`}
+        >
+          <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
+          <span className="text-sm">{likesCount}</span>
+        </button>
+        <button 
+          onClick={handleToggleComments}
+          className="flex items-center gap-2 text-slate-500 hover:text-cyan-500 transition-colors"
+        >
+          <MessageCircle className="w-5 h-5" />
+          <span className="text-sm">{commentsCount}</span>
+        </button>
+      </div>
+      
+      {/* Comments Section */}
+      {showComments && (
+        <div className="px-4 pb-4 border-t border-slate-100">
+          {/* Comment Input */}
+          <div className="flex items-start gap-3 py-4">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+              {user?.name?.charAt(0) || 'E'}
+            </div>
+            <div className="flex-1">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Escribe un comentario..."
+                className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                rows={2}
+              />
+              <div className="flex justify-end mt-2">
+                <button
+                  onClick={handleSubmitComment}
+                  disabled={!newComment.trim() || submittingComment}
+                  className="px-4 py-1.5 bg-cyan-500 text-white text-sm font-medium rounded-lg hover:bg-cyan-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submittingComment ? 'Enviando...' : 'Comentar'}
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Comments List */}
+          {loadingComments ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+            </div>
+          ) : comments.length === 0 ? (
+            <p className="text-center text-slate-400 text-sm py-4">No hay comentarios aún. ¡Sé el primero en comentar!</p>
+          ) : (
+            <div className="space-y-4">
+              {comments.map((comment, idx) => (
+                <div key={comment.id || idx} className="flex items-start gap-3">
+                  {comment.author?.photo_url ? (
+                    <img
+                      src={comment.author.photo_url}
+                      alt={comment.author?.name}
+                      className="w-8 h-8 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-slate-300 flex items-center justify-center text-slate-600 text-xs font-bold flex-shrink-0">
+                      {comment.author?.name?.charAt(0) || 'U'}
+                    </div>
+                  )}
+                  <div className="flex-1 bg-slate-50 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-slate-800">{comment.author?.name || 'Usuario'}</span>
+                      <span className="text-xs text-slate-400">{getTimeAgo(comment.created_at)}</span>
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1">{comment.content}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Dashboard/Tablero Content - 3 Column Layout (matching owner's portal design)
-function DashboardContent({ subject, teacher, posts, students, tasks, materials, reminders, onViewPost }) {
+function DashboardContent({ subject, teacher, posts, students, tasks, materials, reminders, onViewPost, token, user }) {
   const baseColor = subject?.color || "#06b6d4";
   
   // Helper function to get time ago
