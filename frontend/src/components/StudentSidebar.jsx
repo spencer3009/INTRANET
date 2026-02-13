@@ -10,13 +10,15 @@ import {
   User,
   Menu,
   LogOut,
-  GraduationCap
+  GraduationCap,
+  Clock
 } from "lucide-react";
 
 // Student navigation items - simplified menu
 const studentNavItems = [
   { id: "inicio", label: "Dashboard", icon: Home, route: "/student" },
   { id: "cursos", label: "Mis Cursos", icon: BookOpen, route: "/student/courses" },
+  { id: "horarios", label: "Horarios", icon: Clock, route: "/student/schedule" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/student/tasks" },
   { id: "notas", label: "Notas", icon: BarChart3, route: "/student/grades" },
   { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/student/attendance" },
