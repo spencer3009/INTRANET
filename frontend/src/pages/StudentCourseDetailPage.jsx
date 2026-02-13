@@ -10,7 +10,7 @@ import {
   MessageCircle, Bell, Trophy, Download,
   Loader2, AlertCircle, File as FileIcon, 
   ChevronRight, CheckCircle, Lock, Play,
-  Eye, ExternalLink
+  Eye, ExternalLink, Heart
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
