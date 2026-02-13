@@ -111,6 +111,22 @@ function CourseTabs({ activeTab, onTabChange }) {
 function DashboardContent({ subject, teacher, posts, students, tasks, materials, reminders, onViewPost }) {
   const baseColor = subject?.color || "#06b6d4";
   
+  // Helper function to get time ago
+  const getTimeAgo = (dateStr) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Ahora mismo';
+    if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins !== 1 ? 's' : ''}`;
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours !== 1 ? 's' : ''}`;
+    if (diffDays < 7) return `Hace ${diffDays} día${diffDays !== 1 ? 's' : ''}`;
+    return date.toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" });
+  };
+  
   // Get upcoming tasks (next 7 days)
   const upcomingTasks = tasks
     .filter(t => new Date(t.due_date) > new Date())
