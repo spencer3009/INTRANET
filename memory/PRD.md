@@ -201,6 +201,40 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
    - Filtros: Asignatura, Estado
    - API: `/api/admin/exams`, `/api/admin/exams/summary`, `/api/admin/exams/{id}`
 
+### ✅ Portal de Administradores - FASE 4 (NUEVO - 2025-02-13)
+**Comunicación y Configuración - 5 módulos implementados:**
+
+1. **Configuración del Sistema** (`/admin/settings`)
+   - Información del colegio: nombre, título, subdominio
+   - Información de contacto: email, WhatsApp, web
+   - Configuración regional: moneda (PEN/USD/EUR)
+   - Configuración académica: escala notas (0-20), nota aprobatoria, % asistencia
+
+2. **Branding del Colegio** (`/admin/branding`)
+   - Subir/cambiar logo (Cloudinary, máx 5MB)
+   - Colores institucionales: primario, secundario, acento
+   - Vista previa en tiempo real
+   - Paleta de 8 colores predefinidos
+
+3. **Comunicados** (`/admin/announcements`)
+   - CRUD completo de comunicados oficiales
+   - Audiencias: todos, profesores, estudiantes, padres
+   - Estados: borrador, publicado, programado, archivado
+   - **Adjuntos**: PDF e imágenes, máx 10MB, hasta 3 archivos
+   - Filtros por estado y audiencia
+
+4. **Centro de Mensajes** (`/admin/messages`)
+   - Dashboard estadísticas: total, activas, resueltas, hoy
+   - Lista de conversaciones con filtros
+   - Búsqueda por asunto/participante
+   - Badges de tipo y estado
+
+5. **Roles y Permisos** (`/admin/roles`) - Versión Básica
+   - 6 roles del sistema: Owner, Admin, Director, Coordinador, Profesor, Estudiante
+   - Vista de permisos por rol
+   - Conteo de usuarios por rol
+   - Referencia de 13 módulos de permisos
+
 ---
 
 ## Decisiones Arquitectónicas Clave
