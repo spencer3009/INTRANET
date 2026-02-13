@@ -332,7 +332,23 @@ function App() {
             path="/dashboard/*"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <DashboardPage user={user} token={token} onLogout={handleLogout} />
+                {isStudent(user) ? (
+                  <Navigate to="/student" replace />
+                ) : (
+                  <DashboardPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* ════════════════════════════════════════════════════════════════════
+              STUDENT PORTAL - Direct path (for subdomain mode)
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/student/*"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -345,7 +361,21 @@ function App() {
             path="/school/:subdomain/dashboard/*"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
+                {isStudent(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/student`} replace />
+                ) : (
+                  <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Student Portal - Route based */}
+          <Route
+            path="/school/:subdomain/student/*"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
