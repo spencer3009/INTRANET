@@ -995,7 +995,7 @@ function AcademicTab({ token, user, onRefreshStats }) {
   if (selectedContact) {
     return (
       <div className="h-full flex flex-col">
-        {/* Header */}
+        {/* Header with contact info always visible */}
         <div className="p-4 border-b border-slate-200 flex items-center gap-3">
           <button
             onClick={() => setSelectedContact(null)}
@@ -1003,11 +1003,6 @@ function AcademicTab({ token, user, onRefreshStats }) {
           >
             <ArrowLeft className="w-4 h-4 text-slate-600" />
           </button>
-          <span className="font-semibold text-slate-800">Nuevo mensaje</span>
-        </div>
-        
-        {/* Selected contact info */}
-        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
           {selectedContact.photo_url ? (
             <img src={selectedContact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
           ) : (
@@ -1016,8 +1011,10 @@ function AcademicTab({ token, user, onRefreshStats }) {
             </div>
           )}
           <div>
-            <p className="font-medium text-slate-800">{selectedContact.name}</p>
+            <p className="font-semibold text-slate-800">{selectedContact.name}</p>
             <p className="text-xs text-slate-400">{getRoleLabel(selectedContact.role)}</p>
+          </div>
+        </div>
           </div>
         </div>
         
