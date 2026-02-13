@@ -141,7 +141,27 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 - Admins redirigidos automáticamente si intentan acceder a rutas de student/teacher
 
 **Credenciales de prueba**
-- Email: `admin.settings@test.pe`
+- Email: `admin.settings@test.pe` (rol: director/owner - accede a dashboard original)
+- Password: `test123`
+- Subdominio: `demosettings`
+
+### ✅ Portal de Administradores - FASE 2 (NUEVO - 2025-02-13)
+**Estructura Académica (AdminAcademicStructurePage.jsx)**
+- Ruta: `/admin/academic-structure`
+- Tab Años Académicos: CRUD de años con estados (activo, cerrado, futuro)
+- Tab Niveles: CRUD de niveles educativos con toggle activo/inactivo
+- Tab Grados: CRUD de grados por nivel con toggle activo/inactivo
+- Tab Secciones: CRUD de secciones por grado con capacidad
+- Tab Turnos: CRUD de turnos con horarios de inicio/fin
+
+**Seguridad CRÍTICA**
+- El Admin Portal es EXCLUSIVO para usuarios con `role='admin'`
+- Usuarios con `role='owner'` o `role='director'` ven el dashboard original
+- Función `isAdminOnly(user)` en `App.js` controla el acceso
+- Backend usa `is_admin_user()` que permite owner/admin/director para operaciones CRUD
+
+**Credenciales de prueba Admin Portal**
+- Email: `admin@test.pe` (rol: admin - accede al Admin Portal)
 - Password: `test123`
 - Subdominio: `demosettings`
 
