@@ -25,6 +25,7 @@ export default function StudentGradesPage({ user, token, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
   const [grades, setGrades] = useState([]);
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -35,10 +36,17 @@ export default function StudentGradesPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Get student's courses
-      const coursesRes = await axios.get(`${API}/api/student/courses`, { headers });
+      // Get student's courses and settings
+      const [coursesRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/student/courses`, { headers }),
+        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+      ]);
+      
       const studentCourses = coursesRes.data.courses || [];
       setCourses(studentCourses);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+      }
       
       // For now, we'll show grades from graded tasks
       // In a full implementation, this would come from a grades collection
@@ -77,6 +85,10 @@ export default function StudentGradesPage({ user, token, onLogout }) {
       setLoading(false);
     }
   };
+
+  // Get display values from settings
+  const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
+  const logoUrl = settings?.logo_url;
 
   // Calculate course averages
   const courseAverages = courses.map(course => {
