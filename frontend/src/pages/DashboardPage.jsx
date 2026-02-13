@@ -283,6 +283,9 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
 
         </main>
       </div>
+
+      {/* Global Message Center - Floating Button + Drawer */}
+      <MessageCenter token={token} user={user} />
     </div>
   );
 }
