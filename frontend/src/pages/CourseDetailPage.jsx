@@ -263,11 +263,18 @@ function PremiumTabs({ activeTab, onTabChange }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // LEFT SIDEBAR - COURSE INFO
 // ══════════════════════════════════════════════════════════════════════════════
-function CourseInfoSidebar({ subject, subjectId, token }) {
+function CourseInfoSidebar({ subject, subjectId, token, onActivityClick }) {
   const [activities, setActivities] = useState([]);
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [sidebarData, setSidebarData] = useState({ news: [], quick_access: [], stats: {} });
   const [loadingSidebar, setLoadingSidebar] = useState(true);
+
+  // Handle activity click - navigate to the relevant content
+  const handleActivityClick = (activity) => {
+    if (onActivityClick) {
+      onActivityClick(activity);
+    }
+  };
 
   // Load activities from API
   useEffect(() => {
