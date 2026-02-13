@@ -9808,6 +9808,8 @@ async def create_institutional_message(
     }
     
     await db.institutional_messages.insert_one(message)
+    # Remove _id added by MongoDB before returning
+    message.pop("_id", None)
     return {"message": "Comunicado enviado", "data": message}
 
 @api_router.get("/messaging/institutional")
