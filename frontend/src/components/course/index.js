@@ -3,10 +3,15 @@
 
 export { default as TasksTableContent } from './TasksTableContent';
 export { default as PremiumTaskModal, TaskTimePicker } from './PremiumTaskModal';
+export { default as MaterialTableContent } from './MaterialTableContent';
+export { default as ForumContent } from './ForumContent';
+export { default as PremiumForumModal } from './PremiumForumModal';
+export { default as ExamsContent, ExamDetailView } from './ExamsContent';
 
-// TODO: Future extractions
-// export { default as MaterialTableContent } from './MaterialTableContent';
-// export { default as ForumContent } from './ForumContent';
-// export { default as ExamsContent } from './ExamsContent';
-// export { default as ExamDetailView } from './ExamDetailView';
-// export { default as DashboardContent } from './DashboardContent';
+// TODO: Future extractions (still in CourseDetailPage.jsx)
+// - DashboardContent
+// - PostCard
+// - GradesContent
+// - AttendanceContent
+// - RemindersTabContent
+
