@@ -854,7 +854,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
             </div>
             
             {/* Footer with stats */}
-            <div className="flex items-center justify-between px-2">
+            <div className="flex items-center px-2">
               <div className="flex items-center gap-3">
                 {activeReminders.length > 0 && (
                   <span className="px-3 py-1.5 bg-violet-100 text-violet-700 rounded-full text-sm font-semibold">
@@ -872,14 +872,6 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
                   </button>
                 )}
               </div>
-              {canEdit && (
-                <button
-                  onClick={() => { setEditingReminder(null); setShowModal(true); }}
-                  className="w-12 h-12 bg-violet-500 hover:bg-violet-600 text-white rounded-2xl font-semibold flex items-center justify-center shadow-lg shadow-violet-500/25 transition-all"
-                >
-                  <Plus className="w-6 h-6" />
-                </button>
-              )}
             </div>
           </>
         )}
@@ -887,7 +879,7 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
         {/* Modals */}
         <ReminderModal
           isOpen={showModal}
-          onClose={() => { setShowModal(false); setEditingReminder(null); }}
+          onClose={handleModalClose}
           onSave={handleSave}
           reminder={editingReminder}
         />
