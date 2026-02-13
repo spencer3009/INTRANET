@@ -102,6 +102,10 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
   - Incluye: logo, mensaje de bienvenida, fecha, búsqueda, notificaciones
   - Menú dropdown del perfil con "Mi Perfil" y "Cerrar sesión"
   - Aplicado a todas las páginas del Portal del Alumno
+- **CORREGIDO - Branding Dinámico (2025-02-14)**:
+  - Todas las páginas del Portal del Alumno ahora cargan los settings del colegio
+  - Logo, nombre del sistema y branding se obtienen dinámicamente vía `/api/settings`
+  - Patrón unificado igual que en los demás portales (Owner, Teacher, Admin)
 
 ### ✅ Portal de Profesores (NUEVO - 2025-02-13)
 **Layout y Sidebar (TeacherSidebar.jsx)**
