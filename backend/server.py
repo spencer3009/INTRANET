@@ -10163,6 +10163,7 @@ class CoursePostUpdate(BaseModel):
 
 class PostCommentCreate(BaseModel):
     content: str
+    parent_id: Optional[str] = None  # For reply to another comment
 
 @api_router.get("/course/{subject_id}/posts")
 async def get_course_posts(
