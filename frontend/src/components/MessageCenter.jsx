@@ -808,38 +808,53 @@ function CreateSupportModal({ token, onClose, onCreated }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ACADEMIC TAB
+// ACADEMIC TAB - Shows contacts directly with Spanish role labels
 // ══════════════════════════════════════════════════════════════════════════════
+
+// Role translation map
+const ROLE_LABELS = {
+  owner: "Propietario",
+  director: "Director",
+  admin: "Administrador",
+  coordinator: "Coordinador",
+  teacher: "Profesor",
+  auxiliar: "Auxiliar",
+  student: "Alumno",
+  parent: "Padre de familia"
+};
+
 function AcademicTab({ token, user, onRefreshStats }) {
   const [threads, setThreads] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showNewMessage, setShowNewMessage] = useState(false);
   const [selectedThread, setSelectedThread] = useState(null);
   const [selectedContact, setSelectedContact] = useState(null);
   const [messageText, setMessageText] = useState("");
   const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const headers = { Authorization: `Bearer ${token}` };
 
+  const getRoleLabel = (role) => ROLE_LABELS[role] || role;
+
   const loadThreads = async () => {
-    setLoading(true);
     try {
       const res = await axios.get(`${API}/messaging/academic`, { headers });
       setThreads(res.data.threads || []);
     } catch (err) {
       console.error("Error:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
   const loadContacts = async () => {
+    setLoading(true);
     try {
       const res = await axios.get(`${API}/messaging/academic/contacts`, { headers });
       setContacts(res.data.contacts || []);
     } catch (err) {
       console.error("Error:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -883,8 +898,11 @@ function AcademicTab({ token, user, onRefreshStats }) {
       loadThreads();
       onRefreshStats();
       
-      if (showNewMessage) {
-        setShowNewMessage(false);
+      if (selectedContact && !selectedThread) {
+        // After sending first message to a contact, transition to thread view
+        if (res.data.thread_id) {
+          loadThread(res.data.thread_id);
+        }
         setSelectedContact(null);
       }
     } catch (err) {
@@ -894,7 +912,13 @@ function AcademicTab({ token, user, onRefreshStats }) {
     }
   };
 
-  // Thread detail view
+  // Filter contacts by search query
+  const filteredContacts = contacts.filter(contact => 
+    contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    getRoleLabel(contact.role)?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Thread detail view (conversation)
   if (selectedThread) {
     const other = selectedThread.other_participant;
     
@@ -917,7 +941,7 @@ function AcademicTab({ token, user, onRefreshStats }) {
           )}
           <div>
             <p className="font-semibold text-slate-800">{other?.name}</p>
-            <p className="text-xs text-slate-400 capitalize">{other?.role}</p>
+            <p className="text-xs text-slate-400">{getRoleLabel(other?.role)}</p>
           </div>
         </div>
 
@@ -967,153 +991,120 @@ function AcademicTab({ token, user, onRefreshStats }) {
     );
   }
 
-  // New message view
-  if (showNewMessage) {
+  // Composing new message to a selected contact
+  if (selectedContact) {
     return (
       <div className="h-full flex flex-col">
+        {/* Header */}
         <div className="p-4 border-b border-slate-200 flex items-center gap-3">
           <button
-            onClick={() => { setShowNewMessage(false); setSelectedContact(null); }}
+            onClick={() => setSelectedContact(null)}
             className="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors"
           >
             <ArrowLeft className="w-4 h-4 text-slate-600" />
           </button>
           <span className="font-semibold text-slate-800">Nuevo mensaje</span>
         </div>
-
-        {!selectedContact ? (
-          <div className="flex-1 overflow-y-auto">
-            <div className="p-4">
-              <p className="text-sm text-slate-500 mb-3">Selecciona un contacto:</p>
+        
+        {/* Selected contact info */}
+        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
+          {selectedContact.photo_url ? (
+            <img src={selectedContact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+          ) : (
+            <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+              <User className="w-5 h-5 text-amber-500" />
             </div>
-            <div className="divide-y divide-slate-100">
-              {contacts.map((contact) => (
-                <div
-                  key={contact.id}
-                  onClick={() => setSelectedContact(contact)}
-                  className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
-                >
-                  {contact.photo_url ? (
-                    <img src={contact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                      <User className="w-5 h-5 text-amber-500" />
-                    </div>
-                  )}
-                  <div>
-                    <p className="font-medium text-slate-800">{contact.name}</p>
-                    <p className="text-xs text-slate-400 capitalize">{contact.role} {contact.subject_name && `• ${contact.subject_name}`}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          )}
+          <div>
+            <p className="font-medium text-slate-800">{selectedContact.name}</p>
+            <p className="text-xs text-slate-400">{getRoleLabel(selectedContact.role)}</p>
           </div>
-        ) : (
-          <>
-            <div className="p-4 border-b border-slate-100 flex items-center gap-3">
-              {selectedContact.photo_url ? (
-                <img src={selectedContact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                  <User className="w-5 h-5 text-amber-500" />
-                </div>
-              )}
-              <div>
-                <p className="font-medium text-slate-800">{selectedContact.name}</p>
-                <p className="text-xs text-slate-400 capitalize">{selectedContact.role}</p>
-              </div>
-            </div>
-            <div className="flex-1" />
-            <div className="p-4 border-t border-slate-200">
-              <div className="flex items-end gap-2">
-                <textarea
-                  value={messageText}
-                  onChange={(e) => setMessageText(e.target.value)}
-                  placeholder="Escribe tu mensaje..."
-                  rows={3}
-                  className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors resize-none text-sm"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={sending || !messageText.trim()}
-                  className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl flex items-center justify-center transition-all"
-                >
-                  {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+        </div>
+        
+        <div className="flex-1" />
+        
+        {/* Message input */}
+        <div className="p-4 border-t border-slate-200">
+          <div className="flex items-end gap-2">
+            <textarea
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              placeholder="Escribe tu mensaje..."
+              rows={3}
+              className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors resize-none text-sm"
+            />
+            <button
+              onClick={handleSendMessage}
+              disabled={sending || !messageText.trim()}
+              className="w-12 h-12 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl flex items-center justify-center transition-all"
+            >
+              {sending ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
 
+  // Main view: Contact list (shown directly as requested)
   return (
     <div className="h-full flex flex-col">
-      {/* New message button */}
+      {/* Search bar */}
       <div className="p-4 border-b border-slate-100">
-        <button
-          onClick={() => setShowNewMessage(true)}
-          className="w-full px-4 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Nuevo Mensaje
-        </button>
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar contacto..."
+            className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-400 transition-colors"
+          />
+        </div>
       </div>
 
-      {/* Threads list */}
+      {/* Contacts list */}
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
           </div>
-        ) : threads.length === 0 ? (
+        ) : filteredContacts.length === 0 ? (
           <div className="text-center py-12 px-6">
             <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <GraduationCap className="w-8 h-8 text-amber-300" />
             </div>
-            <h3 className="font-semibold text-slate-700 mb-1">Sin mensajes</h3>
-            <p className="text-sm text-slate-400">Inicia una conversación con un docente</p>
+            <h3 className="font-semibold text-slate-700 mb-1">
+              {searchQuery ? "Sin resultados" : "Sin contactos"}
+            </h3>
+            <p className="text-sm text-slate-400">
+              {searchQuery ? "Intenta con otro término de búsqueda" : "No hay contactos disponibles"}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
-            {threads.map((thread) => {
-              const other = thread.other_participant;
-              const lastMsg = thread.messages?.[thread.messages.length - 1];
-              
-              return (
-                <div
-                  key={thread.id}
-                  onClick={() => loadThread(thread.id)}
-                  className={`px-4 py-4 hover:bg-slate-50 cursor-pointer transition-colors ${thread.has_unread ? "bg-amber-50/50" : ""}`}
-                >
-                  <div className="flex items-center gap-3">
-                    {other?.photo_url ? (
-                      <img src={other.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                        <User className="w-6 h-6 text-amber-500" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className={`font-semibold text-slate-800 truncate ${thread.has_unread ? "" : "font-medium"}`}>
-                          {other?.name}
-                        </p>
-                        {thread.has_unread && (
-                          <span className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0" />
-                        )}
-                      </div>
-                      <p className="text-sm text-slate-500 truncate">{lastMsg?.content}</p>
-                      <p className="text-[10px] text-slate-400 mt-1">
-                        {new Date(thread.updated_at).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
-                      </p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 flex-shrink-0" />
+            {filteredContacts.map((contact) => (
+              <div
+                key={contact.id}
+                onClick={() => setSelectedContact(contact)}
+                className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
+              >
+                {contact.photo_url ? (
+                  <img src={contact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                    <User className="w-5 h-5 text-amber-500" />
                   </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-slate-800">{contact.name}</p>
+                  <p className="text-xs text-slate-400">
+                    {getRoleLabel(contact.role)}
+                    {contact.subject_name && ` • ${contact.subject_name}`}
+                  </p>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
