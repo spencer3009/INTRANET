@@ -4,6 +4,7 @@ import axios from "axios";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import HeroCarousel from "../components/HeroCarousel";
 import {
   BookOpen,
   ClipboardList,
@@ -16,6 +17,7 @@ import {
   Loader2,
   GraduationCap,
   User,
+  Users,
   Menu,
   TrendingUp,
   CalendarCheck
@@ -30,6 +32,122 @@ const PRIORITY_COLORS = {
   urgent: "bg-red-100 text-red-700"
 };
 
+// Student Profile Card Component
+function StudentProfileCard({ profile, dashboardData, academic }) {
+  const userPhoto = profile?.user?.photo_url;
+  const userName = profile?.user?.name || "Alumno";
+  const userLastName = profile?.user?.last_name || "";
+  const fullName = userLastName ? `${userName} ${userLastName}` : userName;
+  
+  // Get academic info
+  const gradeName = academic?.grado?.nombre || "";
+  const sectionName = academic?.seccion?.nombre || "";
+  const levelName = academic?.nivel?.nombre || "";
+  const academicInfo = [gradeName, sectionName].filter(Boolean).join(" – ");
+  
+  // Get stats from dashboard data
+  const coursesCount = dashboardData?.courses_count || 0;
+  const classmates = dashboardData?.section_students_count || 0;
+  const pendingTasks = dashboardData?.upcoming_tasks?.length || 0;
+  
+  // Calculate attendance percentage
+  const attendance = dashboardData?.attendance_summary;
+  let attendancePercent = "N/A";
+  if (attendance) {
+    const total = (attendance.present || 0) + (attendance.absent || 0) + (attendance.late || 0) + (attendance.justified || 0);
+    if (total > 0) {
+      const attended = (attendance.present || 0) + (attendance.justified || 0);
+      attendancePercent = `${Math.round((attended / total) * 100)}%`;
+    }
+  }
+
+  // Get initials for default avatar
+  const getInitials = (name) => {
+    if (!name) return "A";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 text-center" data-testid="student-profile-card">
+      {/* Avatar */}
+      <div className="relative w-20 h-20 mx-auto mb-3">
+        {userPhoto ? (
+          <img
+            src={userPhoto}
+            alt={fullName}
+            className="w-full h-full object-cover rounded-full border-3 border-white shadow-md"
+            onError={(e) => { 
+              e.target.style.display = 'none';
+              e.target.nextSibling?.classList.remove('hidden');
+            }}
+          />
+        ) : null}
+        <div className={`w-full h-full rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white font-bold text-2xl border-3 border-white shadow-md ${userPhoto ? 'hidden' : ''}`}>
+          {getInitials(fullName)}
+        </div>
+        <div className="absolute bottom-0 right-0 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full" title="En línea" />
+      </div>
+
+      {/* Role Badge */}
+      <div className="mb-2 flex justify-center">
+        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wide border bg-cyan-100 text-cyan-700 border-cyan-200">
+          <GraduationCap className="w-3 h-3" />
+          ALUMNO
+        </span>
+      </div>
+      
+      {/* Name */}
+      <h4 className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>
+        {fullName}
+      </h4>
+      
+      {/* Academic Info */}
+      {academicInfo && (
+        <p className="text-sm text-slate-600 mt-1 font-medium">{academicInfo}</p>
+      )}
+      {levelName && (
+        <p className="text-xs text-slate-400 mt-0.5">{levelName}</p>
+      )}
+
+      {/* Stats Grid */}
+      <div className="mt-5 grid grid-cols-2 gap-3">
+        <div className="bg-slate-50 rounded-lg p-3">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <BookOpen className="w-3.5 h-3.5 text-cyan-500" />
+          </div>
+          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{coursesCount}</p>
+          <p className="text-[11px] text-slate-500">Cursos</p>
+        </div>
+        <div className="bg-slate-50 rounded-lg p-3">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <Users className="w-3.5 h-3.5 text-indigo-500" />
+          </div>
+          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{classmates}</p>
+          <p className="text-[11px] text-slate-500">Compañeros</p>
+        </div>
+        <div className="bg-slate-50 rounded-lg p-3">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <ClipboardList className="w-3.5 h-3.5 text-amber-500" />
+          </div>
+          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{pendingTasks}</p>
+          <p className="text-[11px] text-slate-500">Tareas Pend.</p>
+        </div>
+        <div className="bg-slate-50 rounded-lg p-3">
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <CalendarCheck className="w-3.5 h-3.5 text-emerald-500" />
+          </div>
+          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{attendancePercent}</p>
+          <p className="text-[11px] text-slate-500">Asistencia</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function StudentDashboardPage({ user, token, onLogout }) {
   const navigate = useNavigate();
   const { subdomain } = useParams();
@@ -40,6 +158,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
   const [dashboardData, setDashboardData] = useState(null);
   const [courses, setCourses] = useState([]);
   const [settings, setSettings] = useState(null);
+  const [banners, setBanners] = useState([]);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -50,16 +169,18 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, dashboardRes, coursesRes, settingsRes] = await Promise.all([
+      const [profileRes, dashboardRes, coursesRes, settingsRes, bannersRes] = await Promise.all([
         axios.get(`${API}/api/student/profile`, { headers }),
         axios.get(`${API}/api/student/dashboard`, { headers }),
         axios.get(`${API}/api/student/courses`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null })),
+        axios.get(`${API}/api/dashboard/banners/active`, { headers }).catch(() => ({ data: [] }))
       ]);
       
       setStudentProfile(profileRes.data);
       setDashboardData(dashboardRes.data);
       setCourses(coursesRes.data.courses || []);
+      setBanners(bannersRes.data || []);
       if (settingsRes.data) {
         setSettings(settingsRes.data);
       }
