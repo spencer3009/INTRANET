@@ -373,11 +373,55 @@ export default function NotificationBell({ token }) {
               <Bell className="w-4 h-4" />
               Notificaciones
             </h3>
-            {totalCount > 0 && (
-              <span className="px-2 py-0.5 bg-white/20 text-white rounded-full text-xs font-medium">
-                {totalCount} pendiente{totalCount !== 1 ? "s" : ""}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              {totalCount > 0 && (
+                <span className="px-2 py-0.5 bg-white/20 text-white rounded-full text-xs font-medium">
+                  {totalCount} pendiente{totalCount !== 1 ? "s" : ""}
+                </span>
+              )}
+              {generalNotifications.unread_count > 0 && (
+                <button
+                  onClick={markAllAsRead}
+                  className="text-xs text-white/80 hover:text-white underline"
+                >
+                  Marcar todo leído
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tabs */}
+          <div className="flex border-b border-gray-200">
+            <button
+              onClick={() => setActiveTab("all")}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === "all"
+                  ? "text-violet-600 border-b-2 border-violet-500 bg-violet-50"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Actividad
+              {generalNotifications.unread_count > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 bg-violet-500 text-white text-[10px] rounded-full">
+                  {generalNotifications.unread_count}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("reminders")}
+              className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+                activeTab === "reminders"
+                  ? "text-violet-600 border-b-2 border-violet-500 bg-violet-50"
+                  : "text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              Recordatorios
+              {notifications.total_count > 0 && (
+                <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] rounded-full">
+                  {notifications.total_count}
+                </span>
+              )}
+            </button>
           </div>
 
           {/* Content */}
@@ -387,76 +431,137 @@ export default function NotificationBell({ token }) {
                 <Loader2 className="w-6 h-6 text-violet-400 animate-spin mx-auto" />
                 <p className="text-xs text-gray-400 mt-2">Cargando...</p>
               </div>
-            ) : !hasNotifications ? (
-              <div className="py-8 text-center">
-                <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-3">
-                  <Sparkles className="w-6 h-6 text-violet-300" />
+            ) : activeTab === "all" ? (
+              /* General Notifications Tab */
+              generalNotifications.notifications.length === 0 ? (
+                <div className="py-8 text-center">
+                  <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <Sparkles className="w-6 h-6 text-violet-300" />
+                  </div>
+                  <p className="text-gray-500 text-sm font-medium">¡Todo al día!</p>
+                  <p className="text-gray-400 text-xs mt-1">No hay actividad reciente</p>
                 </div>
-                <p className="text-gray-500 text-sm font-medium">¡Todo al día!</p>
-                <p className="text-gray-400 text-xs mt-1">No tienes notificaciones pendientes</p>
-              </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {generalNotifications.notifications.map((notif) => {
+                    const config = REMINDER_TYPE_CONFIG[notif.notification_type] || REMINDER_TYPE_CONFIG.notice;
+                    const Icon = config.icon;
+                    return (
+                      <div
+                        key={notif.id}
+                        onClick={() => markGeneralAsRead(notif.id)}
+                        className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+                          !notif.is_read ? "bg-violet-50/50" : ""
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`w-10 h-10 rounded-xl ${config.bgColor} flex items-center justify-center flex-shrink-0`}>
+                            <Icon className={`w-5 h-5 ${config.color}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-semibold text-gray-800 truncate">{notif.title}</p>
+                              {!notif.is_read && (
+                                <span className="w-2 h-2 bg-violet-500 rounded-full flex-shrink-0"></span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <span className={`px-2 py-0.5 ${config.badgeColor} text-white text-[10px] font-medium rounded-full`}>
+                                {config.label}
+                              </span>
+                              {notif.subject_name && (
+                                <span className="text-[10px] text-gray-400">{notif.subject_name}</span>
+                              )}
+                              <span className="text-[10px] text-gray-400">
+                                {new Date(notif.created_at).toLocaleDateString("es-PE", {
+                                  day: "numeric",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit"
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )
             ) : (
-              <>
-                {/* Important Section */}
-                {notifications.important.length > 0 && (
-                  <div>
-                    <div className="px-4 py-2 bg-amber-50 border-b border-amber-100">
-                      <p className="text-[10px] font-bold text-amber-600 uppercase flex items-center gap-1">
-                        <AlertCircle className="w-3 h-3" />
-                        Importantes ({notifications.important.length})
-                      </p>
-                    </div>
-                    {notifications.important.map((reminder) => (
-                      <NotificationItem
-                        key={reminder.id}
-                        reminder={reminder}
-                        onClick={handleReminderClick}
-                        onMarkViewed={markAsViewed}
-                      />
-                    ))}
+              /* Reminders Tab */
+              !hasNotifications ? (
+                <div className="py-8 text-center">
+                  <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <Sparkles className="w-6 h-6 text-violet-300" />
                   </div>
-                )}
+                  <p className="text-gray-500 text-sm font-medium">¡Todo al día!</p>
+                  <p className="text-gray-400 text-xs mt-1">No tienes recordatorios pendientes</p>
+                </div>
+              ) : (
+                <>
+                  {/* Important Section */}
+                  {notifications.important.length > 0 && (
+                    <div>
+                      <div className="px-4 py-2 bg-amber-50 border-b border-amber-100">
+                        <p className="text-[10px] font-bold text-amber-600 uppercase flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" />
+                          Importantes ({notifications.important.length})
+                        </p>
+                      </div>
+                      {notifications.important.map((reminder) => (
+                        <NotificationItem
+                          key={reminder.id}
+                          reminder={reminder}
+                          onClick={handleReminderClick}
+                          onMarkViewed={markAsViewed}
+                        />
+                      ))}
+                    </div>
+                  )}
 
-                {/* Upcoming Section */}
-                {notifications.upcoming.length > 0 && (
-                  <div>
-                    <div className="px-4 py-2 bg-rose-50 border-b border-rose-100">
-                      <p className="text-[10px] font-bold text-rose-600 uppercase flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Próximos a vencer ({notifications.upcoming.length})
-                      </p>
+                  {/* Upcoming Section */}
+                  {notifications.upcoming.length > 0 && (
+                    <div>
+                      <div className="px-4 py-2 bg-rose-50 border-b border-rose-100">
+                        <p className="text-[10px] font-bold text-rose-600 uppercase flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          Próximos a vencer ({notifications.upcoming.length})
+                        </p>
+                      </div>
+                      {notifications.upcoming.map((reminder) => (
+                        <NotificationItem
+                          key={reminder.id}
+                          reminder={reminder}
+                          onClick={handleReminderClick}
+                          onMarkViewed={markAsViewed}
+                        />
+                      ))}
                     </div>
-                    {notifications.upcoming.map((reminder) => (
-                      <NotificationItem
-                        key={reminder.id}
-                        reminder={reminder}
-                        onClick={handleReminderClick}
-                        onMarkViewed={markAsViewed}
-                      />
-                    ))}
-                  </div>
-                )}
+                  )}
 
-                {/* New Section */}
-                {notifications.new.length > 0 && (
-                  <div>
-                    <div className="px-4 py-2 bg-blue-50 border-b border-blue-100">
-                      <p className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1">
-                        <Sparkles className="w-3 h-3" />
-                        Nuevos ({notifications.new.length})
-                      </p>
+                  {/* New Section */}
+                  {notifications.new.length > 0 && (
+                    <div>
+                      <div className="px-4 py-2 bg-blue-50 border-b border-blue-100">
+                        <p className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1">
+                          <Sparkles className="w-3 h-3" />
+                          Nuevos ({notifications.new.length})
+                        </p>
+                      </div>
+                      {notifications.new.map((reminder) => (
+                        <NotificationItem
+                          key={reminder.id}
+                          reminder={reminder}
+                          onClick={handleReminderClick}
+                          onMarkViewed={markAsViewed}
+                        />
+                      ))}
                     </div>
-                    {notifications.new.map((reminder) => (
-                      <NotificationItem
-                        key={reminder.id}
-                        reminder={reminder}
-                        onClick={handleReminderClick}
-                        onMarkViewed={markAsViewed}
-                      />
-                    ))}
-                  </div>
-                )}
-              </>
+                  )}
+                </>
+              )
             )}
           </div>
         </div>
