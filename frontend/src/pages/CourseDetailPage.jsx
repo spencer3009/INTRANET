@@ -5282,67 +5282,6 @@ function ExamsContent({ subjectId, token, userRole }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// FORUM TAB CONTENT
-// ══════════════════════════════════════════════════════════════════════════════
-function ForumContent({ threads, onCreateThread }) {
-  return (
-    <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Buscar en el foro..."
-            className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-        <button
-          onClick={onCreateThread}
-          className="px-5 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold hover:shadow-lg hover:scale-[1.02] transition-all flex items-center gap-2"
-        >
-          <Plus className="w-5 h-5" />
-          Nueva discusión
-        </button>
-      </div>
-      
-      {threads.length === 0 ? (
-        <EmptyState
-          icon={MessageCircle}
-          title="Sin discusiones"
-          description="El foro está vacío. Inicia una discusión para interactuar con la clase."
-          action="Crear discusión"
-          onAction={onCreateThread}
-        />
-      ) : (
-        <div className="space-y-3">
-          {threads.map((thread, idx) => (
-            <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-md transition-all cursor-pointer">
-              <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-bold">
-                  {thread.author?.charAt(0)}
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-bold text-gray-800 mb-1">{thread.title}</h4>
-                  <p className="text-sm text-gray-500 line-clamp-2">{thread.preview}</p>
-                  <div className="flex items-center gap-4 mt-3 text-sm text-gray-400">
-                    <span>{thread.author}</span>
-                    <span>{thread.date}</span>
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="w-4 h-4" />
-                      {thread.replies} respuestas
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════════════════════
 // GRADES TAB CONTENT
 // ══════════════════════════════════════════════════════════════════════════════
 function GradesContent({ grades }) {
