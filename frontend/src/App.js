@@ -684,6 +684,8 @@ function App() {
                   <Navigate to={`/school/${user?.subdomain}/student`} replace />
                 ) : isTeacher(user) ? (
                   <Navigate to={`/school/${user?.subdomain}/teacher`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
                 ) : (
                   <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
                 )}
