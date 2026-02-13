@@ -118,6 +118,9 @@ function PostCard({ post, token, user }) {
   const [liked, setLiked] = useState(post.user_liked || false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
+  const [replyingTo, setReplyingTo] = useState(null); // { id, authorName } for replying to a specific comment
+  const [replyText, setReplyText] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
   const itemType = post.post_type || post.type || 'announcement';
@@ -180,13 +183,43 @@ function PostCard({ post, token, user }) {
       const res = await axios.post(`${API}/api/course/posts/${post.id}/comments`, {
         content: newComment.trim()
       }, { headers });
-      setComments([...comments, res.data.comment || res.data]);
+      const newCommentData = res.data.comment || res.data;
+      newCommentData.replies = []; // Initialize empty replies array
+      setComments([...comments, newCommentData]);
       setNewComment("");
       setCommentsCount(prev => prev + 1);
     } catch (err) {
       console.error('Error commenting:', err);
     } finally {
       setSubmittingComment(false);
+    }
+  };
+  
+  const handleSubmitReply = async (parentCommentId) => {
+    if (!replyText.trim() || submittingReply) return;
+    setSubmittingReply(true);
+    try {
+      const res = await axios.post(`${API}/api/course/posts/${post.id}/comments`, {
+        content: replyText.trim(),
+        parent_id: parentCommentId
+      }, { headers });
+      const newReply = res.data.comment || res.data;
+      
+      // Add reply to the parent comment
+      setComments(comments.map(c => {
+        if (c.id === parentCommentId) {
+          return { ...c, replies: [...(c.replies || []), newReply] };
+        }
+        return c;
+      }));
+      
+      setReplyText("");
+      setReplyingTo(null);
+      setCommentsCount(prev => prev + 1);
+    } catch (err) {
+      console.error('Error replying:', err);
+    } finally {
+      setSubmittingReply(false);
     }
   };
   
