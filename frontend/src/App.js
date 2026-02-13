@@ -260,15 +260,15 @@ function App() {
       return user?.subdomain ? `/school/${user.subdomain}/teacher` : '/teacher';
     }
     
-    // Admin roles (admin, owner, director, coordinator) get admin portal
-    if (isAdmin(user)) {
+    // Only role="admin" goes to admin portal (NOT owner, director, coordinator)
+    if (isAdminOnly(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
         return '/admin';
       }
       return user?.subdomain ? `/school/${user.subdomain}/admin` : '/admin';
     }
     
-    // Default: regular dashboard
+    // Default: regular dashboard (owner, director, coordinator, etc.)
     if (environment.mode === 'subdomain' || environment.supportsWildcard) {
       return '/dashboard';
     }
