@@ -7,8 +7,13 @@ import DashboardHeader from "../components/DashboardHeader";
 import CourseRemindersPanel from "../components/CourseRemindersPanel";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
 import {
   BookOpen, Users, Edit3, ChevronRight, Clock, 
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
