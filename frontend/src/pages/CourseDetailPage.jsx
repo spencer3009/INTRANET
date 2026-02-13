@@ -4202,41 +4202,46 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           
-          {/* 3-Column Layout - Hide sidebars for exams tab */}
-          <div className={`mt-6 grid grid-cols-1 gap-6 items-start ${
-            activeTab === "examenes" 
-              ? "" 
-              : "lg:grid-cols-12"
-          }`}>
-            {/* Left Sidebar - Sticky (hidden on exams tab) */}
-            {activeTab !== "examenes" && (
-              <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
-                <CourseInfoSidebar
-                  subject={subject}
-                  subjectId={subjectId}
-                  token={token}
-                  onActivityClick={handleActivityClick}
-                />
-              </aside>
-            )}
-            
-            {/* Main Content Area - Full width on exams tab */}
-            <div className={activeTab === "examenes" ? "" : "lg:col-span-6"}>
-              {renderTabContent()}
-            </div>
-            
-            {/* Right Sidebar - Sticky (hidden on exams tab) */}
-            {activeTab !== "examenes" && (
-              <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
-                <CourseRightSidebar
-                  teacher={teacher}
-                  students={students}
-                  subjectId={subjectId}
-                  token={token}
-                  userRole={user?.role}
-                />
-              </aside>
-            )}
+          {/* 3-Column Layout - Hide sidebars for full-width tabs */}
+          {(() => {
+            const fullWidthTabs = ["examenes", "tareas"];
+            const isFullWidth = fullWidthTabs.includes(activeTab);
+            return (
+              <div className={`mt-6 grid grid-cols-1 gap-6 items-start ${
+                isFullWidth ? "" : "lg:grid-cols-12"
+              }`}>
+                {/* Left Sidebar - Sticky (hidden on full-width tabs) */}
+                {!isFullWidth && (
+                  <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
+                    <CourseInfoSidebar
+                      subject={subject}
+                      subjectId={subjectId}
+                      token={token}
+                      onActivityClick={handleActivityClick}
+                    />
+                  </aside>
+                )}
+                
+                {/* Main Content Area - Full width on selected tabs */}
+                <div className={isFullWidth ? "" : "lg:col-span-6"}>
+                  {renderTabContent()}
+                </div>
+                
+                {/* Right Sidebar - Sticky (hidden on full-width tabs) */}
+                {!isFullWidth && (
+                  <aside className="hidden lg:block lg:col-span-3 sticky top-[200px] self-start">
+                    <CourseRightSidebar
+                      teacher={teacher}
+                      students={students}
+                      subjectId={subjectId}
+                      token={token}
+                      userRole={user?.role}
+                    />
+                  </aside>
+                )}
+              </div>
+            );
+          })()}
           </div>
         </main>
       </div>
