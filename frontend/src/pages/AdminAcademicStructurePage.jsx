@@ -117,10 +117,14 @@ function AcademicYearsTab({ token, headers }) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({ year: new Date().getFullYear() + 1, status: "futuro" });
+  const [formData, setFormData] = useState({ year: new Date().getFullYear() + 1, status: "futuro", clone_from_year: null });
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+  const [showPeriodsModal, setShowPeriodsModal] = useState(false);
+  const [selectedYear, setSelectedYear] = useState(null);
+  const [periods, setPeriods] = useState([]);
+  const [loadingPeriods, setLoadingPeriods] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -137,6 +141,19 @@ function AcademicYearsTab({ token, headers }) {
     }
   };
 
+  const loadPeriods = async (yearId) => {
+    setLoadingPeriods(true);
+    try {
+      const res = await axios.get(`${API}/academic/periods?year_id=${yearId}`, { headers });
+      setPeriods(res.data || []);
+    } catch (err) {
+      console.error("Error loading periods:", err);
+      setPeriods([]);
+    } finally {
+      setLoadingPeriods(false);
+    }
+  };
+
   const handleSave = async () => {
     if (!formData.year) return;
     setSaving(true);
@@ -144,12 +161,14 @@ function AcademicYearsTab({ token, headers }) {
       if (editingItem) {
         await axios.put(`${API}/academic/years/${editingItem.id}`, formData, { headers });
       } else {
-        await axios.post(`${API}/academic/years`, formData, { headers });
+        const payload = { ...formData };
+        if (!payload.clone_from_year) delete payload.clone_from_year;
+        await axios.post(`${API}/academic/years`, payload, { headers });
       }
       loadData();
       setShowModal(false);
       setEditingItem(null);
-      setFormData({ year: new Date().getFullYear() + 1, status: "futuro" });
+      setFormData({ year: new Date().getFullYear() + 1, status: "futuro", clone_from_year: null });
     } catch (err) {
       alert(err.response?.data?.detail || "Error al guardar");
     } finally {
@@ -161,7 +180,8 @@ function AcademicYearsTab({ token, headers }) {
     setEditingItem(item);
     setFormData({
       year: item.year,
-      status: item.status || "futuro"
+      status: item.status || "futuro",
+      clone_from_year: null
     });
     setShowModal(true);
   };
@@ -176,6 +196,12 @@ function AcademicYearsTab({ token, headers }) {
     } catch (err) {
       alert(err.response?.data?.detail || "Error al eliminar");
     }
+  };
+
+  const handleViewPeriods = (year) => {
+    setSelectedYear(year);
+    loadPeriods(year.id);
+    setShowPeriodsModal(true);
   };
 
   const getStatusBadge = (status) => {
@@ -196,6 +222,9 @@ function AcademicYearsTab({ token, headers }) {
     );
   };
 
+  // Get years that have periods for cloning
+  const yearsWithPeriods = years.filter(y => y.period_count > 0);
+
   if (loading) {
     return <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-purple-600" /></div>;
   }
@@ -205,7 +234,7 @@ function AcademicYearsTab({ token, headers }) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">{years.length} año(s) académico(s)</p>
         <button
-          onClick={() => { setEditingItem(null); setFormData({ year: new Date().getFullYear() + 1, status: "futuro" }); setShowModal(true); }}
+          onClick={() => { setEditingItem(null); setFormData({ year: new Date().getFullYear() + 1, status: "futuro", clone_from_year: null }); setShowModal(true); }}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
