@@ -762,23 +762,24 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
         setSubject(course);
         setTeacher(course.teacher);
         
-        // Load students from the same section for this course
+        // Load students from the same section
         if (course.section_id) {
           try {
-            const studentsRes = await axios.get(`${API}/api/sections/${course.section_id}/students`, { headers });
-            setStudents(studentsRes.data.students || []);
+            // Use the users endpoint filtered by section_id
+            const studentsRes = await axios.get(`${API}/api/users?role=student&section_id=${course.section_id}`, { headers });
+            setStudents(studentsRes.data || []);
           } catch (e) {
-            console.log("Could not load students list");
+            console.log("Could not load students list:", e);
           }
         }
       }
       
-      // Load course reminders
+      // Load course reminders - correct endpoint
       try {
-        const remindersRes = await axios.get(`${API}/api/courses/${courseId}/reminders`, { headers });
+        const remindersRes = await axios.get(`${API}/api/course/${courseId}/reminders`, { headers });
         setReminders(remindersRes.data || []);
       } catch (e) {
-        console.log("Could not load reminders");
+        console.log("Could not load reminders:", e);
       }
       
       // Load course content
