@@ -1379,15 +1379,18 @@ function TaskTimePicker({ value, onChange, label }) {
                 onClick={handleDialClick}
                 className="relative w-[240px] h-[240px] mx-auto rounded-full bg-white shadow-inner border border-slate-200 cursor-pointer"
               >
-                {/* Hand line - starts from center, points to selected number */}
+                {/* Hand line - from center pointing outward */}
                 <div 
-                  className="absolute left-1/2 top-1/2 z-5"
+                  className="absolute z-5"
                   style={{
                     width: '3px',
                     height: '80px',
+                    left: '50%',
+                    top: '50%',
                     marginLeft: '-1.5px',
-                    background: 'linear-gradient(to top, #f59e0b, #ea580c)',
-                    transformOrigin: 'top center',
+                    marginTop: '-80px',
+                    background: 'linear-gradient(to bottom, #ea580c, #f59e0b)',
+                    transformOrigin: 'bottom center',
                     transform: `rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
                     borderRadius: '3px'
                   }}
@@ -1398,13 +1401,13 @@ function TaskTimePicker({ value, onChange, label }) {
                   className="absolute w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 z-5 shadow-lg flex items-center justify-center"
                   style={{
                     left: `calc(50% + ${80 * Math.sin((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
-                    top: `calc(50% + ${80 * Math.cos((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180) * -1}px)`,
+                    top: `calc(50% - ${80 * Math.cos((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
                     transform: 'translate(-50%, -50%)'
                   }}
                 >
                   <span className="text-white text-xs font-bold">
                     {selectingHours 
-                      ? (hours === 0 ? 12 : hours) 
+                      ? (hours === 0 ? 12 : hours > 12 ? hours - 12 : hours) 
                       : minutes.toString().padStart(2, '0')
                     }
                   </span>
