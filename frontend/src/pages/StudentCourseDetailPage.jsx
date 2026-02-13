@@ -580,6 +580,13 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
               </span>
               <span className="font-bold text-slate-800 bg-cyan-100 px-2.5 py-0.5 rounded-full text-xs">{posts.length}</span>
             </div>
+            <div className="flex items-center justify-between p-2 bg-white/60 rounded-lg">
+              <span className="text-slate-600 flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-500" />
+                Foro
+              </span>
+              <span className="font-bold text-slate-800 bg-purple-100 px-2.5 py-0.5 rounded-full text-xs">{(forumPosts || []).length}</span>
+            </div>
           </div>
         </div>
       </div>
