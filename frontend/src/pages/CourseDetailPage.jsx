@@ -2734,19 +2734,21 @@ const EXAM_STATUS_CONFIG = {
   }
 };
 
-// Time picker component with circular dial
+// Time picker component with circular dial - supports hours, minutes and seconds
 function TimePicker({ value, onChange, label }) {
   const [isOpen, setIsOpen] = useState(false);
   const [hours, setHours] = useState(value ? parseInt(value.split(':')[0]) : 9);
   const [minutes, setMinutes] = useState(value ? parseInt(value.split(':')[1]) : 0);
-  const [selectingHours, setSelectingHours] = useState(true);
+  const [seconds, setSeconds] = useState(value && value.split(':')[2] ? parseInt(value.split(':')[2]) : 0);
+  const [selectingMode, setSelectingMode] = useState('hours'); // 'hours', 'minutes', 'seconds'
   const dialRef = useRef(null);
   
   useEffect(() => {
     if (value) {
-      const [h, m] = value.split(':');
-      setHours(parseInt(h));
-      setMinutes(parseInt(m));
+      const parts = value.split(':');
+      setHours(parseInt(parts[0]) || 0);
+      setMinutes(parseInt(parts[1]) || 0);
+      setSeconds(parseInt(parts[2]) || 0);
     }
   }, [value]);
   
@@ -2762,23 +2764,43 @@ function TimePicker({ value, onChange, label }) {
     let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
     if (angle < 0) angle += 360;
     
-    if (selectingHours) {
+    if (selectingMode === 'hours') {
       const hour = Math.round(angle / 30) % 12 || 12;
       setHours(hour > 12 ? hour - 12 : hour);
-    } else {
+    } else if (selectingMode === 'minutes') {
       const minute = Math.round(angle / 6) % 60;
       setMinutes(minute);
+    } else {
+      const second = Math.round(angle / 6) % 60;
+      setSeconds(second);
     }
   };
   
   const confirmTime = () => {
-    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     onChange(timeStr);
     setIsOpen(false);
   };
   
+  const goNext = () => {
+    if (selectingMode === 'hours') setSelectingMode('minutes');
+    else if (selectingMode === 'minutes') setSelectingMode('seconds');
+  };
+  
   const hourNumbers = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
-  const minuteNumbers = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+  const minuteSecondNumbers = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+  
+  // Get current dial numbers and selected value
+  const currentNumbers = selectingMode === 'hours' ? hourNumbers : minuteSecondNumbers;
+  const currentValue = selectingMode === 'hours' ? hours : selectingMode === 'minutes' ? minutes : seconds;
+  const currentAngle = selectingMode === 'hours' 
+    ? (hours % 12) * 30 
+    : selectingMode === 'minutes' 
+      ? minutes * 6 
+      : seconds * 6;
+  
+  // Format display
+  const displayTime = value || "09:00:00";
   
   return (
     <div className="relative">
@@ -2790,7 +2812,7 @@ function TimePicker({ value, onChange, label }) {
       >
         <Clock className="w-5 h-5 text-gray-400" />
         <span className="text-gray-700 font-medium">
-          {value || "Seleccionar hora"}
+          {displayTime}
         </span>
       </button>
       
