@@ -205,7 +205,7 @@ function AcademicYearsTab({ token, headers }) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">{years.length} año(s) académico(s)</p>
         <button
-          onClick={() => { setEditingItem(null); setFormData({ year: new Date().getFullYear() + 1, status: "planificado" }); setShowModal(true); }}
+          onClick={() => { setEditingItem(null); setFormData({ year: new Date().getFullYear() + 1, status: "futuro" }); setShowModal(true); }}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
