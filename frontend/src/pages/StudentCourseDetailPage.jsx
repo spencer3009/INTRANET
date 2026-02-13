@@ -229,9 +229,10 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
             {recentActivity.map((item) => {
               // Use post_type (from API) or type field
               const itemType = item.post_type || item.type || 'announcement';
-              // Get author info
-              const authorName = item.author_name || item.created_by_name || 'Profesor';
-              const authorPhoto = item.author_photo || item.created_by_photo;
+              // Get author info - check author object first, then fallback to other fields
+              const authorObj = item.author || {};
+              const authorName = authorObj.name || item.author_name || item.created_by_name || 'Profesor';
+              const authorPhoto = authorObj.photo_url || item.author_photo || item.created_by_photo;
               // Get time ago
               const timeAgo = getTimeAgo(item.created_at);
               
