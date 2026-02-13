@@ -5782,12 +5782,28 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [viewMode, setViewMode] = useState('detail'); // 'detail' or 'submissions'
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [submissions, setSubmissions] = useState([]);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const menuRef = useRef(null);
   
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setShowMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   // Fetch tasks
   useEffect(() => {
@@ -5803,6 +5819,31 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     };
     fetchTasks();
   }, [subjectId, token]);
+  
+  // Generate mock submissions when viewing submissions
+  const loadSubmissions = () => {
+    setLoadingSubmissions(true);
+    // Mock submissions data - in production this would be an API call
+    setTimeout(() => {
+      const mockSubmissions = students?.map((student, idx) => ({
+        id: student.id,
+        student: student,
+        comment: '',
+        status: idx % 3 === 0 ? 'Entregado' : 'Sin entregar',
+        file: idx % 3 === 0 ? 'tarea.pdf' : null,
+        teacherComment: '',
+        grade: ''
+      })) || [];
+      setSubmissions(mockSubmissions);
+      setLoadingSubmissions(false);
+    }, 500);
+  };
+  
+  const handleViewSubmissions = () => {
+    setShowMenu(false);
+    setViewMode('submissions');
+    loadSubmissions();
+  };
   
   const handleTaskCreated = (newTask) => {
     setTasks([newTask, ...tasks]);
@@ -5871,6 +5912,147 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     }
     return task.created_at;
   };
+  
+  // Submissions View
+  if (selectedTask && viewMode === 'submissions') {
+    return (
+      <div className="space-y-4 pt-6 pb-48">
+        {/* Back button */}
+        <button
+          onClick={() => { setViewMode('detail'); }}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Volver a la tarea
+        </button>
+        
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-800">Entregas</h2>
+            <p className="text-slate-500 mt-1">{selectedTask.title}</p>
+          </div>
+        </div>
+        
+        {/* Submissions Table */}
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+          {/* Table Header */}
+          <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4">
+            <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-white uppercase tracking-wider">
+              <div className="col-span-2">Estudiante</div>
+              <div className="col-span-2">Comentario del estudiante</div>
+              <div className="col-span-2">Estado de la entrega</div>
+              <div className="col-span-2">Archivo/Respuesta</div>
+              <div className="col-span-2">Comentario del profesor</div>
+              <div className="col-span-2">Nota</div>
+            </div>
+          </div>
+          
+          {/* Table Body */}
+          <div className="divide-y divide-slate-100">
+            {loadingSubmissions ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                  <Users className="w-10 h-10 text-slate-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">No hay estudiantes</h3>
+                <p className="text-slate-400">No hay estudiantes matriculados en este curso</p>
+              </div>
+            ) : (
+              submissions.map((submission) => {
+                const studentPhoto = submission.student?.photo_url || submission.student?.profile_pic;
+                return (
+                  <div key={submission.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
+                    {/* Student */}
+                    <div className="col-span-2 flex items-center gap-3">
+                      {studentPhoto ? (
+                        <img 
+                          src={studentPhoto} 
+                          alt={submission.student?.name}
+                          className="w-10 h-10 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                          <User className="w-5 h-5 text-slate-400" />
+                        </div>
+                      )}
+                      <span className="text-sm font-medium text-slate-700 truncate">{submission.student?.name}</span>
+                    </div>
+                    
+                    {/* Student Comment */}
+                    <div className="col-span-2">
+                      <input
+                        type="text"
+                        placeholder="Sin comentario"
+                        value={submission.comment}
+                        readOnly
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 placeholder:text-slate-400"
+                      />
+                    </div>
+                    
+                    {/* Status */}
+                    <div className="col-span-2">
+                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                        submission.status === 'Entregado' 
+                          ? 'bg-emerald-100 text-emerald-700' 
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        <span className={`w-2 h-2 rounded-full ${
+                          submission.status === 'Entregado' ? 'bg-emerald-500' : 'bg-red-500'
+                        }`}></span>
+                        {submission.status}
+                      </span>
+                    </div>
+                    
+                    {/* File/Response */}
+                    <div className="col-span-2">
+                      {submission.file ? (
+                        <button className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
+                          <FileText className="w-4 h-4" />
+                          {submission.file}
+                        </button>
+                      ) : (
+                        <span className="text-slate-400 text-sm">Sin archivo</span>
+                      )}
+                    </div>
+                    
+                    {/* Teacher Comment */}
+                    <div className="col-span-2">
+                      <input
+                        type="text"
+                        placeholder="Agregar comentario..."
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
+                      />
+                    </div>
+                    
+                    {/* Grade */}
+                    <div className="col-span-2">
+                      <input
+                        type="text"
+                        placeholder="--"
+                        className="w-20 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 text-center"
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+        
+        {/* Apply Button */}
+        <div className="flex justify-end">
+          <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/25">
+            Aplicar
+          </button>
+        </div>
+      </div>
+    );
+  }
   
   // Detail View
   if (selectedTask) {
