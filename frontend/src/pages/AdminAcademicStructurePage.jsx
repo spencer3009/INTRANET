@@ -182,15 +182,15 @@ function AcademicYearsTab({ token, headers }) {
     const styles = {
       activo: "bg-emerald-100 text-emerald-700",
       cerrado: "bg-slate-100 text-slate-600",
-      planificado: "bg-blue-100 text-blue-700"
+      futuro: "bg-blue-100 text-blue-700"
     };
     const labels = {
       activo: "Activo",
       cerrado: "Cerrado",
-      planificado: "Planificado"
+      futuro: "Planificado"
     };
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] || styles.planificado}`}>
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] || styles.futuro}`}>
         {labels[status] || status}
       </span>
     );
@@ -278,7 +278,7 @@ function AcademicYearsTab({ token, headers }) {
               onChange={(e) => setFormData({ ...formData, status: e.target.value })}
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
             >
-              <option value="planificado">Planificado</option>
+              <option value="futuro">Planificado</option>
               <option value="activo">Activo</option>
               <option value="cerrado">Cerrado</option>
             </select>
