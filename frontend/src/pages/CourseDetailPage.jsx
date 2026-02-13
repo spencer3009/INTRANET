@@ -1365,25 +1365,33 @@ function TaskTimePicker({ value, onChange, label }) {
       {isOpen && createPortal(
         <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
-          <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden w-[320px] animate-in fade-in zoom-in-95 duration-200">
+          <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden w-[340px] animate-in fade-in zoom-in-95 duration-200">
             {/* Header with gradient */}
             <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 px-6 py-5">
               <p className="text-amber-100 text-sm mb-1 font-medium">Seleccionar hora límite</p>
-              <div className="flex items-baseline gap-1">
+              <div className="flex items-baseline gap-1 justify-center">
                 <button
                   type="button"
-                  onClick={() => setSelectingHours(true)}
-                  className={`text-5xl font-light transition-all ${selectingHours ? 'text-white scale-105' : 'text-white/50'}`}
+                  onClick={() => setSelectingMode('hours')}
+                  className={`text-4xl font-light transition-all ${selectingMode === 'hours' ? 'text-white scale-110' : 'text-white/50'}`}
                 >
                   {hours.toString().padStart(2, '0')}
                 </button>
-                <span className="text-5xl font-light text-white/50 animate-pulse">:</span>
+                <span className="text-4xl font-light text-white/50">:</span>
                 <button
                   type="button"
-                  onClick={() => setSelectingHours(false)}
-                  className={`text-5xl font-light transition-all ${!selectingHours ? 'text-white scale-105' : 'text-white/50'}`}
+                  onClick={() => setSelectingMode('minutes')}
+                  className={`text-4xl font-light transition-all ${selectingMode === 'minutes' ? 'text-white scale-110' : 'text-white/50'}`}
                 >
                   {minutes.toString().padStart(2, '0')}
+                </button>
+                <span className="text-4xl font-light text-white/50">:</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectingMode('seconds')}
+                  className={`text-4xl font-light transition-all ${selectingMode === 'seconds' ? 'text-white scale-110' : 'text-white/50'}`}
+                >
+                  {seconds.toString().padStart(2, '0')}
                 </button>
               </div>
             </div>
@@ -1407,7 +1415,7 @@ function TaskTimePicker({ value, onChange, label }) {
                     marginTop: '-80px',
                     background: 'linear-gradient(to bottom, #ea580c, #f59e0b)',
                     transformOrigin: 'bottom center',
-                    transform: `rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
+                    transform: `rotate(${currentAngle}deg)`,
                     borderRadius: '3px'
                   }}
                 />
@@ -1416,15 +1424,15 @@ function TaskTimePicker({ value, onChange, label }) {
                 <div 
                   className="absolute w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 z-5 shadow-lg flex items-center justify-center"
                   style={{
-                    left: `calc(50% + ${80 * Math.sin((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
-                    top: `calc(50% - ${80 * Math.cos((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
+                    left: `calc(50% + ${80 * Math.sin(currentAngle * Math.PI / 180)}px)`,
+                    top: `calc(50% - ${80 * Math.cos(currentAngle * Math.PI / 180)}px)`,
                     transform: 'translate(-50%, -50%)'
                   }}
                 >
                   <span className="text-white text-xs font-bold">
-                    {selectingHours 
+                    {selectingMode === 'hours' 
                       ? (hours === 0 ? 12 : hours > 12 ? hours - 12 : hours) 
-                      : minutes.toString().padStart(2, '0')
+                      : currentValue.toString().padStart(2, '0')
                     }
                   </span>
                 </div>
@@ -1433,14 +1441,14 @@ function TaskTimePicker({ value, onChange, label }) {
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full z-20 shadow-lg" />
                 
                 {/* Numbers around the dial */}
-                {(selectingHours ? hourNumbers : minuteNumbers).map((num, idx) => {
+                {currentNumbers.map((num, idx) => {
                   const angle = (idx * 30 - 90) * (Math.PI / 180);
                   const radius = 90;
                   const x = 120 + radius * Math.cos(angle);
                   const y = 120 + radius * Math.sin(angle);
-                  const isSelected = selectingHours 
+                  const isSelected = selectingMode === 'hours' 
                     ? (num === hours || (num === 12 && hours === 0)) 
-                    : num === minutes;
+                    : num === currentValue;
                   
                   return (
                     <button
@@ -1448,10 +1456,12 @@ function TaskTimePicker({ value, onChange, label }) {
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (selectingHours) {
+                        if (selectingMode === 'hours') {
                           setHours(num === 12 ? 0 : num);
-                        } else {
+                        } else if (selectingMode === 'minutes') {
                           setMinutes(num);
+                        } else {
+                          setSeconds(num);
                         }
                       }}
                       className={`absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
@@ -1461,7 +1471,7 @@ function TaskTimePicker({ value, onChange, label }) {
                       }`}
                       style={{ left: x, top: y }}
                     >
-                      {selectingHours ? num : num.toString().padStart(2, '0')}
+                      {selectingMode === 'hours' ? num : num.toString().padStart(2, '0')}
                     </button>
                   );
                 })}
@@ -1469,12 +1479,24 @@ function TaskTimePicker({ value, onChange, label }) {
               
               {/* Mode indicator */}
               <div className="flex justify-center mt-4 gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${selectingHours ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                <button
+                  onClick={() => setSelectingMode('hours')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${selectingMode === 'hours' ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`}
+                >
                   Horas
-                </span>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${!selectingHours ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                </button>
+                <button
+                  onClick={() => setSelectingMode('minutes')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${selectingMode === 'minutes' ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`}
+                >
                   Minutos
-                </span>
+                </button>
+                <button
+                  onClick={() => setSelectingMode('seconds')}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all cursor-pointer ${selectingMode === 'seconds' ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300'}`}
+                >
+                  Segundos
+                </button>
               </div>
             </div>
             
@@ -1489,17 +1511,15 @@ function TaskTimePicker({ value, onChange, label }) {
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setSelectingHours(false);
-                }}
-                className={`px-5 py-2.5 font-semibold rounded-xl transition-all ${selectingHours ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'hidden'}`}
+                onClick={goNext}
+                className={`px-5 py-2.5 font-semibold rounded-xl transition-all ${selectingMode !== 'seconds' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'hidden'}`}
               >
                 Siguiente
               </button>
               <button
                 type="button"
                 onClick={confirmTime}
-                className={`px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/25 ${selectingHours ? 'hidden' : ''}`}
+                className={`px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/25 ${selectingMode === 'seconds' ? '' : 'hidden'}`}
               >
                 Aceptar
               </button>
