@@ -246,7 +246,15 @@ function App() {
       return user?.subdomain ? `/school/${user.subdomain}/student` : '/student';
     }
     
-    // Staff/Admin get regular dashboard
+    // Teachers get redirected to teacher portal
+    if (isTeacher(user)) {
+      if (environment.mode === 'subdomain' || environment.supportsWildcard) {
+        return '/teacher';
+      }
+      return user?.subdomain ? `/school/${user.subdomain}/teacher` : '/teacher';
+    }
+    
+    // Admin/Staff get regular dashboard
     if (environment.mode === 'subdomain' || environment.supportsWildcard) {
       return '/dashboard';
     }
