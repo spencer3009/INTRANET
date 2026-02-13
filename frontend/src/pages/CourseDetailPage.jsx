@@ -5,6 +5,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import CourseRemindersPanel from "../components/CourseRemindersPanel";
+import MessageCenter from "../components/MessageCenter";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { useEditor, EditorContent } from "@tiptap/react";
