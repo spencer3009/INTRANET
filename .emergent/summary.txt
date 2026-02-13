@@ -1,146 +1,153 @@
 <analysis>**original_problem_statement:**
 The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project involves building out a feature-rich intranet with a focus on a high-quality, modern user experience similar to Google Classroom.
 
-Recent development has focused on transforming the  from a static page into a dynamic, interactive hub. Key features requested and implemented include:
-- A full-stack, database-driven Reminders system that evolved into a premium Alerts/Notifications system with a global notification bell, intelligent popups for important events, and detailed teacher controls.
-- A professional, three-column sticky layout where side panels remain visible while the central feed scrolls.
-- A dynamic, real-time Activity Stream that logs and displays course events like new posts, comments, and materials.
-- A dynamic Contextual Panel that replaces hardcoded Latest News and Quick Access links with aggregated, relevant information from the course.
+The latest major feature request is to build a Centro de Mensajes (Message Center), a professional, role-based communication module. The implementation will be phased, starting with Mensajes Institucionales (Institutional Messages).
 
-The user is highly focused on UI/UX and frequently provides iterative feedback to achieve a premium and international-level feel.
+This is in addition to ongoing premium UI/UX enhancements across existing modules like Online Exams, Tasks, Forum, Study Materials, Reminders, and Grades. The user provides frequent, highly detailed feedback to achieve a top-tier product.
+
+PRODUCT REQUIREMENTS (New):
+- **Message Center:** Implement a new communication module accessible via a floating button.
+- **Phase 1 (Institutional Messages):** Admins/Directors can send read-only announcements to users.
+- **Phase 2 (Support/Consultas):** A structured ticket/chat hybrid system for support requests.
+- **Phase 3 (Academic Messages):** Controlled communication between teachers, students, and parents, tied to specific courses.
+- **UI:** The panel should be a drawer sliding from the right.
+- **Business Logic:** Must include role-based permissions, non-intrusive notifications, and configurable office hours.
 
 **User's preferred language**: Spanish. The next agent MUST respond in Spanish.
 
 **what currently exists?**
-The application is stable. The  has been significantly enhanced with several dynamic, full-stack features:
-- A sophisticated notification system is fully functional, including a global notification bell, intelligent popups on the dashboard, and a feature-rich reminders panel within courses. Backend logic supports marking reminders as important, notifying all students, and tracking read receipts ().
-- All modal dialogs and dropdown menus now use React Portals (), which has resolved a recurring series of  and stacking context bugs.
-- The  features a professional sticky layout where the left and right columns remain fixed while the central content area scrolls, mimicking the UX of modern intranets.
-- The Actividad del curso (Activity Stream) and Últimas noticias (Latest News) panels are now fully dynamic, fetching real-time, aggregated data from new dedicated backend endpoints, eliminating all hardcoded content.
+The application is a full-stack React/FastAPI/MongoDB app. The  has become an extremely large, monolithic component containing the logic for multiple modules. The UI for Tareas (Tasks), Foro (Forum), Material de estudio (Study Material), and Recordatorios (Reminders) has been completely redesigned into premium, full-width table/list views. A comprehensive notification system has been implemented, creating alerts for new tasks, exams, forum posts, and materials, which are displayed in a notification bell component.
 
 **Last working item**:
-- **Last item agent was working:** The user requested a more sober and premium design for the Últimas noticias and Accesos rápidos panels in , as they found the existing colors too vibrant. The agent applied CSS changes to tone down the colors. The user also asked how to manage (add/edit/delete) news items, which the agent has not yet addressed.
+- **Last item agent was working:** The agent started Phase 1 of the new Centro de Mensajes (Message Center) feature. The backend models (, ) and initial API endpoints were created in . A new frontend component, , was created to house the floating button and drawer UI. The next step is to integrate this component into the main application layout.
 - **Status**: IN PROGRESS
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: screenshot tool. The agent needs to take a screenshot of the  to show the user the new, more sober design and get feedback.
+- **Which testing method agent to use?**: Frontend testing agent. Once Phase 1 is complete, the agent should test the full flow of an admin creating an institutional message and a user viewing it in the new message center drawer.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Make the contextual panel design more sober and premium (P0)**
-    - **Description**: The user finds the colors in the Últimas noticias and Accesos rápidos panels too vibrant and wants a more refined, professional look.
-    - **Attempted fixes**: The agent modified the CSS classes in  to use more neutral colors (e.g., removing bright background gradients).
-    - **Next debug checklist**:
-        1. Take a screenshot of the  showing the updated, more sober design of the side panels.
-        2. Present the screenshot to the user and ask for feedback on the new aesthetic.
-        3. Be prepared for further iterative design changes based on user feedback.
-    - **Why fix this issue and what will be achieved with the fix?**: To align the application's UI with the user's explicit premium aesthetic requirements.
-    - **Status**: IN PROGRESS
+- **Issue 1: Confirm Previous Fixes (P0)**
+    - **Description**: Two items from the previous session are still awaiting user validation:
+        1.  The Cloudinary image upload fix for exam questions.
+        2.  The complete UI redesign of the Foro (Forum) tab.
+    - **Why fix this issue and what will be achieved with the fix?**: To formally close out old tasks and ensure the core functionality is working as expected before building new features on top.
+    - **Status**: USER VERIFICATION PENDING
+    - **Is recurring issue?**: N
+    - **Should Test frontend/backend/both after fix?**: Frontend (user manual testing).
+
+- **Issue 2: Project-Wide Replacement of  (P2)**
+    - **Description**: An inherited technical debt task to replace all native  calls with the custom  component for a consistent UX. This task has been repeatedly postponed.
+    - **Status**: NOT STARTED
     - **Is recurring issue?**: N
     - **Should Test frontend/backend/both after fix?**: Frontend.
-    - **Blocked on other issue**: None.
 
 **In progress Task List**:
-- **Task 1: Explain how to manage Últimas noticias (P0)**
-    - **Description**: The user asked how to add, edit, and delete items in the Últimas noticias section. The agent needs to explain that this is a *read-only, aggregated feed*, not a directly editable list.
-    - **Where to resume**: Formulate a clear explanation for the user in Spanish. The explanation should state that news items are generated automatically from other actions (e.g., creating an Aviso, marking a reminder as Important). To add news, one performs a source action. To remove it, one must delete the source event.
-    - **What will be achieved with this?**: Clarify the functionality of the new dynamic panel and manage user expectations.
-    - **Status**: NOT STARTED
-    - **Should Test frontend/backend/both after fix?**: N/A
-    - **Blocked on something**: This should be addressed immediately after confirming the visual changes from Issue 1.
-
-- **Task 2: Complete Project-Wide Replacement of  (P1)**
-    - **Description**: Inherited task to replace all native  calls with the custom  component for a consistent UX. This was paused to address higher-priority feature requests.
-    - **Where to resume**: Start by searching for  in  and , then perform a global search to find any remaining instances.
-    - **What will be achieved with this?**: A consistent, professional UX for all confirmation dialogs.
-    - **Status**: IN PROGRESS (Paused)
-    - **Should Test frontend/backend/both after fix?**: Frontend.
-    - **Blocked on something**: No.
+- **Task 1: Implement Centro de Mensajes - Phase 1 (P0)**
+    - **Description**: Continue the implementation of the Message Center.
+    - **Where to resume**: The  component exists but is not rendered anywhere. The next step is to import and render it within the main application layout file so the floating button appears globally. After that, implement the logic to fetch and display institutional messages in the drawer.
+    - **What will be achieved with this?**: This will complete the first phase of the new communication module, providing immediate value for school administrators.
+    - **Status**: IN PROGRESS
+    - **Should Test frontend/backend/both after fix?**: Both.
+    - **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - **P1: Test Confirmation Modals:** After completing the  refactor, use the  to perform a comprehensive frontend test on all deletion and confirmation flows.
-- **Future Tasks (from PRD & previous handoff):**
-    - **P2**: Build out the Horarios (Schedules) module.
-    - **P2**: Build out the Matrículas (Enrollments) module.
-    - **P3**: Build out the Calificaciones (Grades) module. The tab exists, but functionality is needed.
-    - **Enhancement:** On the teacher dashboard, show a count of how many subjects each teacher is assigned.
-    - **Enhancement:** Add an edit posts feature to the communication feed.
-    - **Enhancement:** Use the subject's 1:1 cropped image as a banner on the .
+  - **P0: Refactor :** This is the highest priority technical task. The file is critically oversized and unmaintainable. The agent MUST extract the large, newly created components (, , , , etc.) into their own files under . This file's complexity is a major risk to all future development.
+  - **P1: Implement Centro de Mensajes - Phase 2:** Build the Support/Consultas (Tickets) system.
+  - **P1: Implement Centro de Mensajes - Phase 3:** Build the academic messaging feature (Teacher ↔ Student/Parent).
+  - **P2: Implement Student View for Exams (Phase 4):** This was postponed by the user. It involves creating the student-facing view to take exams.
+
+- **Future Tasks (from PRD & user requests):**
+  - Build out the Horarios (Schedules) module.
+  - Build out the Matrículas (Enrollments) module.
+  - Build out the Calificaciones (Grades) module with more features.
+  - Enhancements for the Exams module: Question Bank, student attempts tracking, automatic grading.
+  - On the teacher dashboard, show a count of how many subjects each teacher is assigned.
+  - Add an edit posts feature to the communication feed.
+  - Use the subject's 1:1 cropped image as a banner on the .
 
 **Completed work in this session**
-- **Bug Fix - Modal & Menu Layering Issues (DONE):** Resolved all  and stacking context problems by implementing  for all modals and dropdown menus in . Elements now correctly render on top of all other content.
-- **Feature - Premium Notifications System (DONE):** Implemented a full-stack notification system with a global bell, intelligent popups, read receipts (), and visual hierarchy for reminders.
-- **Feature - Sticky Column Layout (DONE):** Implemented a Google Classroom-style layout on  where side columns are  and the central column scrolls, using a single page scrollbar for a clean UX.
-- **Feature - Dynamic Activity Stream (DONE):** Replaced a hardcoded Actividad del curso panel with a dynamic, real-time feed of course events, powered by a new  collection and API endpoint.
-- **Feature - Dynamic Contextual Panel (DONE):** Replaced hardcoded Últimas noticias and Accesos rápidos panels with dynamic data fetched from a new aggregate backend endpoint ().
+- **UI Overhaul (Tasks, Materials, Reminders, Grades):** Replaced the old card-based layouts with premium, full-width table/list views, consistent across all modules. This included creating new components directly within .
+- **Task Submissions View:** Added a new Entregas view within the Tasks module to see student submissions, grades, and comments, matching the user's detailed design.
+- **Profile Picture Fix:** Corrected a recurring bug by using  instead of  to display user avatars in the Tasks and Forum modules.
+- **Dynamic Header/Layout:** Implemented logic to hide the main course header and show a Back to Subjects button on all full-width tabs, creating a more focused workspace.
+- **Backend File Deletion:** Implemented logic in  to correctly delete associated files from Cloudinary (both images and raw files like PDFs) when a post is deleted.
+- **Comprehensive Notification System:**
+    - Created new backend endpoints and DB models for general notifications.
+    - Modified backend logic to automatically create a notification when a new Task, Forum Post, Study Material, or Exam is published.
+    - Overhauled the frontend  component to fetch and display these new Activity notifications in a separate tab from Reminders.
 
 **Earlier issues found/mentioned but not fixed**
-None.
+- The project-wide task to refactor all  dialogs remains pending.
 
 **Known issue recurrence from previous fork**
-- **z-index/Stacking Context:** This was a major recurring issue. The agent initially tried simple  increases, which failed. The problem was correctly re-diagnosed as a stacking context issue and definitively solved by re-implementing all modals and dropdown menus with React Portals.
+None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **React Portals ():** The definitive solution used to solve all  and stacking context issues by rendering modals and menus directly into . This is now the standard pattern for such components in this project.
-- ** Layouts:** Advanced CSS technique used to create the professional intranet layout where side columns stick to the viewport while the main content scrolls, requiring careful structuring of parent elements to work with a single page scrollbar.
-- **Aggregate API Endpoints:** The backend now uses endpoints (e.g., ) that combine data from multiple collections (reminders, posts) to provide a summarized payload for specific UI components, reducing frontend complexity.
-- **Event-Driven Activity Stream:** Implemented a system where user actions (creating a post, comment, etc.) trigger the creation of a separate  document. This decouples the activity feed from the source data models.
+- **Monolithic Component Anti-Pattern:** The agent continued to add massive, distinct features (, , etc.) directly into , making it nearly unmanageable.
+- **Dynamic UI based on State:** The UI now changes significantly based on the , hiding/showing the course header and switching between 3-column and full-width layouts.
+- **Backend-Driven Notifications:** Created a system where backend actions (e.g., creating a post) trigger the creation of notification documents in the database, which are then fetched and displayed by the frontend.
+- **Phased Module Implementation:** Started the development of the large Message Center feature by breaking it down into planned phases, beginning with the backend models and base frontend component.
 
 **key DB schema**
-- **course_activities**: (NEW) uid=0(root) gid=0(root) groups=0(root), , , , , ,  (Enum),  (dict), .
-- **course_reminders**: (UPDATED) Added  (bool),  (bool),  (list of user IDs).
+- **notifications**: 
+- **message_threads**: 
+- **messages**: 
 
 **All files of reference**
-- **Created:**
-    - : Component for the global notifications icon and dropdown in the main header.
-    - : Component for the modal that automatically pops up on the dashboard for urgent reminders.
-- **Updated:**
-    - : Major updates to implement the backend for the notification system, activity stream, and contextual side panel. Includes new models and several new API endpoints.
-    - : Major refactoring to implement the 3-column sticky layout and integrate the dynamic activity stream and contextual panels, removing all hardcoded data.
-    - : Major refactoring to fix z-index issues with Portals and add new reminder features (visual hierarchy, checkboxes, etc.).
-    - : Integrated the  component.
-    - : Integrated the  component.
+- **Heavily Updated:**
+    - : Major additions for notifications and the new message center.
+    - : Extremely bloated with new components and conditional rendering logic.
+    - : Overhauled for a new premium list design.
+    - : Rewritten to support the new general notification system.
+- **Newly Created:**
+    - : The base component for the new messaging feature.
+
+**Areas that need refactoring**:
+- ** is the #1 critical issue.** It MUST be broken down. The current agent added several large, self-contained components into this single file instead of creating separate component files. This is unsustainable and makes the code extremely difficult to navigate and debug. The next agent's first technical task should be to propose and execute this refactoring.
+
+**key api endpoints**
+- : GET all notifications for the current user.
+- : POST to mark all notifications as read.
+- : GET/POST for message threads.
+- : GET/POST for messages within a thread.
 
 **Critical Info for New Agent**
-- **Communicate in Spanish.**
-- The user is very detail-oriented about UI/UX. Expect iterative feedback on visual design.
-- You must explain to the user how the Últimas noticias section works: it's a **read-only, aggregated feed** of other course events (announcements, important reminders), not a list that can be edited directly.
-- Use **React Portals** as the standard solution for any new modals, popovers, or dropdowns to prevent z-index/stacking context issues.
-- The sticky layout in  is complex. Be cautious when editing its structure.
+- **You MUST communicate in Spanish.**
+- **Refactor !** Do not add more code to this file. Propose a plan to extract the large components (, , , ) into their own files. This is not optional; it is essential for the project's health.
+- **Follow the Phased Plan:** Continue implementing the Centro de Mensajes according to the user-approved phases, starting with integrating the  component into the UI.
+- **Confirm Old Fixes:** Before starting major new work, ask the user to verify the Cloudinary upload fix and the Forum UI.
 
 **documents and test reports created in this job**
--  was updated with documentation for the new notification system.
+None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Requested a more sober (less colorful) design for the sidebar and asked how to add/edit/delete news. (Status: **IN PROGRESS**)
-2.  **User**: Provided detailed specs for a dynamic Contextual Panel to replace hardcoded news/links. (Status: **Completed**)
-3.  **User**: Asked the agent to create more activity to test the new dynamic Activity Stream. (Status: **Completed**)
-4.  **User**: Provided detailed specs to implement a real Activity Stream. (Status: **Completed**)
-5.  **User**: Sent an image showing the sticky layout was overlapping content. (Status: **Completed**)
-6.  **User**: Clarified the correct sticky layout behavior (single page scroll, no inner scrollbars). (Status: **Completed**)
-7.  **User**: Pointed out the previous sticky layout implementation was incorrect. (Status: **Completed**)
-8.  **User**: Provided a spec for the Google Classroom-style sticky layout. (Status: **Completed**)
-9.  **User**: Asked when reminders would appear in the notification bell. (Status: **Completed**)
-10. **User**: Requested that clicking a reminder card should open a full-detail view. (Status: **Completed**)
+1.  **User:** Provided a detailed PRD for a new Centro de Mensajes (Message Center) feature.
+2.  **Agent:** Asked for clarification on implementation priorities and design choices for the Message Center.
+3.  **User:** Responded with clear decisions: implement in phases (starting with Institutional Messages), use a right-side drawer, include Teacher-Parent communication, use a hybrid form/chat for support, and include basic office-hour logic from the start.
+4.  **Agent:** Confirmed understanding and began Phase 1 implementation.
 
 **Project Health Check:**
--   **Working**: Core application, login, dashboard, subjects page, and the heavily enhanced course detail page with its notification system, activity stream, and sticky layout.
--   **Broken**: No features are currently broken.
--   **Mocked**: The Horarios (Schedules), Matrículas (Enrollments), and Calificaciones (Grades) modules are still placeholders.
+- **Working**: Core application, login, dashboard. All course tabs (Tareas, Foro, Material, Recordatorios, Calificaciones, Exámenes) have been significantly updated with new premium UIs and are functional based on agent testing. The new notification system is also working.
+- **Broken**: No features are confirmed to be broken.
+- **User Verification Pending**: The fix for the Cloudinary image upload bug and the new Forum UI are pending final user confirmation.
+- **In Progress**: The Centro de Mensajes module is under active development.
 
 **3rd Party Integrations**
-*   Cloudinary
-*   Recharts
-*   react-image-crop
+*   **Cloudinary:** Used for image and file hosting.
+*   **@tiptap/react:** Used for WYSIWYG rich text editing.
+*   **react-image-crop:** Used for image cropping.
+*   **Recharts:** Present in the project.
+*   **Lucide React:** Used for icons.
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None.
--   **Known regressions**: None.
+- **Testing agent used after significant changes**: NO
+- **Troubleshoot agent used after agent stuck in loop**: NO
+- **Test files created**: None.
+- **Known regressions**: None.
 
 **Credentials to test flow:**
 *   **Email**: 
@@ -148,5 +155,6 @@ None.
 *   **Identifier**: 
 
 **What agent forgot to execute**
--   The agent has not yet answered the user's question about how to add, edit, or delete news items. This is a critical pending clarification.
--   The project-wide task to refactor all  dialogs remains paused from a previous session.</analysis>
+- The agent **critically failed** to refactor the  file. Instead of breaking it down, the agent added thousands of lines of code for multiple new components, making the technical debt significantly worse.
+- The agent did not address the inherited task of replacing .
+- The agent did not follow up with the user to confirm that the Cloudinary and Forum changes from the previous session were satisfactory.</analysis>
