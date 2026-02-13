@@ -511,7 +511,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
               </div>
             </div>
 
-            {/* Right column - Profile Card & Quick Links */}
+            {/* Right column - Profile Card, Calendar & Quick Links */}
             <div className="lg:col-span-4 space-y-6">
               {/* Student Profile Card */}
               <StudentProfileCard 
@@ -519,6 +519,9 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                 dashboardData={dashboardData}
                 academic={academic}
               />
+
+              {/* Calendar - Same data as Owner's Portal */}
+              <MiniCalendar events={calendarEvents} />
 
               {/* My Courses Quick Access */}
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -535,9 +538,9 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                   </button>
                 </div>
                 
-                <div className="divide-y divide-slate-100 max-h-[300px] overflow-y-auto">
+                <div className="divide-y divide-slate-100 max-h-[250px] overflow-y-auto">
                   {courses.length > 0 ? (
-                    courses.slice(0, 6).map((course) => (
+                    courses.slice(0, 5).map((course) => (
                       <div 
                         key={course.id}
                         onClick={() => navigateTo(`/student/courses/${course.id}`)}
