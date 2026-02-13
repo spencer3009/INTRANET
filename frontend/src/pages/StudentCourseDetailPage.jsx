@@ -761,17 +761,14 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       if (course) {
         setSubject(course);
         setTeacher(course.teacher);
-        
-        // Load students from the same section
-        if (course.section_id) {
-          try {
-            // Use the users endpoint filtered by section_id
-            const studentsRes = await axios.get(`${API}/api/users?role=student&section_id=${course.section_id}`, { headers });
-            setStudents(studentsRes.data || []);
-          } catch (e) {
-            console.log("Could not load students list:", e);
-          }
-        }
+      }
+      
+      // Load classmates (students in the same section)
+      try {
+        const classmatesRes = await axios.get(`${API}/api/student/classmates`, { headers });
+        setStudents(classmatesRes.data.students || []);
+      } catch (e) {
+        console.log("Could not load classmates:", e);
       }
       
       // Load course reminders - correct endpoint
