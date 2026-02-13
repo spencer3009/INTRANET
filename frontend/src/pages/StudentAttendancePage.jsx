@@ -149,7 +149,7 @@ export default function StudentAttendancePage({ user, token, onLogout }) {
         expanded={sidebarExpanded}
         onToggle={() => setSidebarExpanded(!sidebarExpanded)}
         onLogout={onLogout}
-        schoolName={user?.school_name}
+        schoolName={schoolName}
         subdomain={subdomain || user?.subdomain}
         user={user}
       />
@@ -169,8 +169,8 @@ export default function StudentAttendancePage({ user, token, onLogout }) {
           user={user}
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
           onLogout={onLogout}
-          logoUrl={null}
-          schoolName={user?.school_name}
+          logoUrl={logoUrl}
+          schoolName={schoolName}
           subdomain={subdomain || user?.subdomain}
           token={token}
         />
