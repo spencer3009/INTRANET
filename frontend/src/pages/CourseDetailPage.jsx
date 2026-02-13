@@ -5478,9 +5478,9 @@ function ForumContent({ subjectId, token, user, students }) {
               <div className="p-6 flex gap-6">
                 {/* Author sidebar */}
                 <div className="flex flex-col items-center min-w-[120px]">
-                  {selectedTopic.author?.profile_pic ? (
+                  {(selectedTopic.author?.photo_url || selectedTopic.author?.profile_pic) ? (
                     <img 
-                      src={selectedTopic.author.profile_pic} 
+                      src={selectedTopic.author.photo_url || selectedTopic.author.profile_pic} 
                       alt={selectedTopic.author?.name || 'Usuario'}
                       className="w-16 h-16 rounded-full object-cover shadow-lg mb-2"
                     />
@@ -5531,9 +5531,9 @@ function ForumContent({ subjectId, token, user, students }) {
                 <div className="space-y-4 mb-6">
                   {comments.map((comment) => (
                     <div key={comment.id} className="flex gap-3 p-4 bg-slate-50 rounded-xl">
-                      {comment.author?.profile_pic ? (
+                      {(comment.author?.photo_url || comment.author?.profile_pic) ? (
                         <img 
-                          src={comment.author.profile_pic} 
+                          src={comment.author.photo_url || comment.author.profile_pic} 
                           alt={comment.author?.name || 'Usuario'}
                           className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                         />
