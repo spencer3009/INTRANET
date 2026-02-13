@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import {
   Bell, X, Calendar, FileText, BookOpen, AlertCircle,
-  Clock, ChevronRight, Eye, Loader2, Sparkles
+  Clock, ChevronRight, Eye, Loader2, Sparkles, PenTool,
+  FolderOpen, MessageSquare, CheckCircle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -11,7 +12,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 // Reminder type icons and colors
 const REMINDER_TYPE_CONFIG = {
   task: {
-    icon: FileText,
+    icon: PenTool,
     label: "Tarea",
     color: "text-blue-600",
     bgColor: "bg-blue-100",
@@ -30,6 +31,27 @@ const REMINDER_TYPE_CONFIG = {
     color: "text-amber-600",
     bgColor: "bg-amber-100",
     badgeColor: "bg-amber-500"
+  },
+  material: {
+    icon: FolderOpen,
+    label: "Material",
+    color: "text-orange-600",
+    bgColor: "bg-orange-100",
+    badgeColor: "bg-orange-500"
+  },
+  forum: {
+    icon: MessageSquare,
+    label: "Foro",
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-100",
+    badgeColor: "bg-emerald-500"
+  },
+  reminder: {
+    icon: Bell,
+    label: "Recordatorio",
+    color: "text-violet-600",
+    bgColor: "bg-violet-100",
+    badgeColor: "bg-violet-500"
   }
 };
 
