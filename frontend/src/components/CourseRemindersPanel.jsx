@@ -683,131 +683,189 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
 
   // Full width version for tab content (no outer container)
   if (isFullWidth) {
-    return (
-      <div className="space-y-4">
-        {/* Action Bar */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            {activeReminders.length > 0 && (
-              <span className="px-3 py-1 bg-violet-100 text-violet-700 rounded-full text-sm font-semibold">
-                {activeReminders.length} activos
+    const renderReminderRow = (reminder, isPast = false, isCompleted = false) => {
+      const typeConfig = REMINDER_TYPES[reminder.type] || REMINDER_TYPES.notice;
+      const TypeIcon = typeConfig.icon;
+      const dateInfo = formatDate(reminder.date);
+      
+      return (
+        <div 
+          key={reminder.id} 
+          className={`flex items-center px-6 py-4 hover:bg-slate-50 transition-colors ${isCompleted ? 'opacity-60' : ''}`}
+        >
+          {/* Type Icon */}
+          <div className={`w-10 h-10 rounded-xl ${typeConfig.iconBg} flex items-center justify-center flex-shrink-0`}>
+            <TypeIcon className={`w-5 h-5 ${typeConfig.iconColor}`} />
+          </div>
+          
+          {/* Title and Description */}
+          <div className="flex-1 min-w-0 ml-4">
+            <div className="flex items-center gap-3">
+              <p className={`font-semibold text-slate-800 ${isCompleted ? 'line-through' : ''}`}>
+                {reminder.title}
+              </p>
+              <span className={`px-2.5 py-0.5 ${typeConfig.badgeBg} text-white text-xs font-semibold rounded-full`}>
+                {typeConfig.label}
               </span>
-            )}
-            {completedReminders.length > 0 && (
-              <button
-                onClick={() => setShowCompleted(!showCompleted)}
-                className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors"
-              >
-                <Check className="w-3.5 h-3.5" />
-                {completedReminders.length} completados
-                {showCompleted ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-              </button>
+            </div>
+            {reminder.description && (
+              <p className="text-sm text-slate-500 mt-0.5 truncate max-w-xl">
+                {reminder.description.length > 80 ? reminder.description.slice(0, 80) + '...' : reminder.description}
+              </p>
             )}
           </div>
-          {canEdit && (
+          
+          {/* Date */}
+          <div className="flex items-center gap-2 mx-6 flex-shrink-0">
+            <Calendar className="w-4 h-4 text-slate-400" />
+            <span className={`text-sm font-medium ${
+              isPast ? 'text-red-500' : 
+              dateInfo.isUrgent ? 'text-amber-600' : 
+              'text-slate-600'
+            }`}>
+              {dateInfo.text}
+            </span>
+          </div>
+          
+          {/* Status Badge */}
+          <div className="flex-shrink-0 w-24">
+            {isCompleted ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Completado
+              </span>
+            ) : isPast ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 rounded-full text-xs font-semibold">
+                <AlertCircle className="w-3.5 h-3.5" />
+                Vencido
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-violet-100 text-violet-700 rounded-full text-xs font-semibold">
+                <Clock className="w-3.5 h-3.5" />
+                Activo
+              </span>
+            )}
+          </div>
+          
+          {/* Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0 ml-4">
             <button
-              onClick={() => { setEditingReminder(null); setShowModal(true); }}
-              className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl font-semibold flex items-center gap-2 hover:shadow-lg transition-all"
+              onClick={() => setDetailReminder(reminder)}
+              className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition-colors"
+              title="Ver detalle"
             >
-              <Plus className="w-4 h-4" />
-              Nuevo Recordatorio
+              <Eye className="w-4 h-4" />
             </button>
-          )}
+            {canEdit && !isCompleted && (
+              <button
+                onClick={() => handleComplete(reminder)}
+                className="w-9 h-9 bg-emerald-100 hover:bg-emerald-200 text-emerald-600 rounded-lg flex items-center justify-center transition-colors"
+                title="Marcar completado"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+            )}
+            {canEdit && (
+              <>
+                <button
+                  onClick={() => { setEditingReminder(reminder); setShowModal(true); }}
+                  className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
+                  title="Editar"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(reminder)}
+                  className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                  title="Eliminar"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </>
+            )}
+          </div>
         </div>
+      );
+    };
 
+    return (
+      <div className="space-y-4">
         {loading ? (
           <div className="text-center py-12">
             <Loader2 className="w-8 h-8 text-violet-400 animate-spin mx-auto" />
             <p className="text-sm text-gray-400 mt-3">Cargando recordatorios...</p>
           </div>
         ) : activeReminders.length === 0 && completedReminders.length === 0 ? (
-          <div className="text-center py-12 bg-gradient-to-br from-violet-50 to-purple-50 rounded-2xl border border-violet-100">
-            <div className="w-16 h-16 bg-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-violet-400" />
+          <div className="text-center py-16">
+            <div className="w-20 h-20 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <BellRing className="w-10 h-10 text-violet-500" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-700 mb-1">Sin recordatorios</h3>
-            <p className="text-sm text-gray-500 mb-4">Crea el primer recordatorio para este curso</p>
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin recordatorios</h3>
+            <p className="text-slate-400 mb-6">Crea el primer recordatorio para este curso</p>
             {canEdit && (
               <button
                 onClick={() => { setEditingReminder(null); setShowModal(true); }}
-                className="px-5 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 text-white rounded-xl font-semibold inline-flex items-center gap-2 hover:shadow-lg transition-all"
+                className="px-5 py-2.5 bg-violet-500 hover:bg-violet-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2 mx-auto"
               >
                 <Plus className="w-4 h-4" />
-                Crear Recordatorio
+                Crear recordatorio
               </button>
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            {/* Upcoming/Active Reminders */}
-            {upcomingReminders.length > 0 && (
-              <div>
-                <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Clock className="w-4 h-4" />
-                  Próximos ({upcomingReminders.length})
-                </h4>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {upcomingReminders.map(reminder => (
-                    <ReminderCard 
-                      key={reminder.id} 
-                      reminder={reminder} 
-                      canEdit={canEdit}
-                      onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
-                      onComplete={() => handleComplete(reminder)}
-                      onDelete={() => setConfirmDelete(reminder)}
-                      onViewFull={() => setDetailReminder(reminder)}
-                    />
-                  ))}
-                </div>
+          <>
+            {/* Table Header */}
+            <div className="bg-gradient-to-r from-violet-500 to-purple-500 rounded-t-2xl px-6 py-4">
+              <div className="flex items-center">
+                <div className="w-10 flex-shrink-0"></div>
+                <div className="flex-1 ml-4 text-white text-sm font-semibold uppercase tracking-wider">Recordatorio</div>
+                <div className="w-32 text-white text-sm font-semibold uppercase tracking-wider text-center">Fecha</div>
+                <div className="w-24 text-white text-sm font-semibold uppercase tracking-wider text-center">Estado</div>
+                <div className="w-40 text-white text-sm font-semibold uppercase tracking-wider text-center ml-4">Acciones</div>
               </div>
-            )}
-
-            {/* Past Active Reminders */}
-            {pastReminders.length > 0 && (
-              <div>
-                <h4 className="text-sm font-bold text-amber-600 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Vencidos ({pastReminders.length})
-                </h4>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {pastReminders.map(reminder => (
-                    <ReminderCard 
-                      key={reminder.id} 
-                      reminder={reminder} 
-                      canEdit={canEdit}
-                      onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
-                      onComplete={() => handleComplete(reminder)}
-                      onDelete={() => setConfirmDelete(reminder)}
-                      onViewFull={() => setDetailReminder(reminder)}
-                    />
-                  ))}
-                </div>
+            </div>
+            
+            {/* Table Body */}
+            <div className="bg-white rounded-b-2xl border border-t-0 border-slate-200 divide-y divide-slate-100 overflow-hidden -mt-4">
+              {/* Upcoming Reminders */}
+              {upcomingReminders.map(reminder => renderReminderRow(reminder, false, false))}
+              
+              {/* Past Reminders */}
+              {pastReminders.map(reminder => renderReminderRow(reminder, true, false))}
+              
+              {/* Completed Reminders (if showing) */}
+              {showCompleted && completedReminders.map(reminder => renderReminderRow(reminder, false, true))}
+            </div>
+            
+            {/* Footer with stats */}
+            <div className="flex items-center justify-between px-2">
+              <div className="flex items-center gap-3">
+                {activeReminders.length > 0 && (
+                  <span className="px-3 py-1.5 bg-violet-100 text-violet-700 rounded-full text-sm font-semibold">
+                    {activeReminders.length} activo{activeReminders.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+                {completedReminders.length > 0 && (
+                  <button
+                    onClick={() => setShowCompleted(!showCompleted)}
+                    className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full text-sm font-medium flex items-center gap-1.5 transition-colors"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    {completedReminders.length} completado{completedReminders.length !== 1 ? 's' : ''}
+                    {showCompleted ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                )}
               </div>
-            )}
-
-            {/* Completed Reminders */}
-            {showCompleted && completedReminders.length > 0 && (
-              <div>
-                <h4 className="text-sm font-bold text-green-600 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4" />
-                  Completados ({completedReminders.length})
-                </h4>
-                <div className="grid gap-3 md:grid-cols-2">
-                  {completedReminders.map(reminder => (
-                    <ReminderCard 
-                      key={reminder.id} 
-                      reminder={reminder} 
-                      canEdit={canEdit}
-                      onEdit={() => { setEditingReminder(reminder); setShowModal(true); }}
-                      onComplete={() => handleComplete(reminder)}
-                      onDelete={() => setConfirmDelete(reminder)}
-                      onViewFull={() => setDetailReminder(reminder)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+              {canEdit && (
+                <button
+                  onClick={() => { setEditingReminder(null); setShowModal(true); }}
+                  className="w-12 h-12 bg-violet-500 hover:bg-violet-600 text-white rounded-2xl font-semibold flex items-center justify-center shadow-lg shadow-violet-500/25 transition-all"
+                >
+                  <Plus className="w-6 h-6" />
+                </button>
+              )}
+            </div>
+          </>
         )}
 
         {/* Modals */}
@@ -833,19 +891,30 @@ export default function CourseRemindersPanel({ subjectId, token, userRole, isFul
             >
               <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDelete(null)} />
               <div className="relative bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl" style={{ zIndex: 10001 }}>
-                <h3 className="font-bold text-gray-800 text-lg mb-2">¿Eliminar recordatorio?</h3>
-                <p className="text-gray-600 text-sm mb-6">Esta acción no se puede deshacer.</p>
-                <div className="flex gap-3">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                    <Trash2 className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-800">Eliminar recordatorio</h3>
+                    <p className="text-sm text-slate-500">Esta acción no se puede deshacer</p>
+                  </div>
+                </div>
+                <p className="text-slate-600 mb-6">
+                  ¿Estás seguro de que deseas eliminar "<strong>{confirmDelete.title}</strong>"?
+                </p>
+                <div className="flex justify-end gap-3">
                   <button
                     onClick={() => setConfirmDelete(null)}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
                   >
                     Cancelar
                   </button>
                   <button
                     onClick={() => handleDelete(confirmDelete)}
-                    className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-colors"
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
                   >
+                    <Trash2 className="w-4 h-4" />
                     Eliminar
                   </button>
                 </div>
