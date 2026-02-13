@@ -298,7 +298,10 @@ class TestPeriodsCRUD:
         )
         assert update_response.status_code == 200, f"Update failed: {update_response.text}"
         
-        updated = update_response.json()
+        result = update_response.json()
+        # API returns {"message": ..., "period": {...}}
+        assert "period" in result, f"Expected 'period' in response: {result}"
+        updated = result["period"]
         assert updated["nombre"] == updated_name
         assert updated["fecha_inicio"] == "2025-02-01"
         assert updated["fecha_fin"] == "2025-02-28"
@@ -340,7 +343,9 @@ class TestPeriodsCRUD:
             }
         )
         assert toggle_response.status_code == 200
-        assert toggle_response.json()["activo"] == True
+        result1 = toggle_response.json()
+        assert "period" in result1, f"Expected 'period' in response: {result1}"
+        assert result1["period"]["activo"] == True
         
         # Toggle back to inactive
         toggle_response2 = requests.put(
@@ -352,7 +357,9 @@ class TestPeriodsCRUD:
             }
         )
         assert toggle_response2.status_code == 200
-        assert toggle_response2.json()["activo"] == False
+        result2 = toggle_response2.json()
+        assert "period" in result2, f"Expected 'period' in response: {result2}"
+        assert result2["period"]["activo"] == False
         
         # Cleanup
         requests.delete(f"{BASE_URL}/api/academic/periods/{period['id']}", headers=self.headers)
