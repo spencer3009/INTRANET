@@ -8489,16 +8489,26 @@ async def delete_course_post(
                 if path_with_version.startswith("v"):
                     path_parts = path_with_version.split("/", 1)
                     if len(path_parts) > 1:
-                        public_id = path_parts[1].rsplit(".", 1)[0]
+                        public_id_with_ext = path_parts[1]
                     else:
-                        public_id = path_with_version.rsplit(".", 1)[0]
+                        public_id_with_ext = path_with_version
                 else:
-                    public_id = path_with_version.rsplit(".", 1)[0]
+                    public_id_with_ext = path_with_version
                 
                 # For raw files (PDF, DOC, etc.) use resource_type="raw"
-                resource_type = "raw" if post.get("file_type") and not post["file_type"].startswith("image/") else "image"
+                # Raw files keep the extension in public_id
+                is_raw = post.get("file_type") and not post["file_type"].startswith("image/")
+                if is_raw:
+                    # For raw files, keep the full path including extension
+                    public_id = public_id_with_ext
+                    resource_type = "raw"
+                else:
+                    # For images, remove extension
+                    public_id = public_id_with_ext.rsplit(".", 1)[0]
+                    resource_type = "image"
+                
                 cloudinary.uploader.destroy(public_id, resource_type=resource_type)
-                print(f"Deleted file from Cloudinary: {public_id}")
+                print(f"Deleted file from Cloudinary: {public_id} (type: {resource_type})")
         except Exception as e:
             print(f"Error deleting file from Cloudinary: {e}")
     
