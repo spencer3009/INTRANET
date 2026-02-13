@@ -10567,6 +10567,7 @@ async def create_post_comment(
         "id": str(uuid.uuid4()),
         "post_id": post_id,
         "author_id": user["id"],
+        "parent_id": data.parent_id,  # None for top-level comments, ID for replies
         "content": data.content.strip(),
         "status": "active",
         "created_at": now
