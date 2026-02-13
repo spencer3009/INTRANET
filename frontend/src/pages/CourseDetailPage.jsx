@@ -4242,7 +4242,6 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
               </div>
             );
           })()}
-          </div>
         </main>
       </div>
     </div>
