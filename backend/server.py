@@ -9709,6 +9709,367 @@ async def mark_all_notifications_read(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# MESSAGE CENTER MODULE - Premium Communication System
+# ══════════════════════════════════════════════════════════════════════════════
+
+class MessageType(str, Enum):
+    institutional = "institutional"
+    support = "support"
+    academic = "academic"
+
+class MessagePriority(str, Enum):
+    normal = "normal"
+    important = "important"
+    urgent = "urgent"
+
+class SupportTicketStatus(str, Enum):
+    open = "open"
+    in_progress = "in_progress"
+    responded = "responded"
+    closed = "closed"
+
+class InstitutionalMessageCreate(BaseModel):
+    title: str
+    content: str
+    priority: MessagePriority = MessagePriority.normal
+    target_roles: List[str] = []
+    target_levels: List[str] = []
+    target_grades: List[str] = []
+    expires_at: Optional[str] = None
+    
+class SupportTicketCreate(BaseModel):
+    subject: str
+    category: str
+    description: str
+    
+class SupportTicketReply(BaseModel):
+    content: str
+
+class AcademicMessageCreate(BaseModel):
+    receiver_id: str
+    subject_id: Optional[str] = None
+    content: str
+
+@api_router.get("/messaging/office-hours")
+async def get_office_hours(current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    school = await db.schools.find_one({"id": user["school_id"]}, {"_id": 0})
+    office_hours = school.get("office_hours", {
+        "enabled": True,
+        "timezone": "America/Lima",
+        "schedule": {
+            "monday": {"start": "08:00", "end": "17:00", "enabled": True},
+            "tuesday": {"start": "08:00", "end": "17:00", "enabled": True},
+            "wednesday": {"start": "08:00", "end": "17:00", "enabled": True},
+            "thursday": {"start": "08:00", "end": "17:00", "enabled": True},
+            "friday": {"start": "08:00", "end": "17:00", "enabled": True},
+            "saturday": {"start": "08:00", "end": "12:00", "enabled": False},
+            "sunday": {"start": "00:00", "end": "00:00", "enabled": False}
+        },
+        "out_of_hours_message": "Gracias por tu mensaje. Será atendido en horario escolar."
+    }) if school else {}
+    
+    office_hours["is_currently_open"] = True
+    return office_hours
+
+@api_router.post("/messaging/institutional")
+async def create_institutional_message(
+    data: InstitutionalMessageCreate,
+    current_user = Depends(get_current_user)
+):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    if user.get("role") not in ["admin", "owner", "director", "coordinator"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    
+    message = {
+        "id": str(uuid.uuid4()),
+        "school_id": user["school_id"],
+        "type": MessageType.institutional.value,
+        "title": data.title,
+        "content": data.content,
+        "priority": data.priority.value,
+        "target_roles": data.target_roles,
+        "target_levels": data.target_levels,
+        "target_grades": data.target_grades,
+        "expires_at": data.expires_at,
+        "author_id": user["id"],
+        "author_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "author_role": user.get("role"),
+        "author_photo": user.get("photo_url"),
+        "read_by": [],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "status": "active"
+    }
+    
+    await db.institutional_messages.insert_one(message)
+    return {"message": "Comunicado enviado", "data": message}
+
+@api_router.get("/messaging/institutional")
+async def get_institutional_messages(
+    limit: int = 50,
+    current_user = Depends(get_current_user)
+):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    messages = await db.institutional_messages.find(
+        {"school_id": user["school_id"], "status": "active"},
+        {"_id": 0}
+    ).sort("created_at", -1).limit(limit).to_list(limit)
+    
+    for msg in messages:
+        msg["is_read"] = user["id"] in msg.get("read_by", [])
+    
+    unread_count = sum(1 for m in messages if not m["is_read"])
+    return {"messages": messages, "unread_count": unread_count, "total_count": len(messages)}
+
+@api_router.post("/messaging/institutional/{message_id}/read")
+async def mark_institutional_read(message_id: str, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    await db.institutional_messages.update_one({"id": message_id}, {"$addToSet": {"read_by": user["id"]}})
+    return {"message": "Marcado como leído"}
+
+@api_router.delete("/messaging/institutional/{message_id}")
+async def delete_institutional_message(message_id: str, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or user.get("role") not in ["admin", "owner", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    await db.institutional_messages.update_one(
+        {"id": message_id, "school_id": user["school_id"]},
+        {"$set": {"status": "deleted"}}
+    )
+    return {"message": "Comunicado eliminado"}
+
+@api_router.post("/messaging/support")
+async def create_support_ticket(data: SupportTicketCreate, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    ticket = {
+        "id": str(uuid.uuid4()),
+        "ticket_number": f"TKT-{datetime.now().strftime('%Y%m%d')}-{str(uuid.uuid4())[:6].upper()}",
+        "school_id": user["school_id"],
+        "subject": data.subject,
+        "category": data.category,
+        "status": SupportTicketStatus.open.value,
+        "creator_id": user["id"],
+        "creator_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "creator_role": user.get("role"),
+        "creator_photo": user.get("photo_url"),
+        "messages": [{
+            "id": str(uuid.uuid4()),
+            "sender_id": user["id"],
+            "sender_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+            "sender_photo": user.get("photo_url"),
+            "content": data.description,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "is_staff": False
+        }],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.support_tickets.insert_one(ticket)
+    return {"message": "Ticket creado", "data": ticket}
+
+@api_router.get("/messaging/support")
+async def get_support_tickets(status: Optional[str] = None, limit: int = 50, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    query = {"school_id": user["school_id"]}
+    if user.get("role") not in ["admin", "owner", "director", "coordinator"]:
+        query["creator_id"] = user["id"]
+    if status:
+        query["status"] = status
+    
+    tickets = await db.support_tickets.find(query, {"_id": 0}).sort("updated_at", -1).limit(limit).to_list(limit)
+    return {"tickets": tickets, "total_count": len(tickets)}
+
+@api_router.get("/messaging/support/{ticket_id}")
+async def get_support_ticket(ticket_id: str, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    ticket = await db.support_tickets.find_one({"id": ticket_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not ticket:
+        raise HTTPException(status_code=404, detail="Ticket no encontrado")
+    return ticket
+
+@api_router.post("/messaging/support/{ticket_id}/reply")
+async def reply_support_ticket(ticket_id: str, data: SupportTicketReply, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    is_staff = user.get("role") in ["admin", "owner", "director", "coordinator"]
+    reply = {
+        "id": str(uuid.uuid4()),
+        "sender_id": user["id"],
+        "sender_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "sender_photo": user.get("photo_url"),
+        "content": data.content,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "is_staff": is_staff
+    }
+    
+    new_status = "responded" if is_staff else "open"
+    await db.support_tickets.update_one(
+        {"id": ticket_id},
+        {"$push": {"messages": reply}, "$set": {"status": new_status, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    return {"message": "Respuesta enviada", "reply": reply}
+
+@api_router.put("/messaging/support/{ticket_id}/status")
+async def update_ticket_status(ticket_id: str, status: str = Body(..., embed=True), current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or user.get("role") not in ["admin", "owner", "director", "coordinator"]:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    await db.support_tickets.update_one({"id": ticket_id}, {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": "Estado actualizado"}
+
+@api_router.get("/messaging/academic/contacts")
+async def get_academic_contacts(current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    contacts = []
+    user_role = user.get("role", "student")
+    
+    if user_role == "teacher":
+        subjects = await db.subjects.find({"school_id": user["school_id"], "teacher_id": user["id"]}, {"_id": 0}).to_list(100)
+        for subject in subjects:
+            students = await db.users.find({"school_id": user["school_id"], "grade_id": subject.get("grade_id"), "role": "student"}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(100)
+            for s in students:
+                contacts.append({"id": s["id"], "name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(), "photo_url": s.get("photo_url"), "role": "student", "subject_name": subject.get("name", "")})
+    elif user_role == "student":
+        grade = await db.grades.find_one({"id": user.get("grade_id")}, {"_id": 0, "subjects": 1})
+        if grade:
+            for subj in grade.get("subjects", []):
+                subject = await db.subjects.find_one({"id": subj.get("subject_id")}, {"_id": 0})
+                if subject and subject.get("teacher_id"):
+                    teacher = await db.users.find_one({"id": subject["teacher_id"]}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1})
+                    if teacher:
+                        contacts.append({"id": teacher["id"], "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(), "photo_url": teacher.get("photo_url"), "role": "teacher", "subject_name": subject.get("name", "")})
+    elif user_role in ["admin", "owner", "director", "coordinator"]:
+        all_users = await db.users.find({"school_id": user["school_id"], "id": {"$ne": user["id"]}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}).to_list(500)
+        for u in all_users:
+            contacts.append({"id": u["id"], "name": f"{u.get('name', '')} {u.get('last_name', '')}".strip(), "photo_url": u.get("photo_url"), "role": u.get("role", "student")})
+    
+    return {"contacts": contacts}
+
+@api_router.post("/messaging/academic")
+async def send_academic_message(data: AcademicMessageCreate, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    receiver = await db.users.find_one({"id": data.receiver_id}, {"_id": 0})
+    if not receiver:
+        raise HTTPException(status_code=404, detail="Destinatario no encontrado")
+    
+    if user.get("role") == "student" and receiver.get("role") == "student":
+        raise HTTPException(status_code=403, detail="No puedes enviar mensajes a otros estudiantes")
+    
+    thread = await db.academic_threads.find_one({
+        "school_id": user["school_id"],
+        "$or": [{"participant_ids": [user["id"], data.receiver_id]}, {"participant_ids": [data.receiver_id, user["id"]]}]
+    }, {"_id": 0})
+    
+    if not thread:
+        thread = {
+            "id": str(uuid.uuid4()),
+            "school_id": user["school_id"],
+            "participant_ids": [user["id"], data.receiver_id],
+            "participants": [
+                {"id": user["id"], "name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(), "role": user.get("role"), "photo_url": user.get("photo_url")},
+                {"id": receiver["id"], "name": f"{receiver.get('name', '')} {receiver.get('last_name', '')}".strip(), "role": receiver.get("role"), "photo_url": receiver.get("photo_url")}
+            ],
+            "subject_id": data.subject_id,
+            "messages": [],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+            "unread_by": []
+        }
+        await db.academic_threads.insert_one(thread)
+    
+    message = {
+        "id": str(uuid.uuid4()),
+        "sender_id": user["id"],
+        "sender_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "sender_photo": user.get("photo_url"),
+        "content": data.content,
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.academic_threads.update_one(
+        {"id": thread["id"]},
+        {"$push": {"messages": message}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}, "$addToSet": {"unread_by": data.receiver_id}}
+    )
+    return {"message": "Mensaje enviado", "data": message, "thread_id": thread["id"]}
+
+@api_router.get("/messaging/academic")
+async def get_academic_threads(limit: int = 50, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    threads = await db.academic_threads.find({"school_id": user["school_id"], "participant_ids": user["id"]}, {"_id": 0}).sort("updated_at", -1).limit(limit).to_list(limit)
+    
+    for thread in threads:
+        thread["has_unread"] = user["id"] in thread.get("unread_by", [])
+        thread["other_participant"] = next((p for p in thread.get("participants", []) if p["id"] != user["id"]), None)
+    
+    unread_count = sum(1 for t in threads if t["has_unread"])
+    return {"threads": threads, "unread_count": unread_count, "total_count": len(threads)}
+
+@api_router.get("/messaging/academic/{thread_id}")
+async def get_academic_thread(thread_id: str, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    thread = await db.academic_threads.find_one({"id": thread_id, "school_id": user["school_id"], "participant_ids": user["id"]}, {"_id": 0})
+    if not thread:
+        raise HTTPException(status_code=404, detail="Conversación no encontrada")
+    
+    await db.academic_threads.update_one({"id": thread_id}, {"$pull": {"unread_by": user["id"]}})
+    return thread
+
+@api_router.get("/messaging/stats")
+async def get_messaging_stats(current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    unread_inst = await db.institutional_messages.count_documents({"school_id": user["school_id"], "status": "active", "read_by": {"$ne": user["id"]}})
+    
+    support_query = {"school_id": user["school_id"]}
+    if user.get("role") in ["admin", "owner", "director", "coordinator"]:
+        support_query["status"] = {"$in": ["open", "in_progress"]}
+    else:
+        support_query.update({"creator_id": user["id"], "status": "responded"})
+    unread_support = await db.support_tickets.count_documents(support_query)
+    
+    unread_academic = await db.academic_threads.count_documents({"school_id": user["school_id"], "participant_ids": user["id"], "unread_by": user["id"]})
+    
+    return {"total_unread": unread_inst + unread_support + unread_academic, "institutional": unread_inst, "support": unread_support, "academic": unread_academic}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # ONLINE EXAMS MODULE - Premium Implementation
 # ══════════════════════════════════════════════════════════════════════════════
 
