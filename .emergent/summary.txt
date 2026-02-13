@@ -1,140 +1,190 @@
 <analysis>**original_problem_statement:**
 The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project involves building out a feature-rich intranet with a focus on a high-quality, modern user experience similar to Google Classroom.
 
-The latest major feature request is to build a Centro de Mensajes (Message Center), a professional, role-based communication module. The implementation will be phased, starting with Mensajes Institucionales (Institutional Messages).
+The current development cycle focuses on two major features:
+1.  **Centro de Mensajes (Message Center):** A professional, role-based communication module. Phase 1 (Institutional Messages) is complete.
+2.  **Role-Based Portals:** Creating distinct, secure, and tailored experiences for Students and Teachers. The Student Portal is complete, and the Teacher Portal has just been started.
 
-This is in addition to ongoing premium UI/UX enhancements across existing modules like Online Exams, Tasks, Forum, Study Materials, Reminders, and Grades. The user provides frequent, highly detailed feedback to achieve a top-tier product.
+PRODUCT REQUIREMENTS (New - Teacher Portal):
+- **Objective:** Implement a layout for TEACHERs focused on academic management, student tracking, and communication, with multi-tenant security.
+- **Roles:** Use the existing  role.
+- **Data Model:** Consolidate a  with , , , and .
+- **UI (Sidebar Menu):**
+    - Dashboard: Overview of courses, tasks to review, daily attendance, messages.
+    - Mis Cursos: List of taught courses with access to materials, tasks, forum.
+    - Mis Alumnos: List of students by course/section with read-only academic profiles.
+    - Tareas: Create, view, review, and grade assignments.
+    - Notas: Register and edit student grades.
+    - Asistencia: Take daily attendance.
+    - Mensajes: Communicate with assigned students and coordinators.
+    - Mi Perfil & Cerrar Sesión.
+- **Security:** All data must be filtered by , , and .
 
-PRODUCT REQUIREMENTS (New):
-- **Message Center:** Implement a new communication module accessible via a floating button.
-- **Phase 1 (Institutional Messages):** Admins/Directors can send read-only announcements to users.
-- **Phase 2 (Support/Consultas):** A structured ticket/chat hybrid system for support requests.
-- **Phase 3 (Academic Messages):** Controlled communication between teachers, students, and parents, tied to specific courses.
-- **UI:** The panel should be a drawer sliding from the right.
-- **Business Logic:** Must include role-based permissions, non-intrusive notifications, and configurable office hours.
+PRODUCT REQUIREMENTS (New - Student Portal - Completed in this session):
+- **Objective:** Implement a secure, simplified portal for STUDENTs with read-only access to their academic information.
+- **Data Model:** Create a  linked to  with , , , , etc.
+- **UI (Sidebar Menu):**
+    - Dashboard: Summary of classes, tasks, and announcements.
+    - Mis Cursos: View assigned courses and materials.
+    - Tareas: View and submit assignments.
+    - Notas: View grades.
+    - Asistencia: View attendance record.
+    - Mensajes: Read communications and message assigned teachers/coordinators.
+    - Mi Perfil & Cerrar Sesión.
+- **Security:** All data must be filtered by the student's  and .
 
 **User's preferred language**: Spanish. The next agent MUST respond in Spanish.
 
 **what currently exists?**
-The application is a full-stack React/FastAPI/MongoDB app. The  has become an extremely large, monolithic component containing the logic for multiple modules. The UI for Tareas (Tasks), Foro (Forum), Material de estudio (Study Material), and Recordatorios (Reminders) has been completely redesigned into premium, full-width table/list views. A comprehensive notification system has been implemented, creating alerts for new tasks, exams, forum posts, and materials, which are displayed in a notification bell component.
+The application is a full-stack React/FastAPI/MongoDB app. A significant amount of work was completed in this session:
+1.  **Centro de Mensajes (Phase 1):** The institutional messaging feature is fully implemented and tested. It includes a floating button, a right-side drawer, create/read/edit/delete functionality for messages, and a WhatsApp-style hover menu for message options.
+2.  **Portal de Alumnos (Student Portal):** A complete, dedicated portal for students is now live. It features a unique blue sidebar, role-based routing, and placeholder pages for all key modules (Dashboard, Courses, Tasks, Grades, Attendance, Profile), all styled with a premium look and feel.
+3.  **Portal de Profesores (Teacher Portal):** The initial scaffolding has been created, including a new  component, a , and a backend endpoint .
 
 **Last working item**:
-- **Last item agent was working:** The agent started Phase 1 of the new Centro de Mensajes (Message Center) feature. The backend models (, ) and initial API endpoints were created in . A new frontend component, , was created to house the floating button and drawer UI. The next step is to integrate this component into the main application layout.
+- **Last item agent was working:** The agent began the implementation of the **Portal de Profesores (Teacher Portal)**. The initial backend endpoint () and frontend components (, ) were created.
 - **Status**: IN PROGRESS
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: Frontend testing agent. Once Phase 1 is complete, the agent should test the full flow of an admin creating an institutional message and a user viewing it in the new message center drawer.
+- **Which testing method agent to use?**: Frontend testing agent. Once the Teacher Portal modules are built out, a full test of the teacher's workflow should be conducted (logging in, viewing courses, managing students, taking attendance, etc.).
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Confirm Previous Fixes (P0)**
-    - **Description**: Two items from the previous session are still awaiting user validation:
-        1.  The Cloudinary image upload fix for exam questions.
-        2.  The complete UI redesign of the Foro (Forum) tab.
-    - **Why fix this issue and what will be achieved with the fix?**: To formally close out old tasks and ensure the core functionality is working as expected before building new features on top.
+- **Issue 1: Confirm Previous Fixes (P2)**
+    - **Description**: The Cloudinary image upload fix and the Foro (Forum) UI redesign from a previous session are still awaiting final user validation. The user de-prioritized this, but it remains open.
     - **Status**: USER VERIFICATION PENDING
     - **Is recurring issue?**: N
     - **Should Test frontend/backend/both after fix?**: Frontend (user manual testing).
 
 - **Issue 2: Project-Wide Replacement of  (P2)**
-    - **Description**: An inherited technical debt task to replace all native  calls with the custom  component for a consistent UX. This task has been repeatedly postponed.
+    - **Description**: An inherited technical debt task to replace all native  calls with the custom  component for a consistent UX.
     - **Status**: NOT STARTED
     - **Is recurring issue?**: N
     - **Should Test frontend/backend/both after fix?**: Frontend.
 
 **In progress Task List**:
-- **Task 1: Implement Centro de Mensajes - Phase 1 (P0)**
-    - **Description**: Continue the implementation of the Message Center.
-    - **Where to resume**: The  component exists but is not rendered anywhere. The next step is to import and render it within the main application layout file so the floating button appears globally. After that, implement the logic to fetch and display institutional messages in the drawer.
-    - **What will be achieved with this?**: This will complete the first phase of the new communication module, providing immediate value for school administrators.
+- **Task 1: Implement Portal de Profesores (P0)**
+    - **Description**: Continue building the Teacher Portal based on the user's detailed prompt.
+    - **Where to resume**:
+        1.  Flesh out the  with real data from the new backend endpoint.
+        2.  Create the remaining pages for the Teacher Portal (Mis Cursos, Mis Alumnos, Tareas, Notas, Asistencia, Mi Perfil).
+        3.  Implement the routing logic in  to handle navigation within the Teacher Portal.
+        4.  Implement the necessary backend endpoints and logic for each module.
+    - **What will be achieved with this?**: A complete, functional, and secure portal for teachers to manage their academic responsibilities.
     - **Status**: IN PROGRESS
     - **Should Test frontend/backend/both after fix?**: Both.
     - **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-  - **P0: Refactor :** This is the highest priority technical task. The file is critically oversized and unmaintainable. The agent MUST extract the large, newly created components (, , , , etc.) into their own files under . This file's complexity is a major risk to all future development.
-  - **P1: Implement Centro de Mensajes - Phase 2:** Build the Support/Consultas (Tickets) system.
-  - **P1: Implement Centro de Mensajes - Phase 3:** Build the academic messaging feature (Teacher ↔ Student/Parent).
+  - **P0: Refactor :** This is the highest priority technical debt. The file is critically oversized. The agent MUST extract the large components (, , , etc.) into their own files. This was explicitly postponed by the user but remains a major risk.
+  - **P1: Implement Centro de Mensajes - Phase 2 & 3:** The user paused work on the Support/Tickets and Academic Messaging features to prioritize the role-based portals. This should be resumed after the Teacher Portal is complete.
   - **P2: Implement Student View for Exams (Phase 4):** This was postponed by the user. It involves creating the student-facing view to take exams.
 
 - **Future Tasks (from PRD & user requests):**
   - Build out the Horarios (Schedules) module.
   - Build out the Matrículas (Enrollments) module.
-  - Build out the Calificaciones (Grades) module with more features.
   - Enhancements for the Exams module: Question Bank, student attempts tracking, automatic grading.
   - On the teacher dashboard, show a count of how many subjects each teacher is assigned.
-  - Add an edit posts feature to the communication feed.
+  - Add an edit posts feature to the main communication feed (distinct from the Message Center).
   - Use the subject's 1:1 cropped image as a banner on the .
 
 **Completed work in this session**
-- **UI Overhaul (Tasks, Materials, Reminders, Grades):** Replaced the old card-based layouts with premium, full-width table/list views, consistent across all modules. This included creating new components directly within .
-- **Task Submissions View:** Added a new Entregas view within the Tasks module to see student submissions, grades, and comments, matching the user's detailed design.
-- **Profile Picture Fix:** Corrected a recurring bug by using  instead of  to display user avatars in the Tasks and Forum modules.
-- **Dynamic Header/Layout:** Implemented logic to hide the main course header and show a Back to Subjects button on all full-width tabs, creating a more focused workspace.
-- **Backend File Deletion:** Implemented logic in  to correctly delete associated files from Cloudinary (both images and raw files like PDFs) when a post is deleted.
-- **Comprehensive Notification System:**
-    - Created new backend endpoints and DB models for general notifications.
-    - Modified backend logic to automatically create a notification when a new Task, Forum Post, Study Material, or Exam is published.
-    - Overhauled the frontend  component to fetch and display these new Activity notifications in a separate tab from Reminders.
+- **Centro de Mensajes - Fase 1 (DONE & TESTED):**
+    - Integrated the  component globally.
+    - Fixed a critical backend  serialization bug preventing message creation.
+    - Implemented user-requested UI changes: tab order changed to Mensajes, Comunicados, Soporte, and the Mensajes tab now defaults to a contact list view.
+    - Implemented full persistence for academic chat conversations.
+    - **Added Edit & Delete message functionality**, including backend endpoints () and frontend UI.
+    - **Added a WhatsApp-style hover-and-click menu** on messages to reveal the edit/delete options.
+    - Passed 100% of tests from the .
+
+- **Portal de Alumnos (Student Portal) - (DONE):**
+    - Implemented backend RBAC helpers (, ) and student-specific endpoints (, , ).
+    - Created a complete, dedicated layout for students with a unique blue .
+    - Implemented role-based routing in  to automatically direct logged-in students to .
+    - Created and styled all student-facing pages: , , , , , and , complete with professional-looking empty states.
+
+- **PRD.md Updates:** The PRD file was updated to reflect the completion of the Message Center (Phase 1) and the progress on the new portals.
 
 **Earlier issues found/mentioned but not fixed**
 - The project-wide task to refactor all  dialogs remains pending.
 
 **Known issue recurrence from previous fork**
-None.
+- None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Monolithic Component Anti-Pattern:** The agent continued to add massive, distinct features (, , etc.) directly into , making it nearly unmanageable.
-- **Dynamic UI based on State:** The UI now changes significantly based on the , hiding/showing the course header and switching between 3-column and full-width layouts.
-- **Backend-Driven Notifications:** Created a system where backend actions (e.g., creating a post) trigger the creation of notification documents in the database, which are then fetched and displayed by the frontend.
-- **Phased Module Implementation:** Started the development of the large Message Center feature by breaking it down into planned phases, beginning with the backend models and base frontend component.
+- **Role-Based Access Control (RBAC):** Implemented distinct user experiences (Student vs. Admin/Teacher) based on a  field in the JWT. Created separate layouts, sidebars, and protected routes for each role.
+- **Backend Authorization:** Created helper functions (, ) and Depends in FastAPI to protect endpoints based on user role.
+- **Real-time Chat UI Mimicry:** Enhanced the  with features like edit/delete, message persistence, and a hover-to-reveal options menu to create a modern chat experience.
+- **MongoDB Array Updates with :** Correctly implemented logic to update or soft-delete specific items within a nested array (e.g., a message in a conversation thread) in a single document.
+- **Component Scaffolding:** Began building a new major feature (Teacher Portal) by creating the necessary file structure (components, pages) and initial backend endpoints first.
 
 **key DB schema**
 - **notifications**: 
 - **message_threads**: 
-- **messages**: 
+- **messages** (within ): 
+
+**changes in tech stack**
+- None.
 
 **All files of reference**
-- **Heavily Updated:**
-    - : Major additions for notifications and the new message center.
-    - : Extremely bloated with new components and conditional rendering logic.
-    - : Overhauled for a new premium list design.
-    - : Rewritten to support the new general notification system.
 - **Newly Created:**
-    - : The base component for the new messaging feature.
+    - 
+    - 
+    - 
+    - 
+    - 
+    - 
+    - 
+    - 
+    - 
+- **Heavily Updated:**
+    - 
+    - 
+    - 
+    - 
 
 **Areas that need refactoring**:
-- ** is the #1 critical issue.** It MUST be broken down. The current agent added several large, self-contained components into this single file instead of creating separate component files. This is unsustainable and makes the code extremely difficult to navigate and debug. The next agent's first technical task should be to propose and execute this refactoring.
+- ** remains the #1 critical issue.** It is extremely large and contains the logic for multiple distinct features. This refactoring was postponed by the user but should be the next major technical debt task addressed.
 
 **key api endpoints**
-- : GET all notifications for the current user.
-- : POST to mark all notifications as read.
-- : GET/POST for message threads.
-- : GET/POST for messages within a thread.
+-  (POST)
+-  (POST)
+-  (PUT, DELETE) - **NEW**
+-  (GET) - **NEW**
+-  (GET) - **NEW**
+-  (GET) - **NEW**
+-  (GET) - **NEW**
 
 **Critical Info for New Agent**
 - **You MUST communicate in Spanish.**
-- **Refactor !** Do not add more code to this file. Propose a plan to extract the large components (, , , ) into their own files. This is not optional; it is essential for the project's health.
-- **Follow the Phased Plan:** Continue implementing the Centro de Mensajes according to the user-approved phases, starting with integrating the  component into the UI.
-- **Confirm Old Fixes:** Before starting major new work, ask the user to verify the Cloudinary upload fix and the Forum UI.
+- The user has approved a clear roadmap: **Finish the Teacher Portal (P0)**, then address the  refactor, and finally resume work on the Message Center (Phases 2 & 3). Do not deviate from this.
+- Leverage the existing premium components and styling from the Student Portal when building the Teacher Portal to maintain consistency.
+- The  refactor is a critical, high-priority technical task, even though it's currently on hold per user instruction. Be prepared to tackle it as soon as the Teacher Portal is complete.
 
 **documents and test reports created in this job**
-None.
+-  (Message Center Phase 1 testing)
+-  (Updated with progress)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Provided a detailed PRD for a new Centro de Mensajes (Message Center) feature.
-2.  **Agent:** Asked for clarification on implementation priorities and design choices for the Message Center.
-3.  **User:** Responded with clear decisions: implement in phases (starting with Institutional Messages), use a right-side drawer, include Teacher-Parent communication, use a hybrid form/chat for support, and include basic office-hour logic from the start.
-4.  **Agent:** Confirmed understanding and began Phase 1 implementation.
+- **User:** Provided a detailed prompt for the Student Portal.
+- **Agent:** Asked for confirmation on starting the new portal and how to handle test users.
+- **User:** Confirmed to start the Student Portal immediately, use an existing test user, and pause the Message Center work.
+- **Agent:** Implemented the full Student Portal (Phases 1, 2, 3) and showed screenshots of the completed pages.
+- **User:** Praised the Student Portal's professional design and gave the go-ahead to continue with the detail pages.
+- **Agent:** Showed the completed detail pages for the Student Portal (Profile, Grades, Attendance).
+- **User:** Provided a new, detailed prompt for implementing the Teacher Portal.
+- **Agent:** Acknowledged the prompt and started scaffolding the Teacher Portal by creating initial files.
+- **User:** (last message, not replied to) None, agent was in the middle of implementation.
 
 **Project Health Check:**
-- **Working**: Core application, login, dashboard. All course tabs (Tareas, Foro, Material, Recordatorios, Calificaciones, Exámenes) have been significantly updated with new premium UIs and are functional based on agent testing. The new notification system is also working.
-- **Broken**: No features are confirmed to be broken.
-- **User Verification Pending**: The fix for the Cloudinary image upload bug and the new Forum UI are pending final user confirmation.
-- **In Progress**: The Centro de Mensajes module is under active development.
+- **Working:** Core application, Admin dashboard, Message Center (Phase 1), **Student Portal (all pages)**.
+- **Broken:** No features are confirmed to be broken.
+- **In Progress:** **Teacher Portal**.
+- **User Verification Pending:** Cloudinary image upload fix, Forum UI redesign.
 
 **3rd Party Integrations**
 *   **Cloudinary:** Used for image and file hosting.
@@ -144,17 +194,17 @@ None.
 *   **Lucide React:** Used for icons.
 
 **Testing status**
-- **Testing agent used after significant changes**: NO
+- **Testing agent used after significant changes**: YES (for Message Center Phase 1)
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: None.
 - **Known regressions**: None.
 
 **Credentials to test flow:**
-*   **Email**: 
-*   **Password**: 
-*   **Identifier**: 
+*   **Admin Email**: 
+*   **Admin Password**: 
+*   **Student Username**: 
+*   **Student Password**: 
+*   **School Identifier**: 
 
 **What agent forgot to execute**
-- The agent **critically failed** to refactor the  file. Instead of breaking it down, the agent added thousands of lines of code for multiple new components, making the technical debt significantly worse.
-- The agent did not address the inherited task of replacing .
-- The agent did not follow up with the user to confirm that the Cloudinary and Forum changes from the previous session were satisfactory.</analysis>
+- The agent correctly followed user priorities. The  refactor and the  replacement were explicitly postponed by the user's direction. These tasks were not forgotten but remain outstanding technical debt.</analysis>
