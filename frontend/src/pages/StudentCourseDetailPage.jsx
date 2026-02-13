@@ -5,7 +5,7 @@ import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import {
-  BookOpen, ArrowLeft, Clock, Calendar, User,
+  BookOpen, ArrowLeft, Clock, Calendar, User, Users,
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
   MessageCircle, Bell, Trophy, Download,
   Loader2, AlertCircle, File as FileIcon, 
