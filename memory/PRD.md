@@ -95,6 +95,31 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 - Password: `test123`
 - Subdominio: `demosettings`
 
+### ✅ Portal de Administradores - FASE 1 (NUEVO - 2025-02-13)
+**Layout y Sidebar (AdminSidebar.jsx)**
+- Dashboard: `/admin` - Bienvenida, estadísticas generales, acciones rápidas, actividad reciente
+- Usuarios: `/admin/users` - Lista completa de usuarios con filtros por rol/estado, cambio de rol
+- Estudiantes: `/admin/students` - CRUD de alumnos con info académica (nivel, grado, sección, turno)
+- Profesores: `/admin/teachers` - CRUD de docentes con info profesional y enlace a asignación docente
+
+**Estructura del Sidebar Admin**
+- OPERACIÓN: Dashboard, Usuarios, Alumnos, Profesores, Padres
+- ESTRUCTURA ACADÉMICA: Años Académicos, Niveles, Grados, Secciones, Turnos, Cursos, Horarios
+- GESTIÓN ACADÉMICA: Tareas, Notas, Asistencia, Exámenes
+- COMUNICACIÓN: Centro de Mensajes, Comunicados
+- CONFIGURACIÓN: Sistema, Branding, Roles y Permisos
+
+**Seguridad Multi-tenant**
+- Backend valida `user.role in ['admin', 'owner', 'director']` y `school_id`
+- Admins pueden gestionar TODOS los usuarios de su escuela
+- Admins NO pueden ver ni modificar datos de otras escuelas
+- Admins redirigidos automáticamente si intentan acceder a rutas de student/teacher
+
+**Credenciales de prueba**
+- Email: `admin.settings@test.pe`
+- Password: `test123`
+- Subdominio: `demosettings`
+
 ---
 
 ## Decisiones Arquitectónicas Clave
