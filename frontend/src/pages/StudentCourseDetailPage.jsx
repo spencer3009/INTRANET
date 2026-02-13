@@ -1176,13 +1176,6 @@ function ForumContent({ posts, token, user }) {
     </div>
   );
 }
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 // Main Component
 export default function StudentCourseDetailPage({ user, token, onLogout }) {
