@@ -376,24 +376,102 @@ function PostCard({ post, token, user }) {
           ) : (
             <div className="space-y-4">
               {comments.map((comment, idx) => (
-                <div key={comment.id || idx} className="flex items-start gap-3">
-                  {comment.author?.photo_url ? (
-                    <img
-                      src={comment.author.photo_url}
-                      alt={comment.author?.name}
-                      className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-slate-300 flex items-center justify-center text-slate-600 text-xs font-bold flex-shrink-0">
-                      {comment.author?.name?.charAt(0) || 'U'}
+                <div key={comment.id || idx} className="space-y-3">
+                  {/* Main Comment */}
+                  <div className="flex items-start gap-3">
+                    {comment.author?.photo_url ? (
+                      <img
+                        src={comment.author.photo_url}
+                        alt={comment.author?.name}
+                        className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-full bg-slate-300 flex items-center justify-center text-slate-600 text-xs font-bold flex-shrink-0">
+                        {comment.author?.name?.charAt(0) || 'U'}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <div className="bg-slate-50 rounded-xl px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-sm text-slate-800">{comment.author?.name || 'Usuario'}</span>
+                          <span className="text-xs text-slate-400">{getTimeAgo(comment.created_at)}</span>
+                        </div>
+                        <p className="text-sm text-slate-600 mt-1">{comment.content}</p>
+                      </div>
+                      {/* Reply Button */}
+                      <button
+                        onClick={() => setReplyingTo({ id: comment.id, authorName: comment.author?.name || 'Usuario' })}
+                        className="text-xs text-cyan-600 hover:text-cyan-700 font-medium mt-1 ml-2"
+                      >
+                        Responder
+                      </button>
+                      
+                      {/* Reply Input (shows when replying to this comment) */}
+                      {replyingTo?.id === comment.id && (
+                        <div className="flex items-start gap-2 mt-3 ml-2">
+                          {user?.photo_url ? (
+                            <img src={user.photo_url} alt={user?.name} className="w-7 h-7 rounded-full object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                              {user?.name?.charAt(0) || 'E'}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <textarea
+                              value={replyText}
+                              onChange={(e) => setReplyText(e.target.value)}
+                              placeholder={`Responder a ${replyingTo.authorName}...`}
+                              className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
+                              rows={2}
+                              autoFocus
+                            />
+                            <div className="flex justify-end gap-2 mt-2">
+                              <button
+                                onClick={() => { setReplyingTo(null); setReplyText(""); }}
+                                className="px-3 py-1 text-slate-500 text-xs font-medium hover:bg-slate-100 rounded-lg"
+                              >
+                                Cancelar
+                              </button>
+                              <button
+                                onClick={() => handleSubmitReply(comment.id)}
+                                disabled={!replyText.trim() || submittingReply}
+                                className="px-3 py-1 bg-cyan-500 text-white text-xs font-medium rounded-lg hover:bg-cyan-600 disabled:opacity-50"
+                              >
+                                {submittingReply ? 'Enviando...' : 'Responder'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Replies to this comment */}
+                      {comment.replies?.length > 0 && (
+                        <div className="ml-4 mt-3 space-y-3 border-l-2 border-slate-200 pl-3">
+                          {comment.replies.map((reply, replyIdx) => (
+                            <div key={reply.id || replyIdx} className="flex items-start gap-2">
+                              {reply.author?.photo_url ? (
+                                <img
+                                  src={reply.author.photo_url}
+                                  alt={reply.author?.name}
+                                  className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                                />
+                              ) : (
+                                <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-slate-600 text-xs font-bold flex-shrink-0">
+                                  {reply.author?.name?.charAt(0) || 'U'}
+                                </div>
+                              )}
+                              <div className="flex-1 bg-slate-100 rounded-lg px-3 py-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-semibold text-xs text-slate-800">{reply.author?.name || 'Usuario'}</span>
+                                  <span className="text-xs text-slate-400">{getTimeAgo(reply.created_at)}</span>
+                                </div>
+                                <p className="text-xs text-slate-600 mt-1">{reply.content}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
-                  <div className="flex-1 bg-slate-50 rounded-xl px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-sm text-slate-800">{comment.author?.name || 'Usuario'}</span>
-                      <span className="text-xs text-slate-400">{getTimeAgo(comment.created_at)}</span>
-                    </div>
-                    <p className="text-sm text-slate-600 mt-1">{comment.content}</p>
                   </div>
                 </div>
               ))}
