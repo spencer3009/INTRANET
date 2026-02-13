@@ -1007,7 +1007,7 @@ function AcademicTab({ token, user, onRefreshStats }) {
         {/* Header with contact info always visible */}
         <div className="p-4 border-b border-slate-200 flex items-center gap-3">
           <button
-            onClick={() => setSelectedContact(null)}
+            onClick={() => { setSelectedContact(null); setConversationMessages([]); }}
             className="w-8 h-8 bg-slate-100 hover:bg-slate-200 rounded-lg flex items-center justify-center transition-colors"
           >
             <ArrowLeft className="w-4 h-4 text-slate-600" />
@@ -1025,7 +1025,21 @@ function AcademicTab({ token, user, onRefreshStats }) {
           </div>
         </div>
         
-        <div className="flex-1" />
+        {/* Messages area */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {conversationMessages.map((msg) => (
+            <div key={msg.id} className="flex justify-end">
+              <div className="max-w-[80%]">
+                <div className="px-4 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-tr-none">
+                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-1 text-right">
+                  {new Date(msg.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
         
         {/* Message input */}
         <div className="p-4 border-t border-slate-200">
@@ -1034,7 +1048,7 @@ function AcademicTab({ token, user, onRefreshStats }) {
               value={messageText}
               onChange={(e) => setMessageText(e.target.value)}
               placeholder="Escribe tu mensaje..."
-              rows={3}
+              rows={2}
               className="flex-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-amber-400 transition-colors resize-none text-sm"
             />
             <button
