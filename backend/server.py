@@ -2578,6 +2578,131 @@ async def update_admin_exam(
     
     return {"message": "Examen actualizado correctamente"}
 
+# Admin Announcements Endpoints
+class AnnouncementCreate(BaseModel):
+    title: str
+    content: str
+    audience: Literal["all", "teachers", "students", "parents"] = "all"
+    status: Literal["draft", "published", "scheduled", "archived"] = "draft"
+    publish_date: Optional[str] = None
+    attachments: Optional[List[dict]] = []
+
+class AnnouncementUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    audience: Optional[Literal["all", "teachers", "students", "parents"]] = None
+    status: Optional[Literal["draft", "published", "scheduled", "archived"]] = None
+    publish_date: Optional[str] = None
+    attachments: Optional[List[dict]] = None
+
+@api_router.get("/admin/announcements")
+async def get_admin_announcements(
+    status: Optional[str] = None,
+    audience: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get all announcements for admin view."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden acceder")
+    
+    school_id = user["school_id"]
+    
+    query = {"school_id": school_id}
+    if status:
+        query["status"] = status
+    if audience:
+        query["audience"] = audience
+    
+    announcements = await db.announcements.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
+    
+    return {"announcements": announcements, "total": len(announcements)}
+
+@api_router.post("/admin/announcements")
+async def create_announcement(
+    data: AnnouncementCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new announcement."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden crear comunicados")
+    
+    school_id = user["school_id"]
+    
+    announcement = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "title": data.title,
+        "content": data.content,
+        "audience": data.audience,
+        "status": data.status,
+        "publish_date": data.publish_date,
+        "attachments": data.attachments or [],
+        "created_by": user["id"],
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.announcements.insert_one(announcement)
+    del announcement["_id"]
+    
+    return {"message": "Comunicado creado correctamente", "announcement": announcement}
+
+@api_router.put("/admin/announcements/{announcement_id}")
+async def update_announcement(
+    announcement_id: str,
+    data: AnnouncementUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update an announcement."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden editar comunicados")
+    
+    school_id = user["school_id"]
+    
+    announcement = await db.announcements.find_one({"id": announcement_id, "school_id": school_id})
+    if not announcement:
+        raise HTTPException(status_code=404, detail="Comunicado no encontrado")
+    
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.announcements.update_one({"id": announcement_id}, {"$set": update_data})
+    
+    return {"message": "Comunicado actualizado correctamente"}
+
+@api_router.delete("/admin/announcements/{announcement_id}")
+async def delete_announcement(
+    announcement_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete an announcement."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar comunicados")
+    
+    school_id = user["school_id"]
+    
+    result = await db.announcements.delete_one({"id": announcement_id, "school_id": school_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Comunicado no encontrado")
+    
+    return {"message": "Comunicado eliminado correctamente"}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # DEMO DATA MANAGEMENT
 # ══════════════════════════════════════════════════════════════════════════════
