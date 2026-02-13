@@ -154,6 +154,14 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 - Tab Secciones: CRUD de secciones por grado con capacidad
 - Tab Turnos: CRUD de turnos con horarios de inicio/fin
 
+**✅ Funcionalidad de Clonar Períodos (NUEVO - 2025-02-13)**
+- Modal de períodos: Ver/gestionar períodos de cada año académico
+- CRUD completo de períodos: nombre, fechas, orden, estado activo
+- Clonar períodos al crear año: Opción de copiar estructura de otro año
+- Clonar períodos entre años: Endpoint `/api/academic/periods/clone`
+- Ajuste automático de fechas: Las fechas se ajustan al nuevo año
+- Validaciones: Origen debe tener períodos, destino debe estar vacío
+
 **Seguridad CRÍTICA**
 - El Admin Portal es EXCLUSIVO para usuarios con `role='admin'`
 - Usuarios con `role='owner'` o `role='director'` ven el dashboard original
