@@ -2985,8 +2985,8 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
-  const [startTime, setStartTime] = useState("09:00");
-  const [endTime, setEndTime] = useState("11:00");
+  const [startTime, setStartTime] = useState("09:00:00");
+  const [endTime, setEndTime] = useState("11:00:00");
   const [minScore, setMinScore] = useState(60);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
