@@ -6863,19 +6863,17 @@ function MaterialTableContent({ subjectId, token, user }) {
 // ══════════════════════════════════════════════════════════════════════════════
 function RemindersTabContent({ subjectId, token, userRole }) {
   return (
-    <div className="space-y-5">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg">
-            <Bell className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-gray-800">Recordatorios del Curso</h2>
-            <p className="text-sm text-gray-500">Gestiona tareas, exámenes y avisos importantes</p>
-          </div>
+    <div className="space-y-6 pt-6 pb-48">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Recordatorios</h2>
+          <div className="w-8 h-1 bg-violet-500 rounded-full mt-2"></div>
         </div>
-        
-        {/* Embedded Reminders Panel - Full width version */}
+      </div>
+      
+      {/* Reminders Panel - Full width */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
         <CourseRemindersPanel 
           subjectId={subjectId} 
           token={token} 
