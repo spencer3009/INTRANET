@@ -1297,12 +1297,23 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         if all_grades:
             average_grade = sum(all_grades) / len(all_grades)
     
+    # Get number of classmates in the same section
+    section_students_count = 0
+    if seccion_id:
+        section_students_count = await db.users.count_documents({
+            "school_id": school_id,
+            "seccion_id": seccion_id,
+            "role": "student",
+            "id": {"$ne": user["id"]}  # Exclude current student
+        })
+    
     return {
         "upcoming_tasks": upcoming_tasks,
         "recent_announcements": recent_announcements,
         "attendance_summary": attendance_summary,
         "courses_count": len(subject_ids),
-        "average_grade": average_grade
+        "average_grade": average_grade,
+        "section_students_count": section_students_count
     }
 
 @api_router.get("/attendance/student")
