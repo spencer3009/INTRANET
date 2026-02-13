@@ -48,6 +48,11 @@ import AdminGradesManagementPage from "@/pages/AdminGradesManagementPage";
 import AdminAttendancePage from "@/pages/AdminAttendancePage";
 import AdminTasksPage from "@/pages/AdminTasksPage";
 import AdminExamsPage from "@/pages/AdminExamsPage";
+import AdminSettingsPage from "@/pages/AdminSettingsPage";
+import AdminBrandingPage from "@/pages/AdminBrandingPage";
+import AdminAnnouncementsPage from "@/pages/AdminAnnouncementsPage";
+import AdminMessagesPage from "@/pages/AdminMessagesPage";
+import AdminRolesPage from "@/pages/AdminRolesPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
