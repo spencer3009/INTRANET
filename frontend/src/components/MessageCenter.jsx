@@ -38,7 +38,7 @@ const STATUS_CONFIG = {
 // ══════════════════════════════════════════════════════════════════════════════
 export default function MessageCenter({ token, user }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("institutional");
+  const [activeTab, setActiveTab] = useState("academic");
   const [stats, setStats] = useState({ total_unread: 0, institutional: 0, support: 0, academic: 0 });
   const [loading, setLoading] = useState(false);
 
