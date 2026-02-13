@@ -128,6 +128,18 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 ### Usuarios
 - `GET /api/users/teachers/active` - Profesores activos
 
+### Portal de Profesores (NUEVO - 2025-02-13)
+- `GET /api/teacher/profile` - Perfil del profesor con assigned_courses, assigned_sections
+- `GET /api/teacher/dashboard` - Dashboard con estadísticas y alertas
+- `GET /api/teacher/courses` - Cursos asignados con info de sección
+- `GET /api/teacher/students` - Estudiantes de secciones asignadas
+- `GET /api/teacher/students/{id}` - Detalle académico de un estudiante
+- `GET /api/teacher/tasks` - Tareas de cursos asignados
+- `GET /api/teacher/grades?subject_id&section_id` - Notas por curso/sección
+- `POST /api/teacher/grades` - Guardar/editar notas
+- `GET /api/teacher/attendance?section_id&date` - Asistencia por sección/fecha
+- `POST /api/teacher/attendance` - Guardar asistencia
+
 ---
 
 ## Colecciones MongoDB
