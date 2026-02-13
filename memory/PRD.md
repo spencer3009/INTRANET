@@ -165,6 +165,18 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 - `GET /api/teacher/attendance?section_id&date` - Asistencia por sección/fecha
 - `POST /api/teacher/attendance` - Guardar asistencia
 
+### Portal de Administradores (NUEVO - 2025-02-13)
+- `GET /api/users` - Lista todos los usuarios del school_id
+- `POST /api/users` - Crear nuevo usuario (estudiante, profesor, padre, etc.)
+- `PUT /api/users/{id}` - Editar usuario (incluye cambio de rol)
+- `DELETE /api/users/{id}` - Eliminar usuario
+- `GET /api/users/check-username/{username}` - Verificar disponibilidad de username
+- `GET /api/academic/levels` - Niveles activos
+- `GET /api/academic/grades` - Grados activos
+- `GET /api/academic/sections` - Secciones activas
+- `GET /api/academic/shifts` - Turnos activos
+- `GET /api/academic/assignments` - Asignaciones docentes
+
 ---
 
 ## Colecciones MongoDB
