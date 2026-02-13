@@ -5879,6 +5879,9 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     const submitted = 0; // TODO: Get actual submission count
     const notSubmitted = totalStudents - submitted;
     
+    // Get author photo - can be photo_url or profile_pic
+    const authorPhoto = selectedTask.author?.photo_url || selectedTask.author?.profile_pic;
+    
     return (
       <div className="space-y-4 pt-6 pb-48">
         {/* Back button */}
@@ -5895,32 +5898,32 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
           <div className="lg:col-span-2 space-y-4">
             {/* Task content card - Professional Design */}
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-              {/* Header with gradient */}
-              <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6">
+              {/* Header with gradient - School-friendly blue */}
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 p-6">
                 <div className="flex items-start gap-4">
                   {/* Author photo */}
-                  {selectedTask.author?.profile_pic ? (
+                  {authorPhoto ? (
                     <img 
-                      src={selectedTask.author.profile_pic} 
+                      src={authorPhoto} 
                       alt={selectedTask.author?.name || 'Usuario'}
-                      className="w-14 h-14 rounded-full object-cover border-2 border-white/20"
+                      className="w-14 h-14 rounded-full object-cover border-3 border-white shadow-lg"
                     />
                   ) : (
-                    <div className="w-14 h-14 rounded-full bg-slate-600 flex items-center justify-center border-2 border-white/20">
-                      <User className="w-7 h-7 text-slate-300" />
+                    <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30">
+                      <User className="w-7 h-7 text-white" />
                     </div>
                   )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-white font-semibold">{selectedTask.author?.name || 'Usuario'}</span>
-                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full">
+                      <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-medium rounded-full">
                         Publicado
                       </span>
                     </div>
-                    <p className="text-slate-400 text-sm">{levelName} • {gradeName}</p>
+                    <p className="text-blue-100 text-sm">{levelName} • {gradeName}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                       <PenTool className="w-5 h-5 text-white" />
                     </div>
                   </div>
@@ -5948,12 +5951,12 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                 
                 {/* Due date footer */}
                 <div className="mt-6 pt-4 border-t border-slate-100">
-                  <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 rounded-xl border border-amber-100">
-                    <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
                       <Clock className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <p className="text-xs text-amber-600 font-medium uppercase tracking-wide">Fecha de entrega</p>
+                      <p className="text-xs text-blue-600 font-medium uppercase tracking-wide">Fecha de entrega</p>
                       <p className="text-slate-800 font-semibold">{formatDateTime(dueDate)}</p>
                     </div>
                   </div>
