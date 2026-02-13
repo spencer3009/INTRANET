@@ -110,53 +110,16 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 lg:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-xl font-bold text-slate-800">
-                  ¡Hola, {studentProfile?.user?.name || user?.name}!
-                </h1>
-                <p className="text-sm text-slate-500">
-                  {academic.grado?.nombre && academic.seccion?.nombre 
-                    ? `${academic.grado.nombre} - ${academic.seccion.nombre}`
-                    : "Bienvenido a tu portal estudiantil"
-                  }
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {/* Notifications indicator */}
-              <button className="relative w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors">
-                <Bell className="w-5 h-5" />
-                {studentProfile?.unread_messages > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {studentProfile.unread_messages}
-                  </span>
-                )}
-              </button>
-              
-              {/* Profile */}
-              <div className="flex items-center gap-2">
-                {studentProfile?.user?.photo_url ? (
-                  <img src={studentProfile.user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center">
-                    <User className="w-5 h-5 text-cyan-600" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+        {/* Header - Identical to Owner's Portal */}
+        <StudentHeader
+          user={studentProfile?.user || user}
+          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
+          logoUrl={null}
+          schoolName={user?.school_name}
+          subdomain={subdomain || user?.subdomain}
+          token={token}
+        />
 
         {/* Dashboard Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
