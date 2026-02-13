@@ -107,45 +107,269 @@ function CourseTabs({ activeTab, onTabChange }) {
   );
 }
 
-// Dashboard/Tablero Content
-function DashboardContent({ posts, onViewPost }) {
-  if (posts.length === 0) {
-    return (
-      <EmptyState
-        icon={LayoutDashboard}
-        title="Sin publicaciones"
-        description="Aún no hay publicaciones en este curso."
-      />
-    );
-  }
+// Dashboard/Tablero Content - 3 Column Layout
+function DashboardContent({ subject, teacher, posts, students, tasks, materials, reminders, onViewPost }) {
+  const baseColor = subject?.color || "#06b6d4";
+  
+  // Get upcoming tasks (next 7 days)
+  const upcomingTasks = tasks
+    .filter(t => new Date(t.due_date) > new Date())
+    .slice(0, 3);
+  
+  // Get recent materials
+  const recentMaterials = materials.slice(0, 3);
+  
+  // Get recent activity (all posts combined)
+  const recentActivity = [...posts, ...tasks.slice(0, 2), ...materials.slice(0, 2)]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 5);
 
   return (
-    <div className="space-y-4">
-      {posts.map((post) => (
-        <div key={post.id} className="bg-white rounded-xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
-          <div className="flex items-start gap-4">
-            <div className="w-10 h-10 bg-cyan-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <FileText className="w-5 h-5 text-cyan-600" />
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Left Column - Course Image & Activity */}
+      <div className="lg:col-span-3 space-y-4">
+        {/* Course Image Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+          {subject?.image_url ? (
+            <img 
+              src={subject.image_url} 
+              alt={subject.name}
+              className="w-full h-40 object-cover"
+            />
+          ) : (
+            <div 
+              className="w-full h-40 flex items-center justify-center"
+              style={{ backgroundColor: baseColor }}
+            >
+              <BookOpen className="w-16 h-16 text-white/50" />
             </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-slate-800">{post.title}</h3>
-              <p className="text-sm text-slate-500 mt-1 line-clamp-2">{post.content}</p>
-              <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {new Date(post.created_at).toLocaleDateString("es-PE")}
-                </span>
-                {post.author_name && (
-                  <span className="flex items-center gap-1">
-                    <User className="w-3.5 h-3.5" />
-                    {post.author_name}
-                  </span>
-                )}
-              </div>
+          )}
+          <div className="p-4">
+            <h3 className="font-semibold text-slate-800 text-sm">{subject?.name}</h3>
+            <p className="text-xs text-slate-500 mt-1">{subject?.description || "Sin descripción"}</p>
+          </div>
+        </div>
+
+        {/* Activity Summary */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+            <LayoutDashboard className="w-4 h-4 text-slate-400" />
+            Actividad del Curso
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">Tareas</span>
+              <span className="font-semibold text-slate-800">{tasks.length}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">Materiales</span>
+              <span className="font-semibold text-slate-800">{materials.length}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-slate-500">Publicaciones</span>
+              <span className="font-semibold text-slate-800">{posts.length}</span>
             </div>
           </div>
         </div>
-      ))}
+
+        {/* Recent Materials */}
+        {recentMaterials.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+              <FolderOpen className="w-4 h-4 text-indigo-500" />
+              Material Reciente
+            </h3>
+            <div className="space-y-2">
+              {recentMaterials.map((mat) => (
+                <div key={mat.id} className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg hover:bg-slate-100 cursor-pointer transition-colors">
+                  <FileIcon className="w-4 h-4 text-indigo-500 flex-shrink-0" />
+                  <span className="text-sm text-slate-700 truncate">{mat.title}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Center Column - Posts/Feed */}
+      <div className="lg:col-span-6 space-y-4">
+        {/* No input field for students - read only */}
+        
+        {/* Recent Activity Feed */}
+        {recentActivity.length > 0 ? (
+          <div className="space-y-4">
+            {recentActivity.map((item) => (
+              <div key={item.id} className="bg-white rounded-2xl border border-slate-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-start gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                    item.type === 'task' ? 'bg-amber-100' : 
+                    item.type === 'material' ? 'bg-indigo-100' : 'bg-cyan-100'
+                  }`}>
+                    {item.type === 'task' ? (
+                      <FileText className="w-5 h-5 text-amber-600" />
+                    ) : item.type === 'material' ? (
+                      <FolderOpen className="w-5 h-5 text-indigo-600" />
+                    ) : (
+                      <Bell className="w-5 h-5 text-cyan-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                        item.type === 'task' ? 'bg-amber-100 text-amber-700' : 
+                        item.type === 'material' ? 'bg-indigo-100 text-indigo-700' : 'bg-cyan-100 text-cyan-700'
+                      }`}>
+                        {item.type === 'task' ? 'Tarea' : item.type === 'material' ? 'Material' : 'Anuncio'}
+                      </span>
+                    </div>
+                    <h3 className="font-semibold text-slate-800">{item.title}</h3>
+                    <p className="text-sm text-slate-500 mt-1 line-clamp-2">{item.content || item.description}</p>
+                    <div className="flex items-center gap-4 mt-3 text-xs text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <Calendar className="w-3.5 h-3.5" />
+                        {new Date(item.created_at).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                      </span>
+                      {item.due_date && (
+                        <span className="flex items-center gap-1 text-amber-600">
+                          <Clock className="w-3.5 h-3.5" />
+                          Entrega: {new Date(item.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Attachments */}
+                {item.attachments?.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100 flex flex-wrap gap-2">
+                    {item.attachments.map((file, idx) => (
+                      <a
+                        key={idx}
+                        href={file.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 rounded-lg text-sm text-slate-700 hover:bg-slate-200 transition-colors"
+                      >
+                        <FileIcon className="w-4 h-4" />
+                        {file.name}
+                        <Download className="w-3 h-3" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
+            <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <LayoutDashboard className="w-8 h-8 text-slate-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin actividad reciente</h3>
+            <p className="text-slate-500">El profesor aún no ha publicado contenido en este curso.</p>
+          </div>
+        )}
+      </div>
+
+      {/* Right Column - Teacher, Students, Reminders */}
+      <div className="lg:col-span-3 space-y-4">
+        {/* Teacher Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+            <User className="w-4 h-4 text-slate-400" />
+            Profesor del Curso
+          </h3>
+          <div className="flex items-center gap-3">
+            {teacher?.photo_url ? (
+              <img 
+                src={teacher.photo_url} 
+                alt={teacher.name}
+                className="w-12 h-12 rounded-full object-cover"
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white font-semibold">
+                {teacher?.name?.charAt(0) || "P"}
+              </div>
+            )}
+            <div>
+              <p className="font-semibold text-slate-800">{teacher?.name || "Sin asignar"}</p>
+              <p className="text-xs text-slate-500">Docente</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Students Card */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-4">
+          <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+            <Users className="w-4 h-4 text-slate-400" />
+            Compañeros de Clase
+          </h3>
+          {students.length > 0 ? (
+            <>
+              <div className="flex -space-x-2 mb-2">
+                {students.slice(0, 5).map((student, idx) => (
+                  <div
+                    key={student.id || idx}
+                    className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-300 to-slate-400 border-2 border-white flex items-center justify-center text-white text-xs font-semibold"
+                    title={student.name}
+                  >
+                    {student.name?.charAt(0) || "?"}
+                  </div>
+                ))}
+                {students.length > 5 && (
+                  <div className="w-8 h-8 rounded-full bg-slate-200 border-2 border-white flex items-center justify-center text-slate-600 text-xs font-semibold">
+                    +{students.length - 5}
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-slate-500">{students.length} estudiante{students.length !== 1 ? 's' : ''}</p>
+            </>
+          ) : (
+            <p className="text-sm text-slate-500">Sin información de compañeros</p>
+          )}
+        </div>
+
+        {/* Upcoming Tasks */}
+        {upcomingTasks.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-amber-500" />
+              Próximas Entregas
+            </h3>
+            <div className="space-y-2">
+              {upcomingTasks.map((task) => (
+                <div key={task.id} className="p-2 bg-amber-50 rounded-lg border border-amber-100">
+                  <p className="text-sm font-medium text-slate-800 truncate">{task.title}</p>
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(task.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reminders */}
+        {reminders.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-800 text-sm mb-3 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-red-500" />
+              Recordatorios
+            </h3>
+            <div className="space-y-2">
+              {reminders.map((reminder, idx) => (
+                <div key={idx} className="p-2 bg-red-50 rounded-lg border border-red-100">
+                  <p className="text-sm text-slate-800">{reminder.title || reminder.message}</p>
+                  {reminder.date && (
+                    <p className="text-xs text-red-600 mt-1">{new Date(reminder.date).toLocaleDateString("es-PE")}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
