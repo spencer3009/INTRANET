@@ -1110,10 +1110,6 @@ function AcademicTab({ token, user, onRefreshStats }) {
                       </div>
                     )}
                   </div>
-                        </button>
-                      </div>
-                    )}
-                  </div>
                   
                   {/* Timestamp */}
                   <p className={`text-[10px] text-slate-400 mt-1 ${isMe ? "text-right" : ""}`}>
