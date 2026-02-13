@@ -188,34 +188,6 @@ function CourseHeroHeader({ subject, level, grade, academicPeriod, onEdit, onVie
               </div>
             </div>
           </div>
-          
-          {/* Quick Actions */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onEdit}
-              className="px-5 py-3 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 border border-white/30"
-              data-testid="edit-course-btn"
-            >
-              <Edit3 className="w-4 h-4" />
-              <span className="hidden sm:inline">Editar curso</span>
-            </button>
-            <button
-              onClick={onViewStudents}
-              className="px-5 py-3 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 border border-white/30"
-              data-testid="view-students-btn"
-            >
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Estudiantes</span>
-            </button>
-            <button
-              onClick={onViewGrades}
-              className="px-5 py-3 bg-white text-gray-700 rounded-xl font-semibold transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-xl hover:scale-[1.02]"
-              data-testid="view-grades-btn"
-            >
-              <Trophy className="w-4 h-4" />
-              <span className="hidden sm:inline">Calificaciones</span>
-            </button>
-          </div>
         </div>
         
         {/* Subject Code Badge */}
