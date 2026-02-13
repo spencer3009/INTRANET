@@ -7170,7 +7170,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         <main className="flex-1 px-6 lg:px-8 py-6">
           {/* Hero Header - Hidden on full-width tabs */}
           {(() => {
-            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios"];
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             if (!isFullWidth) {
               return (
@@ -7209,7 +7209,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           
           {/* 3-Column Layout - Hide sidebars for full-width tabs */}
           {(() => {
-            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios"];
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             return (
               <div className={`mt-6 grid grid-cols-1 gap-6 items-start ${
