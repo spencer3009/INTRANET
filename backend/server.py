@@ -1559,12 +1559,12 @@ async def get_teacher_students(
     school_id = user.get("school_id")
     
     # Get teacher's assigned sections
-    assignments = await db.teacher_assignments.find({
+    assignments = await db.academic_assignments.find({
         "school_id": school_id,
         "teacher_id": user["id"]
     }, {"_id": 0}).to_list(100)
     
-    allowed_section_ids = list(set([a.get("seccion_id") for a in assignments if a.get("seccion_id")]))
+    allowed_section_ids = list(set([a.get("section_id") for a in assignments if a.get("section_id")]))
     
     if not allowed_section_ids:
         return {"students": [], "sections": []}
@@ -1601,7 +1601,7 @@ async def get_teacher_students(
             "email": student.get("email"),
             "section_id": student.get("seccion_id"),
             "section_name": section.get("nombre"),
-            "grado_id": student.get("grado_id")
+            "grade_id": student.get("grado_id")
         })
     
     # Get sections for filter dropdown
