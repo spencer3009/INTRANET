@@ -25,13 +25,27 @@ import AccountingPage from "@/pages/AccountingPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import ProfilePage from "@/pages/ProfilePage";
 import TeacherAssignmentsPage from "@/pages/TeacherAssignmentsPage";
+import StudentDashboardPage from "@/pages/StudentDashboardPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
 // ══════════════════════════════════════════════════════════════════════════════
+// ROLE-BASED ACCESS HELPERS
+// ══════════════════════════════════════════════════════════════════════════════
+
+const ADMIN_ROLES = ["owner", "admin", "director", "coordinator"];
+const STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "auxiliar"];
+
+const isStudent = (user) => user?.role === "student";
+const isParent = (user) => user?.role === "parent";
+const isStaff = (user) => STAFF_ROLES.includes(user?.role);
+const isAdmin = (user) => ADMIN_ROLES.includes(user?.role);
+
+// ══════════════════════════════════════════════════════════════════════════════
 // TENANT CONTEXT - Provides tenant info throughout the app
 // ══════════════════════════════════════════════════════════════════════════════
+
 
 const TenantContext = createContext({
   subdomain: null,
