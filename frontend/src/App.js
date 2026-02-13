@@ -43,6 +43,7 @@ import AdminDashboardPage from "@/pages/AdminDashboardPage";
 import AdminStudentsPage from "@/pages/AdminStudentsPage";
 import AdminTeachersPage from "@/pages/AdminTeachersPage";
 import AdminUsersPage from "@/pages/AdminUsersPage";
+import AdminAcademicStructurePage from "@/pages/AdminAcademicStructurePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
