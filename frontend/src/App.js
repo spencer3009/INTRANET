@@ -582,7 +582,13 @@ function App() {
             path="/school/:subdomain/student"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                ) : (
+                  <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -590,7 +596,13 @@ function App() {
             path="/school/:subdomain/student/courses"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher/courses`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                ) : (
+                  <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -598,7 +610,13 @@ function App() {
             path="/school/:subdomain/student/courses/:courseId"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher/courses`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                ) : (
+                  <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -606,7 +624,13 @@ function App() {
             path="/school/:subdomain/student/tasks"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentTasksPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher/tasks`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                ) : (
+                  <StudentTasksPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -614,7 +638,13 @@ function App() {
             path="/school/:subdomain/student/grades"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentGradesPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher/grades`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                ) : (
+                  <StudentGradesPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -622,7 +652,13 @@ function App() {
             path="/school/:subdomain/student/attendance"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentAttendancePage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher/attendance`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                ) : (
+                  <StudentAttendancePage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -630,7 +666,13 @@ function App() {
             path="/school/:subdomain/student/messages"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher/messages`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                ) : (
+                  <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -638,7 +680,13 @@ function App() {
             path="/school/:subdomain/student/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentProfilePage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher/profile`} replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/dashboard`} replace />
+                ) : (
+                  <StudentProfilePage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
