@@ -1330,13 +1330,13 @@ async def get_teacher_profile(current_user = Depends(get_current_user)):
     school_id = user.get("school_id")
     
     # Get teacher assignments
-    assignments = await db.teacher_assignments.find({
+    assignments = await db.academic_assignments.find({
         "school_id": school_id,
         "teacher_id": user["id"]
     }, {"_id": 0}).to_list(100)
     
     # Get unique sections and courses
-    section_ids = list(set([a.get("seccion_id") for a in assignments if a.get("seccion_id")]))
+    section_ids = list(set([a.get("section_id") for a in assignments if a.get("section_id")]))
     subject_ids = list(set([a.get("subject_id") for a in assignments if a.get("subject_id")]))
     
     sections = []
