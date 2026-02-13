@@ -1197,10 +1197,57 @@ async def get_student_courses(current_user = Depends(get_current_user)):
                     "photo_url": teacher.get("photo_url") if teacher else None
                 },
                 "materials_count": materials_count,
-                "tasks_count": tasks_count
+                "tasks_count": tasks_count,
+                "section_id": seccion_id,
+                "grade_id": assignment.get("grade_id")
             })
     
     return {"courses": courses}
+
+@api_router.get("/student/classmates")
+async def get_student_classmates(current_user = Depends(get_current_user)):
+    """
+    Get classmates (other students in the same section).
+    Students can only see other students from their own section.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    
+    if not seccion_id:
+        return {"students": [], "message": "No tienes una sección asignada"}
+    
+    # Get all students in the same section (excluding current user)
+    students_cursor = db.users.find(
+        {
+            "school_id": school_id,
+            "seccion_id": seccion_id,
+            "role": "student",
+            "id": {"$ne": user["id"]}  # Exclude current user
+        },
+        {"_id": 0, "password": 0, "verification_code": 0}
+    )
+    students = await students_cursor.to_list(length=100)
+    
+    # Return simplified student info
+    return {
+        "students": [
+            {
+                "id": s.get("id"),
+                "name": s.get("name"),
+                "last_name": s.get("last_name"),
+                "photo_url": s.get("photo_url"),
+                "username": s.get("username")
+            }
+            for s in students
+        ]
+    }
 
 @api_router.get("/student/schedule")
 async def get_student_schedule(current_user = Depends(get_current_user)):
