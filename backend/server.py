@@ -306,6 +306,9 @@ class TenantSettingsUpdate(BaseModel):
     currency: Optional[Literal["PEN", "USD", "EUR"]] = None
     whatsapp: Optional[str] = None
     website_url: Optional[str] = None
+    primary_color: Optional[str] = None
+    secondary_color: Optional[str] = None
+    accent_color: Optional[str] = None
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH ROUTES
