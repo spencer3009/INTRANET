@@ -176,7 +176,7 @@ export default function AdminGradesManagementPage({ user, token, onLogout }) {
         axios.get(`${API}/academic/levels`, { headers }),
         axios.get(`${API}/academic/grades`, { headers }),
         axios.get(`${API}/academic/sections`, { headers }),
-        axios.get(`${API}/subjects`, { headers }),
+        axios.get(`${API}/academic/subjects`, { headers }),
         axios.get(`${API}/admin/grades/summary`, { headers })
       ]);
       
