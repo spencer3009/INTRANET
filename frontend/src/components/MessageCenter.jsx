@@ -1024,15 +1024,7 @@ function AcademicTab({ token, user, onRefreshStats }) {
               <div key={msg.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[80%] relative group`}>
                   {/* Message bubble */}
-                  <div 
-                    className={`relative ${isEditing ? "" : "cursor-pointer"}`}
-                    onClick={(e) => {
-                      if (isMe && !isDeleted && !isEditing) {
-                        e.stopPropagation();
-                        setActiveMessageMenu(activeMessageMenu === msg.id ? null : msg.id);
-                      }
-                    }}
-                  >
+                  <div className="relative">
                     {isEditing ? (
                       // Edit mode
                       <div className="bg-white border-2 border-amber-400 rounded-2xl p-2 shadow-lg">
@@ -1061,14 +1053,30 @@ function AcademicTab({ token, user, onRefreshStats }) {
                       </div>
                     ) : (
                       // Normal message view
-                      <div className={`px-4 py-3 rounded-2xl ${
+                      <div className={`relative px-4 py-3 rounded-2xl ${
                         isDeleted
                           ? "bg-slate-200 text-slate-500 italic"
                           : isMe
                             ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-tr-none"
                             : "bg-slate-100 text-slate-800 rounded-tl-none"
                       }`}>
-                        <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        {/* Dropdown arrow button - appears on hover for own messages */}
+                        {isMe && !isDeleted && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveMessageMenu(activeMessageMenu === msg.id ? null : msg.id);
+                            }}
+                            className={`absolute top-1 right-1 w-6 h-6 rounded-full flex items-center justify-center transition-all ${
+                              activeMessageMenu === msg.id 
+                                ? "opacity-100 bg-white/30" 
+                                : "opacity-0 group-hover:opacity-100 hover:bg-white/30"
+                            }`}
+                          >
+                            <ChevronDown className="w-4 h-4 text-white" />
+                          </button>
+                        )}
+                        <p className={`text-sm whitespace-pre-wrap ${isMe && !isDeleted ? "pr-6" : ""}`}>{msg.content}</p>
                         {msg.edited && !isDeleted && (
                           <p className={`text-[10px] mt-1 ${isMe ? "text-white/70" : "text-slate-400"}`}>
                             (editado)
@@ -1080,7 +1088,7 @@ function AcademicTab({ token, user, onRefreshStats }) {
                     {/* Context menu for own messages */}
                     {isMe && !isDeleted && !isEditing && activeMessageMenu === msg.id && (
                       <div 
-                        className="absolute bottom-full right-0 mb-2 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-10"
+                        className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden z-10"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <button
@@ -1098,6 +1106,10 @@ function AcademicTab({ token, user, onRefreshStats }) {
                           className="w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" /> Eliminar
+                        </button>
+                      </div>
+                    )}
+                  </div>
                         </button>
                       </div>
                     )}
