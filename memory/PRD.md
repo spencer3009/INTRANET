@@ -222,10 +222,14 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 
 ## Backlog / Próximas Tareas
 
-### P0 - Prioridad Alta
+### ✅ P0 - Completados
 - [x] ✅ Catálogo de Tipos de Sección (section_types) - COMPLETADO 2025-02-11
 - [x] ✅ Sistema de Alertas Educativas Premium (Recordatorios) - COMPLETADO 2025-02-12
 - [x] ✅ Centro de Mensajes - Fase 1 (Mensajes Institucionales) - COMPLETADO 2025-02-13
+- [x] ✅ Portal de Estudiantes (Student Portal) - COMPLETADO 2025-02-13
+- [x] ✅ Portal de Profesores (Teacher Portal) - COMPLETADO 2025-02-13
+
+### P0 - Prioridad Alta (Pendiente)
 - [ ] 🔴 **CRÍTICO**: Refactorizar `CourseDetailPage.jsx` (>7000 líneas) - Extraer componentes
 
 ### P0.5 - Próximos Inmediatos
