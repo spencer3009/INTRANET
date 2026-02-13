@@ -342,20 +342,20 @@ class TestAdminAcademicDataDependencies:
         print(f"SUCCESS: Academic sections returned {len(data)} sections")
     
     def test_get_subjects(self, headers):
-        """Test GET /api/subjects for filter dropdowns"""
-        response = requests.get(f"{BASE_URL}/api/subjects", headers=headers)
+        """Test GET /api/academic/subjects for filter dropdowns"""
+        response = requests.get(f"{BASE_URL}/api/academic/subjects", headers=headers)
         assert response.status_code == 200, f"Failed: {response.text}"
         data = response.json()
         assert isinstance(data, list), "Subjects should be a list"
-        print(f"SUCCESS: Subjects returned {len(data)} subjects")
+        print(f"SUCCESS: Academic subjects returned {len(data)} subjects")
     
-    def test_get_admin_teachers(self, headers):
-        """Test GET /api/admin/teachers for filter dropdowns"""
-        response = requests.get(f"{BASE_URL}/api/admin/teachers", headers=headers)
+    def test_get_active_teachers(self, headers):
+        """Test GET /api/users/teachers/active for filter dropdowns"""
+        response = requests.get(f"{BASE_URL}/api/users/teachers/active", headers=headers)
         assert response.status_code == 200, f"Failed: {response.text}"
         data = response.json()
-        assert "teachers" in data, "Response should contain 'teachers' key"
-        print(f"SUCCESS: Admin teachers returned {len(data['teachers'])} teachers")
+        assert isinstance(data, list), "Teachers should be a list"
+        print(f"SUCCESS: Active teachers returned {len(data)} teachers")
 
 
 if __name__ == "__main__":
