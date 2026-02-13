@@ -5286,53 +5286,65 @@ function ExamsContent({ subjectId, token, userRole }) {
 // ══════════════════════════════════════════════════════════════════════════════
 function GradesContent({ grades }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 pt-6 pb-48">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Calificaciones</h2>
+          <div className="w-8 h-1 bg-indigo-500 rounded-full mt-2"></div>
+        </div>
+      </div>
+      
       {grades.length === 0 ? (
-        <EmptyState
-          icon={Trophy}
-          title="Sin calificaciones"
-          description="Aún no hay calificaciones registradas para este curso."
-        />
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-16 text-center">
+          <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Trophy className="w-10 h-10 text-indigo-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin calificaciones</h3>
+          <p className="text-slate-400">Aún no hay calificaciones registradas para este curso.</p>
+        </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
-                  <th className="text-left px-6 py-4 font-bold text-gray-700">Estudiante</th>
-                  <th className="text-center px-4 py-4 font-bold text-gray-700">Tarea 1</th>
-                  <th className="text-center px-4 py-4 font-bold text-gray-700">Tarea 2</th>
-                  <th className="text-center px-4 py-4 font-bold text-gray-700">Examen</th>
-                  <th className="text-center px-4 py-4 font-bold text-gray-700">Promedio</th>
-                </tr>
-              </thead>
-              <tbody>
-                {grades.map((student, idx) => (
-                  <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                          {student.name?.charAt(0)}
-                        </div>
-                        <span className="font-medium text-gray-800">{student.name}</span>
-                      </div>
-                    </td>
-                    <td className="text-center px-4 py-4 font-medium text-gray-600">{student.task1 || "-"}</td>
-                    <td className="text-center px-4 py-4 font-medium text-gray-600">{student.task2 || "-"}</td>
-                    <td className="text-center px-4 py-4 font-medium text-gray-600">{student.exam || "-"}</td>
-                    <td className="text-center px-4 py-4">
-                      <span className={`px-3 py-1 rounded-full font-bold text-sm ${
-                        student.average >= 15 ? "bg-green-100 text-green-700" :
-                        student.average >= 11 ? "bg-amber-100 text-amber-700" :
-                        "bg-red-100 text-red-700"
-                      }`}>
-                        {student.average || "-"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+          {/* Table Header */}
+          <div className="bg-gradient-to-r from-indigo-500 to-purple-500 px-6 py-4">
+            <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-white uppercase tracking-wider">
+              <div className="col-span-4">Estudiante</div>
+              <div className="col-span-2 text-center">Tarea 1</div>
+              <div className="col-span-2 text-center">Tarea 2</div>
+              <div className="col-span-2 text-center">Examen</div>
+              <div className="col-span-2 text-center">Promedio</div>
+            </div>
+          </div>
+          
+          {/* Table Body */}
+          <div className="divide-y divide-slate-100">
+            {grades.map((student, idx) => (
+              <div key={idx} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
+                {/* Student */}
+                <div className="col-span-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                    {student.name?.charAt(0)}
+                  </div>
+                  <span className="font-medium text-slate-800">{student.name}</span>
+                </div>
+                
+                {/* Grades */}
+                <div className="col-span-2 text-center font-medium text-slate-600">{student.task1 || "-"}</div>
+                <div className="col-span-2 text-center font-medium text-slate-600">{student.task2 || "-"}</div>
+                <div className="col-span-2 text-center font-medium text-slate-600">{student.exam || "-"}</div>
+                
+                {/* Average */}
+                <div className="col-span-2 text-center">
+                  <span className={`px-3 py-1.5 rounded-full font-bold text-sm ${
+                    student.average >= 15 ? "bg-emerald-100 text-emerald-700" :
+                    student.average >= 11 ? "bg-amber-100 text-amber-700" :
+                    "bg-red-100 text-red-700"
+                  }`}>
+                    {student.average || "-"}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
