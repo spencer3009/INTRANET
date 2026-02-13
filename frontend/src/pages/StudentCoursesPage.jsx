@@ -25,24 +25,35 @@ export default function StudentCoursesPage({ user, token, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    loadCourses();
+    loadData();
   }, [token]);
 
-  const loadCourses = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/student/courses`, { headers });
-      setCourses(res.data.courses || []);
+      const [coursesRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/student/courses`, { headers }),
+        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+      ]);
+      setCourses(coursesRes.data.courses || []);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+      }
     } catch (err) {
       console.error("Error loading courses:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  // Get display values from settings
+  const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
+  const logoUrl = settings?.logo_url;
 
   const navigateTo = (path) => {
     if (subdomain) {
@@ -66,7 +77,7 @@ export default function StudentCoursesPage({ user, token, onLogout }) {
         expanded={sidebarExpanded}
         onToggle={() => setSidebarExpanded(!sidebarExpanded)}
         onLogout={onLogout}
-        schoolName={user?.school_name}
+        schoolName={schoolName}
         subdomain={subdomain || user?.subdomain}
         user={user}
       />
@@ -86,8 +97,8 @@ export default function StudentCoursesPage({ user, token, onLogout }) {
           user={user}
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
           onLogout={onLogout}
-          logoUrl={null}
-          schoolName={user?.school_name}
+          logoUrl={logoUrl}
+          schoolName={schoolName}
           subdomain={subdomain || user?.subdomain}
           token={token}
         />
