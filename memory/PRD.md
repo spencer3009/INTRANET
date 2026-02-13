@@ -499,10 +499,39 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 ---
 
 ## Última Actualización
-**Fecha**: 2025-02-13
+**Fecha**: 2025-02-14
 **Cambios recientes**:
 
-### Sesión actual (2025-02-13) - Centro de Mensajes Fase 1:
+### Sesión actual (2025-02-14) - Layout de 3 columnas en Detalle de Curso del Estudiante:
+
+1. ✅ **Layout de 3 columnas en StudentCourseDetailPage.jsx** - COMPLETADO
+   - **Objetivo**: Pestaña "Tablero" con diseño idéntico al portal del propietario pero en modo solo lectura
+   
+   - **Columna Izquierda (lg:col-span-3)**:
+     - Tarjeta de imagen del curso con título y descripción
+     - "Actividad del curso" con estadísticas (Tareas, Materiales, Publicaciones)
+     - Diseño con gradiente verde/esmeralda
+   
+   - **Columna Central (lg:col-span-6)**:
+     - Sección "Publicaciones del curso" (sin botón de crear - solo lectura)
+     - Feed de actividad reciente combinando posts, tareas y materiales
+     - Estado vacío elegante cuando no hay publicaciones
+   
+   - **Columna Derecha (lg:col-span-3)**:
+     - "Profesor del curso" con gradiente naranja/ámbar y foto
+     - "Estudiantes" con gradiente verde/turquesa y contador
+     - "Recordatorios" con gradiente violeta/índigo
+     - "Próximas Entregas" (condicional) con gradiente ámbar
+   
+   - **Datos Dinámicos**:
+     - Estudiantes cargados desde `/api/sections/{section_id}/students`
+     - Recordatorios cargados desde `/api/courses/{courseId}/reminders`
+     - Posts filtrados por tipo desde `/api/courses/{courseId}/posts`
+   
+   - **Archivos modificados**:
+     - `/app/frontend/src/pages/StudentCourseDetailPage.jsx` - Layout completo
+
+### Sesión anterior (2025-02-13) - Centro de Mensajes Fase 1:
 
 1. ✅ **Centro de Mensajes - Fase 1 (Mensajes Institucionales)** - COMPLETADO
    - **Objetivo**: Módulo de comunicación institucional premium para admins/directores
