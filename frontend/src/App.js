@@ -388,7 +388,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher" replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to="/dashboard" replace />
+                  <Navigate to="/admin" replace />
                 ) : (
                   <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -402,7 +402,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher/courses" replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to="/dashboard" replace />
+                  <Navigate to="/admin" replace />
                 ) : (
                   <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -416,7 +416,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher/courses" replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to="/dashboard" replace />
+                  <Navigate to="/admin" replace />
                 ) : (
                   <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -430,7 +430,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher/tasks" replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to="/dashboard" replace />
+                  <Navigate to="/admin" replace />
                 ) : (
                   <StudentTasksPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -444,7 +444,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher/grades" replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to="/dashboard" replace />
+                  <Navigate to="/admin" replace />
                 ) : (
                   <StudentGradesPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -458,7 +458,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher/attendance" replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to="/dashboard" replace />
+                  <Navigate to="/admin" replace />
                 ) : (
                   <StudentAttendancePage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -472,7 +472,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher/messages" replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to="/dashboard" replace />
+                  <Navigate to="/admin" replace />
                 ) : (
                   <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -486,7 +486,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher/profile" replace />
                 ) : isAdmin(user) ? (
-                  <Navigate to="/dashboard" replace />
+                  <Navigate to="/admin" replace />
                 ) : (
                   <StudentProfilePage user={user} token={token} onLogout={handleLogout} />
                 )}
