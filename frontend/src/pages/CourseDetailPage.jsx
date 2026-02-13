@@ -7234,6 +7234,9 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           })()}
         </main>
       </div>
+
+      {/* Global Message Center - Floating Button + Drawer */}
+      <MessageCenter token={token} user={user} />
     </div>
   );
 }
