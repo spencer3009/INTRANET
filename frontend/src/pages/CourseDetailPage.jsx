@@ -7168,20 +7168,29 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
 
         {/* Main Content */}
         <main className="flex-1 px-6 lg:px-8 py-6">
-          {/* Hero Header */}
-          <CourseHeroHeader
-            subject={subject}
-            level={levelName}
-            grade={gradeName}
-            academicPeriod={academicPeriodName}
-            onEdit={() => {}}
-            onViewStudents={() => setActiveTab("calificaciones")}
-            onViewGrades={() => setActiveTab("calificaciones")}
-            onBack={() => navigate("/asignaturas")}
-          />
+          {/* Hero Header - Hidden on full-width tabs */}
+          {(() => {
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios"];
+            const isFullWidth = fullWidthTabs.includes(activeTab);
+            if (!isFullWidth) {
+              return (
+                <CourseHeroHeader
+                  subject={subject}
+                  level={levelName}
+                  grade={gradeName}
+                  academicPeriod={academicPeriodName}
+                  onEdit={() => {}}
+                  onViewStudents={() => setActiveTab("calificaciones")}
+                  onViewGrades={() => setActiveTab("calificaciones")}
+                  onBack={() => navigate("/asignaturas")}
+                />
+              );
+            }
+            return null;
+          })()}
           
           {/* Tabs */}
-          <div className="mt-6 sticky top-[72px] z-30 -mx-6 lg:-mx-8 px-6 lg:px-8 py-3 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm border-b border-gray-200/50">
+          <div className={`${activeTab === "tablero" || activeTab === "calificaciones" ? "mt-6" : "mt-0"} sticky top-[72px] z-30 -mx-6 lg:-mx-8 px-6 lg:px-8 py-3 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm border-b border-gray-200/50`}>
             <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
           
