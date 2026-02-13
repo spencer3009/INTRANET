@@ -5776,6 +5776,426 @@ function ForumContent({ subjectId, token, user, students }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// TASKS TABLE CONTENT (New design similar to Forum)
+// ══════════════════════════════════════════════════════════════════════════════
+function TasksTableContent({ subjectId, token, user, students, subject, levelName, gradeName }) {
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedTask, setSelectedTask] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [taskToDelete, setTaskToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  // Fetch tasks
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=task&limit=100`, { headers });
+        setTasks(res.data.posts || []);
+      } catch (err) {
+        console.error('Error fetching tasks:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTasks();
+  }, [subjectId, token]);
+  
+  const handleTaskCreated = (newTask) => {
+    setTasks([newTask, ...tasks]);
+  };
+  
+  const handleDeleteClick = (task) => {
+    setTaskToDelete(task);
+    setShowDeleteModal(true);
+  };
+  
+  const handleDeleteConfirm = async () => {
+    if (!taskToDelete) return;
+    setDeleting(true);
+    try {
+      await axios.delete(`${API}/course/posts/${taskToDelete.id}`, { headers });
+      setTasks(tasks.filter(t => t.id !== taskToDelete.id));
+      setShowDeleteModal(false);
+      setTaskToDelete(null);
+      if (selectedTask?.id === taskToDelete.id) {
+        setSelectedTask(null);
+      }
+    } catch (err) {
+      console.error('Error deleting task:', err);
+    } finally {
+      setDeleting(false);
+    }
+  };
+  
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  };
+  
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    return date.toLocaleString('es-PE', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+  
+  const getDeliveryType = (content) => {
+    if (!content) return 'Texto en línea';
+    if (content.includes('Archivos')) return 'Archivos';
+    if (content.includes('Texto y archivos')) return 'Texto y archivos';
+    return 'Texto en línea';
+  };
+  
+  const extractDueDate = (task) => {
+    // Try to get due_date from task metadata or parse from content
+    if (task.due_date) return task.due_date;
+    if (task.metadata?.due_date) return task.metadata.due_date;
+    // Parse from content if needed
+    const match = task.content?.match(/Fecha de entrega:\s*(.+?)(?:\n|$)/);
+    if (match) {
+      try {
+        return new Date(match[1]).toISOString();
+      } catch (e) {
+        return task.created_at;
+      }
+    }
+    return task.created_at;
+  };
+  
+  // Detail View
+  if (selectedTask) {
+    const dueDate = extractDueDate(selectedTask);
+    const totalStudents = students?.length || 0;
+    const submitted = 0; // TODO: Get actual submission count
+    const notSubmitted = totalStudents - submitted;
+    
+    return (
+      <div className="space-y-4 pt-6 pb-48">
+        {/* Back button */}
+        <button
+          onClick={() => setSelectedTask(null)}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+          Volver al listado
+        </button>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main content - Left side */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Author header */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {selectedTask.author?.profile_pic ? (
+                    <img 
+                      src={selectedTask.author.profile_pic} 
+                      alt={selectedTask.author?.name || 'Usuario'}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
+                      <User className="w-6 h-6 text-slate-500" />
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-slate-800">{selectedTask.author?.name || 'Usuario'}</p>
+                    <span className="text-sm text-emerald-600 font-medium">Publicado</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
+                    <MoreVertical className="w-5 h-5" />
+                  </button>
+                  <div className="w-10 h-10 bg-lime-500 rounded-xl flex items-center justify-center">
+                    <PenTool className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Task content card */}
+            <div className="bg-lime-500 rounded-2xl overflow-hidden text-white">
+              <div className="p-6">
+                {/* Period and Grade badges */}
+                <div className="mb-4">
+                  <span className="inline-block px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full uppercase mb-2">
+                    {subject?.academic_period || 'Período Actual'}
+                  </span>
+                  <p className="text-white/90 text-sm">{levelName} - {gradeName}</p>
+                </div>
+                
+                {/* Title */}
+                <h2 className="text-2xl font-bold mb-4">{selectedTask.title}</h2>
+                
+                {/* Description */}
+                {selectedTask.content && (
+                  <div className="mb-6">
+                    {selectedTask.content.includes('<') && selectedTask.content.includes('>') ? (
+                      <div 
+                        className="prose prose-sm max-w-none text-white/90 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4"
+                        dangerouslySetInnerHTML={{ __html: selectedTask.content.split('\n\n')[0] }}
+                      />
+                    ) : (
+                      <p className="text-white/90">{selectedTask.content.split('\n\n')[0]}</p>
+                    )}
+                  </div>
+                )}
+                
+                {/* Divider */}
+                <div className="border-t border-white/30 my-4"></div>
+                
+                {/* Due date */}
+                <div className="flex items-center gap-2 text-white/90 text-sm uppercase tracking-wide">
+                  <span className="font-semibold">FECHA DE ENTREGA:</span>
+                  <Clock className="w-4 h-4" />
+                  <span>{formatDateTime(dueDate)}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Right sidebar - Students info */}
+          <div className="lg:col-span-1 space-y-4">
+            {/* Course info panel */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="bg-amber-500 text-white px-5 py-3">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Estudiantes
+                </h3>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-500">Curso:</span>
+                  <span className="font-medium text-slate-800">{subject?.name || 'Curso'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-500">Grado:</span>
+                  <span className="font-medium text-slate-800">{gradeName}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-500">Sección:</span>
+                  <span className="font-medium text-slate-800">{subject?.section || 'A'}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-500">Estudiantes totales:</span>
+                  <span className="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center text-sm font-bold">{totalStudents}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-500">Entregada:</span>
+                  <span className="w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center text-sm font-bold">{submitted}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-slate-500">Sin entregar:</span>
+                  <span className="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center text-sm font-bold">{notSubmitted}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Students list panel */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="bg-amber-500 text-white px-5 py-3">
+                <h3 className="font-semibold">Estudiantes</h3>
+              </div>
+              <div className="p-4 max-h-[300px] overflow-y-auto">
+                {students && students.length > 0 ? (
+                  <div className="space-y-3">
+                    {students.map((student, idx) => (
+                      <div key={student.id || idx} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                        {student.profile_pic ? (
+                          <img 
+                            src={student.profile_pic} 
+                            alt={student.name}
+                            className="w-10 h-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                            <User className="w-5 h-5 text-slate-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-700 truncate">{student.name}</p>
+                          <p className="text-xs text-slate-400">Roll ID: {student.roll_id || student.id?.slice(0, 6)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400 text-center py-4">No hay estudiantes matriculados</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // List View (Table)
+  return (
+    <div className="space-y-6 pt-6 pb-48">
+      {/* Header with create button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800">Tarea</h2>
+          <div className="w-8 h-1 bg-amber-500 rounded-full mt-2"></div>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="w-14 h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-semibold transition-all flex items-center justify-center shadow-lg shadow-amber-500/25"
+          data-testid="create-task-btn"
+        >
+          <PenTool className="w-6 h-6" />
+        </button>
+      </div>
+      
+      {/* Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+        {/* Table Header */}
+        <div className="bg-gradient-to-r from-slate-100 to-slate-50 px-6 py-4 border-b border-slate-200">
+          <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-slate-600 uppercase tracking-wider">
+            <div className="col-span-2">Estado</div>
+            <div className="col-span-4">Título</div>
+            <div className="col-span-2">Tipo</div>
+            <div className="col-span-2">Permitir entregas hasta</div>
+            <div className="col-span-2 text-center">Opciones</div>
+          </div>
+        </div>
+        
+        {/* Table Body */}
+        <div className="divide-y divide-slate-100">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+            </div>
+          ) : tasks.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mb-4">
+                <PenTool className="w-10 h-10 text-amber-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">No hay tareas</h3>
+              <p className="text-slate-400 mb-6">Crea la primera tarea para tus estudiantes</p>
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                Crear primera tarea
+              </button>
+            </div>
+          ) : (
+            tasks.map((task) => (
+              <div key={task.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
+                {/* Status */}
+                <div className="col-span-2">
+                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    Publicado
+                  </span>
+                </div>
+                
+                {/* Title */}
+                <div className="col-span-4">
+                  <p className="font-semibold text-slate-800 truncate">{task.title}</p>
+                </div>
+                
+                {/* Type */}
+                <div className="col-span-2">
+                  <span className="inline-block px-3 py-1.5 bg-lime-500 text-white rounded text-xs font-semibold">
+                    {getDeliveryType(task.content)}
+                  </span>
+                </div>
+                
+                {/* Due Date */}
+                <div className="col-span-2">
+                  <p className="text-sm text-slate-600">{formatDate(extractDueDate(task))}</p>
+                </div>
+                
+                {/* Actions */}
+                <div className="col-span-2 flex items-center justify-center gap-2">
+                  <button
+                    onClick={() => setSelectedTask(task)}
+                    className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition-colors"
+                    title="Ver tarea"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteClick(task)}
+                    className="w-9 h-9 bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                    title="Eliminar"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+      
+      {/* Create Modal */}
+      <PremiumTaskModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        subjectId={subjectId}
+        token={token}
+        user={user}
+        onPostCreated={handleTaskCreated}
+      />
+      
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
+            <div className="flex items-center gap-4 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Eliminar tarea</h3>
+                <p className="text-sm text-slate-500">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+            <p className="text-slate-600 mb-6">
+              ¿Estás seguro de que deseas eliminar la tarea "<strong>{taskToDelete?.title}</strong>"?
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteConfirm}
+                disabled={deleting}
+                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+              >
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // REMINDERS TAB CONTENT
 // ══════════════════════════════════════════════════════════════════════════════
 function RemindersTabContent({ subjectId, token, userRole }) {
