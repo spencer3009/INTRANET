@@ -161,7 +161,7 @@ function AcademicYearsTab({ token, headers }) {
     setEditingItem(item);
     setFormData({
       year: item.year,
-      status: item.status || "planificado"
+      status: item.status || "futuro"
     });
     setShowModal(true);
   };
