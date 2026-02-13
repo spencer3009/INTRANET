@@ -413,8 +413,8 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                 schoolName={schoolName} 
               />
 
-              {/* Upcoming Tasks */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              {/* Upcoming Tasks - With min height to align with right column */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden min-h-[420px] flex flex-col">
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                   <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                     <ClipboardList className="w-5 h-5 text-amber-500" />
@@ -428,9 +428,9 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                   </button>
                 </div>
                 
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 flex-1">
                   {dashboardData?.upcoming_tasks?.length > 0 ? (
-                    dashboardData.upcoming_tasks.slice(0, 5).map((task) => (
+                    dashboardData.upcoming_tasks.slice(0, 6).map((task) => (
                       <div 
                         key={task.id}
                         onClick={() => navigateTo(`/student/courses/${task.subject_id}`)}
@@ -453,9 +453,10 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                       </div>
                     ))
                   ) : (
-                    <div className="px-5 py-8 text-center text-slate-500">
-                      <CheckCircle className="w-10 h-10 mx-auto mb-2 text-emerald-400" />
-                      <p>¡No tienes tareas pendientes!</p>
+                    <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
+                      <CheckCircle className="w-16 h-16 mx-auto mb-4 text-emerald-300" />
+                      <p className="text-lg font-medium text-slate-700">¡Estás al día!</p>
+                      <p className="text-sm text-slate-400 mt-1">No tienes tareas pendientes</p>
                     </div>
                   )}
                 </div>
