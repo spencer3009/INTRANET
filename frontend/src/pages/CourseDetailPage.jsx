@@ -7179,7 +7179,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           
           {/* 3-Column Layout - Hide sidebars for full-width tabs */}
           {(() => {
-            const fullWidthTabs = ["examenes", "tareas", "foro"];
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             return (
               <div className={`mt-6 grid grid-cols-1 gap-6 items-start ${
