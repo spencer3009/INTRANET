@@ -5450,7 +5450,7 @@ function ForumContent({ subjectId, token, user, students }) {
   // Detail View
   if (selectedTopic) {
     return (
-      <div className="space-y-4 pt-2 pb-16">
+      <div className="space-y-4 pt-6 pb-48">
         {/* Back button */}
         <button
           onClick={() => setSelectedTopic(null)}
@@ -5597,7 +5597,7 @@ function ForumContent({ subjectId, token, user, students }) {
   
   // List View (Table)
   return (
-    <div className="space-y-6 pt-2 pb-16">
+    <div className="space-y-6 pt-6 pb-48">
       {/* Header with create button */}
       <div className="flex items-center justify-between">
         <div>
