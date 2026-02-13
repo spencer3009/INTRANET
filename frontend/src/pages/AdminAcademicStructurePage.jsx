@@ -322,8 +322,43 @@ function AcademicYearsTab({ token, headers }) {
               <option value="cerrado">Cerrado</option>
             </select>
           </div>
+          {!editingItem && yearsWithPeriods.length > 0 && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+              <label className="block text-sm font-medium text-purple-800 mb-2">
+                <BookOpen className="w-4 h-4 inline mr-1" />
+                Clonar períodos de otro año (opcional)
+              </label>
+              <select
+                value={formData.clone_from_year || ""}
+                onChange={(e) => setFormData({ ...formData, clone_from_year: e.target.value ? parseInt(e.target.value) : null })}
+                className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 bg-white"
+              >
+                <option value="">No clonar - crear vacío</option>
+                {yearsWithPeriods.map(y => (
+                  <option key={y.id} value={y.year}>
+                    {y.year} ({y.period_count} período{y.period_count !== 1 ? "s" : ""})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-purple-600 mt-2">
+                Se copiarán los nombres y orden de los períodos. Las fechas deberán ajustarse manualmente.
+              </p>
+            </div>
+          )}
         </div>
       </SimpleModal>
+
+      {/* Periods Modal */}
+      <PeriodsModal
+        isOpen={showPeriodsModal}
+        onClose={() => { setShowPeriodsModal(false); setSelectedYear(null); setPeriods([]); }}
+        year={selectedYear}
+        periods={periods}
+        loading={loadingPeriods}
+        headers={headers}
+        onRefresh={() => { loadPeriods(selectedYear?.id); loadData(); }}
+        allYears={years}
+      />
 
       <ConfirmModal
         isOpen={showDeleteModal}
