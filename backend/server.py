@@ -8383,6 +8383,30 @@ async def create_course_post(
         reference_type="post"
     )
     
+    # Create notification for task, material, forum posts
+    if data.post_type in ["task", "material", "forum"]:
+        notification_titles = {
+            "task": "Nueva tarea publicada",
+            "material": "Nuevo material de estudio",
+            "forum": "Nuevo tema en el foro"
+        }
+        notification_messages = {
+            "task": f"Se ha asignado una nueva tarea: {data.title}",
+            "material": f"Se ha subido nuevo material: {data.title}",
+            "forum": f"Nuevo tema de discusión: {data.title}"
+        }
+        
+        await create_notification_for_subject(
+            school_id=school_id,
+            subject_id=subject_id,
+            title=notification_titles.get(data.post_type, "Nueva publicación"),
+            message=notification_messages.get(data.post_type, data.title or ""),
+            notification_type=data.post_type,
+            reference_id=post["id"],
+            author_id=user["id"],
+            author_name=f"{user.get('name', '')} {user.get('last_name', '')}".strip()
+        )
+    
     # Return post with author info
     post_copy = {k: v for k, v in post.items() if k != "_id"}
     post_copy["author"] = {
