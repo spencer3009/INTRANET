@@ -1379,39 +1379,49 @@ function TaskTimePicker({ value, onChange, label }) {
                 onClick={handleDialClick}
                 className="relative w-[240px] h-[240px] mx-auto rounded-full bg-white shadow-inner border border-slate-200 cursor-pointer"
               >
-                {/* Center dot */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full z-10 shadow-lg" />
-                
-                {/* Hand */}
+                {/* Hand line - starts from center, points to selected number */}
                 <div 
-                  className="absolute top-1/2 left-1/2 origin-bottom rounded-full z-5"
+                  className="absolute left-1/2 top-1/2 z-5"
                   style={{
                     width: '3px',
-                    height: '75px',
+                    height: '80px',
+                    marginLeft: '-1.5px',
                     background: 'linear-gradient(to top, #f59e0b, #ea580c)',
-                    transform: `translateX(-50%) rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
-                    transformOrigin: 'center bottom',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                    transformOrigin: 'top center',
+                    transform: `rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
+                    borderRadius: '3px'
                   }}
                 />
                 
-                {/* Tip of hand */}
+                {/* Tip circle at the end of hand */}
                 <div 
-                  className="absolute w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 z-5 shadow-md"
+                  className="absolute w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 z-5 shadow-lg flex items-center justify-center"
                   style={{
-                    left: `calc(50% + ${75 * Math.sin((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
-                    top: `calc(50% - ${75 * Math.cos((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
+                    left: `calc(50% + ${80 * Math.sin((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
+                    top: `calc(50% + ${80 * Math.cos((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180) * -1}px)`,
                     transform: 'translate(-50%, -50%)'
                   }}
-                />
+                >
+                  <span className="text-white text-xs font-bold">
+                    {selectingHours 
+                      ? (hours === 0 ? 12 : hours) 
+                      : minutes.toString().padStart(2, '0')
+                    }
+                  </span>
+                </div>
                 
-                {/* Numbers */}
+                {/* Center dot - on top of everything */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full z-20 shadow-lg" />
+                
+                {/* Numbers around the dial */}
                 {(selectingHours ? hourNumbers : minuteNumbers).map((num, idx) => {
                   const angle = (idx * 30 - 90) * (Math.PI / 180);
                   const radius = 90;
                   const x = 120 + radius * Math.cos(angle);
                   const y = 120 + radius * Math.sin(angle);
-                  const isSelected = selectingHours ? num === hours || (num === 12 && hours === 0) : num === minutes;
+                  const isSelected = selectingHours 
+                    ? (num === hours || (num === 12 && hours === 0)) 
+                    : num === minutes;
                   
                   return (
                     <button
@@ -1427,7 +1437,7 @@ function TaskTimePicker({ value, onChange, label }) {
                       }}
                       className={`absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
                         isSelected 
-                          ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg scale-110' 
+                          ? 'text-transparent' 
                           : 'hover:bg-amber-100 text-slate-700'
                       }`}
                       style={{ left: x, top: y }}
