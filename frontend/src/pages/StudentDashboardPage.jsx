@@ -160,6 +160,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
   const [courses, setCourses] = useState([]);
   const [settings, setSettings] = useState(null);
   const [banners, setBanners] = useState([]);
+  const [calendarEvents, setCalendarEvents] = useState([]);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -170,18 +171,25 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [profileRes, dashboardRes, coursesRes, settingsRes, bannersRes] = await Promise.all([
+      // Get date range for calendar events (this month + next 2 months)
+      const today = new Date();
+      const startDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+      const endDate = new Date(today.getFullYear(), today.getMonth() + 3, 0).toISOString().split('T')[0];
+
+      const [profileRes, dashboardRes, coursesRes, settingsRes, bannersRes, calendarRes] = await Promise.all([
         axios.get(`${API}/api/student/profile`, { headers }),
         axios.get(`${API}/api/student/dashboard`, { headers }),
         axios.get(`${API}/api/student/courses`, { headers }),
         axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null })),
-        axios.get(`${API}/api/dashboard/banners/active`, { headers }).catch(() => ({ data: [] }))
+        axios.get(`${API}/api/dashboard/banners/active`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/api/calendar/events?start_date=${startDate}&end_date=${endDate}`, { headers }).catch(() => ({ data: [] }))
       ]);
       
       setStudentProfile(profileRes.data);
       setDashboardData(dashboardRes.data);
       setCourses(coursesRes.data.courses || []);
       setBanners(bannersRes.data || []);
+      setCalendarEvents(calendarRes.data || []);
       if (settingsRes.data) {
         setSettings(settingsRes.data);
       }
