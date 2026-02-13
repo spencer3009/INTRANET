@@ -302,9 +302,17 @@ function PostCard({ post, token, user }) {
         <div className="px-4 pb-4 border-t border-slate-100">
           {/* Comment Input */}
           <div className="flex items-start gap-3 py-4">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-              {user?.name?.charAt(0) || 'E'}
-            </div>
+            {user?.photo_url ? (
+              <img 
+                src={user.photo_url} 
+                alt={user?.name || 'Usuario'}
+                className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+              />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                {user?.name?.charAt(0) || 'E'}
+              </div>
+            )}
             <div className="flex-1">
               <textarea
                 value={newComment}
@@ -340,10 +348,10 @@ function PostCard({ post, token, user }) {
                     <img
                       src={comment.author.photo_url}
                       alt={comment.author?.name}
-                      className="w-8 h-8 rounded-full object-cover"
+                      className="w-9 h-9 rounded-full object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-8 h-8 rounded-full bg-slate-300 flex items-center justify-center text-slate-600 text-xs font-bold flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-slate-300 flex items-center justify-center text-slate-600 text-xs font-bold flex-shrink-0">
                       {comment.author?.name?.charAt(0) || 'U'}
                     </div>
                   )}
