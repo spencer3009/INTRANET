@@ -842,8 +842,10 @@ function AcademicTab({ token, user, onRefreshStats }) {
     try {
       const res = await axios.get(`${API}/messaging/academic`, { headers });
       setThreads(res.data.threads || []);
+      return res.data.threads || [];
     } catch (err) {
       console.error("Error:", err);
+      return [];
     }
   };
 
