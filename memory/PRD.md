@@ -63,6 +63,38 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 - Registro de pagos
 - Integración futura con SUNAT
 
+### ✅ Portal de Estudiantes (NUEVO - 2025-02-13)
+- Dashboard con resumen de clases, tareas y anuncios
+- Vista de cursos asignados y materiales
+- Vista de tareas pendientes y entregas
+- Visualización de notas
+- Registro de asistencia personal
+- Mensajería con profesores/coordinadores
+- Perfil personal
+- Seguridad: Solo puede ver datos de su `school_id` y `section_id`
+
+### ✅ Portal de Profesores (NUEVO - 2025-02-13)
+**Layout y Sidebar (TeacherSidebar.jsx)**
+- Dashboard: `/teacher` - Resumen de cursos, tareas por revisar, asistencia pendiente
+- Mis Cursos: `/teacher/courses` - Cursos asignados con acceso a materiales/tareas
+- Mis Alumnos: `/teacher/students` - Lista de estudiantes por sección (solo lectura)
+- Tareas: `/teacher/tasks` - Crear, revisar y calificar asignaciones
+- Notas: `/teacher/grades` - Registrar/editar calificaciones por curso
+- Asistencia: `/teacher/attendance` - Pasar lista diaria por sección
+- Mensajes: `/teacher/messages` - Comunicación con alumnos/coordinadores
+- Mi Perfil: `/teacher/profile` - Datos personales y cambio de contraseña
+
+**Seguridad Multi-tenant**
+- Backend valida `user.role === 'teacher'` y `school_id`
+- Datos filtrados por `assigned_courses` y `assigned_sections`
+- Profesores NO pueden ver cursos que no dictan ni secciones no asignadas
+- Profesores redirigidos automáticamente si intentan acceder a rutas de admin/student
+
+**Credenciales de prueba**
+- Email: `profesor.demo@test.pe`
+- Password: `test123`
+- Subdominio: `demosettings`
+
 ---
 
 ## Decisiones Arquitectónicas Clave
