@@ -258,8 +258,10 @@ function NotificationItem({ reminder, onClick, onMarkViewed }) {
 export default function NotificationBell({ token }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState({ important: [], upcoming: [], new: [], total_count: 0 });
+  const [generalNotifications, setGeneralNotifications] = useState({ notifications: [], unread_count: 0 });
   const [loading, setLoading] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
+  const [activeTab, setActiveTab] = useState("all"); // "all" or "reminders"
   const dropdownRef = useRef(null);
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -269,8 +271,13 @@ export default function NotificationBell({ token }) {
     if (!token) return;
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/notifications/reminders`, { headers });
-      setNotifications(res.data);
+      // Load both reminder notifications and general notifications
+      const [remindersRes, generalRes] = await Promise.all([
+        axios.get(`${API}/notifications/reminders`, { headers }),
+        axios.get(`${API}/notifications/all`, { headers }).catch(() => ({ data: { notifications: [], unread_count: 0 } }))
+      ]);
+      setNotifications(remindersRes.data);
+      setGeneralNotifications(generalRes.data);
     } catch (err) {
       console.error("Error loading notifications:", err);
     } finally {
@@ -308,11 +315,31 @@ export default function NotificationBell({ token }) {
     }
   };
 
+  // Mark general notification as read
+  const markGeneralAsRead = async (notificationId) => {
+    try {
+      await axios.post(`${API}/notifications/${notificationId}/read`, {}, { headers });
+      loadNotifications(); // Refresh
+    } catch (err) {
+      console.error("Error marking notification as read:", err);
+    }
+  };
+
+  // Mark all general notifications as read
+  const markAllAsRead = async () => {
+    try {
+      await axios.post(`${API}/notifications/read-all`, {}, { headers });
+      loadNotifications(); // Refresh
+    } catch (err) {
+      console.error("Error marking all as read:", err);
+    }
+  };
+
   const handleReminderClick = (reminder) => {
     setSelectedReminder(reminder);
   };
 
-  const totalCount = notifications.total_count || 0;
+  const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0);
   const hasNotifications = totalCount > 0;
 
   return (
