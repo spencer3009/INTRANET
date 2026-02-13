@@ -665,6 +665,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const [materials, setMaterials] = useState([]);
   const [exams, setExams] = useState([]);
   const [forumPosts, setForumPosts] = useState([]);
+  const [students, setStudents] = useState([]);
+  const [reminders, setReminders] = useState([]);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -690,6 +692,24 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       if (course) {
         setSubject(course);
         setTeacher(course.teacher);
+        
+        // Load students from the same section for this course
+        if (course.section_id) {
+          try {
+            const studentsRes = await axios.get(`${API}/api/sections/${course.section_id}/students`, { headers });
+            setStudents(studentsRes.data.students || []);
+          } catch (e) {
+            console.log("Could not load students list");
+          }
+        }
+      }
+      
+      // Load course reminders
+      try {
+        const remindersRes = await axios.get(`${API}/api/courses/${courseId}/reminders`, { headers });
+        setReminders(remindersRes.data || []);
+      } catch (e) {
+        console.log("Could not load reminders");
       }
       
       // Load course content
@@ -739,7 +759,18 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const renderContent = () => {
     switch (activeTab) {
       case "tablero":
-        return <DashboardContent posts={posts} onViewPost={() => {}} />;
+        return (
+          <DashboardContent 
+            subject={subject}
+            teacher={teacher}
+            posts={posts}
+            students={students}
+            tasks={tasks}
+            materials={materials}
+            reminders={reminders}
+            onViewPost={() => {}}
+          />
+        );
       case "tareas":
         return <TasksContent tasks={tasks} studentId={user?.id} onSubmitTask={handleSubmitTask} />;
       case "material":
@@ -749,7 +780,18 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       case "foro":
         return <ForumContent posts={forumPosts} />;
       default:
-        return <DashboardContent posts={posts} onViewPost={() => {}} />;
+        return (
+          <DashboardContent 
+            subject={subject}
+            teacher={teacher}
+            posts={posts}
+            students={students}
+            tasks={tasks}
+            materials={materials}
+            reminders={reminders}
+            onViewPost={() => {}}
+          />
+        );
     }
   };
 
