@@ -581,7 +581,7 @@ function App() {
             path="/admin"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
+                {!isAdminOnly(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminDashboardPage user={user} token={token} onLogout={handleLogout} />
@@ -593,7 +593,7 @@ function App() {
             path="/admin/users"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
+                {!isAdminOnly(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminUsersPage user={user} token={token} onLogout={handleLogout} />
