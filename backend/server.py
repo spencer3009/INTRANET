@@ -1137,6 +1137,7 @@ async def get_student_courses(current_user = Depends(get_current_user)):
     """
     Get courses/subjects assigned to student's section.
     Includes teacher info for each course.
+    Uses academic_assignments collection.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
@@ -1151,18 +1152,26 @@ async def get_student_courses(current_user = Depends(get_current_user)):
     if not seccion_id:
         return {"courses": [], "message": "No tienes una sección asignada"}
     
-    # Get teacher assignments for this section
-    assignments = await db.teacher_assignments.find({
+    # Get academic assignments for this section (from academic_assignments collection)
+    assignments = await db.academic_assignments.find({
         "school_id": school_id,
-        "seccion_id": seccion_id
+        "section_id": seccion_id,
+        "status": "activo"
     }, {"_id": 0}).to_list(100)
     
     # Build courses with teacher info
     courses = []
+    seen_subjects = set()  # Avoid duplicates
+    
     for assignment in assignments:
-        subject = await db.subjects.find_one({"id": assignment["subject_id"], "school_id": school_id}, {"_id": 0})
+        subject_id = assignment.get("subject_id")
+        if subject_id in seen_subjects:
+            continue
+        seen_subjects.add(subject_id)
+        
+        subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id}, {"_id": 0})
         if subject:
-            teacher = await db.users.find_one({"id": assignment["teacher_id"]}, {"_id": 0, "password": 0})
+            teacher = await db.users.find_one({"id": assignment.get("teacher_id")}, {"_id": 0, "password": 0})
             
             # Count materials, tasks, etc. for this subject
             materials_count = await db.course_posts.count_documents({
