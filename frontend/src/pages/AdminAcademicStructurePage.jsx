@@ -111,6 +111,359 @@ function SimpleModal({ isOpen, onClose, title, onSave, loading, children }) {
   );
 }
 
+// Periods Modal - Full CRUD for periods within a year
+function PeriodsModal({ isOpen, onClose, year, periods, loading, headers, onRefresh, allYears }) {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingPeriod, setEditingPeriod] = useState(null);
+  const [formData, setFormData] = useState({ nombre: "", fecha_inicio: "", fecha_fin: "", orden: 1, activo: true });
+  const [saving, setSaving] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [periodToDelete, setPeriodToDelete] = useState(null);
+  const [showCloneModal, setShowCloneModal] = useState(false);
+  const [cloneFromYear, setCloneFromYear] = useState("");
+  const [cloning, setCloning] = useState(false);
+  
+  if (!isOpen || !year) return null;
+  
+  const yearsWithPeriods = allYears.filter(y => y.period_count > 0 && y.id !== year.id);
+  
+  const handleSavePeriod = async () => {
+    if (!formData.nombre.trim()) return;
+    setSaving(true);
+    try {
+      const payload = {
+        ...formData,
+        academic_year_id: year.id
+      };
+      
+      if (editingPeriod) {
+        await axios.put(`${API}/academic/periods/${editingPeriod.id}`, payload, { headers });
+      } else {
+        await axios.post(`${API}/academic/periods`, payload, { headers });
+      }
+      onRefresh();
+      setShowAddModal(false);
+      setEditingPeriod(null);
+      setFormData({ nombre: "", fecha_inicio: "", fecha_fin: "", orden: periods.length + 1, activo: true });
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al guardar período");
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  const handleDeletePeriod = async () => {
+    if (!periodToDelete) return;
+    try {
+      await axios.delete(`${API}/academic/periods/${periodToDelete.id}`, { headers });
+      onRefresh();
+      setShowDeleteModal(false);
+      setPeriodToDelete(null);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al eliminar período");
+    }
+  };
+  
+  const handleClonePeriods = async () => {
+    if (!cloneFromYear) return;
+    setCloning(true);
+    try {
+      await axios.post(`${API}/academic/periods/clone`, {
+        source_year_id: cloneFromYear,
+        target_year_id: year.id
+      }, { headers });
+      onRefresh();
+      setShowCloneModal(false);
+      setCloneFromYear("");
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al clonar períodos");
+    } finally {
+      setCloning(false);
+    }
+  };
+  
+  const handleEditPeriod = (period) => {
+    setEditingPeriod(period);
+    setFormData({
+      nombre: period.nombre,
+      fecha_inicio: period.fecha_inicio || "",
+      fecha_fin: period.fecha_fin || "",
+      orden: period.orden || 1,
+      activo: period.activo !== false
+    });
+    setShowAddModal(true);
+  };
+  
+  const handleTogglePeriod = async (period) => {
+    try {
+      await axios.put(`${API}/academic/periods/${period.id}`, {
+        ...period,
+        activo: !period.activo
+      }, { headers });
+      onRefresh();
+    } catch (err) {
+      console.error("Error toggling period:", err);
+    }
+  };
+  
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+          <div>
+            <h3 className="text-lg font-bold text-slate-800">Períodos del Año {year.year}</h3>
+            <p className="text-sm text-slate-500">{periods.length} período(s) configurado(s)</p>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-y-auto p-6">
+          {loading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+            </div>
+          ) : periods.length === 0 ? (
+            <div className="text-center py-8">
+              <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+              <p className="text-slate-500 mb-4">No hay períodos configurados para este año</p>
+              {yearsWithPeriods.length > 0 && (
+                <button
+                  onClick={() => setShowCloneModal(true)}
+                  className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+                >
+                  Clonar de otro año →
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {periods.sort((a, b) => a.orden - b.orden).map((period) => (
+                <div 
+                  key={period.id} 
+                  className="flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 rounded-xl transition-colors group"
+                >
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => handleTogglePeriod(period)}
+                      className={`p-1 rounded-lg transition-colors ${
+                        period.activo ? 'text-emerald-600 hover:bg-emerald-100' : 'text-slate-400 hover:bg-slate-200'
+                      }`}
+                    >
+                      {period.activo ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
+                    </button>
+                    <div>
+                      <p className="font-medium text-slate-800">{period.nombre}</p>
+                      <p className="text-xs text-slate-500">
+                        {period.fecha_inicio && period.fecha_fin 
+                          ? `${period.fecha_inicio} - ${period.fecha_fin}` 
+                          : "Fechas no configuradas"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-xs text-slate-400 mr-2">Orden: {period.orden}</span>
+                    <button
+                      onClick={() => handleEditPeriod(period)}
+                      className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => { setPeriodToDelete(period); setShowDeleteModal(true); }}
+                      className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex justify-between gap-3 px-6 py-4 border-t border-slate-200">
+          {yearsWithPeriods.length > 0 && periods.length === 0 && (
+            <button
+              onClick={() => setShowCloneModal(true)}
+              className="px-4 py-2 text-purple-600 font-medium hover:bg-purple-50 rounded-xl flex items-center gap-2"
+            >
+              <BookOpen className="w-4 h-4" />
+              Clonar períodos
+            </button>
+          )}
+          <div className="flex-1" />
+          <button
+            onClick={() => { 
+              setEditingPeriod(null); 
+              setFormData({ nombre: "", fecha_inicio: "", fecha_fin: "", orden: periods.length + 1, activo: true }); 
+              setShowAddModal(true); 
+            }}
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-xl flex items-center gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Agregar período
+          </button>
+        </div>
+      </div>
+      
+      {/* Add/Edit Period Sub-Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setShowAddModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800">
+                {editingPeriod ? "Editar Período" : "Nuevo Período"}
+              </h3>
+              <button onClick={() => setShowAddModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+                <input
+                  type="text"
+                  value={formData.nombre}
+                  onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  placeholder="Ej: Bimestre I, Trimestre 1..."
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Fecha inicio</label>
+                  <input
+                    type="date"
+                    value={formData.fecha_inicio}
+                    onChange={(e) => setFormData({ ...formData, fecha_inicio: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Fecha fin</label>
+                  <input
+                    type="date"
+                    value={formData.fecha_fin}
+                    onChange={(e) => setFormData({ ...formData, fecha_fin: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Orden</label>
+                <input
+                  type="number"
+                  value={formData.orden}
+                  onChange={(e) => setFormData({ ...formData, orden: parseInt(e.target.value) || 1 })}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                  min={1}
+                  max={10}
+                />
+              </div>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={formData.activo}
+                  onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                />
+                <span className="text-sm text-slate-700">Activo</span>
+              </label>
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200">
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSavePeriod}
+                disabled={saving || !formData.nombre.trim()}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-medium rounded-xl flex items-center gap-2"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                Guardar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Clone Periods Sub-Modal */}
+      {showCloneModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/30" onClick={() => setShowCloneModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800">Clonar Períodos</h3>
+              <button onClick={() => setShowCloneModal(false)} className="p-2 hover:bg-slate-100 rounded-lg">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600">
+                Selecciona el año del cual deseas copiar la estructura de períodos al año <strong>{year.year}</strong>.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Clonar desde</label>
+                <select
+                  value={cloneFromYear}
+                  onChange={(e) => setCloneFromYear(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+                >
+                  <option value="">Seleccionar año</option>
+                  {yearsWithPeriods.map(y => (
+                    <option key={y.id} value={y.id}>
+                      {y.year} ({y.period_count} período{y.period_count !== 1 ? "s" : ""})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                <p className="text-xs text-amber-700">
+                  Se copiarán los nombres y orden de los períodos. Las fechas se ajustarán automáticamente al nuevo año.
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-200">
+              <button
+                onClick={() => setShowCloneModal(false)}
+                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleClonePeriods}
+                disabled={cloning || !cloneFromYear}
+                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white font-medium rounded-xl flex items-center gap-2"
+              >
+                {cloning ? <Loader2 className="w-4 h-4 animate-spin" /> : <BookOpen className="w-4 h-4" />}
+                Clonar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Confirmation */}
+      <ConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => { setShowDeleteModal(false); setPeriodToDelete(null); }}
+        onConfirm={handleDeletePeriod}
+        title="Eliminar Período"
+        message={`¿Eliminar el período "${periodToDelete?.nombre}"?`}
+        confirmText="Eliminar"
+        confirmVariant="danger"
+      />
+    </div>
+  );
+}
+
 // Academic Years Tab Content
 function AcademicYearsTab({ token, headers }) {
   const [years, setYears] = useState([]);
