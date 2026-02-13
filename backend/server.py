@@ -10521,7 +10521,7 @@ async def get_post_comments(
     post_id: str,
     current_user = Depends(get_current_user)
 ):
-    """Get all comments for a post"""
+    """Get all comments for a post, organized with replies"""
     # Check if post exists
     post = await db.course_posts.find_one({"id": post_id, "status": "active"})
     if not post:
@@ -10530,7 +10530,7 @@ async def get_post_comments(
     comments = await db.post_comments.find(
         {"post_id": post_id, "status": "active"},
         {"_id": 0}
-    ).sort("created_at", 1).to_list(100)
+    ).sort("created_at", 1).to_list(200)
     
     # Enrich with author info
     for comment in comments:
@@ -10540,7 +10540,24 @@ async def get_post_comments(
         )
         comment["author"] = author
     
-    return comments
+    # Organize comments: top-level and their replies
+    top_level_comments = []
+    replies_map = {}
+    
+    for comment in comments:
+        parent_id = comment.get("parent_id")
+        if parent_id:
+            if parent_id not in replies_map:
+                replies_map[parent_id] = []
+            replies_map[parent_id].append(comment)
+        else:
+            top_level_comments.append(comment)
+    
+    # Attach replies to their parent comments
+    for comment in top_level_comments:
+        comment["replies"] = replies_map.get(comment["id"], [])
+    
+    return top_level_comments
 
 @api_router.post("/course/posts/{post_id}/comments")
 async def create_post_comment(
