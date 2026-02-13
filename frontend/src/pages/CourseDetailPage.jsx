@@ -7061,7 +7061,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       case "tareas":
         return <TasksTableContent subjectId={subjectId} token={token} user={user} students={students} subject={subject} levelName={levelName} gradeName={gradeName} />;
       case "material":
-        return <UnifiedContentFeed subjectId={subjectId} token={token} user={user} postType="material" />;
+        return <MaterialTableContent subjectId={subjectId} token={token} user={user} />;
       case "examenes":
         return <ExamsContent subjectId={subjectId} token={token} userRole={user?.role} />;
       case "foro":
