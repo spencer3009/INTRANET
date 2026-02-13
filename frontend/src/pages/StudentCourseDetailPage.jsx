@@ -794,15 +794,15 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
 
   const loadContent = async () => {
     try {
-      // Load all posts for this course
-      const postsRes = await axios.get(`${API}/api/courses/${courseId}/posts`, { headers });
-      const allPosts = postsRes.data || [];
+      // Load all posts for this course - correct endpoint: /api/course/{subject_id}/posts
+      const postsRes = await axios.get(`${API}/api/course/${courseId}/posts`, { headers });
+      const allPosts = postsRes.data.posts || postsRes.data || [];
       
-      // Separate by type
-      setPosts(allPosts.filter(p => p.type === "post" || p.type === "announcement"));
-      setTasks(allPosts.filter(p => p.type === "task"));
-      setMaterials(allPosts.filter(p => p.type === "material"));
-      setForumPosts(allPosts.filter(p => p.type === "forum"));
+      // Separate by type (post_type field)
+      setPosts(allPosts.filter(p => p.post_type === "post" || p.post_type === "announcement" || !p.post_type));
+      setTasks(allPosts.filter(p => p.post_type === "task"));
+      setMaterials(allPosts.filter(p => p.post_type === "material"));
+      setForumPosts(allPosts.filter(p => p.post_type === "forum"));
       
       // Load exams
       const examsRes = await axios.get(`${API}/api/exams?subject_id=${courseId}`, { headers }).catch(() => ({ data: [] }));
