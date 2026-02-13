@@ -5893,73 +5893,70 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main content - Left side */}
           <div className="lg:col-span-2 space-y-4">
-            {/* Author header */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+            {/* Task content card - Professional Design */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+              {/* Header with gradient */}
+              <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-6">
+                <div className="flex items-start gap-4">
+                  {/* Author photo */}
                   {selectedTask.author?.profile_pic ? (
                     <img 
                       src={selectedTask.author.profile_pic} 
                       alt={selectedTask.author?.name || 'Usuario'}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-14 h-14 rounded-full object-cover border-2 border-white/20"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center">
-                      <User className="w-6 h-6 text-slate-500" />
+                    <div className="w-14 h-14 rounded-full bg-slate-600 flex items-center justify-center border-2 border-white/20">
+                      <User className="w-7 h-7 text-slate-300" />
                     </div>
                   )}
-                  <div>
-                    <p className="font-semibold text-slate-800">{selectedTask.author?.name || 'Usuario'}</p>
-                    <span className="text-sm text-emerald-600 font-medium">Publicado</span>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-white font-semibold">{selectedTask.author?.name || 'Usuario'}</span>
+                      <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-medium rounded-full">
+                        Publicado
+                      </span>
+                    </div>
+                    <p className="text-slate-400 text-sm">{levelName} • {gradeName}</p>
                   </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-                    <MoreVertical className="w-5 h-5" />
-                  </button>
-                  <div className="w-10 h-10 bg-lime-500 rounded-xl flex items-center justify-center">
-                    <PenTool className="w-5 h-5 text-white" />
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center">
+                      <PenTool className="w-5 h-5 text-white" />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Task content card */}
-            <div className="bg-lime-500 rounded-2xl overflow-hidden text-white">
+              
+              {/* Content body */}
               <div className="p-6">
-                {/* Period and Grade badges */}
-                <div className="mb-4">
-                  <span className="inline-block px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full uppercase mb-2">
-                    {subject?.academic_period || 'Período Actual'}
-                  </span>
-                  <p className="text-white/90 text-sm">{levelName} - {gradeName}</p>
-                </div>
-                
                 {/* Title */}
-                <h2 className="text-2xl font-bold mb-4">{selectedTask.title}</h2>
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">{selectedTask.title}</h2>
                 
                 {/* Description */}
                 {selectedTask.content && (
-                  <div className="mb-6">
+                  <div className="mb-6 text-slate-600 leading-relaxed">
                     {selectedTask.content.includes('<') && selectedTask.content.includes('>') ? (
                       <div 
-                        className="prose prose-sm max-w-none text-white/90 [&_p]:mb-2 [&_ul]:list-disc [&_ul]:ml-4 [&_ol]:list-decimal [&_ol]:ml-4"
+                        className="prose prose-slate max-w-none [&_p]:mb-3 [&_ul]:list-disc [&_ul]:ml-5 [&_ol]:list-decimal [&_ol]:ml-5 [&_strong]:text-slate-800 [&_li]:mb-1"
                         dangerouslySetInnerHTML={{ __html: selectedTask.content.split('\n\n')[0] }}
                       />
                     ) : (
-                      <p className="text-white/90">{selectedTask.content.split('\n\n')[0]}</p>
+                      <p className="whitespace-pre-wrap">{selectedTask.content.split('\n\n')[0]}</p>
                     )}
                   </div>
                 )}
                 
-                {/* Divider */}
-                <div className="border-t border-white/30 my-4"></div>
-                
-                {/* Due date */}
-                <div className="flex items-center gap-2 text-white/90 text-sm uppercase tracking-wide">
-                  <span className="font-semibold">FECHA DE ENTREGA:</span>
-                  <Clock className="w-4 h-4" />
-                  <span>{formatDateTime(dueDate)}</span>
+                {/* Due date footer */}
+                <div className="mt-6 pt-4 border-t border-slate-100">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-amber-50 rounded-xl border border-amber-100">
+                    <div className="w-10 h-10 bg-amber-500 rounded-lg flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-amber-600 font-medium uppercase tracking-wide">Fecha de entrega</p>
+                      <p className="text-slate-800 font-semibold">{formatDateTime(dueDate)}</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
