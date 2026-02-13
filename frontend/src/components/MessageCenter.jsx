@@ -1124,7 +1124,7 @@ function AcademicTab({ token, user, onRefreshStats }) {
             {filteredContacts.map((contact) => (
               <div
                 key={contact.id}
-                onClick={() => setSelectedContact(contact)}
+                onClick={() => handleSelectContact(contact)}
                 className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
               >
                 {contact.photo_url ? (
