@@ -1,0 +1,133 @@
+{
+  "summary": "Admin Portal FASE 2 (Estructura Académica) testing completed. All features working: Academic Structure page with tabs for Years, Levels, Grades, Sections, and Shifts. CRUD operations verified. Fixed frontend bug where 'planificado' status was used instead of 'futuro' for academic years.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Admin login (admin@test.pe / test123) redirects to /school/demosettings/admin",
+    "Owner/director login (admin.settings@test.pe / test123) redirects to /school/demosettings/dashboard (NOT admin portal)",
+    "Navigation to /admin/academic-structure via sidebar works",
+    "Academic Structure page loads with correct title and tabs",
+    "Tab 'Años Académicos' shows 2 years (2026 Activo, 2025 Cerrado)",
+    "Tab 'Niveles' shows 3 levels (Inicial, Primaria, Secundaria)",
+    "Tab 'Grados' shows 14 grades organized by level",
+    "Tab 'Secciones' shows 16 sections with grade and capacity info",
+    "Tab 'Turnos' shows 3 shifts (Mañana, Tarde, Noche) with time ranges",
+    "Create new level via modal works correctly",
+    "API GET /api/academic/years returns 200 with year list",
+    "API GET /api/academic/levels returns 200 with level list",
+    "API GET /api/academic/grades returns 200 with grade list",
+    "API GET /api/academic/sections returns 200 with section list",
+    "API GET /api/academic/shifts returns 200 with shift list",
+    "API POST /api/academic/levels creates new level successfully",
+    "API PUT /api/academic/levels/{id} updates level successfully",
+    "API POST /api/academic/shifts creates new shift successfully",
+    "API POST /api/academic/years creates new year successfully",
+    "Owner/director user can read all academic data (backend allows)",
+    "Owner/director user can create academic levels (is_admin_user allows director role)"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_academic_structure_admin.py",
+    "/app/test_reports/pytest/pytest_academic_structure.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Frontend correctly uses isAdminOnly(user) to restrict admin portal to role='admin' only",
+    "Backend is_admin_user() allows owner, admin, and director roles for CRUD operations",
+    "Academic Structure page properly fetches data from all 5 endpoints on load",
+    "Tab navigation works correctly with state management",
+    "CRUD modals have proper form validation",
+    "data-testid attributes present on key elements for testing"
+  ],
+
+  "updated_files": [
+    "/app/frontend/src/pages/AdminAcademicStructurePage.jsx (fixed status 'planificado' -> 'futuro')",
+    "/app/backend/tests/test_academic_structure_admin.py (created)"
+  ],
+
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% (All UI tests passed)"
+  },
+
+  "test_credentials": {
+    "admin_email": "admin@test.pe",
+    "admin_password": "test123",
+    "admin_role": "admin",
+    "owner_email": "admin.settings@test.pe",
+    "owner_password": "test123",
+    "owner_role": "director",
+    "subdomain": "demosettings"
+  },
+
+  "seed_data_creation": "Using existing data: 2 academic years, 3 levels, 14 grades, 16 sections, 3 shifts. Created test level 'TEST_Nivel_Playwright' during UI testing.",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Admin Portal FASE 2 (Estructura Académica) is fully functional. The page has 5 tabs: Años Académicos, Niveles, Grados, Secciones, Turnos. Each tab supports CRUD operations. IMPORTANT: Frontend was fixed to use 'futuro' instead of 'planificado' for academic year status (backend expects 'activo', 'futuro', 'cerrado'). Admin user (admin@test.pe) has role='admin' and can access admin portal. Owner user (admin.settings@test.pe) has role='director' and is correctly redirected to regular dashboard.",
+
+  "verified_features": {
+    "admin_login_redirect": {
+      "user": "admin@test.pe",
+      "role": "admin",
+      "redirect": "/school/demosettings/admin",
+      "status": "Working"
+    },
+    "owner_login_redirect": {
+      "user": "admin.settings@test.pe",
+      "role": "director",
+      "redirect": "/school/demosettings/dashboard",
+      "status": "Working - correctly NOT redirected to admin portal"
+    },
+    "academic_structure_page": {
+      "route": "/school/demosettings/admin/academic-structure",
+      "tabs": ["Años Académicos", "Niveles", "Grados", "Secciones", "Turnos"],
+      "status": "Working"
+    },
+    "academic_years_tab": {
+      "data": "2 years (2026 Activo, 2025 Cerrado)",
+      "crud": "Create, Read, Update, Delete",
+      "status": "Working"
+    },
+    "levels_tab": {
+      "data": "3 levels (Inicial, Primaria, Secundaria)",
+      "crud": "Create, Read, Update, Delete, Toggle Active",
+      "status": "Working"
+    },
+    "grades_tab": {
+      "data": "14 grades organized by level",
+      "crud": "Create, Read, Update, Delete, Toggle Active",
+      "status": "Working"
+    },
+    "sections_tab": {
+      "data": "16 sections with grade and capacity info",
+      "crud": "Create, Read, Update, Delete, Toggle Active",
+      "status": "Working"
+    },
+    "shifts_tab": {
+      "data": "3 shifts (Mañana 07:00-12:30, Tarde 13:00-18:00, Noche 18:30-22:00)",
+      "crud": "Create, Read, Update, Delete, Toggle Active",
+      "status": "Working"
+    }
+  },
+
+  "bug_fixed": {
+    "issue": "Frontend used 'planificado' status for academic years but backend expects 'futuro'",
+    "file": "/app/frontend/src/pages/AdminAcademicStructurePage.jsx",
+    "fix": "Changed default status from 'planificado' to 'futuro' and updated status badge mapping"
+  }
+}
