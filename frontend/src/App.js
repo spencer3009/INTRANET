@@ -222,8 +222,17 @@ function App() {
     },
   };
 
-  // Determine dashboard redirect path based on environment
+  // Determine dashboard redirect path based on environment and role
   const getDashboardPath = () => {
+    // Students get redirected to student portal
+    if (isStudent(user)) {
+      if (environment.mode === 'subdomain' || environment.supportsWildcard) {
+        return '/student';
+      }
+      return user?.subdomain ? `/school/${user.subdomain}/student` : '/student';
+    }
+    
+    // Staff/Admin get regular dashboard
     if (environment.mode === 'subdomain' || environment.supportsWildcard) {
       return '/dashboard';
     }
