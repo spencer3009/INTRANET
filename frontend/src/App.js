@@ -367,12 +367,19 @@ function App() {
           
           {/* ════════════════════════════════════════════════════════════════════
               STUDENT PORTAL - Direct path (for subdomain mode)
+              Note: Teachers and Admins are redirected to their respective portals
           ════════════════════════════════════════════════════════════════════ */}
           <Route
             path="/student"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to="/teacher" replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -380,7 +387,13 @@ function App() {
             path="/student/courses"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to="/teacher/courses" replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -388,7 +401,13 @@ function App() {
             path="/student/courses/:courseId"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to="/teacher/courses" replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
@@ -396,7 +415,13 @@ function App() {
             path="/student/tasks"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <StudentTasksPage user={user} token={token} onLogout={handleLogout} />
+                {isTeacher(user) ? (
+                  <Navigate to="/teacher/tasks" replace />
+                ) : isAdmin(user) ? (
+                  <Navigate to="/dashboard" replace />
+                ) : (
+                  <StudentTasksPage user={user} token={token} onLogout={handleLogout} />
+                )}
               </ProtectedRoute>
             }
           />
