@@ -39,6 +39,7 @@ export default function StudentTasksPage({ user, token, onLogout }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [courses, setCourses] = useState([]);
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -49,10 +50,17 @@ export default function StudentTasksPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Get courses first
-      const coursesRes = await axios.get(`${API}/api/student/courses`, { headers });
+      // Get courses and settings first
+      const [coursesRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/student/courses`, { headers }),
+        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+      ]);
+      
       const studentCourses = coursesRes.data.courses || [];
       setCourses(studentCourses);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+      }
       
       // Get tasks from each course
       const allTasks = [];
@@ -80,6 +88,10 @@ export default function StudentTasksPage({ user, token, onLogout }) {
       setLoading(false);
     }
   };
+
+  // Get display values from settings
+  const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
+  const logoUrl = settings?.logo_url;
 
   const navigateTo = (path) => {
     if (subdomain) {
