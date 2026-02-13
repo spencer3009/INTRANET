@@ -44,13 +44,7 @@ const NAV_SECTIONS = [
     id: "estructura",
     label: "ESTRUCTURA ACADÉMICA",
     items: [
-      { id: "anos-academicos", label: "Años Académicos", icon: Calendar, route: "/admin/academic-years" },
-      { id: "niveles", label: "Niveles", icon: Layers, route: "/admin/levels" },
-      { id: "grados", label: "Grados", icon: BookMarked, route: "/admin/grades" },
-      { id: "secciones", label: "Secciones", icon: BookOpen, route: "/admin/sections" },
-      { id: "turnos", label: "Turnos", icon: Clock, route: "/admin/shifts" },
-      { id: "cursos", label: "Cursos", icon: BookOpen, route: "/admin/courses" },
-      { id: "horarios", label: "Horarios", icon: Calendar, route: "/admin/schedules" },
+      { id: "estructura-academica", label: "Estructura Académica", icon: Layers, route: "/admin/academic-structure" },
     ]
   },
   {
