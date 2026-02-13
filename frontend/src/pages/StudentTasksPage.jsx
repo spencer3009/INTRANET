@@ -1,0 +1,367 @@
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
+import StudentSidebar from "../components/StudentSidebar";
+import MessageCenter from "../components/MessageCenter";
+import {
+  ClipboardList,
+  Menu,
+  Loader2,
+  Search,
+  Filter,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Calendar,
+  BookOpen,
+  ChevronRight,
+  FileText,
+  Upload
+} from "lucide-react";
+
+const API = process.env.REACT_APP_BACKEND_URL;
+
+// Task status badges
+const STATUS_CONFIG = {
+  pending: { label: "Pendiente", color: "bg-amber-100 text-amber-700", icon: Clock },
+  submitted: { label: "Entregada", color: "bg-blue-100 text-blue-700", icon: Upload },
+  graded: { label: "Calificada", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
+  late: { label: "Atrasada", color: "bg-red-100 text-red-700", icon: AlertCircle }
+};
+
+export default function StudentTasksPage({ user, token, onLogout }) {
+  const navigate = useNavigate();
+  const { subdomain } = useParams();
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [courses, setCourses] = useState([]);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    loadData();
+  }, [token]);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      // Get courses first
+      const coursesRes = await axios.get(`${API}/api/student/courses`, { headers });
+      const studentCourses = coursesRes.data.courses || [];
+      setCourses(studentCourses);
+      
+      // Get tasks from each course
+      const allTasks = [];
+      for (const course of studentCourses) {
+        try {
+          const tasksRes = await axios.get(`${API}/api/courses/${course.id}/posts?type=task`, { headers });
+          const courseTasks = (tasksRes.data || []).map(task => ({
+            ...task,
+            course_name: course.name,
+            course_color: course.color,
+            course_id: course.id
+          }));
+          allTasks.push(...courseTasks);
+        } catch (err) {
+          console.error(`Error loading tasks for course ${course.id}:`, err);
+        }
+      }
+      
+      // Sort by due date
+      allTasks.sort((a, b) => new Date(a.due_date || 0) - new Date(b.due_date || 0));
+      setTasks(allTasks);
+    } catch (err) {
+      console.error("Error loading tasks:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const navigateTo = (path) => {
+    if (subdomain) {
+      navigate(`/school/${subdomain}${path}`);
+    } else {
+      navigate(path);
+    }
+  };
+
+  // Determine task status
+  const getTaskStatus = (task) => {
+    // Check if student has submitted
+    const submission = task.submissions?.find(s => s.student_id === user?.id);
+    if (submission) {
+      if (submission.grade !== null && submission.grade !== undefined) {
+        return "graded";
+      }
+      return "submitted";
+    }
+    
+    // Check if past due date
+    if (task.due_date && new Date(task.due_date) < new Date()) {
+      return "late";
+    }
+    
+    return "pending";
+  };
+
+  // Filter tasks
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = 
+      task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.course_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    if (!matchesSearch) return false;
+    
+    if (statusFilter === "all") return true;
+    
+    const status = getTaskStatus(task);
+    return status === statusFilter;
+  });
+
+  // Stats
+  const stats = {
+    total: tasks.length,
+    pending: tasks.filter(t => getTaskStatus(t) === "pending").length,
+    submitted: tasks.filter(t => getTaskStatus(t) === "submitted").length,
+    graded: tasks.filter(t => getTaskStatus(t) === "graded").length,
+    late: tasks.filter(t => getTaskStatus(t) === "late").length
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* Student Sidebar */}
+      <StudentSidebar
+        active="tareas"
+        onNavigate={() => {}}
+        expanded={sidebarExpanded}
+        onToggle={() => setSidebarExpanded(!sidebarExpanded)}
+        onLogout={onLogout}
+        schoolName={user?.school_name}
+        subdomain={subdomain || user?.subdomain}
+        user={user}
+      />
+
+      {/* Mobile overlay */}
+      {sidebarExpanded && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarExpanded(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 lg:px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setSidebarExpanded(!sidebarExpanded)}
+                className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                  <ClipboardList className="w-6 h-6 text-amber-500" />
+                  Mis Tareas
+                </h1>
+                <p className="text-sm text-slate-500">
+                  {stats.pending} pendientes · {stats.submitted} entregadas · {stats.graded} calificadas
+                </p>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Main Content */}
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <button
+              onClick={() => setStatusFilter("pending")}
+              className={`p-4 rounded-xl border transition-all ${
+                statusFilter === "pending" 
+                  ? "bg-amber-50 border-amber-300" 
+                  : "bg-white border-slate-200 hover:border-amber-200"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-amber-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-bold text-slate-800">{stats.pending}</p>
+                  <p className="text-xs text-slate-500">Pendientes</p>
+                </div>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => setStatusFilter("submitted")}
+              className={`p-4 rounded-xl border transition-all ${
+                statusFilter === "submitted" 
+                  ? "bg-blue-50 border-blue-300" 
+                  : "bg-white border-slate-200 hover:border-blue-200"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                  <Upload className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-bold text-slate-800">{stats.submitted}</p>
+                  <p className="text-xs text-slate-500">Entregadas</p>
+                </div>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => setStatusFilter("graded")}
+              className={`p-4 rounded-xl border transition-all ${
+                statusFilter === "graded" 
+                  ? "bg-emerald-50 border-emerald-300" 
+                  : "bg-white border-slate-200 hover:border-emerald-200"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-bold text-slate-800">{stats.graded}</p>
+                  <p className="text-xs text-slate-500">Calificadas</p>
+                </div>
+              </div>
+            </button>
+            
+            <button
+              onClick={() => setStatusFilter("all")}
+              className={`p-4 rounded-xl border transition-all ${
+                statusFilter === "all" 
+                  ? "bg-slate-100 border-slate-400" 
+                  : "bg-white border-slate-200 hover:border-slate-300"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-slate-200 flex items-center justify-center">
+                  <ClipboardList className="w-5 h-5 text-slate-600" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+                  <p className="text-xs text-slate-500">Todas</p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar tarea o curso..."
+                className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-400 transition-colors"
+              />
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 text-amber-500 animate-spin" />
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="text-center py-20">
+              <div className="w-20 h-20 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-amber-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                {searchQuery || statusFilter !== "all" ? "Sin resultados" : "¡Estás al día!"}
+              </h3>
+              <p className="text-slate-500 max-w-sm mx-auto">
+                {searchQuery || statusFilter !== "all"
+                  ? "No encontramos tareas que coincidan con tu búsqueda"
+                  : "No tienes tareas asignadas por el momento"
+                }
+              </p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="divide-y divide-slate-100">
+                {filteredTasks.map((task) => {
+                  const status = getTaskStatus(task);
+                  const StatusIcon = STATUS_CONFIG[status].icon;
+                  const isPastDue = task.due_date && new Date(task.due_date) < new Date();
+                  
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => navigateTo(`/student/courses/${task.course_id}?task=${task.id}`)}
+                      className="p-4 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-4"
+                      data-testid={`task-item-${task.id}`}
+                    >
+                      {/* Course color indicator */}
+                      <div 
+                        className="w-2 h-12 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: task.course_color || "#f59e0b" }}
+                      />
+                      
+                      {/* Task info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-slate-800 truncate">
+                            {task.title}
+                          </h3>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CONFIG[status].color}`}>
+                            {STATUS_CONFIG[status].label}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <BookOpen className="w-3.5 h-3.5" />
+                            {task.course_name}
+                          </span>
+                          {task.due_date && (
+                            <span className={`flex items-center gap-1 ${isPastDue && status === "pending" ? "text-red-500" : ""}`}>
+                              <Calendar className="w-3.5 h-3.5" />
+                              {new Date(task.due_date).toLocaleDateString("es-PE", { 
+                                day: "numeric", 
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit"
+                              })}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Status icon & arrow */}
+                      <div className="flex items-center gap-3">
+                        <StatusIcon className={`w-5 h-5 ${
+                          status === "graded" ? "text-emerald-500" :
+                          status === "submitted" ? "text-blue-500" :
+                          status === "late" ? "text-red-500" :
+                          "text-amber-500"
+                        }`} />
+                        <ChevronRight className="w-5 h-5 text-slate-300" />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Message Center */}
+      <MessageCenter token={token} user={user} />
+    </div>
+  );
+}
