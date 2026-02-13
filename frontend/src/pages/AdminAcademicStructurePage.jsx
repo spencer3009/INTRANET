@@ -497,7 +497,7 @@ function AcademicYearsTab({ token, headers }) {
   const loadPeriods = async (yearId) => {
     setLoadingPeriods(true);
     try {
-      const res = await axios.get(`${API}/academic/periods?year_id=${yearId}`, { headers });
+      const res = await axios.get(`${API}/academic/periods?academic_year_id=${yearId}`, { headers });
       setPeriods(res.data || []);
     } catch (err) {
       console.error("Error loading periods:", err);
