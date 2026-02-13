@@ -884,7 +884,19 @@ function AcademicTab({ token, user, onRefreshStats }) {
     if (!receiverId) return;
     
     setSending(true);
+    const sentMessage = {
+      id: `temp-${Date.now()}`,
+      sender_id: user?.id,
+      content: messageText.trim(),
+      created_at: new Date().toISOString()
+    };
+    
     try {
+      // Optimistically add the message to the conversation
+      if (selectedContact && !selectedThread) {
+        setConversationMessages(prev => [...prev, sentMessage]);
+      }
+      
       const res = await axios.post(`${API}/messaging/academic`, {
         receiver_id: receiverId,
         content: messageText.trim()
@@ -892,22 +904,18 @@ function AcademicTab({ token, user, onRefreshStats }) {
       
       setMessageText("");
       
-      if (res.data.thread_id) {
+      // If we're in a thread, reload it to get updated messages
+      if (selectedThread && res.data.thread_id) {
         loadThread(res.data.thread_id);
       }
       
       loadThreads();
       onRefreshStats();
       
-      if (selectedContact && !selectedThread) {
-        // After sending first message to a contact, transition to thread view
-        if (res.data.thread_id) {
-          loadThread(res.data.thread_id);
-        }
-        setSelectedContact(null);
-      }
     } catch (err) {
       console.error("Error:", err);
+      // Remove optimistic message on error
+      setConversationMessages(prev => prev.filter(m => m.id !== sentMessage.id));
     } finally {
       setSending(false);
     }
