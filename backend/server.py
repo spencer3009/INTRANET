@@ -10027,6 +10027,66 @@ async def send_academic_message(data: AcademicMessageCreate, current_user = Depe
     )
     return {"message": "Mensaje enviado", "data": message, "thread_id": thread["id"]}
 
+# Edit academic message
+@api_router.put("/messaging/academic/{thread_id}/messages/{message_id}")
+async def edit_academic_message(thread_id: str, message_id: str, data: dict, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    thread = await db.academic_threads.find_one({
+        "id": thread_id, 
+        "school_id": user["school_id"],
+        "participant_ids": user["id"],
+        "messages.id": message_id,
+        "messages.sender_id": user["id"]
+    }, {"_id": 0})
+    
+    if not thread:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado o no tienes permisos")
+    
+    new_content = data.get("content", "").strip()
+    if not new_content:
+        raise HTTPException(status_code=400, detail="El contenido no puede estar vacío")
+    
+    await db.academic_threads.update_one(
+        {"id": thread_id, "messages.id": message_id},
+        {"$set": {
+            "messages.$.content": new_content,
+            "messages.$.edited": True,
+            "messages.$.edited_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"message": "Mensaje editado"}
+
+# Delete academic message
+@api_router.delete("/messaging/academic/{thread_id}/messages/{message_id}")
+async def delete_academic_message(thread_id: str, message_id: str, current_user = Depends(get_current_user)):
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    thread = await db.academic_threads.find_one({
+        "id": thread_id, 
+        "school_id": user["school_id"],
+        "participant_ids": user["id"],
+        "messages.id": message_id,
+        "messages.sender_id": user["id"]
+    }, {"_id": 0})
+    
+    if not thread:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado o no tienes permisos")
+    
+    await db.academic_threads.update_one(
+        {"id": thread_id, "messages.id": message_id},
+        {"$set": {
+            "messages.$.content": "Este mensaje fue eliminado",
+            "messages.$.deleted": True,
+            "messages.$.deleted_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    return {"message": "Mensaje eliminado"}
+
 @api_router.get("/messaging/academic")
 async def get_academic_threads(limit: int = 50, current_user = Depends(get_current_user)):
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
