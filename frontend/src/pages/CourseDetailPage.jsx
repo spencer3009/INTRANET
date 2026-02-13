@@ -5556,9 +5556,9 @@ function ForumContent({ subjectId, token, user, students }) {
               
               {/* New message input */}
               <div className="flex gap-3 mt-4 pt-4 border-t border-slate-200">
-                {user?.profile_pic ? (
+                {(user?.photo_url || user?.profile_pic) ? (
                   <img 
-                    src={user.profile_pic} 
+                    src={user.photo_url || user.profile_pic} 
                     alt={user?.name || 'Usuario'}
                     className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                   />
