@@ -2789,19 +2789,42 @@ function TimePicker({ value, onChange, label }) {
                 onClick={handleDialClick}
                 className="relative w-[240px] h-[240px] mx-auto rounded-full bg-gray-100 cursor-pointer"
               >
-                {/* Center dot */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-indigo-600 rounded-full z-10" />
-                
-                {/* Hand */}
+                {/* Hand line - from center pointing outward */}
                 <div 
-                  className="absolute top-1/2 left-1/2 origin-bottom bg-indigo-600 rounded-full z-5"
+                  className="absolute z-5"
                   style={{
                     width: '2px',
                     height: '80px',
-                    transform: `translateX(-50%) rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
-                    transformOrigin: 'center bottom'
+                    left: '50%',
+                    top: '50%',
+                    marginLeft: '-1px',
+                    marginTop: '-80px',
+                    background: 'linear-gradient(to bottom, #4f46e5, #7c3aed)',
+                    transformOrigin: 'bottom center',
+                    transform: `rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
+                    borderRadius: '2px'
                   }}
                 />
+                
+                {/* Tip circle at the end of hand */}
+                <div 
+                  className="absolute w-10 h-10 rounded-full bg-indigo-600 z-5 shadow-lg flex items-center justify-center"
+                  style={{
+                    left: `calc(50% + ${80 * Math.sin((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
+                    top: `calc(50% - ${80 * Math.cos((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                >
+                  <span className="text-white text-xs font-bold">
+                    {selectingHours 
+                      ? (hours === 0 ? 12 : hours > 12 ? hours - 12 : hours) 
+                      : minutes.toString().padStart(2, '0')
+                    }
+                  </span>
+                </div>
+                
+                {/* Center dot - on top of everything */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-indigo-600 rounded-full z-20 shadow-lg" />
                 
                 {/* Numbers */}
                 {(selectingHours ? hourNumbers : minuteNumbers).map((num, idx) => {
@@ -2809,7 +2832,9 @@ function TimePicker({ value, onChange, label }) {
                   const radius = 90;
                   const x = 120 + radius * Math.cos(angle);
                   const y = 120 + radius * Math.sin(angle);
-                  const isSelected = selectingHours ? num === hours : num === minutes;
+                  const isSelected = selectingHours 
+                    ? (num === hours || (num === 12 && hours === 0))
+                    : num === minutes;
                   
                   return (
                     <button
@@ -2825,7 +2850,7 @@ function TimePicker({ value, onChange, label }) {
                       }}
                       className={`absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
                         isSelected 
-                          ? 'bg-indigo-600 text-white' 
+                          ? 'text-transparent' 
                           : 'hover:bg-indigo-100 text-gray-700'
                       }`}
                       style={{ left: x, top: y }}
