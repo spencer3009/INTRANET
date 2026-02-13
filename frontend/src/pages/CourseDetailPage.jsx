@@ -7186,7 +7186,20 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
                 />
               );
             }
-            return null;
+            // Show back button for full-width tabs
+            return (
+              <div className="flex items-center gap-4 mb-4">
+                <button
+                  onClick={() => navigate("/asignaturas")}
+                  className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                  Volver a Asignaturas
+                </button>
+                <div className="h-6 w-px bg-slate-300"></div>
+                <h1 className="text-lg font-semibold text-slate-800">{subject?.name || 'Curso'}</h1>
+              </div>
+            );
           })()}
           
           {/* Tabs */}
