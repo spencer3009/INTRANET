@@ -1764,11 +1764,11 @@ async def get_teacher_grades(
     school_id = user.get("school_id")
     
     # Verify teacher has access to this subject/section
-    assignment = await db.teacher_assignments.find_one({
+    assignment = await db.academic_assignments.find_one({
         "school_id": school_id,
         "teacher_id": user["id"],
         "subject_id": subject_id,
-        "seccion_id": section_id
+        "section_id": section_id
     })
     
     if not assignment:
@@ -1805,11 +1805,11 @@ async def save_teacher_grades(data: SaveGradesRequest, current_user = Depends(ge
     school_id = user.get("school_id")
     
     # Verify teacher has access
-    assignment = await db.teacher_assignments.find_one({
+    assignment = await db.academic_assignments.find_one({
         "school_id": school_id,
         "teacher_id": user["id"],
         "subject_id": data.subject_id,
-        "seccion_id": data.section_id
+        "section_id": data.section_id
     })
     
     if not assignment:
