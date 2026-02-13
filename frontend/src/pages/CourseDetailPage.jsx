@@ -1713,19 +1713,11 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Hora límite
-              </label>
-              <div className="relative">
-                <input
-                  type="time"
-                  value={dueTime}
-                  onChange={(e) => setDueTime(e.target.value)}
-                  className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-amber-400 focus:bg-white transition-all"
-                  data-testid="task-time-input"
-                />
-                <Clock className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
-              </div>
+              <TaskTimePicker
+                value={dueTime}
+                onChange={setDueTime}
+                label="Hora límite"
+              />
             </div>
           </div>
           
