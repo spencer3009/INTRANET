@@ -454,7 +454,9 @@ function CourseInfoSidebar({ subject, subjectId, token, onActivityClick }) {
               return (
                 <div 
                   key={activity.id} 
+                  onClick={() => handleActivityClick(activity)}
                   className="flex items-start gap-3 p-3 bg-white/80 border border-slate-200/50 rounded-xl hover:bg-white hover:border-slate-300/60 hover:shadow-sm transition-all cursor-pointer group"
+                  data-testid={`activity-${activity.id}`}
                 >
                   {activity.user_photo ? (
                     <img 
