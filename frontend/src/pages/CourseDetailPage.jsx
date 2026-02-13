@@ -6873,14 +6873,12 @@ function RemindersTabContent({ subjectId, token, userRole }) {
       </div>
       
       {/* Reminders Panel - Full width */}
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
-        <CourseRemindersPanel 
-          subjectId={subjectId} 
-          token={token} 
-          userRole={userRole}
-          isFullWidth={true}
-        />
-      </div>
+      <CourseRemindersPanel 
+        subjectId={subjectId} 
+        token={token} 
+        userRole={userRole}
+        isFullWidth={true}
+      />
     </div>
   );
 }
