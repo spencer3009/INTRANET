@@ -1274,6 +1274,216 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// TASK TIME PICKER - Circular dial time picker with amber theme
+// ══════════════════════════════════════════════════════════════════════════════
+function TaskTimePicker({ value, onChange, label }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hours, setHours] = useState(value ? parseInt(value.split(':')[0]) : 23);
+  const [minutes, setMinutes] = useState(value ? parseInt(value.split(':')[1]) : 59);
+  const [selectingHours, setSelectingHours] = useState(true);
+  const dialRef = useRef(null);
+  
+  useEffect(() => {
+    if (value) {
+      const [h, m] = value.split(':');
+      setHours(parseInt(h));
+      setMinutes(parseInt(m));
+    }
+  }, [value]);
+  
+  const handleDialClick = (e) => {
+    if (!dialRef.current) return;
+    
+    const rect = dialRef.current.getBoundingClientRect();
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    const x = e.clientX - rect.left - centerX;
+    const y = e.clientY - rect.top - centerY;
+    
+    let angle = Math.atan2(y, x) * (180 / Math.PI) + 90;
+    if (angle < 0) angle += 360;
+    
+    if (selectingHours) {
+      const hour = Math.round(angle / 30) % 12 || 12;
+      setHours(hour > 12 ? hour - 12 : hour);
+    } else {
+      const minute = Math.round(angle / 6) % 60;
+      setMinutes(minute);
+    }
+  };
+  
+  const confirmTime = () => {
+    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    onChange(timeStr);
+    setIsOpen(false);
+  };
+  
+  const hourNumbers = [12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  const minuteNumbers = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+  
+  // Format display time
+  const displayTime = value || "23:59";
+  const displayHour = parseInt(displayTime.split(':')[0]);
+  const isPM = displayHour >= 12;
+  const display12Hour = displayHour === 0 ? 12 : displayHour > 12 ? displayHour - 12 : displayHour;
+  
+  return (
+    <div className="relative">
+      {label && (
+        <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>
+      )}
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-left flex items-center gap-3 hover:border-amber-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all"
+        data-testid="task-time-picker-btn"
+      >
+        <div className="w-9 h-9 bg-amber-100 rounded-lg flex items-center justify-center">
+          <Clock className="w-5 h-5 text-amber-600" />
+        </div>
+        <span className="text-slate-800 font-semibold text-lg">
+          {displayTime}
+        </span>
+      </button>
+      
+      {isOpen && createPortal(
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setIsOpen(false)} />
+          <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden w-[320px] animate-in fade-in zoom-in-95 duration-200">
+            {/* Header with gradient */}
+            <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 px-6 py-5">
+              <p className="text-amber-100 text-sm mb-1 font-medium">Seleccionar hora límite</p>
+              <div className="flex items-baseline gap-1">
+                <button
+                  type="button"
+                  onClick={() => setSelectingHours(true)}
+                  className={`text-5xl font-light transition-all ${selectingHours ? 'text-white scale-105' : 'text-white/50'}`}
+                >
+                  {hours.toString().padStart(2, '0')}
+                </button>
+                <span className="text-5xl font-light text-white/50 animate-pulse">:</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectingHours(false)}
+                  className={`text-5xl font-light transition-all ${!selectingHours ? 'text-white scale-105' : 'text-white/50'}`}
+                >
+                  {minutes.toString().padStart(2, '0')}
+                </button>
+              </div>
+            </div>
+            
+            {/* Clock Dial */}
+            <div className="p-6 bg-gradient-to-b from-slate-50 to-white">
+              <div 
+                ref={dialRef}
+                onClick={handleDialClick}
+                className="relative w-[240px] h-[240px] mx-auto rounded-full bg-white shadow-inner border border-slate-200 cursor-pointer"
+              >
+                {/* Center dot */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 bg-gradient-to-br from-amber-500 to-orange-500 rounded-full z-10 shadow-lg" />
+                
+                {/* Hand */}
+                <div 
+                  className="absolute top-1/2 left-1/2 origin-bottom rounded-full z-5"
+                  style={{
+                    width: '3px',
+                    height: '75px',
+                    background: 'linear-gradient(to top, #f59e0b, #ea580c)',
+                    transform: `translateX(-50%) rotate(${selectingHours ? (hours % 12) * 30 : minutes * 6}deg)`,
+                    transformOrigin: 'center bottom',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                  }}
+                />
+                
+                {/* Tip of hand */}
+                <div 
+                  className="absolute w-8 h-8 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 z-5 shadow-md"
+                  style={{
+                    left: `calc(50% + ${75 * Math.sin((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
+                    top: `calc(50% - ${75 * Math.cos((selectingHours ? (hours % 12) * 30 : minutes * 6) * Math.PI / 180)}px)`,
+                    transform: 'translate(-50%, -50%)'
+                  }}
+                />
+                
+                {/* Numbers */}
+                {(selectingHours ? hourNumbers : minuteNumbers).map((num, idx) => {
+                  const angle = (idx * 30 - 90) * (Math.PI / 180);
+                  const radius = 90;
+                  const x = 120 + radius * Math.cos(angle);
+                  const y = 120 + radius * Math.sin(angle);
+                  const isSelected = selectingHours ? num === hours || (num === 12 && hours === 0) : num === minutes;
+                  
+                  return (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (selectingHours) {
+                          setHours(num === 12 ? 0 : num);
+                        } else {
+                          setMinutes(num);
+                        }
+                      }}
+                      className={`absolute w-10 h-10 -translate-x-1/2 -translate-y-1/2 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                        isSelected 
+                          ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-lg scale-110' 
+                          : 'hover:bg-amber-100 text-slate-700'
+                      }`}
+                      style={{ left: x, top: y }}
+                    >
+                      {selectingHours ? num : num.toString().padStart(2, '0')}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              {/* Mode indicator */}
+              <div className="flex justify-center mt-4 gap-2">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${selectingHours ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                  Horas
+                </span>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${!selectingHours ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500'}`}>
+                  Minutos
+                </span>
+              </div>
+            </div>
+            
+            {/* Actions */}
+            <div className="px-6 pb-6 flex justify-end gap-3 bg-white">
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="px-5 py-2.5 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectingHours(false);
+                }}
+                className={`px-5 py-2.5 font-semibold rounded-xl transition-all ${selectingHours ? 'bg-amber-100 text-amber-700 hover:bg-amber-200' : 'hidden'}`}
+              >
+                Siguiente
+              </button>
+              <button
+                type="button"
+                onClick={confirmTime}
+                className={`px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/25 ${selectingHours ? 'hidden' : ''}`}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // PREMIUM TASK CREATION MODAL - Beautiful task creation experience
 // ══════════════════════════════════════════════════════════════════════════════
 function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreated }) {
