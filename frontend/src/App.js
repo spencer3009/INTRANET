@@ -434,7 +434,7 @@ function App() {
                 ) : isAdminOnly(user) ? (
                   <Navigate to="/admin" replace />
                 ) : (
-                  <StudentCoursesPage user={user} token={token} onLogout={handleLogout} />
+                  <StudentCourseDetailPage user={user} token={token} onLogout={handleLogout} />
                 )}
               </ProtectedRoute>
             }
