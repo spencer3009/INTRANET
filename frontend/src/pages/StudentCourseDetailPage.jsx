@@ -1011,7 +1011,7 @@ function MaterialContent({ materials }) {
   );
 }
 
-// Exams Content (Read-only)
+// Exams Content - Cards view like owner's portal (Read-only for students)
 function ExamsContent({ exams, studentId }) {
   if (exams.length === 0) {
     return (
@@ -1026,61 +1026,127 @@ function ExamsContent({ exams, studentId }) {
   const getExamStatus = (exam) => {
     const attempt = exam.attempts?.find(a => a.student_id === studentId);
     if (attempt) {
-      return { status: "completed", label: "Completado", color: "bg-emerald-100 text-emerald-700", score: attempt.score };
+      return { status: "completed", label: "Completado", color: "bg-emerald-100 text-emerald-700", borderColor: "border-emerald-200", score: attempt.score };
     }
     const now = new Date();
     const startDate = new Date(exam.start_date);
     const endDate = new Date(exam.end_date);
     if (now < startDate) {
-      return { status: "upcoming", label: "Próximamente", color: "bg-slate-100 text-slate-700" };
+      return { status: "upcoming", label: "Próximamente", color: "bg-slate-100 text-slate-600", borderColor: "border-slate-200" };
     }
     if (now > endDate) {
-      return { status: "closed", label: "Cerrado", color: "bg-red-100 text-red-700" };
+      return { status: "closed", label: "Cerrado", color: "bg-red-100 text-red-700", borderColor: "border-red-200" };
     }
-    return { status: "available", label: "Disponible", color: "bg-cyan-100 text-cyan-700" };
+    return { status: "available", label: "Disponible", color: "bg-cyan-100 text-cyan-700", borderColor: "border-cyan-200" };
   };
 
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {exams.map((exam) => {
         const examStatus = getExamStatus(exam);
         
         return (
-          <div key={exam.id} className="bg-white rounded-xl border border-slate-200 p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="font-semibold text-slate-800">{exam.title}</h3>
-                  <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${examStatus.color}`}>
-                    {examStatus.label}
-                    {examStatus.score !== undefined && ` - ${examStatus.score}%`}
+          <div 
+            key={exam.id} 
+            className={`bg-white rounded-2xl border-2 ${examStatus.borderColor} overflow-hidden hover:shadow-lg transition-all`}
+          >
+            {/* Exam Header with gradient */}
+            <div className={`px-5 py-4 ${
+              examStatus.status === 'available' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600' :
+              examStatus.status === 'completed' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' :
+              examStatus.status === 'closed' ? 'bg-gradient-to-r from-red-400 to-red-500' :
+              'bg-gradient-to-r from-slate-400 to-slate-500'
+            }`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                    <FlaskConical className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-white">{exam.title}</h3>
+                    <p className="text-white/80 text-xs">{exam.questions?.length || 0} preguntas</p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${examStatus.color}`}>
+                  {examStatus.label}
+                </span>
+              </div>
+            </div>
+            
+            {/* Exam Body */}
+            <div className="p-5">
+              {exam.description && (
+                <p className="text-sm text-slate-600 mb-4 line-clamp-2">{exam.description}</p>
+              )}
+              
+              {/* Exam Info */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    Duración
+                  </span>
+                  <span className="font-semibold text-slate-800">{exam.duration_minutes} min</span>
+                </div>
+                
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Fecha inicio
+                  </span>
+                  <span className="font-semibold text-slate-800">
+                    {new Date(exam.start_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
                   </span>
                 </div>
-                <p className="text-sm text-slate-600 line-clamp-2">{exam.description}</p>
-                <div className="flex items-center gap-4 mt-3 text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5" />
-                    {exam.duration_minutes} minutos
+                
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-slate-500 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Fecha fin
                   </span>
-                  <span className="flex items-center gap-1">
-                    <Calendar className="w-3.5 h-3.5" />
-                    {new Date(exam.start_date).toLocaleDateString("es-PE")} - {new Date(exam.end_date).toLocaleDateString("es-PE")}
+                  <span className="font-semibold text-slate-800">
+                    {new Date(exam.end_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
                   </span>
                 </div>
+                
+                {examStatus.score !== undefined && (
+                  <div className="flex items-center justify-between text-sm pt-2 border-t border-slate-100">
+                    <span className="text-slate-500 flex items-center gap-2">
+                      <Trophy className="w-4 h-4" />
+                      Tu puntaje
+                    </span>
+                    <span className="font-bold text-emerald-600 text-lg">{examStatus.score}%</span>
+                  </div>
+                )}
               </div>
               
-              {examStatus.status === "available" && (
-                <button className="px-4 py-2 bg-cyan-500 text-white text-sm font-medium rounded-lg hover:bg-cyan-600 transition-colors flex items-center gap-2">
-                  <Play className="w-4 h-4" />
-                  Iniciar
-                </button>
-              )}
-              {examStatus.status === "upcoming" && (
-                <div className="px-4 py-2 bg-slate-100 text-slate-500 text-sm font-medium rounded-lg flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  Bloqueado
-                </div>
-              )}
+              {/* Action Button */}
+              <div className="mt-5">
+                {examStatus.status === "available" && (
+                  <button className="w-full py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold rounded-xl hover:from-cyan-600 hover:to-cyan-700 transition-all flex items-center justify-center gap-2">
+                    <Play className="w-5 h-5" />
+                    Iniciar Examen
+                  </button>
+                )}
+                {examStatus.status === "upcoming" && (
+                  <div className="w-full py-3 bg-slate-100 text-slate-500 font-semibold rounded-xl flex items-center justify-center gap-2">
+                    <Lock className="w-5 h-5" />
+                    No disponible aún
+                  </div>
+                )}
+                {examStatus.status === "closed" && (
+                  <div className="w-full py-3 bg-red-50 text-red-500 font-semibold rounded-xl flex items-center justify-center gap-2">
+                    <AlertCircle className="w-5 h-5" />
+                    Examen cerrado
+                  </div>
+                )}
+                {examStatus.status === "completed" && (
+                  <button className="w-full py-3 bg-emerald-50 text-emerald-600 font-semibold rounded-xl flex items-center justify-center gap-2">
+                    <Eye className="w-5 h-5" />
+                    Ver resultados
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         );
