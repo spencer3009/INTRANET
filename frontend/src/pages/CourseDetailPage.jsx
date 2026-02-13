@@ -5597,7 +5597,7 @@ function ForumContent({ subjectId, token, user, students }) {
   
   // List View (Table)
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pt-2 pb-16">
       {/* Header with create button */}
       <div className="flex items-center justify-between">
         <div>
