@@ -313,8 +313,9 @@ class TestPeriodsCRUD:
         """Test PUT /api/academic/periods/{id} can toggle active status"""
         assert self.year_2025 is not None, "Year 2025 not found"
         
-        # Use unique name
+        # Use unique name and unique dates
         unique_name = f"TEST_Toggle_{uuid.uuid4().hex[:8]}"
+        month = random.randint(7, 12)  # Use later months to avoid overlap
         
         # Create a period
         create_response = requests.post(
@@ -323,8 +324,8 @@ class TestPeriodsCRUD:
             json={
                 "academic_year_id": self.year_2025["id"],
                 "nombre": unique_name,
-                "fecha_inicio": "2025-03-01",
-                "fecha_fin": "2025-03-31",
+                "fecha_inicio": f"2025-{month:02d}-01",
+                "fecha_fin": f"2025-{month:02d}-28",
                 "orden": 1,
                 "activo": False
             }
