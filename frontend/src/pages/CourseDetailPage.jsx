@@ -5478,9 +5478,17 @@ function ForumContent({ subjectId, token, user, students }) {
               <div className="p-6 flex gap-6">
                 {/* Author sidebar */}
                 <div className="flex flex-col items-center min-w-[120px]">
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg mb-2">
-                    {selectedTopic.author?.name?.charAt(0) || 'U'}
-                  </div>
+                  {selectedTopic.author?.profile_pic ? (
+                    <img 
+                      src={selectedTopic.author.profile_pic} 
+                      alt={selectedTopic.author?.name || 'Usuario'}
+                      className="w-16 h-16 rounded-full object-cover shadow-lg mb-2"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg mb-2">
+                      {selectedTopic.author?.name?.charAt(0) || 'U'}
+                    </div>
+                  )}
                   <p className="font-semibold text-slate-800 text-center text-sm">
                     {selectedTopic.author?.name || 'Usuario'}
                   </p>
@@ -5523,9 +5531,17 @@ function ForumContent({ subjectId, token, user, students }) {
                 <div className="space-y-4 mb-6">
                   {comments.map((comment) => (
                     <div key={comment.id} className="flex gap-3 p-4 bg-slate-50 rounded-xl">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                        {comment.author?.name?.charAt(0) || 'U'}
-                      </div>
+                      {comment.author?.profile_pic ? (
+                        <img 
+                          src={comment.author.profile_pic} 
+                          alt={comment.author?.name || 'Usuario'}
+                          className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          {comment.author?.name?.charAt(0) || 'U'}
+                        </div>
+                      )}
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-semibold text-slate-800 text-sm">{comment.author?.name || 'Usuario'}</span>
@@ -5540,9 +5556,17 @@ function ForumContent({ subjectId, token, user, students }) {
               
               {/* New message input */}
               <div className="flex gap-3 mt-4 pt-4 border-t border-slate-200">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                  {user?.name?.charAt(0) || 'U'}
-                </div>
+                {user?.profile_pic ? (
+                  <img 
+                    src={user.profile_pic} 
+                    alt={user?.name || 'Usuario'}
+                    className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    {user?.name?.charAt(0) || 'U'}
+                  </div>
+                )}
                 <div className="flex-1 flex gap-2">
                   <input
                     type="text"
