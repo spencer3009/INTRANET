@@ -225,12 +225,19 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 ### P0 - Prioridad Alta
 - [x] ✅ Catálogo de Tipos de Sección (section_types) - COMPLETADO 2025-02-11
 - [x] ✅ Sistema de Alertas Educativas Premium (Recordatorios) - COMPLETADO 2025-02-12
+- [x] ✅ Centro de Mensajes - Fase 1 (Mensajes Institucionales) - COMPLETADO 2025-02-13
+- [ ] 🔴 **CRÍTICO**: Refactorizar `CourseDetailPage.jsx` (>7000 líneas) - Extraer componentes
+
+### P0.5 - Próximos Inmediatos
+- [ ] Centro de Mensajes - Fase 2 (Sistema de Soporte/Tickets)
+- [ ] Centro de Mensajes - Fase 3 (Mensajes Académicos Profesor↔Estudiante/Padre)
 
 ### P1 - Prioridad Media
 - [ ] Refactorizar `UsersPage.jsx` (>2000 líneas)
 - [ ] Refactorizar `CarouselManager.jsx` (~760 líneas)
 - [ ] Sección "Asignaciones Académicas" en detalle de usuario/profesor
 - [ ] Completar reemplazo de `window.confirm` por ConfirmModal (en progreso)
+- [ ] Vista de estudiante para exámenes (Fase 4)
 
 ### P2 - Módulos Futuros
 - [ ] Matrículas
@@ -238,6 +245,7 @@ Sistema de intranet premium multi-tenant para instituciones educativas en Perú.
 - [ ] Reportes académicos
 - [ ] Asistencia docente
 - [ ] Asistencia de alumnos
+- [ ] Módulo de Horarios mejorado
 - [ ] Integración SUNAT
 - [ ] Email verification real
 - [ ] Social login
