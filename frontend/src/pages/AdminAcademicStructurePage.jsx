@@ -117,7 +117,7 @@ function AcademicYearsTab({ token, headers }) {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-  const [formData, setFormData] = useState({ nombre: "", fecha_inicio: "", fecha_fin: "", activo: true });
+  const [formData, setFormData] = useState({ year: new Date().getFullYear() + 1, status: "planificado" });
   const [saving, setSaving] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -138,7 +138,7 @@ function AcademicYearsTab({ token, headers }) {
   };
 
   const handleSave = async () => {
-    if (!formData.nombre.trim()) return;
+    if (!formData.year) return;
     setSaving(true);
     try {
       if (editingItem) {
@@ -149,7 +149,7 @@ function AcademicYearsTab({ token, headers }) {
       loadData();
       setShowModal(false);
       setEditingItem(null);
-      setFormData({ nombre: "", fecha_inicio: "", fecha_fin: "", activo: true });
+      setFormData({ year: new Date().getFullYear() + 1, status: "planificado" });
     } catch (err) {
       alert(err.response?.data?.detail || "Error al guardar");
     } finally {
@@ -160,10 +160,8 @@ function AcademicYearsTab({ token, headers }) {
   const handleEdit = (item) => {
     setEditingItem(item);
     setFormData({
-      nombre: item.nombre,
-      fecha_inicio: item.fecha_inicio?.split("T")[0] || "",
-      fecha_fin: item.fecha_fin?.split("T")[0] || "",
-      activo: item.activo
+      year: item.year,
+      status: item.status || "planificado"
     });
     setShowModal(true);
   };
@@ -180,13 +178,22 @@ function AcademicYearsTab({ token, headers }) {
     }
   };
 
-  const handleToggle = async (item) => {
-    try {
-      await axios.put(`${API}/academic/years/${item.id}`, { ...item, activo: !item.activo }, { headers });
-      loadData();
-    } catch (err) {
-      console.error("Error toggling:", err);
-    }
+  const getStatusBadge = (status) => {
+    const styles = {
+      activo: "bg-emerald-100 text-emerald-700",
+      cerrado: "bg-slate-100 text-slate-600",
+      planificado: "bg-blue-100 text-blue-700"
+    };
+    const labels = {
+      activo: "Activo",
+      cerrado: "Cerrado",
+      planificado: "Planificado"
+    };
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${styles[status] || styles.planificado}`}>
+        {labels[status] || status}
+      </span>
+    );
   };
 
   if (loading) {
@@ -198,7 +205,7 @@ function AcademicYearsTab({ token, headers }) {
       <div className="flex items-center justify-between">
         <p className="text-sm text-slate-500">{years.length} año(s) académico(s)</p>
         <button
-          onClick={() => { setEditingItem(null); setFormData({ nombre: "", fecha_inicio: "", fecha_fin: "", activo: true }); setShowModal(true); }}
+          onClick={() => { setEditingItem(null); setFormData({ year: new Date().getFullYear() + 1, status: "planificado" }); setShowModal(true); }}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium flex items-center gap-2"
         >
           <Plus className="w-4 h-4" />
@@ -211,14 +218,36 @@ function AcademicYearsTab({ token, headers }) {
           <p className="text-center py-8 text-slate-500">No hay años académicos</p>
         ) : (
           years.map((item) => (
-            <ItemRow
-              key={item.id}
-              item={item}
-              onEdit={handleEdit}
-              onDelete={(i) => { setItemToDelete(i); setShowDeleteModal(true); }}
-              onToggle={handleToggle}
-              extraInfo={item.fecha_inicio && item.fecha_fin ? `${item.fecha_inicio.split("T")[0]} - ${item.fecha_fin.split("T")[0]}` : null}
-            />
+            <div key={item.id} className="flex items-center justify-between px-4 py-3 hover:bg-slate-50 rounded-lg transition-colors group">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-800">{item.year}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {getStatusBadge(item.status)}
+                    {item.period_count > 0 && (
+                      <span className="text-xs text-slate-500">{item.period_count} período(s)</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => handleEdit(item)}
+                  className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => { setItemToDelete(item); setShowDeleteModal(true); }}
+                  className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           ))
         )}
       </div>
@@ -232,44 +261,28 @@ function AcademicYearsTab({ token, headers }) {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre *</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Año *</label>
             <input
-              type="text"
-              value={formData.nombre}
-              onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+              type="number"
+              value={formData.year}
+              onChange={(e) => setFormData({ ...formData, year: parseInt(e.target.value) || new Date().getFullYear() })}
               className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-              placeholder="Ej: 2025"
+              min={2020}
+              max={2050}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Fecha inicio</label>
-              <input
-                type="date"
-                value={formData.fecha_inicio}
-                onChange={(e) => setFormData({ ...formData, fecha_inicio: e.target.value })}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Fecha fin</label>
-              <input
-                type="date"
-                value={formData.fecha_fin}
-                onChange={(e) => setFormData({ ...formData, fecha_fin: e.target.value })}
-                className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500"
+            >
+              <option value="planificado">Planificado</option>
+              <option value="activo">Activo</option>
+              <option value="cerrado">Cerrado</option>
+            </select>
           </div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={formData.activo}
-              onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-              className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
-            />
-            <span className="text-sm text-slate-700">Activo</span>
-          </label>
         </div>
       </SimpleModal>
 
@@ -278,7 +291,7 @@ function AcademicYearsTab({ token, headers }) {
         onClose={() => { setShowDeleteModal(false); setItemToDelete(null); }}
         onConfirm={handleDelete}
         title="Eliminar Año Académico"
-        message={`¿Eliminar "${itemToDelete?.nombre}"?`}
+        message={`¿Eliminar el año "${itemToDelete?.year}"?`}
         confirmText="Eliminar"
         confirmVariant="danger"
       />
