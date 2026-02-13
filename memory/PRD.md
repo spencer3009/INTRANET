@@ -106,6 +106,14 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
   - Todas las páginas del Portal del Alumno ahora cargan los settings del colegio
   - Logo, nombre del sistema y branding se obtienen dinámicamente vía `/api/settings`
   - Patrón unificado igual que en los demás portales (Owner, Teacher, Admin)
+- **NUEVO - Página de Detalle del Curso del Estudiante (StudentCourseDetailPage.jsx)**:
+  - Layout de 3 columnas idéntico al portal del propietario
+  - **Columna Izquierda**: Imagen del curso con título, "Actividad del curso" con estadísticas
+  - **Columna Central**: Feed de publicaciones (solo lectura, sin crear posts)
+  - **Columna Derecha**: Tarjeta del profesor (naranja), Estudiantes del curso (verde), Recordatorios (morado)
+  - Pestañas: Tablero, Tareas, Material, Exámenes, Foro
+  - Todos los datos dinámicos vinculados al curso específico
+  - Modo solo lectura para estudiantes
 
 ### ✅ Portal de Profesores (NUEVO - 2025-02-13)
 **Layout y Sidebar (TeacherSidebar.jsx)**
