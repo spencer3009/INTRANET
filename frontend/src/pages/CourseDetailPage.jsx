@@ -6108,6 +6108,34 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
                       <PenTool className="w-5 h-5 text-white" />
                     </div>
+                    {/* Three dots menu */}
+                    <div className="relative" ref={menuRef}>
+                      <button 
+                        onClick={() => setShowMenu(!showMenu)}
+                        className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-xl flex items-center justify-center transition-colors"
+                      >
+                        <MoreVertical className="w-5 h-5 text-white" />
+                      </button>
+                      {/* Dropdown Menu */}
+                      {showMenu && (
+                        <div className="absolute right-0 top-12 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50">
+                          <button 
+                            onClick={() => { setShowMenu(false); /* TODO: Open edit modal */ }}
+                            className="w-full px-4 py-2.5 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                          >
+                            <Edit2 className="w-4 h-4 text-slate-500" />
+                            <span className="font-medium">Editar</span>
+                          </button>
+                          <button 
+                            onClick={handleViewSubmissions}
+                            className="w-full px-4 py-2.5 text-left text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                          >
+                            <FileText className="w-4 h-4 text-slate-500" />
+                            <span className="font-medium">Entregas</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
