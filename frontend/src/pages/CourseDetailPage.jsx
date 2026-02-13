@@ -4056,6 +4056,29 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
     }
   };
 
+  // Handle clicking on an activity to navigate to its content
+  const handleActivityClick = (activity) => {
+    const { reference_type, activity_type } = activity;
+    
+    // Map activity/reference types to tabs
+    if (reference_type === "post" || activity_type === "post_created" || activity_type === "announcement") {
+      setActiveTab("tablero");
+    } else if (reference_type === "task" || activity_type === "task_assigned") {
+      setActiveTab("tareas");
+    } else if (reference_type === "material" || activity_type === "material_shared") {
+      setActiveTab("material");
+    } else if (reference_type === "exam" || activity_type === "exam_scheduled" || activity_type === "exam_published") {
+      setActiveTab("examenes");
+    } else if (reference_type === "reminder" || activity_type === "reminder_created") {
+      setActiveTab("recordatorios");
+    } else if (reference_type === "forum" || activity_type === "forum_post") {
+      setActiveTab("foro");
+    } else {
+      // Default to dashboard/tablero
+      setActiveTab("tablero");
+    }
+  };
+
   const renderTabContent = () => {
     switch (activeTab) {
       case "tablero":
