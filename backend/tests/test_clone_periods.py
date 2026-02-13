@@ -5,6 +5,7 @@ Tests the POST /api/academic/periods/clone endpoint and related period CRUD oper
 import pytest
 import requests
 import os
+import uuid
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
@@ -85,16 +86,14 @@ class TestClonePeriods:
         assert self.year_2026 is not None, "Year 2026 not found"
         assert self.year_2099 is not None, "Year 2099 not found"
         
-        # First verify 2099 has no periods
+        # First clean up any existing periods in 2099
         periods_before = requests.get(
             f"{BASE_URL}/api/academic/periods?academic_year_id={self.year_2099['id']}", 
             headers=self.headers
         ).json()
         
-        if len(periods_before) > 0:
-            # Clean up existing periods first
-            for p in periods_before:
-                requests.delete(f"{BASE_URL}/api/academic/periods/{p['id']}", headers=self.headers)
+        for p in periods_before:
+            requests.delete(f"{BASE_URL}/api/academic/periods/{p['id']}", headers=self.headers)
         
         # Clone from 2026 to 2099
         response = requests.post(
@@ -156,10 +155,8 @@ class TestClonePeriods:
             headers=self.headers
         ).json()
         
-        if len(periods_2025) > 0:
-            # Clean up
-            for p in periods_2025:
-                requests.delete(f"{BASE_URL}/api/academic/periods/{p['id']}", headers=self.headers)
+        for p in periods_2025:
+            requests.delete(f"{BASE_URL}/api/academic/periods/{p['id']}", headers=self.headers)
         
         # Ensure 2099 has no periods
         periods_2099 = requests.get(
@@ -167,9 +164,8 @@ class TestClonePeriods:
             headers=self.headers
         ).json()
         
-        if len(periods_2099) > 0:
-            for p in periods_2099:
-                requests.delete(f"{BASE_URL}/api/academic/periods/{p['id']}", headers=self.headers)
+        for p in periods_2099:
+            requests.delete(f"{BASE_URL}/api/academic/periods/{p['id']}", headers=self.headers)
         
         # Try to clone from 2025 (no periods) to 2099
         response = requests.post(
@@ -233,18 +229,23 @@ class TestPeriodsCRUD:
         years_response = requests.get(f"{BASE_URL}/api/academic/years", headers=self.headers)
         self.years = years_response.json()
         self.year_2099 = next((y for y in self.years if y["year"] == 2099), None)
+        
+        # Clean up any existing test periods in 2099
+        if self.year_2099:
+            existing = requests.get(
+                f"{BASE_URL}/api/academic/periods?academic_year_id={self.year_2099['id']}", 
+                headers=self.headers
+            ).json()
+            for p in existing:
+                if p["nombre"].startswith("TEST_"):
+                    requests.delete(f"{BASE_URL}/api/academic/periods/{p['id']}", headers=self.headers)
     
     def test_create_period(self):
         """Test POST /api/academic/periods creates a new period"""
         assert self.year_2099 is not None, "Year 2099 not found"
         
-        # Clean up any existing periods first
-        existing = requests.get(
-            f"{BASE_URL}/api/academic/periods?academic_year_id={self.year_2099['id']}", 
-            headers=self.headers
-        ).json()
-        for p in existing:
-            requests.delete(f"{BASE_URL}/api/academic/periods/{p['id']}", headers=self.headers)
+        # Use unique name
+        unique_name = f"TEST_Period_{uuid.uuid4().hex[:8]}"
         
         # Create new period
         response = requests.post(
@@ -252,7 +253,7 @@ class TestPeriodsCRUD:
             headers=self.headers,
             json={
                 "academic_year_id": self.year_2099["id"],
-                "nombre": "TEST_Trimestre I",
+                "nombre": unique_name,
                 "fecha_inicio": "2099-03-01",
                 "fecha_fin": "2099-05-31",
                 "orden": 1,
@@ -262,7 +263,7 @@ class TestPeriodsCRUD:
         assert response.status_code == 200, f"Create failed: {response.text}"
         
         period = response.json()
-        assert period["nombre"] == "TEST_Trimestre I"
+        assert period["nombre"] == unique_name
         assert period["fecha_inicio"] == "2099-03-01"
         assert period["fecha_fin"] == "2099-05-31"
         assert period["orden"] == 1
@@ -275,38 +276,42 @@ class TestPeriodsCRUD:
         """Test PUT /api/academic/periods/{id} updates a period"""
         assert self.year_2099 is not None, "Year 2099 not found"
         
+        # Use unique name
+        unique_name = f"TEST_Update_{uuid.uuid4().hex[:8]}"
+        
         # Create a period first
         create_response = requests.post(
             f"{BASE_URL}/api/academic/periods",
             headers=self.headers,
             json={
                 "academic_year_id": self.year_2099["id"],
-                "nombre": "TEST_Original Name",
+                "nombre": unique_name,
                 "fecha_inicio": "2099-01-01",
                 "fecha_fin": "2099-03-31",
                 "orden": 1,
                 "activo": False
             }
         )
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Create failed: {create_response.text}"
         period_id = create_response.json()["id"]
         
         # Update the period
+        updated_name = f"TEST_Updated_{uuid.uuid4().hex[:8]}"
         update_response = requests.put(
             f"{BASE_URL}/api/academic/periods/{period_id}",
             headers=self.headers,
             json={
-                "nombre": "TEST_Updated Name",
+                "nombre": updated_name,
                 "fecha_inicio": "2099-02-01",
                 "fecha_fin": "2099-04-30",
                 "orden": 2,
                 "activo": False
             }
         )
-        assert update_response.status_code == 200
+        assert update_response.status_code == 200, f"Update failed: {update_response.text}"
         
         updated = update_response.json()
-        assert updated["nombre"] == "TEST_Updated Name"
+        assert updated["nombre"] == updated_name
         assert updated["fecha_inicio"] == "2099-02-01"
         assert updated["fecha_fin"] == "2099-04-30"
         assert updated["orden"] == 2
@@ -318,20 +323,23 @@ class TestPeriodsCRUD:
         """Test PUT /api/academic/periods/{id} can toggle active status"""
         assert self.year_2099 is not None, "Year 2099 not found"
         
+        # Use unique name
+        unique_name = f"TEST_Toggle_{uuid.uuid4().hex[:8]}"
+        
         # Create a period
         create_response = requests.post(
             f"{BASE_URL}/api/academic/periods",
             headers=self.headers,
             json={
                 "academic_year_id": self.year_2099["id"],
-                "nombre": "TEST_Toggle Period",
+                "nombre": unique_name,
                 "fecha_inicio": "2099-01-01",
                 "fecha_fin": "2099-03-31",
                 "orden": 1,
                 "activo": False
             }
         )
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Create failed: {create_response.text}"
         period = create_response.json()
         assert period["activo"] == False
         
@@ -366,20 +374,23 @@ class TestPeriodsCRUD:
         """Test DELETE /api/academic/periods/{id} deletes a period"""
         assert self.year_2099 is not None, "Year 2099 not found"
         
+        # Use unique name
+        unique_name = f"TEST_Delete_{uuid.uuid4().hex[:8]}"
+        
         # Create a period
         create_response = requests.post(
             f"{BASE_URL}/api/academic/periods",
             headers=self.headers,
             json={
                 "academic_year_id": self.year_2099["id"],
-                "nombre": "TEST_To Delete",
+                "nombre": unique_name,
                 "fecha_inicio": "2099-01-01",
                 "fecha_fin": "2099-03-31",
                 "orden": 1,
                 "activo": False
             }
         )
-        assert create_response.status_code == 200
+        assert create_response.status_code == 200, f"Create failed: {create_response.text}"
         period_id = create_response.json()["id"]
         
         # Delete the period
@@ -413,6 +424,13 @@ class TestCreateYearWithClone:
         assert login_response.status_code == 200
         self.token = login_response.json()["token"]
         self.headers = {"Authorization": f"Bearer {self.token}", "Content-Type": "application/json"}
+        
+        # Clean up test year 2098 if exists
+        years_response = requests.get(f"{BASE_URL}/api/academic/years", headers=self.headers)
+        years = years_response.json()
+        year_2098 = next((y for y in years if y["year"] == 2098), None)
+        if year_2098:
+            requests.delete(f"{BASE_URL}/api/academic/years/{year_2098['id']}", headers=self.headers)
     
     def test_create_year_without_clone(self):
         """Test POST /api/academic/years creates year without cloning"""
