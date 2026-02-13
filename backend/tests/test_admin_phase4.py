@@ -257,18 +257,18 @@ class TestAdminPhase4:
     
     def test_get_admin_users(self):
         """Test GET /api/users - should return users list for role counting
-        Note: The endpoint is /api/users, not /api/admin/users
+        Note: The endpoint is /api/users and returns a list directly
         """
         response = self.session.get(f"{BASE_URL}/api/users")
         assert response.status_code == 200, f"Expected 200, got {response.status_code}: {response.text}"
         
         data = response.json()
-        assert "users" in data, "Response should have 'users' key"
-        assert isinstance(data["users"], list), "Users should be a list"
+        # API returns list directly, not wrapped in 'users' key
+        assert isinstance(data, list), "Response should be a list of users"
         
         # Count users by role
         role_counts = {}
-        for user in data["users"]:
+        for user in data:
             role = user.get("role", "unknown")
             role_counts[role] = role_counts.get(role, 0) + 1
         
