@@ -256,13 +256,23 @@ function AcademicYearsTab({ token, headers }) {
                   <p className="font-medium text-slate-800">{item.year}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {getStatusBadge(item.status)}
-                    {item.period_count > 0 && (
-                      <span className="text-xs text-slate-500">{item.period_count} período(s)</span>
-                    )}
+                    <button
+                      onClick={() => handleViewPeriods(item)}
+                      className="text-xs text-purple-600 hover:text-purple-800 hover:underline"
+                    >
+                      {item.period_count > 0 ? `${item.period_count} período(s)` : "Sin períodos"}
+                    </button>
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => handleViewPeriods(item)}
+                  className="p-2 text-slate-500 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                  title="Ver/Gestionar períodos"
+                >
+                  <BookOpen className="w-4 h-4" />
+                </button>
                 <button
                   onClick={() => handleEdit(item)}
                   className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
