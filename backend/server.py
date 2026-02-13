@@ -1277,6 +1277,42 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         "courses_count": len(subject_ids)
     }
 
+@api_router.get("/attendance/student")
+async def get_student_attendance(
+    start_date: str = None,
+    end_date: str = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get attendance records for the current student.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    
+    school_id = user.get("school_id")
+    
+    # Build query
+    query = {
+        "school_id": school_id,
+        "student_id": user["id"]
+    }
+    
+    # Date filters
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    elif start_date:
+        query["date"] = {"$gte": start_date}
+    elif end_date:
+        query["date"] = {"$lte": end_date}
+    
+    records = await db.attendance.find(query, {"_id": 0}).sort("date", -1).to_list(100)
+    
+    return {"records": records}
+
 @api_router.get("/dashboard/events", response_model=List[EventResponse])
 async def get_events(current_user=Depends(require_school)):
     """Get events for current tenant - REQUIRES SCHOOL"""
