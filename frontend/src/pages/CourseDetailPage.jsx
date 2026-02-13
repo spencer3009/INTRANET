@@ -5450,7 +5450,7 @@ function ForumContent({ subjectId, token, user, students }) {
   // Detail View
   if (selectedTopic) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-4 pt-2 pb-16">
         {/* Back button */}
         <button
           onClick={() => setSelectedTopic(null)}
