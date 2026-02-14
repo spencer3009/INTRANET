@@ -1467,24 +1467,17 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
     );
   }
 
-  // Calculate global stats for all tasks
-  const totalSubmissions = tasks.reduce((acc, task) => acc + (task.submissions?.length || 0), 0);
-  const mySubmissions = tasks.filter(task => task.submissions?.some(s => s.student_id === studentId)).length;
-
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Main Table */}
-      <div className="lg:col-span-2">
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          {/* Table Header */}
-          <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            <div className="col-span-1">Estado</div>
-            <div className="col-span-4">Título</div>
-            <div className="col-span-2">Tipo</div>
-            <div className="col-span-2">Fecha de entrega</div>
-            <div className="col-span-2">Puntaje</div>
-            <div className="col-span-1">Opciones</div>
-          </div>
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      {/* Table Header */}
+      <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+        <div className="col-span-1">Estado</div>
+        <div className="col-span-4">Título</div>
+        <div className="col-span-2">Tipo</div>
+        <div className="col-span-2">Fecha de entrega</div>
+        <div className="col-span-2">Puntaje</div>
+        <div className="col-span-1">Opciones</div>
+      </div>
       
       {/* Table Body */}
       <div className="divide-y divide-slate-100">
