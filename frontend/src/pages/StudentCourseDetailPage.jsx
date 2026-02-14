@@ -1156,7 +1156,7 @@ function ExamsContent({ exams, studentId }) {
 }
 
 // Forum Content - Table view for students with detail modal
-function ForumContent({ posts, token, user }) {
+function ForumContent({ posts, token, user, students }) {
   const [selectedPost, setSelectedPost] = useState(null);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
