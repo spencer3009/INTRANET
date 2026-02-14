@@ -1258,10 +1258,28 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
     );
   }
 
-  // Helper to get due date from task (can be at root level or in metadata)
+  // Helper to get due date from task (can be at root level, in metadata, or parsed from content)
   const getTaskDueDate = (task) => {
+    // First try root level
     if (task.due_date) return task.due_date;
+    // Then try metadata
     if (task.metadata?.due_date) return task.metadata.due_date;
+    // Try to parse from content as last resort (format: "Fecha de entrega: 14 de febrero de 2026, 11:00 p. m.")
+    if (task.content) {
+      const match = task.content.match(/Fecha de entrega:\s*([^<\n]+)/i);
+      if (match) {
+        try {
+          // Try to parse the Spanish date
+          const dateStr = match[1].trim();
+          const parsed = new Date(dateStr);
+          if (!isNaN(parsed.getTime())) {
+            return parsed.toISOString();
+          }
+        } catch (e) {
+          // Could not parse
+        }
+      }
+    }
     return null;
   };
 
