@@ -1263,21 +1263,6 @@ function ForumContent({ posts, token, user, students }) {
     const authorName = authorObj.name || 'Profesor';
     const authorPhoto = authorObj.photo_url;
     
-    // Get unique participants from comments
-    const participants = comments.reduce((acc, comment) => {
-      if (comment.author && !acc.find(p => p.id === comment.author.id)) {
-        acc.push(comment.author);
-      }
-      if (comment.replies) {
-        comment.replies.forEach(reply => {
-          if (reply.author && !acc.find(p => p.id === reply.author.id)) {
-            acc.push(reply.author);
-          }
-        });
-      }
-      return acc;
-    }, []);
-    
     return (
       <div className="space-y-4">
         {/* Back Button */}
