@@ -10278,6 +10278,15 @@ async def create_course_post(
         "updated_at": now
     }
     
+    # Store metadata for tasks (due_date, delivery_type, points, etc.)
+    if data.metadata:
+        post["metadata"] = data.metadata
+        # Also store due_date at root level for easier querying
+        if data.post_type == "task" and data.metadata.get("due_date"):
+            post["due_date"] = data.metadata["due_date"]
+        if data.post_type == "task" and data.metadata.get("points"):
+            post["max_grade"] = data.metadata["points"]
+    
     await db.course_posts.insert_one(post)
     
     # Register activity in the course stream
