@@ -1124,22 +1124,17 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
       </div>
 
       <div className="p-6 space-y-6">
-        {/* Text Editor Section */}
+        {/* Rich Text Editor Section */}
         {allowsText && (
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-slate-700">
               📝 Tu respuesta
             </label>
-            <textarea
-              value={textContent}
-              onChange={(e) => setTextContent(e.target.value)}
-              placeholder="Escribe tu respuesta aquí..."
-              className="w-full h-48 px-4 py-3 border border-slate-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-slate-700 placeholder-slate-400"
-              data-testid="task-text-input"
+            <RichTextEditor
+              content={textContent}
+              onChange={setTextContent}
+              placeholder="Describe las instrucciones y requisitos de la tarea..."
             />
-            <p className="text-xs text-slate-500 text-right">
-              {textContent.length} caracteres
-            </p>
           </div>
         )}
 
