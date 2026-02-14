@@ -4,13 +4,24 @@ import { useParams, useNavigate } from "react-router-dom";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Underline from '@tiptap/extension-underline';
+import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+import Highlight from '@tiptap/extension-highlight';
+import Placeholder from '@tiptap/extension-placeholder';
 import {
   BookOpen, ArrowLeft, Clock, Calendar, User, Users,
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
   MessageCircle, Bell, Trophy, Download, Upload, X,
   Loader2, AlertCircle, File as FileIcon, 
   ChevronRight, CheckCircle, Lock, Play,
-  Eye, ExternalLink, Heart, Send
+  Eye, ExternalLink, Heart, Send,
+  Bold, Italic, Underline as UnderlineIcon, Strikethrough,
+  List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
+  Quote, Code, Link as LinkIcon, Highlighter,
+  Heading1, Heading2, Heading3
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
