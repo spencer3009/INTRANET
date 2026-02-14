@@ -851,6 +851,9 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
       <div className="divide-y divide-slate-100">
         {tasks.map((task) => {
           const taskStatus = getTaskStatus(task);
+          const dueDate = getTaskDueDate(task);
+          const deliveryType = getDeliveryTypeLabel(task);
+          const maxGrade = task.max_grade || task.metadata?.points || 20;
           
           return (
             <div key={task.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
@@ -869,25 +872,27 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
                 )}
               </div>
               
-              {/* Type */}
+              {/* Type - Shows delivery type like owner portal */}
               <div className="col-span-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 text-xs font-medium rounded-full">
-                  <FileText className="w-3.5 h-3.5" />
-                  Tarea
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-lime-100 text-lime-700 text-xs font-medium rounded-md border border-lime-200">
+                  {deliveryType}
                 </span>
               </div>
               
               {/* Due Date */}
               <div className="col-span-2 text-sm text-slate-600">
-                {new Date(task.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}
+                {dueDate && !isNaN(new Date(dueDate).getTime()) 
+                  ? new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })
+                  : <span className="text-slate-400">Sin fecha</span>
+                }
               </div>
               
               {/* Score */}
               <div className="col-span-2">
                 {taskStatus.grade !== undefined ? (
-                  <span className="font-semibold text-emerald-600">{taskStatus.grade}/{task.max_grade || 20}</span>
+                  <span className="font-semibold text-emerald-600">{taskStatus.grade}/{maxGrade}</span>
                 ) : (
-                  <span className="text-slate-400">{task.max_grade || 20} pts</span>
+                  <span className="text-slate-400">{maxGrade} pts</span>
                 )}
               </div>
               
@@ -898,6 +903,7 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
                     onClick={() => onSubmitTask(task)}
                     className="p-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
                     title="Entregar tarea"
+                    data-testid={`submit-task-${task.id}`}
                   >
                     <CheckCircle className="w-4 h-4" />
                   </button>
