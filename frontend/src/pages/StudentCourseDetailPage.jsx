@@ -813,7 +813,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
   
-  const fileInputRef = React.useRef(null);
+  const fileInputRef = useRef(null);
   
   // Determine what type of submission is allowed
   const allowsText = deliveryType === 'Texto en línea' || deliveryType === 'Texto y archivos' || deliveryType === 'Tarea';
