@@ -1069,8 +1069,16 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
   };
 
   const handleSubmit = async () => {
+    // Helper to check if HTML content is effectively empty
+    const isContentEmpty = (html) => {
+      if (!html) return true;
+      const div = document.createElement('div');
+      div.innerHTML = html;
+      return !div.textContent?.trim();
+    };
+
     // Validate based on delivery type
-    if (allowsText && !allowsFiles && !textContent.trim()) {
+    if (allowsText && !allowsFiles && isContentEmpty(textContent)) {
       setError('Por favor, escribe tu respuesta');
       return;
     }
@@ -1078,7 +1086,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
       setError('Por favor, selecciona un archivo');
       return;
     }
-    if (deliveryType === 'Texto y archivos' && !textContent.trim() && !selectedFile) {
+    if (deliveryType === 'Texto y archivos' && isContentEmpty(textContent) && !selectedFile) {
       setError('Por favor, escribe tu respuesta o adjunta un archivo');
       return;
     }
