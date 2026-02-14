@@ -1086,13 +1086,15 @@ function ExamsContent({ exams, studentId }) {
               
               {/* Exam Info */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-500 flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    Duración
-                  </span>
-                  <span className="font-semibold text-slate-800">{exam.duration_minutes} min</span>
-                </div>
+                {exam.duration_minutes && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-slate-500 flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Duración
+                    </span>
+                    <span className="font-semibold text-slate-800">{exam.duration_minutes} min</span>
+                  </div>
+                )}
                 
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-500 flex items-center gap-2">
