@@ -1100,7 +1100,7 @@ function ExamsContent({ exams, studentId }) {
                     Fecha inicio
                   </span>
                   <span className="font-semibold text-slate-800">
-                    {new Date(exam.start_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                    {new Date(exam.start_datetime || exam.start_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
                   </span>
                 </div>
                 
@@ -1110,7 +1110,7 @@ function ExamsContent({ exams, studentId }) {
                     Fecha fin
                   </span>
                   <span className="font-semibold text-slate-800">
-                    {new Date(exam.end_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                    {new Date(exam.end_datetime || exam.end_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
                   </span>
                 </div>
                 
