@@ -1691,7 +1691,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       case "examenes":
         return <ExamsContent exams={exams} studentId={user?.id} />;
       case "foro":
-        return <ForumContent posts={forumPosts} token={token} user={user} />;
+        return <ForumContent posts={forumPosts} token={token} user={user} students={students} />;
       default:
         return (
           <DashboardContent 
