@@ -806,6 +806,212 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
   );
 }
 
+// Task Submission Form Component
+function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
+  const [textContent, setTextContent] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  
+  const fileInputRef = React.useRef(null);
+  
+  // Determine what type of submission is allowed
+  const allowsText = deliveryType === 'Texto en línea' || deliveryType === 'Texto y archivos' || deliveryType === 'Tarea';
+  const allowsFiles = deliveryType === 'Archivos' || deliveryType === 'Texto y archivos';
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        setError('El archivo no puede superar los 10MB');
+        return;
+      }
+      setSelectedFile(file);
+      setError('');
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmit = async () => {
+    // Validate based on delivery type
+    if (allowsText && !allowsFiles && !textContent.trim()) {
+      setError('Por favor, escribe tu respuesta');
+      return;
+    }
+    if (allowsFiles && !allowsText && !selectedFile) {
+      setError('Por favor, selecciona un archivo');
+      return;
+    }
+    if (deliveryType === 'Texto y archivos' && !textContent.trim() && !selectedFile) {
+      setError('Por favor, escribe tu respuesta o adjunta un archivo');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    try {
+      // Call the submit function with the submission data
+      await onSubmit(task, {
+        text_content: textContent,
+        file: selectedFile
+      });
+    } catch (err) {
+      setError(err.message || 'Error al entregar la tarea');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Get file type icon
+  const getFileTypeIcon = (filename) => {
+    const ext = filename?.split('.').pop()?.toLowerCase();
+    if (['pdf'].includes(ext)) return { color: 'bg-red-100 text-red-600', label: 'PDF' };
+    if (['doc', 'docx'].includes(ext)) return { color: 'bg-blue-100 text-blue-600', label: 'Word' };
+    if (['xls', 'xlsx'].includes(ext)) return { color: 'bg-green-100 text-green-600', label: 'Excel' };
+    if (['ppt', 'pptx'].includes(ext)) return { color: 'bg-orange-100 text-orange-600', label: 'PowerPoint' };
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return { color: 'bg-purple-100 text-purple-600', label: 'Imagen' };
+    return { color: 'bg-slate-100 text-slate-600', label: 'Archivo' };
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-4">
+        <h3 className="font-bold text-white text-lg flex items-center gap-2">
+          <Send className="w-5 h-5" />
+          Entregar Tarea
+        </h3>
+        <p className="text-cyan-100 text-sm mt-1">
+          Tipo de entrega: <span className="font-medium text-white">{deliveryType}</span>
+        </p>
+      </div>
+
+      <div className="p-6 space-y-6">
+        {/* Text Editor Section */}
+        {allowsText && (
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">
+              📝 Tu respuesta
+            </label>
+            <textarea
+              value={textContent}
+              onChange={(e) => setTextContent(e.target.value)}
+              placeholder="Escribe tu respuesta aquí..."
+              className="w-full h-48 px-4 py-3 border border-slate-300 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent text-slate-700 placeholder-slate-400"
+              data-testid="task-text-input"
+            />
+            <p className="text-xs text-slate-500 text-right">
+              {textContent.length} caracteres
+            </p>
+          </div>
+        )}
+
+        {/* File Upload Section */}
+        {allowsFiles && (
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">
+              📎 Adjuntar archivo
+            </label>
+            
+            {!selectedFile ? (
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center cursor-pointer hover:border-cyan-400 hover:bg-cyan-50/50 transition-colors"
+                data-testid="file-upload-zone"
+              >
+                <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Upload className="w-8 h-8 text-slate-400" />
+                </div>
+                <p className="text-slate-600 font-medium">Haz clic para seleccionar un archivo</p>
+                <p className="text-sm text-slate-400 mt-1">
+                  PDF, Word, Excel, PowerPoint, Imágenes (máx. 10MB)
+                </p>
+              </div>
+            ) : (
+              <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getFileTypeIcon(selectedFile.name).color}`}>
+                    <FileIcon className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-slate-800 truncate">{selectedFile.name}</p>
+                    <p className="text-sm text-slate-500">
+                      {(selectedFile.size / 1024).toFixed(1)} KB • {getFileTypeIcon(selectedFile.name).label}
+                    </p>
+                  </div>
+                  <button
+                    onClick={removeFile}
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Eliminar archivo"
+                    data-testid="remove-file-btn"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              onChange={handleFileSelect}
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif"
+              className="hidden"
+              data-testid="file-input"
+            />
+          </div>
+        )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {/* Submit Button */}
+        <div className="flex items-center justify-between pt-4 border-t border-slate-100">
+          <p className="text-sm text-slate-500">
+            {allowsText && allowsFiles 
+              ? "Puedes escribir una respuesta y/o adjuntar un archivo"
+              : allowsText 
+                ? "Escribe tu respuesta en el editor de texto"
+                : "Adjunta un archivo con tu trabajo"
+            }
+          </p>
+          <button
+            onClick={handleSubmit}
+            disabled={uploading}
+            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-medium hover:from-cyan-600 hover:to-blue-600 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-500/25"
+            data-testid="submit-task-btn"
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Enviando...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-5 h-5" />
+                Entregar tarea
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Tasks Content - Table view like owner's portal (Read-only for students)
 function TasksContent({ tasks, studentId, onSubmitTask }) {
   const [selectedTask, setSelectedTask] = useState(null);
