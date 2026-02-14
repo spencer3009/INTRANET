@@ -1477,28 +1477,28 @@ function ForumContent({ posts, token, user, students }) {
             <div className="bg-white rounded-2xl border border-slate-200 p-4">
               <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
                 <Users className="w-5 h-5 text-emerald-500" />
-                Estudiantes
+                Estudiantes del Curso
               </h4>
-              {participants.length > 0 ? (
-                <div className="space-y-3">
-                  {participants.map((participant) => (
-                    <div key={participant.id} className="flex items-center gap-3">
-                      {participant.photo_url ? (
-                        <img src={participant.photo_url} alt={participant.name} className="w-9 h-9 rounded-full object-cover" />
+              {students && students.length > 0 ? (
+                <div className="space-y-3 max-h-[300px] overflow-y-auto">
+                  {students.map((student) => (
+                    <div key={student.id} className="flex items-center gap-3">
+                      {student.photo_url ? (
+                        <img src={student.photo_url} alt={student.name} className="w-9 h-9 rounded-full object-cover" />
                       ) : (
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold">
-                          {participant.name?.charAt(0)}
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-sm font-bold">
+                          {student.name?.charAt(0)}
                         </div>
                       )}
                       <div>
-                        <p className="font-medium text-sm text-slate-800">{participant.name}</p>
-                        <p className="text-xs text-slate-400">Roll ID: {participant.id?.substring(0, 8)}</p>
+                        <p className="font-medium text-sm text-slate-800">{student.name} {student.last_name?.charAt(0) || ''}.</p>
+                        <p className="text-xs text-slate-400">Estudiante</p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-slate-400">Aún no hay participantes</p>
+                <p className="text-sm text-slate-400">Sin compañeros de clase</p>
               )}
             </div>
           </div>
