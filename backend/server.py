@@ -2622,6 +2622,93 @@ async def update_admin_task_status(
     
     return {"message": f"Estado de tarea actualizado a {data.status}"}
 
+# Student Task Submission Endpoint
+@api_router.post("/course/tasks/{task_id}/submit")
+async def submit_task(
+    task_id: str,
+    text_content: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None),
+    current_user = Depends(get_current_user)
+):
+    """Submit a task as a student."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    student_id = user["id"]
+    
+    # Find the task
+    task = await db.course_posts.find_one({
+        "id": task_id, 
+        "school_id": school_id, 
+        "post_type": "task"
+    })
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    
+    # Check if already submitted
+    existing = task.get("submissions", [])
+    for sub in existing:
+        if sub.get("student_id") == student_id:
+            raise HTTPException(status_code=400, detail="Ya has entregado esta tarea")
+    
+    # Validate that at least one of text or file is provided
+    if not text_content and not file:
+        raise HTTPException(status_code=400, detail="Debes proporcionar texto o archivo")
+    
+    # Handle file upload if provided
+    file_url = None
+    file_name = None
+    file_type = None
+    
+    if file:
+        # Read file content
+        content = await file.read()
+        file_name = file.filename
+        file_type = file.content_type
+        
+        # Upload to Cloudinary (if available) or store locally
+        try:
+            import cloudinary.uploader
+            result = cloudinary.uploader.upload(
+                content,
+                folder=f"edunet/submissions/{task_id}",
+                resource_type="auto",
+                public_id=f"{student_id}_{file_name}"
+            )
+            file_url = result.get("secure_url")
+        except Exception as e:
+            # If Cloudinary fails, we'll just store the reference
+            file_url = f"/uploads/submissions/{task_id}/{student_id}_{file_name}"
+    
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Create submission object
+    submission = {
+        "id": str(uuid.uuid4()),
+        "student_id": student_id,
+        "student_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "text_content": text_content,
+        "file_url": file_url,
+        "file_name": file_name,
+        "file_type": file_type,
+        "submitted_at": now,
+        "grade": None,
+        "feedback": None
+    }
+    
+    # Add submission to task
+    await db.course_posts.update_one(
+        {"id": task_id},
+        {"$push": {"submissions": submission}}
+    )
+    
+    return {
+        "message": "Tarea entregada exitosamente",
+        "submission_id": submission["id"]
+    }
+
 # Admin Exams Endpoints
 @api_router.get("/admin/exams")
 async def get_admin_exams(
