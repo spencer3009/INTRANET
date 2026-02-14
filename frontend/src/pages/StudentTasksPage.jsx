@@ -79,8 +79,12 @@ export default function StudentTasksPage({ user, token, onLogout }) {
         }
       }
       
-      // Sort by due date
-      allTasks.sort((a, b) => new Date(a.due_date || 0) - new Date(b.due_date || 0));
+      // Sort by due date (check both root and metadata)
+      allTasks.sort((a, b) => {
+        const dateA = a.due_date || a.metadata?.due_date || 0;
+        const dateB = b.due_date || b.metadata?.due_date || 0;
+        return new Date(dateA) - new Date(dateB);
+      });
       setTasks(allTasks);
     } catch (err) {
       console.error("Error loading tasks:", err);
