@@ -938,20 +938,11 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
 
             {/* Submit Task Section */}
             {taskStatus.status === "pending" && (
-              <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl p-6 border border-cyan-200">
-                <h3 className="font-semibold text-slate-800 mb-2">¿Listo para entregar?</h3>
-                <p className="text-slate-600 text-sm mb-4">
-                  Tipo de entrega: <span className="font-medium">{deliveryType}</span>
-                </p>
-                <button
-                  onClick={() => onSubmitTask(selectedTask)}
-                  className="px-6 py-3 bg-cyan-500 text-white rounded-xl font-medium hover:bg-cyan-600 transition-colors flex items-center gap-2"
-                  data-testid="submit-task-detail-btn"
-                >
-                  <CheckCircle className="w-5 h-5" />
-                  Entregar tarea
-                </button>
-              </div>
+              <TaskSubmissionForm 
+                task={selectedTask}
+                deliveryType={deliveryType}
+                onSubmit={onSubmitTask}
+              />
             )}
           </div>
 
