@@ -509,7 +509,36 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 **Fecha**: 2025-02-14
 **Cambios recientes**:
 
-### Sesión actual (2025-02-14) - Fix Tareas: Fecha de entrega y metadata
+### Sesión actual (2025-02-14) - Vista de detalle de tarea y formulario de entrega
+
+1. ✅ **Botón de ojo para ver tarea + Vista de detalle** - COMPLETADO
+   - **Problema**: No había forma de acceder al detalle de la tarea ni entregarla
+   
+   - **Nuevo componente `TaskSubmissionForm`**:
+     - Editor de texto para entregas tipo "Texto en línea"
+     - Zona de carga de archivos para entregas tipo "Archivos" 
+     - Ambos campos para entregas tipo "Texto y archivos" (mixto)
+     - Validaciones según tipo de entrega
+     - Muestra progreso de carga y mensajes de error
+   
+   - **Vista de detalle de tarea**:
+     - Header con gradiente violeta y estado "Publicado"
+     - Contenido de la tarea renderizado con HTML
+     - Sección de archivos adjuntos descargables
+     - Sidebar con información del curso y estadísticas
+     - Botón "Volver a tareas" para regresar a la lista
+   
+   - **Backend: Nuevo endpoint POST `/api/course/tasks/{task_id}/submit`**:
+     - Recibe texto y/o archivo via FormData
+     - Sube archivos a Cloudinary
+     - Guarda entrega en array `submissions` de la tarea
+     - Valida que el estudiante no haya entregado previamente
+   
+   - **Archivos modificados**:
+     - `/app/backend/server.py` - Nuevo endpoint, imports Form/UploadFile/File
+     - `/app/frontend/src/pages/StudentCourseDetailPage.jsx` - TaskSubmissionForm, vista detalle
+
+### Sesión anterior (2025-02-14) - Fix Tareas: Fecha de entrega y metadata
 
 1. ✅ **Corrección de visualización de tareas en Portal del Estudiante** - COMPLETADO
    - **Problema**: Las tareas mostraban "Invalid Date" y estado incorrecto
