@@ -1163,6 +1163,9 @@ function ForumContent({ posts, token, user }) {
   const [loadingComments, setLoadingComments] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null); // { id, authorName }
+  const [replyText, setReplyText] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
   
@@ -1214,6 +1217,33 @@ function ForumContent({ posts, token, user }) {
       console.error('Error commenting:', err);
     } finally {
       setSubmittingComment(false);
+    }
+  };
+  
+  const handleSubmitReply = async (parentCommentId) => {
+    if (!replyText.trim() || submittingReply || !selectedPost) return;
+    setSubmittingReply(true);
+    try {
+      const res = await axios.post(`${API}/api/course/posts/${selectedPost.id}/comments`, {
+        content: replyText.trim(),
+        parent_id: parentCommentId
+      }, { headers });
+      const newReply = res.data.comment || res.data;
+      
+      // Add reply to the parent comment
+      setComments(comments.map(c => {
+        if (c.id === parentCommentId) {
+          return { ...c, replies: [...(c.replies || []), newReply] };
+        }
+        return c;
+      }));
+      
+      setReplyText("");
+      setReplyingTo(null);
+    } catch (err) {
+      console.error('Error replying:', err);
+    } finally {
+      setSubmittingReply(false);
     }
   };
   
