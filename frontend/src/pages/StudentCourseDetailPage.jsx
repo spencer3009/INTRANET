@@ -1305,32 +1305,19 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
 
     return (
       <div className="space-y-6">
-        {/* Header with back button */}
-        <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 rounded-2xl p-6 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl" />
-          <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <button
-                onClick={() => setSelectedTask(null)}
-                className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-                data-testid="back-to-tasks-btn"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span>Volver a tareas</span>
-              </button>
-              <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium border border-white/30">
-                Publicado
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                <FileText className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-white/70 text-sm">Inicial • 3 años</p>
-              </div>
-            </div>
-          </div>
+        {/* Simple back button */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={() => setSelectedTask(null)}
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-800 transition-colors"
+            data-testid="back-to-tasks-btn"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Volver a tareas</span>
+          </button>
+          <span className={`px-3 py-1 rounded-full text-sm font-medium ${taskStatus.color}`}>
+            {taskStatus.label}
+          </span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
