@@ -2113,9 +2113,46 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
     navigate(`${basePath}/student/courses`);
   };
 
-  const handleSubmitTask = (task) => {
-    // TODO: Implement task submission modal
-    console.log("Submit task:", task);
+  const handleSubmitTask = async (task, submissionData) => {
+    try {
+      // If submissionData is provided, it means we're submitting from the detail view
+      if (submissionData) {
+        const formData = new FormData();
+        formData.append('task_id', task.id);
+        
+        if (submissionData.text_content) {
+          formData.append('text_content', submissionData.text_content);
+        }
+        
+        if (submissionData.file) {
+          formData.append('file', submissionData.file);
+        }
+        
+        // Call the API to submit the task
+        await axios.post(
+          `${API}/api/course/tasks/${task.id}/submit`,
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            }
+          }
+        );
+        
+        // Reload tasks to show updated status
+        await loadContent();
+        
+        // Show success message (could use a toast here)
+        alert('¡Tarea entregada exitosamente!');
+      } else {
+        // Legacy: just log for now (clicking from table row without detail view)
+        console.log("Submit task:", task);
+      }
+    } catch (err) {
+      console.error("Error submitting task:", err);
+      throw new Error(err.response?.data?.detail || 'Error al entregar la tarea');
+    }
   };
 
   const renderContent = () => {
