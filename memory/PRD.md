@@ -509,7 +509,31 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 **Fecha**: 2025-02-14
 **Cambios recientes**:
 
-### Sesión actual (2025-02-14) - Layout de 3 columnas en Detalle de Curso del Estudiante:
+### Sesión actual (2025-02-14) - Fix Tareas: Fecha de entrega y metadata
+
+1. ✅ **Corrección de visualización de tareas en Portal del Estudiante** - COMPLETADO
+   - **Problema**: Las tareas mostraban "Invalid Date" y estado incorrecto
+   - **Causa raíz**: El campo `due_date` se guardaba en `metadata.due_date` pero el frontend solo buscaba `task.due_date`
+   
+   - **Cambios en Backend** (`/app/backend/server.py`):
+     - Modelo `CoursePostCreate` ahora acepta campo `metadata` (dict opcional)
+     - Al crear tareas, se extrae `due_date` y `points` del metadata al nivel raíz para consultas
+     - Nueva estructura: `post["due_date"]` + `post["max_grade"]` + `post["metadata"]`
+   
+   - **Cambios en Frontend**:
+     - `StudentCourseDetailPage.jsx`: Helper `getTaskDueDate()` busca en ambos lugares
+     - `StudentTasksPage.jsx`: Misma corrección para listado de tareas
+     - `StudentDashboardPage.jsx`: Corrección en "Próximas tareas"
+     - Manejo de fechas inválidas: Muestra "Sin fecha" en lugar de "Invalid Date"
+     - Tipo de entrega: Muestra "Texto en línea", "Archivos", etc. desde metadata
+   
+   - **Archivos modificados**:
+     - `/app/backend/server.py` - Líneas 10146-10155, 10261-10290
+     - `/app/frontend/src/pages/StudentCourseDetailPage.jsx`
+     - `/app/frontend/src/pages/StudentTasksPage.jsx`
+     - `/app/frontend/src/pages/StudentDashboardPage.jsx`
+
+### Sesión anterior (2025-02-14) - Layout de 3 columnas en Detalle de Curso del Estudiante:
 
 1. ✅ **Layout de 3 columnas en StudentCourseDetailPage.jsx** - COMPLETADO
    - **Objetivo**: Pestaña "Tablero" con diseño idéntico al portal del propietario pero en modo solo lectura
