@@ -1398,7 +1398,7 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-slate-100">
                   <span className="text-slate-600">Grado:</span>
-                  <span className="font-medium text-slate-800">{subject?.grade_name || '-'}</span>
+                  <span className="font-medium text-slate-800">{subject?.grade_name || subject?.level_name || '-'}</span>
                 </div>
                 <div className="flex justify-between items-center py-2 border-b border-slate-100">
                   <span className="text-slate-600">Sección:</span>
