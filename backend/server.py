@@ -1224,8 +1224,8 @@ async def get_student_courses(current_user = Depends(get_current_user)):
 @api_router.get("/student/classmates")
 async def get_student_classmates(current_user = Depends(get_current_user)):
     """
-    Get classmates (other students in the same section).
-    Students can only see other students from their own section.
+    Get all students in the same section (including current user).
+    Used for displaying student list in tasks and other views.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
@@ -1240,13 +1240,12 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
     if not seccion_id:
         return {"students": [], "message": "No tienes una sección asignada"}
     
-    # Get all students in the same section (excluding current user)
+    # Get ALL students in the same section (including current user)
     students_cursor = db.users.find(
         {
             "school_id": school_id,
             "seccion_id": seccion_id,
-            "role": "student",
-            "id": {"$ne": user["id"]}  # Exclude current user
+            "role": "student"
         },
         {"_id": 0, "password": 0, "verification_code": 0}
     )
