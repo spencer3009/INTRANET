@@ -1302,9 +1302,6 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
     const dueDate = getTaskDueDate(selectedTask);
     const deliveryType = getDeliveryTypeLabel(selectedTask);
     const maxGrade = selectedTask.max_grade || selectedTask.metadata?.points || 20;
-    const totalStudents = 2; // This would come from course data
-    const submittedCount = selectedTask.submissions?.length || 0;
-    const notSubmittedCount = totalStudents - submittedCount;
 
     return (
       <div className="space-y-6">
