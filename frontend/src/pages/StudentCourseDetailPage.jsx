@@ -1155,8 +1155,68 @@ function ExamsContent({ exams, studentId }) {
   );
 }
 
-// Forum Content - Interactive for students
+// Forum Content - Table view for students with detail modal
 function ForumContent({ posts, token, user }) {
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [showComments, setShowComments] = useState(false);
+  const [comments, setComments] = useState([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  const getTimeAgo = (dateStr) => {
+    const now = new Date();
+    const date = new Date(dateStr);
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return 'Ahora mismo';
+    if (diffMins < 60) return `Hace ${diffMins} minuto${diffMins !== 1 ? 's' : ''}`;
+    if (diffHours < 24) return `Hace ${diffHours} hora${diffHours !== 1 ? 's' : ''}`;
+    if (diffDays < 7) return `Hace ${diffDays} día${diffDays !== 1 ? 's' : ''}`;
+    return date.toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" });
+  };
+  
+  const loadComments = async (postId) => {
+    setLoadingComments(true);
+    try {
+      const res = await axios.get(`${API}/api/course/posts/${postId}/comments`, { headers });
+      setComments(res.data || []);
+    } catch (err) {
+      console.error('Error loading comments:', err);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+  
+  const handleViewPost = async (post) => {
+    setSelectedPost(post);
+    await loadComments(post.id);
+    setShowComments(true);
+  };
+  
+  const handleSubmitComment = async () => {
+    if (!newComment.trim() || submittingComment || !selectedPost) return;
+    setSubmittingComment(true);
+    try {
+      const res = await axios.post(`${API}/api/course/posts/${selectedPost.id}/comments`, {
+        content: newComment.trim()
+      }, { headers });
+      const newCommentData = res.data.comment || res.data;
+      newCommentData.replies = [];
+      setComments([...comments, newCommentData]);
+      setNewComment("");
+    } catch (err) {
+      console.error('Error commenting:', err);
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+  
   if (posts.length === 0) {
     return (
       <EmptyState
@@ -1167,12 +1227,274 @@ function ForumContent({ posts, token, user }) {
     );
   }
 
+  // Detail View of a forum post
+  if (selectedPost) {
+    const authorObj = selectedPost.author || {};
+    const authorName = authorObj.name || 'Profesor';
+    const authorPhoto = authorObj.photo_url;
+    
+    // Get unique participants from comments
+    const participants = comments.reduce((acc, comment) => {
+      if (comment.author && !acc.find(p => p.id === comment.author.id)) {
+        acc.push(comment.author);
+      }
+      if (comment.replies) {
+        comment.replies.forEach(reply => {
+          if (reply.author && !acc.find(p => p.id === reply.author.id)) {
+            acc.push(reply.author);
+          }
+        });
+      }
+      return acc;
+    }, []);
+    
+    return (
+      <div className="space-y-4">
+        {/* Back Button */}
+        <button
+          onClick={() => { setSelectedPost(null); setShowComments(false); setComments([]); }}
+          className="flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Volver al listado
+        </button>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-4">
+            {/* Post Header */}
+            <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-t-2xl px-6 py-4">
+              <div className="flex items-center justify-between text-white text-sm">
+                <div className="flex items-center gap-4">
+                  <span className="font-medium">Autor</span>
+                  <span className="font-medium">Tema</span>
+                </div>
+                <span>{new Date(selectedPost.created_at).toLocaleDateString("es-PE", { day: "numeric", month: "short" })} {new Date(selectedPost.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</span>
+              </div>
+            </div>
+            
+            {/* Post Content */}
+            <div className="bg-white rounded-b-2xl border border-slate-200 p-6">
+              <div className="flex gap-6">
+                {/* Author Column */}
+                <div className="flex flex-col items-center text-center w-24 flex-shrink-0">
+                  {authorPhoto ? (
+                    <img src={authorPhoto} alt={authorName} className="w-16 h-16 rounded-full object-cover mb-2" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-white text-xl font-bold mb-2">
+                      {authorName?.charAt(0)}
+                    </div>
+                  )}
+                  <span className="font-semibold text-slate-800 text-sm">{authorName}</span>
+                  <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full mt-1">
+                    {authorObj.role === 'teacher' ? 'Docente' : 'Usuario'}
+                  </span>
+                </div>
+                
+                {/* Content Column */}
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl font-bold text-slate-800 mb-4">{selectedPost.title}</h2>
+                  <div 
+                    className="prose prose-sm max-w-none text-slate-600"
+                    dangerouslySetInnerHTML={{ __html: selectedPost.content || '' }}
+                  />
+                </div>
+              </div>
+              
+              {/* Comment Section */}
+              <div className="mt-8 pt-6 border-t border-slate-200">
+                <h3 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                  <MessageCircle className="w-5 h-5 text-emerald-500" />
+                  Respuestas ({comments.length})
+                </h3>
+                
+                {/* Comment Input */}
+                <div className="flex items-start gap-3 mb-6">
+                  {user?.photo_url ? (
+                    <img src={user.photo_url} alt={user?.name} className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500 to-cyan-600 flex items-center justify-center text-white font-bold">
+                      {user?.name?.charAt(0) || 'E'}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <textarea
+                      value={newComment}
+                      onChange={(e) => setNewComment(e.target.value)}
+                      placeholder="Escribe tu respuesta..."
+                      className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                      rows={3}
+                    />
+                    <div className="flex justify-end mt-2">
+                      <button
+                        onClick={handleSubmitComment}
+                        disabled={!newComment.trim() || submittingComment}
+                        className="px-4 py-2 bg-emerald-500 text-white text-sm font-medium rounded-lg hover:bg-emerald-600 disabled:opacity-50"
+                      >
+                        {submittingComment ? 'Enviando...' : 'Responder'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Comments List */}
+                {loadingComments ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-slate-400" />
+                  </div>
+                ) : comments.length === 0 ? (
+                  <p className="text-center text-slate-400 py-8">Sé el primero en responder a este tema.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <div key={comment.id} className="bg-slate-50 rounded-xl p-4">
+                        <div className="flex items-start gap-3">
+                          {comment.author?.photo_url ? (
+                            <img src={comment.author.photo_url} alt={comment.author?.name} className="w-9 h-9 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-9 h-9 rounded-full bg-slate-300 flex items-center justify-center text-slate-600 text-sm font-bold">
+                              {comment.author?.name?.charAt(0) || 'U'}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold text-slate-800">{comment.author?.name || 'Usuario'}</span>
+                              <span className="text-xs text-slate-400">{getTimeAgo(comment.created_at)}</span>
+                            </div>
+                            <p className="text-sm text-slate-600">{comment.content}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Replies */}
+                        {comment.replies?.length > 0 && (
+                          <div className="ml-12 mt-3 space-y-3 border-l-2 border-slate-200 pl-4">
+                            {comment.replies.map((reply) => (
+                              <div key={reply.id} className="flex items-start gap-2">
+                                {reply.author?.photo_url ? (
+                                  <img src={reply.author.photo_url} alt={reply.author?.name} className="w-7 h-7 rounded-full object-cover" />
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-slate-300 flex items-center justify-center text-slate-600 text-xs font-bold">
+                                    {reply.author?.name?.charAt(0) || 'U'}
+                                  </div>
+                                )}
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-xs text-slate-800">{reply.author?.name}</span>
+                                    <span className="text-xs text-slate-400">{getTimeAgo(reply.created_at)}</span>
+                                  </div>
+                                  <p className="text-xs text-slate-600">{reply.content}</p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Sidebar - Participants */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl border border-slate-200 p-4">
+              <h4 className="font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                <Users className="w-5 h-5 text-emerald-500" />
+                Estudiantes
+              </h4>
+              {participants.length > 0 ? (
+                <div className="space-y-3">
+                  {participants.map((participant) => (
+                    <div key={participant.id} className="flex items-center gap-3">
+                      {participant.photo_url ? (
+                        <img src={participant.photo_url} alt={participant.name} className="w-9 h-9 rounded-full object-cover" />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-sm font-bold">
+                          {participant.name?.charAt(0)}
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium text-sm text-slate-800">{participant.name}</p>
+                        <p className="text-xs text-slate-400">Roll ID: {participant.id?.substring(0, 8)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-400">Aún no hay participantes</p>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Table View (List of forum posts)
   return (
     <div className="space-y-4">
-      {/* Forum Posts */}
-      {posts.map((post) => (
-        <PostCard key={post.id} post={{...post, post_type: 'forum'}} token={token} user={user} />
-      ))}
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-800 italic">Foro de Discusión</h2>
+          <p className="text-slate-500">Gestiona los temas de discusión del curso</p>
+        </div>
+        {/* No "Nuevo Tema" button for students - read only */}
+      </div>
+      
+      {/* Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        {/* Table Header */}
+        <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="col-span-2">Estado</div>
+          <div className="col-span-6">Título</div>
+          <div className="col-span-2">Fecha</div>
+          <div className="col-span-2 text-center">Opciones</div>
+        </div>
+        
+        {/* Table Body */}
+        <div className="divide-y divide-slate-100">
+          {posts.map((post) => {
+            const authorObj = post.author || {};
+            const authorName = authorObj.name || 'Usuario';
+            
+            return (
+              <div key={post.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
+                {/* Status */}
+                <div className="col-span-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    Publicado
+                  </span>
+                </div>
+                
+                {/* Title */}
+                <div className="col-span-6">
+                  <h3 className="font-semibold text-slate-800 uppercase">{post.title}</h3>
+                  <p className="text-xs text-slate-500 mt-0.5">por {authorName}</p>
+                </div>
+                
+                {/* Date */}
+                <div className="col-span-2 text-sm text-slate-600">
+                  {new Date(post.created_at).toLocaleDateString("es-PE", { day: "numeric", month: "short" })} {new Date(post.created_at).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}
+                </div>
+                
+                {/* Actions - Only view for students */}
+                <div className="col-span-2 flex justify-center">
+                  <button
+                    onClick={() => handleViewPost(post)}
+                    className="p-2 bg-blue-100 text-blue-600 rounded-full hover:bg-blue-200 transition-colors"
+                    title="Ver tema"
+                  >
+                    <Eye className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
