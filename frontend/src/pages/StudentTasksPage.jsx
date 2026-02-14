@@ -105,6 +105,9 @@ export default function StudentTasksPage({ user, token, onLogout }) {
     }
   };
 
+  // Helper to get task due date
+  const getTaskDueDate = (task) => task.due_date || task.metadata?.due_date || null;
+
   // Determine task status
   const getTaskStatus = (task) => {
     // Check if student has submitted
@@ -117,7 +120,8 @@ export default function StudentTasksPage({ user, token, onLogout }) {
     }
     
     // Check if past due date
-    if (task.due_date && new Date(task.due_date) < new Date()) {
+    const dueDate = getTaskDueDate(task);
+    if (dueDate && new Date(dueDate) < new Date()) {
       return "late";
     }
     
