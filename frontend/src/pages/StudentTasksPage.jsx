@@ -315,7 +315,8 @@ export default function StudentTasksPage({ user, token, onLogout }) {
                 {filteredTasks.map((task) => {
                   const status = getTaskStatus(task);
                   const StatusIcon = STATUS_CONFIG[status].icon;
-                  const isPastDue = task.due_date && new Date(task.due_date) < new Date();
+                  const dueDate = getTaskDueDate(task);
+                  const isPastDue = dueDate && new Date(dueDate) < new Date();
                   
                   return (
                     <div
@@ -345,10 +346,10 @@ export default function StudentTasksPage({ user, token, onLogout }) {
                             <BookOpen className="w-3.5 h-3.5" />
                             {task.course_name}
                           </span>
-                          {task.due_date && (
+                          {dueDate && (
                             <span className={`flex items-center gap-1 ${isPastDue && status === "pending" ? "text-red-500" : ""}`}>
                               <Calendar className="w-3.5 h-3.5" />
-                              {new Date(task.due_date).toLocaleDateString("es-PE", { 
+                              {new Date(dueDate).toLocaleDateString("es-PE", { 
                                 day: "numeric", 
                                 month: "short",
                                 hour: "2-digit",
