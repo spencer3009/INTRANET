@@ -797,6 +797,25 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
     );
   }
 
+  // Helper to get due date from task (can be at root level or in metadata)
+  const getTaskDueDate = (task) => {
+    if (task.due_date) return task.due_date;
+    if (task.metadata?.due_date) return task.metadata.due_date;
+    return null;
+  };
+
+  // Helper to get delivery type label
+  const getDeliveryTypeLabel = (task) => {
+    const deliveryType = task.metadata?.delivery_type;
+    if (deliveryType === 'text') return 'Texto en línea';
+    if (deliveryType === 'files') return 'Archivos';
+    if (deliveryType === 'both') return 'Texto y archivos';
+    // Try to parse from content if metadata not available
+    if (task.content?.includes('Archivos')) return 'Archivos';
+    if (task.content?.includes('Texto en línea')) return 'Texto en línea';
+    return 'Tarea';
+  };
+
   const getTaskStatus = (task) => {
     const submission = task.submissions?.find(s => s.student_id === studentId);
     if (submission) {
@@ -806,9 +825,12 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
       return { status: "submitted", label: "Entregada", color: "bg-blue-100 text-blue-700" };
     }
     const now = new Date();
-    const dueDate = new Date(task.due_date);
-    if (dueDate < now) {
-      return { status: "late", label: "Vencida", color: "bg-red-100 text-red-700" };
+    const dueDate = getTaskDueDate(task);
+    if (dueDate) {
+      const dueDateObj = new Date(dueDate);
+      if (!isNaN(dueDateObj.getTime()) && dueDateObj < now) {
+        return { status: "late", label: "Vencida", color: "bg-red-100 text-red-700" };
+      }
     }
     return { status: "pending", label: "Pendiente", color: "bg-amber-100 text-amber-700" };
   };
