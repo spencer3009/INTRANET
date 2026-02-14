@@ -777,15 +777,20 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
             </div>
             <div className="p-4">
               <div className="space-y-2">
-                {upcomingTasks.map((task) => (
+                {upcomingTasks.map((task) => {
+                  const dueDate = getTaskDueDate(task);
+                  return (
                   <div key={task.id} className="p-3 bg-white rounded-xl border border-amber-100">
                     <p className="text-sm font-medium text-slate-800 truncate">{task.title}</p>
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      {new Date(task.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                      {dueDate && !isNaN(new Date(dueDate).getTime())
+                        ? new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short" })
+                        : "Sin fecha"}
                     </p>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
