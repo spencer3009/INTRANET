@@ -1026,9 +1026,16 @@ function ExamsContent({ exams, studentId }) {
     if (attempt) {
       return { status: "completed", label: "Completado", color: "bg-emerald-100 text-emerald-700", borderColor: "border-emerald-200", score: attempt.score };
     }
+    
+    // Use is_available flag from API if present, otherwise calculate
+    if (exam.is_available === false && exam.availability_message?.includes('finalizado')) {
+      return { status: "closed", label: "Cerrado", color: "bg-red-100 text-red-700", borderColor: "border-red-200" };
+    }
+    
     const now = new Date();
-    const startDate = new Date(exam.start_date);
-    const endDate = new Date(exam.end_date);
+    const startDate = new Date(exam.start_datetime || exam.start_date);
+    const endDate = new Date(exam.end_datetime || exam.end_date);
+    
     if (now < startDate) {
       return { status: "upcoming", label: "Próximamente", color: "bg-slate-100 text-slate-600", borderColor: "border-slate-200" };
     }
