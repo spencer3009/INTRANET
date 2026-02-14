@@ -509,7 +509,27 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 **Fecha**: 2025-02-14
 **Cambios recientes**:
 
-### Sesión actual (2025-02-14) - Vista de detalle de tarea y formulario de entrega
+### Sesión actual (2025-02-14) - Editor Rich Text para entrega de tareas
+
+1. ✅ **Editor de texto enriquecido Tiptap** - COMPLETADO
+   - **Componente `RichTextEditor`** con barra de herramientas completa:
+     - H1, H2, H3 (encabezados)
+     - Negrita, Cursiva, Subrayado, Tachado
+     - Resaltador de texto
+     - Listas (viñetas y numeradas)
+     - Alineación (izquierda, centro, derecha, justificado)
+     - Cita en bloque y código
+     - Enlaces
+   
+   - **Integración con TaskSubmissionForm**:
+     - Reemplaza textarea simple con editor WYSIWYG
+     - Guarda contenido como HTML
+     - Validación mejorada para contenido HTML
+   
+   - **Extensiones Tiptap utilizadas**:
+     - StarterKit, Underline, Link, TextAlign, Highlight, Placeholder
+
+### Sesión anterior (2025-02-14) - Vista de detalle de tarea y formulario de entrega
 
 1. ✅ **Botón de ojo para ver tarea + Vista de detalle** - COMPLETADO
    - **Problema**: No había forma de acceder al detalle de la tarea ni entregarla
