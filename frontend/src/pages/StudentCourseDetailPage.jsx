@@ -7,10 +7,10 @@ import MessageCenter from "../components/MessageCenter";
 import {
   BookOpen, ArrowLeft, Clock, Calendar, User, Users,
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
-  MessageCircle, Bell, Trophy, Download,
+  MessageCircle, Bell, Trophy, Download, Upload, X,
   Loader2, AlertCircle, File as FileIcon, 
   ChevronRight, CheckCircle, Lock, Play,
-  Eye, ExternalLink, Heart
+  Eye, ExternalLink, Heart, Send
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
