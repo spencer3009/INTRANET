@@ -817,6 +817,224 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
   );
 }
 
+// Rich Text Editor Component for Task Submission
+function RichTextEditor({ content, onChange, placeholder }) {
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+      }),
+      Highlight.configure({
+        multicolor: true,
+      }),
+      Placeholder.configure({
+        placeholder: placeholder || 'Escribe tu respuesta aquí...',
+      }),
+    ],
+    content: content,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+  });
+
+  if (!editor) {
+    return null;
+  }
+
+  const addLink = () => {
+    const url = window.prompt('URL del enlace:');
+    if (url) {
+      editor.chain().focus().setLink({ href: url }).run();
+    }
+  };
+
+  const ToolbarButton = ({ onClick, isActive, children, title }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`p-2 rounded-lg transition-colors ${
+        isActive 
+          ? 'bg-cyan-100 text-cyan-700' 
+          : 'text-slate-600 hover:bg-slate-100'
+      }`}
+      title={title}
+    >
+      {children}
+    </button>
+  );
+
+  const ToolbarDivider = () => (
+    <div className="w-px h-6 bg-slate-200 mx-1" />
+  );
+
+  return (
+    <div className="border border-slate-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-cyan-500 focus-within:border-transparent">
+      {/* Toolbar */}
+      <div className="flex items-center gap-0.5 p-2 bg-slate-50 border-b border-slate-200 flex-wrap">
+        {/* Headings */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+          isActive={editor.isActive('heading', { level: 1 })}
+          title="Título 1"
+        >
+          <span className="text-sm font-bold">H1</span>
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+          isActive={editor.isActive('heading', { level: 2 })}
+          title="Título 2"
+        >
+          <span className="text-sm font-bold">H2</span>
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+          isActive={editor.isActive('heading', { level: 3 })}
+          title="Título 3"
+        >
+          <span className="text-sm font-bold">H3</span>
+        </ToolbarButton>
+
+        <ToolbarDivider />
+
+        {/* Text formatting */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBold().run()}
+          isActive={editor.isActive('bold')}
+          title="Negrita"
+        >
+          <Bold className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleItalic().run()}
+          isActive={editor.isActive('italic')}
+          title="Cursiva"
+        >
+          <Italic className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleUnderline().run()}
+          isActive={editor.isActive('underline')}
+          title="Subrayado"
+        >
+          <UnderlineIcon className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleStrike().run()}
+          isActive={editor.isActive('strike')}
+          title="Tachado"
+        >
+          <Strikethrough className="w-4 h-4" />
+        </ToolbarButton>
+
+        <ToolbarDivider />
+
+        {/* Highlight */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleHighlight().run()}
+          isActive={editor.isActive('highlight')}
+          title="Resaltar"
+        >
+          <Highlighter className="w-4 h-4" />
+        </ToolbarButton>
+
+        <ToolbarDivider />
+
+        {/* Lists */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBulletList().run()}
+          isActive={editor.isActive('bulletList')}
+          title="Lista con viñetas"
+        >
+          <List className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleOrderedList().run()}
+          isActive={editor.isActive('orderedList')}
+          title="Lista numerada"
+        >
+          <ListOrdered className="w-4 h-4" />
+        </ToolbarButton>
+
+        <ToolbarDivider />
+
+        {/* Alignment */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('left').run()}
+          isActive={editor.isActive({ textAlign: 'left' })}
+          title="Alinear izquierda"
+        >
+          <AlignLeft className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('center').run()}
+          isActive={editor.isActive({ textAlign: 'center' })}
+          title="Centrar"
+        >
+          <AlignCenter className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('right').run()}
+          isActive={editor.isActive({ textAlign: 'right' })}
+          title="Alinear derecha"
+        >
+          <AlignRight className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+          isActive={editor.isActive({ textAlign: 'justify' })}
+          title="Justificar"
+        >
+          <AlignJustify className="w-4 h-4" />
+        </ToolbarButton>
+
+        <ToolbarDivider />
+
+        {/* Quote and Code */}
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleBlockquote().run()}
+          isActive={editor.isActive('blockquote')}
+          title="Cita"
+        >
+          <Quote className="w-4 h-4" />
+        </ToolbarButton>
+        <ToolbarButton
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+          isActive={editor.isActive('codeBlock')}
+          title="Código"
+        >
+          <Code className="w-4 h-4" />
+        </ToolbarButton>
+
+        <ToolbarDivider />
+
+        {/* Link */}
+        <ToolbarButton
+          onClick={addLink}
+          isActive={editor.isActive('link')}
+          title="Insertar enlace"
+        >
+          <LinkIcon className="w-4 h-4" />
+        </ToolbarButton>
+      </div>
+
+      {/* Editor Content */}
+      <EditorContent 
+        editor={editor} 
+        className="prose prose-sm max-w-none p-4 min-h-[200px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[180px] [&_.ProseMirror_p.is-editor-empty:first-child::before]:text-slate-400 [&_.ProseMirror_p.is-editor-empty:first-child::before]:content-[attr(data-placeholder)] [&_.ProseMirror_p.is-editor-empty:first-child::before]:float-left [&_.ProseMirror_p.is-editor-empty:first-child::before]:pointer-events-none [&_.ProseMirror_p.is-editor-empty:first-child::before]:h-0"
+      />
+    </div>
+  );
+}
+
 // Task Submission Form Component
 function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
   const [textContent, setTextContent] = useState('');
