@@ -1041,7 +1041,7 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
         <div className="col-span-2">Tipo</div>
         <div className="col-span-2">Fecha de entrega</div>
         <div className="col-span-2">Puntaje</div>
-        <div className="col-span-1">Acción</div>
+        <div className="col-span-1">Opciones</div>
       </div>
       
       {/* Table Body */}
