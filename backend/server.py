@@ -1152,6 +1152,20 @@ async def get_student_courses(current_user = Depends(get_current_user)):
     if not seccion_id:
         return {"courses": [], "message": "No tienes una sección asignada"}
     
+    # Get section info with grade and level names
+    section = await db.sections.find_one({"id": seccion_id, "school_id": school_id}, {"_id": 0})
+    section_name = section.get("nombre", "-") if section else "-"
+    
+    grade = None
+    grade_name = "-"
+    level_name = "-"
+    if section and section.get("grado_id"):
+        grade = await db.grades.find_one({"id": section["grado_id"], "school_id": school_id}, {"_id": 0})
+        grade_name = grade.get("nombre", "-") if grade else "-"
+        if grade and grade.get("nivel_id"):
+            level = await db.academic_levels.find_one({"id": grade["nivel_id"], "school_id": school_id}, {"_id": 0})
+            level_name = level.get("nombre", "-") if level else "-"
+    
     # Get academic assignments for this section (from academic_assignments collection)
     assignments = await db.academic_assignments.find({
         "school_id": school_id,
@@ -1199,7 +1213,10 @@ async def get_student_courses(current_user = Depends(get_current_user)):
                 "materials_count": materials_count,
                 "tasks_count": tasks_count,
                 "section_id": seccion_id,
-                "grade_id": assignment.get("grade_id")
+                "section_name": section_name,
+                "grade_id": assignment.get("grade_id"),
+                "grade_name": grade_name,
+                "level_name": level_name
             })
     
     return {"courses": courses}
