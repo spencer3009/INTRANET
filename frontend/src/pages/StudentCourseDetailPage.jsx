@@ -808,6 +808,8 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
 
 // Tasks Content - Table view like owner's portal (Read-only for students)
 function TasksContent({ tasks, studentId, onSubmitTask }) {
+  const [selectedTask, setSelectedTask] = useState(null);
+
   if (tasks.length === 0) {
     return (
       <EmptyState
@@ -855,6 +857,180 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
     }
     return { status: "pending", label: "Pendiente", color: "bg-amber-100 text-amber-700" };
   };
+
+  // Task Detail View Component
+  if (selectedTask) {
+    const taskStatus = getTaskStatus(selectedTask);
+    const dueDate = getTaskDueDate(selectedTask);
+    const deliveryType = getDeliveryTypeLabel(selectedTask);
+    const maxGrade = selectedTask.max_grade || selectedTask.metadata?.points || 20;
+    const totalStudents = 2; // This would come from course data
+    const submittedCount = selectedTask.submissions?.length || 0;
+    const notSubmittedCount = totalStudents - submittedCount;
+
+    return (
+      <div className="space-y-6">
+        {/* Header with back button */}
+        <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-violet-500 rounded-2xl p-6 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl" />
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => setSelectedTask(null)}
+                className="flex items-center gap-2 text-white/80 hover:text-white transition-colors"
+                data-testid="back-to-tasks-btn"
+              >
+                <ArrowLeft className="w-5 h-5" />
+                <span>Volver a tareas</span>
+              </button>
+              <span className="px-3 py-1 bg-white/20 rounded-full text-sm font-medium border border-white/30">
+                Publicado
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <FileText className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-white/70 text-sm">Inicial • 3 años</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Task Title */}
+            <div className="bg-white rounded-2xl p-6 border border-slate-200">
+              <h1 className="text-2xl font-bold text-slate-800 mb-4">{selectedTask.title}</h1>
+              
+              {/* Task Content */}
+              <div className="prose prose-slate max-w-none">
+                <div 
+                  dangerouslySetInnerHTML={{ 
+                    __html: selectedTask.content || 'Sin contenido adicional' 
+                  }}
+                />
+              </div>
+
+              {/* File attachment if exists */}
+              {selectedTask.file_url && (
+                <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                  <a
+                    href={selectedTask.file_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 text-indigo-600 hover:text-indigo-700"
+                  >
+                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <FileIcon className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium">{selectedTask.file_name || 'Archivo adjunto'}</p>
+                      <p className="text-sm text-slate-500">Click para descargar</p>
+                    </div>
+                    <Download className="w-5 h-5 ml-auto" />
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Task Section */}
+            {taskStatus.status === "pending" && (
+              <div className="bg-gradient-to-r from-cyan-50 to-blue-50 rounded-2xl p-6 border border-cyan-200">
+                <h3 className="font-semibold text-slate-800 mb-2">¿Listo para entregar?</h3>
+                <p className="text-slate-600 text-sm mb-4">
+                  Tipo de entrega: <span className="font-medium">{deliveryType}</span>
+                </p>
+                <button
+                  onClick={() => onSubmitTask(selectedTask)}
+                  className="px-6 py-3 bg-cyan-500 text-white rounded-xl font-medium hover:bg-cyan-600 transition-colors flex items-center gap-2"
+                  data-testid="submit-task-detail-btn"
+                >
+                  <CheckCircle className="w-5 h-5" />
+                  Entregar tarea
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Sidebar Info */}
+          <div className="space-y-4">
+            {/* Students Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-3">
+                <h4 className="font-bold text-white flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Estudiantes
+                </h4>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Curso:</span>
+                  <span className="font-medium text-slate-800">Comunicación</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Grado:</span>
+                  <span className="font-medium text-slate-800">3 años</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Sección:</span>
+                  <span className="font-medium text-slate-800">A</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Estudiantes totales:</span>
+                  <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">{totalStudents}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Entregada:</span>
+                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-sm font-medium">{submittedCount}</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-slate-600">Sin entregar:</span>
+                  <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-sm font-medium">{notSubmittedCount}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Task Info Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+              <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3">
+                <h4 className="font-bold text-white flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Información
+                </h4>
+              </div>
+              <div className="p-4 space-y-3">
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Estado:</span>
+                  <span className={`px-2 py-0.5 rounded-full text-sm font-medium ${taskStatus.color}`}>
+                    {taskStatus.label}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Tipo:</span>
+                  <span className="font-medium text-slate-800">{deliveryType}</span>
+                </div>
+                <div className="flex justify-between items-center py-2 border-b border-slate-100">
+                  <span className="text-slate-600">Puntaje:</span>
+                  <span className="font-medium text-slate-800">{maxGrade} pts</span>
+                </div>
+                <div className="flex justify-between items-center py-2">
+                  <span className="text-slate-600">Fecha límite:</span>
+                  <span className="font-medium text-slate-800">
+                    {dueDate && !isNaN(new Date(dueDate).getTime())
+                      ? new Date(dueDate).toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" })
+                      : "Sin fecha"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
