@@ -1392,12 +1392,58 @@ function ForumContent({ posts, token, user }) {
                               <span className="text-xs text-slate-400">{getTimeAgo(comment.created_at)}</span>
                             </div>
                             <p className="text-sm text-slate-600">{comment.content}</p>
+                            
+                            {/* Reply Button */}
+                            <button
+                              onClick={() => setReplyingTo({ id: comment.id, authorName: comment.author?.name || 'Usuario' })}
+                              className="text-xs text-emerald-600 hover:text-emerald-700 font-medium mt-2"
+                            >
+                              Responder
+                            </button>
+                            
+                            {/* Reply Input */}
+                            {replyingTo?.id === comment.id && (
+                              <div className="flex items-start gap-2 mt-3">
+                                {user?.photo_url ? (
+                                  <img src={user.photo_url} alt={user?.name} className="w-7 h-7 rounded-full object-cover" />
+                                ) : (
+                                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center text-white text-xs font-bold">
+                                    {user?.name?.charAt(0) || 'E'}
+                                  </div>
+                                )}
+                                <div className="flex-1">
+                                  <textarea
+                                    value={replyText}
+                                    onChange={(e) => setReplyText(e.target.value)}
+                                    placeholder={`Responder a ${replyingTo.authorName}...`}
+                                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm resize-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                                    rows={2}
+                                    autoFocus
+                                  />
+                                  <div className="flex justify-end gap-2 mt-2">
+                                    <button
+                                      onClick={() => { setReplyingTo(null); setReplyText(""); }}
+                                      className="px-3 py-1 text-slate-500 text-xs font-medium hover:bg-slate-100 rounded-lg"
+                                    >
+                                      Cancelar
+                                    </button>
+                                    <button
+                                      onClick={() => handleSubmitReply(comment.id)}
+                                      disabled={!replyText.trim() || submittingReply}
+                                      className="px-3 py-1 bg-emerald-500 text-white text-xs font-medium rounded-lg hover:bg-emerald-600 disabled:opacity-50"
+                                    >
+                                      {submittingReply ? 'Enviando...' : 'Responder'}
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         </div>
                         
                         {/* Replies */}
                         {comment.replies?.length > 0 && (
-                          <div className="ml-12 mt-3 space-y-3 border-l-2 border-slate-200 pl-4">
+                          <div className="ml-12 mt-3 space-y-3 border-l-2 border-emerald-200 pl-4">
                             {comment.replies.map((reply) => (
                               <div key={reply.id} className="flex items-start gap-2">
                                 {reply.author?.photo_url ? (
@@ -1407,12 +1453,12 @@ function ForumContent({ posts, token, user }) {
                                     {reply.author?.name?.charAt(0) || 'U'}
                                   </div>
                                 )}
-                                <div>
+                                <div className="flex-1 bg-white rounded-lg px-3 py-2">
                                   <div className="flex items-center gap-2">
                                     <span className="font-semibold text-xs text-slate-800">{reply.author?.name}</span>
                                     <span className="text-xs text-slate-400">{getTimeAgo(reply.created_at)}</span>
                                   </div>
-                                  <p className="text-xs text-slate-600">{reply.content}</p>
+                                  <p className="text-xs text-slate-600 mt-1">{reply.content}</p>
                                 </div>
                               </div>
                             ))}
