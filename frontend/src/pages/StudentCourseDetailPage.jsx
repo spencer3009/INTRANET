@@ -282,10 +282,16 @@ function PostCard({ post, token, user }) {
         )}
         
         {/* Due date for tasks */}
-        {post.due_date && (
+        {(post.due_date || post.metadata?.due_date) && (
           <div className="mt-3 flex items-center gap-2 text-amber-600 text-sm font-medium">
             <Clock className="w-4 h-4" />
-            Fecha de entrega: {new Date(post.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })}
+            Fecha de entrega: {(() => {
+              const dateStr = post.due_date || post.metadata?.due_date;
+              const date = new Date(dateStr);
+              return !isNaN(date.getTime()) 
+                ? date.toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })
+                : "Sin fecha definida";
+            })()}
           </div>
         )}
       </div>
