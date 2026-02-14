@@ -911,15 +911,15 @@ function MaterialContent({ materials }) {
     );
   }
 
-  // Get file icon based on extension
-  const getFileIcon = (filename) => {
+  // Get file icon based on extension or type
+  const getFileIcon = (filename, fileType) => {
     const ext = filename?.split('.').pop()?.toLowerCase();
-    if (['pdf'].includes(ext)) return { icon: FileIcon, color: 'text-red-500 bg-red-50' };
-    if (['doc', 'docx'].includes(ext)) return { icon: FileIcon, color: 'text-blue-500 bg-blue-50' };
-    if (['xls', 'xlsx'].includes(ext)) return { icon: FileIcon, color: 'text-green-500 bg-green-50' };
-    if (['ppt', 'pptx'].includes(ext)) return { icon: FileIcon, color: 'text-orange-500 bg-orange-50' };
-    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) return { icon: FileIcon, color: 'text-purple-500 bg-purple-50' };
-    if (['mp4', 'avi', 'mov'].includes(ext)) return { icon: Play, color: 'text-pink-500 bg-pink-50' };
+    if (['pdf'].includes(ext) || fileType?.includes('pdf')) return { icon: FileIcon, color: 'text-red-500 bg-red-50' };
+    if (['doc', 'docx'].includes(ext) || fileType?.includes('word')) return { icon: FileIcon, color: 'text-blue-500 bg-blue-50' };
+    if (['xls', 'xlsx'].includes(ext) || fileType?.includes('excel') || fileType?.includes('spreadsheet')) return { icon: FileIcon, color: 'text-green-500 bg-green-50' };
+    if (['ppt', 'pptx'].includes(ext) || fileType?.includes('presentation')) return { icon: FileIcon, color: 'text-orange-500 bg-orange-50' };
+    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext) || fileType?.includes('image')) return { icon: FileIcon, color: 'text-purple-500 bg-purple-50' };
+    if (['mp4', 'avi', 'mov'].includes(ext) || fileType?.includes('video')) return { icon: Play, color: 'text-pink-500 bg-pink-50' };
     return { icon: FileIcon, color: 'text-slate-500 bg-slate-50' };
   };
 
@@ -936,73 +936,71 @@ function MaterialContent({ materials }) {
       {/* Table Body */}
       <div className="divide-y divide-slate-100">
         {materials.map((material) => {
-          const hasAttachments = material.attachments?.length > 0;
+          // Check for file_url (direct field) or attachments array
+          const hasFile = material.file_url || (material.attachments && material.attachments.length > 0);
+          const fileUrl = material.file_url || material.attachments?.[0]?.url;
+          const fileName = material.file_name || material.attachments?.[0]?.name || material.title;
+          const fileType = material.file_type || material.attachments?.[0]?.type;
+          const fileStyle = getFileIcon(fileName, fileType);
+          const FileIconComp = fileStyle.icon;
+          
+          // Get file extension for display
+          const fileExtension = fileName?.split('.').pop()?.toUpperCase() || 'ARCHIVO';
           
           return (
-            <div key={material.id}>
-              {/* Material Title Row */}
-              <div className="px-6 py-3 bg-indigo-50/50">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
-                    <FolderOpen className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-800">{material.title}</h3>
-                    {material.description && (
-                      <p className="text-xs text-slate-500 mt-0.5">{material.description}</p>
-                    )}
-                  </div>
+            <div key={material.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
+              {/* File Name */}
+              <div className="col-span-5 flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${fileStyle.color}`}>
+                  <FileIconComp className="w-5 h-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-medium text-slate-800 truncate">{material.title}</p>
+                  {hasFile && fileName && (
+                    <p className="text-xs text-slate-400 truncate">{fileName}</p>
+                  )}
                 </div>
               </div>
               
-              {/* Files */}
-              {hasAttachments ? (
-                material.attachments.map((file, idx) => {
-                  const fileStyle = getFileIcon(file.name);
-                  const FileIconComp = fileStyle.icon;
-                  
-                  return (
-                    <div key={idx} className="grid grid-cols-12 gap-4 px-6 py-3 items-center hover:bg-slate-50 transition-colors">
-                      {/* File Name */}
-                      <div className="col-span-5 flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${fileStyle.color}`}>
-                          <FileIconComp className="w-4 h-4" />
-                        </div>
-                        <span className="text-sm text-slate-700 truncate">{file.name}</span>
-                      </div>
-                      
-                      {/* Type */}
-                      <div className="col-span-2">
-                        <span className="text-xs text-slate-500 uppercase">
-                          {file.name?.split('.').pop() || 'archivo'}
-                        </span>
-                      </div>
-                      
-                      {/* Date */}
-                      <div className="col-span-3 text-sm text-slate-500">
-                        {new Date(material.created_at).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}
-                      </div>
-                      
-                      {/* Download */}
-                      <div className="col-span-2 text-center">
-                        <a
-                          href={file.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex p-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
-                          title="Descargar"
-                        >
-                          <Download className="w-4 h-4" />
-                        </a>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="px-6 py-3 text-sm text-slate-400 italic">
-                  Sin archivos adjuntos
-                </div>
-              )}
+              {/* Type */}
+              <div className="col-span-2">
+                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                  fileExtension === 'PDF' ? 'bg-red-100 text-red-700' :
+                  ['DOC', 'DOCX'].includes(fileExtension) ? 'bg-blue-100 text-blue-700' :
+                  ['XLS', 'XLSX'].includes(fileExtension) ? 'bg-green-100 text-green-700' :
+                  'bg-slate-100 text-slate-700'
+                }`}>
+                  {fileExtension}
+                </span>
+              </div>
+              
+              {/* Date */}
+              <div className="col-span-3 text-sm text-slate-600">
+                {new Date(material.created_at).toLocaleDateString("es-PE", { 
+                  day: "numeric", 
+                  month: "short", 
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit"
+                })}
+              </div>
+              
+              {/* Download */}
+              <div className="col-span-2 text-center">
+                {hasFile ? (
+                  <a
+                    href={fileUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex p-2.5 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+                    title="Descargar archivo"
+                  >
+                    <Download className="w-4 h-4" />
+                  </a>
+                ) : (
+                  <span className="text-slate-400 text-sm">-</span>
+                )}
+              </div>
             </div>
           );
         })}
