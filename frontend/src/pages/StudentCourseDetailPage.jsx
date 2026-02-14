@@ -503,9 +503,19 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
     return date.toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" });
   };
   
+  // Helper to get task due date
+  const getTaskDueDate = (task) => {
+    if (task.due_date) return task.due_date;
+    if (task.metadata?.due_date) return task.metadata.due_date;
+    return null;
+  };
+
   // Get upcoming tasks (next 7 days)
   const upcomingTasks = tasks
-    .filter(t => new Date(t.due_date) > new Date())
+    .filter(t => {
+      const dueDate = getTaskDueDate(t);
+      return dueDate && new Date(dueDate) > new Date();
+    })
     .slice(0, 3);
   
   // Get recent activity (all posts combined including forum posts)
