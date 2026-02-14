@@ -1642,9 +1642,16 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       setMaterials(allPosts.filter(p => p.post_type === "material"));
       setForumPosts(allPosts.filter(p => p.post_type === "forum"));
       
-      // Load exams
-      const examsRes = await axios.get(`${API}/api/exams?subject_id=${courseId}`, { headers }).catch(() => ({ data: [] }));
-      setExams(examsRes.data || []);
+      // Load exams - correct endpoint: /api/course/{subject_id}/exams
+      try {
+        const examsRes = await axios.get(`${API}/api/course/${courseId}/exams`, { headers });
+        // Filter to only show published exams for students
+        const publishedExams = (examsRes.data || []).filter(e => e.status === 'published' || e.status === 'scheduled');
+        setExams(publishedExams);
+      } catch (e) {
+        console.log("Could not load exams:", e);
+        setExams([]);
+      }
       
     } catch (err) {
       console.error("Error loading content:", err);
