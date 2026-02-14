@@ -1093,8 +1093,19 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
                 )}
               </div>
               
-              {/* Action */}
-              <div className="col-span-1">
+              {/* Action - View button (eye) + submit/status */}
+              <div className="col-span-1 flex items-center gap-1">
+                {/* Eye button to view task */}
+                <button
+                  onClick={() => setSelectedTask(task)}
+                  className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
+                  title="Ver tarea"
+                  data-testid={`view-task-${task.id}`}
+                >
+                  <Eye className="w-4 h-4" />
+                </button>
+                
+                {/* Submit/Status indicator */}
                 {taskStatus.status === "pending" && (
                   <button
                     onClick={() => onSubmitTask(task)}
@@ -1106,13 +1117,18 @@ function TasksContent({ tasks, studentId, onSubmitTask }) {
                   </button>
                 )}
                 {taskStatus.status === "submitted" && (
-                  <span className="text-blue-500">
-                    <CheckCircle className="w-5 h-5" />
+                  <span className="p-2 text-blue-500" title="Entregada">
+                    <CheckCircle className="w-4 h-4" />
                   </span>
                 )}
                 {taskStatus.status === "graded" && (
-                  <span className="text-emerald-500">
-                    <Trophy className="w-5 h-5" />
+                  <span className="p-2 text-emerald-500" title="Calificada">
+                    <Trophy className="w-4 h-4" />
+                  </span>
+                )}
+                {taskStatus.status === "late" && (
+                  <span className="p-2 text-red-500" title="Vencida">
+                    <AlertCircle className="w-4 h-4" />
                   </span>
                 )}
               </div>
