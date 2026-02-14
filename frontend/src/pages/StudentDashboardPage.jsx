@@ -430,7 +430,9 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                 
                 <div className="divide-y divide-slate-100 flex-1">
                   {dashboardData?.upcoming_tasks?.length > 0 ? (
-                    dashboardData.upcoming_tasks.slice(0, 6).map((task) => (
+                    dashboardData.upcoming_tasks.slice(0, 6).map((task) => {
+                      const dueDate = task.due_date || task.metadata?.due_date;
+                      return (
                       <div 
                         key={task.id}
                         onClick={() => navigateTo(`/student/courses/${task.subject_id}`)}
@@ -446,12 +448,15 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium text-slate-700">
-                            {new Date(task.due_date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                            {dueDate && !isNaN(new Date(dueDate).getTime())
+                              ? new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short" })
+                              : "Sin fecha"}
                           </p>
                           <p className="text-xs text-slate-400">Fecha límite</p>
                         </div>
                       </div>
-                    ))
+                      );
+                    })
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
                       <CheckCircle className="w-16 h-16 mx-auto mb-4 text-emerald-300" />
