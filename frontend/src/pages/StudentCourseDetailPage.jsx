@@ -1864,10 +1864,17 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
                 </span>
               </div>
               
-              {/* Due Date */}
+              {/* Due Date with Time */}
               <div className="col-span-2 text-sm text-slate-600">
                 {dueDate && !isNaN(new Date(dueDate).getTime()) 
-                  ? new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })
+                  ? (
+                    <div>
+                      <span className="font-medium">{new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}</span>
+                      <span className="text-slate-400 ml-1 text-xs">
+                        {new Date(dueDate).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: true })}
+                      </span>
+                    </div>
+                  )
                   : <span className="text-slate-400">Sin fecha</span>
                 }
               </div>
