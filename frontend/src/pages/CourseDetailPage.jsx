@@ -2185,6 +2185,485 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// EDIT TASK MODAL - Modal for editing existing tasks
+// ══════════════════════════════════════════════════════════════════════════════
+function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [deliveryType, setDeliveryType] = useState("text");
+  const [dueDate, setDueDate] = useState("");
+  const [dueTime, setDueTime] = useState("23:59:00");
+  const [showToStudents, setShowToStudents] = useState(true);
+  const [points, setPoints] = useState("");
+  const [file, setFile] = useState(null);
+  const [existingFile, setExistingFile] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  // Populate form with task data when modal opens
+  useEffect(() => {
+    if (isOpen && task) {
+      setTitle(task.title || "");
+      setDescription(task.content || "");
+      
+      // Extract delivery type from content or metadata
+      const deliveryTypeFromMetadata = task.metadata?.delivery_type;
+      if (deliveryTypeFromMetadata) {
+        setDeliveryType(deliveryTypeFromMetadata);
+      } else if (task.content?.includes("Texto y archivos")) {
+        setDeliveryType("both");
+      } else if (task.content?.includes("Archivos")) {
+        setDeliveryType("files");
+      } else {
+        setDeliveryType("text");
+      }
+      
+      // Extract due date and time
+      const dueDateValue = task.metadata?.due_date || task.due_date;
+      if (dueDateValue) {
+        const dateObj = new Date(dueDateValue);
+        if (!isNaN(dateObj.getTime())) {
+          setDueDate(dateObj.toISOString().split('T')[0]);
+          const hours = dateObj.getHours().toString().padStart(2, '0');
+          const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+          setDueTime(`${hours}:${minutes}:00`);
+        }
+      }
+      
+      // Extract visibility
+      setShowToStudents(task.metadata?.show_to_students !== false);
+      
+      // Extract points
+      const pointsValue = task.metadata?.points;
+      setPoints(pointsValue ? String(pointsValue) : "");
+      
+      // Extract existing file
+      if (task.file_url) {
+        setExistingFile({
+          url: task.file_url,
+          name: task.file_name || "Archivo adjunto",
+          type: task.file_type
+        });
+      } else {
+        setExistingFile(null);
+      }
+      
+      setFile(null);
+      setError("");
+    }
+  }, [isOpen, task]);
+  
+  const handleFileSelect = (e) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    
+    if (selectedFile.size > 25 * 1024 * 1024) {
+      setError('El archivo no debe superar 25MB');
+      return;
+    }
+    
+    setFile(selectedFile);
+    setExistingFile(null);
+    setError("");
+  };
+  
+  const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
+    const resourceType = isRawFile ? 'raw' : 'auto';
+    
+    const signatureRes = await axios.get(
+      `${API}/cloudinary/signature?folder=${folder}&resource_type=${resourceType}`,
+      { headers }
+    );
+    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder, access_mode } = signatureRes.data;
+    
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('signature', signature);
+    formData.append('timestamp', timestamp);
+    formData.append('api_key', api_key);
+    formData.append('folder', uploadFolder);
+    
+    if (access_mode) {
+      formData.append('access_mode', access_mode);
+    }
+    
+    const uploadEndpoint = isRawFile ? 'raw' : 'auto';
+    
+    const uploadRes = await axios.post(
+      `https://api.cloudinary.com/v1_1/${cloud_name}/${uploadEndpoint}/upload`,
+      formData,
+      {
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(progress);
+        }
+      }
+    );
+    
+    return uploadRes.data.secure_url;
+  };
+  
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      setError("El título es requerido");
+      return;
+    }
+    
+    if (!dueDate) {
+      setError("La fecha de entrega es requerida");
+      return;
+    }
+    
+    setSubmitting(true);
+    setError("");
+    
+    try {
+      let fileUrl = existingFile?.url || null;
+      let fileName = existingFile?.name || null;
+      let fileType = existingFile?.type || null;
+      
+      // Upload new file if selected
+      if (file) {
+        const isRawFile = !file.type.startsWith('image/');
+        fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
+        fileName = file.name;
+        fileType = file.type || 'application/octet-stream';
+      }
+      
+      // Combine date and time
+      const dueDateTime = `${dueDate}T${dueTime}`;
+      
+      // Build content with delivery type info
+      const deliveryTypeLabel = deliveryType === 'text' ? 'Texto en línea' : deliveryType === 'files' ? 'Archivos' : 'Texto y archivos';
+      const content = `Tipo de entrega: ${deliveryTypeLabel}${points ? ` | Puntos: ${points}` : ''}${!showToStudents ? ' | (Oculto para estudiantes)' : ''}\n\nFecha de entrega: ${new Date(dueDateTime).toLocaleString('es-PE', { dateStyle: 'long', timeStyle: 'short' })}`;
+      
+      const updateData = {
+        title: title.trim(),
+        content: content,
+        file_url: fileUrl,
+        file_name: fileName,
+        file_type: fileType,
+        metadata: {
+          delivery_type: deliveryType,
+          due_date: dueDateTime,
+          show_to_students: showToStudents,
+          points: points ? parseInt(points) : null
+        }
+      };
+      
+      const res = await axios.put(`${API}/course/posts/${task.id}`, updateData, { headers });
+      
+      // Return the updated task with all original data merged
+      const updatedTask = {
+        ...task,
+        ...updateData,
+        updated_at: new Date().toISOString()
+      };
+      
+      // If the API returns the updated post, use that instead
+      if (res.data.post) {
+        onTaskUpdated(res.data.post);
+      } else {
+        onTaskUpdated(updatedTask);
+      }
+      
+      onClose();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Error al actualizar la tarea');
+    } finally {
+      setSubmitting(false);
+      setUploadProgress(0);
+    }
+  };
+  
+  if (!isOpen || !task) return null;
+  
+  // Get file extension icon
+  const getFileIcon = (fileName) => {
+    if (!fileName) return FileIcon;
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (['pdf'].includes(ext)) return FileIcon;
+    if (['doc', 'docx'].includes(ext)) return FileIcon;
+    if (['xls', 'xlsx'].includes(ext)) return FileIcon;
+    if (['ppt', 'pptx'].includes(ext)) return FileIcon;
+    return FileIcon;
+  };
+  
+  const FileIconComponent = file ? getFileIcon(file.name) : existingFile ? getFileIcon(existingFile.name) : FileIcon;
+  
+  // Calculate min date (today)
+  const today = new Date().toISOString().split('T')[0];
+  
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Header - Premium gradient */}
+        <div className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-amber-500 via-orange-500 to-red-500" />
+          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0djItSDI0di0yaDEyem0wLTRoLTEydjJoMTJ2LTJ6bTAtNGgtMTJ2MmgxMnYtMnoiLz48L2c+PC9nPjwvc3ZnPg==')] opacity-30" />
+          
+          <div className="relative px-6 py-5 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-lg">
+                <Edit2 className="w-7 h-7 text-white" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Editar Tarea</h2>
+                <p className="text-sm text-white/80">Modifica los detalles de la tarea</p>
+              </div>
+            </div>
+            <button 
+              onClick={onClose} 
+              className="w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-xl flex items-center justify-center transition-colors"
+            >
+              <X className="w-5 h-5 text-white" />
+            </button>
+          </div>
+        </div>
+        
+        {/* Content */}
+        <div className="p-6 max-h-[65vh] overflow-y-auto custom-scroll">
+          {error && (
+            <div className="mb-5 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+              </div>
+              <p className="text-sm text-red-700 font-medium">{error}</p>
+            </div>
+          )}
+          
+          {/* Title */}
+          <div className="mb-5">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Título de la tarea <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Ej: Análisis del capítulo 5"
+              className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all"
+              data-testid="edit-task-title-input"
+            />
+          </div>
+          
+          {/* Date and Time Row */}
+          <div className="grid grid-cols-2 gap-4 mb-5">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Fecha de entrega <span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  min={today}
+                  className="w-full px-4 py-3.5 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 font-medium focus:outline-none focus:border-amber-400 focus:bg-white transition-all"
+                  data-testid="edit-task-date-input"
+                />
+                <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" />
+              </div>
+            </div>
+            <div>
+              <TaskTimePicker
+                value={dueTime}
+                onChange={setDueTime}
+                label="Hora límite"
+              />
+            </div>
+          </div>
+          
+          {/* Delivery Type */}
+          <div className="mb-5">
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Tipo de entrega
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { id: 'text', label: 'Texto en línea', icon: Type, desc: 'Respuesta escrita' },
+                { id: 'files', label: 'Archivos', icon: Upload, desc: 'Subir documentos' },
+                { id: 'both', label: 'Ambos', icon: Layers, desc: 'Texto y archivos' }
+              ].map((type) => {
+                const TypeIcon = type.icon;
+                const isSelected = deliveryType === type.id;
+                return (
+                  <button
+                    key={type.id}
+                    type="button"
+                    onClick={() => setDeliveryType(type.id)}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      isSelected 
+                        ? 'border-amber-400 bg-amber-50 shadow-md' 
+                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                    data-testid={`edit-delivery-type-${type.id}`}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-2 ${
+                      isSelected ? 'bg-amber-500 text-white' : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      <TypeIcon className="w-5 h-5" />
+                    </div>
+                    <p className={`font-semibold text-sm ${isSelected ? 'text-amber-700' : 'text-slate-700'}`}>
+                      {type.label}
+                    </p>
+                    <p className="text-xs text-slate-400 mt-0.5">{type.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          
+          {/* Points (Optional) */}
+          <div className="mb-5">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Puntos <span className="text-slate-400 font-normal">(opcional)</span>
+            </label>
+            <div className="relative w-32">
+              <input
+                type="number"
+                value={points}
+                onChange={(e) => setPoints(e.target.value)}
+                placeholder="100"
+                min="0"
+                max="1000"
+                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl text-slate-800 font-medium placeholder:text-slate-400 focus:outline-none focus:border-amber-400 focus:bg-white transition-all"
+                data-testid="edit-task-points-input"
+              />
+              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm text-slate-400">pts</span>
+            </div>
+          </div>
+          
+          {/* Visibility Toggle */}
+          <div className="mb-5 p-4 bg-gradient-to-r from-slate-50 to-slate-100/50 rounded-xl border border-slate-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${showToStudents ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
+                  {showToStudents ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-700">Mostrar a estudiantes</p>
+                  <p className="text-xs text-slate-400">
+                    {showToStudents ? 'Los estudiantes podrán ver esta tarea' : 'Solo visible para profesores'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowToStudents(!showToStudents)}
+                className={`relative w-14 h-8 rounded-full transition-colors duration-200 ${
+                  showToStudents ? 'bg-emerald-500' : 'bg-slate-300'
+                }`}
+                data-testid="edit-task-visibility-toggle"
+              >
+                <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ${
+                  showToStudents ? 'left-7' : 'left-1'
+                }`} />
+              </button>
+            </div>
+          </div>
+          
+          {/* File Attachment */}
+          <div className="mb-2">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Adjuntar material <span className="text-slate-400 font-normal">(opcional)</span>
+            </label>
+            
+            {(file || existingFile) ? (
+              <div className="p-4 bg-slate-50 rounded-xl border-2 border-slate-200 flex items-center gap-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <FileIconComponent className="w-6 h-6 text-amber-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-700 truncate">{file?.name || existingFile?.name}</p>
+                  <p className="text-xs text-slate-400">
+                    {file ? `${(file.size / 1024).toFixed(1)} KB` : 'Archivo existente'}
+                  </p>
+                </div>
+                <button 
+                  onClick={() => { setFile(null); setExistingFile(null); }} 
+                  className="w-8 h-8 bg-slate-200 hover:bg-red-100 hover:text-red-600 rounded-lg flex items-center justify-center text-slate-500 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-amber-400 hover:bg-amber-50/30 transition-all group">
+                <div className="w-14 h-14 bg-slate-100 group-hover:bg-amber-100 rounded-xl flex items-center justify-center mb-3 transition-colors">
+                  <Upload className="w-7 h-7 text-slate-400 group-hover:text-amber-600 transition-colors" />
+                </div>
+                <p className="text-sm font-semibold text-slate-600 group-hover:text-amber-700">Arrastra o haz clic para subir</p>
+                <p className="text-xs text-slate-400 mt-1">PDF, Word, Excel, PowerPoint hasta 25MB</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                />
+              </label>
+            )}
+          </div>
+          
+          {/* Upload Progress */}
+          {submitting && uploadProgress > 0 && (
+            <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="font-medium text-amber-700">Subiendo archivo...</span>
+                <span className="font-bold text-amber-600">{uploadProgress}%</span>
+              </div>
+              <div className="h-2 bg-amber-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 transition-all duration-300"
+                  style={{ width: `${uploadProgress}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-slate-100/50 border-t border-slate-200 flex items-center justify-between">
+          <button
+            onClick={onClose}
+            disabled={submitting}
+            className="px-5 py-2.5 text-slate-600 font-semibold hover:bg-slate-200 rounded-xl transition-colors"
+          >
+            Cancelar
+          </button>
+          
+          <button
+            onClick={handleSubmit}
+            disabled={submitting || !title.trim() || !dueDate}
+            className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl font-semibold transition-all flex items-center gap-2 shadow-lg shadow-amber-500/25 disabled:shadow-none"
+            data-testid="submit-edit-task-btn"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Check className="w-5 h-5" />
+                Guardar Cambios
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // PREMIUM FORUM MODAL - Beautiful forum topic creation experience
 // ══════════════════════════════════════════════════════════════════════════════
 function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCreated }) {
