@@ -1,55 +1,76 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project initially focused on building out the student-facing course detail page (). The work in this session expanded on that foundation, implementing a complete task submission workflow (including a rich text editor), a new Grades tab, and numerous UI/UX refinements based on user feedback.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project initially focused on building out the student and owner portals.
 
-The session concluded with two new requests from the user for the Owner's portal ():
-1.  Fix an Invalid Date bug in the tasks list.
-2.  Add an edit task functionality, accessible via a pencil icon.
+The user's most recent and highest-priority request is to implement a complete, secure integration with Google Drive for storing and managing academic materials (PDFs, documents, etc.), replacing the current Cloudinary-based workflow for these file types. Cloudinary will be reserved for images only. This is a mandatory feature for all schools using the platform.
 
 **PRODUCT REQUIREMENTS (current):**
-- **Objective:** Add an edit task button (pencil icon) to the tasks list in the Owner's portal (). This should allow the owner/teacher to edit existing tasks.
+- **Objective:** Implement Google Drive as the mandatory storage system for non-image files (Materiales de Estudio).
+- **Phases:**
+    1.  **Configuration:** Create a settings page for the Propietario (Owner) role to connect their school's Google Drive account via OAuth 2.0. The system must automatically create an EduNet/Materiales folder structure in their Drive.
+    2.  **Upload:** Modify the Materiales de Estudio upload process. All non-image files must be uploaded to the corresponding Google Drive folder. This should be blocked if Drive is not connected.
+    3.  **Download:** Implement a secure download mechanism. Students must be able to download materials through the EduNet backend, which will stream the file from Google Drive without exposing any direct Drive links or requiring the student to be logged into Google.
+- **Security:**
+    - Drive files must NOT be public.
+    - Refresh tokens must be encrypted in the database.
+    - The integration must be multi-tenant, with each school connecting its own Drive account.
+- **Environment:** The implementation must work in both preview and production environments by dynamically constructing the OAuth redirect URI from a  environment variable.
 
 **User's preferred language**: Spanish. The next agent MUST respond in Spanish.
 
 **what currently exists?**
-The application is a full-stack React/FastAPI/MongoDB app. The  has evolved into a highly functional area with multiple tabs:
-- **Tablero (Dashboard):** A 3-column layout with a Mi rendimiento (My Performance) card and a paginated feed of course activities. The column layout has a complex, custom smart sticky behavior implemented in JavaScript.
-- **Tareas (Tasks):** A complete task interaction system. Students can view tasks, see a detailed view, and submit them. A  component handles different delivery types (, , ) and includes a Tiptap-based rich text editor. The system correctly handles due dates, expired tasks, and optional late submissions.
-- **Calificaciones (Grades):** A new tab showing a grade summary and a detailed table of all graded assignments.
-- **Foro, Materiales, Exámenes:** Functional tabs from the previous session.
-
-The backend has been updated to support these features, including a new endpoint for task submission () and enhancements to save task metadata correctly.
+The application is a full-stack React/FastAPI/MongoDB app named EduNet.
+- **Owner Portal ():** Features task creation, a newly implemented task editing functionality, and a professional-grade archive/delete system for tasks. If a task has student submissions, it can only be archived (soft-deleted), not permanently deleted.
+- **Student Portal ():** Students can view course details, tasks, and grades. A prominent, eye-catching banner now appears for overdue tasks. The UI for the task list has been improved to only make the view icon clickable and to display the due time alongside the date.
+- **Backend ():** Endpoints have been added/modified to support task editing, archiving, and soft-deleting. The backend now also generates signed URLs for downloading private files from Cloudinary, although this is being superseded by the Google Drive integration for non-image files. The dependencies for the Google Drive API (, ) have been installed.
 
 **Last working item**:
-- **Last item agent was working:** The user requested the ability to edit tasks from the owner's portal. This is a new feature request.
+- **Last item agent was working:** Starting the implementation of the Google Drive integration. The agent received the detailed product requirements and the integration playbook, and has successfully installed the required Python libraries.
 - **Status**: NOT STARTED
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: frontend testing agent. This is a new feature involving a modal, API calls, and state updates, which is well-suited for the testing agent. The test should cover: opening the edit modal, populating it with existing task data, submitting changes, and verifying the task list updates correctly.
+- **Which testing method agent to use?**: both. This is a major, multi-phase feature involving complex backend OAuth flows, new API endpoints, and significant frontend UI changes. The testing agent will be crucial for end-to-end validation.
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Implement Edit Task functionality (P0)**
-    - **Description**: The user needs a pencil icon next to each task in the owner's portal () to open a modal and edit the task's details.
+- **Issue 1: Implement Google Drive Integration (P0)**
+    - **Description**: This is the primary task, detailed in the PRODUCT REQUIREMENTS section. It involves backend work for OAuth and API interaction, and frontend work for the settings UI and file upload/download flows.
     - **Status**: NOT STARTED
     - **Is recurring issue?**: N
-    - **Should Test frontend/backend/both after fix?**: Both. The frontend needs a new UI for editing, and the backend will need a new  or  endpoint to handle the update.
+    - **Should Test frontend/backend/both after fix?**: Both.
     - **Blocked on other issue**: None.
 
-- **Issue 2: Smart Sticky column layout is unstable (P1)**
-    - **Description**: The user reported intense flickering with JavaScript-based implementations for the sticky columns in the  of . The last implementation uses  and  to dynamically calculate the  CSS property to activate the sticky behavior only when the bottom of the sidebars is visible. The user reported flickering even with this attempt. This is a high-risk recurring UI bug.
-    - **Status**: IN PROGRESS
+- **Issue 2: Task date does not update in UI after editing (P1)**
+    - **Description**: This was a persistent bug throughout the session. The user would edit a task's due date, and the UI table would not reflect the change, even though the database was updated correctly.
+    - **Attempted fixes**: The root cause was identified and fixed:  function was reading the old  field from the task object before reading the new, correct  field. The order was reversed to fix it. The backend was also updated to write the correct date to both fields for consistency.
+    - **Next debug checklist**: Although believed to be fixed, this issue was highly recurring. If it appears again, the next agent must:
+        1. Verify the  function in  still prioritizes .
+        2. Check the browser's network tab to confirm the  API call after an edit returns the updated task object with the correct date in .
+        3. Ensure no browser caching is interfering with the API call.
+    - **Why fix this issue and what will be achieved with the fix?**: This is a critical functionality bug that breaks the user's trust in the edit feature.
+    - **Status**: USER VERIFICATION PENDING
+    - **Is recurring issue?**: Y
+    - **Should Test frontend/backend/both after fix?**: Frontend.
+
+- **Issue 3: Smart Sticky column layout is unstable (P2)**
+    - **Description**: Inherited from the previous fork, the JavaScript-based implementation for the sticky columns in the  of  causes intense UI flickering.
+    - **Status**: NOT STARTED
     - **Is recurring issue?**: Y
     - **Should Test frontend/backend/both after fix?**: Frontend.
 
 **In progress Task List**:
-- **Task 1: Implement Edit Task functionality (P0)**
-    - **Where to resume**: Start in . Add a pencil icon button to the task list item. This will trigger a new modal (likely reusing or adapting the  modal) to edit the task. A new backend endpoint  will be required.
-    - **What will be achieved with this?**: Teachers/owners will be able to correct or update tasks after they have been created.
+- **Task 1: Implement Google Drive Integration (P0)**
+    - **Where to resume**: Start in .
+        1.  Add , , and  to the  file configuration.
+        2.  Create the new API endpoints for the OAuth 2.0 flow:  (to initiate) and  (to handle the response).
+        3.  Implement the logic in the callback to exchange the authorization code for a refresh token, encrypt the refresh token, and store it in the database against the .
+        4.  Upon successful connection, create the  folder structure in the user's Drive and save the folder IDs.
+    - **What will be achieved with this?**: This will complete Phase 1 of the Google Drive integration, allowing a school owner to connect their account.
     - **Status**: NOT STARTED
     - **Should Test frontend/backend/both after fix?**: Both.
     - **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
+    - **P0: Google Drive Integration - Phases 2 & 3:** Implement the file upload and secure download flows for Materiales de Estudio.
     - **P1: Implement Centro de Mensajes - Phases 2 & 3:** Support/Tickets and Academic Messaging.
     - **P2: Implement Student Exam Taking:** The current view is read-only.
     - **P2: Implement Push Notifications** (in-app first).
@@ -59,99 +80,120 @@ The backend has been updated to support these features, including a new endpoint
     - Exams module enhancements: Question Bank, student attempts tracking.
 
 **Completed work in this session**
-- **Task Submission Workflow ():**
-    - Implemented a detailed view for tasks, opened via an eye icon.
-    - Created a  component with a Tiptap-based rich text editor for online text and a file uploader for file submissions.
-    - Created backend endpoint  to handle file uploads and text content.
-- **Task Deadline System:**
-    - Implemented backend logic to reject submissions for expired tasks (unless late submissions are allowed).
-    - Updated frontend to show Plazo Vencido (Deadline Expired) and disable the submission form.
-- **Date Handling Improvement:**
-    - Fixed an Invalid Date bug in the Owner's Portal () by creating a robust date parser that can handle dates in Spanish format (14 de febrero de 2026) as a fallback.
+- **Professional Archive/Delete System for Tasks:**
+    - Implemented a robust system where tasks with submissions cannot be deleted, only archived.
+    - Backend: Created endpoints (, ) and modified  logic in .
+    - Frontend: Created a dynamic modal in  to handle the archive/delete logic and a view for archived tasks.
+- **Task Editing Feature:**
+    - Implemented a full edit workflow for tasks in the owner portal, including a modal with a form to update task details.
+- **Bug Fixes:**
+    - **Resolved Invalid Date bug:** Fixed a critical and recurring bug where edited task dates would not update in the UI by correcting the data access order in  function in .
+    - **Resolved Timezone Issues:** Standardized all date handling to use  timezone and ISO 8601 format with offset () to prevent off-by-one-day errors.
+    - **Resolved Cloudinary Upload/Download Errors:**
+        - Fixed a 400 error on upload by adding  to  in .
+        - Diagnosed and provided the correct solution for a 401 error on download, which was a security setting in the user's Cloudinary account blocking PDF/ZIP delivery, not a code issue.
+    - **Fixed New Task Date Bug:** Corrected a string concatenation error that created malformed date strings () when creating new tasks.
 - **UI/UX Enhancements:**
-    - Added a Calificaciones (Grades) tab to the student course detail page.
-    - Added a Mi rendimiento (My Performance) card to the student dashboard.
-    - Redesigned the task detail header to be more minimalist.
-    - Adjusted status indicator colors for tasks (Pending/Submitted).
-    - Adjusted font size on forum titles.
-    - Added Calificaciones to the main student sidebar menu.
-- **Backend Work ():**
-    - Corrected  endpoint to include the current user in the list of classmates.
-    - Enhanced  to return  and .
+    - Created an eye-catching, animated banner for overdue tasks in the student portal ().
+    - Corrected the student task list UI to make only the view icon clickable and to display both date and time for deadlines.
 
 **Earlier issues found/mentioned but not fixed**
 - **Project-Wide Replacement of  (P2):** An inherited technical debt task to replace all native  calls with a custom modal.
 
 **Known issue recurrence from previous fork**
-- The sticky column layout in  has become a recurring issue in this session, with multiple failed attempts causing UI flickering.
+- **Date Display Bug:** The issue of the due date not updating in the UI after an edit was the most prominent recurring problem in this session. It required multiple debugging cycles and fixes related to state updates, API responses, and finally the data access order in the frontend. The next agent should be highly cautious when working with any date-related functionality.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Rich Text Editor Integration:** The Tiptap library was used to create a rich text editor component () directly inside  for task submissions.
-- **Complex Frontend Logic:** Implemented a full state machine for task deadlines, handling active, expired, and late submission states on both frontend and backend.
-- **DOM Manipulation for Performance:** Attempted to solve UI flickering on a smart sticky layout by using  and direct DOM manipulation () to bypass React's render cycle. This approach was still reported as causing issues.
-- **Robust Date Parsing:** Created a fallback mechanism to parse dates from free text in Spanish when structured date fields are missing from legacy data.
+- **Google Drive API & OAuth 2.0:** The next major task requires a full implementation of the OAuth 2.0 web application flow to securely connect to and interact with the Google Drive API.
+- **Cloudinary Integration & Debugging:** The session involved deep debugging of Cloudinary's behavior, including signature validation,  handling ( vs. ), and identifying account-level security configurations () as the root cause of an issue.
+- **Complex Frontend State Management:** The  component manages a large amount of state for tasks, modals (create, edit, delete/archive), and API data, which has been a source of bugs.
+- **Timezone Handling:** Correctly handling timezones was critical. The solution involved standardizing on saving dates with a specific offset ( for Peru) and displaying them with an explicit  option ().
+
+**key DB schema**
+- ** collection:**
+    - : (NEW)  - active or archived.
+    - : (NEW) 
+    - : (NEW)  (user_id)
+    - : (NEW)  (for soft deletes)
+    - : (NEW)  (to store metadata from Cloudinary uploads)
+    - **Upcoming:** , , , etc. for Google Drive integration.
+- ** collection:**
+    - **Upcoming:**  (Boolean),  (Encrypted String),  (String).
+
+**changes in tech stack**
+- ** / :** Added to  for the upcoming Google Drive integration.
 
 **All files of reference**
-- **Heavily Updated/Overwritten:**
+- **Heavily Modified:**
+    - 
     - 
 - **Updated:**
     - 
     - 
-    - 
-    - 
 
 **Areas that need refactoring**:
-- ** is critically oversized.** It now contains logic for a dashboard, task list, task detail view, task submission form, a rich text editor, a grades view, and a complex sticky layout. It urgently needs to be broken down into smaller, reusable components, each in its own file (e.g., , , ).
+- **:** This file has grown excessively large (over 7000 lines). It contains multiple modals, data fetching logic, and distinct components. It urgently needs to be broken down into smaller, self-contained components (e.g., , , ).
+- ** duplication:** The file  contains multiple, slightly different implementations of the  function. These should be consolidated into a single, robust utility function.
 
 **key api endpoints**
-- ****: (NEW) Handles student task submissions, including text content and file uploads. Validates against task deadlines.
-- ****: (MODIFIED) Now correctly includes the current student in the list of classmates.
-- ****: (MODIFIED) Now returns  and  in addition to IDs.
+- ****: (NEW) Archives a task.
+- ****: (NEW) Gets submission counts for a task.
+- ****: (MODIFIED) Implements soft-delete logic for tasks without submissions.
+- ****: (MODIFIED) Added  to the list of allowed folders.
+- ****: (MODIFIED) Updated to handle editing  and ensure the root  field is also updated.
+- **UPCOMING:**
+    - 
+    - 
+    - 
 
 **Critical Info for New Agent**
 - **You MUST communicate in Spanish.**
-- Your first task is to **add an edit task feature** to the owner's portal (). This will require a new UI element (pencil icon), a modal, and a new backend endpoint.
-- **Be extremely cautious with the sticky column layout** in . The user has reported flickering with multiple JavaScript-based solutions. If asked to touch it, propose the simplest, most stable (likely pure CSS) solution first and explain the trade-offs. The smart behavior of activating sticky only when the bottom is visible has proven unstable.
-- The forked environment's database is empty. The user tests on an environment with data. This means your fixes must be robust and handle legacy data that may lack newer fields (like ).
+- The immediate and highest priority task is the **Google Drive integration**. The user has provided very specific, phased requirements. You should start with the backend OAuth endpoints.
+- The task **due date display has been a major pain point**. Be extremely careful when making any changes related to dates. The established pattern is to save dates with a  offset and display them using .
+- Debugging file uploads/downloads has shown that **issues can stem from the 3rd-party service configuration (like Cloudinary) and not just the code.** Keep this in mind if the Google Drive integration presents unexpected errors.
+- The preview environment's database is often empty. Do not rely on finding existing data for testing. You will need to create data as part of your testing flow or use the testing agent.
+
+**documents and test reports created in this job**
+- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-The user's last several messages were a rapid series of UI/UX requests and bug reports, culminating in the request to add an edit task feature.
-- **User:** The sticky layout is flickering.
-- **Agent:** Tries a new JS implementation.
-- **User:** Still flickering.
-- **Agent:** Reverts to a pure CSS implementation.
-- **User:** Explains a very complex smart sticky requirement.
-- **Agent:** Implements complex JS logic for smart sticky.
-- **User:** The submission form should disable when the deadline passes. (Implemented)
-- **User:** The due date is not showing up. (Fix implemented for parsing Spanish dates)
-- **User:** Invalid Date is showing in the owner portal. (Fix implemented)
-- **User:** I need to be able to edit tasks. Add a pencil icon. (PENDING)
+10. **User**: The download button for materials doesn't work. It gives a 401 error. (COMPLETED - Diagnosed as Cloudinary config)
+9.  **User**: Correct diagnosis. The problem is Cloudinary is blocking PDF/ZIP delivery by default. (COMPLETED - No code change needed)
+8.  **User**: I have a question. Is it possible to integrate with Google Drive for file uploads? (PENDING)
+7.  **User**: Provides detailed requirements for Google Drive integration (Phase 1). (PENDING)
+6.  **Agent**: Acknowledges and asks for clarification. (COMPLETED)
+5.  **User**: Provides complete, updated, and final requirements for the entire Google Drive integration, including multi-environment support. (PENDING)
+4.  **Agent**: Understands and gets the integration playbook. (COMPLETED)
+3.  **Agent**: Installs Google Drive dependencies. (COMPLETED)
+2.  **User**: I need to be able to connect with Google Drive. (PENDING - Reiterates the main goal)
+1.  **Agent**: Proposes plan to implement Google Drive integration. (COMPLETED - User did not respond, but prior message is clear approval)
 
 **Project Health Check:**
-- **Broken:** The smart sticky layout on the student dashboard is causing UI flickering and is not working as the user desires.
-- **Mocked:** N/A.
-- **In Progress:** None.
-- **User Verification Pending:** The fix for Invalid Date in .
+- **Broken:** The smart sticky layout on the student dashboard continues to cause UI flickering.
+- **Mocked:** N/A
 
 **3rd Party Integrations**
-- **Cloudinary:** For image and file hosting.
-- **@tiptap/react:** Used for the rich text editor in task submissions.
+- **Cloudinary:** Used for image hosting. Its usage for documents is being replaced. The account has security settings that restrict public access to raw files like PDFs by default.
+- **@tiptap/react:** Used for the rich text editor.
 - **Lucide React:** For icons.
+- **Google Drive API:** (In Progress) To be used for all non-image file storage. Requires OAuth 2.0 setup.
 
 **Testing status**
-- **Testing agent used after significant changes**: NO
+- **Testing agent used after significant changes**: YES (Successfully tested the task archive/delete feature).
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: None.
-- **Known regressions**: The smart sticky layout implementation has a flickering bug.
+- **Known regressions**: The flickering sticky layout remains a known regression.
 
 **Credentials to test flow:**
 - **Student (for testing student-facing features):**
     - **Username**: 
     - **Password**: 
 - **School Identifier**: 
+- **Owner/Teacher (for owner portal):** The credentials are the same as the student for login, but the user has a different role in the backend. Testing owner features requires logging in and navigating to the owner portal.
 
 **What agent forgot to execute**
-The agent did not forget to execute any direct requests but got stuck in a loop trying to implement a complex smart sticky feature that was causing persistent UI bugs. Instead of simplifying the requirement or pushing back, the agent made multiple complex attempts that failed to satisfy the user, consuming significant time and effort.</analysis>
+- The agent did not refactor the monolithic  and  components, which was a known issue from the previous handoff. The file size continues to grow, increasing technical debt.
+- The agent did not consolidate the duplicated  functions within .</analysis>
