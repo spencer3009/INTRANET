@@ -6396,9 +6396,20 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     console.log('[handleTaskUpdated] Tasks refetched successfully');
   };
   
-  const handleDeleteClick = (task) => {
+  const handleDeleteClick = async (task) => {
     setTaskToDelete(task);
+    setSubmissionStats(null);
     setShowDeleteModal(true);
+    
+    // Fetch submission stats for this task
+    try {
+      const res = await axios.get(`${API}/course/tasks/${task.id}/submission-stats`, { headers });
+      setSubmissionStats(res.data);
+    } catch (err) {
+      console.error('Error fetching submission stats:', err);
+      // Default to no submissions if endpoint fails
+      setSubmissionStats({ submissions_count: 0, graded_count: 0, can_delete: true });
+    }
   };
   
   const handleDeleteConfirm = async () => {
@@ -6409,11 +6420,40 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
       setTasks(tasks.filter(t => t.id !== taskToDelete.id));
       setShowDeleteModal(false);
       setTaskToDelete(null);
+      setSubmissionStats(null);
       if (selectedTask?.id === taskToDelete.id) {
         setSelectedTask(null);
       }
     } catch (err) {
       console.error('Error deleting task:', err);
+      // Handle the case where task has submissions
+      if (err.response?.data?.detail?.code === 'TASK_HAS_SUBMISSIONS') {
+        // This shouldn't happen if UI is working correctly, but handle gracefully
+        setSubmissionStats({
+          submissions_count: err.response.data.detail.submissions_count,
+          graded_count: err.response.data.detail.graded_count,
+          can_delete: false
+        });
+      }
+    } finally {
+      setDeleting(false);
+    }
+  };
+  
+  const handleArchiveTask = async () => {
+    if (!taskToDelete) return;
+    setDeleting(true);
+    try {
+      await axios.post(`${API}/course/tasks/${taskToDelete.id}/archive`, {}, { headers });
+      setTasks(tasks.filter(t => t.id !== taskToDelete.id));
+      setShowDeleteModal(false);
+      setTaskToDelete(null);
+      setSubmissionStats(null);
+      if (selectedTask?.id === taskToDelete.id) {
+        setSelectedTask(null);
+      }
+    } catch (err) {
+      console.error('Error archiving task:', err);
     } finally {
       setDeleting(false);
     }
