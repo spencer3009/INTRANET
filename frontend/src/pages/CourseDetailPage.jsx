@@ -1562,7 +1562,7 @@ function TaskTimePicker({ value, onChange, label }) {
       : seconds * 6;
   
   // Format display time
-  const displayTime = value || "23:59:00";
+  const displayTime = value || "23:59";
   
   return (
     <div className="relative">
