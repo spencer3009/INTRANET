@@ -54,10 +54,10 @@ class TestTaskArchiveDelete:
     def _get_test_subject(self):
         """Get a subject ID for testing"""
         # Try to get subjects from the school
-        res = self.session.get(f"{BASE_URL}/api/subjects")
+        res = self.session.get(f"{BASE_URL}/api/academic/subjects")
         if res.status_code == 200:
-            subjects = res.json().get("subjects", [])
-            if subjects:
+            subjects = res.json()
+            if isinstance(subjects, list) and subjects:
                 return subjects[0].get("id")
         return None
     
