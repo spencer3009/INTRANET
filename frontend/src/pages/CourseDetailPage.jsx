@@ -2404,9 +2404,9 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
             points: points ? parseInt(points) : null
           }
         };
-        onTaskUpdated(finalTask);
+        await onTaskUpdated(finalTask);
       } else {
-        onTaskUpdated(updatedTask);
+        await onTaskUpdated(updatedTask);
       }
       
       onClose();
