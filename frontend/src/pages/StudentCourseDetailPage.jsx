@@ -1520,19 +1520,36 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
     if (task.due_date) return task.due_date;
     // Then try metadata
     if (task.metadata?.due_date) return task.metadata.due_date;
-    // Try to parse from content as last resort (format: "Fecha de entrega: 14 de febrero de 2026, 11:00 p. m.")
+    // Try to parse from content as last resort
     if (task.content) {
-      const match = task.content.match(/Fecha de entrega:\s*([^<\n]+)/i);
-      if (match) {
-        try {
-          // Try to parse the Spanish date
-          const dateStr = match[1].trim();
-          const parsed = new Date(dateStr);
-          if (!isNaN(parsed.getTime())) {
-            return parsed.toISOString();
+      // Look for ISO date format in content (e.g., from older tasks)
+      const isoMatch = task.content.match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})/);
+      if (isoMatch) {
+        return isoMatch[1];
+      }
+      
+      // Try to parse Spanish date format: "14 de febrero de 2026, 11:00 p. m."
+      const spanishMatch = task.content.match(/Fecha de entrega:\s*(\d{1,2})\s*de\s*(\w+)\s*de\s*(\d{4}),?\s*(\d{1,2}):(\d{2})\s*(a\.\s*m\.|p\.\s*m\.)?/i);
+      if (spanishMatch) {
+        const months = {
+          'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+          'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+        };
+        const day = parseInt(spanishMatch[1]);
+        const month = months[spanishMatch[2].toLowerCase()];
+        const year = parseInt(spanishMatch[3]);
+        let hour = parseInt(spanishMatch[4]);
+        const minute = parseInt(spanishMatch[5]);
+        const ampm = spanishMatch[6]?.toLowerCase().replace(/\s|\./g, '') || '';
+        
+        if (ampm === 'pm' && hour < 12) hour += 12;
+        if (ampm === 'am' && hour === 12) hour = 0;
+        
+        if (!isNaN(day) && month !== undefined && !isNaN(year)) {
+          const date = new Date(year, month, day, hour, minute);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString();
           }
-        } catch (e) {
-          // Could not parse
         }
       }
     }
