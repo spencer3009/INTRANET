@@ -13416,6 +13416,507 @@ async def get_exam_full_detail(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# GOOGLE DRIVE INTEGRATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+def create_google_drive_flow(state: str = None):
+    """Create Google OAuth flow for Drive API"""
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=500, detail="Google Drive no está configurado en el servidor")
+    
+    redirect_uri = f"{BASE_URL}/api/integrations/google-drive/callback"
+    
+    client_config = {
+        "web": {
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": [redirect_uri]
+        }
+    }
+    
+    flow = Flow.from_client_config(
+        client_config,
+        scopes=GOOGLE_DRIVE_SCOPES,
+        redirect_uri=redirect_uri
+    )
+    
+    if state:
+        flow.state = state
+    
+    return flow
+
+async def get_drive_service(school_id: str):
+    """Get authenticated Google Drive service for a school"""
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    if not school.get("google_drive_connected"):
+        raise HTTPException(status_code=400, detail="Google Drive no está conectado para este colegio")
+    
+    encrypted_refresh_token = school.get("google_drive_refresh_token")
+    if not encrypted_refresh_token:
+        raise HTTPException(status_code=400, detail="No se encontró el token de Google Drive")
+    
+    try:
+        refresh_token = decrypt_token(encrypted_refresh_token)
+    except Exception as e:
+        logger.error(f"Error decrypting Drive token for school {school_id}: {e}")
+        raise HTTPException(status_code=400, detail="Token de Google Drive inválido. Por favor reconecte su cuenta.")
+    
+    credentials = Credentials(
+        token=None,
+        refresh_token=refresh_token,
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id=GOOGLE_CLIENT_ID,
+        client_secret=GOOGLE_CLIENT_SECRET,
+        scopes=GOOGLE_DRIVE_SCOPES
+    )
+    
+    try:
+        service = build('drive', 'v3', credentials=credentials)
+        return service
+    except Exception as e:
+        logger.error(f"Error creating Drive service for school {school_id}: {e}")
+        raise HTTPException(status_code=400, detail="Error al conectar con Google Drive. Por favor reconecte su cuenta.")
+
+async def create_drive_folder(service, name: str, parent_id: str = None):
+    """Create a folder in Google Drive"""
+    file_metadata = {
+        'name': name,
+        'mimeType': 'application/vnd.google-apps.folder'
+    }
+    if parent_id:
+        file_metadata['parents'] = [parent_id]
+    
+    folder = service.files().create(body=file_metadata, fields='id').execute()
+    return folder.get('id')
+
+async def find_or_create_folder(service, name: str, parent_id: str = None):
+    """Find existing folder or create new one"""
+    query = f"name='{name}' and mimeType='application/vnd.google-apps.folder' and trashed=false"
+    if parent_id:
+        query += f" and '{parent_id}' in parents"
+    
+    results = service.files().list(q=query, spaces='drive', fields='files(id, name)').execute()
+    files = results.get('files', [])
+    
+    if files:
+        return files[0]['id']
+    
+    return await create_drive_folder(service, name, parent_id)
+
+@api_router.get("/integrations/google-drive/status")
+async def get_google_drive_status(current_user=Depends(get_current_user)):
+    """Get Google Drive connection status for the school"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    # Check if Drive is properly configured on server
+    server_configured = bool(GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET)
+    
+    return {
+        "server_configured": server_configured,
+        "connected": school.get("google_drive_connected", False),
+        "email": school.get("google_drive_email"),
+        "connected_at": school.get("google_drive_connected_at"),
+        "folder_id": school.get("google_drive_folder_id"),
+        "materials_folder_id": school.get("google_drive_materials_folder_id")
+    }
+
+@api_router.get("/integrations/google-drive/auth")
+async def initiate_google_drive_auth(
+    school_id: str = Query(...),
+    current_user=Depends(get_current_user)
+):
+    """
+    Initiate Google Drive OAuth flow.
+    Only accessible by school owners (propietarios).
+    """
+    # Verify user is owner
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Check if user is owner/propietario
+    if user.get("role") not in ["owner", "director"] and not user.get("is_owner"):
+        raise HTTPException(status_code=403, detail="Solo el propietario puede configurar Google Drive")
+    
+    # Verify school belongs to user
+    if user.get("school_id") != school_id:
+        raise HTTPException(status_code=403, detail="No tienes permiso para este colegio")
+    
+    # Create OAuth flow with state containing school_id and user_id
+    state = base64.urlsafe_b64encode(f"{school_id}:{user['id']}".encode()).decode()
+    
+    flow = create_google_drive_flow(state)
+    
+    authorization_url, _ = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt='consent'  # Force consent to get refresh_token
+    )
+    
+    logger.info(f"Initiating Google Drive auth for school {school_id}")
+    
+    return {"authorization_url": authorization_url}
+
+@api_router.get("/integrations/google-drive/callback")
+async def google_drive_callback(
+    code: str = Query(None),
+    state: str = Query(None),
+    error: str = Query(None)
+):
+    """
+    Handle Google Drive OAuth callback.
+    Creates folder structure and saves tokens.
+    """
+    if error:
+        logger.error(f"Google Drive OAuth error: {error}")
+        # Redirect to settings with error
+        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=oauth_denied")
+    
+    if not code or not state:
+        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=invalid_callback")
+    
+    try:
+        # Decode state to get school_id and user_id
+        decoded_state = base64.urlsafe_b64decode(state.encode()).decode()
+        school_id, user_id = decoded_state.split(":")
+    except Exception as e:
+        logger.error(f"Invalid state in Google Drive callback: {e}")
+        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=invalid_state")
+    
+    try:
+        # Exchange code for tokens
+        flow = create_google_drive_flow(state)
+        flow.fetch_token(code=code)
+        
+        credentials = flow.credentials
+        
+        if not credentials.refresh_token:
+            logger.error("No refresh token received from Google")
+            return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=no_refresh_token")
+        
+        # Get user email from Google
+        from google.oauth2 import id_token
+        from google.auth.transport import requests as google_requests
+        
+        # Build service to get user info
+        service = build('drive', 'v3', credentials=credentials)
+        
+        # Get user info from the about endpoint
+        about = service.about().get(fields="user").execute()
+        user_email = about.get("user", {}).get("emailAddress", "")
+        
+        # Create folder structure: EduNet/Materiales
+        logger.info(f"Creating folder structure for school {school_id}")
+        
+        # Find or create EduNet folder
+        edunet_folder_id = await find_or_create_folder(service, "EduNet")
+        
+        # Find or create Materiales folder inside EduNet
+        materials_folder_id = await find_or_create_folder(service, "Materiales", edunet_folder_id)
+        
+        # Encrypt refresh token before storing
+        encrypted_refresh_token = encrypt_token(credentials.refresh_token)
+        
+        # Update school with Drive connection info
+        await db.schools.update_one(
+            {"id": school_id},
+            {"$set": {
+                "google_drive_connected": True,
+                "google_drive_email": user_email,
+                "google_drive_refresh_token": encrypted_refresh_token,
+                "google_drive_folder_id": edunet_folder_id,
+                "google_drive_materials_folder_id": materials_folder_id,
+                "google_drive_connected_at": datetime.now(timezone.utc).isoformat(),
+                "google_drive_connected_by": user_id,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }}
+        )
+        
+        logger.info(f"Google Drive connected successfully for school {school_id}, email: {user_email}")
+        
+        # Redirect to settings with success
+        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?success=google_drive_connected")
+        
+    except Exception as e:
+        logger.error(f"Error in Google Drive callback: {e}")
+        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=connection_failed")
+
+@api_router.post("/integrations/google-drive/disconnect")
+async def disconnect_google_drive(current_user=Depends(get_current_user)):
+    """
+    Disconnect Google Drive from the school.
+    Only accessible by school owners (propietarios).
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # Check if user is owner/propietario
+    if user.get("role") not in ["owner", "director"] and not user.get("is_owner"):
+        raise HTTPException(status_code=403, detail="Solo el propietario puede desconectar Google Drive")
+    
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
+    
+    # Clear Drive connection (but don't delete files in Drive)
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {
+            "google_drive_connected": False,
+            "google_drive_email": None,
+            "google_drive_refresh_token": None,
+            "google_drive_folder_id": None,
+            "google_drive_materials_folder_id": None,
+            "google_drive_disconnected_at": datetime.now(timezone.utc).isoformat(),
+            "google_drive_disconnected_by": user["id"],
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    logger.info(f"Google Drive disconnected for school {school_id}")
+    
+    return {"message": "Google Drive desconectado correctamente"}
+
+@api_router.post("/materials/upload")
+async def upload_material_to_drive(
+    file: UploadFile = File(...),
+    subject_id: str = Form(...),
+    title: str = Form(...),
+    description: str = Form(""),
+    current_user=Depends(get_current_user)
+):
+    """
+    Upload a material file to Google Drive.
+    Only for non-image files (PDF, DOC, etc.)
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
+    
+    # Check if Drive is connected
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school or not school.get("google_drive_connected"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Debes conectar Google Drive desde Ajustes antes de subir materiales."
+        )
+    
+    # Validate file extension
+    file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+    if file_ext not in GOOGLE_DRIVE_ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tipo de archivo no permitido. Extensiones válidas: {', '.join(GOOGLE_DRIVE_ALLOWED_EXTENSIONS)}"
+        )
+    
+    try:
+        # Get Drive service
+        service = await get_drive_service(school_id)
+        
+        # Get materials folder ID
+        materials_folder_id = school.get("google_drive_materials_folder_id")
+        if not materials_folder_id:
+            raise HTTPException(status_code=400, detail="Carpeta de materiales no encontrada en Drive")
+        
+        # Read file content
+        file_content = await file.read()
+        
+        # Get MIME type
+        mime_type = MIME_TYPE_MAP.get(file_ext, "application/octet-stream")
+        
+        # Upload to Drive
+        file_metadata = {
+            'name': file.filename,
+            'parents': [materials_folder_id]
+        }
+        
+        media = MediaIoBaseUpload(
+            io.BytesIO(file_content),
+            mimetype=mime_type,
+            resumable=True
+        )
+        
+        drive_file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, name, mimeType, size, webContentLink'
+        ).execute()
+        
+        # Create material record in database
+        material_id = str(uuid.uuid4())
+        material_doc = {
+            "id": material_id,
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "title": title,
+            "description": description,
+            "type": "material",
+            "post_type": "material",
+            "drive_file_id": drive_file.get('id'),
+            "drive_file_name": drive_file.get('name'),
+            "mime_type": mime_type,
+            "file_extension": file_ext,
+            "file_size": len(file_content),
+            "storage_type": "google_drive",
+            "author_id": user["id"],
+            "status": "active",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.course_posts.insert_one(material_doc)
+        
+        logger.info(f"Material uploaded to Drive: {file.filename} for school {school_id}")
+        
+        # Return without _id
+        return {
+            "id": material_id,
+            "title": title,
+            "drive_file_id": drive_file.get('id'),
+            "drive_file_name": drive_file.get('name'),
+            "file_size": len(file_content),
+            "message": "Material subido correctamente a Google Drive"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading to Drive: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al subir archivo a Google Drive: {str(e)}")
+
+@api_router.get("/materials/download/{material_id}")
+async def download_material_from_drive(
+    material_id: str,
+    current_user=Depends(get_current_user)
+):
+    """
+    Download a material file from Google Drive.
+    Streams the file through the backend - student never sees Drive link.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
+    
+    # Get material from database
+    material = await db.course_posts.find_one({
+        "id": material_id,
+        "school_id": school_id,
+        "storage_type": "google_drive"
+    }, {"_id": 0})
+    
+    if not material:
+        raise HTTPException(status_code=404, detail="Material no encontrado")
+    
+    drive_file_id = material.get("drive_file_id")
+    if not drive_file_id:
+        raise HTTPException(status_code=400, detail="Archivo no encontrado en Drive")
+    
+    # Validate student access - check if they belong to the course
+    if user.get("role") == "student":
+        # Get student's assigned subjects via academic_assignments
+        assignments = await db.academic_assignments.find({
+            "school_id": school_id,
+            "section_id": user.get("seccion_id"),
+            "status": "activo"
+        }, {"_id": 0}).to_list(100)
+        
+        subject_ids = [a.get("subject_id") for a in assignments]
+        if material.get("subject_id") not in subject_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este material")
+    
+    try:
+        # Get Drive service
+        service = await get_drive_service(school_id)
+        
+        # Download file from Drive
+        request = service.files().get_media(fileId=drive_file_id)
+        
+        file_buffer = io.BytesIO()
+        downloader = MediaIoBaseDownload(file_buffer, request)
+        
+        done = False
+        while not done:
+            status, done = downloader.next_chunk()
+        
+        file_buffer.seek(0)
+        
+        # Get file metadata
+        file_name = material.get("drive_file_name", "archivo")
+        mime_type = material.get("mime_type", "application/octet-stream")
+        
+        logger.info(f"Material downloaded from Drive: {file_name} by user {user['id']}")
+        
+        # Return streaming response
+        return StreamingResponse(
+            file_buffer,
+            media_type=mime_type,
+            headers={
+                "Content-Disposition": f"attachment; filename=\"{file_name}\""
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error downloading from Drive: {e}")
+        raise HTTPException(status_code=500, detail="Error al descargar archivo de Google Drive")
+
+@api_router.get("/materials/drive-check")
+async def check_drive_for_materials(
+    subject_id: str = Query(...),
+    current_user=Depends(get_current_user)
+):
+    """
+    Check if Google Drive is connected and can be used for materials.
+    Returns status and message for UI display.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    is_connected = school.get("google_drive_connected", False)
+    
+    return {
+        "connected": is_connected,
+        "email": school.get("google_drive_email") if is_connected else None,
+        "can_upload": is_connected,
+        "message": "Google Drive conectado" if is_connected else "Debes conectar Google Drive desde Ajustes para subir materiales"
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
