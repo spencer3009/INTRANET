@@ -5836,6 +5836,18 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     setTasks([newTask, ...tasks]);
   };
   
+  const handleEditClick = (task) => {
+    setTaskToEdit(task);
+    setShowEditModal(true);
+  };
+  
+  const handleTaskUpdated = (updatedTask) => {
+    setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+    if (selectedTask?.id === updatedTask.id) {
+      setSelectedTask(updatedTask);
+    }
+  };
+  
   const handleDeleteClick = (task) => {
     setTaskToDelete(task);
     setShowDeleteModal(true);
