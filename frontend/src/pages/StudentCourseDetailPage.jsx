@@ -33,6 +33,7 @@ const STUDENT_TABS = [
   { id: "material", label: "Material", icon: FolderOpen },
   { id: "examenes", label: "Exámenes", icon: FlaskConical },
   { id: "foro", label: "Foro", icon: MessageCircle },
+  { id: "calificaciones", label: "Calificaciones", icon: Trophy },
 ];
 
 // Empty State Component
