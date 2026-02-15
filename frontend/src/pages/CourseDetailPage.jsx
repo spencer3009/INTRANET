@@ -2399,10 +2399,12 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
           }
         };
         console.log('[EditTaskModal] Final task metadata:', finalTask.metadata);
+        console.log('[EditTaskModal] ✅ Task updated successfully!');
         onTaskUpdated(finalTask);
       } else {
-        console.log('[EditTaskModal] No server post, using local updatedTask');
+        console.log('[EditTaskModal] No server post in response, using local updatedTask');
         console.log('[EditTaskModal] Local task metadata:', updatedTask.metadata);
+        console.log('[EditTaskModal] ✅ Task updated (local)!');
         onTaskUpdated(updatedTask);
       }
       
