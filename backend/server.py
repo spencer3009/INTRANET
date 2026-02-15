@@ -2663,6 +2663,29 @@ async def submit_task(
     if not task:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
     
+    # Check if task deadline has passed
+    due_date = task.get("due_date") or task.get("metadata", {}).get("due_date")
+    if due_date:
+        try:
+            # Parse due date and compare with current time
+            if isinstance(due_date, str):
+                deadline = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+            else:
+                deadline = due_date
+            
+            now = datetime.now(timezone.utc)
+            
+            # Check if task allows late submissions
+            allow_late = task.get("metadata", {}).get("allow_late_submissions", False)
+            
+            if deadline < now and not allow_late:
+                raise HTTPException(
+                    status_code=400, 
+                    detail="El plazo para entregar esta tarea ha vencido. No se permiten entregas tardías."
+                )
+        except (ValueError, TypeError):
+            pass  # If date parsing fails, allow submission
+    
     # Check if already submitted
     existing = task.get("submissions", [])
     for sub in existing:
