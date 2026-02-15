@@ -6913,13 +6913,28 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
           <h2 className="text-2xl font-bold text-slate-800">Tarea</h2>
           <div className="w-8 h-1 bg-amber-500 rounded-full mt-2"></div>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="w-14 h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-semibold transition-all flex items-center justify-center shadow-lg shadow-amber-500/25"
-          data-testid="create-task-btn"
-        >
-          <PenTool className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Archived tasks button */}
+          <button
+            onClick={() => {
+              setShowArchivedTasks(true);
+              fetchArchivedTasks();
+            }}
+            className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl font-medium transition-colors flex items-center gap-2"
+            data-testid="view-archived-tasks-btn"
+          >
+            <Archive className="w-5 h-5" />
+            <span className="hidden sm:inline">Archivadas</span>
+          </button>
+          {/* Create task button */}
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-14 h-14 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-semibold transition-all flex items-center justify-center shadow-lg shadow-amber-500/25"
+            data-testid="create-task-btn"
+          >
+            <PenTool className="w-6 h-6" />
+          </button>
+        </div>
       </div>
       
       {/* Table */}
