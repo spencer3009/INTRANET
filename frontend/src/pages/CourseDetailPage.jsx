@@ -7380,11 +7380,24 @@ function MaterialTableContent({ subjectId, token, user }) {
     }
   };
   
-  const handleDownload = (material) => {
+  const handleDownload = async (material) => {
     if (material.file_url) {
-      // For Cloudinary URLs, open directly in a new tab
-      // The user can then save/download from the browser
-      window.open(material.file_url, '_blank', 'noopener,noreferrer');
+      try {
+        // For Cloudinary URLs that may require authentication, get a signed URL
+        if (material.file_url.includes('cloudinary.com')) {
+          const res = await axios.get(`${API}/cloudinary/signed-url`, {
+            params: { url: material.file_url },
+            headers
+          });
+          window.open(res.data.signed_url, '_blank', 'noopener,noreferrer');
+        } else {
+          window.open(material.file_url, '_blank', 'noopener,noreferrer');
+        }
+      } catch (err) {
+        console.error('Error getting download URL:', err);
+        // Fallback to direct URL
+        window.open(material.file_url, '_blank', 'noopener,noreferrer');
+      }
     }
   };
   
