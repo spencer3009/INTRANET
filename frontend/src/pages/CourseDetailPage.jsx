@@ -6396,6 +6396,15 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         onPostCreated={handleTaskCreated}
       />
       
+      {/* Edit Modal */}
+      <EditTaskModal
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setTaskToEdit(null); }}
+        task={taskToEdit}
+        token={token}
+        onTaskUpdated={handleTaskUpdated}
+      />
+      
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
