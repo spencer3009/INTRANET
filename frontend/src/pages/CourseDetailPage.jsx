@@ -2739,13 +2739,17 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
   };
   
   const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
-    const resourceType = isRawFile ? 'raw' : 'auto';
+    // Determine resource type based on file extension
+    const fileExtension = fileToUpload.name.split('.').pop()?.toLowerCase();
+    const rawExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', '7z', 'csv'];
+    const shouldUseRaw = isRawFile || rawExtensions.includes(fileExtension) || !fileToUpload.type.startsWith('image/');
+    const resourceType = shouldUseRaw ? 'raw' : 'image';
     
     const signatureRes = await axios.get(
       `${API}/cloudinary/signature?folder=${folder}&resource_type=${resourceType}`,
       { headers }
     );
-    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder, access_mode } = signatureRes.data;
+    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder } = signatureRes.data;
     
     const formData = new FormData();
     formData.append('file', fileToUpload);
@@ -2754,11 +2758,7 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
     formData.append('api_key', api_key);
     formData.append('folder', uploadFolder);
     
-    if (access_mode) {
-      formData.append('access_mode', access_mode);
-    }
-    
-    const uploadEndpoint = isRawFile ? 'raw' : 'auto';
+    const uploadEndpoint = resourceType;
     
     const uploadRes = await axios.post(
       `https://api.cloudinary.com/v1_1/${cloud_name}/${uploadEndpoint}/upload`,
