@@ -6386,18 +6386,11 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   };
   
   const handleTaskUpdated = async (updatedTask) => {
-    console.log('[handleTaskUpdated] Received task:', updatedTask.title);
-    console.log('[handleTaskUpdated] Task metadata:', updatedTask.metadata);
-    console.log('[handleTaskUpdated] Task metadata.due_date:', updatedTask.metadata?.due_date);
-    
     // Force loading state to ensure re-render
     setLoading(true);
     
     // Refetch from server to get the latest data
-    console.log('[handleTaskUpdated] Refetching tasks from server...');
     await fetchTasks();
-    
-    console.log('[handleTaskUpdated] Tasks refetched successfully');
   };
   
   const handleDeleteClick = async (task) => {
