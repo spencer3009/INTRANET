@@ -6351,6 +6351,31 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     fetchTasks();
   }, [subjectId, token]);
   
+  // Fetch archived tasks
+  const fetchArchivedTasks = async () => {
+    setLoadingArchived(true);
+    try {
+      const res = await axios.get(`${API}/course/${subjectId}/tasks/archived`, { headers });
+      setArchivedTasks(res.data.tasks || []);
+    } catch (err) {
+      console.error('Error fetching archived tasks:', err);
+    } finally {
+      setLoadingArchived(false);
+    }
+  };
+  
+  // Handle restoring an archived task
+  const handleRestoreTask = async (taskId) => {
+    try {
+      await axios.post(`${API}/course/tasks/${taskId}/restore`, {}, { headers });
+      // Remove from archived list and refresh active tasks
+      setArchivedTasks(archivedTasks.filter(t => t.id !== taskId));
+      fetchTasks();
+    } catch (err) {
+      console.error('Error restoring task:', err);
+    }
+  };
+  
   // Generate mock submissions when viewing submissions
   const loadSubmissions = () => {
     setLoadingSubmissions(true);
