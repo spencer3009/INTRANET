@@ -6350,8 +6350,10 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     if (selectedTask?.id === updatedTask.id) {
       setSelectedTask(updatedTask);
     }
-    // Also refetch from server to ensure data consistency
-    fetchTasks();
+    // Refetch from server after a small delay to ensure data consistency
+    setTimeout(() => {
+      fetchTasks();
+    }, 300);
   };
   
   const handleDeleteClick = (task) => {
