@@ -1206,6 +1206,38 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
   
   const fileInputRef = useRef(null);
   
+  // Check if task is expired
+  const getTaskDueDate = (t) => t.due_date || t.metadata?.due_date || null;
+  const dueDate = getTaskDueDate(task);
+  const now = new Date();
+  const deadline = dueDate ? new Date(dueDate) : null;
+  const isExpired = deadline && !isNaN(deadline.getTime()) && deadline < now;
+  const allowLateSubmissions = task.metadata?.allow_late_submissions || false;
+  const canSubmit = !isExpired || allowLateSubmissions;
+  
+  // Calculate time remaining or time since expired
+  const getTimeStatus = () => {
+    if (!deadline || isNaN(deadline.getTime())) return null;
+    
+    const diff = deadline - now;
+    const absDiff = Math.abs(diff);
+    const days = Math.floor(absDiff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((absDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((absDiff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (isExpired) {
+      if (days > 0) return `Venció hace ${days} día${days > 1 ? 's' : ''}`;
+      if (hours > 0) return `Venció hace ${hours} hora${hours > 1 ? 's' : ''}`;
+      return `Venció hace ${minutes} minuto${minutes > 1 ? 's' : ''}`;
+    } else {
+      if (days > 0) return `${days} día${days > 1 ? 's' : ''} restante${days > 1 ? 's' : ''}`;
+      if (hours > 0) return `${hours} hora${hours > 1 ? 's' : ''} restante${hours > 1 ? 's' : ''}`;
+      return `${minutes} minuto${minutes > 1 ? 's' : ''} restante${minutes > 1 ? 's' : ''}`;
+    }
+  };
+  
+  const timeStatus = getTimeStatus();
+  
   // Determine what type of submission is allowed
   const allowsText = deliveryType === 'Texto en línea' || deliveryType === 'Texto y archivos' || deliveryType === 'Tarea';
   const allowsFiles = deliveryType === 'Archivos' || deliveryType === 'Texto y archivos';
@@ -1231,6 +1263,12 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
   };
 
   const handleSubmit = async () => {
+    // Check if can submit
+    if (!canSubmit) {
+      setError('El plazo para entregar esta tarea ha vencido');
+      return;
+    }
+    
     // Helper to check if HTML content is effectively empty
     const isContentEmpty = (html) => {
       if (!html) return true;
