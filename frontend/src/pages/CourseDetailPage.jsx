@@ -1004,14 +1004,17 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   };
   
   const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
-    // Determine resource type based on file
-    const resourceType = isRawFile ? 'raw' : 'auto';
+    // Determine resource type based on file extension for more accurate handling
+    const fileExtension = fileToUpload.name.split('.').pop()?.toLowerCase();
+    const rawExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', '7z', 'csv'];
+    const shouldUseRaw = isRawFile || rawExtensions.includes(fileExtension) || !fileToUpload.type.startsWith('image/');
+    const resourceType = shouldUseRaw ? 'raw' : 'image';
     
     const signatureRes = await axios.get(
       `${API}/cloudinary/signature?folder=${folder}&resource_type=${resourceType}`,
       { headers }
     );
-    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder, access_mode } = signatureRes.data;
+    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder } = signatureRes.data;
     
     const formData = new FormData();
     formData.append('file', fileToUpload);
@@ -1020,13 +1023,8 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
     formData.append('api_key', api_key);
     formData.append('folder', uploadFolder);
     
-    // For raw files, add access_mode to make them publicly accessible
-    if (access_mode) {
-      formData.append('access_mode', access_mode);
-    }
-    
-    // Use raw endpoint for non-image files, auto for others
-    const uploadEndpoint = isRawFile ? 'raw' : 'auto';
+    // Use the correct endpoint based on resource type
+    const uploadEndpoint = resourceType;
     
     const uploadRes = await axios.post(
       `https://api.cloudinary.com/v1_1/${cloud_name}/${uploadEndpoint}/upload`,
