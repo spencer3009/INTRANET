@@ -6302,9 +6302,18 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   
   // Fetch tasks
   const fetchTasks = async () => {
+    console.log('[fetchTasks] Loading tasks from server...');
     try {
       const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=task&limit=100`, { headers });
-      setTasks(res.data.posts || []);
+      const tasksFromServer = res.data.posts || [];
+      console.log('[fetchTasks] Loaded', tasksFromServer.length, 'tasks');
+      
+      // Log metadata status for each task
+      tasksFromServer.forEach(t => {
+        console.log(`[fetchTasks] Task "${t.title}" - has metadata:`, !!t.metadata, '- due_date:', t.metadata?.due_date);
+      });
+      
+      setTasks(tasksFromServer);
     } catch (err) {
       console.error('Error fetching tasks:', err);
     } finally {
