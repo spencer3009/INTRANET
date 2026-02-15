@@ -2363,13 +2363,7 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
         }
       };
       
-      console.log('[EditTaskModal] Sending PUT request to:', `${API}/course/posts/${task.id}`);
-      console.log('[EditTaskModal] updateData:', JSON.stringify(updateData, null, 2));
-      
       const res = await axios.put(`${API}/course/posts/${task.id}`, updateData, { headers });
-      
-      console.log('[EditTaskModal] Response status:', res.status);
-      console.log('[EditTaskModal] Response data:', res.data);
       
       // Build the updated task with the new data
       // Ensure metadata.due_date is correctly set for the UI to display
@@ -2394,8 +2388,6 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
       // This ensures metadata is always present
       if (res.data.post) {
         const serverPost = res.data.post;
-        console.log('[EditTaskModal] Server response:', serverPost);
-        console.log('[EditTaskModal] Setting due_date to:', dueDateTime);
         const finalTask = {
           ...serverPost,
           metadata: {
@@ -2406,13 +2398,8 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
             points: points ? parseInt(points) : null
           }
         };
-        console.log('[EditTaskModal] Final task metadata:', finalTask.metadata);
-        console.log('[EditTaskModal] ✅ Task updated successfully!');
         onTaskUpdated(finalTask);
       } else {
-        console.log('[EditTaskModal] No server post in response, using local updatedTask');
-        console.log('[EditTaskModal] Local task metadata:', updatedTask.metadata);
-        console.log('[EditTaskModal] ✅ Task updated (local)!');
         onTaskUpdated(updatedTask);
       }
       
