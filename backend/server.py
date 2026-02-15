@@ -3188,46 +3188,48 @@ async def get_signed_download_url(
         raise HTTPException(status_code=400, detail="URL no válida")
     
     try:
-        # Extract the public_id from the URL
-        # URL format: https://res.cloudinary.com/{cloud}/raw/upload/v{version}/{folder}/{filename}
+        import time
+        import hashlib
+        
+        # Extract components from the URL
+        # URL format: https://res.cloudinary.com/{cloud}/{resource_type}/upload/v{version}/{public_id}
         parts = url.split("/upload/")
         if len(parts) != 2:
-            raise HTTPException(status_code=400, detail="Formato de URL no válido")
+            # Try to return original URL
+            return {"signed_url": url, "expires_in": 3600}
         
+        base_url = parts[0] + "/upload/"
         path_with_version = parts[1]
-        # Remove version if present (v1234567890/)
-        if path_with_version.startswith("v") and "/" in path_with_version:
-            path_parts = path_with_version.split("/", 1)
-            public_id = path_parts[1] if len(path_parts) > 1 else path_with_version
-        else:
-            public_id = path_with_version
         
-        # Determine resource type from URL
-        resource_type = "raw" if "/raw/" in url else "image"
-        
-        # Generate a signed URL with expiration
-        import time
-        timestamp = int(time.time()) + 3600  # 1 hour expiration
-        
-        # Build the signed URL manually
+        # Get cloud name and resource type from URL
+        url_parts = parts[0].split("/")
         cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME")
         api_secret = os.environ.get("CLOUDINARY_API_SECRET")
         
-        # For authenticated delivery, use private_download_url
-        signed_url = cloudinary.utils.cloudinary_url(
-            public_id,
-            resource_type=resource_type,
-            type="authenticated",
-            sign_url=True,
-            secure=True
-        )
+        # Determine resource type
+        resource_type = "raw" if "/raw/" in url else "image"
         
-        # If that doesn't work, try direct URL with authentication token
-        if signed_url and signed_url[0]:
-            return {"signed_url": signed_url[0], "expires_in": 3600}
+        # Extract public_id (remove version prefix if present)
+        if path_with_version.startswith("v") and "/" in path_with_version:
+            version_and_path = path_with_version.split("/", 1)
+            version = version_and_path[0]
+            public_id = version_and_path[1]
+        else:
+            version = ""
+            public_id = path_with_version
         
-        # Fallback: return original URL
-        return {"signed_url": url, "expires_in": 3600}
+        # Generate expiration timestamp (1 hour from now)
+        expires_at = int(time.time()) + 3600
+        
+        # Create signature for authenticated URL
+        # Format: {public_id}?expires_at={timestamp}&signature={signature}
+        to_sign = f"{public_id}expires_at{expires_at}{api_secret}"
+        signature = hashlib.sha256(to_sign.encode()).hexdigest()[:8]
+        
+        # Build the signed URL
+        signed_url = f"{base_url}{path_with_version}?expires_at={expires_at}&signature={signature}"
+        
+        return {"signed_url": signed_url, "expires_in": 3600, "original_url": url}
         
     except Exception as e:
         print(f"Error generating signed URL: {e}")
