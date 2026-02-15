@@ -10539,7 +10539,11 @@ async def delete_course_post(
     post_id: str,
     current_user = Depends(get_current_user)
 ):
-    """Delete a post (soft delete) and remove associated media from Cloudinary"""
+    """
+    Delete a post (soft delete). 
+    For tasks: Only allows deletion if there are NO submissions.
+    If task has submissions, returns error - user must archive instead.
+    """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
@@ -10552,67 +10556,238 @@ async def delete_course_post(
     if post["author_id"] != user["id"] and user.get("role") not in ["owner", "admin"]:
         raise HTTPException(status_code=403, detail="No tienes permiso para eliminar esta publicación")
     
-    # Delete image from Cloudinary if exists
-    if post.get("image_url") and "cloudinary.com" in post["image_url"]:
-        try:
-            # Extract public_id from URL
-            # URL format: https://res.cloudinary.com/{cloud}/image/upload/v{version}/{folder}/{filename}.{ext}
-            url_parts = post["image_url"].split("/upload/")
-            if len(url_parts) > 1:
-                path_with_version = url_parts[1]
-                # Remove version prefix (v1234567890/)
-                if path_with_version.startswith("v"):
-                    path_parts = path_with_version.split("/", 1)
-                    if len(path_parts) > 1:
-                        public_id = path_parts[1].rsplit(".", 1)[0]  # Remove extension
-                    else:
-                        public_id = path_with_version.rsplit(".", 1)[0]
-                else:
-                    public_id = path_with_version.rsplit(".", 1)[0]
-                
-                cloudinary.uploader.destroy(public_id)
-                print(f"Deleted image from Cloudinary: {public_id}")
-        except Exception as e:
-            print(f"Error deleting image from Cloudinary: {e}")
+    # For tasks: Check if there are submissions
+    if post.get("post_type") == "task":
+        submissions = post.get("submissions", [])
+        submissions_count = len(submissions)
+        
+        if submissions_count > 0:
+            # Cannot delete - has submissions
+            graded_count = sum(1 for s in submissions if s.get("grade") is not None)
+            raise HTTPException(
+                status_code=400, 
+                detail={
+                    "code": "TASK_HAS_SUBMISSIONS",
+                    "message": "Esta tarea tiene entregas y no puede ser eliminada. Usa la opción de archivar.",
+                    "submissions_count": submissions_count,
+                    "graded_count": graded_count
+                }
+            )
     
-    # Delete file from Cloudinary if exists
-    if post.get("file_url") and "cloudinary.com" in post["file_url"]:
-        try:
-            url_parts = post["file_url"].split("/upload/")
-            if len(url_parts) > 1:
-                path_with_version = url_parts[1]
-                if path_with_version.startswith("v"):
-                    path_parts = path_with_version.split("/", 1)
-                    if len(path_parts) > 1:
-                        public_id_with_ext = path_parts[1]
-                    else:
-                        public_id_with_ext = path_with_version
-                else:
-                    public_id_with_ext = path_with_version
-                
-                # For raw files (PDF, DOC, etc.) use resource_type="raw"
-                # Raw files keep the extension in public_id
-                is_raw = post.get("file_type") and not post["file_type"].startswith("image/")
-                if is_raw:
-                    # For raw files, keep the full path including extension
-                    public_id = public_id_with_ext
-                    resource_type = "raw"
-                else:
-                    # For images, remove extension
-                    public_id = public_id_with_ext.rsplit(".", 1)[0]
-                    resource_type = "image"
-                
-                cloudinary.uploader.destroy(public_id, resource_type=resource_type)
-                print(f"Deleted file from Cloudinary: {public_id} (type: {resource_type})")
-        except Exception as e:
-            print(f"Error deleting file from Cloudinary: {e}")
-    
+    # Soft delete - do NOT delete files from Cloudinary
+    # Files are preserved for potential restoration
     await db.course_posts.update_one(
         {"id": post_id},
-        {"$set": {"status": "deleted", "deleted_at": datetime.now(timezone.utc).isoformat()}}
+        {"$set": {
+            "status": "deleted", 
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
+            "deleted_by": user["id"]
+        }}
     )
     
+    # Create audit log
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "task_id": post_id,
+        "action": "delete",
+        "performed_by": user["id"],
+        "performed_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "school_id": user.get("school_id"),
+        "details": {
+            "task_title": post.get("title"),
+            "had_submissions": False
+        }
+    }
+    await db.task_audit_logs.insert_one(audit_log)
+    
     return {"message": "Publicación eliminada"}
+
+@api_router.get("/course/tasks/{task_id}/submission-stats")
+async def get_task_submission_stats(
+    task_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get submission statistics for a task before deletion/archiving"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    task = await db.course_posts.find_one({"id": task_id, "post_type": "task"}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    
+    submissions = task.get("submissions", [])
+    submissions_count = len(submissions)
+    graded_count = sum(1 for s in submissions if s.get("grade") is not None)
+    
+    return {
+        "task_id": task_id,
+        "title": task.get("title"),
+        "submissions_count": submissions_count,
+        "graded_count": graded_count,
+        "has_submissions": submissions_count > 0,
+        "can_delete": submissions_count == 0
+    }
+
+@api_router.post("/course/tasks/{task_id}/archive")
+async def archive_task(
+    task_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Archive a task. Used when task has submissions and cannot be deleted.
+    Preserves all data: submissions, grades, files.
+    Task becomes invisible in main view but data remains for reports.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    task = await db.course_posts.find_one({"id": task_id, "post_type": "task"}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    
+    # Only author or admin can archive
+    if task["author_id"] != user["id"] and user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para archivar esta tarea")
+    
+    if task.get("status") == "archived":
+        raise HTTPException(status_code=400, detail="Esta tarea ya está archivada")
+    
+    submissions = task.get("submissions", [])
+    submissions_count = len(submissions)
+    graded_count = sum(1 for s in submissions if s.get("grade") is not None)
+    
+    # Archive the task
+    await db.course_posts.update_one(
+        {"id": task_id},
+        {"$set": {
+            "status": "archived",
+            "archived_at": datetime.now(timezone.utc).isoformat(),
+            "archived_by": user["id"]
+        }}
+    )
+    
+    # Create audit log
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "task_id": task_id,
+        "action": "archive",
+        "performed_by": user["id"],
+        "performed_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "school_id": user.get("school_id"),
+        "details": {
+            "task_title": task.get("title"),
+            "submissions_count": submissions_count,
+            "graded_count": graded_count
+        }
+    }
+    await db.task_audit_logs.insert_one(audit_log)
+    
+    return {
+        "message": "Tarea archivada correctamente",
+        "task_id": task_id,
+        "archived_at": audit_log["timestamp"]
+    }
+
+@api_router.post("/course/tasks/{task_id}/restore")
+async def restore_task(
+    task_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Restore an archived task back to active status"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    task = await db.course_posts.find_one({"id": task_id, "post_type": "task"}, {"_id": 0})
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    
+    # Only author or admin can restore
+    if task["author_id"] != user["id"] and user.get("role") not in ["owner", "admin"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para restaurar esta tarea")
+    
+    if task.get("status") == "active":
+        raise HTTPException(status_code=400, detail="Esta tarea ya está activa")
+    
+    # Restore the task
+    await db.course_posts.update_one(
+        {"id": task_id},
+        {
+            "$set": {
+                "status": "active",
+                "restored_at": datetime.now(timezone.utc).isoformat(),
+                "restored_by": user["id"]
+            },
+            "$unset": {
+                "archived_at": "",
+                "archived_by": "",
+                "deleted_at": "",
+                "deleted_by": ""
+            }
+        }
+    )
+    
+    # Create audit log
+    audit_log = {
+        "id": str(uuid.uuid4()),
+        "task_id": task_id,
+        "action": "restore",
+        "performed_by": user["id"],
+        "performed_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "school_id": user.get("school_id"),
+        "details": {
+            "task_title": task.get("title"),
+            "previous_status": task.get("status")
+        }
+    }
+    await db.task_audit_logs.insert_one(audit_log)
+    
+    return {
+        "message": "Tarea restaurada correctamente",
+        "task_id": task_id
+    }
+
+@api_router.get("/course/{subject_id}/tasks/archived")
+async def get_archived_tasks(
+    subject_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get all archived tasks for a subject"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get archived tasks
+    tasks = await db.course_posts.find(
+        {
+            "subject_id": subject_id,
+            "post_type": "task",
+            "status": "archived"
+        },
+        {"_id": 0}
+    ).sort("archived_at", -1).to_list(100)
+    
+    # Enrich with submission counts
+    for task in tasks:
+        submissions = task.get("submissions", [])
+        task["submissions_count"] = len(submissions)
+        task["graded_count"] = sum(1 for s in submissions if s.get("grade") is not None)
+        
+        # Get archiver info
+        if task.get("archived_by"):
+            archiver = await db.users.find_one(
+                {"id": task["archived_by"]},
+                {"_id": 0, "name": 1, "last_name": 1}
+            )
+            if archiver:
+                task["archived_by_name"] = f"{archiver.get('name', '')} {archiver.get('last_name', '')}".strip()
+    
+    return {"tasks": tasks, "total": len(tasks)}
 
 # ═══════════════════════════════════════════════════════════════════
 # LIKES
