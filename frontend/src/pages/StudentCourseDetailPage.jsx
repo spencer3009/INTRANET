@@ -505,42 +505,69 @@ function PostCard({ post, token, user }) {
 function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, exams, reminders, onViewPost, token, user }) {
   const baseColor = subject?.color || "#06b6d4";
   
-  // Refs for smart sticky behavior
+  // Refs for smart sticky behavior - direct DOM manipulation to avoid re-renders
   const leftColumnRef = useRef(null);
   const rightColumnRef = useRef(null);
-  const [stickyActive, setStickyActive] = useState(false);
   
   // Smart sticky: activate only when bottom of lateral columns is visible
   useEffect(() => {
+    let ticking = false;
+    
     const handleScroll = () => {
-      if (!leftColumnRef.current || !rightColumnRef.current) return;
+      if (ticking) return;
       
-      const leftRect = leftColumnRef.current.getBoundingClientRect();
-      const rightRect = rightColumnRef.current.getBoundingClientRect();
-      const headerHeight = 90; // Height of fixed header
-      const viewportHeight = window.innerHeight;
-      
-      // Check if bottom of both columns is visible in viewport
-      const leftBottomVisible = leftRect.bottom <= viewportHeight;
-      const rightBottomVisible = rightRect.bottom <= viewportHeight;
-      
-      // Activate sticky when both column bottoms are visible
-      // and we've scrolled past the initial position
-      const shouldBeSticky = leftBottomVisible && rightBottomVisible && window.scrollY > 50;
-      
-      if (shouldBeSticky !== stickyActive) {
-        setStickyActive(shouldBeSticky);
-      }
+      ticking = true;
+      requestAnimationFrame(() => {
+        if (!leftColumnRef.current || !rightColumnRef.current) {
+          ticking = false;
+          return;
+        }
+        
+        // Only apply on desktop
+        if (window.innerWidth < 1024) {
+          leftColumnRef.current.style.position = '';
+          leftColumnRef.current.style.top = '';
+          rightColumnRef.current.style.position = '';
+          rightColumnRef.current.style.top = '';
+          ticking = false;
+          return;
+        }
+        
+        const leftRect = leftColumnRef.current.getBoundingClientRect();
+        const rightRect = rightColumnRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        
+        // Check if bottom of both columns is visible in viewport
+        const leftBottomVisible = leftRect.bottom <= viewportHeight;
+        const rightBottomVisible = rightRect.bottom <= viewportHeight;
+        const shouldBeSticky = leftBottomVisible && rightBottomVisible;
+        
+        // Direct DOM manipulation - no React re-render
+        if (shouldBeSticky) {
+          leftColumnRef.current.style.position = 'sticky';
+          leftColumnRef.current.style.top = '96px';
+          rightColumnRef.current.style.position = 'sticky';
+          rightColumnRef.current.style.top = '96px';
+        } else {
+          leftColumnRef.current.style.position = '';
+          leftColumnRef.current.style.top = '';
+          rightColumnRef.current.style.position = '';
+          rightColumnRef.current.style.top = '';
+        }
+        
+        ticking = false;
+      });
     };
     
-    // Only apply on desktop
-    if (window.innerWidth >= 1024) {
-      window.addEventListener('scroll', handleScroll, { passive: true });
-      handleScroll(); // Initial check
-    }
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
+    handleScroll(); // Initial check
     
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [stickyActive]);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+    };
+  }, []);
   
   // Calculate student's grades for "Mi rendimiento" card
   const studentId = user?.id;
