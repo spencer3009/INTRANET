@@ -2237,7 +2237,7 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
           
           const hours = peruDate.getHours().toString().padStart(2, '0');
           const minutes = peruDate.getMinutes().toString().padStart(2, '0');
-          setDueTime(`${hours}:${minutes}:00`);
+          setDueTime(`${hours}:${minutes}`);
         }
       }
       
