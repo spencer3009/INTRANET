@@ -10523,9 +10523,16 @@ async def update_course_post(
         update_data["file_name"] = data.file_name
         update_data["file_type"] = data.file_type
     
+    # Handle metadata for tasks
+    if data.metadata is not None:
+        update_data["metadata"] = data.metadata
+    
     await db.course_posts.update_one({"id": post_id}, {"$set": update_data})
     
-    return {"message": "Publicación actualizada"}
+    # Fetch the updated post to return it
+    updated_post = await db.course_posts.find_one({"id": post_id}, {"_id": 0})
+    
+    return {"message": "Publicación actualizada", "post": updated_post}
 
 @api_router.delete("/course/posts/{post_id}")
 async def delete_course_post(
