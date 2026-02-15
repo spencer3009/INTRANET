@@ -2346,7 +2346,10 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
       
       // Combine date and time - store in ISO format with Peru timezone offset
       // Peru is UTC-5, so we append that offset to ensure consistent parsing
-      const dueDateTime = `${dueDate}T${dueTime}-05:00`;
+      // Handle both "HH:MM" and "HH:MM:SS" formats
+      const timeParts = dueTime.split(':');
+      const timeWithSeconds = timeParts.length === 2 ? `${dueTime}:00` : dueTime;
+      const dueDateTime = `${dueDate}T${timeWithSeconds}-05:00`;
       
       // Build content with delivery type info
       const deliveryTypeLabel = deliveryType === 'text' ? 'Texto en línea' : deliveryType === 'files' ? 'Archivos' : 'Texto y archivos';
