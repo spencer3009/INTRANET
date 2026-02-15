@@ -2380,7 +2380,9 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
       // This ensures metadata is always present
       if (res.data.post) {
         const serverPost = res.data.post;
-        onTaskUpdated({
+        console.log('[EditTaskModal] Server response:', serverPost);
+        console.log('[EditTaskModal] Setting due_date to:', dueDateTime);
+        const finalTask = {
           ...serverPost,
           metadata: {
             ...(serverPost.metadata || {}),
@@ -2389,8 +2391,12 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
             show_to_students: showToStudents,
             points: points ? parseInt(points) : null
           }
-        });
+        };
+        console.log('[EditTaskModal] Final task metadata:', finalTask.metadata);
+        onTaskUpdated(finalTask);
       } else {
+        console.log('[EditTaskModal] No server post, using local updatedTask');
+        console.log('[EditTaskModal] Local task metadata:', updatedTask.metadata);
         onTaskUpdated(updatedTask);
       }
       
