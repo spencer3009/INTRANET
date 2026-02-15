@@ -2271,6 +2271,151 @@ function ForumContent({ posts, token, user, students }) {
   );
 }
 
+// Grades Content - Show student's grades for this course
+function GradesContent({ tasks, exams, studentId, subject }) {
+  // Calculate grades from tasks
+  const taskGrades = tasks
+    .map(task => {
+      const submission = task.submissions?.find(s => s.student_id === studentId);
+      if (submission && submission.grade !== null && submission.grade !== undefined) {
+        return {
+          id: task.id,
+          title: task.title,
+          type: 'Tarea',
+          maxGrade: task.max_grade || task.metadata?.points || 20,
+          grade: submission.grade,
+          date: submission.submitted_at || task.created_at
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+
+  // Calculate grades from exams
+  const examGrades = exams
+    .map(exam => {
+      const attempt = exam.attempts?.find(a => a.student_id === studentId);
+      if (attempt && attempt.score !== null && attempt.score !== undefined) {
+        return {
+          id: exam.id,
+          title: exam.title,
+          type: 'Examen',
+          maxGrade: exam.total_points || 20,
+          grade: attempt.score,
+          date: attempt.completed_at || exam.created_at
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
+
+  const allGrades = [...taskGrades, ...examGrades].sort((a, b) => 
+    new Date(b.date) - new Date(a.date)
+  );
+
+  // Calculate average
+  const totalPoints = allGrades.reduce((acc, g) => acc + g.grade, 0);
+  const maxTotalPoints = allGrades.reduce((acc, g) => acc + g.maxGrade, 0);
+  const average = allGrades.length > 0 ? ((totalPoints / maxTotalPoints) * 20).toFixed(1) : '-';
+
+  if (allGrades.length === 0) {
+    return (
+      <EmptyState
+        icon={Trophy}
+        title="Sin calificaciones aún"
+        description="Aún no tienes calificaciones registradas en este curso. Completa tareas y exámenes para ver tus notas aquí."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Summary Card */}
+      <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-emerald-100 text-sm">Promedio del curso</p>
+            <p className="text-4xl font-bold mt-1">{average}</p>
+            <p className="text-emerald-100 text-sm mt-1">{subject?.name || 'Curso'}</p>
+          </div>
+          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center">
+            <Trophy className="w-8 h-8" />
+          </div>
+        </div>
+        <div className="mt-4 pt-4 border-t border-white/20 grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-2xl font-bold">{taskGrades.length}</p>
+            <p className="text-emerald-100 text-xs">Tareas calificadas</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{examGrades.length}</p>
+            <p className="text-emerald-100 text-xs">Exámenes calificados</p>
+          </div>
+          <div>
+            <p className="text-2xl font-bold">{allGrades.length}</p>
+            <p className="text-emerald-100 text-xs">Total evaluaciones</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Grades Table */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50">
+          <h3 className="font-semibold text-slate-800">Detalle de calificaciones</h3>
+        </div>
+        
+        {/* Table Header */}
+        <div className="grid grid-cols-12 gap-4 px-6 py-3 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <div className="col-span-5">Evaluación</div>
+          <div className="col-span-2">Tipo</div>
+          <div className="col-span-2">Fecha</div>
+          <div className="col-span-3 text-center">Calificación</div>
+        </div>
+        
+        {/* Table Body */}
+        <div className="divide-y divide-slate-100">
+          {allGrades.map((grade) => {
+            const percentage = (grade.grade / grade.maxGrade) * 100;
+            const gradeColor = percentage >= 70 ? 'text-emerald-600 bg-emerald-50' : 
+                              percentage >= 50 ? 'text-amber-600 bg-amber-50' : 
+                              'text-red-600 bg-red-50';
+            
+            return (
+              <div key={grade.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
+                {/* Title */}
+                <div className="col-span-5">
+                  <h4 className="font-medium text-slate-800 truncate">{grade.title}</h4>
+                </div>
+                
+                {/* Type */}
+                <div className="col-span-2">
+                  <span className={`inline-flex px-2.5 py-1 text-xs font-medium rounded-full ${
+                    grade.type === 'Tarea' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700'
+                  }`}>
+                    {grade.type}
+                  </span>
+                </div>
+                
+                {/* Date */}
+                <div className="col-span-2 text-sm text-slate-600">
+                  {new Date(grade.date).toLocaleDateString("es-PE", { day: "numeric", month: "short" })}
+                </div>
+                
+                {/* Grade */}
+                <div className="col-span-3 flex items-center justify-center gap-2">
+                  <span className={`px-3 py-1.5 rounded-lg font-bold ${gradeColor}`}>
+                    {grade.grade}/{grade.maxGrade}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Main Component
 export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const navigate = useNavigate();
