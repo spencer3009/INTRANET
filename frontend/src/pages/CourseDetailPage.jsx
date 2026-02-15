@@ -6345,10 +6345,13 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   };
   
   const handleTaskUpdated = (updatedTask) => {
-    setTasks(tasks.map(t => t.id === updatedTask.id ? updatedTask : t));
+    // Update the local state immediately for instant UI feedback
+    setTasks(prevTasks => prevTasks.map(t => t.id === updatedTask.id ? updatedTask : t));
     if (selectedTask?.id === updatedTask.id) {
       setSelectedTask(updatedTask);
     }
+    // Also refetch from server to ensure data consistency
+    fetchTasks();
   };
   
   const handleDeleteClick = (task) => {
