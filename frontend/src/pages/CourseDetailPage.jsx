@@ -6301,10 +6301,14 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   const [taskToEdit, setTaskToEdit] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
+  const [submissionStats, setSubmissionStats] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [submissions, setSubmissions] = useState([]);
   const [loadingSubmissions, setLoadingSubmissions] = useState(false);
+  const [showArchivedTasks, setShowArchivedTasks] = useState(false);
+  const [archivedTasks, setArchivedTasks] = useState([]);
+  const [loadingArchived, setLoadingArchived] = useState(false);
   const menuRef = useRef(null);
   
   const headers = { Authorization: `Bearer ${token}` };
