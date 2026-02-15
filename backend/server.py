@@ -3178,18 +3178,30 @@ async def generate_cloudinary_signature(
 @api_router.get("/cloudinary/signed-url")
 async def get_signed_download_url(
     url: str = Query(..., description="Original Cloudinary URL"),
+    public_id: Optional[str] = Query(None, description="Cloudinary public_id if known"),
+    resource_type: Optional[str] = Query(None, description="Cloudinary resource_type if known"),
     current_user = Depends(get_current_user)
 ):
     """
     Generate a signed URL for downloading a Cloudinary asset.
-    Uses Cloudinary's private_download_url for authenticated assets.
+    Uses stored cloudinary_data for accurate URL generation.
     """
     if "cloudinary.com" not in url:
         raise HTTPException(status_code=400, detail="URL no válida")
     
     try:
-        # Extract components from the URL
-        # URL format: https://res.cloudinary.com/{cloud}/{resource_type}/upload/v{version}/{public_id}
+        # If we have the public_id and resource_type from stored data, use them directly
+        if public_id and resource_type:
+            signed_url = cloudinary.utils.private_download_url(
+                public_id,
+                format="",
+                resource_type=resource_type,
+                expires_at=int(time.time()) + 3600,
+                attachment=True
+            )
+            return {"signed_url": signed_url, "expires_in": 3600}
+        
+        # Otherwise, try to extract from URL
         parts = url.split("/upload/")
         if len(parts) != 2:
             return {"signed_url": url, "expires_in": 3600}
@@ -3199,21 +3211,20 @@ async def get_signed_download_url(
         # Extract public_id (remove version prefix if present)
         if path_with_version.startswith("v") and "/" in path_with_version:
             version_and_path = path_with_version.split("/", 1)
-            public_id = version_and_path[1]
+            extracted_public_id = version_and_path[1]
         else:
-            public_id = path_with_version
+            extracted_public_id = path_with_version
         
-        # Determine resource type
-        resource_type = "raw" if "/raw/" in url else "image"
+        # Determine resource type from URL
+        extracted_resource_type = "raw" if "/raw/" in url else "image"
         
-        # Use Cloudinary's private_download_url function
-        # This generates a time-limited signed URL for authenticated assets
+        # Generate signed URL
         signed_url = cloudinary.utils.private_download_url(
-            public_id,
-            format="",  # Keep original format
-            resource_type=resource_type,
-            expires_at=int(time.time()) + 3600,  # 1 hour
-            attachment=True  # Force download instead of display
+            extracted_public_id,
+            format="",
+            resource_type=extracted_resource_type,
+            expires_at=int(time.time()) + 3600,
+            attachment=True
         )
         
         return {"signed_url": signed_url, "expires_in": 3600}
@@ -3222,7 +3233,6 @@ async def get_signed_download_url(
         print(f"Error generating signed URL: {e}")
         import traceback
         traceback.print_exc()
-        # Return original URL as fallback
         return {"signed_url": url, "expires_in": 3600}
 
 # ══════════════════════════════════════════════════════════════════════════════
