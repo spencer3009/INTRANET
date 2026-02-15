@@ -10316,8 +10316,13 @@ async def get_course_posts(
     if not subject:
         raise HTTPException(status_code=404, detail="Asignatura no encontrada")
     
-    # Build query filter
-    query_filter = {"subject_id": subject_id, "school_id": school_id, "status": "active"}
+    # Build query filter - only show active posts (not archived or deleted)
+    query_filter = {
+        "subject_id": subject_id, 
+        "school_id": school_id, 
+        "status": "active",
+        "deleted_at": {"$exists": False}
+    }
     
     # Filter by type if specified
     if post_type and post_type in ["announcement", "task", "material", "forum"]:
