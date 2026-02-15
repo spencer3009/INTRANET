@@ -10288,6 +10288,8 @@ class CoursePostUpdate(BaseModel):
     file_url: Optional[str] = None
     file_name: Optional[str] = None
     file_type: Optional[str] = None
+    # Metadata for tasks: due_date, delivery_type, show_to_students, points
+    metadata: Optional[dict] = None
 
 class PostCommentCreate(BaseModel):
     content: str
