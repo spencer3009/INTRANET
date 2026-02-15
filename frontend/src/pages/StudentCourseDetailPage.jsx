@@ -833,7 +833,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <div 
         ref={rightColumnRef}
-        className={`lg:col-span-3 space-y-4 ${stickyActive ? 'lg:sticky lg:top-24' : ''}`}
+        className="lg:col-span-3 space-y-4"
         style={{ alignSelf: 'start' }}
       >
         {/* Teacher Card - Orange gradient header like owner's portal */}
