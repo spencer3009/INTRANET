@@ -2355,7 +2355,13 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
         }
       };
       
+      console.log('[EditTaskModal] Sending PUT request to:', `${API}/course/posts/${task.id}`);
+      console.log('[EditTaskModal] updateData:', JSON.stringify(updateData, null, 2));
+      
       const res = await axios.put(`${API}/course/posts/${task.id}`, updateData, { headers });
+      
+      console.log('[EditTaskModal] Response status:', res.status);
+      console.log('[EditTaskModal] Response data:', res.data);
       
       // Build the updated task with the new data
       // Ensure metadata.due_date is correctly set for the UI to display
