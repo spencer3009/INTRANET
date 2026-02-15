@@ -7038,38 +7038,186 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         onTaskUpdated={handleTaskUpdated}
       />
       
-      {/* Delete Confirmation Modal */}
+      {/* Delete/Archive Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowDeleteModal(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <Trash2 className="w-6 h-6 text-red-600" />
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowDeleteModal(false); setSubmissionStats(null); }} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden">
+            {/* Loading state while fetching stats */}
+            {!submissionStats ? (
+              <div className="p-8 flex flex-col items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-400 mb-3" />
+                <p className="text-slate-500">Verificando entregas...</p>
               </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-800">Eliminar tarea</h3>
-                <p className="text-sm text-slate-500">Esta acción no se puede deshacer</p>
+            ) : submissionStats.can_delete || submissionStats.submissions_count === 0 ? (
+              /* No submissions - Can delete */
+              <>
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                      <Trash2 className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">Eliminar tarea</h3>
+                      <p className="text-sm text-slate-500">Esta tarea no tiene entregas</p>
+                    </div>
+                  </div>
+                  <p className="text-slate-600 mb-2">
+                    ¿Estás seguro de que deseas eliminar la tarea "<strong>{taskToDelete?.title}</strong>"?
+                  </p>
+                  <p className="text-sm text-slate-500 mb-6">
+                    La tarea será eliminada permanentemente.
+                  </p>
+                </div>
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                  <button
+                    onClick={() => { setShowDeleteModal(false); setSubmissionStats(null); }}
+                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleDeleteConfirm}
+                    disabled={deleting}
+                    className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+                    data-testid="confirm-delete-task-btn"
+                  >
+                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                    Eliminar
+                  </button>
+                </div>
+              </>
+            ) : (
+              /* Has submissions - Must archive */
+              <>
+                <div className="p-6">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center">
+                      <Archive className="w-6 h-6 text-amber-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-800">Esta tarea tiene entregas</h3>
+                      <p className="text-sm text-amber-600 font-medium">No puede ser eliminada</p>
+                    </div>
+                  </div>
+                  
+                  {/* Submission stats */}
+                  <div className="bg-slate-50 rounded-xl p-4 mb-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-slate-800">{submissionStats.submissions_count}</p>
+                        <p className="text-sm text-slate-500">Entregas recibidas</p>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-2xl font-bold text-emerald-600">{submissionStats.graded_count}</p>
+                        <p className="text-sm text-slate-500">Ya calificadas</p>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
+                    <p className="text-sm text-amber-800">
+                      <strong>Eliminar esta tarea afectaría el historial académico.</strong>
+                      <br />
+                      En su lugar, puedes <strong>archivarla</strong> para ocultarla de la vista principal mientras se preservan todas las entregas y calificaciones.
+                    </p>
+                  </div>
+                  
+                  <p className="text-slate-600 text-sm">
+                    Tarea: "<strong>{taskToDelete?.title}</strong>"
+                  </p>
+                </div>
+                
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+                  <button
+                    onClick={() => { setShowDeleteModal(false); setSubmissionStats(null); }}
+                    className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-xl transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleArchiveTask}
+                    disabled={deleting}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
+                    data-testid="archive-task-btn"
+                  >
+                    {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                    Archivar tarea
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Archived Tasks Modal */}
+      {showArchivedTasks && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowArchivedTasks(false)} />
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <Archive className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Tareas Archivadas</h3>
+                  <p className="text-sm text-slate-500">{archivedTasks.length} tareas archivadas</p>
+                </div>
               </div>
+              <button
+                onClick={() => setShowArchivedTasks(false)}
+                className="w-10 h-10 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
             </div>
-            <p className="text-slate-600 mb-6">
-              ¿Estás seguro de que deseas eliminar la tarea "<strong>{taskToDelete?.title}</strong>"?
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                onClick={() => setShowDeleteModal(false)}
-                className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={deleting}
-                className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-xl transition-colors flex items-center gap-2"
-              >
-                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                Eliminar
-              </button>
+            
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingArchived ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="w-8 h-8 animate-spin text-slate-400 mb-3" />
+                  <p className="text-slate-500">Cargando tareas archivadas...</p>
+                </div>
+              ) : archivedTasks.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                    <Archive className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <p className="text-slate-500 text-center">No hay tareas archivadas</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {archivedTasks.map(task => (
+                    <div key={task.id} className="bg-slate-50 rounded-xl p-4 flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-semibold text-slate-800 truncate">{task.title}</h4>
+                        <div className="flex items-center gap-4 mt-1 text-sm text-slate-500">
+                          <span>{task.submissions_count} entregas</span>
+                          <span>{task.graded_count} calificadas</span>
+                          {task.archived_at && (
+                            <span>Archivada: {new Date(task.archived_at).toLocaleDateString('es-PE')}</span>
+                          )}
+                        </div>
+                        {task.archived_by_name && (
+                          <p className="text-xs text-slate-400 mt-1">Por: {task.archived_by_name}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleRestoreTask(task.id)}
+                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                        data-testid={`restore-task-${task.id}`}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Restaurar
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
