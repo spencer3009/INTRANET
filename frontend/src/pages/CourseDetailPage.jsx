@@ -2228,9 +2228,15 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
       if (dueDateValue) {
         const dateObj = new Date(dueDateValue);
         if (!isNaN(dateObj.getTime())) {
-          setDueDate(dateObj.toISOString().split('T')[0]);
-          const hours = dateObj.getHours().toString().padStart(2, '0');
-          const minutes = dateObj.getMinutes().toString().padStart(2, '0');
+          // Get date parts in Peru timezone to avoid UTC conversion issues
+          const peruDate = new Date(dateObj.toLocaleString('en-US', { timeZone: 'America/Lima' }));
+          const year = peruDate.getFullYear();
+          const month = (peruDate.getMonth() + 1).toString().padStart(2, '0');
+          const day = peruDate.getDate().toString().padStart(2, '0');
+          setDueDate(`${year}-${month}-${day}`);
+          
+          const hours = peruDate.getHours().toString().padStart(2, '0');
+          const minutes = peruDate.getMinutes().toString().padStart(2, '0');
           setDueTime(`${hours}:${minutes}:00`);
         }
       }
