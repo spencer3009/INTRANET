@@ -1,0 +1,130 @@
+{
+  "summary": "Task Archive/Delete System testing completed. Backend: 15/15 tests passed. Frontend: All UI flows working correctly including dynamic modal, archived tasks list, and restore functionality.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "GET /api/course/tasks/{task_id}/submission-stats - returns submissions_count, graded_count, can_delete",
+    "GET /api/course/tasks/{task_id}/submission-stats - returns 404 for non-existent task",
+    "DELETE /api/course/posts/{post_id} - successfully deletes task without submissions",
+    "DELETE /api/course/posts/{post_id} - creates audit log entry",
+    "POST /api/course/tasks/{task_id}/archive - successfully archives task",
+    "POST /api/course/tasks/{task_id}/archive - returns 400 for already archived task",
+    "POST /api/course/tasks/{task_id}/archive - returns 404 for non-existent task",
+    "POST /api/course/tasks/{task_id}/restore - successfully restores archived task",
+    "POST /api/course/tasks/{task_id}/restore - returns 400 for active task",
+    "POST /api/course/tasks/{task_id}/restore - returns 404 for non-existent task",
+    "GET /api/course/{subject_id}/tasks/archived - returns archived tasks list",
+    "Archived task appears in archived list with correct metadata",
+    "Restored task is removed from archived list",
+    "Archived task is excluded from main posts list",
+    "Frontend: Dynamic modal shows DELETE option for tasks without submissions",
+    "Frontend: Dynamic modal shows ARCHIVE option for tasks with submissions",
+    "Frontend: Archive modal displays submission stats (count, graded)",
+    "Frontend: Archivadas button opens archived tasks modal",
+    "Frontend: Archived tasks modal shows task details and restore button",
+    "Frontend: Restore button successfully restores task to active list"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_task_archive_delete.py",
+    "/app/test_reports/pytest/pytest_task_archive.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_task_archive_delete.py (created - 15 test cases for task archive/delete)"
+  ],
+
+  "success_rate": {
+    "backend": "100% (15/15 tests passed)",
+    "frontend": "100% (All UI flows working correctly)"
+  },
+
+  "test_credentials": {
+    "admin_email": "admin@test.pe",
+    "admin_password": "test123",
+    "subdomain": "demosettings"
+  },
+
+  "seed_data_creation": "Mock submissions were temporarily added to test archive modal, then cleaned up after testing.",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Task Archive/Delete system is fully functional. Key features: 1) Tasks WITHOUT submissions can be deleted (soft delete with audit log), 2) Tasks WITH submissions can only be archived (preserves academic data), 3) Archived tasks can be restored, 4) Frontend shows dynamic modal based on submission status, 5) Archived tasks list accessible via 'Archivadas' button.",
+
+  "verified_features": {
+    "backend_endpoints": {
+      "submission_stats": {
+        "endpoint": "GET /api/course/tasks/{task_id}/submission-stats",
+        "returns": ["task_id", "title", "submissions_count", "graded_count", "has_submissions", "can_delete"],
+        "status": "Working"
+      },
+      "delete_task": {
+        "endpoint": "DELETE /api/course/posts/{post_id}",
+        "behavior": "Soft delete for tasks without submissions, returns TASK_HAS_SUBMISSIONS error for tasks with submissions",
+        "creates_audit_log": true,
+        "status": "Working"
+      },
+      "archive_task": {
+        "endpoint": "POST /api/course/tasks/{task_id}/archive",
+        "behavior": "Archives task, preserves all submissions and grades",
+        "creates_audit_log": true,
+        "status": "Working"
+      },
+      "restore_task": {
+        "endpoint": "POST /api/course/tasks/{task_id}/restore",
+        "behavior": "Restores archived task to active status",
+        "creates_audit_log": true,
+        "status": "Working"
+      },
+      "archived_list": {
+        "endpoint": "GET /api/course/{subject_id}/tasks/archived",
+        "returns": ["tasks array with submissions_count, graded_count, archived_at, archived_by_name"],
+        "status": "Working"
+      }
+    },
+    "frontend_components": {
+      "delete_modal_no_submissions": {
+        "shows": ["Eliminar tarea header", "Esta tarea no tiene entregas", "Cancelar button", "Eliminar button"],
+        "data_testid": "confirm-delete-task-btn",
+        "status": "Working"
+      },
+      "archive_modal_with_submissions": {
+        "shows": ["Esta tarea tiene entregas header", "No puede ser eliminada", "Submission stats", "Warning message", "Cancelar button", "Archivar tarea button"],
+        "data_testid": "archive-task-btn",
+        "status": "Working"
+      },
+      "archived_tasks_button": {
+        "location": "Tasks tab header",
+        "data_testid": "view-archived-tasks-btn",
+        "status": "Working"
+      },
+      "archived_tasks_modal": {
+        "shows": ["Tareas Archivadas header", "Count of archived tasks", "Task list with details", "Restore button per task"],
+        "data_testid": "restore-task-{id}",
+        "status": "Working"
+      }
+    },
+    "audit_logging": {
+      "collection": "task_audit_logs",
+      "logged_actions": ["delete", "archive", "restore"],
+      "fields": ["id", "task_id", "action", "performed_by", "performed_by_name", "timestamp", "school_id", "details"],
+      "status": "Working"
+    }
+  }
+}
