@@ -6504,9 +6504,10 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   };
   
   const extractDueDate = (task) => {
-    // Try to get due_date from task metadata or root level
-    if (task.due_date) return task.due_date;
+    // Try to get due_date from task metadata FIRST (this is updated when editing)
+    // then fall back to root level due_date
     if (task.metadata?.due_date) return task.metadata.due_date;
+    if (task.due_date) return task.due_date;
     
     // Parse from content if needed - Spanish format: "14 de febrero de 2026, 11:00 p. m."
     if (task.content) {
