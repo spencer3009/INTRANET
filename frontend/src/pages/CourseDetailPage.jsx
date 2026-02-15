@@ -7337,18 +7337,24 @@ function MaterialTableContent({ subjectId, token, user }) {
     setError("");
     
     try {
-      const isRawFile = !file.type.startsWith('image/');
-      const fileUrl = await uploadToCloudinary(file, 'edunet/materials', isRawFile);
+      // Upload file and get complete metadata
+      const uploadResult = await uploadToCloudinary(file, 'edunet/materials');
       
       const res = await axios.post(`${API}/course/${subjectId}/posts`, {
         subject_id: subjectId,
         title: description.trim(),
         content: `Archivo: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`,
         post_type: "material",
-        file_url: fileUrl,
+        file_url: uploadResult.secure_url,
         file_name: file.name,
         file_type: file.type || 'application/octet-stream',
-        file_size: file.size
+        file_size: file.size,
+        // Store Cloudinary metadata for proper download handling
+        cloudinary_data: {
+          public_id: uploadResult.public_id,
+          resource_type: uploadResult.resource_type,
+          format: uploadResult.format
+        }
       }, { headers });
       
       setMaterials([res.data, ...materials]);
