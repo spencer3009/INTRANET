@@ -10458,10 +10458,15 @@ async def create_course_post(
         "file_url": data.file_url,
         "file_name": data.file_name,
         "file_type": data.file_type,
+        "file_size": data.file_size,
         "status": "active",
         "created_at": now,
         "updated_at": now
     }
+    
+    # Store Cloudinary metadata for proper file handling (download, etc.)
+    if data.cloudinary_data:
+        post["cloudinary_data"] = data.cloudinary_data
     
     # Store metadata for tasks (due_date, delivery_type, points, etc.)
     if data.metadata:
