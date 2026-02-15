@@ -7382,19 +7382,9 @@ function MaterialTableContent({ subjectId, token, user }) {
   
   const handleDownload = (material) => {
     if (material.file_url) {
-      // Create a temporary link element to trigger download
-      const link = document.createElement('a');
-      link.href = material.file_url;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      // For Cloudinary raw files, add fl_attachment to force download
-      if (material.file_url.includes('cloudinary.com') && material.file_url.includes('/raw/')) {
-        // Add download flag for raw files
-        link.href = material.file_url.replace('/upload/', '/upload/fl_attachment/');
-      }
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // For Cloudinary URLs, open directly in a new tab
+      // The user can then save/download from the browser
+      window.open(material.file_url, '_blank', 'noopener,noreferrer');
     }
   };
   
