@@ -2357,16 +2357,39 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
       
       const res = await axios.put(`${API}/course/posts/${task.id}`, updateData, { headers });
       
-      // Return the updated task with all original data merged
+      // Build the updated task with the new data
+      // Ensure metadata.due_date is correctly set for the UI to display
       const updatedTask = {
         ...task,
-        ...updateData,
+        title: title.trim(),
+        content: content,
+        file_url: fileUrl,
+        file_name: fileName,
+        file_type: fileType,
+        metadata: {
+          ...(task.metadata || {}),
+          delivery_type: deliveryType,
+          due_date: dueDateTime,
+          show_to_students: showToStudents,
+          points: points ? parseInt(points) : null
+        },
         updated_at: new Date().toISOString()
       };
       
-      // If the API returns the updated post, use that instead
+      // If the API returns the updated post, merge with our local updates
+      // This ensures metadata is always present
       if (res.data.post) {
-        onTaskUpdated(res.data.post);
+        const serverPost = res.data.post;
+        onTaskUpdated({
+          ...serverPost,
+          metadata: {
+            ...(serverPost.metadata || {}),
+            delivery_type: deliveryType,
+            due_date: dueDateTime,
+            show_to_students: showToStudents,
+            points: points ? parseInt(points) : null
+          }
+        });
       } else {
         onTaskUpdated(updatedTask);
       }
