@@ -505,6 +505,43 @@ function PostCard({ post, token, user }) {
 function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, exams, reminders, onViewPost, token, user }) {
   const baseColor = subject?.color || "#06b6d4";
   
+  // Refs for smart sticky behavior
+  const leftColumnRef = useRef(null);
+  const rightColumnRef = useRef(null);
+  const [stickyActive, setStickyActive] = useState(false);
+  
+  // Smart sticky: activate only when bottom of lateral columns is visible
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!leftColumnRef.current || !rightColumnRef.current) return;
+      
+      const leftRect = leftColumnRef.current.getBoundingClientRect();
+      const rightRect = rightColumnRef.current.getBoundingClientRect();
+      const headerHeight = 90; // Height of fixed header
+      const viewportHeight = window.innerHeight;
+      
+      // Check if bottom of both columns is visible in viewport
+      const leftBottomVisible = leftRect.bottom <= viewportHeight;
+      const rightBottomVisible = rightRect.bottom <= viewportHeight;
+      
+      // Activate sticky when both column bottoms are visible
+      // and we've scrolled past the initial position
+      const shouldBeSticky = leftBottomVisible && rightBottomVisible && window.scrollY > 50;
+      
+      if (shouldBeSticky !== stickyActive) {
+        setStickyActive(shouldBeSticky);
+      }
+    };
+    
+    // Only apply on desktop
+    if (window.innerWidth >= 1024) {
+      window.addEventListener('scroll', handleScroll, { passive: true });
+      handleScroll(); // Initial check
+    }
+    
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [stickyActive]);
+  
   // Calculate student's grades for "Mi rendimiento" card
   const studentId = user?.id;
   const taskGrades = tasks
