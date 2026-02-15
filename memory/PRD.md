@@ -975,3 +975,101 @@ El endpoint GET de posts ahora filtra:
 ### Archivos Modificados
 - `/app/backend/server.py` - Nuevos endpoints y lógica de eliminación
 - `/app/frontend/src/pages/CourseDetailPage.jsx` - UI de eliminación/archivo
+
+
+---
+
+## Integración Google Drive (NUEVO - 2025-02-15)
+
+### Descripción General
+Implementación de Google Drive como sistema de almacenamiento obligatorio para materiales de estudio (PDF, DOC, XLS, PPT, ZIP). Las imágenes siguen usando Cloudinary.
+
+### Arquitectura Multi-Tenant
+- Cada colegio conecta SU propio Google Drive
+- Tokens de refresh encriptados con Fernet (basado en JWT_SECRET)
+- Solo el rol "propietario" puede conectar/desconectar
+
+### Fase 1 - Configuración OAuth (COMPLETADO)
+
+**Backend Endpoints:**
+- `GET /api/integrations/google-drive/status` - Estado de conexión
+- `GET /api/integrations/google-drive/auth?school_id=xxx` - Inicia flujo OAuth
+- `GET /api/integrations/google-drive/callback` - Callback de Google OAuth
+- `POST /api/integrations/google-drive/disconnect` - Desconectar Drive
+
+**Frontend:**
+- Nueva sección en `/settings` → "Integración Google Drive"
+- Solo visible para usuarios con rol owner/director
+- Estados: No conectado (rojo), Conectado (verde)
+- Botones: Conectar, Reconectar, Desconectar
+
+**Flujo OAuth:**
+1. Propietario hace clic en "Conectar con Google Drive"
+2. Redirige a Google OAuth con scope `drive.file`
+3. Usuario autoriza
+4. Backend recibe tokens y crea carpetas `EduNet/Materiales`
+5. Guarda refresh_token encriptado + folder_ids en DB
+6. Redirige a settings con mensaje de éxito
+
+**Variables de Entorno Requeridas:**
+```
+GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-xxx
+BASE_URL=https://edunet.pe
+```
+
+**Redirect URIs (registrar en Google Cloud Console):**
+- `https://edunet-peru-4.preview.emergentagent.com/api/integrations/google-drive/callback`
+- `https://edunet.pe/api/integrations/google-drive/callback`
+
+### Fase 2 - Subida de Materiales (PENDIENTE)
+
+**Endpoint:**
+- `POST /api/materials/upload` - Sube archivo a Drive
+
+**Lógica:**
+1. Validar que Drive está conectado
+2. Validar extensión de archivo (pdf, doc, docx, xls, xlsx, ppt, pptx, zip, txt)
+3. Subir a carpeta `EduNet/Materiales` del colegio
+4. Guardar metadata en MongoDB (drive_file_id, mime_type, etc.)
+
+### Fase 3 - Descarga Segura (PENDIENTE)
+
+**Endpoint:**
+- `GET /api/materials/download/{material_id}` - Descarga vía streaming
+
+**Lógica:**
+1. Validar que usuario pertenece al school_id
+2. Si es estudiante, validar acceso al curso
+3. Descargar archivo de Drive usando refresh_token
+4. Hacer streaming al cliente (estudiante nunca ve URL de Drive)
+
+### Campos Nuevos en Colección `schools`
+```json
+{
+  "google_drive_connected": boolean,
+  "google_drive_email": string,
+  "google_drive_refresh_token": string (encriptado),
+  "google_drive_folder_id": string,
+  "google_drive_materials_folder_id": string,
+  "google_drive_connected_at": datetime,
+  "google_drive_connected_by": string (user_id)
+}
+```
+
+### Campos Nuevos en `course_posts` (para materiales)
+```json
+{
+  "storage_type": "google_drive",
+  "drive_file_id": string,
+  "drive_file_name": string,
+  "mime_type": string,
+  "file_extension": string,
+  "file_size": number
+}
+```
+
+### Archivos Modificados
+- `/app/backend/server.py` - Nuevos endpoints y funciones de Google Drive
+- `/app/backend/.env` - Variables GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, BASE_URL
+- `/app/frontend/src/pages/SettingsPage.jsx` - Sección de integración Google Drive
