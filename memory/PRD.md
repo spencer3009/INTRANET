@@ -448,6 +448,11 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 - [x] ✅ Centro de Mensajes - Fase 1 (Mensajes Institucionales) - COMPLETADO 2025-02-13
 - [x] ✅ Portal de Estudiantes (Student Portal) - COMPLETADO 2025-02-13
 - [x] ✅ Portal de Profesores (Teacher Portal) - COMPLETADO 2025-02-13
+- [x] ✅ **Integración Google Drive - Fase 1 (Configuración OAuth)** - COMPLETADO 2025-02-15
+
+### 🔴 P0 - En Progreso
+- [ ] **Integración Google Drive - Fase 2 (Subida de Materiales)**
+- [ ] **Integración Google Drive - Fase 3 (Descarga Segura)**
 
 ### P0 - Prioridad Alta (Pendiente)
 - [ ] 🔴 **CRÍTICO**: Refactorizar `CourseDetailPage.jsx` (>7000 líneas) - Extraer componentes
