@@ -1761,7 +1761,7 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
   const [description, setDescription] = useState("");
   const [deliveryType, setDeliveryType] = useState("text"); // text, files, both
   const [dueDate, setDueDate] = useState("");
-  const [dueTime, setDueTime] = useState("23:59:00");
+  const [dueTime, setDueTime] = useState("23:59");
   const [showToStudents, setShowToStudents] = useState(true);
   const [points, setPoints] = useState("");
   const [file, setFile] = useState(null);
@@ -2193,7 +2193,7 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
   const [description, setDescription] = useState("");
   const [deliveryType, setDeliveryType] = useState("text");
   const [dueDate, setDueDate] = useState("");
-  const [dueTime, setDueTime] = useState("23:59:00");
+  const [dueTime, setDueTime] = useState("23:59");
   const [showToStudents, setShowToStudents] = useState(true);
   const [points, setPoints] = useState("");
   const [file, setFile] = useState(null);
