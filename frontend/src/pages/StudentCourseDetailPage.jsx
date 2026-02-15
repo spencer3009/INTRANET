@@ -727,11 +727,27 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
         </div>
         
         {/* Recent Activity Feed */}
-        {recentActivity.length > 0 ? (
+        {allActivity.length > 0 ? (
           <div className="space-y-4">
-            {recentActivity.map((item) => (
+            {displayedActivity.map((item) => (
               <PostCard key={item.id} post={item} token={token} user={user} />
             ))}
+            
+            {/* Load More Button */}
+            {hasMorePosts && (
+              <div className="text-center py-4">
+                <p className="text-sm text-slate-500 mb-3">
+                  Mostrando {visiblePosts} de {allActivity.length} publicaciones
+                </p>
+                <button
+                  onClick={handleLoadMore}
+                  className="px-6 py-2.5 bg-white border border-slate-300 rounded-xl text-slate-700 font-medium hover:bg-slate-50 hover:border-slate-400 transition-colors shadow-sm"
+                  data-testid="load-more-posts-btn"
+                >
+                  Cargar más ({remainingPosts} restantes)
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
