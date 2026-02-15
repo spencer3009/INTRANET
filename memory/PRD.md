@@ -852,3 +852,46 @@ La integración se realizará en una sesión dedicada con checklist de pruebas.
 - El formulario "Nueva Sección" usa un `<select>` en lugar de `<input type="text">`
 - Las secciones almacenan `section_type_id` (referencia al catálogo)
 - El campo `nombre` se deriva automáticamente del `label` del tipo seleccionado
+
+---
+
+## Funcionalidad de Editar Tareas (NUEVO - 2025-02-15)
+
+### Descripción
+Implementada la funcionalidad para editar tareas existentes desde el portal del propietario (CourseDetailPage.jsx).
+
+### Componentes Implementados:
+
+1. **Backend - PUT /api/course/posts/{post_id}**
+   - Actualizado modelo `CoursePostUpdate` para incluir campo `metadata`
+   - El endpoint ahora guarda y devuelve los metadatos de la tarea (due_date, delivery_type, show_to_students, points)
+   - Retorna el post actualizado completo
+
+2. **Frontend - EditTaskModal**
+   - Ubicación: `/app/frontend/src/pages/CourseDetailPage.jsx` (líneas ~2190-2660)
+   - Modal similar a `PremiumTaskModal` pero para edición
+   - Campos editables:
+     - Título de la tarea
+     - Fecha de entrega (date picker)
+     - Hora límite (TaskTimePicker)
+     - Tipo de entrega (Texto en línea, Archivos, Ambos)
+     - Puntos (opcional)
+     - Visibilidad (mostrar/ocultar a estudiantes)
+     - Archivo adjunto (mantener, reemplazar o eliminar)
+   - data-testid: `edit-task-title-input`, `edit-task-date-input`, `submit-edit-task-btn`
+
+3. **Frontend - Botón de Edición**
+   - Ícono de lápiz (Edit2) agregado en la columna "Opciones" de la tabla de tareas
+   - Ubicado entre el botón de "Ver" (ojo) y "Eliminar" (basura)
+   - data-testid: `edit-task-{task.id}`
+   - Hover: fondo amarillo, ícono amarillo
+
+4. **Flujo de Actualización**
+   - Al guardar cambios, se actualiza inmediatamente el estado local
+   - Se hace refetch del servidor para garantizar consistencia de datos
+   - El campo `metadata.due_date` siempre se envía al servidor
+   - La columna "Permitir entregas hasta" muestra la fecha correctamente
+
+### Archivos Modificados:
+- `/app/backend/server.py` - Modelo CoursePostUpdate + endpoint PUT
+- `/app/frontend/src/pages/CourseDetailPage.jsx` - EditTaskModal + botón de edición
