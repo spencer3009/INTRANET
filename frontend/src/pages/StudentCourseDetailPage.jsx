@@ -2242,7 +2242,7 @@ function ForumContent({ posts, token, user, students }) {
                 
                 {/* Title */}
                 <div className="col-span-6">
-                  <h3 className="font-semibold text-slate-800 uppercase">{post.title}</h3>
+                  <h3 className="font-semibold text-slate-800 text-sm">{post.title}</h3>
                   <p className="text-xs text-slate-500 mt-0.5">por {authorName}</p>
                 </div>
                 
