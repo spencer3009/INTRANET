@@ -6316,7 +6316,9 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   const fetchTasks = async () => {
     console.log('[fetchTasks] Loading tasks from server...');
     try {
-      const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=task&limit=100`, { headers });
+      // Add cache-busting parameter
+      const cacheBuster = new Date().getTime();
+      const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=task&limit=100&_t=${cacheBuster}`, { headers });
       const tasksFromServer = res.data.posts || [];
       console.log('[fetchTasks] Loaded', tasksFromServer.length, 'tasks');
       
