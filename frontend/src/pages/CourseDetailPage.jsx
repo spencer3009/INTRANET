@@ -1862,8 +1862,9 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
         fileType = file.type || 'application/octet-stream';
       }
       
-      // Combine date and time
-      const dueDateTime = `${dueDate}T${dueTime}:00`;
+      // Combine date and time - store in ISO format with Peru timezone offset
+      // Peru is UTC-5, so we append that offset to ensure consistent parsing
+      const dueDateTime = `${dueDate}T${dueTime}:00-05:00`;
       
       const res = await axios.post(`${API}/course/${subjectId}/posts`, {
         subject_id: subjectId,
