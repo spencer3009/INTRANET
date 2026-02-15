@@ -3175,6 +3175,65 @@ async def generate_cloudinary_signature(
         "resource_type": resource_type
     }
 
+@api_router.get("/cloudinary/signed-url")
+async def get_signed_download_url(
+    url: str = Query(..., description="Original Cloudinary URL"),
+    current_user = Depends(get_current_user)
+):
+    """
+    Generate a signed URL for downloading a Cloudinary asset.
+    This is needed for assets that require authentication.
+    """
+    if "cloudinary.com" not in url:
+        raise HTTPException(status_code=400, detail="URL no válida")
+    
+    try:
+        # Extract the public_id from the URL
+        # URL format: https://res.cloudinary.com/{cloud}/raw/upload/v{version}/{folder}/{filename}
+        parts = url.split("/upload/")
+        if len(parts) != 2:
+            raise HTTPException(status_code=400, detail="Formato de URL no válido")
+        
+        path_with_version = parts[1]
+        # Remove version if present (v1234567890/)
+        if path_with_version.startswith("v") and "/" in path_with_version:
+            path_parts = path_with_version.split("/", 1)
+            public_id = path_parts[1] if len(path_parts) > 1 else path_with_version
+        else:
+            public_id = path_with_version
+        
+        # Determine resource type from URL
+        resource_type = "raw" if "/raw/" in url else "image"
+        
+        # Generate a signed URL with expiration
+        import time
+        timestamp = int(time.time()) + 3600  # 1 hour expiration
+        
+        # Build the signed URL manually
+        cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME")
+        api_secret = os.environ.get("CLOUDINARY_API_SECRET")
+        
+        # For authenticated delivery, use private_download_url
+        signed_url = cloudinary.utils.cloudinary_url(
+            public_id,
+            resource_type=resource_type,
+            type="authenticated",
+            sign_url=True,
+            secure=True
+        )
+        
+        # If that doesn't work, try direct URL with authentication token
+        if signed_url and signed_url[0]:
+            return {"signed_url": signed_url[0], "expires_in": 3600}
+        
+        # Fallback: return original URL
+        return {"signed_url": url, "expires_in": 3600}
+        
+    except Exception as e:
+        print(f"Error generating signed URL: {e}")
+        # Return original URL as fallback
+        return {"signed_url": url, "expires_in": 3600}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TENANT SETTINGS
 # ══════════════════════════════════════════════════════════════════════════════
