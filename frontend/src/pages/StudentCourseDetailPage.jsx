@@ -2701,20 +2701,22 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
-        {/* Header */}
-        <StudentHeader
-          user={user}
-          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
-          onLogout={onLogout}
-          logoUrl={logoUrl}
-          schoolName={schoolName}
-          subdomain={subdomain || user?.subdomain}
-          token={token}
-        />
+      <div className="flex-1 min-w-0">
+        {/* Header - Sticky */}
+        <div className="sticky top-0 z-30">
+          <StudentHeader
+            user={user}
+            onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+            onLogout={onLogout}
+            logoUrl={logoUrl}
+            schoolName={schoolName}
+            subdomain={subdomain || user?.subdomain}
+            token={token}
+          />
+        </div>
 
-        {/* Main Content Area - scroll natural del documento */}
-        <main className="flex-1 p-4 lg:p-6">
+        {/* Main Content Area */}
+        <main className="p-4 lg:p-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
