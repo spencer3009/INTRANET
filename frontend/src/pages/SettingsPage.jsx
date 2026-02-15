@@ -71,6 +71,95 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     
     fetchSettings();
   }, [token]);
+  
+  // Fetch Google Drive status
+  useEffect(() => {
+    const fetchDriveStatus = async () => {
+      try {
+        const res = await axios.get(`${API}/integrations/google-drive/status`, { headers });
+        setDriveStatus(res.data);
+      } catch (err) {
+        console.error("Error fetching Drive status:", err);
+      }
+    };
+    
+    fetchDriveStatus();
+  }, [token]);
+  
+  // Handle OAuth callback results from URL params
+  useEffect(() => {
+    const successParam = searchParams.get("success");
+    const errorParam = searchParams.get("error");
+    
+    if (successParam === "google_drive_connected") {
+      setDriveSuccess("¡Google Drive conectado correctamente!");
+      // Refresh status
+      axios.get(`${API}/integrations/google-drive/status`, { headers })
+        .then(res => setDriveStatus(res.data))
+        .catch(console.error);
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+      setTimeout(() => setDriveSuccess(""), 5000);
+    }
+    
+    if (errorParam) {
+      const errorMessages = {
+        oauth_denied: "Acceso denegado. Por favor autoriza la aplicación.",
+        invalid_callback: "Callback inválido. Por favor intenta de nuevo.",
+        invalid_state: "Estado inválido. Por favor intenta de nuevo.",
+        no_refresh_token: "No se recibió token de actualización. Por favor intenta de nuevo.",
+        connection_failed: "Error al conectar con Google Drive. Por favor intenta de nuevo."
+      };
+      setDriveError(errorMessages[errorParam] || "Error desconocido");
+      window.history.replaceState({}, "", window.location.pathname);
+      setTimeout(() => setDriveError(""), 5000);
+    }
+  }, [searchParams]);
+  
+  // Connect to Google Drive
+  const handleConnectGoogleDrive = async () => {
+    setDriveLoading(true);
+    setDriveError("");
+    
+    try {
+      const res = await axios.get(
+        `${API}/integrations/google-drive/auth?school_id=${user?.school_id}`,
+        { headers }
+      );
+      
+      if (res.data.authorization_url) {
+        // Redirect to Google OAuth
+        window.location.href = res.data.authorization_url;
+      }
+    } catch (err) {
+      setDriveError(err.response?.data?.detail || "Error al iniciar conexión con Google Drive");
+      setDriveLoading(false);
+    }
+  };
+  
+  // Disconnect Google Drive
+  const handleDisconnectGoogleDrive = async () => {
+    if (!window.confirm("¿Estás seguro de desconectar Google Drive? Los materiales existentes seguirán en Drive pero no podrás subir nuevos.")) {
+      return;
+    }
+    
+    setDriveLoading(true);
+    setDriveError("");
+    
+    try {
+      await axios.post(`${API}/integrations/google-drive/disconnect`, {}, { headers });
+      setDriveStatus(prev => ({ ...prev, connected: false, email: null, connected_at: null }));
+      setDriveSuccess("Google Drive desconectado correctamente");
+      setTimeout(() => setDriveSuccess(""), 3000);
+    } catch (err) {
+      setDriveError(err.response?.data?.detail || "Error al desconectar Google Drive");
+    } finally {
+      setDriveLoading(false);
+    }
+  };
+  
+  // Check if current user is owner/propietario
+  const isOwner = user?.is_owner || user?.role === "owner" || user?.role === "director";
 
   // Handle logo upload to Cloudinary
   const handleLogoUpload = async (e) => {
