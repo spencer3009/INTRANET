@@ -552,6 +552,171 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
               </div>
             </section>
 
+            {/* Google Drive Integration - Only for owners */}
+            {isOwner && (
+              <section className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden" data-testid="google-drive-section">
+                <div className="bg-gradient-to-r from-blue-600 to-cyan-500 px-6 py-4">
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                    <HardDrive className="w-5 h-5" />
+                    Integración Google Drive
+                  </h2>
+                </div>
+                
+                <div className="p-6">
+                  {/* Status Messages */}
+                  {driveError && (
+                    <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-2">
+                      <XCircle className="w-5 h-5 flex-shrink-0" />
+                      {driveError}
+                    </div>
+                  )}
+                  
+                  {driveSuccess && (
+                    <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-xl flex items-center gap-2">
+                      <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                      {driveSuccess}
+                    </div>
+                  )}
+                  
+                  {/* Server Configuration Warning */}
+                  {!driveStatus.server_configured && (
+                    <div className="mb-4 bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-xl flex items-center gap-2">
+                      <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                      <span>Google Drive no está configurado en el servidor. Contacta al administrador.</span>
+                    </div>
+                  )}
+                  
+                  <div className="flex flex-col lg:flex-row lg:items-start gap-6">
+                    {/* Status Card */}
+                    <div className="flex-1">
+                      <div className={`p-5 rounded-xl border-2 ${
+                        driveStatus.connected 
+                          ? 'bg-emerald-50 border-emerald-200' 
+                          : 'bg-slate-50 border-slate-200'
+                      }`}>
+                        <div className="flex items-center gap-3 mb-4">
+                          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                            driveStatus.connected 
+                              ? 'bg-emerald-500' 
+                              : 'bg-slate-400'
+                          }`}>
+                            <HardDrive className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="font-bold text-slate-800">Estado de Conexión</h3>
+                            <div className="flex items-center gap-2">
+                              <span className={`inline-flex items-center gap-1.5 text-sm font-medium ${
+                                driveStatus.connected ? 'text-emerald-600' : 'text-slate-500'
+                              }`}>
+                                <span className={`w-2 h-2 rounded-full ${
+                                  driveStatus.connected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                                }`}></span>
+                                {driveStatus.connected ? 'Conectado' : 'No conectado'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {driveStatus.connected && (
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2 text-slate-600">
+                              <Mail className="w-4 h-4" />
+                              <span>{driveStatus.email}</span>
+                            </div>
+                            {driveStatus.connected_at && (
+                              <div className="flex items-center gap-2 text-slate-500">
+                                <Clock className="w-4 h-4" />
+                                <span>
+                                  Conectado el {new Date(driveStatus.connected_at).toLocaleDateString('es-PE', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  })}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {!driveStatus.connected && (
+                          <p className="text-sm text-slate-500">
+                            Es <strong>obligatorio</strong> conectar Google Drive para subir materiales de estudio.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex flex-col gap-3">
+                      {!driveStatus.connected ? (
+                        <button
+                          type="button"
+                          onClick={handleConnectGoogleDrive}
+                          disabled={driveLoading || !driveStatus.server_configured}
+                          className="flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-700 hover:to-cyan-600 text-white px-6 py-3 rounded-xl font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                          data-testid="connect-google-drive-btn"
+                        >
+                          {driveLoading ? (
+                            <Loader2 className="w-5 h-5 animate-spin" />
+                          ) : (
+                            <Link2 className="w-5 h-5" />
+                          )}
+                          Conectar con Google Drive
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={handleConnectGoogleDrive}
+                            disabled={driveLoading}
+                            className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 px-5 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50"
+                            data-testid="reconnect-google-drive-btn"
+                          >
+                            {driveLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="w-4 h-4" />
+                            )}
+                            Reconectar
+                          </button>
+                          
+                          <button
+                            type="button"
+                            onClick={handleDisconnectGoogleDrive}
+                            disabled={driveLoading}
+                            className="flex items-center justify-center gap-2 bg-red-50 hover:bg-red-100 text-red-600 px-5 py-2.5 rounded-xl font-medium transition-all disabled:opacity-50"
+                            data-testid="disconnect-google-drive-btn"
+                          >
+                            {driveLoading ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Unlink className="w-4 h-4" />
+                            )}
+                            Desconectar
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Info Box */}
+                  <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <h4 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
+                      Información importante
+                    </h4>
+                    <ul className="text-sm text-blue-700 space-y-1.5">
+                      <li>• Los archivos PDF, Word, Excel, PowerPoint y ZIP se guardarán en Google Drive.</li>
+                      <li>• Las imágenes seguirán usando Cloudinary.</li>
+                      <li>• Se creará automáticamente la carpeta <strong>EduNet/Materiales</strong> en tu Drive.</li>
+                      <li>• Los estudiantes podrán descargar los materiales sin ver los enlaces de Drive.</li>
+                      <li>• Solo el propietario puede conectar o desconectar Google Drive.</li>
+                    </ul>
+                  </div>
+                </div>
+              </section>
+            )}
+
             {/* Carousel Manager - Only for owners/super admins */}
             {(user?.is_owner || user?.is_super_admin || user?.role === "owner" || user?.role === "director") && (
               <section className="mt-8" data-testid="carousel-section">
