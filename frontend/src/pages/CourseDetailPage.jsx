@@ -7401,12 +7401,21 @@ function MaterialTableContent({ subjectId, token, user }) {
   const handleDownload = async (material) => {
     if (material.file_url) {
       try {
-        // For Cloudinary URLs that may require authentication, get a signed URL
+        // For Cloudinary URLs, get a signed URL using stored metadata
         if (material.file_url.includes('cloudinary.com')) {
-          const res = await axios.get(`${API}/cloudinary/signed-url`, {
-            params: { url: material.file_url },
-            headers
-          });
+          const params = new URLSearchParams({ url: material.file_url });
+          
+          // If we have stored Cloudinary data, use it for accurate URL generation
+          if (material.cloudinary_data) {
+            if (material.cloudinary_data.public_id) {
+              params.append('public_id', material.cloudinary_data.public_id);
+            }
+            if (material.cloudinary_data.resource_type) {
+              params.append('resource_type', material.cloudinary_data.resource_type);
+            }
+          }
+          
+          const res = await axios.get(`${API}/cloudinary/signed-url?${params.toString()}`, { headers });
           window.open(res.data.signed_url, '_blank', 'noopener,noreferrer');
         } else {
           window.open(material.file_url, '_blank', 'noopener,noreferrer');
