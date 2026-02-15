@@ -10531,6 +10531,9 @@ async def update_course_post(
     # Handle metadata for tasks
     if data.metadata is not None:
         update_data["metadata"] = data.metadata
+        # Also update root-level due_date for backwards compatibility
+        if data.metadata.get("due_date"):
+            update_data["due_date"] = data.metadata.get("due_date")
     
     await db.course_posts.update_one({"id": post_id}, {"$set": update_data})
     
