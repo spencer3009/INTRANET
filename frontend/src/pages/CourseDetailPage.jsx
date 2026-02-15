@@ -2676,7 +2676,11 @@ function EditTaskModal({ isOpen, onClose, task, token, onTaskUpdated }) {
           </button>
           
           <button
-            onClick={handleSubmit}
+            onClick={() => {
+              console.log('[EditTaskModal] Guardar Cambios button clicked!');
+              console.log('[EditTaskModal] Button state - submitting:', submitting, 'title:', !!title.trim(), 'dueDate:', !!dueDate);
+              handleSubmit();
+            }}
             disabled={submitting || !title.trim() || !dueDate}
             className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl font-semibold transition-all flex items-center gap-2 shadow-lg shadow-amber-500/25 disabled:shadow-none"
             data-testid="submit-edit-task-btn"
