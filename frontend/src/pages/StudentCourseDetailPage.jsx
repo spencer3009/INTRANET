@@ -1318,17 +1318,73 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
     return { color: 'bg-slate-100 text-slate-600', label: 'Archivo' };
   };
 
+  // If task is expired and no late submissions allowed, show expired message
+  if (isExpired && !allowLateSubmissions) {
+    return (
+      <div className="bg-white rounded-2xl border border-red-200 overflow-hidden">
+        {/* Expired Header */}
+        <div className="bg-gradient-to-r from-red-500 to-rose-500 px-6 py-4">
+          <h3 className="font-bold text-white text-lg flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            Plazo Vencido
+          </h3>
+          <p className="text-red-100 text-sm mt-1">
+            {timeStatus}
+          </p>
+        </div>
+        
+        <div className="p-6">
+          <div className="flex items-center gap-4 p-4 bg-red-50 rounded-xl border border-red-200">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <Clock className="w-6 h-6 text-red-500" />
+            </div>
+            <div>
+              <h4 className="font-semibold text-red-800">No es posible entregar esta tarea</h4>
+              <p className="text-red-600 text-sm mt-1">
+                El plazo para la entrega finalizó el {deadline?.toLocaleDateString("es-PE", { 
+                  day: "numeric", 
+                  month: "long", 
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit"
+                })}. Contacta a tu profesor si tienes alguna duda.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-4">
+      <div className={`px-6 py-4 ${
+        isExpired && allowLateSubmissions 
+          ? 'bg-gradient-to-r from-amber-500 to-orange-500' 
+          : 'bg-gradient-to-r from-cyan-500 to-blue-500'
+      }`}>
         <h3 className="font-bold text-white text-lg flex items-center gap-2">
           <Send className="w-5 h-5" />
           Entregar Tarea
+          {isExpired && allowLateSubmissions && (
+            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full ml-2">Entrega tardía</span>
+          )}
         </h3>
-        <p className="text-cyan-100 text-sm mt-1">
-          Tipo de entrega: <span className="font-medium text-white">{deliveryType}</span>
-        </p>
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-cyan-100 text-sm">
+            Tipo de entrega: <span className="font-medium text-white">{deliveryType}</span>
+          </p>
+          {timeStatus && (
+            <p className={`text-sm font-medium px-2 py-0.5 rounded-full ${
+              isExpired 
+                ? 'bg-red-100 text-red-700' 
+                : 'bg-white/20 text-white'
+            }`}>
+              ⏱ {timeStatus}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="p-6 space-y-6">
