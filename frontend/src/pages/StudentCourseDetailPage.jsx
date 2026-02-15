@@ -505,6 +505,52 @@ function PostCard({ post, token, user }) {
 function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, exams, reminders, onViewPost, token, user }) {
   const baseColor = subject?.color || "#06b6d4";
   
+  // Refs for calculating dynamic sticky top
+  const leftColumnRef = useRef(null);
+  const rightColumnRef = useRef(null);
+  const [leftStickyTop, setLeftStickyTop] = useState('auto');
+  const [rightStickyTop, setRightStickyTop] = useState('auto');
+  
+  // Calculate dynamic sticky top values based on column heights
+  useEffect(() => {
+    const calculateStickyTops = () => {
+      // Only on desktop
+      if (window.innerWidth < 1024) {
+        setLeftStickyTop('auto');
+        setRightStickyTop('auto');
+        return;
+      }
+      
+      const headerHeight = 96; // Height of sticky header
+      const viewportHeight = window.innerHeight;
+      
+      if (leftColumnRef.current) {
+        const leftHeight = leftColumnRef.current.offsetHeight;
+        // Calculate top so sticky activates when bottom of column is visible
+        // top = viewportHeight - columnHeight - headerHeight
+        const leftTop = Math.max(headerHeight, viewportHeight - leftHeight);
+        setLeftStickyTop(`${leftTop}px`);
+      }
+      
+      if (rightColumnRef.current) {
+        const rightHeight = rightColumnRef.current.offsetHeight;
+        const rightTop = Math.max(headerHeight, viewportHeight - rightHeight);
+        setRightStickyTop(`${rightTop}px`);
+      }
+    };
+    
+    // Initial calculation after render
+    const timer = setTimeout(calculateStickyTops, 100);
+    
+    // Recalculate on resize
+    window.addEventListener('resize', calculateStickyTops);
+    
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', calculateStickyTops);
+    };
+  }, [posts, tasks, materials, forumPosts, students, reminders]); // Recalculate when content changes
+  
   // Calculate student's grades for "Mi rendimiento" card
   const studentId = user?.id;
   const taskGrades = tasks
