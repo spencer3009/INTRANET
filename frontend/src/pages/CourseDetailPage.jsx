@@ -5769,6 +5769,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   const [selectedTask, setSelectedTask] = useState(null);
   const [viewMode, setViewMode] = useState('detail'); // 'detail' or 'submissions'
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [taskToDelete, setTaskToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
