@@ -6295,17 +6295,18 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   }, []);
   
   // Fetch tasks
+  const fetchTasks = async () => {
+    try {
+      const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=task&limit=100`, { headers });
+      setTasks(res.data.posts || []);
+    } catch (err) {
+      console.error('Error fetching tasks:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=task&limit=100`, { headers });
-        setTasks(res.data.posts || []);
-      } catch (err) {
-        console.error('Error fetching tasks:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchTasks();
   }, [subjectId, token]);
   
