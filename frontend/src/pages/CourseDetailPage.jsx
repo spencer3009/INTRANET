@@ -6415,7 +6415,13 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     if (!dateStr) return '';
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    // Use Peru timezone explicitly
+    return date.toLocaleDateString('es-PE', { 
+      day: '2-digit', 
+      month: '2-digit', 
+      year: 'numeric',
+      timeZone: 'America/Lima'
+    });
   };
   
   const formatDateTime = (dateStr) => {
