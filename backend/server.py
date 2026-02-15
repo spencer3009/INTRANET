@@ -10327,8 +10327,11 @@ class CoursePostCreate(BaseModel):
     file_url: Optional[str] = None
     file_name: Optional[str] = None
     file_type: Optional[str] = None
+    file_size: Optional[int] = None
     # Metadata for tasks: due_date, delivery_type, show_to_students, points
     metadata: Optional[dict] = None
+    # Cloudinary data for proper file handling
+    cloudinary_data: Optional[dict] = None
 
 class CoursePostUpdate(BaseModel):
     title: Optional[str] = None
