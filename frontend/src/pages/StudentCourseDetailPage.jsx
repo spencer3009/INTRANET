@@ -664,11 +664,11 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
-      {/* LEFT COLUMN - Course Image & Activity (Smart Sticky) */}
+      {/* LEFT COLUMN - Course Image & Activity (Smart Sticky via JS) */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <div 
         ref={leftColumnRef}
-        className={`lg:col-span-3 space-y-4 ${stickyActive ? 'lg:sticky lg:top-24' : ''}`}
+        className="lg:col-span-3 space-y-4"
         style={{ alignSelf: 'start' }}
       >
         {/* Course Image Card - Elegant Design */}
