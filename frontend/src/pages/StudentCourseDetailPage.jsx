@@ -661,6 +661,42 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
             </div>
           </div>
         </div>
+
+        {/* Mi Rendimiento Card */}
+        <div className="bg-gradient-to-br from-amber-50/40 to-orange-50/20 rounded-2xl p-4 border border-amber-200/40 shadow-sm">
+          <h4 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center shadow-sm">
+              <Trophy className="w-3.5 h-3.5 text-white" />
+            </div>
+            Mi rendimiento
+          </h4>
+          
+          <div className="space-y-3 text-sm">
+            {/* Average */}
+            <div className="flex items-center justify-between p-3 bg-white/80 rounded-xl">
+              <span className="text-slate-600">Promedio</span>
+              <span className={`text-2xl font-bold ${
+                average === null ? 'text-slate-400' :
+                parseFloat(average) >= 14 ? 'text-emerald-600' :
+                parseFloat(average) >= 11 ? 'text-amber-600' : 'text-red-600'
+              }`}>
+                {average || '-'}
+              </span>
+            </div>
+            
+            {/* Stats */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="p-2 bg-white/60 rounded-lg text-center">
+                <p className="text-lg font-bold text-slate-800">{allGrades.length}</p>
+                <p className="text-xs text-slate-500">Evaluaciones</p>
+              </div>
+              <div className="p-2 bg-white/60 rounded-lg text-center">
+                <p className="text-lg font-bold text-slate-800">{taskGrades.length + examGrades.length > 0 ? `${taskGrades.length}/${examGrades.length}` : '0/0'}</p>
+                <p className="text-xs text-slate-500">Tareas/Exámenes</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
