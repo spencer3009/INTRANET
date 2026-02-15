@@ -1888,9 +1888,9 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
                 )}
               </div>
               
-              {/* Action - View button (eye) + submit/status */}
+              {/* Action - View button (eye) + status indicator */}
               <div className="col-span-1 flex items-center gap-1">
-                {/* Eye button to view task */}
+                {/* Eye button to view task - ONLY this should be clickable */}
                 <button
                   onClick={() => setSelectedTask(task)}
                   className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 transition-colors"
@@ -1900,36 +1900,38 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
                   <Eye className="w-4 h-4" />
                 </button>
                 
-                {/* Status indicator - Red for pending, Green for submitted */}
+                {/* Status indicator - NOT clickable, just visual indicator */}
                 {taskStatus.status === "pending" && (
-                  <button
-                    onClick={() => setSelectedTask(task)}
-                    className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                    title="Pendiente - Click para entregar"
-                    data-testid={`submit-task-${task.id}`}
+                  <span 
+                    className="p-2 bg-amber-100 text-amber-600 rounded-lg cursor-default"
+                    title="Pendiente de entrega"
                   >
-                    <CheckCircle className="w-4 h-4" />
-                  </button>
+                    <Clock className="w-4 h-4" />
+                  </span>
                 )}
                 {taskStatus.status === "submitted" && (
-                  <span className="p-2 bg-emerald-500 text-white rounded-lg" title="Entregada">
+                  <span 
+                    className="p-2 bg-emerald-100 text-emerald-600 rounded-lg cursor-default"
+                    title="Entregada"
+                  >
                     <CheckCircle className="w-4 h-4" />
                   </span>
                 )}
                 {taskStatus.status === "graded" && (
-                  <span className="p-2 bg-emerald-500 text-white rounded-lg" title="Calificada">
+                  <span 
+                    className="p-2 bg-emerald-100 text-emerald-600 rounded-lg cursor-default"
+                    title="Calificada"
+                  >
                     <Trophy className="w-4 h-4" />
                   </span>
                 )}
                 {taskStatus.status === "late" && (
-                  <button
-                    onClick={() => setSelectedTask(task)}
-                    className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-                    title="Vencida - Click para ver"
-                    data-testid={`late-task-${task.id}`}
+                  <span 
+                    className="p-2 bg-red-100 text-red-600 rounded-lg cursor-default"
+                    title="Plazo vencido"
                   >
                     <AlertCircle className="w-4 h-4" />
-                  </button>
+                  </span>
                 )}
               </div>
             </div>
