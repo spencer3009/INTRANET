@@ -15,6 +15,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 export default function SettingsPage({ user, token, subdomain, onLogout, onSettingsUpdate }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const fileInputRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
@@ -33,6 +34,17 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  
+  // Google Drive states
+  const [driveStatus, setDriveStatus] = useState({
+    server_configured: false,
+    connected: false,
+    email: null,
+    connected_at: null
+  });
+  const [driveLoading, setDriveLoading] = useState(false);
+  const [driveError, setDriveError] = useState("");
+  const [driveSuccess, setDriveSuccess] = useState("");
   
   const headers = { Authorization: `Bearer ${token}` };
 
