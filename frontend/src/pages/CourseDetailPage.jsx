@@ -7274,14 +7274,21 @@ function MaterialTableContent({ subjectId, token, user }) {
     else setFileType('other');
   };
   
-  const uploadToCloudinary = async (fileToUpload, folder, isRawFile = false) => {
-    const resourceType = isRawFile ? 'raw' : 'auto';
+  const uploadToCloudinary = async (fileToUpload, folder) => {
+    // Determine if file should be uploaded as RAW
+    // PDFs, DOCs, XLS, PPT, etc. MUST be uploaded as RAW
+    const fileExtension = fileToUpload.name.split('.').pop()?.toLowerCase();
+    const rawExtensions = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', '7z', 'csv'];
+    const isRawFile = rawExtensions.includes(fileExtension) || !fileToUpload.type.startsWith('image/');
+    
+    // ALWAYS use 'raw' for non-image files to ensure proper handling
+    const resourceType = isRawFile ? 'raw' : 'image';
     
     const signatureRes = await axios.get(
       `${API}/cloudinary/signature?folder=${folder}&resource_type=${resourceType}`,
       { headers }
     );
-    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder, access_mode } = signatureRes.data;
+    const { signature, timestamp, cloud_name, api_key, folder: uploadFolder } = signatureRes.data;
     
     const formData = new FormData();
     formData.append('file', fileToUpload);
@@ -7290,11 +7297,8 @@ function MaterialTableContent({ subjectId, token, user }) {
     formData.append('api_key', api_key);
     formData.append('folder', uploadFolder);
     
-    if (access_mode) {
-      formData.append('access_mode', access_mode);
-    }
-    
-    const uploadEndpoint = isRawFile ? 'raw' : 'auto';
+    // Use the correct endpoint based on resource type
+    const uploadEndpoint = resourceType;
     
     const uploadRes = await axios.post(
       `https://api.cloudinary.com/v1_1/${cloud_name}/${uploadEndpoint}/upload`,
@@ -7307,7 +7311,15 @@ function MaterialTableContent({ subjectId, token, user }) {
       }
     );
     
-    return uploadRes.data.secure_url;
+    // Return complete upload result with all metadata
+    return {
+      secure_url: uploadRes.data.secure_url,
+      public_id: uploadRes.data.public_id,
+      resource_type: uploadRes.data.resource_type,
+      format: uploadRes.data.format,
+      bytes: uploadRes.data.bytes,
+      original_filename: uploadRes.data.original_filename
+    };
   };
   
   const handleSubmit = async () => {
