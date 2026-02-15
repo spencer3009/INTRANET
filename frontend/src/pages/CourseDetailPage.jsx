@@ -6395,6 +6395,12 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     // Force loading state to ensure re-render
     setLoading(true);
     
+    // Clear current tasks to force re-render
+    setTasks([]);
+    
+    // Small delay to ensure DB is updated
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
     // Refetch from server to get the latest data
     await fetchTasks();
   };
