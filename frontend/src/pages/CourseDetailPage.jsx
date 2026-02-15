@@ -1864,7 +1864,10 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
       
       // Combine date and time - store in ISO format with Peru timezone offset
       // Peru is UTC-5, so we append that offset to ensure consistent parsing
-      const dueDateTime = `${dueDate}T${dueTime}:00-05:00`;
+      // Handle both "HH:MM" and "HH:MM:SS" formats
+      const timeParts = dueTime.split(':');
+      const timeWithSeconds = timeParts.length === 2 ? `${dueTime}:00` : dueTime;
+      const dueDateTime = `${dueDate}T${timeWithSeconds}-05:00`;
       
       const res = await axios.post(`${API}/course/${subjectId}/posts`, {
         subject_id: subjectId,
