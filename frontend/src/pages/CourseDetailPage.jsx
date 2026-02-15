@@ -6334,7 +6334,9 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                 
                 {/* Due Date */}
                 <div className="col-span-2">
-                  <p className="text-sm text-slate-600">{formatDate(extractDueDate(task))}</p>
+                  <p className="text-sm text-slate-600">
+                    {extractDueDate(task) ? formatDate(extractDueDate(task)) : <span className="text-slate-400">Sin fecha</span>}
+                  </p>
                 </div>
                 
                 {/* Actions */}
