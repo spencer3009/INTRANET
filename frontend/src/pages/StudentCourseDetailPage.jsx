@@ -582,9 +582,20 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
   
   // Get recent activity (all posts combined including forum posts)
   const allForumPosts = (forumPosts || []).map(p => ({ ...p, post_type: 'forum' }));
-  const recentActivity = [...posts, ...tasks.slice(0, 3), ...materials.slice(0, 3), ...allForumPosts]
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 10);
+  const allActivity = [...posts, ...tasks, ...materials, ...allForumPosts]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  // Pagination state for activity feed
+  const [visiblePosts, setVisiblePosts] = useState(4);
+  const POSTS_INCREMENT = 4;
+  
+  const displayedActivity = allActivity.slice(0, visiblePosts);
+  const hasMorePosts = visiblePosts < allActivity.length;
+  const remainingPosts = allActivity.length - visiblePosts;
+
+  const handleLoadMore = () => {
+    setVisiblePosts(prev => prev + POSTS_INCREMENT);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
