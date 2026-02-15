@@ -502,8 +502,35 @@ function PostCard({ post, token, user }) {
 }
 
 // Dashboard/Tablero Content - 3 Column Layout (matching owner's portal design)
-function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, reminders, onViewPost, token, user }) {
+function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, exams, reminders, onViewPost, token, user }) {
   const baseColor = subject?.color || "#06b6d4";
+  
+  // Calculate student's grades for "Mi rendimiento" card
+  const studentId = user?.id;
+  const taskGrades = tasks
+    .map(task => {
+      const submission = task.submissions?.find(s => s.student_id === studentId);
+      if (submission && submission.grade !== null && submission.grade !== undefined) {
+        return { grade: submission.grade, maxGrade: task.max_grade || task.metadata?.points || 20 };
+      }
+      return null;
+    })
+    .filter(Boolean);
+  
+  const examGrades = (exams || [])
+    .map(exam => {
+      const attempt = exam.attempts?.find(a => a.student_id === studentId);
+      if (attempt && attempt.score !== null && attempt.score !== undefined) {
+        return { grade: attempt.score, maxGrade: exam.total_points || 20 };
+      }
+      return null;
+    })
+    .filter(Boolean);
+  
+  const allGrades = [...taskGrades, ...examGrades];
+  const totalPoints = allGrades.reduce((acc, g) => acc + g.grade, 0);
+  const maxTotalPoints = allGrades.reduce((acc, g) => acc + g.maxGrade, 0);
+  const average = allGrades.length > 0 ? ((totalPoints / maxTotalPoints) * 20).toFixed(1) : null;
   
   // Helper function to get time ago
   const getTimeAgo = (dateStr) => {
