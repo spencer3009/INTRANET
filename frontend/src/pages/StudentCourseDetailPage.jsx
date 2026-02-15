@@ -1671,6 +1671,67 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
                 onSubmit={onSubmitTask}
               />
             )}
+            
+            {/* Expired Task Warning Banner */}
+            {taskStatus.status === "late" && (
+              <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-2xl border-2 border-red-200 overflow-hidden shadow-lg">
+                {/* Warning Header */}
+                <div className="bg-gradient-to-r from-red-500 via-red-600 to-orange-500 px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center animate-pulse">
+                      <AlertTriangle className="w-7 h-7 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-white text-xl">Plazo de Entrega Vencido</h3>
+                      <p className="text-red-100 text-sm mt-0.5">Esta tarea ya no acepta entregas</p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Warning Content */}
+                <div className="p-6 space-y-4">
+                  {/* Main Message */}
+                  <div className="flex items-start gap-4 p-4 bg-white rounded-xl border border-red-200 shadow-sm">
+                    <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-6 h-6 text-red-600" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-red-800 text-lg">No es posible enviar esta tarea</h4>
+                      <p className="text-red-700 mt-2 leading-relaxed">
+                        El plazo para la entrega de esta tarea ha finalizado. 
+                        Ya no es posible enviar archivos ni completar la entrega a través de esta plataforma.
+                      </p>
+                      {dueDate && (
+                        <p className="text-red-600 text-sm mt-2 font-medium">
+                          La fecha límite fue: {new Date(dueDate).toLocaleDateString("es-PE", { 
+                            weekday: 'long',
+                            day: "numeric", 
+                            month: "long", 
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Contact Teacher Suggestion */}
+                  <div className="flex items-start gap-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
+                    <div className="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <MessageSquare className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <h5 className="font-semibold text-amber-800">¿Necesitas una extensión?</h5>
+                      <p className="text-amber-700 text-sm mt-1">
+                        Si tienes una justificación válida o necesitas más tiempo, 
+                        comunícate directamente con tu profesor para solicitar una extensión del plazo.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Sidebar Info */}
