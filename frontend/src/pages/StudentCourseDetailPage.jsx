@@ -2713,8 +2713,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
           token={token}
         />
 
-        {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        {/* Main Content - NO overflow-y-auto to allow sticky to work */}
+        <main className="flex-1 p-4 lg:p-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
