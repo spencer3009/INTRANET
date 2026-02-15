@@ -52,6 +52,52 @@ cloudinary.config(
     secure=True
 )
 
+# ══════════════════════════════════════════════════════════════════════════════
+# GOOGLE DRIVE CONFIGURATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
+BASE_URL = os.environ.get("BASE_URL", "https://edunet.pe")
+
+# Generate encryption key from JWT_SECRET for token encryption
+def get_encryption_key():
+    """Generate a Fernet-compatible key from JWT_SECRET"""
+    key_bytes = hashlib.sha256(JWT_SECRET.encode()).digest()
+    return base64.urlsafe_b64encode(key_bytes)
+
+FERNET_KEY = get_encryption_key()
+fernet = Fernet(FERNET_KEY)
+
+def encrypt_token(token: str) -> str:
+    """Encrypt a token using Fernet"""
+    return fernet.encrypt(token.encode()).decode()
+
+def decrypt_token(encrypted_token: str) -> str:
+    """Decrypt a token using Fernet"""
+    return fernet.decrypt(encrypted_token.encode()).decode()
+
+# Google Drive OAuth scopes
+GOOGLE_DRIVE_SCOPES = ["https://www.googleapis.com/auth/drive.file"]
+
+# Allowed file extensions for Google Drive upload
+GOOGLE_DRIVE_ALLOWED_EXTENSIONS = [
+    "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "zip", "txt"
+]
+
+# MIME types mapping
+MIME_TYPE_MAP = {
+    "pdf": "application/pdf",
+    "doc": "application/msword",
+    "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "xls": "application/vnd.ms-excel",
+    "xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "ppt": "application/vnd.ms-powerpoint",
+    "pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "zip": "application/zip",
+    "txt": "text/plain"
+}
+
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
 security = HTTPBearer(auto_error=False)
