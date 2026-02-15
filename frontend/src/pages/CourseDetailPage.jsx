@@ -6430,12 +6430,14 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     if (!dateStr) return '';
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
+    // Use Peru timezone explicitly
     return date.toLocaleString('es-PE', { 
       day: '2-digit', 
       month: '2-digit', 
       year: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      timeZone: 'America/Lima'
     });
   };
   
