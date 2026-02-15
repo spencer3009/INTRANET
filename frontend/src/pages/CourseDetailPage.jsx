@@ -5860,12 +5860,14 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
     return date.toLocaleDateString('es-PE', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
   
   const formatDateTime = (dateStr) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
     return date.toLocaleString('es-PE', { 
       day: '2-digit', 
       month: '2-digit', 
@@ -5883,19 +5885,37 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   };
   
   const extractDueDate = (task) => {
-    // Try to get due_date from task metadata or parse from content
+    // Try to get due_date from task metadata or root level
     if (task.due_date) return task.due_date;
     if (task.metadata?.due_date) return task.metadata.due_date;
-    // Parse from content if needed
-    const match = task.content?.match(/Fecha de entrega:\s*(.+?)(?:\n|$)/);
-    if (match) {
-      try {
-        return new Date(match[1]).toISOString();
-      } catch (e) {
-        return task.created_at;
+    
+    // Parse from content if needed - Spanish format: "14 de febrero de 2026, 11:00 p. m."
+    if (task.content) {
+      const spanishMatch = task.content.match(/Fecha de entrega:\s*(\d{1,2})\s*de\s*(\w+)\s*de\s*(\d{4}),?\s*(\d{1,2}):(\d{2})\s*(a\.\s*m\.|p\.\s*m\.)?/i);
+      if (spanishMatch) {
+        const months = {
+          'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+          'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+        };
+        const day = parseInt(spanishMatch[1]);
+        const month = months[spanishMatch[2].toLowerCase()];
+        const year = parseInt(spanishMatch[3]);
+        let hour = parseInt(spanishMatch[4]);
+        const minute = parseInt(spanishMatch[5]);
+        const ampm = spanishMatch[6]?.toLowerCase().replace(/\s|\./g, '') || '';
+        
+        if (ampm === 'pm' && hour < 12) hour += 12;
+        if (ampm === 'am' && hour === 12) hour = 0;
+        
+        if (!isNaN(day) && month !== undefined && !isNaN(year)) {
+          const date = new Date(year, month, day, hour, minute);
+          if (!isNaN(date.getTime())) {
+            return date.toISOString();
+          }
+        }
       }
     }
-    return task.created_at;
+    return null;
   };
   
   // Submissions View
