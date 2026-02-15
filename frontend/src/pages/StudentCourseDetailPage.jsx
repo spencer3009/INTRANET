@@ -1562,31 +1562,36 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
                   <Eye className="w-4 h-4" />
                 </button>
                 
-                {/* Submit/Status indicator */}
+                {/* Status indicator - Red for pending, Green for submitted */}
                 {taskStatus.status === "pending" && (
                   <button
-                    onClick={() => onSubmitTask(task)}
-                    className="p-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
-                    title="Entregar tarea"
+                    onClick={() => setSelectedTask(task)}
+                    className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    title="Pendiente - Click para entregar"
                     data-testid={`submit-task-${task.id}`}
                   >
                     <CheckCircle className="w-4 h-4" />
                   </button>
                 )}
                 {taskStatus.status === "submitted" && (
-                  <span className="p-2 text-blue-500" title="Entregada">
+                  <span className="p-2 bg-emerald-500 text-white rounded-lg" title="Entregada">
                     <CheckCircle className="w-4 h-4" />
                   </span>
                 )}
                 {taskStatus.status === "graded" && (
-                  <span className="p-2 text-emerald-500" title="Calificada">
+                  <span className="p-2 bg-emerald-500 text-white rounded-lg" title="Calificada">
                     <Trophy className="w-4 h-4" />
                   </span>
                 )}
                 {taskStatus.status === "late" && (
-                  <span className="p-2 text-red-500" title="Vencida">
+                  <button
+                    onClick={() => setSelectedTask(task)}
+                    className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+                    title="Vencida - Click para ver"
+                    data-testid={`late-task-${task.id}`}
+                  >
                     <AlertCircle className="w-4 h-4" />
-                  </span>
+                  </button>
                 )}
               </div>
             </div>
