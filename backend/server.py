@@ -3182,57 +3182,46 @@ async def get_signed_download_url(
 ):
     """
     Generate a signed URL for downloading a Cloudinary asset.
-    This is needed for assets that require authentication.
+    Uses Cloudinary's private_download_url for authenticated assets.
     """
     if "cloudinary.com" not in url:
         raise HTTPException(status_code=400, detail="URL no válida")
     
     try:
-        import time
-        import hashlib
-        
         # Extract components from the URL
         # URL format: https://res.cloudinary.com/{cloud}/{resource_type}/upload/v{version}/{public_id}
         parts = url.split("/upload/")
         if len(parts) != 2:
-            # Try to return original URL
             return {"signed_url": url, "expires_in": 3600}
         
-        base_url = parts[0] + "/upload/"
         path_with_version = parts[1]
-        
-        # Get cloud name and resource type from URL
-        url_parts = parts[0].split("/")
-        cloud_name = os.environ.get("CLOUDINARY_CLOUD_NAME")
-        api_secret = os.environ.get("CLOUDINARY_API_SECRET")
-        
-        # Determine resource type
-        resource_type = "raw" if "/raw/" in url else "image"
         
         # Extract public_id (remove version prefix if present)
         if path_with_version.startswith("v") and "/" in path_with_version:
             version_and_path = path_with_version.split("/", 1)
-            version = version_and_path[0]
             public_id = version_and_path[1]
         else:
-            version = ""
             public_id = path_with_version
         
-        # Generate expiration timestamp (1 hour from now)
-        expires_at = int(time.time()) + 3600
+        # Determine resource type
+        resource_type = "raw" if "/raw/" in url else "image"
         
-        # Create signature for authenticated URL
-        # Format: {public_id}?expires_at={timestamp}&signature={signature}
-        to_sign = f"{public_id}expires_at{expires_at}{api_secret}"
-        signature = hashlib.sha256(to_sign.encode()).hexdigest()[:8]
+        # Use Cloudinary's private_download_url function
+        # This generates a time-limited signed URL for authenticated assets
+        signed_url = cloudinary.utils.private_download_url(
+            public_id,
+            format="",  # Keep original format
+            resource_type=resource_type,
+            expires_at=int(time.time()) + 3600,  # 1 hour
+            attachment=True  # Force download instead of display
+        )
         
-        # Build the signed URL
-        signed_url = f"{base_url}{path_with_version}?expires_at={expires_at}&signature={signature}"
-        
-        return {"signed_url": signed_url, "expires_in": 3600, "original_url": url}
+        return {"signed_url": signed_url, "expires_in": 3600}
         
     except Exception as e:
         print(f"Error generating signed URL: {e}")
+        import traceback
+        traceback.print_exc()
         # Return original URL as fallback
         return {"signed_url": url, "expires_in": 3600}
 
