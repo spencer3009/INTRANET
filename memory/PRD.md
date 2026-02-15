@@ -895,3 +895,78 @@ Implementada la funcionalidad para editar tareas existentes desde el portal del 
 ### Archivos Modificados:
 - `/app/backend/server.py` - Modelo CoursePostUpdate + endpoint PUT
 - `/app/frontend/src/pages/CourseDetailPage.jsx` - EditTaskModal + botón de edición
+
+---
+
+## Sistema Profesional de Eliminación/Archivo de Tareas (2025-02-15)
+
+### Descripción
+Implementado un sistema Enterprise-grade para la gestión de eliminación de tareas que protege la integridad de los datos académicos.
+
+### Reglas de Negocio Implementadas
+
+1. **Tareas SIN entregas**: 
+   - Pueden ser eliminadas (soft delete)
+   - Se preserva el registro con `deleted_at`
+   - No se eliminan archivos de Cloudinary
+
+2. **Tareas CON entregas**:
+   - NO pueden ser eliminadas
+   - Solo pueden ser ARCHIVADAS
+   - Se preservan todas las entregas, calificaciones y archivos
+   - Las calificaciones siguen contando para promedios
+
+### Nuevos Endpoints Backend
+
+1. **GET `/api/course/tasks/{task_id}/submission-stats`**
+   - Retorna conteo de entregas y calificaciones
+   - Indica si la tarea puede ser eliminada
+
+2. **POST `/api/course/tasks/{task_id}/archive`**
+   - Archiva una tarea (status = "archived")
+   - Preserva todos los datos
+   - Crea registro de auditoría
+
+3. **POST `/api/course/tasks/{task_id}/restore`**
+   - Restaura una tarea archivada
+   - Vuelve a estado activo
+
+4. **GET `/api/course/{subject_id}/tasks/archived`**
+   - Lista todas las tareas archivadas de una asignatura
+
+### Colección de Auditoría: `task_audit_logs`
+
+Campos:
+- `task_id`: ID de la tarea
+- `action`: "delete" | "archive" | "restore"
+- `performed_by`: ID del usuario
+- `performed_by_name`: Nombre completo
+- `timestamp`: Fecha/hora ISO
+- `school_id`: ID del colegio
+- `details`: Objeto con información adicional
+
+### Cambios en Frontend (CourseDetailPage.jsx)
+
+1. **Modal Dinámico de Eliminación**:
+   - Si NO tiene entregas: Muestra opción de eliminar
+   - Si SÍ tiene entregas: Muestra estadísticas y opción de archivar
+
+2. **Botón "Archivadas"**:
+   - Agregado en el header de la sección de tareas
+   - Abre modal con lista de tareas archivadas
+   - Permite restaurar tareas
+
+3. **Nuevos Estados**:
+   - `submissionStats`: Estadísticas de entregas
+   - `showArchivedTasks`: Modal de archivadas
+   - `archivedTasks`: Lista de tareas archivadas
+
+### Filtrado de Tareas
+
+El endpoint GET de posts ahora filtra:
+- `status: "active"`
+- `deleted_at: { $exists: false }`
+
+### Archivos Modificados
+- `/app/backend/server.py` - Nuevos endpoints y lógica de eliminación
+- `/app/frontend/src/pages/CourseDetailPage.jsx` - UI de eliminación/archivo
