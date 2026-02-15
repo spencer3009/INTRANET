@@ -2701,7 +2701,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       )}
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 min-h-screen">
         {/* Header */}
         <StudentHeader
           user={user}
@@ -2713,7 +2713,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
           token={token}
         />
 
-        {/* Main Content - NO overflow-y-auto to allow sticky to work */}
+        {/* Main Content Area - scroll natural del documento */}
         <main className="flex-1 p-4 lg:p-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
