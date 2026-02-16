@@ -7666,6 +7666,25 @@ function MaterialTableContent({ subjectId, token, user }) {
             
             {/* Modal Body */}
             <div className="p-6 space-y-5">
+              {/* Google Drive Status Banner */}
+              {driveChecked && !driveStatus.connected && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-start gap-2">
+                  <HardDrive className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Google Drive no conectado</p>
+                    <p className="text-xs mt-0.5">Para subir documentos (PDF, Word, Excel, PowerPoint, ZIP), el propietario debe conectar Google Drive desde Ajustes.</p>
+                    <p className="text-xs mt-1 text-amber-600">Las imágenes se subirán normalmente a Cloudinary.</p>
+                  </div>
+                </div>
+              )}
+              
+              {driveChecked && driveStatus.connected && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm flex items-center gap-2">
+                  <HardDrive className="w-4 h-4 flex-shrink-0" />
+                  <span>Google Drive conectado - Los documentos se guardarán en Drive</span>
+                </div>
+              )}
+              
               {error && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
