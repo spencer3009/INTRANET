@@ -13570,12 +13570,19 @@ async def initiate_google_drive_auth(
     
     logger.info(f"Google Drive OAuth - Origin: {origin}, Redirect URI: {redirect_uri}")
     
-    # Generate a unique state ID and store the data in DB (stateless approach)
-    state_id = str(uuid.uuid4())
+    # Create the flow first to get Google's generated state
+    flow = create_google_drive_flow(redirect_uri, None)
     
-    # Store OAuth state in database temporarily
+    authorization_url, generated_state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true',
+        prompt='consent'
+    )
+    
+    # Now store the data using Google's generated state as the key
+    await db.oauth_states.delete_many({"school_id": school_id})  # Clean old states for this school
     await db.oauth_states.insert_one({
-        "state_id": state_id,
+        "state_id": generated_state,
         "school_id": school_id,
         "user_id": user['id'],
         "origin": origin,
@@ -13585,15 +13592,7 @@ async def initiate_google_drive_auth(
         "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10)
     })
     
-    flow = create_google_drive_flow(redirect_uri, state_id)
-    
-    authorization_url, _ = flow.authorization_url(
-        access_type='offline',
-        include_granted_scopes='true',
-        prompt='consent'
-    )
-    
-    logger.info(f"Initiating Google Drive auth for school {school_id}, subdomain: {subdomain}, state: {state_id}")
+    logger.info(f"Initiating Google Drive auth for school {school_id}, subdomain: {subdomain}, state: {generated_state[:20]}...")
     
     return {"authorization_url": authorization_url}
 
