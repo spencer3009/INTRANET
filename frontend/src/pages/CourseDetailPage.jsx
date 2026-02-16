@@ -7242,6 +7242,10 @@ function MaterialTableContent({ subjectId, token, user }) {
   const [materialToDelete, setMaterialToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   
+  // Google Drive state
+  const [driveStatus, setDriveStatus] = useState({ connected: false, server_configured: false });
+  const [driveChecked, setDriveChecked] = useState(false);
+  
   // Form state
   const [description, setDescription] = useState("");
   const [file, setFile] = useState(null);
@@ -7252,6 +7256,21 @@ function MaterialTableContent({ subjectId, token, user }) {
   const fileInputRef = useRef(null);
   
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Check Google Drive status on mount
+  useEffect(() => {
+    const checkDriveStatus = async () => {
+      try {
+        const res = await axios.get(`${API}/integrations/google-drive/status`, { headers });
+        setDriveStatus(res.data);
+      } catch (err) {
+        console.error('Error checking Drive status:', err);
+      } finally {
+        setDriveChecked(true);
+      }
+    };
+    checkDriveStatus();
+  }, [token]);
   
   // Fetch materials
   useEffect(() => {
