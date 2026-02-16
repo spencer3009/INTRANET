@@ -13419,12 +13419,10 @@ async def get_exam_full_detail(
 # GOOGLE DRIVE INTEGRATION
 # ══════════════════════════════════════════════════════════════════════════════
 
-def create_google_drive_flow(state: str = None):
+def create_google_drive_flow(redirect_uri: str, state: str = None):
     """Create Google OAuth flow for Drive API"""
     if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
         raise HTTPException(status_code=500, detail="Google Drive no está configurado en el servidor")
-    
-    redirect_uri = f"{BASE_URL}/api/integrations/google-drive/callback"
     
     client_config = {
         "web": {
