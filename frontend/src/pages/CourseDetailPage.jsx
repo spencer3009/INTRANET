@@ -7490,13 +7490,32 @@ function MaterialTableContent({ subjectId, token, user }) {
   };
   
   const handleDownload = async (material) => {
-    if (material.file_url) {
-      try {
-        // For Cloudinary URLs, get a signed URL using stored metadata
+    try {
+      // Check if material is stored in Google Drive
+      if (material.storage_type === 'google_drive' || material.drive_file_id) {
+        // Download through backend (secure streaming)
+        const response = await axios.get(`${API}/materials/download/${material.id}`, {
+          headers,
+          responseType: 'blob'
+        });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', material.file_name || material.drive_file_name || 'archivo');
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        return;
+      }
+      
+      // For Cloudinary URLs, get a signed URL using stored metadata
+      if (material.file_url) {
         if (material.file_url.includes('cloudinary.com')) {
           const params = new URLSearchParams({ url: material.file_url });
           
-          // If we have stored Cloudinary data, use it for accurate URL generation
           if (material.cloudinary_data) {
             if (material.cloudinary_data.public_id) {
               params.append('public_id', material.cloudinary_data.public_id);
@@ -7511,11 +7530,10 @@ function MaterialTableContent({ subjectId, token, user }) {
         } else {
           window.open(material.file_url, '_blank', 'noopener,noreferrer');
         }
-      } catch (err) {
-        console.error('Error getting download URL:', err);
-        // Fallback to direct URL
-        window.open(material.file_url, '_blank', 'noopener,noreferrer');
       }
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      alert('Error al descargar el archivo. Por favor intenta de nuevo.');
     }
   };
   
