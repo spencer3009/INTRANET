@@ -7354,7 +7354,33 @@ function MaterialTableContent({ subjectId, token, user }) {
       resource_type: uploadRes.data.resource_type,
       format: uploadRes.data.format,
       bytes: uploadRes.data.bytes,
-      original_filename: uploadRes.data.original_filename
+      original_filename: uploadRes.data.original_filename,
+      storage_type: 'cloudinary'
+    };
+  };
+  
+  // Upload to Google Drive (for documents: PDF, Word, Excel, etc.)
+  const uploadToGoogleDrive = async (fileToUpload) => {
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('subject_id', subjectId);
+    formData.append('title', description.trim() || fileToUpload.name);
+    formData.append('description', `Archivo: ${fileToUpload.name}`);
+    
+    const res = await axios.post(`${API}/materials/upload`, formData, {
+      headers: {
+        ...headers,
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        setUploadProgress(progress);
+      }
+    });
+    
+    return {
+      ...res.data,
+      storage_type: 'google_drive'
     };
   };
   
@@ -7369,36 +7395,65 @@ function MaterialTableContent({ subjectId, token, user }) {
       return;
     }
     
+    // Check if this file type needs Google Drive
+    const needsDrive = shouldUseGoogleDrive(file);
+    
+    // If file needs Drive but Drive is not connected, show error
+    if (needsDrive && !driveStatus.connected) {
+      setError("Para subir documentos (PDF, Word, Excel, etc.) debes conectar Google Drive desde Ajustes.");
+      return;
+    }
+    
     setSubmitting(true);
     setError("");
     
     try {
-      // Upload file and get complete metadata
-      const uploadResult = await uploadToCloudinary(file, 'edunet/materials');
+      let result;
       
-      const res = await axios.post(`${API}/course/${subjectId}/posts`, {
-        subject_id: subjectId,
-        title: description.trim(),
-        content: `Archivo: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`,
-        post_type: "material",
-        file_url: uploadResult.secure_url,
-        file_name: file.name,
-        file_type: file.type || 'application/octet-stream',
-        file_size: file.size,
-        // Store Cloudinary metadata for proper download handling
-        cloudinary_data: {
-          public_id: uploadResult.public_id,
-          resource_type: uploadResult.resource_type,
-          format: uploadResult.format
-        }
-      }, { headers });
+      if (needsDrive) {
+        // Upload to Google Drive
+        result = await uploadToGoogleDrive(file);
+        
+        // The backend already creates the post, so just add to list
+        setMaterials([{
+          id: result.id,
+          title: description.trim(),
+          file_name: result.drive_file_name || file.name,
+          file_size: result.file_size || file.size,
+          storage_type: 'google_drive',
+          drive_file_id: result.drive_file_id,
+          created_at: new Date().toISOString()
+        }, ...materials]);
+      } else {
+        // Upload images to Cloudinary
+        const uploadResult = await uploadToCloudinary(file, 'edunet/materials');
+        
+        const res = await axios.post(`${API}/course/${subjectId}/posts`, {
+          subject_id: subjectId,
+          title: description.trim(),
+          content: `Archivo: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`,
+          post_type: "material",
+          file_url: uploadResult.secure_url,
+          file_name: file.name,
+          file_type: file.type || 'application/octet-stream',
+          file_size: file.size,
+          storage_type: 'cloudinary',
+          cloudinary_data: {
+            public_id: uploadResult.public_id,
+            resource_type: uploadResult.resource_type,
+            format: uploadResult.format
+          }
+        }, { headers });
+        
+        setMaterials([res.data, ...materials]);
+      }
       
-      setMaterials([res.data, ...materials]);
       setShowCreateModal(false);
       resetForm();
     } catch (err) {
       console.error('Error uploading material:', err);
-      setError("Error al subir el material. Intenta de nuevo.");
+      const errorMsg = err.response?.data?.detail || "Error al subir el material. Intenta de nuevo.";
+      setError(errorMsg);
     } finally {
       setSubmitting(false);
       setUploadProgress(0);
