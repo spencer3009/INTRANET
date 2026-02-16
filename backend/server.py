@@ -13535,6 +13535,7 @@ async def get_google_drive_status(current_user=Depends(get_current_user)):
 
 @api_router.get("/integrations/google-drive/auth")
 async def initiate_google_drive_auth(
+    request: Request,
     school_id: str = Query(...),
     current_user=Depends(get_current_user)
 ):
@@ -13555,10 +13556,24 @@ async def initiate_google_drive_auth(
     if user.get("school_id") != school_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para este colegio")
     
-    # Create OAuth flow with state containing school_id and user_id
-    state = base64.urlsafe_b64encode(f"{school_id}:{user['id']}".encode()).decode()
+    # Build redirect_uri dynamically from the request
+    # Get the origin from the request headers or construct from URL
+    origin = request.headers.get("origin")
+    if not origin:
+        # Fallback: construct from request URL
+        origin = f"{request.url.scheme}://{request.url.netloc}"
     
-    flow = create_google_drive_flow(state)
+    # Remove any trailing slash and construct redirect_uri
+    origin = origin.rstrip("/")
+    redirect_uri = f"{origin}/api/integrations/google-drive/callback"
+    
+    logger.info(f"Google Drive OAuth - Origin: {origin}, Redirect URI: {redirect_uri}")
+    
+    # Create OAuth flow with state containing school_id, user_id, and origin for callback
+    state_data = f"{school_id}:{user['id']}:{origin}"
+    state = base64.urlsafe_b64encode(state_data.encode()).decode()
+    
+    flow = create_google_drive_flow(redirect_uri, state)
     
     authorization_url, _ = flow.authorization_url(
         access_type='offline',
