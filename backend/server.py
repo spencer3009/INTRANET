@@ -13587,6 +13587,7 @@ async def initiate_google_drive_auth(
 
 @api_router.get("/integrations/google-drive/callback")
 async def google_drive_callback(
+    request: Request,
     code: str = Query(None),
     state: str = Query(None),
     error: str = Query(None)
@@ -13595,36 +13596,50 @@ async def google_drive_callback(
     Handle Google Drive OAuth callback.
     Creates folder structure and saves tokens.
     """
+    # Get origin from state or request
+    origin = None
+    school_id = None
+    user_id = None
+    
+    if state:
+        try:
+            decoded_state = base64.urlsafe_b64decode(state.encode()).decode()
+            parts = decoded_state.split(":")
+            if len(parts) >= 3:
+                school_id, user_id, origin = parts[0], parts[1], ":".join(parts[2:])
+            elif len(parts) == 2:
+                school_id, user_id = parts
+        except Exception as e:
+            logger.error(f"Error decoding state: {e}")
+    
+    # Fallback origin from request
+    if not origin:
+        origin = f"{request.url.scheme}://{request.url.netloc}"
+    
+    origin = origin.rstrip("/")
+    redirect_uri = f"{origin}/api/integrations/google-drive/callback"
+    
     if error:
         logger.error(f"Google Drive OAuth error: {error}")
-        # Redirect to settings with error
-        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=oauth_denied")
+        return RedirectResponse(url=f"{origin}/settings/integrations?error=oauth_denied")
     
     if not code or not state:
-        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=invalid_callback")
+        return RedirectResponse(url=f"{origin}/settings/integrations?error=invalid_callback")
     
-    try:
-        # Decode state to get school_id and user_id
-        decoded_state = base64.urlsafe_b64decode(state.encode()).decode()
-        school_id, user_id = decoded_state.split(":")
-    except Exception as e:
-        logger.error(f"Invalid state in Google Drive callback: {e}")
-        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=invalid_state")
+    if not school_id or not user_id:
+        logger.error(f"Invalid state in Google Drive callback")
+        return RedirectResponse(url=f"{origin}/settings/integrations?error=invalid_state")
     
     try:
         # Exchange code for tokens
-        flow = create_google_drive_flow(state)
+        flow = create_google_drive_flow(redirect_uri, state)
         flow.fetch_token(code=code)
         
         credentials = flow.credentials
         
         if not credentials.refresh_token:
             logger.error("No refresh token received from Google")
-            return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=no_refresh_token")
-        
-        # Get user email from Google
-        from google.oauth2 import id_token
-        from google.auth.transport import requests as google_requests
+            return RedirectResponse(url=f"{origin}/settings/integrations?error=no_refresh_token")
         
         # Build service to get user info
         service = build('drive', 'v3', credentials=credentials)
@@ -13663,11 +13678,11 @@ async def google_drive_callback(
         logger.info(f"Google Drive connected successfully for school {school_id}, email: {user_email}")
         
         # Redirect to settings with success
-        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?success=google_drive_connected")
+        return RedirectResponse(url=f"{origin}/settings/integrations?success=google_drive_connected")
         
     except Exception as e:
         logger.error(f"Error in Google Drive callback: {e}")
-        return RedirectResponse(url=f"{BASE_URL}/settings/integrations?error=connection_failed")
+        return RedirectResponse(url=f"{origin}/settings/integrations?error=connection_failed")
 
 @api_router.post("/integrations/google-drive/disconnect")
 async def disconnect_google_drive(current_user=Depends(get_current_user)):
