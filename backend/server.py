@@ -13543,8 +13543,6 @@ async def initiate_google_drive_auth(
     Initiate Google Drive OAuth flow.
     Only accessible by school owners (propietarios).
     """
-    import json as json_lib
-    
     # Verify user is owner
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
@@ -13563,36 +13561,39 @@ async def initiate_google_drive_auth(
     subdomain = school.get("subdomain", "") if school else ""
     
     # Build redirect_uri dynamically from the request
-    # Get the origin from the request headers or construct from URL
     origin = request.headers.get("origin")
     if not origin:
-        # Fallback: construct from request URL
         origin = f"{request.url.scheme}://{request.url.netloc}"
     
-    # Remove any trailing slash and construct redirect_uri
     origin = origin.rstrip("/")
     redirect_uri = f"{origin}/api/integrations/google-drive/callback"
     
     logger.info(f"Google Drive OAuth - Origin: {origin}, Redirect URI: {redirect_uri}")
     
-    # Create state as JSON for robustness (handles special characters properly)
-    state_data = {
+    # Generate a unique state ID and store the data in DB (stateless approach)
+    state_id = str(uuid.uuid4())
+    
+    # Store OAuth state in database temporarily
+    await db.oauth_states.insert_one({
+        "state_id": state_id,
         "school_id": school_id,
         "user_id": user['id'],
         "origin": origin,
-        "subdomain": subdomain
-    }
-    state = base64.urlsafe_b64encode(json_lib.dumps(state_data).encode()).decode()
+        "subdomain": subdomain,
+        "redirect_uri": redirect_uri,
+        "created_at": datetime.now(timezone.utc),
+        "expires_at": datetime.now(timezone.utc) + timedelta(minutes=10)
+    })
     
-    flow = create_google_drive_flow(redirect_uri, state)
+    flow = create_google_drive_flow(redirect_uri, state_id)
     
     authorization_url, _ = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true',
-        prompt='consent'  # Force consent to get refresh_token
+        prompt='consent'
     )
     
-    logger.info(f"Initiating Google Drive auth for school {school_id}, subdomain: {subdomain}")
+    logger.info(f"Initiating Google Drive auth for school {school_id}, subdomain: {subdomain}, state: {state_id}")
     
     return {"authorization_url": authorization_url}
 
