@@ -7607,6 +7607,7 @@ function MaterialTableContent({ subjectId, token, user }) {
           ) : (
             materials.map((material) => {
               const fileInfo = extractFileInfo(material);
+              const isGoogleDrive = material.storage_type === 'google_drive' || material.drive_file_id;
               return (
                 <div key={material.id} className="flex items-center px-6 py-4 hover:bg-slate-50 transition-colors">
                   {/* Title and File info together */}
@@ -7617,6 +7618,18 @@ function MaterialTableContent({ subjectId, token, user }) {
                       <span className="text-sm">{fileInfo.name}</span>
                       {fileInfo.size && (
                         <span className="text-xs text-slate-400">({fileInfo.size})</span>
+                      )}
+                      {/* Storage indicator */}
+                      {isGoogleDrive ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full" title="Almacenado en Google Drive">
+                          <HardDrive className="w-3 h-3" />
+                          Drive
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full" title="Almacenado en Cloudinary">
+                          <Cloud className="w-3 h-3" />
+                          Cloud
+                        </span>
                       )}
                     </div>
                   </div>
