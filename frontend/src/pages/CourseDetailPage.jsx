@@ -25,10 +25,29 @@ import {
   ChevronDown, ChevronUp, User, GraduationCap,
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
-  Type, Layers, Eye, EyeOff, Archive, RotateCcw
+  Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FILE UPLOAD UTILITIES - Google Drive & Cloudinary
+// ══════════════════════════════════════════════════════════════════════════════
+
+// Extensions that should go to Google Drive (documents)
+const GOOGLE_DRIVE_EXTENSIONS = ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'zip', 'txt'];
+
+// Check if a file should be uploaded to Google Drive
+const shouldUseGoogleDrive = (file) => {
+  const ext = file.name.split('.').pop()?.toLowerCase() || '';
+  const mimeType = file.type || '';
+  
+  // Images go to Cloudinary
+  if (mimeType.startsWith('image/')) return false;
+  
+  // Documents go to Google Drive
+  return GOOGLE_DRIVE_EXTENSIONS.includes(ext);
+};
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TAB DEFINITIONS
