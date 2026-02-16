@@ -13608,32 +13608,32 @@ async def google_drive_callback(
     Handle Google Drive OAuth callback.
     Creates folder structure and saves tokens.
     """
-    import json as json_lib
+    # Default fallback URL
+    fallback_url = f"{request.url.scheme}://{request.url.netloc}"
     
-    # Parse state (JSON encoded in base64)
-    origin = None
-    school_id = None
-    user_id = None
-    subdomain = None
-    
+    # Retrieve state data from database
+    state_data = None
     if state:
-        try:
-            decoded_state = base64.urlsafe_b64decode(state.encode()).decode()
-            state_data = json_lib.loads(decoded_state)
-            school_id = state_data.get("school_id")
-            user_id = state_data.get("user_id")
-            origin = state_data.get("origin")
-            subdomain = state_data.get("subdomain", "")
-            logger.info(f"Parsed state - school_id: {school_id}, subdomain: {subdomain}, origin: {origin}")
-        except Exception as e:
-            logger.error(f"Error decoding state: {e}")
+        state_data = await db.oauth_states.find_one({"state_id": state})
+        if state_data:
+            # Delete the used state
+            await db.oauth_states.delete_one({"state_id": state})
     
-    # Fallback origin from request
-    if not origin:
-        origin = f"{request.url.scheme}://{request.url.netloc}"
-    
-    origin = origin.rstrip("/")
-    redirect_uri = f"{origin}/api/integrations/google-drive/callback"
+    # Extract data from state
+    if state_data:
+        origin = state_data.get("origin", fallback_url)
+        school_id = state_data.get("school_id")
+        user_id = state_data.get("user_id")
+        subdomain = state_data.get("subdomain", "")
+        redirect_uri = state_data.get("redirect_uri")
+        logger.info(f"OAuth callback - Retrieved state for school: {school_id}, subdomain: {subdomain}")
+    else:
+        origin = fallback_url
+        school_id = None
+        user_id = None
+        subdomain = ""
+        redirect_uri = f"{origin}/api/integrations/google-drive/callback"
+        logger.error(f"OAuth callback - State not found in database: {state}")
     
     # Build the correct settings URL with subdomain
     if subdomain:
@@ -13649,7 +13649,7 @@ async def google_drive_callback(
         return RedirectResponse(url=f"{settings_url}?error=invalid_callback")
     
     if not school_id or not user_id:
-        logger.error(f"Invalid state in Google Drive callback - missing school_id or user_id")
+        logger.error(f"Invalid state in Google Drive callback - state not found or expired")
         return RedirectResponse(url=f"{settings_url}?error=invalid_state")
     
     try:
