@@ -13543,6 +13543,8 @@ async def initiate_google_drive_auth(
     Initiate Google Drive OAuth flow.
     Only accessible by school owners (propietarios).
     """
+    import json as json_lib
+    
     # Verify user is owner
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
@@ -13555,6 +13557,10 @@ async def initiate_google_drive_auth(
     # Verify school belongs to user
     if user.get("school_id") != school_id:
         raise HTTPException(status_code=403, detail="No tienes permiso para este colegio")
+    
+    # Get school subdomain for redirect after callback
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "subdomain": 1})
+    subdomain = school.get("subdomain", "") if school else ""
     
     # Build redirect_uri dynamically from the request
     # Get the origin from the request headers or construct from URL
@@ -13569,9 +13575,14 @@ async def initiate_google_drive_auth(
     
     logger.info(f"Google Drive OAuth - Origin: {origin}, Redirect URI: {redirect_uri}")
     
-    # Create OAuth flow with state containing school_id, user_id, and origin for callback
-    state_data = f"{school_id}:{user['id']}:{origin}"
-    state = base64.urlsafe_b64encode(state_data.encode()).decode()
+    # Create state as JSON for robustness (handles special characters properly)
+    state_data = {
+        "school_id": school_id,
+        "user_id": user['id'],
+        "origin": origin,
+        "subdomain": subdomain
+    }
+    state = base64.urlsafe_b64encode(json_lib.dumps(state_data).encode()).decode()
     
     flow = create_google_drive_flow(redirect_uri, state)
     
@@ -13581,7 +13592,7 @@ async def initiate_google_drive_auth(
         prompt='consent'  # Force consent to get refresh_token
     )
     
-    logger.info(f"Initiating Google Drive auth for school {school_id}")
+    logger.info(f"Initiating Google Drive auth for school {school_id}, subdomain: {subdomain}")
     
     return {"authorization_url": authorization_url}
 
