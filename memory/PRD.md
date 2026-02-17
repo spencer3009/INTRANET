@@ -1073,3 +1073,31 @@ BASE_URL=https://edunet.pe
 - `/app/backend/server.py` - Nuevos endpoints y funciones de Google Drive
 - `/app/backend/.env` - Variables GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, BASE_URL
 - `/app/frontend/src/pages/SettingsPage.jsx` - Sección de integración Google Drive
+
+---
+
+## Bug Fixes y Actualizaciones (2025-02-XX)
+
+### ✅ Fix: Archivos de Tareas aparecían en "Material de estudio" (RESUELTO)
+
+**Problema:**
+Cuando se creaba una Tarea, Foro o post en Tablero con archivo adjunto, el archivo aparecía erróneamente en la sección "Material de estudio" además del post correspondiente.
+
+**Causa raíz:**
+El frontend usaba el endpoint `/api/materials/upload` para todos los uploads a Google Drive. Este endpoint crea automáticamente un registro en `course_posts` con `post_type: "material"`, lo cual es correcto para materiales pero incorrecto para otros tipos de posts.
+
+**Solución implementada:**
+1. **Nuevo endpoint backend:** `POST /api/files/upload-to-drive`
+   - Solo sube el archivo a Google Drive
+   - NO crea ningún registro en la base de datos
+   - Retorna: `drive_file_id`, `drive_file_name`, `mime_type`, `file_size`, `file_extension`
+
+2. **Frontend actualizado:**
+   - Modales de Tarea, Foro y Tablero ahora usan `/api/files/upload-to-drive`
+   - Modal de Materiales sigue usando `/api/materials/upload` (comportamiento correcto)
+
+**Archivos modificados:**
+- `/app/backend/server.py` - Nuevo endpoint líneas 13877-13961
+- `/app/frontend/src/pages/CourseDetailPage.jsx` - Funciones `uploadToGoogleDrive` actualizadas
+
+**Estado:** COMPLETADO - Pendiente de verificación en producción por el usuario
