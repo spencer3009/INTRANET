@@ -10674,6 +10674,7 @@ async def delete_course_post(
     Delete a post (soft delete). 
     For tasks: Only allows deletion if there are NO submissions.
     If task has submissions, returns error - user must archive instead.
+    For materials stored in Google Drive: Also deletes the file from Drive.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
@@ -10704,6 +10705,18 @@ async def delete_course_post(
                     "graded_count": graded_count
                 }
             )
+    
+    # For materials stored in Google Drive: Delete from Drive
+    if post.get("storage_type") == "google_drive" and post.get("drive_file_id"):
+        try:
+            school_id = user.get("school_id")
+            if school_id:
+                service = await get_drive_service(school_id)
+                service.files().delete(fileId=post["drive_file_id"]).execute()
+                logger.info(f"Deleted file from Google Drive: {post.get('drive_file_id')}")
+        except Exception as e:
+            # Log error but continue with soft delete
+            logger.error(f"Error deleting file from Google Drive: {e}")
     
     # Soft delete - do NOT delete files from Cloudinary
     # Files are preserved for potential restoration
