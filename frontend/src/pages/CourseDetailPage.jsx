@@ -7491,6 +7491,7 @@ function MaterialTableContent({ subjectId, token, user }) {
   };
   
   const handleDownload = async (material) => {
+    setDownloading(material.id);
     try {
       // Check if material is stored in Google Drive
       if (material.storage_type === 'google_drive' || material.drive_file_id) {
@@ -7535,6 +7536,8 @@ function MaterialTableContent({ subjectId, token, user }) {
     } catch (err) {
       console.error('Error downloading file:', err);
       alert('Error al descargar el archivo. Por favor intenta de nuevo.');
+    } finally {
+      setDownloading(null);
     }
   };
   
