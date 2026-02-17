@@ -1077,13 +1077,12 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   
   // Upload to Google Drive
   const uploadToGoogleDrive = async (fileToUpload) => {
+    // Use the file-only upload endpoint (no database record created)
     const formData = new FormData();
     formData.append('file', fileToUpload);
     formData.append('subject_id', subjectId);
-    formData.append('title', `Publicación: ${title.trim() || 'Sin título'}`);
-    formData.append('description', `Archivo adjunto para publicación en tablero`);
     
-    const res = await axios.post(`${API}/materials/upload`, formData, {
+    const res = await axios.post(`${API}/files/upload-to-drive`, formData, {
       headers: {
         ...headers,
         'Content-Type': 'multipart/form-data'
