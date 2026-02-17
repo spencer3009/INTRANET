@@ -1942,7 +1942,7 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
   );
 }
 
-// Material Content - Table view like owner's portal (Read-only)
+// Material Content - Card view like owner's portal (Read-only)
 function MaterialContent({ materials, token }) {
   const [downloading, setDownloading] = useState(null);
   const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1959,15 +1959,16 @@ function MaterialContent({ materials, token }) {
   }
 
   // Get file icon based on extension or type
-  const getFileIcon = (filename, fileType) => {
-    const ext = filename?.split('.').pop()?.toLowerCase();
-    if (['pdf'].includes(ext) || fileType?.includes('pdf')) return { icon: FileIcon, color: 'text-red-500 bg-red-50' };
-    if (['doc', 'docx'].includes(ext) || fileType?.includes('word')) return { icon: FileIcon, color: 'text-blue-500 bg-blue-50' };
-    if (['xls', 'xlsx'].includes(ext) || fileType?.includes('excel') || fileType?.includes('spreadsheet')) return { icon: FileIcon, color: 'text-green-500 bg-green-50' };
-    if (['ppt', 'pptx'].includes(ext) || fileType?.includes('presentation')) return { icon: FileIcon, color: 'text-orange-500 bg-orange-50' };
-    if (['jpg', 'jpeg', 'png', 'gif'].includes(ext) || fileType?.includes('image')) return { icon: FileIcon, color: 'text-purple-500 bg-purple-50' };
-    if (['mp4', 'avi', 'mov'].includes(ext) || fileType?.includes('video')) return { icon: Play, color: 'text-pink-500 bg-pink-50' };
-    return { icon: FileIcon, color: 'text-slate-500 bg-slate-50' };
+  const getFileIcon = (material) => {
+    const fileName = material.file_name || material.drive_file_name || material.title;
+    const ext = fileName?.split('.').pop()?.toLowerCase();
+    
+    if (['pdf'].includes(ext)) return <FileIcon className="w-5 h-5 text-red-500" />;
+    if (['doc', 'docx'].includes(ext)) return <FileIcon className="w-5 h-5 text-blue-500" />;
+    if (['xls', 'xlsx'].includes(ext)) return <FileIcon className="w-5 h-5 text-green-500" />;
+    if (['ppt', 'pptx'].includes(ext)) return <FileIcon className="w-5 h-5 text-orange-500" />;
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext)) return <FileIcon className="w-5 h-5 text-purple-500" />;
+    return <FileIcon className="w-5 h-5 text-slate-500" />;
   };
 
   // Handle download - supports both Google Drive and Cloudinary
@@ -2002,10 +2003,80 @@ function MaterialContent({ materials, token }) {
         setDownloading(null);
       }
     } else if (material.file_url) {
-      // Cloudinary - open in new tab (will use signed URL if needed)
+      // Cloudinary - open in new tab
       window.open(material.file_url, '_blank', 'noopener,noreferrer');
     }
   };
+
+  // Format file size
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '';
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+  };
+
+  const isGoogleDrive = (material) => material.storage_type === 'google_drive' || material.drive_file_id;
+
+  return (
+    <div className="space-y-6 pt-6 pb-48">
+      {/* Card container */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="divide-y divide-slate-100">
+          {materials.map((material) => {
+            const fileName = material.file_name || material.drive_file_name || material.title;
+            const fileSize = formatFileSize(material.file_size);
+            const isDrive = isGoogleDrive(material);
+            
+            return (
+              <div key={material.id} className="flex items-center px-6 py-4 hover:bg-slate-50 transition-colors">
+                {/* Title and File info together */}
+                <div className="flex items-center gap-4 flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800">{material.title}</p>
+                  <div className="flex items-center gap-2 text-slate-500">
+                    {getFileIcon(material)}
+                    <span className="text-sm">Archivo</span>
+                    {fileSize && (
+                      <span className="text-xs text-slate-400">({fileSize})</span>
+                    )}
+                    {/* Storage indicator */}
+                    {isDrive ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                        <HardDrive className="w-3 h-3" />
+                        Drive
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded-full font-medium">
+                        <Cloud className="w-3 h-3" />
+                        Cloud
+                      </span>
+                    )}
+                  </div>
+                </div>
+                
+                {/* Download Button */}
+                <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                  <button
+                    onClick={() => handleDownload(material)}
+                    disabled={downloading === material.id}
+                    className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-wait"
+                    title="Descargar"
+                  >
+                    {downloading === material.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
