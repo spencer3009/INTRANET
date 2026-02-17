@@ -1977,14 +1977,12 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
       if (file) {
         // Determine if file should go to Google Drive or Cloudinary
         if (shouldUseGoogleDrive(file)) {
-          // Upload to Google Drive
+          // Upload to Google Drive (file-only, no database record)
           const formData = new FormData();
           formData.append('file', file);
           formData.append('subject_id', subjectId);
-          formData.append('title', `Adjunto: ${title.trim()}`);
-          formData.append('description', `Archivo adjunto para tarea: ${title.trim()}`);
           
-          const driveRes = await axios.post(`${API}/materials/upload`, formData, {
+          const driveRes = await axios.post(`${API}/files/upload-to-drive`, formData, {
             headers: {
               ...headers,
               'Content-Type': 'multipart/form-data'
