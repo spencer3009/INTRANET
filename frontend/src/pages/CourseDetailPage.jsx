@@ -975,8 +975,24 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   const imageInputRef = useRef(null);
   const fileInputRef = useRef(null);
   
+  // Google Drive state
+  const [driveStatus, setDriveStatus] = useState({ connected: false });
+  
   const config = POST_TYPE_CONFIG[postType] || POST_TYPE_CONFIG.announcement;
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Check Google Drive status on mount
+  useEffect(() => {
+    const checkDriveStatus = async () => {
+      try {
+        const res = await axios.get(`${API}/integrations/google-drive/status`, { headers });
+        setDriveStatus(res.data);
+      } catch (err) {
+        console.error('Error checking Drive status:', err);
+      }
+    };
+    checkDriveStatus();
+  }, [token]);
   
   useEffect(() => {
     if (!isOpen) {
@@ -1059,6 +1075,28 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
     return uploadRes.data.secure_url;
   };
   
+  // Upload to Google Drive
+  const uploadToGoogleDrive = async (fileToUpload) => {
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('subject_id', subjectId);
+    formData.append('title', `Publicación: ${title.trim() || 'Sin título'}`);
+    formData.append('description', `Archivo adjunto para publicación en tablero`);
+    
+    const res = await axios.post(`${API}/materials/upload`, formData, {
+      headers: {
+        ...headers,
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        setUploadProgress(progress);
+      }
+    });
+    
+    return res.data;
+  };
+  
   const handleSubmit = async () => {
     // Validate title for types that require it
     if (config.requiresTitle && !title.trim()) {
@@ -1071,6 +1109,12 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
       return;
     }
     
+    // Check if file needs Google Drive but Drive is not connected
+    if (file && shouldUseGoogleDrive(file) && !driveStatus.connected) {
+      setError("Para adjuntar documentos (PDF, Word, Excel, etc.) debes conectar Google Drive desde Ajustes.");
+      return;
+    }
+    
     setSubmitting(true);
     setError("");
     
@@ -1079,19 +1123,32 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
       let fileUrl = null;
       let fileName = null;
       let fileType = null;
+      let driveFileId = null;
+      let storageType = null;
       
-      // Upload image if present
+      // Upload image if present (always to Cloudinary)
       if (imageFile) {
         const compressedImage = await compressImageForPost(imageFile);
         imageUrl = await uploadToCloudinary(compressedImage, 'edunet/posts', false);
       }
       
-      // Upload file if present (use raw for non-image files like PDF, DOC, etc.)
+      // Upload file if present
       if (file) {
-        const isRawFile = !file.type.startsWith('image/');
-        fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
-        fileName = file.name;
-        fileType = file.type;
+        if (shouldUseGoogleDrive(file)) {
+          // Upload documents to Google Drive
+          const driveRes = await uploadToGoogleDrive(file);
+          driveFileId = driveRes.drive_file_id;
+          fileName = driveRes.drive_file_name || file.name;
+          fileType = file.type || 'application/octet-stream';
+          storageType = 'google_drive';
+        } else {
+          // Upload other files to Cloudinary
+          const isRawFile = !file.type.startsWith('image/');
+          fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
+          fileName = file.name;
+          fileType = file.type;
+          storageType = 'cloudinary';
+        }
       }
       
       // Create post with type and title
