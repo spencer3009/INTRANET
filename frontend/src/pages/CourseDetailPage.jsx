@@ -1787,7 +1787,23 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
   
+  // Google Drive state
+  const [driveStatus, setDriveStatus] = useState({ connected: false });
+  
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Check Google Drive status on mount
+  useEffect(() => {
+    const checkDriveStatus = async () => {
+      try {
+        const res = await axios.get(`${API}/integrations/google-drive/status`, { headers });
+        setDriveStatus(res.data);
+      } catch (err) {
+        console.error('Error checking Drive status:', err);
+      }
+    };
+    checkDriveStatus();
+  }, [token]);
   
   useEffect(() => {
     if (!isOpen) {
