@@ -2173,6 +2173,24 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
               Adjuntar material <span className="text-slate-400 font-normal">(opcional)</span>
             </label>
             
+            {/* Google Drive Status Banner */}
+            {file && shouldUseGoogleDrive(file) && !driveStatus.connected && (
+              <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-start gap-2">
+                <HardDrive className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Google Drive no conectado</p>
+                  <p className="text-xs mt-0.5">Para adjuntar este tipo de archivo, el propietario debe conectar Google Drive desde Ajustes.</p>
+                </div>
+              </div>
+            )}
+            
+            {file && shouldUseGoogleDrive(file) && driveStatus.connected && (
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center gap-2">
+                <HardDrive className="w-4 h-4 flex-shrink-0" />
+                <span>Este archivo se guardará en Google Drive</span>
+              </div>
+            )}
+            
             {file ? (
               <div className="p-4 bg-slate-50 rounded-xl border-2 border-slate-200 flex items-center gap-4">
                 <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
@@ -3006,6 +3024,24 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Adjuntar material <span className="text-slate-400 font-normal">(opcional)</span>
             </label>
+            
+            {/* Google Drive Status Banner */}
+            {file && shouldUseGoogleDrive(file) && !driveStatus.connected && (
+              <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-start gap-2">
+                <HardDrive className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Google Drive no conectado</p>
+                  <p className="text-xs mt-0.5">Para adjuntar este tipo de archivo, el propietario debe conectar Google Drive desde Ajustes.</p>
+                </div>
+              </div>
+            )}
+            
+            {file && shouldUseGoogleDrive(file) && driveStatus.connected && (
+              <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center gap-2">
+                <HardDrive className="w-4 h-4 flex-shrink-0" />
+                <span>Este archivo se guardará en Google Drive</span>
+              </div>
+            )}
             
             {file ? (
               <div className="p-4 bg-slate-50 rounded-xl border-2 border-slate-200 flex items-center gap-4">
