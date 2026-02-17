@@ -1,199 +1,176 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project initially focused on building out the student and owner portals.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The primary objective for this job was to implement a complete, secure, and multi-tenant integration with Google Drive for storing and managing all academic materials (PDFs, documents, etc.), replacing the current Cloudinary-based workflow for these file types. Cloudinary is to be used exclusively for images.
 
-The user's most recent and highest-priority request is to implement a complete, secure integration with Google Drive for storing and managing academic materials (PDFs, documents, etc.), replacing the current Cloudinary-based workflow for these file types. Cloudinary will be reserved for images only. This is a mandatory feature for all schools using the platform.
-
-**PRODUCT REQUIREMENTS (current):**
-- **Objective:** Implement Google Drive as the mandatory storage system for non-image files (Materiales de Estudio).
-- **Phases:**
-    1.  **Configuration:** Create a settings page for the Propietario (Owner) role to connect their school's Google Drive account via OAuth 2.0. The system must automatically create an EduNet/Materiales folder structure in their Drive.
-    2.  **Upload:** Modify the Materiales de Estudio upload process. All non-image files must be uploaded to the corresponding Google Drive folder. This should be blocked if Drive is not connected.
-    3.  **Download:** Implement a secure download mechanism. Students must be able to download materials through the EduNet backend, which will stream the file from Google Drive without exposing any direct Drive links or requiring the student to be logged into Google.
-- **Security:**
-    - Drive files must NOT be public.
-    - Refresh tokens must be encrypted in the database.
-    - The integration must be multi-tenant, with each school connecting its own Drive account.
-- **Environment:** The implementation must work in both preview and production environments by dynamically constructing the OAuth redirect URI from a  environment variable.
+The integration was specified to be implemented across multiple modules: Materiales de Estudio, Tareas, Foro, and Tablero. The user provided detailed, phased requirements, emphasizing security (encrypted tokens, no public links, downloads via backend streaming) and a multi-environment setup (dynamic Redirect URIs for preview and production).
 
 **User's preferred language**: Spanish. The next agent MUST respond in Spanish.
 
 **what currently exists?**
-The application is a full-stack React/FastAPI/MongoDB app named EduNet.
-- **Owner Portal ():** Features task creation, a newly implemented task editing functionality, and a professional-grade archive/delete system for tasks. If a task has student submissions, it can only be archived (soft-deleted), not permanently deleted.
-- **Student Portal ():** Students can view course details, tasks, and grades. A prominent, eye-catching banner now appears for overdue tasks. The UI for the task list has been improved to only make the view icon clickable and to display the due time alongside the date.
-- **Backend ():** Endpoints have been added/modified to support task editing, archiving, and soft-deleting. The backend now also generates signed URLs for downloading private files from Cloudinary, although this is being superseded by the Google Drive integration for non-image files. The dependencies for the Google Drive API (, ) have been installed.
+The Google Drive integration is almost complete across the owner and student portals.
+
+-   **Backend ():**
+    -   A robust OAuth 2.0 flow is in place, allowing school owners to connect their Google Drive accounts. This flow correctly handles multi-environment support (preview/production) by dynamically generating the  and uses a database collection () to prevent  errors.
+    -   Refresh tokens are encrypted and stored per tenant ().
+    -   An endpoint () provides secure, high-performance streaming downloads for files stored in Drive.
+    -   The logic to create posts () has been updated to accept and save  and  for tasks, forums, and publications.
+    -   The logic to delete posts () has been updated to also delete the corresponding file from Google Drive if it exists.
+
+-   **Frontend (, ):**
+    -   **Owner Portal:** The settings page () allows a school owner to connect/disconnect their Google Drive. The monolithic  has been heavily modified to integrate Google Drive uploads into the modals for creating Materiales de Estudio, Tareas, Foro, and Tablero posts. The logic correctly decides whether to upload to Cloudinary (for images) or Google Drive (for documents).
+    -   **Student Portal:** The view for Materiales has been updated to a card layout for consistency. Download buttons with loading indicators have been successfully added for both Materiales and task attachments stored in Google Drive.
 
 **Last working item**:
-- **Last item agent was working:** Starting the implementation of the Google Drive integration. The agent received the detailed product requirements and the integration playbook, and has successfully installed the required Python libraries.
-- **Status**: NOT STARTED
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: both. This is a major, multi-phase feature involving complex backend OAuth flows, new API endpoints, and significant frontend UI changes. The testing agent will be crucial for end-to-end validation.
-- **User Testing Done**: N
+-   **Last item agent was working:** The user reported a bug where uploading a file while creating a Tarea (Task) incorrectly creates a separate entry in Material de estudio. The agent correctly diagnosed that the frontend upload logic is using an endpoint that both uploads the file and creates a material post, instead of just uploading the file.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: backend testing agent. The agent should first create a new, dedicated backend endpoint for file uploads that doesn't create a post. This can be tested with . Then, after updating the frontend, use the screenshot tool to verify the fix.
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Implement Google Drive Integration (P0)**
-    - **Description**: This is the primary task, detailed in the PRODUCT REQUIREMENTS section. It involves backend work for OAuth and API interaction, and frontend work for the settings UI and file upload/download flows.
-    - **Status**: NOT STARTED
-    - **Is recurring issue?**: N
-    - **Should Test frontend/backend/both after fix?**: Both.
-    - **Blocked on other issue**: None.
-
-- **Issue 2: Task date does not update in UI after editing (P1)**
-    - **Description**: This was a persistent bug throughout the session. The user would edit a task's due date, and the UI table would not reflect the change, even though the database was updated correctly.
-    - **Attempted fixes**: The root cause was identified and fixed:  function was reading the old  field from the task object before reading the new, correct  field. The order was reversed to fix it. The backend was also updated to write the correct date to both fields for consistency.
-    - **Next debug checklist**: Although believed to be fixed, this issue was highly recurring. If it appears again, the next agent must:
-        1. Verify the  function in  still prioritizes .
-        2. Check the browser's network tab to confirm the  API call after an edit returns the updated task object with the correct date in .
-        3. Ensure no browser caching is interfering with the API call.
-    - **Why fix this issue and what will be achieved with the fix?**: This is a critical functionality bug that breaks the user's trust in the edit feature.
-    - **Status**: USER VERIFICATION PENDING
-    - **Is recurring issue?**: Y
-    - **Should Test frontend/backend/both after fix?**: Frontend.
-
-- **Issue 3: Smart Sticky column layout is unstable (P2)**
-    - **Description**: Inherited from the previous fork, the JavaScript-based implementation for the sticky columns in the  of  causes intense UI flickering.
-    - **Status**: NOT STARTED
-    - **Is recurring issue?**: Y
-    - **Should Test frontend/backend/both after fix?**: Frontend.
+-   **Issue 1: Task file upload creates an unwanted Material de estudio entry (P0)**
+    -   **Description**: When a file is attached to a Tarea, Foro, or Tablero, the current implementation creates a  entry with  in addition to the actual task/forum post. This is incorrect.
+    -   **Next debug checklist**:
+        1.  In , create a new, dedicated endpoint (e.g., ). This endpoint should only perform the Google Drive upload and return the file metadata (, , etc.) without creating any entry in the  collection.
+        2.  In , modify the  functions for the Tarea, Foro, and Tablero modals. The logic should first call the new  endpoint.
+        3.  Use the  returned from the new endpoint to populate the payload for the existing  request to create the actual task, forum, or publication post.
+    -   **Why fix this issue and what will be achieved with the fix?**: This will fix data duplication and incorrect behavior, ensuring that attaching a file to a task only creates a task, not an extra material entry.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: N
+    -   **Should Test frontend/backend/both after fix?**: Both.
+-   **Issue 2: Smart Sticky column layout is unstable (P2)**
+    -   **Description**: Inherited technical debt. The JavaScript for sticky columns in the student dashboard () causes UI flickering.
+    -   **Status**: NOT STARTED
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend.
 
 **In progress Task List**:
-- **Task 1: Implement Google Drive Integration (P0)**
-    - **Where to resume**: Start in .
-        1.  Add , , and  to the  file configuration.
-        2.  Create the new API endpoints for the OAuth 2.0 flow:  (to initiate) and  (to handle the response).
-        3.  Implement the logic in the callback to exchange the authorization code for a refresh token, encrypt the refresh token, and store it in the database against the .
-        4.  Upon successful connection, create the  folder structure in the user's Drive and save the folder IDs.
-    - **What will be achieved with this?**: This will complete Phase 1 of the Google Drive integration, allowing a school owner to connect their account.
-    - **Status**: NOT STARTED
-    - **Should Test frontend/backend/both after fix?**: Both.
-    - **Blocked on something**: None.
+-   **Task 1: Fix bug where creating a task with a file also creates a Material de estudio (P0)**
+    -   **Where to resume**: Implementing the  from Issue 1 above, starting with the creation of a new file-upload-only endpoint in .
+    -   **What will be achieved with this?**: This will decouple the file upload process from the post creation process, resolving the core bug.
+    -   **Status**: IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?**: Both.
+    -   **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks:**
-    - **P0: Google Drive Integration - Phases 2 & 3:** Implement the file upload and secure download flows for Materiales de Estudio.
-    - **P1: Implement Centro de Mensajes - Phases 2 & 3:** Support/Tickets and Academic Messaging.
-    - **P2: Implement Student Exam Taking:** The current view is read-only.
-    - **P2: Implement Push Notifications** (in-app first).
-- **Future Tasks (from PRD & user requests):**
-    - Build Matrículas (Enrollments) module.
-    - Refactor  and .
-    - Exams module enhancements: Question Bank, student attempts tracking.
+-   **Upcoming Tasks:**
+    -   **P0: Refactor **: This is a critical task. The file is over 7,000 lines and is becoming unmaintainable. Break it down into smaller, single-responsibility components (e.g., , , etc.).
+    -   **P1: Implement Centro de Mensajes** (Phases 2 & 3: Support/Tickets and Academic Messaging).
+    -   **P2: Implement Student Exam Taking**: The current view is read-only.
+-   **Future Tasks:**
+    -   Build Matrículas (Enrollments) module.
+    -   Exams module enhancements: Question Bank, student attempts tracking.
+    -   Project-Wide Replacement of  with a custom modal.
 
 **Completed work in this session**
-- **Professional Archive/Delete System for Tasks:**
-    - Implemented a robust system where tasks with submissions cannot be deleted, only archived.
-    - Backend: Created endpoints (, ) and modified  logic in .
-    - Frontend: Created a dynamic modal in  to handle the archive/delete logic and a view for archived tasks.
-- **Task Editing Feature:**
-    - Implemented a full edit workflow for tasks in the owner portal, including a modal with a form to update task details.
-- **Bug Fixes:**
-    - **Resolved Invalid Date bug:** Fixed a critical and recurring bug where edited task dates would not update in the UI by correcting the data access order in  function in .
-    - **Resolved Timezone Issues:** Standardized all date handling to use  timezone and ISO 8601 format with offset () to prevent off-by-one-day errors.
-    - **Resolved Cloudinary Upload/Download Errors:**
-        - Fixed a 400 error on upload by adding  to  in .
-        - Diagnosed and provided the correct solution for a 401 error on download, which was a security setting in the user's Cloudinary account blocking PDF/ZIP delivery, not a code issue.
-    - **Fixed New Task Date Bug:** Corrected a string concatenation error that created malformed date strings () when creating new tasks.
-- **UI/UX Enhancements:**
-    - Created an eye-catching, animated banner for overdue tasks in the student portal ().
-    - Corrected the student task list UI to make only the view icon clickable and to display both date and time for deadlines.
+-   **Google Drive Integration (Phases 1, 2, 3) - COMPLETE**:
+    -   Implemented a full, secure, and multi-tenant OAuth 2.0 flow for connecting Google Drive.
+    -   Fixed  and  errors by implementing a robust, dynamic solution.
+    -   Integrated file uploads to Google Drive for **Materiales, Tareas, Foros, and Tablero**, correctly distinguishing between documents (Drive) and images (Cloudinary).
+    -   Implemented secure, high-performance streaming downloads from the backend for all file types.
+    -   Implemented logic to automatically delete files from Google Drive when a post is deleted in EduNet.
+-   **Bug Fixes & UX Enhancements**:
+    -   **Missing Download Buttons (Student Portal)**: Added download buttons with loading spinners for both Materials and Task attachments.
+    -   **Slow Download Start**: Optimized the download endpoint to use true streaming, so the download dialog appears instantly.
+    -   **Inconsistent UI**: Updated the student's Materiales view to a card layout to match the owner's view.
+    -   **Backend Data Persistence**: Fixed a critical bug where  and  were not being saved when creating tasks/forums/posts.
 
 **Earlier issues found/mentioned but not fixed**
-- **Project-Wide Replacement of  (P2):** An inherited technical debt task to replace all native  calls with a custom modal.
+-   The Smart Sticky column layout issue remains from the previous fork.
+-   The project-wide replacement of  is still pending.
 
 **Known issue recurrence from previous fork**
-- **Date Display Bug:** The issue of the due date not updating in the UI after an edit was the most prominent recurring problem in this session. It required multiple debugging cycles and fixes related to state updates, API responses, and finally the data access order in the frontend. The next agent should be highly cautious when working with any date-related functionality.
+-   **Date Display Bug:** The previous handoff mentioned a recurring bug with task date displays not updating in the UI. While no new reports of this occurred, the area is high-risk. The status is considered .
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Google Drive API & OAuth 2.0:** The next major task requires a full implementation of the OAuth 2.0 web application flow to securely connect to and interact with the Google Drive API.
-- **Cloudinary Integration & Debugging:** The session involved deep debugging of Cloudinary's behavior, including signature validation,  handling ( vs. ), and identifying account-level security configurations () as the root cause of an issue.
-- **Complex Frontend State Management:** The  component manages a large amount of state for tasks, modals (create, edit, delete/archive), and API data, which has been a source of bugs.
-- **Timezone Handling:** Correctly handling timezones was critical. The solution involved standardizing on saving dates with a specific offset ( for Peru) and displaying them with an explicit  option ().
+-   **Google Drive API & OAuth 2.0:** Full implementation of the web application flow, including refresh token handling, scope management (), and API interaction for upload/download/delete.
+-   **Dynamic OAuth :** The backend now constructs the  based on the request's  header, allowing the same codebase to work in both preview and production environments.
+-   **Database-backed OAuth State:** The  error was resolved by generating the Google auth URL, capturing the  Google creates, storing it in a dedicated  MongoDB collection, and validating against it in the callback.
+-   **Streaming Downloads:** The file download endpoint in FastAPI uses a generator with  to stream file chunks directly from Google Drive to the client, preventing high memory usage and long waits.
 
 **key DB schema**
-- ** collection:**
-    - : (NEW)  - active or archived.
-    - : (NEW) 
-    - : (NEW)  (user_id)
-    - : (NEW)  (for soft deletes)
-    - : (NEW)  (to store metadata from Cloudinary uploads)
-    - **Upcoming:** , , , etc. for Google Drive integration.
-- ** collection:**
-    - **Upcoming:**  (Boolean),  (Encrypted String),  (String).
+-   ** collection:**
+    -   :  - Stores the ID of the file in Google Drive.
+    -   :  - Differentiates storage (google_drive or cloudinary).
+-   ** collection:**
+    -   : 
+    -   :  (Encrypted via Fernet)
+    -   : 
+-   ** collection (NEW):**
+    -   :  (The state generated by Google's library, used as the key)
+    -   , , : 
+    -   :  (with TTL index for auto-cleanup)
 
 **changes in tech stack**
-- ** / :** Added to  for the upcoming Google Drive integration.
+-   No new libraries were added in this session. The implementation relied on , , and  which were already present.
 
 **All files of reference**
-- **Heavily Modified:**
-    - 
-    - 
-- **Updated:**
-    - 
-    - 
+-   **Heavily Modified:**
+    -   
+    -   
+-   **Updated:**
+    -   
+    -   
+    -   
 
 **Areas that need refactoring**:
-- **:** This file has grown excessively large (over 7000 lines). It contains multiple modals, data fetching logic, and distinct components. It urgently needs to be broken down into smaller, self-contained components (e.g., , , ).
-- ** duplication:** The file  contains multiple, slightly different implementations of the  function. These should be consolidated into a single, robust utility function.
+-   ** (CRITICAL):** This file is now a massive monolith exceeding 7,000 lines. It contains the logic and UI for at least four distinct modals and several content sections. It MUST be broken down into smaller, self-contained components to ensure future maintainability.
+-   **:** This single-file FastAPI application has grown very large. It should be refactored by splitting routes into separate files (e.g., , ).
 
 **key api endpoints**
-- ****: (NEW) Archives a task.
-- ****: (NEW) Gets submission counts for a task.
-- ****: (MODIFIED) Implements soft-delete logic for tasks without submissions.
-- ****: (MODIFIED) Added  to the list of allowed folders.
-- ****: (MODIFIED) Updated to handle editing  and ensure the root  field is also updated.
-- **UPCOMING:**
-    - 
-    - 
-    - 
+-   : (MODIFIED) Creates a post; now accepts  and .
+-   : (MODIFIED) Deletes a post and its associated file in Google Drive.
+-   : (MODIFIED) Generic, streaming download endpoint for any post with a .
+-   **UPCOMING (for bug fix):** A new endpoint like  that only uploads a file and returns its ID, without creating a post.
 
 **Critical Info for New Agent**
-- **You MUST communicate in Spanish.**
-- The immediate and highest priority task is the **Google Drive integration**. The user has provided very specific, phased requirements. You should start with the backend OAuth endpoints.
-- The task **due date display has been a major pain point**. Be extremely careful when making any changes related to dates. The established pattern is to save dates with a  offset and display them using .
-- Debugging file uploads/downloads has shown that **issues can stem from the 3rd-party service configuration (like Cloudinary) and not just the code.** Keep this in mind if the Google Drive integration presents unexpected errors.
-- The preview environment's database is often empty. Do not rely on finding existing data for testing. You will need to create data as part of your testing flow or use the testing agent.
+-   **Communicate in Spanish.**
+-   Your immediate priority is to **fix the bug where attaching a file to a task also creates a Material de estudio**. The plan is to create a new backend endpoint dedicated to file uploads and update the frontend to use it.
+-   **Do not modify the OAuth flow.** The current implementation with a dynamic  and database-backed state is stable and correct after significant debugging.
+-   **Strongly recommend refactoring ** after the bug fix. It is a major source of technical debt and will make future development very difficult. Propose this to the user as the next step.
 
 **documents and test reports created in this job**
-- 
+-    was significantly updated with details of the Google Drive integration.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User**: The download button for materials doesn't work. It gives a 401 error. (COMPLETED - Diagnosed as Cloudinary config)
-9.  **User**: Correct diagnosis. The problem is Cloudinary is blocking PDF/ZIP delivery by default. (COMPLETED - No code change needed)
-8.  **User**: I have a question. Is it possible to integrate with Google Drive for file uploads? (PENDING)
-7.  **User**: Provides detailed requirements for Google Drive integration (Phase 1). (PENDING)
-6.  **Agent**: Acknowledges and asks for clarification. (COMPLETED)
-5.  **User**: Provides complete, updated, and final requirements for the entire Google Drive integration, including multi-environment support. (PENDING)
-4.  **Agent**: Understands and gets the integration playbook. (COMPLETED)
-3.  **Agent**: Installs Google Drive dependencies. (COMPLETED)
-2.  **User**: I need to be able to connect with Google Drive. (PENDING - Reiterates the main goal)
-1.  **Agent**: Proposes plan to implement Google Drive integration. (COMPLETED - User did not respond, but prior message is clear approval)
+10. User confirms they are in production and have deployed. (COMPLETED)
+9. User reports that after deploying and connecting Drive, a new material upload is still going to Cloudinary, not Drive. (COMPLETED - Agent identified a missing frontend deploy).
+8. User asks to use production for all tests, not preview. (COMPLETED - Agent confirmed code is ready for production).
+7. User reports that after deleting a material from EduNet, the file should also be deleted from Drive. (COMPLETED - Agent implemented this).
+6. User reports the download button is missing in the student portal for materials. Provides an image of the desired UI. (COMPLETED - Agent fixed the button and UI).
+5. User asks if deleting a material also deletes it from Drive. (COMPLETED - Agent confirmed it did not and asked for preference).
+4. User reports that downloading a file from production takes too long to start. (COMPLETED - Agent implemented true streaming).
+3. User asks to implement Google Drive uploads for Tablero posts. (COMPLETED).
+2. User asks to implement Google Drive uploads for Foro posts. (COMPLETED).
+1. **User reports that a task created with a file attachment should not appear in Materiales de estudio. (PENDING - This is the current bug to be fixed).**
 
 **Project Health Check:**
-- **Broken:** The smart sticky layout on the student dashboard continues to cause UI flickering.
-- **Mocked:** N/A
+-   **Broken**:
+    -   The logic for attaching files to tasks/forums/posts incorrectly creates duplicate material entries.
+    -   The smart sticky column layout on the student dashboard still causes UI flickering.
+-   **Mocked**: N/A
 
 **3rd Party Integrations**
-- **Cloudinary:** Used for image hosting. Its usage for documents is being replaced. The account has security settings that restrict public access to raw files like PDFs by default.
-- **@tiptap/react:** Used for the rich text editor.
-- **Lucide React:** For icons.
-- **Google Drive API:** (In Progress) To be used for all non-image file storage. Requires OAuth 2.0 setup.
+-   **Cloudinary**: Used for image hosting only.
+-   **Google Drive API**: Fully integrated for all non-image file storage, using OAuth 2.0.
 
 **Testing status**
-- **Testing agent used after significant changes**: YES (Successfully tested the task archive/delete feature).
-- **Troubleshoot agent used after agent stuck in loop**: NO
-- **Test files created**: None.
-- **Known regressions**: The flickering sticky layout remains a known regression.
+-   **Testing agent used after significant changes**: NO. All testing was manual via , screenshots, and direct user feedback from their production environment.
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: None.
+-   **Known regressions**: The flickering sticky layout remains a known issue.
 
 **Credentials to test flow:**
-- **Student (for testing student-facing features):**
-    - **Username**: 
-    - **Password**: 
-- **School Identifier**: 
-- **Owner/Teacher (for owner portal):** The credentials are the same as the student for login, but the user has a different role in the backend. Testing owner features requires logging in and navigating to the owner portal.
+-   **Student:**
+    -   **Username**: 
+    -   **Password**: 
+-   **Owner/Teacher:**
+    -   **Username**: 
+    -   **Password**: 
+-   **School Identifier**: 
 
 **What agent forgot to execute**
-- The agent did not refactor the monolithic  and  components, which was a known issue from the previous handoff. The file size continues to grow, increasing technical debt.
-- The agent did not consolidate the duplicated  functions within .</analysis>
+-   The agent did not refactor the monolithic , instead adding hundreds more lines of code to it, exacerbating the technical debt noted in the previous handoff.
+-   The agent did not consolidate duplicated  helper functions.</analysis>
