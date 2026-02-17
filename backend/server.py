@@ -10494,8 +10494,8 @@ async def create_course_post(
     
     school_id = user["school_id"]
     
-    # Validate: must have content or attachment
-    if not data.content.strip() and not data.image_url and not data.file_url:
+    # Validate: must have content or attachment (file_url or drive_file_id)
+    if not data.content.strip() and not data.image_url and not data.file_url and not data.drive_file_id:
         raise HTTPException(status_code=400, detail="La publicación debe tener texto, imagen o archivo")
     
     # For task, material, forum - title is required
