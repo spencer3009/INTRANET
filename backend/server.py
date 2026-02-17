@@ -13863,6 +13863,7 @@ async def download_material_from_drive(
     """
     Download a material file from Google Drive.
     Streams the file through the backend - student never sees Drive link.
+    Uses true streaming for immediate response.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
@@ -13899,35 +13900,51 @@ async def download_material_from_drive(
         if material.get("subject_id") not in subject_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a este material")
     
+    # Get file metadata
+    file_name = material.get("drive_file_name", material.get("file_name", "archivo"))
+    mime_type = material.get("mime_type", "application/octet-stream")
+    file_size = material.get("file_size")
+    
     try:
         # Get Drive service
         service = await get_drive_service(school_id)
         
-        # Download file from Drive
-        request = service.files().get_media(fileId=drive_file_id)
+        logger.info(f"Starting download stream for: {file_name} by user {user['id']}")
         
-        file_buffer = io.BytesIO()
-        downloader = MediaIoBaseDownload(file_buffer, request)
+        # Create a generator that streams directly from Google Drive
+        def stream_from_drive():
+            """Generator that streams file chunks from Google Drive"""
+            request = service.files().get_media(fileId=drive_file_id)
+            
+            # Use chunked download for streaming
+            file_buffer = io.BytesIO()
+            downloader = MediaIoBaseDownload(file_buffer, request, chunksize=1024*1024)  # 1MB chunks
+            
+            done = False
+            while not done:
+                status, done = downloader.next_chunk()
+                # Yield the chunk that was just downloaded
+                chunk = file_buffer.getvalue()
+                if chunk:
+                    yield chunk
+                    file_buffer.seek(0)
+                    file_buffer.truncate(0)
         
-        done = False
-        while not done:
-            status, done = downloader.next_chunk()
+        # Build headers
+        headers_dict = {
+            "Content-Disposition": f"attachment; filename=\"{file_name}\"",
+            "Cache-Control": "no-cache",
+        }
         
-        file_buffer.seek(0)
+        # Add content-length if known (helps browser show progress)
+        if file_size:
+            headers_dict["Content-Length"] = str(file_size)
         
-        # Get file metadata
-        file_name = material.get("drive_file_name", "archivo")
-        mime_type = material.get("mime_type", "application/octet-stream")
-        
-        logger.info(f"Material downloaded from Drive: {file_name} by user {user['id']}")
-        
-        # Return streaming response
+        # Return streaming response immediately
         return StreamingResponse(
-            file_buffer,
+            stream_from_drive(),
             media_type=mime_type,
-            headers={
-                "Content-Disposition": f"attachment; filename=\"{file_name}\""
-            }
+            headers=headers_dict
         )
         
     except HTTPException:
