@@ -10394,6 +10394,9 @@ class CoursePostCreate(BaseModel):
     file_name: Optional[str] = None
     file_type: Optional[str] = None
     file_size: Optional[int] = None
+    # Google Drive fields
+    drive_file_id: Optional[str] = None
+    storage_type: Optional[str] = None  # "google_drive" or "cloudinary"
     # Metadata for tasks: due_date, delivery_type, show_to_students, points
     metadata: Optional[dict] = None
     # Cloudinary data for proper file handling
