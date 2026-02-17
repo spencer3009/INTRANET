@@ -1880,6 +1880,12 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
       return;
     }
     
+    // Check if file needs Google Drive but Drive is not connected
+    if (file && shouldUseGoogleDrive(file) && !driveStatus.connected) {
+      setError("Para adjuntar documentos (PDF, Word, Excel, etc.) debes conectar Google Drive desde Ajustes.");
+      return;
+    }
+    
     setSubmitting(true);
     setError("");
     
@@ -1887,12 +1893,42 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
       let fileUrl = null;
       let fileName = null;
       let fileType = null;
+      let driveFileId = null;
+      let storageType = null;
       
       if (file) {
-        const isRawFile = !file.type.startsWith('image/');
-        fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
-        fileName = file.name;
-        fileType = file.type || 'application/octet-stream';
+        // Determine if file should go to Google Drive or Cloudinary
+        if (shouldUseGoogleDrive(file)) {
+          // Upload to Google Drive
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('subject_id', subjectId);
+          formData.append('title', `Adjunto: ${title.trim()}`);
+          formData.append('description', `Archivo adjunto para tarea: ${title.trim()}`);
+          
+          const driveRes = await axios.post(`${API}/materials/upload`, formData, {
+            headers: {
+              ...headers,
+              'Content-Type': 'multipart/form-data'
+            },
+            onUploadProgress: (progressEvent) => {
+              const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              setUploadProgress(progress);
+            }
+          });
+          
+          driveFileId = driveRes.data.drive_file_id;
+          fileName = driveRes.data.drive_file_name || file.name;
+          fileType = file.type || 'application/octet-stream';
+          storageType = 'google_drive';
+        } else {
+          // Upload images to Cloudinary
+          const isRawFile = !file.type.startsWith('image/');
+          fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
+          fileName = file.name;
+          fileType = file.type || 'application/octet-stream';
+          storageType = 'cloudinary';
+        }
       }
       
       // Combine date and time - store in ISO format with Peru timezone offset
@@ -1910,6 +1946,8 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
         file_url: fileUrl,
         file_name: fileName,
         file_type: fileType,
+        drive_file_id: driveFileId,
+        storage_type: storageType,
         metadata: {
           delivery_type: deliveryType,
           due_date: dueDateTime,
