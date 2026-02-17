@@ -1515,7 +1515,7 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
 }
 
 // Tasks Content - Table view like owner's portal (Read-only for students)
-function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
+function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token }) {
   const [selectedTask, setSelectedTask] = useState(null);
 
   if (tasks.length === 0) {
