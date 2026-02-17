@@ -10528,6 +10528,8 @@ async def create_course_post(
         "file_name": data.file_name,
         "file_type": data.file_type,
         "file_size": data.file_size,
+        "drive_file_id": data.drive_file_id,
+        "storage_type": data.storage_type,
         "status": "active",
         "created_at": now,
         "updated_at": now
