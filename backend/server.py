@@ -13874,7 +13874,8 @@ async def download_material_from_drive(
     current_user=Depends(get_current_user)
 ):
     """
-    Download a material file from Google Drive.
+    Download a file from Google Drive.
+    Works for any post type (material, task, forum, board) that has a drive_file_id.
     Streams the file through the backend - student never sees Drive link.
     Uses true streaming for immediate response.
     """
@@ -13886,17 +13887,26 @@ async def download_material_from_drive(
     if not school_id:
         raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
     
-    # Get material from database
-    material = await db.course_posts.find_one({
+    # Get post from database - look for any post with drive_file_id
+    # This works for materials, tasks, forum posts, and board posts
+    post = await db.course_posts.find_one({
         "id": material_id,
         "school_id": school_id,
-        "storage_type": "google_drive"
+        "drive_file_id": {"$exists": True, "$ne": None}
     }, {"_id": 0})
     
-    if not material:
-        raise HTTPException(status_code=404, detail="Material no encontrado")
+    if not post:
+        # Also try to find by storage_type for backwards compatibility
+        post = await db.course_posts.find_one({
+            "id": material_id,
+            "school_id": school_id,
+            "storage_type": "google_drive"
+        }, {"_id": 0})
     
-    drive_file_id = material.get("drive_file_id")
+    if not post:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+    
+    drive_file_id = post.get("drive_file_id")
     if not drive_file_id:
         raise HTTPException(status_code=400, detail="Archivo no encontrado en Drive")
     
@@ -13910,13 +13920,13 @@ async def download_material_from_drive(
         }, {"_id": 0}).to_list(100)
         
         subject_ids = [a.get("subject_id") for a in assignments]
-        if material.get("subject_id") not in subject_ids:
-            raise HTTPException(status_code=403, detail="No tienes acceso a este material")
+        if post.get("subject_id") not in subject_ids:
+            raise HTTPException(status_code=403, detail="No tienes acceso a este archivo")
     
     # Get file metadata
-    file_name = material.get("drive_file_name", material.get("file_name", "archivo"))
-    mime_type = material.get("mime_type", "application/octet-stream")
-    file_size = material.get("file_size")
+    file_name = post.get("drive_file_name", post.get("file_name", "archivo"))
+    mime_type = post.get("mime_type", post.get("file_type", "application/octet-stream"))
+    file_size = post.get("file_size")
     
     try:
         # Get Drive service
