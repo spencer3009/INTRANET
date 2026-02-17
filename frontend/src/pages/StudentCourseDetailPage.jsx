@@ -2071,16 +2071,19 @@ function MaterialContent({ materials, token }) {
               
               {/* Download */}
               <div className="col-span-2 text-center">
-                {hasFile ? (
-                  <a
-                    href={fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex p-2.5 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors"
+                {(hasFile || material.drive_file_id) ? (
+                  <button
+                    onClick={() => handleDownload(material)}
+                    disabled={downloading === material.id}
+                    className="inline-flex p-2.5 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition-colors disabled:opacity-50 disabled:cursor-wait"
                     title="Descargar archivo"
                   >
-                    <Download className="w-4 h-4" />
-                  </a>
+                    {downloading === material.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Download className="w-4 h-4" />
+                    )}
+                  </button>
                 ) : (
                   <span className="text-slate-400 text-sm">-</span>
                 )}
