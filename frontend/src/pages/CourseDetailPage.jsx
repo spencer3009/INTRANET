@@ -2803,7 +2803,23 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
   
+  // Google Drive state
+  const [driveStatus, setDriveStatus] = useState({ connected: false });
+  
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Check Google Drive status on mount
+  useEffect(() => {
+    const checkDriveStatus = async () => {
+      try {
+        const res = await axios.get(`${API}/integrations/google-drive/status`, { headers });
+        setDriveStatus(res.data);
+      } catch (err) {
+        console.error('Error checking Drive status:', err);
+      }
+    };
+    checkDriveStatus();
+  }, [token]);
   
   useEffect(() => {
     if (!isOpen) {
@@ -2865,6 +2881,28 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
     return uploadRes.data.secure_url;
   };
   
+  // Upload to Google Drive
+  const uploadToGoogleDrive = async (fileToUpload) => {
+    const formData = new FormData();
+    formData.append('file', fileToUpload);
+    formData.append('subject_id', subjectId);
+    formData.append('title', `Foro: ${title.trim()}`);
+    formData.append('description', `Archivo adjunto para tema de foro`);
+    
+    const res = await axios.post(`${API}/materials/upload`, formData, {
+      headers: {
+        ...headers,
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+        setUploadProgress(progress);
+      }
+    });
+    
+    return res.data;
+  };
+  
   const handleSubmit = async () => {
     if (!title.trim()) {
       setError("El título del tema es requerido");
@@ -2876,6 +2914,12 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
       return;
     }
     
+    // Check if file needs Google Drive but Drive is not connected
+    if (file && shouldUseGoogleDrive(file) && !driveStatus.connected) {
+      setError("Para adjuntar documentos (PDF, Word, Excel, etc.) debes conectar Google Drive desde Ajustes.");
+      return;
+    }
+    
     setSubmitting(true);
     setError("");
     
@@ -2883,12 +2927,26 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
       let fileUrl = null;
       let fileName = null;
       let fileType = null;
+      let driveFileId = null;
+      let storageType = null;
       
       if (file) {
-        const isRawFile = !file.type.startsWith('image/');
-        fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
-        fileName = file.name;
-        fileType = file.type || 'application/octet-stream';
+        // Determine if file should go to Google Drive or Cloudinary
+        if (shouldUseGoogleDrive(file)) {
+          // Upload to Google Drive
+          const driveRes = await uploadToGoogleDrive(file);
+          driveFileId = driveRes.drive_file_id;
+          fileName = driveRes.drive_file_name || file.name;
+          fileType = file.type || 'application/octet-stream';
+          storageType = 'google_drive';
+        } else {
+          // Upload images to Cloudinary
+          const isRawFile = !file.type.startsWith('image/');
+          fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
+          fileName = file.name;
+          fileType = file.type || 'application/octet-stream';
+          storageType = 'cloudinary';
+        }
       }
       
       const res = await axios.post(`${API}/course/${subjectId}/posts`, {
@@ -2898,6 +2956,9 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
         post_type: "forum",
         file_url: fileUrl,
         file_name: fileName,
+        file_type: fileType,
+        drive_file_id: driveFileId,
+        storage_type: storageType,
         file_type: fileType,
         metadata: {
           show_to_students: showToStudents
