@@ -7642,10 +7642,15 @@ function MaterialTableContent({ subjectId, token, user }) {
                   <div className="flex items-center gap-2 flex-shrink-0 ml-4">
                     <button
                       onClick={() => handleDownload(material)}
-                      className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
+                      disabled={downloading === material.id}
+                      className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-wait"
                       title="Descargar"
                     >
-                      <Download className="w-4 h-4" />
+                      {downloading === material.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <Download className="w-4 h-4" />
+                      )}
                     </button>
                     <button
                       onClick={() => handleDeleteClick(material)}
