@@ -1160,7 +1160,9 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
         image_url: imageUrl,
         file_url: fileUrl,
         file_name: fileName,
-        file_type: fileType
+        file_type: fileType,
+        drive_file_id: driveFileId,
+        storage_type: storageType
       }, { headers });
       
       onPostCreated(res.data.post);
