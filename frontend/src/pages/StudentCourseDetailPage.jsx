@@ -1943,7 +1943,11 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
 }
 
 // Material Content - Table view like owner's portal (Read-only)
-function MaterialContent({ materials }) {
+function MaterialContent({ materials, token }) {
+  const [downloading, setDownloading] = useState(null);
+  const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+  const headers = { Authorization: `Bearer ${token}` };
+  
   if (materials.length === 0) {
     return (
       <EmptyState
@@ -1964,6 +1968,43 @@ function MaterialContent({ materials }) {
     if (['jpg', 'jpeg', 'png', 'gif'].includes(ext) || fileType?.includes('image')) return { icon: FileIcon, color: 'text-purple-500 bg-purple-50' };
     if (['mp4', 'avi', 'mov'].includes(ext) || fileType?.includes('video')) return { icon: Play, color: 'text-pink-500 bg-pink-50' };
     return { icon: FileIcon, color: 'text-slate-500 bg-slate-50' };
+  };
+
+  // Handle download - supports both Google Drive and Cloudinary
+  const handleDownload = async (material) => {
+    const isGoogleDrive = material.storage_type === 'google_drive' || material.drive_file_id;
+    
+    if (isGoogleDrive) {
+      // Download from Google Drive via backend streaming
+      setDownloading(material.id);
+      try {
+        const response = await fetch(`${API}/materials/download/${material.id}`, {
+          headers: headers
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error al descargar');
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', material.file_name || material.drive_file_name || 'archivo');
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Error downloading:', err);
+        alert('Error al descargar el archivo. Por favor intenta de nuevo.');
+      } finally {
+        setDownloading(null);
+      }
+    } else if (material.file_url) {
+      // Cloudinary - open in new tab (will use signed URL if needed)
+      window.open(material.file_url, '_blank', 'noopener,noreferrer');
+    }
   };
 
   return (
