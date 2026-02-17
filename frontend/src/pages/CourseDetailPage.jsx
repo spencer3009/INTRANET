@@ -2957,15 +2957,13 @@ function PremiumForumModal({ isOpen, onClose, subjectId, token, user, onPostCrea
     return uploadRes.data.secure_url;
   };
   
-  // Upload to Google Drive
+  // Upload to Google Drive (file-only, no database record)
   const uploadToGoogleDrive = async (fileToUpload) => {
     const formData = new FormData();
     formData.append('file', fileToUpload);
     formData.append('subject_id', subjectId);
-    formData.append('title', `Foro: ${title.trim()}`);
-    formData.append('description', `Archivo adjunto para tema de foro`);
     
-    const res = await axios.post(`${API}/materials/upload`, formData, {
+    const res = await axios.post(`${API}/files/upload-to-drive`, formData, {
       headers: {
         ...headers,
         'Content-Type': 'multipart/form-data'
