@@ -7253,6 +7253,7 @@ function MaterialTableContent({ subjectId, token, user }) {
   const [submitting, setSubmitting] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
+  const [downloading, setDownloading] = useState(null);
   const fileInputRef = useRef(null);
   
   const headers = { Authorization: `Bearer ${token}` };
