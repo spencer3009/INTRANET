@@ -2078,8 +2078,6 @@ function MaterialContent({ materials, token }) {
   );
 }
 
- 
-
 // Exams Content - Cards view like owner's portal (Read-only for students)
 function ExamsContent({ exams, studentId }) {
   if (exams.length === 0) {
