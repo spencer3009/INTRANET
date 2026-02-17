@@ -13873,6 +13873,94 @@ async def upload_material_to_drive(
         logger.error(f"Error uploading to Drive: {e}")
         raise HTTPException(status_code=500, detail=f"Error al subir archivo a Google Drive: {str(e)}")
 
+
+@api_router.post("/files/upload-to-drive")
+async def upload_file_to_drive_only(
+    file: UploadFile = File(...),
+    subject_id: str = Form(...),
+    current_user=Depends(get_current_user)
+):
+    """
+    Upload a file to Google Drive WITHOUT creating any database record.
+    Used for attaching files to tasks, forums, and board posts.
+    The actual post record is created separately via /course/{subject_id}/posts.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
+    
+    # Check if Drive is connected
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    if not school or not school.get("google_drive_connected"):
+        raise HTTPException(
+            status_code=400, 
+            detail="Debes conectar Google Drive desde Ajustes antes de subir archivos."
+        )
+    
+    # Validate file extension
+    file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
+    if file_ext not in GOOGLE_DRIVE_ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Tipo de archivo no permitido. Extensiones válidas: {', '.join(GOOGLE_DRIVE_ALLOWED_EXTENSIONS)}"
+        )
+    
+    try:
+        # Get Drive service
+        service = await get_drive_service(school_id)
+        
+        # Get materials folder ID (we use the same folder for all files)
+        materials_folder_id = school.get("google_drive_materials_folder_id")
+        if not materials_folder_id:
+            raise HTTPException(status_code=400, detail="Carpeta de materiales no encontrada en Drive")
+        
+        # Read file content
+        file_content = await file.read()
+        
+        # Get MIME type
+        mime_type = MIME_TYPE_MAP.get(file_ext, "application/octet-stream")
+        
+        # Upload to Drive
+        file_metadata = {
+            'name': file.filename,
+            'parents': [materials_folder_id]
+        }
+        
+        media = MediaIoBaseUpload(
+            io.BytesIO(file_content),
+            mimetype=mime_type,
+            resumable=True
+        )
+        
+        drive_file = service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, name, mimeType, size'
+        ).execute()
+        
+        logger.info(f"File uploaded to Drive (no post created): {file.filename} for school {school_id}")
+        
+        # Return file info - NO database record created
+        return {
+            "drive_file_id": drive_file.get('id'),
+            "drive_file_name": drive_file.get('name'),
+            "mime_type": mime_type,
+            "file_size": len(file_content),
+            "file_extension": file_ext,
+            "message": "Archivo subido correctamente a Google Drive"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading file to Drive: {e}")
+        raise HTTPException(status_code=500, detail=f"Error al subir archivo a Google Drive: {str(e)}")
+
+
 @api_router.get("/materials/download/{material_id}")
 async def download_material_from_drive(
     material_id: str,
