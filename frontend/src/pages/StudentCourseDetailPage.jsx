@@ -2927,7 +2927,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       case "tareas":
         return <TasksContent tasks={tasks} studentId={user?.id} onSubmitTask={handleSubmitTask} students={students} subject={subject} />;
       case "material":
-        return <MaterialContent materials={materials} />;
+        return <MaterialContent materials={materials} token={token} />;
       case "examenes":
         return <ExamsContent exams={exams} studentId={user?.id} />;
       case "foro":
