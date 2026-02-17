@@ -1929,6 +1929,81 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
   );
 }
 
+// Task File Download Component - handles both Cloudinary and Google Drive
+function TaskFileDownload({ task, token }) {
+  const [downloading, setDownloading] = useState(false);
+  const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  const isGoogleDrive = task.storage_type === 'google_drive' || task.drive_file_id;
+  const fileName = task.file_name || task.drive_file_name || 'Archivo adjunto';
+  
+  const handleDownload = async () => {
+    if (isGoogleDrive) {
+      // Download from Google Drive via backend streaming
+      setDownloading(true);
+      try {
+        const response = await fetch(`${API}/materials/download/${task.id}`, {
+          headers: headers
+        });
+        
+        if (!response.ok) {
+          throw new Error('Error al descargar');
+        }
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        console.error('Error downloading:', err);
+        alert('Error al descargar el archivo. Por favor intenta de nuevo.');
+      } finally {
+        setDownloading(false);
+      }
+    } else if (task.file_url) {
+      // Cloudinary - open in new tab
+      window.open(task.file_url, '_blank', 'noopener,noreferrer');
+    }
+  };
+  
+  return (
+    <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+      <button
+        onClick={handleDownload}
+        disabled={downloading}
+        className="flex items-center gap-3 text-indigo-600 hover:text-indigo-700 w-full text-left disabled:opacity-50"
+      >
+        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+          {downloading ? (
+            <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
+          ) : (
+            <FileIcon className="w-5 h-5 text-indigo-600" />
+          )}
+        </div>
+        <div className="flex-1">
+          <p className="font-medium">{fileName}</p>
+          <p className="text-sm text-slate-500">
+            {downloading ? 'Descargando...' : 'Click para descargar'}
+            {isGoogleDrive && (
+              <span className="ml-2 inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full">
+                <HardDrive className="w-3 h-3" />
+                Drive
+              </span>
+            )}
+          </p>
+        </div>
+        <Download className="w-5 h-5 ml-auto" />
+      </button>
+    </div>
+  );
+}
+
 // Material Content - Card view like owner's portal (Read-only)
 function MaterialContent({ materials, token }) {
   const [downloading, setDownloading] = useState(null);
