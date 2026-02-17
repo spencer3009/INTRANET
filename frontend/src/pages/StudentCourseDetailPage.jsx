@@ -1641,25 +1641,12 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject }) {
                 />
               </div>
 
-              {/* File attachment if exists */}
-              {selectedTask.file_url && (
-                <div className="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <a
-                    href={selectedTask.file_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-3 text-indigo-600 hover:text-indigo-700"
-                  >
-                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <FileIcon className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="font-medium">{selectedTask.file_name || 'Archivo adjunto'}</p>
-                      <p className="text-sm text-slate-500">Click para descargar</p>
-                    </div>
-                    <Download className="w-5 h-5 ml-auto" />
-                  </a>
-                </div>
+              {/* File attachment if exists - supports both Cloudinary and Google Drive */}
+              {(selectedTask.file_url || selectedTask.drive_file_id) && (
+                <TaskFileDownload 
+                  task={selectedTask} 
+                  token={token}
+                />
               )}
             </div>
 
