@@ -1261,15 +1261,35 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
           
           {/* File Preview */}
           {file && (
-            <div className="mt-4 p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-3">
-              <FileIcon className="w-8 h-8 text-indigo-500" />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-gray-700 truncate">{file.name}</p>
-                <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
+            <div className="mt-4 space-y-3">
+              {/* Google Drive Status Banner */}
+              {shouldUseGoogleDrive(file) && !driveStatus.connected && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-start gap-2">
+                  <HardDrive className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium">Google Drive no conectado</p>
+                    <p className="text-xs mt-0.5">Para adjuntar este tipo de archivo, conecta Google Drive desde Ajustes.</p>
+                  </div>
+                </div>
+              )}
+              
+              {shouldUseGoogleDrive(file) && driveStatus.connected && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-700 text-sm flex items-center gap-2">
+                  <HardDrive className="w-4 h-4 flex-shrink-0" />
+                  <span>Este archivo se guardará en Google Drive</span>
+                </div>
+              )}
+              
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-3">
+                <FileIcon className="w-8 h-8 text-indigo-500" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-gray-700 truncate">{file.name}</p>
+                  <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB</p>
+                </div>
+                <button onClick={() => setFile(null)} className="p-1 hover:bg-gray-200 rounded">
+                  <X className="w-4 h-4 text-gray-500" />
+                </button>
               </div>
-              <button onClick={() => setFile(null)} className="p-1 hover:bg-gray-200 rounded">
-                <X className="w-4 h-4 text-gray-500" />
-              </button>
             </div>
           )}
           
