@@ -3633,12 +3633,14 @@ class UpdateUserRequest(BaseModel):
     address: Optional[str] = None
     role: Optional[str] = None
     photo_url: Optional[str] = None
+    password: Optional[str] = None  # For password changes
     # Academic fields for students
     nivel_id: Optional[str] = None
     grado_id: Optional[str] = None
     seccion_id: Optional[str] = None
     turno_id: Optional[str] = None
     padre_id: Optional[str] = None
+    parent_id: Optional[str] = None  # Alias for padre_id (frontend compatibility)
     # Student complementary info
     condiciones_medicas: Optional[str] = None
     alergias: Optional[str] = None
