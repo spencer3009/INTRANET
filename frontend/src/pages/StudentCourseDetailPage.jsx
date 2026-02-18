@@ -119,6 +119,131 @@ function CourseTabs({ activeTab, onTabChange }) {
   );
 }
 
+// Post File Download Button - For downloading attachments in feed posts
+function PostFileDownloadButton({ post, token }) {
+  const [downloading, setDownloading] = useState(false);
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      // Check if file is stored in Google Drive
+      if (post.storage_type === 'google_drive' || post.drive_file_id) {
+        // Download through backend (secure streaming)
+        const response = await axios.get(`${API}/api/materials/download/${post.id}`, {
+          headers,
+          responseType: 'blob'
+        });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', post.file_name || post.drive_file_name || 'archivo');
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        return;
+      }
+      
+      // For Cloudinary or direct URLs
+      if (post.file_url) {
+        window.open(post.file_url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      alert('Error al descargar el archivo. Por favor intenta de nuevo.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+  
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={downloading}
+      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg font-medium transition-colors text-xs"
+      data-testid="post-download-btn"
+    >
+      {downloading ? (
+        <>
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <span className="hidden sm:inline">Descargando...</span>
+        </>
+      ) : (
+        <>
+          <Download className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Descargar</span>
+        </>
+      )}
+    </button>
+  );
+}
+
+// Post Action Button - Navigation button based on post type
+function PostActionButton({ postType, postId }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get the base path from current location (e.g., /student/course/xxx)
+  const basePath = location.pathname;
+  
+  const getActionConfig = () => {
+    switch (postType) {
+      case 'task':
+        return {
+          label: 'Ver tarea',
+          icon: FileText,
+          color: 'bg-amber-500 hover:bg-amber-600',
+          tab: 'tareas'
+        };
+      case 'material':
+        return {
+          label: 'Ver material',
+          icon: FolderOpen,
+          color: 'bg-indigo-500 hover:bg-indigo-600',
+          tab: 'material'
+        };
+      case 'forum':
+        return {
+          label: 'Ver discusión',
+          icon: MessageCircle,
+          color: 'bg-purple-500 hover:bg-purple-600',
+          tab: 'foro'
+        };
+      default:
+        return null;
+    }
+  };
+  
+  const config = getActionConfig();
+  if (!config) return null;
+  
+  const Icon = config.icon;
+  
+  const handleClick = () => {
+    // Navigate to the same page but with the appropriate tab
+    // We'll use a hash or query param to indicate which tab to show
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', config.tab);
+    url.searchParams.set('highlight', postId);
+    window.location.href = url.toString();
+  };
+  
+  return (
+    <button
+      onClick={handleClick}
+      className={`flex items-center gap-1.5 px-3 py-1.5 ${config.color} text-white rounded-lg font-medium transition-colors text-xs`}
+      data-testid={`post-action-${postType}`}
+    >
+      <Icon className="w-3.5 h-3.5" />
+      {config.label}
+      <ChevronRight className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
 // Post Card Component with like and comment functionality
 function PostCard({ post, token, user }) {
   const [showComments, setShowComments] = useState(false);
