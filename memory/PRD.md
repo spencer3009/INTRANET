@@ -1101,3 +1101,59 @@ El frontend usaba el endpoint `/api/materials/upload` para todos los uploads a G
 - `/app/frontend/src/pages/CourseDetailPage.jsx` - Funciones `uploadToGoogleDrive` actualizadas
 
 **Estado:** COMPLETADO - Pendiente de verificación en producción por el usuario
+
+
+---
+
+## Bug Fix: Entregas de Tareas de Estudiantes (2025-02-18)
+
+### Problema Reportado
+Las entregas de tareas de los estudiantes NO aparecían en el portal del profesor. El panel mostraba "Entregada: 0" y la lista de entregas estaba vacía, aunque el estudiante recibió confirmación de éxito al entregar.
+
+### Causa Raíz Identificada
+1. **Inconsistencia en campo de tipo**: Las tareas se creaban con `post_type: "task"` pero algunas queries buscaban con `type: "task"` (sistema antiguo).
+2. **Frontend usaba datos mock**: La función `loadSubmissions` usaba datos ficticios en vez de llamar al API.
+
+### Correcciones Realizadas
+
+#### Backend (`/app/backend/server.py`)
+
+1. **Corregidas queries de búsqueda de tareas** - Ahora usan `$or` para soportar ambos campos:
+   - `submit_task` (línea ~2714)
+   - `download_submission_file` (línea ~2892)
+   - `get_task_submission_stats` (línea ~10947)
+   - `archive_task` (línea ~11156)
+
+2. **Nuevo endpoint `GET /api/course/tasks/{task_id}/submissions`**:
+   - Obtiene todas las entregas de una tarea con detalles del estudiante
+   - Incluye: id, nombre, foto, comentario, archivo, estado (a tiempo/tarde), nota, feedback
+
+3. **Nuevo endpoint `PUT /api/course/tasks/{task_id}/submissions/{submission_id}/grade`**:
+   - Permite a profesores/admins calificar entregas
+   - Acepta: `grade` (número) y `feedback` (texto)
+
+4. **Agregado `submissions_count` al listado de posts**:
+   - El endpoint `GET /api/course/{subject_id}/posts?post_type=task` ahora incluye conteo de entregas
+
+#### Frontend (`/app/frontend/src/pages/CourseDetailPage.jsx`)
+
+1. **Reemplazados datos mock con API real**:
+   - `loadSubmissions` ahora llama a `/api/course/tasks/{task_id}/submissions`
+
+2. **UI funcional para calificar entregas**:
+   - Campos editables para nota y comentario
+   - Botón de guardar por entrega individual
+   - Botón "Aplicar todas las calificaciones"
+
+3. **Descarga de archivos**:
+   - Botón "VER ARCHIVOS" que descarga desde Google Drive o Cloudinary
+
+4. **Conteo real de entregas**:
+   - El panel lateral muestra `submissions_count` de la API
+
+### Tests Pasados
+- 20/20 tests backend pasaron (100%)
+- Verificado: submit, list submissions, grade, download
+
+**Estado:** COMPLETADO Y VERIFICADO
+
