@@ -3739,6 +3739,16 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
     if data.telefono_trabajo is not None:
         update_data["telefono_trabajo"] = data.telefono_trabajo
     
+    # Handle password change
+    if data.password is not None and data.password.strip():
+        update_data["password"] = hash_password(data.password)
+        logger.info(f"Password changed for user {user_id}")
+    
+    # Handle parent_id (frontend sends parent_id, backend uses padre_id)
+    if data.parent_id is not None:
+        update_data["padre_id"] = data.parent_id if data.parent_id else None
+        update_data["parent_id"] = data.parent_id if data.parent_id else None
+    
     await db.users.update_one({"id": user_id}, {"$set": update_data})
     
     # Return updated user
