@@ -11110,6 +11110,15 @@ async def grade_task_submission(
             break
     
     if submission_idx is None:
+        # Try to find by fallback ID pattern (student_id_submitted_at) or by student_id
+        for idx, sub in enumerate(submissions):
+            fallback_id = f"{sub.get('student_id', '')}_{sub.get('submitted_at', '')}"
+            if fallback_id == submission_id or sub.get("student_id") == submission_id:
+                submission_idx = idx
+                logger.info(f"Found submission by fallback ID at index {idx}")
+                break
+    
+    if submission_idx is None:
         logger.error(f"Submission not found: {submission_id}")
         raise HTTPException(status_code=404, detail="Entrega no encontrada")
     
