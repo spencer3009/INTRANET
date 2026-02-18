@@ -1531,6 +1531,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         turno_id: userToEdit.turno_id || "",
         condiciones_medicas: userToEdit.condiciones_medicas || "",
         alergias: userToEdit.alergias || "",
+        doctor_nombre: userToEdit.doctor_nombre || "",
+        doctor_telefono: userToEdit.doctor_telefono || "",
+        persona_autorizada: userToEdit.persona_autorizada || "",
+        persona_autorizada_telefono: userToEdit.persona_autorizada_telefono || "",
         notas: userToEdit.notas || "",
         // Parent fields
         dni: userToEdit.dni || "",
@@ -1539,10 +1543,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       // Reset extended states for students
       setShowPasswordSection(false);
       setEditPassword("");
+      setConfirmPassword("");
       setShowEditPassword(false);
+      setShowConfirmPassword(false);
       setShowParentSection(userToEdit.parent_id ? true : false);
       setSelectedParentId(userToEdit.parent_id || "");
-      setShowExtraInfoSection(userToEdit.condiciones_medicas || userToEdit.alergias || userToEdit.notas ? true : false);
+      // Set parent search query to show selected parent name
+      if (userToEdit.parent_id) {
+        const parent = users.find(u => u.id === userToEdit.parent_id);
+        setParentSearchQuery(parent ? `${parent.name} ${parent.last_name}` : "");
+      } else {
+        setParentSearchQuery("");
+      }
+      setShowParentDropdown(false);
+      setShowExtraInfoSection(
+        userToEdit.condiciones_medicas || userToEdit.alergias || 
+        userToEdit.doctor_nombre || userToEdit.persona_autorizada || 
+        userToEdit.notas ? true : false
+      );
       setShowEditModal(true);
     }
   };
@@ -1563,10 +1581,21 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         setShowInfoModal(true);
         return;
       }
+      
+      // Validate password confirmation
+      if (editPassword !== confirmPassword) {
+        setInfoModalContent({
+          title: "Las contraseñas no coinciden",
+          message: "Por favor verifica que ambas contraseñas sean iguales.",
+          type: "error"
+        });
+        setShowInfoModal(true);
+        return;
+      }
     }
     
     setEditLoading(true);
-    try {
+    try:
       // Build payload with optional password and parent_id
       const payload = { ...editForm };
       
