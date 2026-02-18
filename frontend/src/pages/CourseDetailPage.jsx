@@ -7028,7 +7028,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
       }
     } catch (err) {
       console.error('Error downloading file:', err);
-      alert('Error al descargar el archivo');
+      showNotification('error', 'Error al descargar', 'No se pudo descargar el archivo. Inténtalo de nuevo.');
     } finally {
       setDownloadingFile(null);
     }
