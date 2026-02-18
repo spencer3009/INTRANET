@@ -7048,13 +7048,13 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         {/* Submissions Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
           {/* Table Header - Teal color from reference image */}
-          <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
-            <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-white uppercase tracking-wider">
+          <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-4 py-4">
+            <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-white uppercase tracking-wider whitespace-nowrap">
               <div className="col-span-2">Estudiante</div>
-              <div className="col-span-3">Comentario del estudiante</div>
+              <div className="col-span-3">Comentario</div>
               <div className="col-span-1">Estado</div>
-              <div className="col-span-2">Archivo/Respuesta</div>
-              <div className="col-span-2">Comentario del profesor</div>
+              <div className="col-span-2">Archivo</div>
+              <div className="col-span-2">Feedback</div>
               <div className="col-span-2">Nota</div>
             </div>
           </div>
