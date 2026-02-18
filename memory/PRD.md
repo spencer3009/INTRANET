@@ -1019,7 +1019,7 @@ BASE_URL=https://edunet.pe
 ```
 
 **Redirect URIs (registrar en Google Cloud Console):**
-- `https://edunet-docs.preview.emergentagent.com/api/integrations/google-drive/callback`
+- `https://edunet-fix.preview.emergentagent.com/api/integrations/google-drive/callback`
 - `https://edunet.pe/api/integrations/google-drive/callback`
 
 ### Fase 2 - Subida de Materiales (PENDIENTE)

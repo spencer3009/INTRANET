@@ -14286,7 +14286,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://edunet-docs.preview.emergentagent.com",
+        "https://edunet-fix.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
