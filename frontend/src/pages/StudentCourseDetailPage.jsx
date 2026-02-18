@@ -2451,6 +2451,26 @@ function ForumContent({ posts, token, user, students }) {
                     className="prose prose-sm max-w-none text-slate-600"
                     dangerouslySetInnerHTML={{ __html: selectedPost.content || '' }}
                   />
+                  
+                  {/* File attachment */}
+                  {(selectedPost.drive_file_id || selectedPost.file_url) && (
+                    <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                          <FileText className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-slate-800 truncate">
+                            {selectedPost.file_name || selectedPost.drive_file_name || 'Archivo adjunto'}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {selectedPost.storage_type === 'google_drive' ? 'Google Drive' : 'Archivo'}
+                          </p>
+                        </div>
+                        <StudentForumDownloadButton post={selectedPost} token={token} />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
               
