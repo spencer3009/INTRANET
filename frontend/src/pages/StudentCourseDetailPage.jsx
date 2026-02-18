@@ -219,6 +219,12 @@ function PostActionButton({ postType, postId, onNavigate }) {
   const handleClick = () => {
     if (onNavigate) {
       onNavigate(config.tab, postId);
+    } else {
+      // Fallback: use URL params to navigate
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', config.tab);
+      url.searchParams.set('postId', postId);
+      window.location.href = url.toString();
     }
   };
   
