@@ -1369,6 +1369,60 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [editForm, setEditForm] = useState({});
   const [editLoading, setEditLoading] = useState(false);
   
+  // Edit student extended states
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [editPassword, setEditPassword] = useState("");
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [showParentSection, setShowParentSection] = useState(false);
+  const [selectedParentId, setSelectedParentId] = useState("");
+  const [showExtraInfoSection, setShowExtraInfoSection] = useState(false);
+  
+  // Password strength calculation
+  const calculatePasswordStrength = (password) => {
+    if (!password) return { strength: 0, label: "", color: "" };
+    
+    let strength = 0;
+    const checks = {
+      length: password.length >= 8,
+      uppercase: /[A-Z]/.test(password),
+      lowercase: /[a-z]/.test(password),
+      numbers: /[0-9]/.test(password),
+      special: /[!@#$%^&*(),.?":{}|<>]/.test(password)
+    };
+    
+    strength = Object.values(checks).filter(Boolean).length;
+    
+    if (strength <= 2) return { strength: 33, label: "Débil", color: "bg-red-500", textColor: "text-red-500" };
+    if (strength <= 3) return { strength: 66, label: "Media", color: "bg-amber-500", textColor: "text-amber-500" };
+    return { strength: 100, label: "Fuerte", color: "bg-emerald-500", textColor: "text-emerald-500" };
+  };
+  
+  // Generate secure password
+  const generateSecurePassword = () => {
+    const length = 12;
+    const uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const lowercase = "abcdefghijklmnopqrstuvwxyz";
+    const numbers = "0123456789";
+    const special = "!@#$%^&*";
+    const all = uppercase + lowercase + numbers + special;
+    
+    let password = "";
+    // Ensure at least one of each type
+    password += uppercase[Math.floor(Math.random() * uppercase.length)];
+    password += lowercase[Math.floor(Math.random() * lowercase.length)];
+    password += numbers[Math.floor(Math.random() * numbers.length)];
+    password += special[Math.floor(Math.random() * special.length)];
+    
+    // Fill the rest randomly
+    for (let i = 4; i < length; i++) {
+      password += all[Math.floor(Math.random() * all.length)];
+    }
+    
+    // Shuffle the password
+    password = password.split('').sort(() => Math.random() - 0.5).join('');
+    setEditPassword(password);
+  };
+  
   const headers = { Authorization: `Bearer ${token}` };
 
   // Fetch users and settings
