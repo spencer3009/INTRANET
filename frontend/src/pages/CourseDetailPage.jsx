@@ -7081,33 +7081,33 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                 const hasChanges = editingGrades[submission.id] !== undefined;
                 
                 return (
-                  <div key={submission.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
+                  <div key={submission.id} className="grid grid-cols-12 gap-2 px-4 py-4 items-center hover:bg-slate-50 transition-colors">
                     {/* Student */}
-                    <div className="col-span-2 flex items-center gap-3">
+                    <div className="col-span-2 flex items-center gap-2">
                       {studentPhoto ? (
                         <img 
                           src={studentPhoto} 
                           alt={submission.student?.name}
-                          className="w-10 h-10 rounded-full object-cover"
+                          className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                          <User className="w-5 h-5 text-slate-400" />
+                        <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                          <User className="w-4 h-4 text-slate-400" />
                         </div>
                       )}
-                      <span className="text-sm font-medium text-slate-700 truncate">{submission.student?.name}</span>
+                      <span className="text-xs font-medium text-slate-700 truncate">{submission.student?.name}</span>
                     </div>
                     
                     {/* Student Comment */}
                     <div className="col-span-3">
-                      <p className="text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg min-h-[40px]">
+                      <p className="text-xs text-slate-600 bg-slate-50 px-2 py-2 rounded-lg min-h-[36px] truncate">
                         {submission.comment || <span className="text-slate-400 italic">Sin comentario</span>}
                       </p>
                     </div>
                     
                     {/* Status */}
                     <div className="col-span-1">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                         submission.status === 'A tiempo' 
                           ? 'bg-amber-100 text-amber-700' 
                           : 'bg-red-100 text-red-700'
@@ -7122,22 +7122,22 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                         <button 
                           onClick={() => handleDownloadSubmissionFile(submission)}
                           disabled={downloadingFile === submission.id}
-                          className="flex items-center gap-2 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70 disabled:cursor-wait"
+                          className="flex items-center gap-1 px-2 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70 disabled:cursor-wait whitespace-nowrap"
                         >
                           {downloadingFile === submission.id ? (
                             <>
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                              DESCARGANDO...
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              <span className="hidden sm:inline">Cargando...</span>
                             </>
                           ) : (
                             <>
-                              <FileText className="w-4 h-4" />
-                              VER ARCHIVOS
+                              <FileText className="w-3 h-3" />
+                              VER ARCHIVO
                             </>
                           )}
                         </button>
                       ) : (
-                        <span className="text-slate-400 text-sm">Sin archivo</span>
+                        <span className="text-slate-400 text-xs">Sin archivo</span>
                       )}
                     </div>
                     
@@ -7145,10 +7145,10 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     <div className="col-span-2">
                       <input
                         type="text"
-                        placeholder="Agregar comentario..."
+                        placeholder="Comentario..."
                         value={currentFeedback}
                         onChange={(e) => handleGradeChange(submission.id, 'feedback', e.target.value)}
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-teal-400"
+                        className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-teal-400"
                       />
                     </div>
                     
