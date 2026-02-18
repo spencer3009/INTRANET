@@ -6925,6 +6925,19 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   const [editingGrades, setEditingGrades] = useState({});
   const [savingGrade, setSavingGrade] = useState(null);
   
+  // State for premium notification modal
+  const [notification, setNotification] = useState({ show: false, type: 'success', title: '', message: '' });
+  
+  // Show notification
+  const showNotification = (type, title, message) => {
+    setNotification({ show: true, type, title, message });
+  };
+  
+  // Hide notification
+  const hideNotification = () => {
+    setNotification({ show: false, type: 'success', title: '', message: '' });
+  };
+  
   // Handle grade/feedback change
   const handleGradeChange = (submissionId, field, value) => {
     setEditingGrades(prev => ({
@@ -6946,8 +6959,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
       await axios.put(
         `${API}/course/tasks/${selectedTask.id}/submissions/${submissionId}/grade`,
         {
-          grade: edits.grade !== undefined ? parseFloat(edits.grade) : undefined,
-          feedback: edits.feedback
+          grade: edits.grade !== undefined && edits.grade !== '' ? parseFloat(edits.grade) : null,
+          feedback: edits.feedback || null
         },
         { headers }
       );
@@ -6957,7 +6970,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         if (sub.id === submissionId) {
           return {
             ...sub,
-            grade: edits.grade !== undefined ? parseFloat(edits.grade) : sub.grade,
+            grade: edits.grade !== undefined && edits.grade !== '' ? parseFloat(edits.grade) : sub.grade,
             teacherComment: edits.feedback !== undefined ? edits.feedback : sub.teacherComment
           };
         }
@@ -6971,9 +6984,13 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         return next;
       });
       
+      // Show success notification
+      showNotification('success', '¡Calificación guardada!', 'La nota y comentario se han guardado correctamente.');
+      
     } catch (err) {
       console.error('Error saving grade:', err);
-      alert('Error al guardar la calificación');
+      const errorMessage = err.response?.data?.detail || 'No se pudo guardar la calificación. Inténtalo de nuevo.';
+      showNotification('error', 'Error al guardar', errorMessage);
     } finally {
       setSavingGrade(null);
     }
