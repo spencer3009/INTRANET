@@ -16,7 +16,7 @@ import {
   LayoutDashboard, FileText, FolderOpen, FlaskConical, 
   MessageCircle, Bell, Trophy, Download, Upload, X,
   Loader2, AlertCircle, AlertTriangle, File as FileIcon, 
-  ChevronRight, CheckCircle, Lock, Play,
+  ChevronRight, CheckCircle, Lock, Play, Check,
   Eye, ExternalLink, Heart, Send, MessageSquare,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
