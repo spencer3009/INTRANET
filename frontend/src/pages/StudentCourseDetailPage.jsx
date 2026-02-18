@@ -3155,6 +3155,23 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
     // Scroll to top of content area
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+  
+  // Read URL params for navigation from feed action buttons
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    const postId = urlParams.get('postId');
+    
+    if (tab && postId) {
+      setActiveTab(tab);
+      setHighlightedPostId(postId);
+      // Clean up URL params
+      const url = new URL(window.location.href);
+      url.searchParams.delete('tab');
+      url.searchParams.delete('postId');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
 
   useEffect(() => {
     loadData();
