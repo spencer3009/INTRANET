@@ -11025,7 +11025,7 @@ async def get_task_submissions(
                 pass
         
         enriched_submissions.append({
-            "id": sub.get("id"),
+            "id": sub.get("id") or f"{student_id}_{sub.get('submitted_at', '')}",  # Generate fallback ID for old submissions
             "student_id": student_id,
             "student": {
                 "id": student.get("id") if student else student_id,
