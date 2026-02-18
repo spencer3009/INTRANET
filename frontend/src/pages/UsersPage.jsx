@@ -2334,38 +2334,112 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                           type="button"
                           onClick={() => {
                             setShowParentSection(!showParentSection);
-                            if (showParentSection) setSelectedParentId("");
+                            if (showParentSection) {
+                              setSelectedParentId("");
+                              setParentSearchQuery("");
+                            }
                           }}
-                          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                          className="flex items-center gap-2"
                         >
-                          {showParentSection ? (
-                            <ToggleRight className="w-8 h-5 text-[#001f4b]" />
-                          ) : (
-                            <ToggleLeft className="w-8 h-5 text-slate-400" />
-                          )}
-                          <span>{showParentSection ? 'Vinculado' : 'Sin vincular'}</span>
+                          {/* Large iOS-style toggle */}
+                          <div className={`relative w-14 h-8 rounded-full transition-colors duration-200 ${showParentSection ? 'bg-[#001f4b]' : 'bg-slate-300'}`}>
+                            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ${showParentSection ? 'translate-x-7' : 'translate-x-1'}`} />
+                          </div>
+                          <span className="text-sm text-slate-600">{showParentSection ? 'Activado' : 'Desactivado'}</span>
                         </button>
                       </div>
                       
                       {showParentSection && (
                         <div className="bg-blue-50 rounded-xl p-4">
                           <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Seleccionar Apoderado
+                            Buscar Apoderado
                           </label>
-                          <select
-                            value={selectedParentId}
-                            onChange={(e) => setSelectedParentId(e.target.value)}
-                            className="w-full px-4 py-2.5 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none bg-white"
-                          >
-                            <option value="">-- Seleccionar apoderado --</option>
-                            {users.filter(u => u.role === 'parent').map(parent => (
-                              <option key={parent.id} value={parent.id}>
-                                {parent.name} {parent.last_name} {parent.email ? `(${parent.email})` : ''}
-                              </option>
-                            ))}
-                          </select>
+                          <div className="relative">
+                            <div className="relative">
+                              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                              <input
+                                type="text"
+                                value={parentSearchQuery}
+                                onChange={(e) => {
+                                  setParentSearchQuery(e.target.value);
+                                  setShowParentDropdown(true);
+                                  if (!e.target.value) setSelectedParentId("");
+                                }}
+                                onFocus={() => setShowParentDropdown(true)}
+                                placeholder="Escribe el nombre del apoderado..."
+                                className="w-full pl-10 pr-4 py-2.5 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none bg-white"
+                              />
+                              {selectedParentId && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedParentId("");
+                                    setParentSearchQuery("");
+                                  }}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                            
+                            {/* Dropdown de resultados */}
+                            {showParentDropdown && parentSearchQuery && filteredParents.length > 0 && (
+                              <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                                {filteredParents.map(parent => (
+                                  <button
+                                    key={parent.id}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedParentId(parent.id);
+                                      setParentSearchQuery(`${parent.name} ${parent.last_name}`);
+                                      setShowParentDropdown(false);
+                                    }}
+                                    className={`w-full px-4 py-3 text-left hover:bg-blue-50 flex items-center gap-3 transition-colors ${
+                                      selectedParentId === parent.id ? 'bg-blue-100' : ''
+                                    }`}
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                      {parent.photo_url ? (
+                                        <img src={parent.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                                      ) : (
+                                        <span className="text-blue-600 font-semibold text-sm">
+                                          {parent.name?.[0]}{parent.last_name?.[0]}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-medium text-slate-800 truncate">{parent.name} {parent.last_name}</p>
+                                      <p className="text-xs text-slate-500 truncate">{parent.email || parent.phone || 'Sin contacto'}</p>
+                                    </div>
+                                    {selectedParentId === parent.id && (
+                                      <Check className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* No results message */}
+                            {showParentDropdown && parentSearchQuery && filteredParents.length === 0 && (
+                              <div className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg p-4">
+                                <p className="text-sm text-slate-500 text-center">
+                                  No se encontraron apoderados con "{parentSearchQuery}"
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {/* Selected parent indicator */}
+                          {selectedParentId && (
+                            <div className="mt-3 p-3 bg-blue-100 rounded-lg flex items-center gap-2">
+                              <Check className="w-4 h-4 text-blue-600" />
+                              <span className="text-sm text-blue-800 font-medium">Apoderado seleccionado</span>
+                            </div>
+                          )}
+                          
                           {users.filter(u => u.role === 'parent').length === 0 && (
-                            <p className="text-sm text-blue-600 mt-2 flex items-center gap-1">
+                            <p className="text-sm text-blue-600 mt-3 flex items-center gap-1">
                               <AlertCircle className="w-4 h-4" />
                               No hay apoderados registrados en el sistema.
                             </p>
