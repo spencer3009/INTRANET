@@ -10651,6 +10651,12 @@ async def get_course_posts(
         # Get comments count
         comments_count = await db.post_comments.count_documents({"post_id": post["id"], "status": "active"})
         post["comments_count"] = comments_count
+        
+        # For tasks, add submissions count
+        if post.get("post_type") == "task" or post.get("type") == "task":
+            submissions = post.get("submissions", [])
+            post["submissions_count"] = len(submissions)
+            post["graded_count"] = sum(1 for s in submissions if s.get("grade") is not None)
     
     return {"posts": posts, "total": total}
 
