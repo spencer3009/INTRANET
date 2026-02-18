@@ -6085,6 +6085,69 @@ function GradesContent({ grades }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// FORUM FILE DOWNLOAD BUTTON - Reusable download button for forum attachments
+// ══════════════════════════════════════════════════════════════════════════════
+function ForumFileDownloadButton({ post, token }) {
+  const [downloading, setDownloading] = useState(false);
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      // Check if file is stored in Google Drive
+      if (post.storage_type === 'google_drive' || post.drive_file_id) {
+        // Download through backend (secure streaming)
+        const response = await axios.get(`${API}/materials/download/${post.id}`, {
+          headers,
+          responseType: 'blob'
+        });
+        
+        // Create download link
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', post.file_name || post.drive_file_name || 'archivo');
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        return;
+      }
+      
+      // For Cloudinary or direct URLs
+      if (post.file_url) {
+        window.open(post.file_url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      alert('Error al descargar el archivo. Por favor intenta de nuevo.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+  
+  return (
+    <button
+      onClick={handleDownload}
+      disabled={downloading}
+      className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-lg font-medium transition-colors"
+    >
+      {downloading ? (
+        <>
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Descargando...
+        </>
+      ) : (
+        <>
+          <Download className="w-4 h-4" />
+          Descargar
+        </>
+      )}
+    </button>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // FORUM CONTENT - Table view with detail view
 // ══════════════════════════════════════════════════════════════════════════════
 function ForumContent({ subjectId, token, user, students }) {
