@@ -2459,31 +2459,33 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <button
                           type="button"
                           onClick={() => setShowExtraInfoSection(!showExtraInfoSection)}
-                          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                          className="flex items-center gap-2"
                         >
-                          {showExtraInfoSection ? (
-                            <ToggleRight className="w-8 h-5 text-[#001f4b]" />
-                          ) : (
-                            <ToggleLeft className="w-8 h-5 text-slate-400" />
-                          )}
-                          <span>{showExtraInfoSection ? 'Mostrar' : 'Oculto'}</span>
+                          {/* Large iOS-style toggle */}
+                          <div className={`relative w-14 h-8 rounded-full transition-colors duration-200 ${showExtraInfoSection ? 'bg-[#001f4b]' : 'bg-slate-300'}`}>
+                            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-200 ${showExtraInfoSection ? 'translate-x-7' : 'translate-x-1'}`} />
+                          </div>
+                          <span className="text-sm text-slate-600">{showExtraInfoSection ? 'Activado' : 'Desactivado'}</span>
                         </button>
                       </div>
                       
                       {showExtraInfoSection && (
                         <div className="bg-purple-50 rounded-xl p-4 space-y-4">
+                          {/* Condiciones o enfermedades */}
                           <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
-                              <Stethoscope className="w-4 h-4 inline mr-1" /> Condiciones médicas
+                              <Stethoscope className="w-4 h-4 inline mr-1" /> Condiciones o enfermedades
                             </label>
                             <textarea
                               value={editForm.condiciones_medicas}
                               onChange={(e) => setEditForm({ ...editForm, condiciones_medicas: e.target.value })}
-                              placeholder="Ej: Asma, diabetes, etc."
+                              placeholder="Ej: Asma, diabetes, epilepsia, etc."
                               className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none resize-none bg-white"
                               rows={2}
                             />
                           </div>
+                          
+                          {/* Alergias */}
                           <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
                               <AlertCircle className="w-4 h-4 inline mr-1" /> Alergias
@@ -2491,11 +2493,69 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                             <textarea
                               value={editForm.alergias}
                               onChange={(e) => setEditForm({ ...editForm, alergias: e.target.value })}
-                              placeholder="Ej: Penicilina, maní, etc."
+                              placeholder="Ej: Penicilina, maní, mariscos, etc."
                               className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none resize-none bg-white"
                               rows={2}
                             />
                           </div>
+                          
+                          {/* Doctor y teléfono - 2 columnas */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <Stethoscope className="w-4 h-4 inline mr-1" /> Doctor personal
+                              </label>
+                              <input
+                                type="text"
+                                value={editForm.doctor_nombre}
+                                onChange={(e) => setEditForm({ ...editForm, doctor_nombre: e.target.value })}
+                                placeholder="Nombre del doctor"
+                                className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <Phone className="w-4 h-4 inline mr-1" /> Teléfono del doctor
+                              </label>
+                              <input
+                                type="tel"
+                                value={editForm.doctor_telefono}
+                                onChange={(e) => setEditForm({ ...editForm, doctor_telefono: e.target.value })}
+                                placeholder="Ej: 999 888 777"
+                                className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none bg-white"
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Persona autorizada y teléfono - 2 columnas */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <UserCheck className="w-4 h-4 inline mr-1" /> Persona autorizada
+                              </label>
+                              <input
+                                type="text"
+                                value={editForm.persona_autorizada}
+                                onChange={(e) => setEditForm({ ...editForm, persona_autorizada: e.target.value })}
+                                placeholder="Nombre de persona autorizada a recoger"
+                                className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none bg-white"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                                <Phone className="w-4 h-4 inline mr-1" /> Teléfono persona autorizada
+                              </label>
+                              <input
+                                type="tel"
+                                value={editForm.persona_autorizada_telefono}
+                                onChange={(e) => setEditForm({ ...editForm, persona_autorizada_telefono: e.target.value })}
+                                placeholder="Ej: 999 888 777"
+                                className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none bg-white"
+                              />
+                            </div>
+                          </div>
+                          
+                          {/* Notas adicionales */}
                           <div>
                             <label className="block text-sm font-semibold text-slate-700 mb-2">
                               <FileText className="w-4 h-4 inline mr-1" /> Notas adicionales
@@ -2503,9 +2563,9 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                             <textarea
                               value={editForm.notas}
                               onChange={(e) => setEditForm({ ...editForm, notas: e.target.value })}
-                              placeholder="Información relevante adicional..."
+                              placeholder="Información relevante adicional sobre el estudiante..."
                               className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none resize-none bg-white"
-                              rows={2}
+                              rows={3}
                             />
                           </div>
                         </div>
