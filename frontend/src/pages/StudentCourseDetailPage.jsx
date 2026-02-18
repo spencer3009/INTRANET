@@ -2264,9 +2264,18 @@ function MaterialContent({ materials, token, highlightedPostId, onClearHighlight
             const fileName = material.file_name || material.drive_file_name || material.title;
             const fileSize = formatFileSize(material.file_size);
             const isDrive = isGoogleDrive(material);
+            const isHighlighted = highlightedMaterialId === material.id;
             
             return (
-              <div key={material.id} className="flex items-center px-6 py-4 hover:bg-slate-50 transition-colors">
+              <div 
+                key={material.id} 
+                id={`material-${material.id}`}
+                className={`flex items-center px-6 py-4 transition-all duration-300 ${
+                  isHighlighted 
+                    ? 'bg-cyan-50 ring-2 ring-cyan-400' 
+                    : 'hover:bg-slate-50'
+                }`}
+              >
                 {/* Title and File info together */}
                 <div className="flex items-center gap-4 flex-1 min-w-0">
                   <p className="font-semibold text-slate-800">{material.title}</p>
