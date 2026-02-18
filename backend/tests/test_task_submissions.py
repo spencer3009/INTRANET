@@ -85,7 +85,10 @@ def test_data():
         headers={"Authorization": f"Bearer {data['admin_token']}"}
     )
     assert response.status_code in [200, 201], f"Create student failed: {response.text}"
-    data["student_user_id"] = response.json().get("id")
+    resp_data = response.json()
+    # Handle nested response structure
+    data["student_user_id"] = resp_data.get("user", {}).get("id") or resp_data.get("id")
+    print(f"✓ Student created: {data['student_user_id']}")
     
     response = requests.post(f"{BASE_URL}/api/auth/login", json={
         "email": student_username,
@@ -93,7 +96,6 @@ def test_data():
     })
     assert response.status_code == 200, f"Student login failed: {response.text}"
     data["student_token"] = response.json().get("token")
-    print(f"✓ Student created: {data['student_user_id']}")
     
     # Step 4: Create teacher
     teacher_username = f"teacher_{unique_id}"
@@ -110,7 +112,10 @@ def test_data():
         headers={"Authorization": f"Bearer {data['admin_token']}"}
     )
     assert response.status_code in [200, 201], f"Create teacher failed: {response.text}"
-    data["teacher_user_id"] = response.json().get("id")
+    resp_data = response.json()
+    # Handle nested response structure
+    data["teacher_user_id"] = resp_data.get("user", {}).get("id") or resp_data.get("id")
+    print(f"✓ Teacher created: {data['teacher_user_id']}")
     
     response = requests.post(f"{BASE_URL}/api/auth/login", json={
         "email": teacher_username,
@@ -118,7 +123,6 @@ def test_data():
     })
     assert response.status_code == 200, f"Teacher login failed: {response.text}"
     data["teacher_token"] = response.json().get("token")
-    print(f"✓ Teacher created: {data['teacher_user_id']}")
     
     # Step 5: Create subject
     response = requests.post(
@@ -133,7 +137,9 @@ def test_data():
         headers={"Authorization": f"Bearer {data['admin_token']}"}
     )
     assert response.status_code in [200, 201], f"Create subject failed: {response.text}"
-    data["subject_id"] = response.json().get("id")
+    resp_data = response.json()
+    # Handle nested response structure
+    data["subject_id"] = resp_data.get("subject", {}).get("id") or resp_data.get("id")
     print(f"✓ Subject created: {data['subject_id']}")
     
     # Step 6: Create task
