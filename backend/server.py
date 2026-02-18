@@ -11123,7 +11123,12 @@ async def grade_task_submission(
         raise HTTPException(status_code=404, detail="Entrega no encontrada")
     
     # Validate grade against max_grade
-    max_grade = task.get("max_grade") or task.get("metadata", {}).get("points", 20)
+    max_grade = task.get("max_grade") or task.get("metadata", {}).get("points") or 20
+    if max_grade <= 0:
+        max_grade = 20  # Default if no valid max_grade
+    
+    logger.info(f"Max grade: {max_grade}, Data grade: {data.grade}")
+    
     if data.grade is not None:
         if data.grade < 0:
             raise HTTPException(status_code=400, detail="La nota no puede ser negativa")
