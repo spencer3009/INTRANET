@@ -7449,25 +7449,28 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
               <div className="p-4 max-h-[300px] overflow-y-auto">
                 {students && students.length > 0 ? (
                   <div className="space-y-3">
-                    {students.map((student, idx) => (
-                      <div key={student.id || idx} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                        {student.profile_pic ? (
-                          <img 
-                            src={student.profile_pic} 
-                            alt={student.name}
-                            className="w-10 h-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                            <User className="w-5 h-5 text-slate-400" />
+                    {students.map((student, idx) => {
+                      const studentPhoto = student.photo_url || student.profile_pic;
+                      return (
+                        <div key={student.id || idx} className="flex items-center gap-3 p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                          {studentPhoto ? (
+                            <img 
+                              src={studentPhoto} 
+                              alt={student.name}
+                              className="w-10 h-10 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
+                              <User className="w-5 h-5 text-slate-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">{student.name}</p>
+                            <p className="text-xs text-slate-400">Roll ID: {student.roll_number || student.roll_id || student.id?.slice(0, 6)}</p>
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-700 truncate">{student.name}</p>
-                          <p className="text-xs text-slate-400">Roll ID: {student.roll_id || student.id?.slice(0, 6)}</p>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <p className="text-sm text-slate-400 text-center py-4">No hay estudiantes matriculados</p>
