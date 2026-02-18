@@ -10962,6 +10962,102 @@ async def get_task_submission_stats(
         "can_delete": submissions_count == 0
     }
 
+@api_router.get("/course/tasks/{task_id}/submissions")
+async def get_task_submissions(
+    task_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get all submissions for a task with student details.
+    Used by teachers/owners to view and grade student work.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Only admin/teacher can view submissions
+    if not is_admin_user(user) and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Solo profesores o administradores pueden ver las entregas")
+    
+    # Support both type fields
+    task = await db.course_posts.find_one({
+        "id": task_id,
+        "school_id": school_id,
+        "$or": [{"post_type": "task"}, {"type": "task"}]
+    }, {"_id": 0})
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    
+    submissions = task.get("submissions", [])
+    
+    # Enrich submissions with student details
+    enriched_submissions = []
+    for sub in submissions:
+        student_id = sub.get("student_id")
+        student = await db.users.find_one(
+            {"id": student_id},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "profile_pic": 1, "roll_number": 1}
+        )
+        
+        # Determine submission status (on time or late)
+        due_date = task.get("due_date") or task.get("metadata", {}).get("due_date")
+        submitted_at = sub.get("submitted_at")
+        status = "a_tiempo"  # Default to on time
+        
+        if due_date and submitted_at:
+            try:
+                if isinstance(due_date, str):
+                    deadline = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+                else:
+                    deadline = due_date
+                    
+                if isinstance(submitted_at, str):
+                    submit_time = datetime.fromisoformat(submitted_at.replace('Z', '+00:00'))
+                else:
+                    submit_time = submitted_at
+                    
+                if submit_time > deadline:
+                    status = "tarde"
+            except (ValueError, TypeError):
+                pass
+        
+        enriched_submissions.append({
+            "id": sub.get("id"),
+            "student_id": student_id,
+            "student": {
+                "id": student.get("id") if student else student_id,
+                "name": f"{student.get('name', '')} {student.get('last_name', '')}".strip() if student else sub.get("student_name", "Estudiante desconocido"),
+                "photo_url": student.get("photo_url") or student.get("profile_pic") if student else None,
+                "roll_number": student.get("roll_number") if student else None
+            },
+            "text_content": sub.get("text_content"),
+            "file_url": sub.get("file_url"),
+            "file_name": sub.get("file_name"),
+            "file_type": sub.get("file_type"),
+            "drive_file_id": sub.get("drive_file_id"),
+            "storage_type": sub.get("storage_type"),
+            "submitted_at": submitted_at,
+            "status": status,
+            "grade": sub.get("grade"),
+            "feedback": sub.get("feedback")
+        })
+    
+    # Sort by submitted_at (most recent first)
+    enriched_submissions.sort(key=lambda x: x.get("submitted_at", ""), reverse=True)
+    
+    return {
+        "task_id": task_id,
+        "task_title": task.get("title"),
+        "max_grade": task.get("max_grade") or task.get("metadata", {}).get("points", 20),
+        "due_date": task.get("due_date") or task.get("metadata", {}).get("due_date"),
+        "submissions_count": len(submissions),
+        "graded_count": sum(1 for s in submissions if s.get("grade") is not None),
+        "submissions": enriched_submissions
+    }
+
 @api_router.post("/course/tasks/{task_id}/archive")
 async def archive_task(
     task_id: str,
