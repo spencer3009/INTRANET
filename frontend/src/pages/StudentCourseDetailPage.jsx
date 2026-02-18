@@ -182,13 +182,7 @@ function PostFileDownloadButton({ post, token }) {
 }
 
 // Post Action Button - Navigation button based on post type
-function PostActionButton({ postType, postId }) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  
-  // Get the base path from current location (e.g., /student/course/xxx)
-  const basePath = location.pathname;
-  
+function PostActionButton({ postType, postId, onNavigate }) {
   const getActionConfig = () => {
     switch (postType) {
       case 'task':
@@ -223,12 +217,9 @@ function PostActionButton({ postType, postId }) {
   const Icon = config.icon;
   
   const handleClick = () => {
-    // Navigate to the same page but with the appropriate tab
-    // We'll use a hash or query param to indicate which tab to show
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', config.tab);
-    url.searchParams.set('highlight', postId);
-    window.location.href = url.toString();
+    if (onNavigate) {
+      onNavigate(config.tab, postId);
+    }
   };
   
   return (
