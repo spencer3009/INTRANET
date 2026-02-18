@@ -3450,6 +3450,77 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
         </main>
       </div>
 
+      {/* Premium Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div 
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setShowSuccessModal(false)}
+          />
+          <div className="relative bg-white rounded-3xl shadow-2xl overflow-hidden w-full max-w-md animate-in fade-in zoom-in-95 duration-200">
+            {/* Header with gradient */}
+            <div className={`px-6 py-8 text-center ${
+              successModalContent.type === 'success' 
+                ? 'bg-gradient-to-br from-emerald-500 via-green-500 to-teal-500' 
+                : successModalContent.type === 'error'
+                ? 'bg-gradient-to-br from-red-500 via-rose-500 to-pink-500'
+                : 'bg-gradient-to-br from-blue-500 via-cyan-500 to-teal-500'
+            }`}>
+              {/* Animated Icon */}
+              <div className="w-20 h-20 mx-auto mb-4 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                {successModalContent.type === 'success' ? (
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center animate-in zoom-in duration-300">
+                    <Check className="w-8 h-8 text-emerald-500" />
+                  </div>
+                ) : successModalContent.type === 'error' ? (
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-red-500" />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center">
+                    <AlertCircle className="w-8 h-8 text-blue-500" />
+                  </div>
+                )}
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-2">{successModalContent.title}</h3>
+            </div>
+            
+            {/* Content */}
+            <div className="px-6 py-6 text-center">
+              <p className="text-slate-600 mb-6">{successModalContent.message}</p>
+              
+              {/* Google Drive badge for task submissions */}
+              {successModalContent.type === 'success' && (
+                <div className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 rounded-full mb-6 mx-auto w-fit">
+                  <svg className="w-4 h-4" viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
+                    <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                    <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44a9.06 9.06 0 0 0 -1.2 4.5h27.5z" fill="#00ac47"/>
+                    <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                    <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.2z" fill="#00832d"/>
+                    <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                    <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+                  </svg>
+                  <span className="text-sm text-blue-700 font-medium">Guardado en Google Drive</span>
+                </div>
+              )}
+              
+              <button
+                onClick={() => setShowSuccessModal(false)}
+                className={`w-full py-3.5 rounded-xl font-semibold text-white transition-all hover:shadow-lg ${
+                  successModalContent.type === 'success'
+                    ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-600 hover:to-green-600'
+                    : successModalContent.type === 'error'
+                    ? 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600'
+                    : 'bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600'
+                }`}
+              >
+                ¡Entendido!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
     </div>
