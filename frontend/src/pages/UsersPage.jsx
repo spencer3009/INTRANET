@@ -1524,6 +1524,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         dni: userToEdit.dni || "",
         ocupacion: userToEdit.ocupacion || "",
       });
+      // Reset extended states for students
+      setShowPasswordSection(false);
+      setEditPassword("");
+      setShowEditPassword(false);
+      setShowParentSection(userToEdit.parent_id ? true : false);
+      setSelectedParentId(userToEdit.parent_id || "");
+      setShowExtraInfoSection(userToEdit.condiciones_medicas || userToEdit.alergias || userToEdit.notas ? true : false);
       setShowEditModal(true);
     }
   };
