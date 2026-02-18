@@ -6956,11 +6956,20 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     
     setSavingGrade(submissionId);
     try {
+      // Prepare grade value - handle empty strings and invalid numbers
+      let gradeValue = null;
+      if (edits.grade !== undefined && edits.grade !== '' && edits.grade !== null) {
+        const parsed = parseFloat(edits.grade);
+        if (!isNaN(parsed)) {
+          gradeValue = parsed;
+        }
+      }
+      
       await axios.put(
         `${API}/course/tasks/${selectedTask.id}/submissions/${submissionId}/grade`,
         {
-          grade: edits.grade !== undefined && edits.grade !== '' ? parseFloat(edits.grade) : null,
-          feedback: edits.feedback || null
+          grade: gradeValue,
+          feedback: edits.feedback && edits.feedback.trim() ? edits.feedback.trim() : null
         },
         { headers }
       );
@@ -6970,9 +6979,10 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
         if (sub.id === submissionId) {
           return {
             ...sub,
-            grade: edits.grade !== undefined && edits.grade !== '' ? parseFloat(edits.grade) : sub.grade,
+            grade: gradeValue !== null ? gradeValue : sub.grade,
             teacherComment: edits.feedback !== undefined ? edits.feedback : sub.teacherComment
           };
+        }
         }
         return sub;
       }));
