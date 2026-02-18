@@ -11058,6 +11058,84 @@ async def get_task_submissions(
         "submissions": enriched_submissions
     }
 
+class GradeSubmissionRequest(BaseModel):
+    grade: Optional[float] = None
+    feedback: Optional[str] = None
+
+@api_router.put("/course/tasks/{task_id}/submissions/{submission_id}/grade")
+async def grade_task_submission(
+    task_id: str,
+    submission_id: str,
+    data: GradeSubmissionRequest,
+    current_user = Depends(get_current_user)
+):
+    """
+    Grade a student's submission.
+    Teachers/owners can set a grade and feedback for each submission.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Only admin/teacher can grade
+    if not is_admin_user(user) and user.get("role") != "teacher":
+        raise HTTPException(status_code=403, detail="Solo profesores o administradores pueden calificar")
+    
+    # Support both type fields
+    task = await db.course_posts.find_one({
+        "id": task_id,
+        "school_id": school_id,
+        "$or": [{"post_type": "task"}, {"type": "task"}]
+    }, {"_id": 0})
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    
+    # Find the submission
+    submissions = task.get("submissions", [])
+    submission_idx = None
+    for idx, sub in enumerate(submissions):
+        if sub.get("id") == submission_id:
+            submission_idx = idx
+            break
+    
+    if submission_idx is None:
+        raise HTTPException(status_code=404, detail="Entrega no encontrada")
+    
+    # Validate grade against max_grade
+    max_grade = task.get("max_grade") or task.get("metadata", {}).get("points", 20)
+    if data.grade is not None:
+        if data.grade < 0:
+            raise HTTPException(status_code=400, detail="La nota no puede ser negativa")
+        if data.grade > max_grade:
+            raise HTTPException(status_code=400, detail=f"La nota no puede ser mayor a {max_grade}")
+    
+    # Build update
+    update_fields = {
+        f"submissions.{submission_idx}.graded_at": datetime.now(timezone.utc).isoformat(),
+        f"submissions.{submission_idx}.graded_by": user["id"]
+    }
+    
+    if data.grade is not None:
+        update_fields[f"submissions.{submission_idx}.grade"] = data.grade
+    
+    if data.feedback is not None:
+        update_fields[f"submissions.{submission_idx}.feedback"] = data.feedback.strip()
+    
+    # Update the submission
+    await db.course_posts.update_one(
+        {"id": task_id},
+        {"$set": update_fields}
+    )
+    
+    return {
+        "message": "Calificación guardada exitosamente",
+        "grade": data.grade,
+        "feedback": data.feedback
+    }
+
 @api_router.post("/course/tasks/{task_id}/archive")
 async def archive_task(
     task_id: str,
