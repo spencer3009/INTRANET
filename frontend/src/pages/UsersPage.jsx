@@ -1595,7 +1595,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     }
     
     setEditLoading(true);
-    try:
+    try {
       // Build payload with optional password and parent_id
       const payload = { ...editForm };
       
