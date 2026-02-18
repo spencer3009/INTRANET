@@ -7121,10 +7121,20 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       {submission.file ? (
                         <button 
                           onClick={() => handleDownloadSubmissionFile(submission)}
-                          className="flex items-center gap-2 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors"
+                          disabled={downloadingFile === submission.id}
+                          className="flex items-center gap-2 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors disabled:opacity-70 disabled:cursor-wait"
                         >
-                          <FileText className="w-4 h-4" />
-                          VER ARCHIVOS
+                          {downloadingFile === submission.id ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              DESCARGANDO...
+                            </>
+                          ) : (
+                            <>
+                              <FileText className="w-4 h-4" />
+                              VER ARCHIVOS
+                            </>
+                          )}
                         </button>
                       ) : (
                         <span className="text-slate-400 text-sm">Sin archivo</span>
