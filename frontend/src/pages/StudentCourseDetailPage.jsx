@@ -2539,7 +2539,7 @@ function StudentForumDownloadButton({ post, token }) {
 }
 
 // Forum Content - Table view for students with detail modal
-function ForumContent({ posts, token, user, students }) {
+function ForumContent({ posts, token, user, students, highlightedPostId, onClearHighlight }) {
   const [selectedPost, setSelectedPost] = useState(null);
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
@@ -2551,6 +2551,17 @@ function ForumContent({ posts, token, user, students }) {
   const [submittingReply, setSubmittingReply] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Auto-select post if highlighted from feed
+  useEffect(() => {
+    if (highlightedPostId) {
+      const postToHighlight = posts.find(p => p.id === highlightedPostId);
+      if (postToHighlight) {
+        handleViewPost(postToHighlight);
+        if (onClearHighlight) onClearHighlight();
+      }
+    }
+  }, [highlightedPostId, posts]);
   
   const getTimeAgo = (dateStr) => {
     const now = new Date();
