@@ -1538,9 +1538,41 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Save edited user
   const handleSaveEdit = async () => {
     if (!editingUser) return;
+    
+    // Validate password if provided
+    if (showPasswordSection && editPassword) {
+      const strength = calculatePasswordStrength(editPassword);
+      if (strength.label === "Débil") {
+        setInfoModalContent({
+          title: "Contraseña Débil",
+          message: "La contraseña debe ser al menos 'Media' para poder guardar. Incluye mayúsculas, minúsculas, números y caracteres especiales.",
+          type: "error"
+        });
+        setShowInfoModal(true);
+        return;
+      }
+    }
+    
     setEditLoading(true);
     try {
-      const res = await axios.put(`${API}/users/${editingUser.id}`, editForm, { headers });
+      // Build payload with optional password and parent_id
+      const payload = { ...editForm };
+      
+      // Add password if provided
+      if (showPasswordSection && editPassword) {
+        payload.password = editPassword;
+      }
+      
+      // Add/remove parent_id for students
+      if (editingUser.role === 'student') {
+        if (showParentSection && selectedParentId) {
+          payload.parent_id = selectedParentId;
+        } else {
+          payload.parent_id = null; // Explicitly remove parent link
+        }
+      }
+      
+      const res = await axios.put(`${API}/users/${editingUser.id}`, payload, { headers });
       // Update local state
       setUsers(prev => prev.map(u => u.id === editingUser.id ? res.data.user : u));
       setShowEditModal(false);
