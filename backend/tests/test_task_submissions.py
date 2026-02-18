@@ -188,6 +188,7 @@ class TestSetup:
         response = requests.post(
             f"{BASE_URL}/api/course/{test_data['subject_id']}/posts",
             json={
+                "subject_id": test_data['subject_id'],  # Required in body too
                 "title": "Test Task with post_type",
                 "content": "This is a test task created with post_type field",
                 "post_type": "task",
