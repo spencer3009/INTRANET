@@ -7040,6 +7040,57 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     
     return (
       <div className="space-y-4 pt-6 pb-48">
+        {/* Premium Notification Modal */}
+        {notification.show && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div 
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={hideNotification}
+            />
+            
+            {/* Modal */}
+            <div className="relative bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-in fade-in zoom-in duration-200">
+              {/* Header with gradient */}
+              <div className={`px-6 py-4 ${
+                notification.type === 'success' 
+                  ? 'bg-gradient-to-r from-emerald-500 to-teal-500' 
+                  : 'bg-gradient-to-r from-red-500 to-rose-500'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                    {notification.type === 'success' ? (
+                      <Check className="w-6 h-6 text-white" />
+                    ) : (
+                      <X className="w-6 h-6 text-white" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-bold text-white">{notification.title}</h3>
+                </div>
+              </div>
+              
+              {/* Content */}
+              <div className="px-6 py-5">
+                <p className="text-slate-600">{notification.message}</p>
+              </div>
+              
+              {/* Footer */}
+              <div className="px-6 py-4 bg-slate-50 flex justify-end">
+                <button
+                  onClick={hideNotification}
+                  className={`px-6 py-2.5 rounded-xl font-semibold text-white transition-all shadow-lg ${
+                    notification.type === 'success'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 shadow-emerald-500/25'
+                      : 'bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 shadow-red-500/25'
+                  }`}
+                >
+                  Aceptar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Back button */}
         <button
           onClick={() => { setViewMode('detail'); setEditingGrades({}); }}
