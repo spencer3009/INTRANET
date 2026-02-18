@@ -6983,7 +6983,6 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
             teacherComment: edits.feedback !== undefined ? edits.feedback : sub.teacherComment
           };
         }
-        }
         return sub;
       }));
       
