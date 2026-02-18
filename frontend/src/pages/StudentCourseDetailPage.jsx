@@ -236,7 +236,7 @@ function PostActionButton({ postType, postId, onNavigate }) {
 }
 
 // Post Card Component with like and comment functionality
-function PostCard({ post, token, user }) {
+function PostCard({ post, token, user, onNavigateToDetail }) {
   const [showComments, setShowComments] = useState(false);
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
