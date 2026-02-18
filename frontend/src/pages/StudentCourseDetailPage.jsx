@@ -21,7 +21,8 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Quote, Code, Link as LinkIcon, Highlighter,
-  Heading1, Heading2, Heading3, HardDrive, Cloud
+  Heading1, Heading2, Heading3, HardDrive, Cloud,
+  ClipboardList, MessagesSquare
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
