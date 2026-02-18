@@ -327,25 +327,52 @@ function PostCard({ post, token, user }) {
         </div>
       )}
       
-      {/* Post Actions - Like and Comment */}
-      <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-6">
-        <button 
-          onClick={handleLike}
-          disabled={liking}
-          className={`flex items-center gap-2 transition-colors ${
-            liked ? 'text-red-500' : 'text-slate-500 hover:text-red-500'
-          } ${liking ? 'opacity-50' : ''}`}
-        >
-          <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
-          <span className="text-sm">{likesCount}</span>
-        </button>
-        <button 
-          onClick={handleToggleComments}
-          className="flex items-center gap-2 text-slate-500 hover:text-cyan-500 transition-colors"
-        >
-          <MessageCircle className="w-5 h-5" />
-          <span className="text-sm">{commentsCount}</span>
-        </button>
+      {/* File Attachment (Google Drive or Cloudinary) */}
+      {(post.drive_file_id || post.file_url || post.file_name) && (
+        <div className="px-4 pb-4">
+          <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <FileText className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-slate-800 truncate text-sm">
+                {post.file_name || post.drive_file_name || 'Archivo adjunto'}
+              </p>
+              <p className="text-xs text-slate-500">
+                {post.storage_type === 'google_drive' ? 'Google Drive' : 'Archivo adjunto'}
+              </p>
+            </div>
+            <PostFileDownloadButton post={post} token={token} />
+          </div>
+        </div>
+      )}
+      
+      {/* Post Actions - Like, Comment, and Action Button */}
+      <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={handleLike}
+            disabled={liking}
+            className={`flex items-center gap-2 transition-colors ${
+              liked ? 'text-red-500' : 'text-slate-500 hover:text-red-500'
+            } ${liking ? 'opacity-50' : ''}`}
+          >
+            <Heart className={`w-5 h-5 ${liked ? 'fill-current' : ''}`} />
+            <span className="text-sm">{likesCount}</span>
+          </button>
+          <button 
+            onClick={handleToggleComments}
+            className="flex items-center gap-2 text-slate-500 hover:text-cyan-500 transition-colors"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span className="text-sm">{commentsCount}</span>
+          </button>
+        </div>
+        
+        {/* Action Button based on post type */}
+        {itemType !== 'announcement' && (
+          <PostActionButton postType={itemType} postId={post.id} />
+        )}
       </div>
       
       {/* Comments Section */}
