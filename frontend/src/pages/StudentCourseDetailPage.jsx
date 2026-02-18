@@ -1658,8 +1658,19 @@ function TaskSubmissionForm({ task, deliveryType, onSubmit }) {
 }
 
 // Tasks Content - Table view like owner's portal (Read-only for students)
-function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token }) {
+function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token, highlightedPostId, onClearHighlight }) {
   const [selectedTask, setSelectedTask] = useState(null);
+  
+  // Auto-select task if highlightedPostId matches
+  useEffect(() => {
+    if (highlightedPostId) {
+      const taskToHighlight = tasks.find(t => t.id === highlightedPostId);
+      if (taskToHighlight) {
+        setSelectedTask(taskToHighlight);
+        if (onClearHighlight) onClearHighlight();
+      }
+    }
+  }, [highlightedPostId, tasks, onClearHighlight]);
 
   if (tasks.length === 0) {
     return (
