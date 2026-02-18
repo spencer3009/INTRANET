@@ -1703,30 +1703,49 @@ function TaskTimePicker({ value, onChange, label }) {
             {/* Header with gradient */}
             <div className="bg-gradient-to-br from-amber-500 via-orange-500 to-red-500 px-6 py-5">
               <p className="text-amber-100 text-sm mb-1 font-medium">Seleccionar hora límite</p>
-              <div className="flex items-baseline gap-1 justify-center">
-                <button
-                  type="button"
-                  onClick={() => setSelectingMode('hours')}
-                  className={`text-4xl font-light transition-all ${selectingMode === 'hours' ? 'text-white scale-110' : 'text-white/50'}`}
-                >
-                  {hours.toString().padStart(2, '0')}
-                </button>
-                <span className="text-4xl font-light text-white/50">:</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectingMode('minutes')}
-                  className={`text-4xl font-light transition-all ${selectingMode === 'minutes' ? 'text-white scale-110' : 'text-white/50'}`}
-                >
-                  {minutes.toString().padStart(2, '0')}
-                </button>
-                <span className="text-4xl font-light text-white/50">:</span>
-                <button
-                  type="button"
-                  onClick={() => setSelectingMode('seconds')}
-                  className={`text-4xl font-light transition-all ${selectingMode === 'seconds' ? 'text-white scale-110' : 'text-white/50'}`}
-                >
-                  {seconds.toString().padStart(2, '0')}
-                </button>
+              <div className="flex items-center gap-3 justify-center">
+                <div className="flex items-baseline gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setSelectingMode('hours')}
+                    className={`text-4xl font-light transition-all ${selectingMode === 'hours' ? 'text-white scale-110' : 'text-white/50'}`}
+                  >
+                    {hours.toString().padStart(2, '0')}
+                  </button>
+                  <span className="text-4xl font-light text-white/50">:</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectingMode('minutes')}
+                    className={`text-4xl font-light transition-all ${selectingMode === 'minutes' ? 'text-white scale-110' : 'text-white/50'}`}
+                  >
+                    {minutes.toString().padStart(2, '0')}
+                  </button>
+                  <span className="text-4xl font-light text-white/50">:</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectingMode('seconds')}
+                    className={`text-4xl font-light transition-all ${selectingMode === 'seconds' ? 'text-white scale-110' : 'text-white/50'}`}
+                  >
+                    {seconds.toString().padStart(2, '0')}
+                  </button>
+                </div>
+                {/* AM/PM Toggle */}
+                <div className="flex flex-col gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsPM(false)}
+                    className={`px-2 py-0.5 rounded text-sm font-bold transition-all ${!isPM ? 'bg-white text-amber-600' : 'bg-white/20 text-white/70 hover:bg-white/30'}`}
+                  >
+                    AM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPM(true)}
+                    className={`px-2 py-0.5 rounded text-sm font-bold transition-all ${isPM ? 'bg-white text-amber-600' : 'bg-white/20 text-white/70 hover:bg-white/30'}`}
+                  >
+                    PM
+                  </button>
+                </div>
               </div>
             </div>
             
