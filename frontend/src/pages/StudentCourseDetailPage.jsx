@@ -470,7 +470,7 @@ function PostCard({ post, token, user, onNavigateToDetail }) {
       )}
       
       {/* Post Actions - Like, Comment, and Action Button */}
-      <div className="px-4 py-3 border-t border-slate-100 flex items-center justify-between">
+      <div className="px-4 py-3 border-t border-slate-100 flex items-center">
         <div className="flex items-center gap-6">
           <button 
             onClick={handleLike}
@@ -489,12 +489,12 @@ function PostCard({ post, token, user, onNavigateToDetail }) {
             <MessageCircle className="w-5 h-5" />
             <span className="text-sm">{commentsCount}</span>
           </button>
+          
+          {/* Action Button - inline with social actions */}
+          {itemType !== 'announcement' && (
+            <PostActionButton postType={itemType} postId={post.id} onNavigate={onNavigateToDetail} />
+          )}
         </div>
-        
-        {/* Action Button based on post type */}
-        {itemType !== 'announcement' && (
-          <PostActionButton postType={itemType} postId={post.id} onNavigate={onNavigateToDetail} />
-        )}
       </div>
       
       {/* Comments Section */}
