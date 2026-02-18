@@ -160,7 +160,9 @@ def test_data():
         headers={"Authorization": f"Bearer {data['admin_token']}"}
     )
     assert response.status_code in [200, 201], f"Create task failed: {response.text}"
-    data["task_id"] = response.json().get("id")
+    resp_data = response.json()
+    # Handle nested response structure
+    data["task_id"] = resp_data.get("post", {}).get("id") or resp_data.get("id")
     print(f"✓ Task created: {data['task_id']}")
     
     return data
