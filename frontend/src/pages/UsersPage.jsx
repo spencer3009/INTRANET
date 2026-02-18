@@ -2152,37 +2152,200 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 {/* Campos específicos para estudiantes */}
                 {editingUser.role === 'student' && (
                   <>
-                    <div className="md:col-span-2 mt-4 pt-4 border-t border-slate-200">
-                      <h4 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
-                        <GraduationCap className="w-4 h-4" /> Información Académica
-                      </h4>
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    {/* SECCIÓN 1: GESTIÓN DE CREDENCIALES */}
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    <div className="md:col-span-2 mt-6 pt-4 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <Key className="w-4 h-4 text-amber-500" /> Gestión de Credenciales
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => setShowPasswordSection(!showPasswordSection)}
+                          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                        >
+                          {showPasswordSection ? (
+                            <ToggleRight className="w-8 h-5 text-[#001f4b]" />
+                          ) : (
+                            <ToggleLeft className="w-8 h-5 text-slate-400" />
+                          )}
+                          <span>{showPasswordSection ? 'Ocultar' : 'Cambiar contraseña'}</span>
+                        </button>
+                      </div>
+                      
+                      {showPasswordSection && (
+                        <div className="bg-slate-50 rounded-xl p-4 space-y-4">
+                          <div className="flex gap-2">
+                            <div className="relative flex-1">
+                              <input
+                                type={showEditPassword ? "text" : "password"}
+                                value={editPassword}
+                                onChange={(e) => setEditPassword(e.target.value)}
+                                placeholder="Nueva contraseña"
+                                className="w-full px-4 py-2.5 pr-10 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowEditPassword(!showEditPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                              >
+                                {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={generateSecurePassword}
+                              className="px-4 py-2.5 bg-[#001f4b] hover:bg-[#002a5c] text-white rounded-xl flex items-center gap-2 transition-colors"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                              <span className="hidden sm:inline">Generar</span>
+                            </button>
+                          </div>
+                          
+                          {/* Password strength indicator */}
+                          {editPassword && (
+                            <div className="space-y-2">
+                              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full transition-all duration-300 ${calculatePasswordStrength(editPassword).color}`}
+                                  style={{ width: `${calculatePasswordStrength(editPassword).strength}%` }}
+                                />
+                              </div>
+                              <div className="flex items-center justify-between text-sm">
+                                <span className={`font-medium ${calculatePasswordStrength(editPassword).textColor}`}>
+                                  Fortaleza: {calculatePasswordStrength(editPassword).label}
+                                </span>
+                                {calculatePasswordStrength(editPassword).label === "Débil" && (
+                                  <span className="flex items-center gap-1 text-red-500">
+                                    <AlertTriangle className="w-3.5 h-3.5" />
+                                    No permitido guardar
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500">
+                                Recomendación: Mínimo 8 caracteres, mayúsculas, minúsculas, números y símbolos (!@#$%^&*)
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Condiciones médicas</label>
-                      <textarea
-                        value={editForm.condiciones_medicas}
-                        onChange={(e) => setEditForm({ ...editForm, condiciones_medicas: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none resize-none"
-                        rows={2}
-                      />
+
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    {/* SECCIÓN 2: VINCULACIÓN PADRE / APODERADO */}
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    <div className="md:col-span-2 mt-6 pt-4 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <Link2 className="w-4 h-4 text-blue-500" /> Vincular Padre / Apoderado
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowParentSection(!showParentSection);
+                            if (showParentSection) setSelectedParentId("");
+                          }}
+                          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                        >
+                          {showParentSection ? (
+                            <ToggleRight className="w-8 h-5 text-[#001f4b]" />
+                          ) : (
+                            <ToggleLeft className="w-8 h-5 text-slate-400" />
+                          )}
+                          <span>{showParentSection ? 'Vinculado' : 'Sin vincular'}</span>
+                        </button>
+                      </div>
+                      
+                      {showParentSection && (
+                        <div className="bg-blue-50 rounded-xl p-4">
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            Seleccionar Apoderado
+                          </label>
+                          <select
+                            value={selectedParentId}
+                            onChange={(e) => setSelectedParentId(e.target.value)}
+                            className="w-full px-4 py-2.5 border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-300 focus:border-blue-400 outline-none bg-white"
+                          >
+                            <option value="">-- Seleccionar apoderado --</option>
+                            {users.filter(u => u.role === 'parent').map(parent => (
+                              <option key={parent.id} value={parent.id}>
+                                {parent.name} {parent.last_name} {parent.email ? `(${parent.email})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                          {users.filter(u => u.role === 'parent').length === 0 && (
+                            <p className="text-sm text-blue-600 mt-2 flex items-center gap-1">
+                              <AlertCircle className="w-4 h-4" />
+                              No hay apoderados registrados en el sistema.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Alergias</label>
-                      <textarea
-                        value={editForm.alergias}
-                        onChange={(e) => setEditForm({ ...editForm, alergias: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none resize-none"
-                        rows={2}
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">Notas adicionales</label>
-                      <textarea
-                        value={editForm.notas}
-                        onChange={(e) => setEditForm({ ...editForm, notas: e.target.value })}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none resize-none"
-                        rows={2}
-                      />
+
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    {/* SECCIÓN 3: INFORMACIÓN COMPLEMENTARIA */}
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    <div className="md:col-span-2 mt-6 pt-4 border-t border-slate-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
+                          <UserCog className="w-4 h-4 text-purple-500" /> Información Complementaria
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => setShowExtraInfoSection(!showExtraInfoSection)}
+                          className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700"
+                        >
+                          {showExtraInfoSection ? (
+                            <ToggleRight className="w-8 h-5 text-[#001f4b]" />
+                          ) : (
+                            <ToggleLeft className="w-8 h-5 text-slate-400" />
+                          )}
+                          <span>{showExtraInfoSection ? 'Mostrar' : 'Oculto'}</span>
+                        </button>
+                      </div>
+                      
+                      {showExtraInfoSection && (
+                        <div className="bg-purple-50 rounded-xl p-4 space-y-4">
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              <Stethoscope className="w-4 h-4 inline mr-1" /> Condiciones médicas
+                            </label>
+                            <textarea
+                              value={editForm.condiciones_medicas}
+                              onChange={(e) => setEditForm({ ...editForm, condiciones_medicas: e.target.value })}
+                              placeholder="Ej: Asma, diabetes, etc."
+                              className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none resize-none bg-white"
+                              rows={2}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              <AlertCircle className="w-4 h-4 inline mr-1" /> Alergias
+                            </label>
+                            <textarea
+                              value={editForm.alergias}
+                              onChange={(e) => setEditForm({ ...editForm, alergias: e.target.value })}
+                              placeholder="Ej: Penicilina, maní, etc."
+                              className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none resize-none bg-white"
+                              rows={2}
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-semibold text-slate-700 mb-2">
+                              <FileText className="w-4 h-4 inline mr-1" /> Notas adicionales
+                            </label>
+                            <textarea
+                              value={editForm.notas}
+                              onChange={(e) => setEditForm({ ...editForm, notas: e.target.value })}
+                              placeholder="Información relevante adicional..."
+                              className="w-full px-4 py-2.5 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 outline-none resize-none bg-white"
+                              rows={2}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
