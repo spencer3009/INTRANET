@@ -486,7 +486,7 @@ function PostCard({ post, token, user, onNavigateToDetail }) {
         </div>
         
         {/* Action Button based on post type */}
-        {itemType !== 'announcement' && onNavigateToDetail && (
+        {itemType !== 'announcement' && (
           <PostActionButton postType={itemType} postId={post.id} onNavigate={onNavigateToDetail} />
         )}
       </div>
