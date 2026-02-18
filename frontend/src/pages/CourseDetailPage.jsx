@@ -6979,8 +6979,12 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     }
   };
   
+  // State for downloading files
+  const [downloadingFile, setDownloadingFile] = useState(null);
+  
   // Download submission file
   const handleDownloadSubmissionFile = async (submission) => {
+    setDownloadingFile(submission.id);
     try {
       if (submission.storage_type === 'google_drive' && submission.drive_file_id) {
         // Download from Google Drive via our backend
@@ -7008,6 +7012,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     } catch (err) {
       console.error('Error downloading file:', err);
       alert('Error al descargar el archivo');
+    } finally {
+      setDownloadingFile(null);
     }
   };
   
