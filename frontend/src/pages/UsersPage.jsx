@@ -8,7 +8,8 @@ import {
   Users, UserPlus, ArrowLeft, Loader2, X, Camera, Upload,
   GraduationCap, Building2, Check, AlertCircle, Plus, Eye, EyeOff,
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles, Search, UserCheck,
-  Heart, Phone, FileText, Stethoscope, ShieldCheck
+  Heart, Phone, FileText, Stethoscope, ShieldCheck, Key, RefreshCw, 
+  ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
