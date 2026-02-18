@@ -3246,13 +3246,13 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
           />
         );
       case "tareas":
-        return <TasksContent tasks={tasks} studentId={user?.id} onSubmitTask={handleSubmitTask} students={students} subject={subject} token={token} />;
+        return <TasksContent tasks={tasks} studentId={user?.id} onSubmitTask={handleSubmitTask} students={students} subject={subject} token={token} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
       case "material":
-        return <MaterialContent materials={materials} token={token} />;
+        return <MaterialContent materials={materials} token={token} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
       case "examenes":
         return <ExamsContent exams={exams} studentId={user?.id} />;
       case "foro":
-        return <ForumContent posts={forumPosts} token={token} user={user} students={students} />;
+        return <ForumContent posts={forumPosts} token={token} user={user} students={students} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
       case "calificaciones":
         return <GradesContent tasks={tasks} exams={exams} studentId={user?.id} subject={subject} />;
       default:
