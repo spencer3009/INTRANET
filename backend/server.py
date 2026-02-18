@@ -10941,7 +10941,11 @@ async def get_task_submission_stats(
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    task = await db.course_posts.find_one({"id": task_id, "post_type": "task"}, {"_id": 0})
+    # Support both type fields
+    task = await db.course_posts.find_one({
+        "id": task_id, 
+        "$or": [{"post_type": "task"}, {"type": "task"}]
+    }, {"_id": 0})
     if not task:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
     
@@ -10972,7 +10976,11 @@ async def archive_task(
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    task = await db.course_posts.find_one({"id": task_id, "post_type": "task"}, {"_id": 0})
+    # Support both type fields
+    task = await db.course_posts.find_one({
+        "id": task_id, 
+        "$or": [{"post_type": "task"}, {"type": "task"}]
+    }, {"_id": 0})
     if not task:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
     
