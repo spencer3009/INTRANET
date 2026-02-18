@@ -3317,8 +3317,13 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
         // Reload tasks to show updated status
         await loadContent();
         
-        // Show success message (could use a toast here)
-        alert('¡Tarea entregada exitosamente!');
+        // Show premium success modal
+        setSuccessModalContent({
+          title: "¡Tarea Entregada!",
+          message: "Tu entrega ha sido registrada exitosamente. El profesor revisará tu trabajo pronto.",
+          type: "success"
+        });
+        setShowSuccessModal(true);
       } else {
         // Legacy: just log for now (clicking from table row without detail view)
         console.log("Submit task:", task);
