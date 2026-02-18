@@ -188,23 +188,20 @@ function PostActionButton({ postType, postId, onNavigate }) {
       case 'task':
         return {
           label: 'Ver tarea',
-          icon: FileText,
-          color: 'bg-amber-500 hover:bg-amber-600',
-          tab: 'tareas'
+          icon: ClipboardList,
+          hoverColor: 'hover:text-amber-500'
         };
       case 'material':
         return {
           label: 'Ver material',
           icon: FolderOpen,
-          color: 'bg-indigo-500 hover:bg-indigo-600',
-          tab: 'material'
+          hoverColor: 'hover:text-indigo-500'
         };
       case 'forum':
         return {
           label: 'Ver discusión',
-          icon: MessageCircle,
-          color: 'bg-purple-500 hover:bg-purple-600',
-          tab: 'foro'
+          icon: MessagesSquare,
+          hoverColor: 'hover:text-purple-500'
         };
       default:
         return null;
@@ -218,11 +215,12 @@ function PostActionButton({ postType, postId, onNavigate }) {
   
   const handleClick = () => {
     if (onNavigate) {
-      onNavigate(config.tab, postId);
+      onNavigate(config.tab || postType === 'task' ? 'tareas' : postType === 'material' ? 'material' : 'foro', postId);
     } else {
       // Fallback: use URL params to navigate
+      const tab = postType === 'task' ? 'tareas' : postType === 'material' ? 'material' : 'foro';
       const url = new URL(window.location.href);
-      url.searchParams.set('tab', config.tab);
+      url.searchParams.set('tab', tab);
       url.searchParams.set('postId', postId);
       window.location.href = url.toString();
     }
@@ -231,12 +229,11 @@ function PostActionButton({ postType, postId, onNavigate }) {
   return (
     <button
       onClick={handleClick}
-      className={`flex items-center gap-1.5 px-3 py-1.5 ${config.color} text-white rounded-lg font-medium transition-colors text-xs`}
+      className={`flex items-center gap-2 text-slate-500 ${config.hoverColor} transition-colors`}
       data-testid={`post-action-${postType}`}
     >
-      <Icon className="w-3.5 h-3.5" />
-      {config.label}
-      <ChevronRight className="w-3.5 h-3.5" />
+      <Icon className="w-5 h-5" />
+      <span className="text-sm">{config.label}</span>
     </button>
   );
 }
