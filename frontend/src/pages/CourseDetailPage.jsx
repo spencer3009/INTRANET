@@ -6719,23 +6719,44 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     }
   };
   
-  // Generate mock submissions when viewing submissions
-  const loadSubmissions = () => {
+  // State for task submissions data from API
+  const [taskSubmissionsData, setTaskSubmissionsData] = useState(null);
+  
+  // Load real submissions from API
+  const loadSubmissions = async () => {
+    if (!selectedTask) return;
+    
     setLoadingSubmissions(true);
-    // Mock submissions data - in production this would be an API call
-    setTimeout(() => {
-      const mockSubmissions = students?.map((student, idx) => ({
-        id: student.id,
-        student: student,
-        comment: '',
-        status: idx % 3 === 0 ? 'Entregado' : 'Sin entregar',
-        file: idx % 3 === 0 ? 'tarea.pdf' : null,
-        teacherComment: '',
-        grade: ''
-      })) || [];
-      setSubmissions(mockSubmissions);
+    try {
+      const res = await axios.get(`${API}/course/tasks/${selectedTask.id}/submissions`, { headers });
+      const data = res.data;
+      
+      // Store full submissions data
+      setTaskSubmissionsData(data);
+      
+      // Map API response to component format
+      const mappedSubmissions = data.submissions.map(sub => ({
+        id: sub.id,
+        student_id: sub.student_id,
+        student: sub.student,
+        comment: sub.text_content || '',
+        status: sub.status === 'a_tiempo' ? 'A tiempo' : 'Tarde',
+        file: sub.file_name,
+        file_url: sub.file_url,
+        drive_file_id: sub.drive_file_id,
+        storage_type: sub.storage_type,
+        teacherComment: sub.feedback || '',
+        grade: sub.grade !== null ? sub.grade : ''
+      }));
+      
+      setSubmissions(mappedSubmissions);
+    } catch (err) {
+      console.error('Error loading submissions:', err);
+      setSubmissions([]);
+      setTaskSubmissionsData(null);
+    } finally {
       setLoadingSubmissions(false);
-    }, 500);
+    }
   };
   
   const handleViewSubmissions = () => {
