@@ -21,199 +21,150 @@ from datetime import datetime, timezone, timedelta
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', '').rstrip('/')
 
-# Test data storage
-test_data = {
-    "school_id": None,
-    "admin_token": None,
-    "student_token": None,
-    "teacher_token": None,
-    "subject_id": None,
-    "task_id": None,
-    "submission_id": None,
-    "admin_user_id": None,
-    "student_user_id": None,
-    "teacher_user_id": None,
-    "level_id": None
-}
 
-
-class TestSetup:
-    """Setup test data: school, users, subject, and tasks"""
+@pytest.fixture(scope="module")
+def test_data():
+    """Create all test data in one fixture"""
+    data = {}
+    unique_id = str(uuid.uuid4())[:8]
     
-    def test_01_create_school_and_admin(self):
-        """Register admin user and create school"""
-        unique_id = str(uuid.uuid4())[:8]
-        email = f"admin_task_test_{unique_id}@test.pe"
-        
-        # Register
-        response = requests.post(f"{BASE_URL}/api/auth/register", json={
-            "school_name": f"Test School {unique_id}",
-            "email": email,
-            "password": "test123456"
-        })
-        assert response.status_code == 200, f"Register failed: {response.text}"
-        data = response.json()
-        verification_code = data.get("verification_code")
-        
-        # Verify email
-        response = requests.post(f"{BASE_URL}/api/auth/verify-email", json={
-            "email": email,
-            "code": verification_code
-        })
-        assert response.status_code == 200, f"Verify failed: {response.text}"
-        token = response.json().get("token")
-        
-        # Create school (this also seeds demo data including academic levels)
-        subdomain = f"tasktest{unique_id}"
-        response = requests.post(
-            f"{BASE_URL}/api/schools/create",
-            json={"subdomain": subdomain},
-            headers={"Authorization": f"Bearer {token}"}
-        )
-        assert response.status_code == 200, f"Create school failed: {response.text}"
-        data = response.json()
-        
-        test_data["school_id"] = data.get("school_id")
-        test_data["admin_token"] = data.get("token")
-        test_data["admin_user_id"] = data.get("user", {}).get("id")
-        
-        print(f"✓ School created: {subdomain}, ID: {test_data['school_id']}")
+    # Step 1: Register admin and create school
+    email = f"admin_task_test_{unique_id}@test.pe"
+    response = requests.post(f"{BASE_URL}/api/auth/register", json={
+        "school_name": f"Test School {unique_id}",
+        "email": email,
+        "password": "test123456"
+    })
+    assert response.status_code == 200, f"Register failed: {response.text}"
+    verification_code = response.json().get("verification_code")
     
-    def test_02_get_academic_level(self):
-        """Get an academic level from seeded data"""
-        response = requests.get(
-            f"{BASE_URL}/api/academic/levels",
-            headers={"Authorization": f"Bearer {test_data['admin_token']}"}
-        )
-        assert response.status_code == 200, f"Get levels failed: {response.text}"
-        data = response.json()
-        
-        # Get the first level
-        levels = data if isinstance(data, list) else data.get("levels", [])
-        assert len(levels) > 0, "Should have at least one academic level"
-        test_data["level_id"] = levels[0].get("id")
-        
-        print(f"✓ Got academic level: {test_data['level_id']}")
+    response = requests.post(f"{BASE_URL}/api/auth/verify-email", json={
+        "email": email,
+        "code": verification_code
+    })
+    assert response.status_code == 200, f"Verify failed: {response.text}"
+    token = response.json().get("token")
     
-    def test_03_create_student_user(self):
-        """Create a student user for testing submissions"""
-        unique_id = str(uuid.uuid4())[:8]
-        student_username = f"student_{unique_id}"
-        
-        # Use /api/users endpoint with required username field
-        response = requests.post(
-            f"{BASE_URL}/api/users",
-            json={
-                "username": student_username,
-                "name": "Test",
-                "last_name": "Student",
-                "email": f"{student_username}@test.pe",
-                "password": "test123456",
-                "role": "student"
-            },
-            headers={"Authorization": f"Bearer {test_data['admin_token']}"}
-        )
-        assert response.status_code in [200, 201], f"Create student failed: {response.text}"
-        data = response.json()
-        test_data["student_user_id"] = data.get("id") or data.get("user", {}).get("id")
-        
-        # Login as student to get token
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": student_username,  # Can login with username
-            "password": "test123456"
-        })
-        assert response.status_code == 200, f"Student login failed: {response.text}"
-        test_data["student_token"] = response.json().get("token")
-        
-        print(f"✓ Student created: {test_data['student_user_id']}")
+    subdomain = f"tasktest{unique_id}"
+    response = requests.post(
+        f"{BASE_URL}/api/schools/create",
+        json={"subdomain": subdomain},
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200, f"Create school failed: {response.text}"
+    school_data = response.json()
     
-    def test_04_create_teacher_user(self):
-        """Create a teacher user for testing grading"""
-        unique_id = str(uuid.uuid4())[:8]
-        teacher_username = f"teacher_{unique_id}"
-        
-        # Use /api/users endpoint with required username field
-        response = requests.post(
-            f"{BASE_URL}/api/users",
-            json={
-                "username": teacher_username,
-                "name": "Test",
-                "last_name": "Teacher",
-                "email": f"{teacher_username}@test.pe",
-                "password": "test123456",
-                "role": "teacher"
-            },
-            headers={"Authorization": f"Bearer {test_data['admin_token']}"}
-        )
-        assert response.status_code in [200, 201], f"Create teacher failed: {response.text}"
-        data = response.json()
-        test_data["teacher_user_id"] = data.get("id") or data.get("user", {}).get("id")
-        
-        # Login as teacher to get token
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": teacher_username,  # Can login with username
-            "password": "test123456"
-        })
-        assert response.status_code == 200, f"Teacher login failed: {response.text}"
-        test_data["teacher_token"] = response.json().get("token")
-        
-        print(f"✓ Teacher created: {test_data['teacher_user_id']}")
+    data["school_id"] = school_data.get("school_id")
+    data["admin_token"] = school_data.get("token")
+    data["admin_user_id"] = school_data.get("user", {}).get("id")
+    print(f"✓ School created: {subdomain}")
     
-    def test_05_create_subject(self):
-        """Create a subject for tasks"""
-        unique_id = str(uuid.uuid4())[:8]
-        
-        # Use /api/academic/subjects endpoint with required fields
-        response = requests.post(
-            f"{BASE_URL}/api/academic/subjects",
-            json={
-                "name": f"Test Subject {unique_id}",
-                "code": f"TST{unique_id[:4].upper()}",
-                "description": "Subject for testing task submissions",
-                "level_id": test_data["level_id"],
-                "color": "#3B82F6"
-            },
-            headers={"Authorization": f"Bearer {test_data['admin_token']}"}
-        )
-        assert response.status_code in [200, 201], f"Create subject failed: {response.text}"
-        data = response.json()
-        test_data["subject_id"] = data.get("id")
-        
-        print(f"✓ Subject created: {test_data['subject_id']}")
+    # Step 2: Get academic level
+    response = requests.get(
+        f"{BASE_URL}/api/academic/levels",
+        headers={"Authorization": f"Bearer {data['admin_token']}"}
+    )
+    assert response.status_code == 200, f"Get levels failed: {response.text}"
+    levels = response.json() if isinstance(response.json(), list) else response.json().get("levels", [])
+    assert len(levels) > 0, "Should have at least one academic level"
+    data["level_id"] = levels[0].get("id")
+    print(f"✓ Got academic level: {data['level_id']}")
     
-    def test_06_create_task_with_post_type(self):
-        """Create a task using post_type='task' (new system)"""
-        due_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
-        
-        response = requests.post(
-            f"{BASE_URL}/api/course/{test_data['subject_id']}/posts",
-            json={
-                "subject_id": test_data['subject_id'],  # Required in body too
-                "title": "Test Task with post_type",
-                "content": "This is a test task created with post_type field",
-                "post_type": "task",
-                "metadata": {
-                    "due_date": due_date,
-                    "points": 20,
-                    "allow_late_submissions": True
-                }
-            },
-            headers={"Authorization": f"Bearer {test_data['admin_token']}"}
-        )
-        assert response.status_code in [200, 201], f"Create task failed: {response.text}"
-        data = response.json()
-        test_data["task_id"] = data.get("id")
-        
-        print(f"✓ Task created (post_type): {test_data['task_id']}")
+    # Step 3: Create student
+    student_username = f"student_{unique_id}"
+    response = requests.post(
+        f"{BASE_URL}/api/users",
+        json={
+            "username": student_username,
+            "name": "Test",
+            "last_name": "Student",
+            "email": f"{student_username}@test.pe",
+            "password": "test123456",
+            "role": "student"
+        },
+        headers={"Authorization": f"Bearer {data['admin_token']}"}
+    )
+    assert response.status_code in [200, 201], f"Create student failed: {response.text}"
+    data["student_user_id"] = response.json().get("id")
+    
+    response = requests.post(f"{BASE_URL}/api/auth/login", json={
+        "email": student_username,
+        "password": "test123456"
+    })
+    assert response.status_code == 200, f"Student login failed: {response.text}"
+    data["student_token"] = response.json().get("token")
+    print(f"✓ Student created: {data['student_user_id']}")
+    
+    # Step 4: Create teacher
+    teacher_username = f"teacher_{unique_id}"
+    response = requests.post(
+        f"{BASE_URL}/api/users",
+        json={
+            "username": teacher_username,
+            "name": "Test",
+            "last_name": "Teacher",
+            "email": f"{teacher_username}@test.pe",
+            "password": "test123456",
+            "role": "teacher"
+        },
+        headers={"Authorization": f"Bearer {data['admin_token']}"}
+    )
+    assert response.status_code in [200, 201], f"Create teacher failed: {response.text}"
+    data["teacher_user_id"] = response.json().get("id")
+    
+    response = requests.post(f"{BASE_URL}/api/auth/login", json={
+        "email": teacher_username,
+        "password": "test123456"
+    })
+    assert response.status_code == 200, f"Teacher login failed: {response.text}"
+    data["teacher_token"] = response.json().get("token")
+    print(f"✓ Teacher created: {data['teacher_user_id']}")
+    
+    # Step 5: Create subject
+    response = requests.post(
+        f"{BASE_URL}/api/academic/subjects",
+        json={
+            "name": f"Test Subject {unique_id}",
+            "code": f"TST{unique_id[:4].upper()}",
+            "description": "Subject for testing task submissions",
+            "level_id": data["level_id"],
+            "color": "#3B82F6"
+        },
+        headers={"Authorization": f"Bearer {data['admin_token']}"}
+    )
+    assert response.status_code in [200, 201], f"Create subject failed: {response.text}"
+    data["subject_id"] = response.json().get("id")
+    print(f"✓ Subject created: {data['subject_id']}")
+    
+    # Step 6: Create task
+    due_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
+    response = requests.post(
+        f"{BASE_URL}/api/course/{data['subject_id']}/posts",
+        json={
+            "subject_id": data['subject_id'],
+            "title": "Test Task with post_type",
+            "content": "This is a test task created with post_type field",
+            "post_type": "task",
+            "metadata": {
+                "due_date": due_date,
+                "points": 20,
+                "allow_late_submissions": True
+            }
+        },
+        headers={"Authorization": f"Bearer {data['admin_token']}"}
+    )
+    assert response.status_code in [200, 201], f"Create task failed: {response.text}"
+    data["task_id"] = response.json().get("id")
+    print(f"✓ Task created: {data['task_id']}")
+    
+    return data
 
 
 class TestSubmitTask:
     """Test POST /api/course/tasks/{task_id}/submit"""
     
-    def test_01_submit_requires_auth(self):
+    def test_01_submit_requires_auth(self, test_data):
         """Submit endpoint requires authentication"""
-        if not test_data["task_id"]:
-            pytest.skip("No task_id available")
         response = requests.post(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submit",
             data={"text_content": "Test submission"}
@@ -221,10 +172,8 @@ class TestSubmitTask:
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
         print("✓ Submit requires authentication")
     
-    def test_02_submit_task_not_found(self):
+    def test_02_submit_task_not_found(self, test_data):
         """Submit returns 404 for non-existent task"""
-        if not test_data["student_token"]:
-            pytest.skip("No student_token available")
         response = requests.post(
             f"{BASE_URL}/api/course/tasks/nonexistent-task-id/submit",
             data={"text_content": "Test submission"},
@@ -233,10 +182,8 @@ class TestSubmitTask:
         assert response.status_code == 404, f"Expected 404, got {response.status_code}"
         print("✓ Submit returns 404 for non-existent task")
     
-    def test_03_submit_requires_content(self):
+    def test_03_submit_requires_content(self, test_data):
         """Submit requires text or file"""
-        if not test_data["student_token"] or not test_data["task_id"]:
-            pytest.skip("Missing student_token or task_id")
         response = requests.post(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submit",
             data={},
@@ -245,10 +192,8 @@ class TestSubmitTask:
         assert response.status_code == 400, f"Expected 400, got {response.status_code}"
         print("✓ Submit requires text or file content")
     
-    def test_04_submit_task_success(self):
+    def test_04_submit_task_success(self, test_data):
         """Student can submit a task with text content"""
-        if not test_data["student_token"] or not test_data["task_id"]:
-            pytest.skip("Missing student_token or task_id")
         response = requests.post(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submit",
             data={"text_content": "This is my test submission for the task."},
@@ -263,10 +208,8 @@ class TestSubmitTask:
         
         print(f"✓ Task submitted successfully: {test_data['submission_id']}")
     
-    def test_05_cannot_submit_twice(self):
+    def test_05_cannot_submit_twice(self, test_data):
         """Student cannot submit the same task twice"""
-        if not test_data["student_token"] or not test_data["task_id"]:
-            pytest.skip("Missing student_token or task_id")
         response = requests.post(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submit",
             data={"text_content": "Second submission attempt"},
@@ -281,20 +224,16 @@ class TestSubmitTask:
 class TestGetSubmissions:
     """Test GET /api/course/tasks/{task_id}/submissions"""
     
-    def test_01_get_submissions_requires_auth(self):
+    def test_01_get_submissions_requires_auth(self, test_data):
         """Get submissions requires authentication"""
-        if not test_data["task_id"]:
-            pytest.skip("No task_id available")
         response = requests.get(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions"
         )
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
         print("✓ Get submissions requires authentication")
     
-    def test_02_student_cannot_view_submissions(self):
+    def test_02_student_cannot_view_submissions(self, test_data):
         """Students cannot view all submissions (only teachers/admins)"""
-        if not test_data["student_token"] or not test_data["task_id"]:
-            pytest.skip("Missing student_token or task_id")
         response = requests.get(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions",
             headers={"Authorization": f"Bearer {test_data['student_token']}"}
@@ -302,10 +241,8 @@ class TestGetSubmissions:
         assert response.status_code == 403, f"Expected 403, got {response.status_code}"
         print("✓ Students cannot view all submissions")
     
-    def test_03_teacher_can_view_submissions(self):
+    def test_03_teacher_can_view_submissions(self, test_data):
         """Teachers can view submissions"""
-        if not test_data["teacher_token"] or not test_data["task_id"]:
-            pytest.skip("Missing teacher_token or task_id")
         response = requests.get(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions",
             headers={"Authorization": f"Bearer {test_data['teacher_token']}"}
@@ -331,10 +268,8 @@ class TestGetSubmissions:
         
         print(f"✓ Teacher can view submissions: {data['submissions_count']} found")
     
-    def test_04_admin_can_view_submissions(self):
+    def test_04_admin_can_view_submissions(self, test_data):
         """Admins can view submissions"""
-        if not test_data["admin_token"] or not test_data["task_id"]:
-            pytest.skip("Missing admin_token or task_id")
         response = requests.get(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions",
             headers={"Authorization": f"Bearer {test_data['admin_token']}"}
@@ -345,10 +280,8 @@ class TestGetSubmissions:
         assert data["submissions_count"] >= 1, "Should have at least 1 submission"
         print(f"✓ Admin can view submissions: {data['submissions_count']} found")
     
-    def test_05_submissions_include_student_details(self):
+    def test_05_submissions_include_student_details(self, test_data):
         """Submissions include enriched student details"""
-        if not test_data["admin_token"] or not test_data["task_id"]:
-            pytest.skip("Missing admin_token or task_id")
         response = requests.get(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions",
             headers={"Authorization": f"Bearer {test_data['admin_token']}"}
@@ -368,10 +301,10 @@ class TestGetSubmissions:
 class TestGradeSubmission:
     """Test PUT /api/course/tasks/{task_id}/submissions/{submission_id}/grade"""
     
-    def test_01_grade_requires_auth(self):
+    def test_01_grade_requires_auth(self, test_data):
         """Grade endpoint requires authentication"""
-        if not test_data["task_id"] or not test_data["submission_id"]:
-            pytest.skip("Missing task_id or submission_id")
+        if not test_data.get("submission_id"):
+            pytest.skip("No submission_id available")
         response = requests.put(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions/{test_data['submission_id']}/grade",
             json={"grade": 18, "feedback": "Good work!"}
@@ -379,10 +312,10 @@ class TestGradeSubmission:
         assert response.status_code == 401, f"Expected 401, got {response.status_code}"
         print("✓ Grade requires authentication")
     
-    def test_02_student_cannot_grade(self):
+    def test_02_student_cannot_grade(self, test_data):
         """Students cannot grade submissions"""
-        if not test_data["student_token"] or not test_data["task_id"] or not test_data["submission_id"]:
-            pytest.skip("Missing required test data")
+        if not test_data.get("submission_id"):
+            pytest.skip("No submission_id available")
         response = requests.put(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions/{test_data['submission_id']}/grade",
             json={"grade": 18, "feedback": "Good work!"},
@@ -391,10 +324,10 @@ class TestGradeSubmission:
         assert response.status_code == 403, f"Expected 403, got {response.status_code}"
         print("✓ Students cannot grade submissions")
     
-    def test_03_grade_validates_max(self):
+    def test_03_grade_validates_max(self, test_data):
         """Grade cannot exceed max_grade"""
-        if not test_data["teacher_token"] or not test_data["task_id"] or not test_data["submission_id"]:
-            pytest.skip("Missing required test data")
+        if not test_data.get("submission_id"):
+            pytest.skip("No submission_id available")
         response = requests.put(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions/{test_data['submission_id']}/grade",
             json={"grade": 100, "feedback": "Too high!"},
@@ -403,10 +336,10 @@ class TestGradeSubmission:
         assert response.status_code == 400, f"Expected 400, got {response.status_code}"
         print("✓ Grade validates max_grade limit")
     
-    def test_04_grade_validates_negative(self):
+    def test_04_grade_validates_negative(self, test_data):
         """Grade cannot be negative"""
-        if not test_data["teacher_token"] or not test_data["task_id"] or not test_data["submission_id"]:
-            pytest.skip("Missing required test data")
+        if not test_data.get("submission_id"):
+            pytest.skip("No submission_id available")
         response = requests.put(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions/{test_data['submission_id']}/grade",
             json={"grade": -5, "feedback": "Negative!"},
@@ -415,10 +348,10 @@ class TestGradeSubmission:
         assert response.status_code == 400, f"Expected 400, got {response.status_code}"
         print("✓ Grade validates negative values")
     
-    def test_05_teacher_can_grade(self):
+    def test_05_teacher_can_grade(self, test_data):
         """Teacher can grade a submission"""
-        if not test_data["teacher_token"] or not test_data["task_id"] or not test_data["submission_id"]:
-            pytest.skip("Missing required test data")
+        if not test_data.get("submission_id"):
+            pytest.skip("No submission_id available")
         response = requests.put(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions/{test_data['submission_id']}/grade",
             json={"grade": 18, "feedback": "Excellent work on this task!"},
@@ -432,10 +365,8 @@ class TestGradeSubmission:
         
         print("✓ Teacher can grade submission: 18/20")
     
-    def test_06_verify_grade_persisted(self):
+    def test_06_verify_grade_persisted(self, test_data):
         """Verify grade was persisted in database"""
-        if not test_data["admin_token"] or not test_data["task_id"]:
-            pytest.skip("Missing required test data")
         response = requests.get(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions",
             headers={"Authorization": f"Bearer {test_data['admin_token']}"}
@@ -463,10 +394,8 @@ class TestGradeSubmission:
 class TestGetPostsWithSubmissionsCount:
     """Test GET /api/course/{subject_id}/posts?post_type=task includes submissions_count"""
     
-    def test_01_get_tasks_includes_submissions_count(self):
+    def test_01_get_tasks_includes_submissions_count(self, test_data):
         """GET posts with post_type=task includes submissions_count"""
-        if not test_data["admin_token"] or not test_data["subject_id"]:
-            pytest.skip("Missing required test data")
         response = requests.get(
             f"{BASE_URL}/api/course/{test_data['subject_id']}/posts?post_type=task",
             headers={"Authorization": f"Bearer {test_data['admin_token']}"}
@@ -491,10 +420,8 @@ class TestGetPostsWithSubmissionsCount:
         
         print(f"✓ GET posts includes submissions_count: {test_task['submissions_count']}")
     
-    def test_02_get_all_posts_includes_submissions_count_for_tasks(self):
+    def test_02_get_all_posts_includes_submissions_count_for_tasks(self, test_data):
         """GET all posts (no filter) includes submissions_count for tasks"""
-        if not test_data["admin_token"] or not test_data["subject_id"]:
-            pytest.skip("Missing required test data")
         response = requests.get(
             f"{BASE_URL}/api/course/{test_data['subject_id']}/posts",
             headers={"Authorization": f"Bearer {test_data['admin_token']}"}
@@ -513,10 +440,8 @@ class TestGetPostsWithSubmissionsCount:
 class TestTaskWithTypeField:
     """Test that endpoints work with tasks using 'type' field (old system)"""
     
-    def test_01_verify_or_query_works(self):
+    def test_01_verify_or_query_works(self, test_data):
         """Verify the $or query works for tasks"""
-        if not test_data["admin_token"] or not test_data["task_id"]:
-            pytest.skip("Missing required test data")
         # This test verifies the $or query works for both field names
         response = requests.get(
             f"{BASE_URL}/api/course/tasks/{test_data['task_id']}/submissions",
@@ -530,15 +455,15 @@ class TestTaskWithTypeField:
 class TestCleanup:
     """Cleanup test data"""
     
-    def test_cleanup(self):
+    def test_cleanup(self, test_data):
         """Log test data for reference (no actual cleanup to preserve for debugging)"""
         print("\n=== Test Data Summary ===")
-        print(f"School ID: {test_data['school_id']}")
-        print(f"Subject ID: {test_data['subject_id']}")
-        print(f"Task ID: {test_data['task_id']}")
-        print(f"Submission ID: {test_data['submission_id']}")
-        print(f"Student ID: {test_data['student_user_id']}")
-        print(f"Teacher ID: {test_data['teacher_user_id']}")
+        print(f"School ID: {test_data.get('school_id')}")
+        print(f"Subject ID: {test_data.get('subject_id')}")
+        print(f"Task ID: {test_data.get('task_id')}")
+        print(f"Submission ID: {test_data.get('submission_id')}")
+        print(f"Student ID: {test_data.get('student_user_id')}")
+        print(f"Teacher ID: {test_data.get('teacher_user_id')}")
         print("=========================")
 
 
