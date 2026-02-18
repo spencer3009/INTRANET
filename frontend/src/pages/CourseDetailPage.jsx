@@ -7066,7 +7066,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
   if (selectedTask) {
     const dueDate = extractDueDate(selectedTask);
     const totalStudents = students?.length || 0;
-    const submitted = 0; // TODO: Get actual submission count
+    const submitted = selectedTask.submissions_count || 0; // Get actual submission count from API
     const notSubmitted = totalStudents - submitted;
     
     // Get author photo - can be photo_url or profile_pic
