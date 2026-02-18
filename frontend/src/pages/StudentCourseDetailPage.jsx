@@ -3161,6 +3161,10 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState("tablero");
   const [highlightedPostId, setHighlightedPostId] = useState(null);
   
+  // Success modal state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successModalContent, setSuccessModalContent] = useState({ title: "", message: "", type: "success" });
+  
   // Content states
   const [posts, setPosts] = useState([]);
   const [tasks, setTasks] = useState([]);
