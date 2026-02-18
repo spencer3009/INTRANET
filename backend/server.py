@@ -11147,11 +11147,18 @@ async def grade_task_submission(
     if data.feedback is not None:
         update_fields[f"submissions.{submission_idx}.feedback"] = data.feedback.strip()
     
+    logger.info(f"Updating task {task_id} with fields: {update_fields}")
+    
     # Update the submission
-    await db.course_posts.update_one(
-        {"id": task_id},
-        {"$set": update_fields}
-    )
+    try:
+        result = await db.course_posts.update_one(
+            {"id": task_id},
+            {"$set": update_fields}
+        )
+        logger.info(f"Update result: matched={result.matched_count}, modified={result.modified_count}")
+    except Exception as e:
+        logger.error(f"Database error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(e)}")
     
     return {
         "message": "Calificación guardada exitosamente",
