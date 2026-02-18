@@ -6921,13 +6921,105 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     return null;
   };
   
+  // State for editing submissions
+  const [editingGrades, setEditingGrades] = useState({});
+  const [savingGrade, setSavingGrade] = useState(null);
+  
+  // Handle grade/feedback change
+  const handleGradeChange = (submissionId, field, value) => {
+    setEditingGrades(prev => ({
+      ...prev,
+      [submissionId]: {
+        ...prev[submissionId],
+        [field]: value
+      }
+    }));
+  };
+  
+  // Save grade for a single submission
+  const saveSubmissionGrade = async (submissionId) => {
+    const edits = editingGrades[submissionId];
+    if (!edits) return;
+    
+    setSavingGrade(submissionId);
+    try {
+      await axios.put(
+        `${API}/course/tasks/${selectedTask.id}/submissions/${submissionId}/grade`,
+        {
+          grade: edits.grade !== undefined ? parseFloat(edits.grade) : undefined,
+          feedback: edits.feedback
+        },
+        { headers }
+      );
+      
+      // Update local state
+      setSubmissions(prev => prev.map(sub => {
+        if (sub.id === submissionId) {
+          return {
+            ...sub,
+            grade: edits.grade !== undefined ? parseFloat(edits.grade) : sub.grade,
+            teacherComment: edits.feedback !== undefined ? edits.feedback : sub.teacherComment
+          };
+        }
+        return sub;
+      }));
+      
+      // Clear editing state for this submission
+      setEditingGrades(prev => {
+        const next = { ...prev };
+        delete next[submissionId];
+        return next;
+      });
+      
+    } catch (err) {
+      console.error('Error saving grade:', err);
+      alert('Error al guardar la calificación');
+    } finally {
+      setSavingGrade(null);
+    }
+  };
+  
+  // Download submission file
+  const handleDownloadSubmissionFile = async (submission) => {
+    try {
+      if (submission.storage_type === 'google_drive' && submission.drive_file_id) {
+        // Download from Google Drive via our backend
+        const response = await axios.get(
+          `${API}/course/tasks/${selectedTask.id}/submissions/${submission.id}/download`,
+          { 
+            headers,
+            responseType: 'blob'
+          }
+        );
+        
+        const blob = new Blob([response.data]);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = submission.file || 'archivo';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } else if (submission.file_url) {
+        // Direct download for Cloudinary or other URLs
+        window.open(submission.file_url, '_blank');
+      }
+    } catch (err) {
+      console.error('Error downloading file:', err);
+      alert('Error al descargar el archivo');
+    }
+  };
+  
   // Submissions View
   if (selectedTask && viewMode === 'submissions') {
+    const maxGrade = taskSubmissionsData?.max_grade || selectedTask?.max_grade || selectedTask?.metadata?.points || 20;
+    
     return (
       <div className="space-y-4 pt-6 pb-48">
         {/* Back button */}
         <button
-          onClick={() => { setViewMode('detail'); }}
+          onClick={() => { setViewMode('detail'); setEditingGrades({}); }}
           className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-medium transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
@@ -6939,17 +7031,22 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
           <div>
             <h2 className="text-2xl font-bold text-slate-800">Entregas</h2>
             <p className="text-slate-500 mt-1">{selectedTask.title}</p>
+            {taskSubmissionsData && (
+              <p className="text-sm text-slate-400 mt-1">
+                {taskSubmissionsData.submissions_count} entregadas • {taskSubmissionsData.graded_count} calificadas • Nota máxima: {maxGrade}
+              </p>
+            )}
           </div>
         </div>
         
         {/* Submissions Table */}
         <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-          {/* Table Header */}
-          <div className="bg-gradient-to-r from-blue-500 to-indigo-500 px-6 py-4">
+          {/* Table Header - Teal color from reference image */}
+          <div className="bg-gradient-to-r from-teal-500 to-teal-600 px-6 py-4">
             <div className="grid grid-cols-12 gap-4 text-sm font-semibold text-white uppercase tracking-wider">
               <div className="col-span-2">Estudiante</div>
-              <div className="col-span-2">Comentario del estudiante</div>
-              <div className="col-span-2">Estado de la entrega</div>
+              <div className="col-span-3">Comentario del estudiante</div>
+              <div className="col-span-1">Estado</div>
               <div className="col-span-2">Archivo/Respuesta</div>
               <div className="col-span-2">Comentario del profesor</div>
               <div className="col-span-2">Nota</div>
@@ -6960,19 +7057,23 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
           <div className="divide-y divide-slate-100">
             {loadingSubmissions ? (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+                <Loader2 className="w-8 h-8 animate-spin text-teal-500" />
               </div>
             ) : submissions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                  <Users className="w-10 h-10 text-slate-400" />
+                  <FileText className="w-10 h-10 text-slate-400" />
                 </div>
-                <h3 className="text-lg font-semibold text-slate-700 mb-2">No hay estudiantes</h3>
-                <p className="text-slate-400">No hay estudiantes matriculados en este curso</p>
+                <h3 className="text-lg font-semibold text-slate-700 mb-2">No hay entregas</h3>
+                <p className="text-slate-400">Ningún estudiante ha entregado esta tarea aún</p>
               </div>
             ) : (
               submissions.map((submission) => {
-                const studentPhoto = submission.student?.photo_url || submission.student?.profile_pic;
+                const studentPhoto = submission.student?.photo_url;
+                const currentGrade = editingGrades[submission.id]?.grade ?? submission.grade;
+                const currentFeedback = editingGrades[submission.id]?.feedback ?? submission.teacherComment;
+                const hasChanges = editingGrades[submission.id] !== undefined;
+                
                 return (
                   <div key={submission.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
                     {/* Student */}
@@ -6992,36 +7093,32 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     </div>
                     
                     {/* Student Comment */}
-                    <div className="col-span-2">
-                      <input
-                        type="text"
-                        placeholder="Sin comentario"
-                        value={submission.comment}
-                        readOnly
-                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-600 placeholder:text-slate-400"
-                      />
+                    <div className="col-span-3">
+                      <p className="text-sm text-slate-600 bg-slate-50 px-3 py-2 rounded-lg min-h-[40px]">
+                        {submission.comment || <span className="text-slate-400 italic">Sin comentario</span>}
+                      </p>
                     </div>
                     
                     {/* Status */}
-                    <div className="col-span-2">
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                        submission.status === 'Entregado' 
-                          ? 'bg-emerald-100 text-emerald-700' 
+                    <div className="col-span-1">
+                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold ${
+                        submission.status === 'A tiempo' 
+                          ? 'bg-amber-100 text-amber-700' 
                           : 'bg-red-100 text-red-700'
                       }`}>
-                        <span className={`w-2 h-2 rounded-full ${
-                          submission.status === 'Entregado' ? 'bg-emerald-500' : 'bg-red-500'
-                        }`}></span>
-                        {submission.status}
+                        {submission.status === 'A tiempo' ? 'A TIEMPO' : 'TARDE'}
                       </span>
                     </div>
                     
                     {/* File/Response */}
                     <div className="col-span-2">
                       {submission.file ? (
-                        <button className="flex items-center gap-2 px-3 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg text-sm font-medium transition-colors">
+                        <button 
+                          onClick={() => handleDownloadSubmissionFile(submission)}
+                          className="flex items-center gap-2 px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-lg text-xs font-semibold transition-colors"
+                        >
                           <FileText className="w-4 h-4" />
-                          {submission.file}
+                          VER ARCHIVOS
                         </button>
                       ) : (
                         <span className="text-slate-400 text-sm">Sin archivo</span>
@@ -7033,17 +7130,38 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                       <input
                         type="text"
                         placeholder="Agregar comentario..."
-                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-400"
+                        value={currentFeedback}
+                        onChange={(e) => handleGradeChange(submission.id, 'feedback', e.target.value)}
+                        className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-teal-400"
                       />
                     </div>
                     
                     {/* Grade */}
-                    <div className="col-span-2">
+                    <div className="col-span-2 flex items-center gap-2">
                       <input
-                        type="text"
+                        type="number"
                         placeholder="--"
-                        className="w-20 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-blue-400 text-center"
+                        min="0"
+                        max={maxGrade}
+                        value={currentGrade}
+                        onChange={(e) => handleGradeChange(submission.id, 'grade', e.target.value)}
+                        className="w-16 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-teal-400 text-center"
                       />
+                      <span className="text-slate-400 text-sm">/ {maxGrade}</span>
+                      {hasChanges && (
+                        <button
+                          onClick={() => saveSubmissionGrade(submission.id)}
+                          disabled={savingGrade === submission.id}
+                          className="p-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors disabled:opacity-50"
+                          title="Guardar"
+                        >
+                          {savingGrade === submission.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -7052,12 +7170,21 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
           </div>
         </div>
         
-        {/* Apply Button */}
-        <div className="flex justify-end">
-          <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white rounded-xl font-semibold transition-all shadow-lg shadow-blue-500/25">
-            Aplicar
-          </button>
-        </div>
+        {/* Apply All Button (optional - saves all pending changes) */}
+        {Object.keys(editingGrades).length > 0 && (
+          <div className="flex justify-end">
+            <button 
+              onClick={async () => {
+                for (const submissionId of Object.keys(editingGrades)) {
+                  await saveSubmissionGrade(submissionId);
+                }
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-teal-500 to-teal-600 hover:from-teal-600 hover:to-teal-700 text-white rounded-xl font-semibold transition-all shadow-lg shadow-teal-500/25"
+            >
+              Aplicar todas las calificaciones
+            </button>
+          </div>
+        )}
       </div>
     );
   }
