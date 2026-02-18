@@ -2159,10 +2159,31 @@ function TaskFileDownload({ task, token }) {
 }
 
 // Material Content - Card view like owner's portal (Read-only)
-function MaterialContent({ materials, token }) {
+function MaterialContent({ materials, token, highlightedPostId, onClearHighlight }) {
   const [downloading, setDownloading] = useState(null);
+  const [highlightedMaterialId, setHighlightedMaterialId] = useState(null);
   const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Highlight material if navigated from feed
+  useEffect(() => {
+    if (highlightedPostId) {
+      const materialExists = materials.find(m => m.id === highlightedPostId);
+      if (materialExists) {
+        setHighlightedMaterialId(highlightedPostId);
+        // Scroll to highlighted material after a short delay
+        setTimeout(() => {
+          const element = document.getElementById(`material-${highlightedPostId}`);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+        if (onClearHighlight) onClearHighlight();
+        // Clear highlight after 3 seconds
+        setTimeout(() => setHighlightedMaterialId(null), 3000);
+      }
+    }
+  }, [highlightedPostId, materials, onClearHighlight]);
   
   if (materials.length === 0) {
     return (
