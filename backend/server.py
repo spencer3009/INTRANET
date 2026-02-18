@@ -11073,11 +11073,14 @@ async def grade_task_submission(
     Grade a student's submission.
     Teachers/owners can set a grade and feedback for each submission.
     """
+    logger.info(f"Grading submission: task_id={task_id}, submission_id={submission_id}, data={data}")
+    
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     school_id = user["school_id"]
+    logger.info(f"User school_id: {school_id}, user_role: {user.get('role')}")
     
     # Only admin/teacher can grade
     if not is_admin_user(user) and user.get("role") != "teacher":
@@ -11090,18 +11093,24 @@ async def grade_task_submission(
         "$or": [{"post_type": "task"}, {"type": "task"}]
     }, {"_id": 0})
     
+    logger.info(f"Task found: {task is not None}")
+    
     if not task:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
     
     # Find the submission
     submissions = task.get("submissions", [])
+    logger.info(f"Number of submissions: {len(submissions)}")
+    
     submission_idx = None
     for idx, sub in enumerate(submissions):
+        logger.info(f"Checking submission {idx}: id={sub.get('id')}")
         if sub.get("id") == submission_id:
             submission_idx = idx
             break
     
     if submission_idx is None:
+        logger.error(f"Submission not found: {submission_id}")
         raise HTTPException(status_code=404, detail="Entrega no encontrada")
     
     # Validate grade against max_grade
