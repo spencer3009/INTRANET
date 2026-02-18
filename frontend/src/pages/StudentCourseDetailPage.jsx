@@ -3077,6 +3077,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const [subject, setSubject] = useState(null);
   const [teacher, setTeacher] = useState(null);
   const [activeTab, setActiveTab] = useState("tablero");
+  const [highlightedPostId, setHighlightedPostId] = useState(null);
   
   // Content states
   const [posts, setPosts] = useState([]);
@@ -3088,6 +3089,14 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const [reminders, setReminders] = useState([]);
 
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Function to navigate to detail view from feed
+  const handleNavigateToDetail = (tab, postId) => {
+    setActiveTab(tab);
+    setHighlightedPostId(postId);
+    // Scroll to top of content area
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   useEffect(() => {
     loadData();
