@@ -32,7 +32,8 @@ test_data = {
     "submission_id": None,
     "admin_user_id": None,
     "student_user_id": None,
-    "teacher_user_id": None
+    "teacher_user_id": None,
+    "level_id": None
 }
 
 
@@ -62,7 +63,7 @@ class TestSetup:
         assert response.status_code == 200, f"Verify failed: {response.text}"
         token = response.json().get("token")
         
-        # Create school
+        # Create school (this also seeds demo data including academic levels)
         subdomain = f"tasktest{unique_id}"
         response = requests.post(
             f"{BASE_URL}/api/schools/create",
@@ -78,18 +79,35 @@ class TestSetup:
         
         print(f"✓ School created: {subdomain}, ID: {test_data['school_id']}")
     
-    def test_02_create_student_user(self):
+    def test_02_get_academic_level(self):
+        """Get an academic level from seeded data"""
+        response = requests.get(
+            f"{BASE_URL}/api/academic/levels",
+            headers={"Authorization": f"Bearer {test_data['admin_token']}"}
+        )
+        assert response.status_code == 200, f"Get levels failed: {response.text}"
+        data = response.json()
+        
+        # Get the first level
+        levels = data if isinstance(data, list) else data.get("levels", [])
+        assert len(levels) > 0, "Should have at least one academic level"
+        test_data["level_id"] = levels[0].get("id")
+        
+        print(f"✓ Got academic level: {test_data['level_id']}")
+    
+    def test_03_create_student_user(self):
         """Create a student user for testing submissions"""
         unique_id = str(uuid.uuid4())[:8]
-        student_email = f"student_{unique_id}@test.pe"
+        student_username = f"student_{unique_id}"
         
-        # Use /api/users endpoint (correct endpoint)
+        # Use /api/users endpoint with required username field
         response = requests.post(
             f"{BASE_URL}/api/users",
             json={
+                "username": student_username,
                 "name": "Test",
                 "last_name": "Student",
-                "email": student_email,
+                "email": f"{student_username}@test.pe",
                 "password": "test123456",
                 "role": "student"
             },
@@ -101,7 +119,7 @@ class TestSetup:
         
         # Login as student to get token
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": student_email,
+            "email": student_username,  # Can login with username
             "password": "test123456"
         })
         assert response.status_code == 200, f"Student login failed: {response.text}"
@@ -109,18 +127,19 @@ class TestSetup:
         
         print(f"✓ Student created: {test_data['student_user_id']}")
     
-    def test_03_create_teacher_user(self):
+    def test_04_create_teacher_user(self):
         """Create a teacher user for testing grading"""
         unique_id = str(uuid.uuid4())[:8]
-        teacher_email = f"teacher_{unique_id}@test.pe"
+        teacher_username = f"teacher_{unique_id}"
         
-        # Use /api/users endpoint (correct endpoint)
+        # Use /api/users endpoint with required username field
         response = requests.post(
             f"{BASE_URL}/api/users",
             json={
+                "username": teacher_username,
                 "name": "Test",
                 "last_name": "Teacher",
-                "email": teacher_email,
+                "email": f"{teacher_username}@test.pe",
                 "password": "test123456",
                 "role": "teacher"
             },
@@ -132,7 +151,7 @@ class TestSetup:
         
         # Login as teacher to get token
         response = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": teacher_email,
+            "email": teacher_username,  # Can login with username
             "password": "test123456"
         })
         assert response.status_code == 200, f"Teacher login failed: {response.text}"
@@ -140,14 +159,18 @@ class TestSetup:
         
         print(f"✓ Teacher created: {test_data['teacher_user_id']}")
     
-    def test_04_create_subject(self):
+    def test_05_create_subject(self):
         """Create a subject for tasks"""
-        # Use /api/academic/subjects endpoint (correct endpoint)
+        unique_id = str(uuid.uuid4())[:8]
+        
+        # Use /api/academic/subjects endpoint with required fields
         response = requests.post(
             f"{BASE_URL}/api/academic/subjects",
             json={
-                "name": "Test Subject for Tasks",
+                "name": f"Test Subject {unique_id}",
+                "code": f"TST{unique_id[:4].upper()}",
                 "description": "Subject for testing task submissions",
+                "level_id": test_data["level_id"],
                 "color": "#3B82F6"
             },
             headers={"Authorization": f"Bearer {test_data['admin_token']}"}
@@ -158,7 +181,7 @@ class TestSetup:
         
         print(f"✓ Subject created: {test_data['subject_id']}")
     
-    def test_05_create_task_with_post_type(self):
+    def test_06_create_task_with_post_type(self):
         """Create a task using post_type='task' (new system)"""
         due_date = (datetime.now(timezone.utc) + timedelta(days=7)).isoformat()
         
