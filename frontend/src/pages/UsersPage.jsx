@@ -1373,10 +1373,21 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Edit student extended states
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [editPassword, setEditPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showEditPassword, setShowEditPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showParentSection, setShowParentSection] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState("");
+  const [parentSearchQuery, setParentSearchQuery] = useState("");
+  const [showParentDropdown, setShowParentDropdown] = useState(false);
   const [showExtraInfoSection, setShowExtraInfoSection] = useState(false);
+  
+  // Filter parents based on search query
+  const filteredParents = users.filter(u => 
+    u.role === 'parent' && 
+    (`${u.name} ${u.last_name}`.toLowerCase().includes(parentSearchQuery.toLowerCase()) ||
+     (u.email && u.email.toLowerCase().includes(parentSearchQuery.toLowerCase())))
+  );
   
   // Password strength calculation
   const calculatePasswordStrength = (password) => {
@@ -1422,6 +1433,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     // Shuffle the password
     password = password.split('').sort(() => Math.random() - 0.5).join('');
     setEditPassword(password);
+    setConfirmPassword(password); // Auto-fill confirm when generating
   };
   
   const headers = { Authorization: `Bearer ${token}` };
