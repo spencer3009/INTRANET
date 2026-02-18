@@ -7153,7 +7153,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     </div>
                     
                     {/* Grade */}
-                    <div className="col-span-2 flex items-center gap-2">
+                    <div className="col-span-2 flex items-center gap-1">
                       <input
                         type="number"
                         placeholder="--"
@@ -7161,20 +7161,20 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                         max={maxGrade}
                         value={currentGrade}
                         onChange={(e) => handleGradeChange(submission.id, 'grade', e.target.value)}
-                        className="w-16 px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-teal-400 text-center"
+                        className="w-12 px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-xs text-slate-700 placeholder:text-slate-400 focus:outline-none focus:border-teal-400 text-center"
                       />
-                      <span className="text-slate-400 text-sm">/ {maxGrade}</span>
+                      <span className="text-slate-400 text-xs">/{maxGrade}</span>
                       {hasChanges && (
                         <button
                           onClick={() => saveSubmissionGrade(submission.id)}
                           disabled={savingGrade === submission.id}
-                          className="p-1.5 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors disabled:opacity-50"
+                          className="p-1 bg-teal-500 hover:bg-teal-600 text-white rounded-lg transition-colors disabled:opacity-50"
                           title="Guardar"
                         >
                           {savingGrade === submission.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-3 h-3 animate-spin" />
                           ) : (
-                            <Check className="w-4 h-4" />
+                            <Check className="w-3 h-3" />
                           )}
                         </button>
                       )}
