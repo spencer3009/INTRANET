@@ -2756,6 +2756,8 @@ async def submit_task(
     file_url = None
     file_name = None
     file_type = None
+    drive_file_id = None
+    storage_type = None
     
     if file:
         # Read file content
@@ -2763,19 +2765,81 @@ async def submit_task(
         file_name = file.filename
         file_type = file.content_type
         
-        # Upload to Cloudinary (if available) or store locally
-        try:
-            import cloudinary.uploader
-            result = cloudinary.uploader.upload(
-                content,
-                folder=f"edunet/submissions/{task_id}",
-                resource_type="auto",
-                public_id=f"{student_id}_{file_name}"
-            )
-            file_url = result.get("secure_url")
-        except Exception as e:
-            # If Cloudinary fails, we'll just store the reference
-            file_url = f"/uploads/submissions/{task_id}/{student_id}_{file_name}"
+        # Check if school has Google Drive connected
+        school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+        use_google_drive = school and school.get("google_drive_connected")
+        
+        if use_google_drive:
+            # Upload to Google Drive
+            try:
+                service = await get_drive_service(school_id)
+                
+                # Get or create submissions folder
+                materials_folder_id = school.get("google_drive_materials_folder_id")
+                if materials_folder_id:
+                    # Create a subfolder for submissions if it doesn't exist
+                    submissions_folder_query = f"name='Entregas' and '{materials_folder_id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false"
+                    results = service.files().list(q=submissions_folder_query, fields="files(id)").execute()
+                    submissions_folders = results.get('files', [])
+                    
+                    if submissions_folders:
+                        submissions_folder_id = submissions_folders[0]['id']
+                    else:
+                        # Create submissions folder
+                        folder_metadata = {
+                            'name': 'Entregas',
+                            'mimeType': 'application/vnd.google-apps.folder',
+                            'parents': [materials_folder_id]
+                        }
+                        folder = service.files().create(body=folder_metadata, fields='id').execute()
+                        submissions_folder_id = folder.get('id')
+                    
+                    # Upload file to Drive
+                    file_ext = file_name.split(".")[-1].lower() if "." in file_name else ""
+                    mime_type = MIME_TYPE_MAP.get(file_ext, file_type or "application/octet-stream")
+                    
+                    file_metadata = {
+                        'name': f"{student_id}_{file_name}",
+                        'parents': [submissions_folder_id]
+                    }
+                    
+                    media = MediaIoBaseUpload(
+                        io.BytesIO(content),
+                        mimetype=mime_type,
+                        resumable=True
+                    )
+                    
+                    drive_file = service.files().create(
+                        body=file_metadata,
+                        media_body=media,
+                        fields='id, name'
+                    ).execute()
+                    
+                    drive_file_id = drive_file.get('id')
+                    storage_type = 'google_drive'
+                    logger.info(f"Student submission uploaded to Drive: {file_name} for task {task_id}")
+                else:
+                    raise Exception("No materials folder configured")
+                    
+            except Exception as e:
+                logger.warning(f"Failed to upload to Drive, falling back to Cloudinary: {e}")
+                use_google_drive = False
+        
+        # Fallback to Cloudinary if Drive is not available or failed
+        if not use_google_drive or not drive_file_id:
+            try:
+                import cloudinary.uploader
+                result = cloudinary.uploader.upload(
+                    content,
+                    folder=f"edunet/submissions/{task_id}",
+                    resource_type="auto",
+                    public_id=f"{student_id}_{file_name}"
+                )
+                file_url = result.get("secure_url")
+                storage_type = 'cloudinary'
+            except Exception as e:
+                logger.error(f"Cloudinary upload failed: {e}")
+                raise HTTPException(status_code=500, detail="Error al subir el archivo")
     
     now = datetime.now(timezone.utc).isoformat()
     
@@ -2788,6 +2852,8 @@ async def submit_task(
         "file_url": file_url,
         "file_name": file_name,
         "file_type": file_type,
+        "drive_file_id": drive_file_id,
+        "storage_type": storage_type,
         "submitted_at": now,
         "grade": None,
         "feedback": None
@@ -2801,7 +2867,8 @@ async def submit_task(
     
     return {
         "message": "Tarea entregada exitosamente",
-        "submission_id": submission["id"]
+        "submission_id": submission["id"],
+        "storage_type": storage_type
     }
 
 # Admin Exams Endpoints
