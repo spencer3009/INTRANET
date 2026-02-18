@@ -937,7 +937,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
         {allActivity.length > 0 ? (
           <div className="space-y-4">
             {displayedActivity.map((item) => (
-              <PostCard key={item.id} post={item} token={token} user={user} />
+              <PostCard key={item.id} post={item} token={token} user={user} onNavigateToDetail={onNavigateToDetail} />
             ))}
             
             {/* Load More Button */}
