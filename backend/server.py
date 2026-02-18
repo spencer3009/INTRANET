@@ -2710,11 +2710,11 @@ async def submit_task(
     school_id = user["school_id"]
     student_id = user["id"]
     
-    # Find the task
+    # Find the task - support both "type" (old system) and "post_type" (new system)
     task = await db.course_posts.find_one({
         "id": task_id, 
         "school_id": school_id, 
-        "post_type": "task"
+        "$or": [{"post_type": "task"}, {"type": "task"}]
     })
     if not task:
         raise HTTPException(status_code=404, detail="Tarea no encontrada")
@@ -2885,11 +2885,11 @@ async def download_submission_file(
     
     school_id = user["school_id"]
     
-    # Find the task
+    # Find the task - support both "type" (old system) and "post_type" (new system)
     task = await db.course_posts.find_one({
         "id": task_id,
         "school_id": school_id,
-        "post_type": "task"
+        "$or": [{"post_type": "task"}, {"type": "task"}]
     }, {"_id": 0})
     
     if not task:
