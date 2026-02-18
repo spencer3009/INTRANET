@@ -1597,15 +1597,18 @@ function TaskTimePicker({ value, onChange, label }) {
   const [hours, setHours] = useState(value ? parseInt(value.split(':')[0]) : 23);
   const [minutes, setMinutes] = useState(value ? parseInt(value.split(':')[1]) : 59);
   const [seconds, setSeconds] = useState(value && value.split(':')[2] ? parseInt(value.split(':')[2]) : 0);
+  const [isPM, setIsPM] = useState(value ? parseInt(value.split(':')[0]) >= 12 : true);
   const [selectingMode, setSelectingMode] = useState('hours'); // 'hours', 'minutes', 'seconds'
   const dialRef = useRef(null);
   
   useEffect(() => {
     if (value) {
       const parts = value.split(':');
-      setHours(parseInt(parts[0]) || 0);
+      const hour24 = parseInt(parts[0]) || 0;
+      setHours(hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24);
       setMinutes(parseInt(parts[1]) || 0);
       setSeconds(parseInt(parts[2]) || 0);
+      setIsPM(hour24 >= 12);
     }
   }, [value]);
   
@@ -1623,7 +1626,7 @@ function TaskTimePicker({ value, onChange, label }) {
     
     if (selectingMode === 'hours') {
       const hour = Math.round(angle / 30) % 12 || 12;
-      setHours(hour > 12 ? hour - 12 : hour);
+      setHours(hour);
     } else if (selectingMode === 'minutes') {
       const minute = Math.round(angle / 6) % 60;
       setMinutes(minute);
@@ -1634,7 +1637,12 @@ function TaskTimePicker({ value, onChange, label }) {
   };
   
   const confirmTime = () => {
-    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    // Convert to 24-hour format
+    let hour24 = hours;
+    if (isPM && hours !== 12) hour24 = hours + 12;
+    if (!isPM && hours === 12) hour24 = 0;
+    
+    const timeStr = `${hour24.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     onChange(timeStr);
     setIsOpen(false);
   };
@@ -1656,8 +1664,18 @@ function TaskTimePicker({ value, onChange, label }) {
       ? minutes * 6 
       : seconds * 6;
   
-  // Format display time
-  const displayTime = value || "23:59";
+  // Format display time in 12-hour format with AM/PM
+  const formatDisplayTime = () => {
+    if (!value) return "11:59 PM";
+    const parts = value.split(':');
+    const hour24 = parseInt(parts[0]) || 0;
+    const min = parseInt(parts[1]) || 0;
+    const hour12 = hour24 > 12 ? hour24 - 12 : hour24 === 0 ? 12 : hour24;
+    const ampm = hour24 >= 12 ? 'PM' : 'AM';
+    return `${hour12.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')} ${ampm}`;
+  };
+  
+  const displayTime = formatDisplayTime();
   
   return (
     <div className="relative">
