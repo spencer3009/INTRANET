@@ -2871,6 +2871,100 @@ async def submit_task(
         "storage_type": storage_type
     }
 
+
+@api_router.get("/course/tasks/{task_id}/submissions/{submission_id}/download")
+async def download_submission_file(
+    task_id: str,
+    submission_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Download a student's submission file (works with both Google Drive and Cloudinary)."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Find the task
+    task = await db.course_posts.find_one({
+        "id": task_id,
+        "school_id": school_id,
+        "post_type": "task"
+    }, {"_id": 0})
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="Tarea no encontrada")
+    
+    # Find the submission
+    submission = None
+    for sub in task.get("submissions", []):
+        if sub.get("id") == submission_id:
+            submission = sub
+            break
+    
+    if not submission:
+        raise HTTPException(status_code=404, detail="Entrega no encontrada")
+    
+    # Check if user has permission (admin/teacher or the student who submitted)
+    is_admin = is_admin_user(user)
+    is_owner = submission.get("student_id") == user.get("id")
+    
+    if not is_admin and not is_owner:
+        raise HTTPException(status_code=403, detail="No tienes permiso para descargar este archivo")
+    
+    # Check storage type
+    storage_type = submission.get("storage_type")
+    drive_file_id = submission.get("drive_file_id")
+    file_url = submission.get("file_url")
+    file_name = submission.get("file_name", "archivo")
+    
+    if storage_type == "google_drive" and drive_file_id:
+        # Download from Google Drive
+        try:
+            service = await get_drive_service(school_id)
+            
+            # Get file metadata
+            file_metadata = service.files().get(fileId=drive_file_id, fields='mimeType, size').execute()
+            mime_type = file_metadata.get('mimeType', 'application/octet-stream')
+            
+            # Stream the file
+            request = service.files().get_media(fileId=drive_file_id)
+            
+            def generate():
+                downloader = MediaIoBaseDownload(io.BytesIO(), request, chunksize=1024*1024)
+                fh = io.BytesIO()
+                downloader = MediaIoBaseDownload(fh, request)
+                done = False
+                while not done:
+                    status, done = downloader.next_chunk()
+                    if status:
+                        fh.seek(0)
+                        yield fh.read()
+                        fh.seek(0)
+                        fh.truncate()
+                fh.seek(0)
+                yield fh.read()
+            
+            return StreamingResponse(
+                generate(),
+                media_type=mime_type,
+                headers={
+                    "Content-Disposition": f'attachment; filename="{file_name}"'
+                }
+            )
+        except Exception as e:
+            logger.error(f"Error downloading from Drive: {e}")
+            raise HTTPException(status_code=500, detail="Error al descargar desde Google Drive")
+    
+    elif file_url:
+        # Redirect to Cloudinary URL or return the URL
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(url=file_url)
+    
+    else:
+        raise HTTPException(status_code=404, detail="Archivo no encontrado")
+
+
 # Admin Exams Endpoints
 @api_router.get("/admin/exams")
 async def get_admin_exams(
