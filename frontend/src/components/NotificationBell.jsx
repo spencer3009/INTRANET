@@ -259,9 +259,10 @@ export default function NotificationBell({ token }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState({ important: [], upcoming: [], new: [], total_count: 0 });
   const [generalNotifications, setGeneralNotifications] = useState({ notifications: [], unread_count: 0 });
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
-  const [activeTab, setActiveTab] = useState("all"); // "all" or "reminders"
+  const [activeTab, setActiveTab] = useState("all"); // "all", "reminders", or "messages"
   const dropdownRef = useRef(null);
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -271,13 +272,15 @@ export default function NotificationBell({ token }) {
     if (!token) return;
     setLoading(true);
     try {
-      // Load both reminder notifications and general notifications
-      const [remindersRes, generalRes] = await Promise.all([
+      // Load reminder notifications, general notifications, and unread messages
+      const [remindersRes, generalRes, messagesRes] = await Promise.all([
         axios.get(`${API}/notifications/reminders`, { headers }),
-        axios.get(`${API}/notifications/all`, { headers }).catch(() => ({ data: { notifications: [], unread_count: 0 } }))
+        axios.get(`${API}/notifications/all`, { headers }).catch(() => ({ data: { notifications: [], unread_count: 0 } })),
+        axios.get(`${API}/api/internal-mail/stats`, { headers }).catch(() => ({ data: { unread: 0 } }))
       ]);
       setNotifications(remindersRes.data);
       setGeneralNotifications(generalRes.data);
+      setUnreadMessages(messagesRes.data.unread || 0);
     } catch (err) {
       console.error("Error loading notifications:", err);
     } finally {
