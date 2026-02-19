@@ -15776,6 +15776,425 @@ async def get_mail_stats(current_user = Depends(get_current_user)):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# STUDENT PORTAL - MESSAGES (Course Context)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/student-portal/messages/allowed-recipients")
+async def get_student_allowed_recipients(course_id: str, current_user = Depends(get_current_user)):
+    """Get allowed recipients for a student within a course context"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Solo estudiantes pueden acceder a este endpoint")
+    
+    # Get course info
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    # Get subject name
+    subject = await db.subjects.find_one({"id": course.get("subject_id")}, {"_id": 0, "name": 1})
+    subject_name = subject.get("name") if subject else "Asignatura"
+    
+    allowed_recipients = []
+    
+    # 1. Add teacher of the course
+    if course.get("teacher_id"):
+        teacher = await db.users.find_one(
+            {"id": course["teacher_id"]},
+            {"_id": 0, "id": 1, "name": 1, "first_name": 1, "last_name": 1, "email": 1, "photo_url": 1, "role": 1}
+        )
+        if teacher:
+            full_name = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip() or teacher.get('first_name', '')
+            allowed_recipients.append({
+                "id": teacher["id"],
+                "name": full_name,
+                "email": teacher.get("email"),
+                "photo_url": teacher.get("photo_url"),
+                "role": "teacher",
+                "course_name": subject_name
+            })
+    
+    # 2. Add classmates (students enrolled in the same course/section)
+    # Get section_id from course
+    section_id = course.get("section_id")
+    
+    # Get all enrollments for this course
+    enrollments = await db.enrollments.find(
+        {"course_id": course_id},
+        {"_id": 0, "student_id": 1}
+    ).to_list(100)
+    
+    student_ids = [e["student_id"] for e in enrollments if e["student_id"] != user["id"]]
+    
+    if student_ids:
+        classmates = await db.users.find(
+            {"id": {"$in": student_ids}, "is_active": {"$ne": False}},
+            {"_id": 0, "id": 1, "name": 1, "first_name": 1, "last_name": 1, "email": 1, "photo_url": 1, "role": 1}
+        ).to_list(100)
+        
+        for student in classmates:
+            full_name = f"{student.get('name', '')} {student.get('last_name', '')}".strip() or student.get('first_name', '')
+            allowed_recipients.append({
+                "id": student["id"],
+                "name": full_name,
+                "email": student.get("email"),
+                "photo_url": student.get("photo_url"),
+                "role": "student"
+            })
+    
+    return {"recipients": allowed_recipients, "course_name": subject_name}
+
+
+@api_router.get("/student-portal/messages/inbox")
+async def get_student_messages_inbox(
+    course_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    current_user = Depends(get_current_user)
+):
+    """Get inbox messages for a student within a course context"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get course and allowed users
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    # Get allowed user IDs (teacher + classmates)
+    allowed_ids = []
+    if course.get("teacher_id"):
+        allowed_ids.append(course["teacher_id"])
+    
+    enrollments = await db.enrollments.find({"course_id": course_id}, {"_id": 0, "student_id": 1}).to_list(100)
+    allowed_ids.extend([e["student_id"] for e in enrollments])
+    
+    # Pipeline to get messages where:
+    # 1. User is a recipient
+    # 2. Sender is in allowed_ids (course context)
+    pipeline = [
+        {
+            "$match": {
+                "recipients": {
+                    "$elemMatch": {
+                        "user_id": user["id"],
+                        "is_deleted": {"$ne": True},
+                        "is_archived": {"$ne": True}
+                    }
+                },
+                "sender_id": {"$in": allowed_ids}
+            }
+        },
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit}
+    ]
+    
+    messages = await db.internal_mail.aggregate(pipeline).to_list(limit)
+    
+    # Enrich with sender info
+    result = []
+    for msg in messages:
+        sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1})
+        
+        recipient_entry = next((r for r in msg.get("recipients", []) if r["user_id"] == user["id"]), None)
+        
+        result.append({
+            "id": msg["id"],
+            "subject": msg["subject"],
+            "body": msg["body"][:200] + "..." if len(msg.get("body", "")) > 200 else msg.get("body", ""),
+            "sender": {
+                "id": sender["id"] if sender else msg["sender_id"],
+                "name": f"{sender.get('name', '')} {sender.get('last_name', '')}".strip() if sender else "Usuario",
+                "photo_url": sender.get("photo_url") if sender else None,
+                "role": sender.get("role") if sender else None
+            },
+            "is_read": recipient_entry.get("is_read", False) if recipient_entry else False,
+            "is_starred": recipient_entry.get("is_starred", False) if recipient_entry else False,
+            "created_at": msg["created_at"],
+            "thread_id": msg.get("thread_id")
+        })
+    
+    # Total count
+    total_pipeline = [
+        {
+            "$match": {
+                "recipients": {
+                    "$elemMatch": {
+                        "user_id": user["id"],
+                        "is_deleted": {"$ne": True},
+                        "is_archived": {"$ne": True}
+                    }
+                },
+                "sender_id": {"$in": allowed_ids}
+            }
+        },
+        {"$count": "total"}
+    ]
+    total_result = await db.internal_mail.aggregate(total_pipeline).to_list(1)
+    total = total_result[0]["total"] if total_result else 0
+    
+    return {"messages": result, "total": total}
+
+
+@api_router.get("/student-portal/messages/sent")
+async def get_student_messages_sent(
+    course_id: str,
+    skip: int = 0,
+    limit: int = 50,
+    current_user = Depends(get_current_user)
+):
+    """Get sent messages for a student within a course context"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get course and allowed users
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    # Get allowed user IDs
+    allowed_ids = []
+    if course.get("teacher_id"):
+        allowed_ids.append(course["teacher_id"])
+    
+    enrollments = await db.enrollments.find({"course_id": course_id}, {"_id": 0, "student_id": 1}).to_list(100)
+    allowed_ids.extend([e["student_id"] for e in enrollments])
+    
+    # Get sent messages where at least one recipient is in allowed_ids
+    messages = await db.internal_mail.find(
+        {
+            "sender_id": user["id"],
+            "recipients.user_id": {"$in": allowed_ids}
+        },
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    result = []
+    for msg in messages:
+        # Get first recipient info
+        first_recipient_id = msg["recipients"][0]["user_id"] if msg.get("recipients") else None
+        recipient = await db.users.find_one({"id": first_recipient_id}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}) if first_recipient_id else None
+        
+        result.append({
+            "id": msg["id"],
+            "subject": msg["subject"],
+            "body": msg["body"][:200] + "..." if len(msg.get("body", "")) > 200 else msg.get("body", ""),
+            "recipient": {
+                "id": recipient["id"] if recipient else first_recipient_id,
+                "name": f"{recipient.get('name', '')} {recipient.get('last_name', '')}".strip() if recipient else "Usuario",
+                "photo_url": recipient.get("photo_url") if recipient else None,
+                "role": recipient.get("role") if recipient else None
+            },
+            "recipients_count": len(msg.get("recipients", [])),
+            "created_at": msg["created_at"],
+            "thread_id": msg.get("thread_id")
+        })
+    
+    total = await db.internal_mail.count_documents({
+        "sender_id": user["id"],
+        "recipients.user_id": {"$in": allowed_ids}
+    })
+    
+    return {"messages": result, "total": total}
+
+
+@api_router.get("/student-portal/messages/stats")
+async def get_student_messages_stats(course_id: str, current_user = Depends(get_current_user)):
+    """Get message stats for a student within a course context"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get allowed user IDs for this course
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        return {"unread": 0, "inbox": 0, "sent": 0}
+    
+    allowed_ids = []
+    if course.get("teacher_id"):
+        allowed_ids.append(course["teacher_id"])
+    
+    enrollments = await db.enrollments.find({"course_id": course_id}, {"_id": 0, "student_id": 1}).to_list(100)
+    allowed_ids.extend([e["student_id"] for e in enrollments])
+    
+    # Unread count
+    unread_pipeline = [
+        {
+            "$match": {
+                "recipients": {
+                    "$elemMatch": {
+                        "user_id": user["id"],
+                        "is_read": False,
+                        "is_deleted": {"$ne": True},
+                        "is_archived": {"$ne": True}
+                    }
+                },
+                "sender_id": {"$in": allowed_ids}
+            }
+        },
+        {"$count": "count"}
+    ]
+    unread_result = await db.internal_mail.aggregate(unread_pipeline).to_list(1)
+    unread = unread_result[0]["count"] if unread_result else 0
+    
+    # Inbox count
+    inbox_pipeline = [
+        {
+            "$match": {
+                "recipients": {
+                    "$elemMatch": {
+                        "user_id": user["id"],
+                        "is_deleted": {"$ne": True},
+                        "is_archived": {"$ne": True}
+                    }
+                },
+                "sender_id": {"$in": allowed_ids}
+            }
+        },
+        {"$count": "count"}
+    ]
+    inbox_result = await db.internal_mail.aggregate(inbox_pipeline).to_list(1)
+    inbox = inbox_result[0]["count"] if inbox_result else 0
+    
+    # Sent count
+    sent = await db.internal_mail.count_documents({
+        "sender_id": user["id"],
+        "recipients.user_id": {"$in": allowed_ids}
+    })
+    
+    return {"unread": unread, "inbox": inbox, "sent": sent}
+
+
+@api_router.post("/student-portal/messages/send")
+async def send_student_message(data: InternalMailCreate, course_id: str, current_user = Depends(get_current_user)):
+    """Send a message from student within course context"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Solo estudiantes pueden usar este endpoint")
+    
+    # Get course and allowed users
+    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
+    if not course:
+        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    
+    # Build allowed IDs
+    allowed_ids = set()
+    if course.get("teacher_id"):
+        allowed_ids.add(course["teacher_id"])
+    
+    enrollments = await db.enrollments.find({"course_id": course_id}, {"_id": 0, "student_id": 1}).to_list(100)
+    for e in enrollments:
+        allowed_ids.add(e["student_id"])
+    
+    # CRITICAL VALIDATION: Check all recipients are allowed
+    for rid in data.recipient_ids:
+        if rid not in allowed_ids:
+            raise HTTPException(status_code=403, detail="No puedes enviar mensajes a usuarios fuera de tu asignatura")
+    
+    # Create recipient entries
+    recipients = []
+    for rid in data.recipient_ids:
+        recipients.append({
+            "user_id": rid,
+            "is_read": False,
+            "is_starred": False,
+            "is_archived": False,
+            "is_deleted": False
+        })
+    
+    message_id = str(uuid.uuid4())
+    thread_id = str(uuid.uuid4())
+    
+    message = {
+        "id": message_id,
+        "thread_id": thread_id,
+        "sender_id": user["id"],
+        "subject": data.subject.strip(),
+        "body": data.body,
+        "recipients": recipients,
+        "attachments": data.attachments or [],
+        "school_id": user.get("school_id"),
+        "course_id": course_id,  # Track course context
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.internal_mail.insert_one(message)
+    
+    return {"id": message_id, "thread_id": thread_id, "message": "Mensaje enviado correctamente"}
+
+
+@api_router.get("/student-portal/messages/{message_id}")
+async def get_student_message_detail(message_id: str, current_user = Depends(get_current_user)):
+    """Get message detail for student"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    msg = await db.internal_mail.find_one({"id": message_id}, {"_id": 0})
+    if not msg:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    # Check if user is sender or recipient
+    is_sender = msg["sender_id"] == user["id"]
+    recipient_entry = next((r for r in msg.get("recipients", []) if r["user_id"] == user["id"]), None)
+    
+    if not is_sender and not recipient_entry:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este mensaje")
+    
+    # Mark as read if recipient
+    if recipient_entry and not recipient_entry.get("is_read"):
+        await db.internal_mail.update_one(
+            {"id": message_id, "recipients.user_id": user["id"]},
+            {"$set": {"recipients.$.is_read": True}}
+        )
+    
+    # Get sender info
+    sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1})
+    
+    return {
+        "id": msg["id"],
+        "subject": msg["subject"],
+        "body": msg["body"],
+        "sender": {
+            "id": sender["id"] if sender else msg["sender_id"],
+            "name": f"{sender.get('name', '')} {sender.get('last_name', '')}".strip() if sender else "Usuario",
+            "photo_url": sender.get("photo_url") if sender else None,
+            "role": sender.get("role") if sender else None
+        },
+        "created_at": msg["created_at"],
+        "thread_id": msg.get("thread_id"),
+        "attachments": msg.get("attachments", [])
+    }
+
+
+@api_router.put("/student-portal/messages/{message_id}/read")
+async def mark_student_message_read(message_id: str, current_user = Depends(get_current_user)):
+    """Mark message as read"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    result = await db.internal_mail.update_one(
+        {"id": message_id, "recipients.user_id": user["id"]},
+        {"$set": {"recipients.$.is_read": True}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    return {"message": "Marcado como leído"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
