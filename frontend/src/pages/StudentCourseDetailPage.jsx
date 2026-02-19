@@ -1273,6 +1273,117 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
         )}
       </div>
       </div>
+      
+      {/* Student Detail Popup/Modal */}
+      {selectedStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setSelectedStudent(null)}>
+          <div 
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header with gradient */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 pt-6 pb-16 px-6 relative">
+              <button 
+                onClick={() => setSelectedStudent(null)}
+                className="absolute top-4 right-4 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Profile Section */}
+            <div className="px-6 pb-6 -mt-12">
+              {/* Photo with status */}
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  {selectedStudent.photo_url ? (
+                    <img
+                      src={selectedStudent.photo_url}
+                      alt={selectedStudent.name}
+                      className="w-24 h-24 rounded-full object-cover ring-4 ring-white shadow-lg"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-3xl font-bold ring-4 ring-white shadow-lg">
+                      {selectedStudent.name?.charAt(0)}
+                    </div>
+                  )}
+                  {/* Status indicator */}
+                  <div className={`absolute bottom-1 right-1 w-6 h-6 rounded-full border-3 border-white flex items-center justify-center ${
+                    presenceData[selectedStudent.id] ? 'bg-green-500' : 'bg-red-500'
+                  }`}>
+                    {!presenceData[selectedStudent.id] && (
+                      <span className="text-white text-xs font-bold">−</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Name and info */}
+              <div className="text-center mb-6">
+                <h3 className="text-xl font-bold text-gray-800">
+                  {selectedStudent.name} {selectedStudent.last_name || ''}
+                </h3>
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  {selectedStudent.username && (
+                    <span className="text-gray-500 text-sm">@{selectedStudent.username}</span>
+                  )}
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                    presenceData[selectedStudent.id] 
+                      ? 'bg-green-100 text-green-700' 
+                      : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {presenceData[selectedStudent.id] ? 'Conectado' : 'Desconectado'}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Contact Info */}
+              <div className="space-y-3 mb-6">
+                {selectedStudent.email && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500">Correo electrónico</p>
+                      <p className="text-sm font-medium text-gray-800 truncate">{selectedStudent.email}</p>
+                    </div>
+                  </div>
+                )}
+                {selectedStudent.phone && (
+                  <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                      <Phone className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs text-gray-500">Teléfono</p>
+                      <p className="text-sm font-medium text-gray-800">{selectedStudent.phone}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleChatWithStudent}
+                  className="flex-1 px-4 py-3 bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  Chat en línea
+                </button>
+                <button
+                  onClick={handleSendMessageToStudent}
+                  className="flex-1 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-colors shadow-md"
+                >
+                  <Mail className="w-4 h-4" />
+                  Enviar Mensaje
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
