@@ -617,23 +617,38 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
           >
             <X className="w-5 h-5 text-white" />
           </button>
-          {selectedStudent.photo_url ? (
-            <img
-              src={selectedStudent.photo_url}
-              alt={selectedStudent.name}
-              className="w-24 h-24 rounded-full object-cover mx-auto mb-4 ring-4 ring-white/50 shadow-lg"
-            />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 ring-4 ring-white/50 text-white text-3xl font-bold">
-              {selectedStudent.name?.charAt(0)}
+          <div className="relative inline-block">
+            {selectedStudent.photo_url ? (
+              <img
+                src={selectedStudent.photo_url}
+                alt={selectedStudent.name}
+                className="w-24 h-24 rounded-full object-cover mx-auto mb-4 ring-4 ring-white/50 shadow-lg"
+              />
+            ) : (
+              <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 ring-4 ring-white/50 text-white text-3xl font-bold">
+                {selectedStudent.name?.charAt(0)}
+              </div>
+            )}
+            {/* Online indicator in modal */}
+            <div className="absolute bottom-3 right-0">
+              <OnlineIndicator userId={selectedStudent.id} size="lg" />
             </div>
-          )}
+          </div>
           <h3 className="text-xl font-bold text-white">
             {selectedStudent.name} {selectedStudent.last_name}
           </h3>
-          {selectedStudent.username && (
-            <p className="text-emerald-100 text-sm mt-1">@{selectedStudent.username}</p>
-          )}
+          <div className="flex items-center justify-center gap-2 mt-1">
+            {selectedStudent.username && (
+              <p className="text-emerald-100 text-sm">@{selectedStudent.username}</p>
+            )}
+            <span className={`text-xs px-2 py-0.5 rounded-full ${
+              presenceStatus[selectedStudent.id]?.is_online 
+                ? 'bg-green-400/30 text-green-100' 
+                : 'bg-red-400/30 text-red-100'
+            }`}>
+              {presenceStatus[selectedStudent.id]?.is_online ? 'En línea' : 'Desconectado'}
+            </span>
+          </div>
         </div>
         
         {/* Student Info */}
