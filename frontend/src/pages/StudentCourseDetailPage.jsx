@@ -3817,6 +3817,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const [highlightedPostId, setHighlightedPostId] = useState(null);
   const [messageStats, setMessageStats] = useState({ unread: 0, inbox: 0, sent: 0 });
   const [directChatUser, setDirectChatUser] = useState(null); // For opening chat directly with teacher
+  const [openComposeWithTeacher, setOpenComposeWithTeacher] = useState(false); // For opening compose modal with teacher
   
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
