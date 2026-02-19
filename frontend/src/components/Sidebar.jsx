@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 import {
   Home,
   UserCog,
@@ -19,6 +20,8 @@ import {
   UserCheck,
 } from "lucide-react";
 
+const API = process.env.REACT_APP_BACKEND_URL;
+
 const navItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users" },
@@ -33,15 +36,36 @@ const navItems = [
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina" },
   { id: "noticias", label: "Noticias", icon: Newspaper, route: "/noticias" },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad" },
-  { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes" },
+  { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", hasBadge: true },
 ];
 
-export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain }) {
+export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;
+  
+  // Load unread messages count
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(`${API}/api/internal-mail/stats`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUnreadMessages(res.data.unread || 0);
+      } catch (err) {
+        console.error("Error loading unread messages:", err);
+      }
+    };
+    
+    loadUnreadCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
   
   const handleNavClick = (item) => {
     if (item.route) {
