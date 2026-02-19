@@ -122,6 +122,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto custom-scroll">
         {navItems.map((item) => {
           const Icon = item.icon;
+          const showBadge = item.hasBadge && item.id === "mensajeria" && unreadMessages > 0;
           return (
             <button
               key={item.id}
@@ -130,10 +131,24 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
               data-testid={`sidebar-${item.id}`}
               title={item.label}
             >
-              <span className="link-icon">
+              <span className="link-icon relative">
                 <Icon className="w-5 h-5" />
+                {showBadge && !isExpanded && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unreadMessages > 9 ? "9+" : unreadMessages}
+                  </span>
+                )}
               </span>
-              {isExpanded && <span className="text-sm font-medium">{item.label}</span>}
+              {isExpanded && (
+                <span className="text-sm font-medium flex-1 flex items-center justify-between">
+                  {item.label}
+                  {showBadge && (
+                    <span className="ml-2 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
+                      {unreadMessages > 99 ? "99+" : unreadMessages}
+                    </span>
+                  )}
+                </span>
+              )}
             </button>
           );
         })}
