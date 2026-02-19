@@ -4665,24 +4665,33 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
             />
           </div>
           
+          {/* Availability window explanation */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <p className="text-sm font-semibold text-blue-800 mb-1">📅 Ventana de disponibilidad</p>
+            <p className="text-xs text-blue-600">
+              Define cuándo los estudiantes pueden <strong>iniciar</strong> el examen. 
+              Una vez iniciado, tendrán el tiempo de "duración" para completarlo.
+            </p>
+          </div>
+          
           {/* Time pickers */}
           <div className="grid grid-cols-2 gap-4">
             <TimePicker 
-              label="Hora de inicio *"
+              label="Disponible desde *"
               value={startTime}
               onChange={setStartTime}
             />
             <TimePicker 
-              label="Hora límite *"
+              label="Disponible hasta *"
               value={endTime}
               onChange={setEndTime}
             />
           </div>
           
           {/* Duration */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Duración del examen (minutos) *
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <label className="block text-sm font-semibold text-amber-800 mb-2">
+              ⏱️ Duración del examen (minutos) *
             </label>
             <div className="flex items-center gap-3">
               <input
@@ -4691,7 +4700,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
                 max="300"
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(e.target.value)}
-                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+                className="flex-1 px-4 py-3 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
                 required
               />
               <div className="flex gap-2">
@@ -4702,8 +4711,8 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
                     onClick={() => setDurationMinutes(mins)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                       parseInt(durationMinutes) === mins
-                        ? 'bg-purple-600 text-white'
-                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-100'
                     }`}
                   >
                     {mins}m
@@ -4711,8 +4720,9 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
                 ))}
               </div>
             </div>
-            <p className="text-xs text-gray-500 mt-1">
-              Tiempo máximo que tendrá el estudiante para completar el examen
+            <p className="text-xs text-amber-600 mt-2">
+              Tiempo máximo para <strong>completar</strong> el examen una vez iniciado.
+              Ejemplo: Si un estudiante inicia a las 10:45pm con 30 min de duración, tiene hasta las 11:15pm.
             </p>
           </div>
           
