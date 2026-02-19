@@ -3958,6 +3958,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
         return <ExamsContent exams={exams} studentId={user?.id} subdomain={subdomain} token={token} />;
       case "foro":
         return <ForumContent posts={forumPosts} token={token} user={user} students={students} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
+      case "mensajes":
+        return <StudentMessagesContent courseId={subjectId} token={token} user={user} teacher={teacher} />;
       case "calificaciones":
         return <GradesContent tasks={tasks} exams={exams} studentId={user?.id} subject={subject} />;
       default:
