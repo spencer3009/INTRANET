@@ -4711,27 +4711,27 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
                     </span>
                   )}
                 </label>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <input
                     type="number"
                     min="1"
                     max={windowMinutes > 0 ? windowMinutes : 300}
                     value={durationMinutes}
                     onChange={(e) => setDurationMinutes(e.target.value)}
-                    className={`flex-1 px-4 py-3 bg-white border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                    className={`w-20 px-3 py-2 bg-white border rounded-xl focus:outline-none focus:ring-2 transition-all text-center ${
                       isOverWindow 
                         ? 'border-red-300 focus:ring-red-500' 
                         : 'border-amber-200 focus:ring-amber-500'
                     }`}
                     required
                   />
-                  <div className="flex gap-2 flex-wrap">
+                  <div className="flex gap-1">
                     {[30, 45, 60, 90, 120].filter(m => windowMinutes <= 0 || m <= windowMinutes).map((mins) => (
                       <button
                         key={mins}
                         type="button"
                         onClick={() => setDurationMinutes(mins)}
-                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                        className={`px-2 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           parseInt(durationMinutes) === mins
                             ? 'bg-amber-500 text-white'
                             : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-100'
