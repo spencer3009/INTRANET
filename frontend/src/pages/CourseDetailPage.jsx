@@ -4516,6 +4516,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
   const [date, setDate] = useState("");
   const [startTime, setStartTime] = useState("09:00:00");
   const [endTime, setEndTime] = useState("11:00:00");
+  const [durationMinutes, setDurationMinutes] = useState(60);
   const [minScore, setMinScore] = useState(60);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -4533,6 +4534,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
         const endDt = new Date(exam.end_datetime);
         setEndTime(`${endDt.getHours().toString().padStart(2, '0')}:${endDt.getMinutes().toString().padStart(2, '0')}`);
       }
+      setDurationMinutes(exam.duration_minutes || 60);
       setMinScore(exam.min_score_percentage || 60);
     } else {
       setTitle("");
@@ -4540,6 +4542,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
       setDate("");
       setStartTime("09:00:00");
       setEndTime("11:00:00");
+      setDurationMinutes(60);
       setMinScore(60);
     }
     setError("");
