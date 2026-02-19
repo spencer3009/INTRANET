@@ -263,7 +263,11 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
       setError("El asunto es requerido");
       return;
     }
-    if (!body.trim()) {
+    
+    const bodyContent = editor?.getHTML() || "";
+    const bodyText = editor?.getText() || "";
+    
+    if (!bodyText.trim()) {
       setError("El mensaje no puede estar vacío");
       return;
     }
@@ -274,12 +278,12 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
     try {
       if (replyTo) {
         await axios.post(`${API}/api/internal-mail/${replyTo.id}/reply`, {
-          body: body.trim()
+          body: bodyContent
         }, { headers });
       } else {
         await axios.post(`${API}/api/internal-mail/send`, {
           subject: subject.trim(),
-          body: body.trim(),
+          body: bodyContent,
           recipient_ids: recipients.map(r => r.id)
         }, { headers });
       }
