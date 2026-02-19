@@ -3710,13 +3710,28 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
           </div>
         </div>
 
-        {/* Right: Message Detail */}
-        <div className="flex-1 overflow-y-auto">
+        {/* RIGHT - Message Detail */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-white">
           {selectedMessage ? (
-            <div className="p-6">
-              <div className="mb-6">
-                <h3 className="text-xl font-bold text-slate-800 mb-4">{selectedMessage.subject}</h3>
-                <div className="flex items-center gap-3 mb-4">
+            <>
+              {/* Message Header */}
+              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-800 truncate flex-1 mr-4">
+                  {selectedMessage.subject}
+                </h2>
+                <div className="flex items-center gap-2">
+                  <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Archivar">
+                    <Archive className="w-5 h-5" />
+                  </button>
+                  <button className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Sender Info */}
+              <div className="px-6 py-4 border-b border-slate-100">
+                <div className="flex items-center gap-4">
                   {selectedMessage.sender?.photo_url ? (
                     <img
                       src={selectedMessage.sender.photo_url}
@@ -3724,31 +3739,53 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
                       className="w-12 h-12 rounded-full object-cover"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold text-lg">
                       {selectedMessage.sender?.name?.charAt(0) || "?"}
                     </div>
                   )}
-                  <div>
-                    <p className="font-semibold text-slate-800">{selectedMessage.sender?.name}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-slate-800">{selectedMessage.sender?.name}</p>
+                      {selectedMessage.sender?.role === "teacher" && (
+                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                          Profesor
+                        </span>
+                      )}
+                      {selectedMessage.sender?.role === "student" && (
+                        <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                          Alumno
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-500">{selectedMessage.sender?.email || ''}</p>
+                  </div>
+                  <div className="text-right">
                     <p className="text-sm text-slate-500">
-                      {new Date(selectedMessage.created_at).toLocaleString("es-PE")}
+                      {new Date(selectedMessage.created_at).toLocaleDateString("es-PE", { 
+                        day: "numeric", 
+                        month: "short", 
+                        year: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      })}
                     </p>
                   </div>
-                  {selectedMessage.sender?.role === "teacher" && (
-                    <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
-                      Profesor
-                    </span>
-                  )}
+                </div>
+                <div className="mt-2 text-sm text-slate-500">
+                  Para: <span className="text-slate-700">{user?.name} {user?.last_name}</span>
                 </div>
               </div>
-              
-              <div 
-                className="prose prose-sm max-w-none text-slate-700"
-                dangerouslySetInnerHTML={{ __html: selectedMessage.body }}
-              />
 
-              {/* Actions */}
-              <div className="mt-6 pt-4 border-t border-slate-200 flex gap-2">
+              {/* Message Body */}
+              <div className="flex-1 overflow-y-auto px-6 py-6">
+                <div 
+                  className="prose prose-sm max-w-none text-slate-700"
+                  dangerouslySetInnerHTML={{ __html: selectedMessage.body }}
+                />
+              </div>
+
+              {/* Reply Action */}
+              <div className="px-6 py-4 border-t border-slate-200 bg-slate-50">
                 <button
                   onClick={() => {
                     setComposeData({
@@ -3763,17 +3800,20 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
                     });
                     setShowCompose(true);
                   }}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-colors flex items-center gap-2"
+                  className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors flex items-center gap-2 font-medium"
                 >
                   <Reply className="w-4 h-4" />
                   Responder
                 </button>
               </div>
-            </div>
+            </>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-slate-400">
-              <Mail className="w-16 h-16 mb-3" />
-              <p>Selecciona un mensaje para leer</p>
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mb-4">
+                <Mail className="w-10 h-10" />
+              </div>
+              <p className="text-lg font-medium text-slate-500">Selecciona un mensaje</p>
+              <p className="text-sm text-slate-400 mt-1">para ver su contenido</p>
             </div>
           )}
         </div>
