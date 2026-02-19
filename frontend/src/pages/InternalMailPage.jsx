@@ -214,9 +214,13 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
       setRecipients([replyTo.sender]);
     } else if (preselectedRecipient) {
       setSubject("");
+      // Build full name: if last_name exists, concatenate with name/first_name
+      const fullName = preselectedRecipient.last_name
+        ? `${preselectedRecipient.name || preselectedRecipient.first_name || ''} ${preselectedRecipient.last_name}`.trim()
+        : preselectedRecipient.name || preselectedRecipient.first_name || '';
       setRecipients([{
         id: preselectedRecipient.id,
-        name: preselectedRecipient.name || `${preselectedRecipient.first_name || ''} ${preselectedRecipient.last_name || ''}`.trim(),
+        name: fullName,
         email: preselectedRecipient.email,
         photo_url: preselectedRecipient.photo_url,
         role: preselectedRecipient.role
