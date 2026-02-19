@@ -3972,8 +3972,10 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             exams={exams}
             reminders={reminders}
             onViewPost={() => {}}
+            onNavigateToDetail={handleNavigateToDetail}
             token={token}
             user={user}
+            onSendMessage={() => setActiveTab("mensajes")}
           />
         );
       case "tareas":
