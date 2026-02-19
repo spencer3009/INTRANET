@@ -1024,9 +1024,12 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                   <button
                     onClick={() => {
                       // Open direct chat with teacher
-                      if (window.openChatWithUser) {
-                        window.openChatWithUser(teacher);
-                      }
+                      setDirectChatUser({
+                        id: teacher.id,
+                        name: `${teacher.name || ''} ${teacher.last_name || ''}`.trim(),
+                        photo_url: teacher.photo_url,
+                        role: 'teacher'
+                      });
                     }}
                     className="flex-1 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md hover:shadow-lg"
                     data-testid="chat-teacher-btn"
