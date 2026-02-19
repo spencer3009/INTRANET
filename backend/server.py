@@ -15154,6 +15154,625 @@ async def get_my_exam_attempt(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# INTERNAL MAIL SYSTEM - Premium Email-like Messaging
+# ══════════════════════════════════════════════════════════════════════════════
+
+class InternalMailCreate(BaseModel):
+    subject: str
+    body: str
+    recipient_ids: List[str]  # List of user IDs
+    recipient_type: Optional[str] = "individual"  # individual, role, section
+    attachments: Optional[List[dict]] = []
+
+class InternalMailReply(BaseModel):
+    body: str
+    attachments: Optional[List[dict]] = []
+
+# Get inbox messages
+@api_router.get("/internal-mail/inbox")
+async def get_inbox(
+    page: int = 1,
+    limit: int = 20,
+    current_user = Depends(get_current_user)
+):
+    """Get inbox messages for current user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    skip = (page - 1) * limit
+    
+    # Find messages where user is recipient and not deleted
+    pipeline = [
+        {"$match": {
+            "recipients.user_id": user["id"],
+            "recipients.is_deleted": {"$ne": True}
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit}
+    ]
+    
+    messages = await db.internal_mail.aggregate(pipeline).to_list(limit)
+    
+    # Get total count
+    total = await db.internal_mail.count_documents({
+        "recipients.user_id": user["id"],
+        "recipients.is_deleted": {"$ne": True}
+    })
+    
+    # Enrich with sender info and recipient status
+    enriched = []
+    for msg in messages:
+        sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
+        
+        # Find this user's recipient entry
+        recipient_entry = next((r for r in msg.get("recipients", []) if r["user_id"] == user["id"]), {})
+        
+        enriched.append({
+            "id": msg["id"],
+            "subject": msg["subject"],
+            "body_preview": msg["body"][:150] + "..." if len(msg["body"]) > 150 else msg["body"],
+            "body": msg["body"],
+            "sender": {
+                "id": sender["id"] if sender else None,
+                "name": sender.get("name", "Usuario") if sender else "Usuario eliminado",
+                "email": sender.get("email", "") if sender else "",
+                "photo_url": sender.get("photo_url") if sender else None,
+                "role": sender.get("role", "") if sender else ""
+            },
+            "created_at": msg["created_at"],
+            "is_read": recipient_entry.get("is_read", False),
+            "is_starred": recipient_entry.get("is_starred", False),
+            "is_archived": recipient_entry.get("is_archived", False),
+            "has_attachments": len(msg.get("attachments", [])) > 0,
+            "attachments": msg.get("attachments", []),
+            "recipient_count": len(msg.get("recipients", []))
+        })
+    
+    return {
+        "messages": enriched,
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit
+    }
+
+# Get sent messages
+@api_router.get("/internal-mail/sent")
+async def get_sent(
+    page: int = 1,
+    limit: int = 20,
+    current_user = Depends(get_current_user)
+):
+    """Get sent messages for current user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    skip = (page - 1) * limit
+    
+    messages = await db.internal_mail.find(
+        {"sender_id": user["id"]},
+        {"_id": 0}
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
+    
+    total = await db.internal_mail.count_documents({"sender_id": user["id"]})
+    
+    enriched = []
+    for msg in messages:
+        # Get recipient names
+        recipient_ids = [r["user_id"] for r in msg.get("recipients", [])]
+        recipients = await db.users.find(
+            {"id": {"$in": recipient_ids}},
+            {"_id": 0, "id": 1, "name": 1, "photo_url": 1}
+        ).to_list(100)
+        
+        enriched.append({
+            "id": msg["id"],
+            "subject": msg["subject"],
+            "body_preview": msg["body"][:150] + "..." if len(msg["body"]) > 150 else msg["body"],
+            "body": msg["body"],
+            "recipients": recipients,
+            "created_at": msg["created_at"],
+            "has_attachments": len(msg.get("attachments", [])) > 0,
+            "attachments": msg.get("attachments", []),
+            "recipient_count": len(recipients)
+        })
+    
+    return {
+        "messages": enriched,
+        "total": total,
+        "page": page,
+        "pages": (total + limit - 1) // limit
+    }
+
+# Get unread messages
+@api_router.get("/internal-mail/unread")
+async def get_unread(current_user = Depends(get_current_user)):
+    """Get unread messages count and list"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Count unread
+    pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user["id"],
+                    "is_read": False,
+                    "is_deleted": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    
+    result = await db.internal_mail.aggregate(pipeline).to_list(1)
+    count = result[0]["count"] if result else 0
+    
+    return {"unread_count": count}
+
+# Get archived messages
+@api_router.get("/internal-mail/archived")
+async def get_archived(
+    page: int = 1,
+    limit: int = 20,
+    current_user = Depends(get_current_user)
+):
+    """Get archived messages"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    skip = (page - 1) * limit
+    
+    pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user["id"],
+                    "is_archived": True,
+                    "is_deleted": {"$ne": True}
+                }
+            }
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit}
+    ]
+    
+    messages = await db.internal_mail.aggregate(pipeline).to_list(limit)
+    
+    enriched = []
+    for msg in messages:
+        sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
+        recipient_entry = next((r for r in msg.get("recipients", []) if r["user_id"] == user["id"]), {})
+        
+        enriched.append({
+            "id": msg["id"],
+            "subject": msg["subject"],
+            "body_preview": msg["body"][:150] + "..." if len(msg["body"]) > 150 else msg["body"],
+            "sender": {
+                "id": sender["id"] if sender else None,
+                "name": sender.get("name", "Usuario") if sender else "Usuario eliminado",
+                "photo_url": sender.get("photo_url") if sender else None,
+            },
+            "created_at": msg["created_at"],
+            "is_read": recipient_entry.get("is_read", False),
+            "has_attachments": len(msg.get("attachments", [])) > 0
+        })
+    
+    return {"messages": enriched}
+
+# Get trash messages
+@api_router.get("/internal-mail/trash")
+async def get_trash(
+    page: int = 1,
+    limit: int = 20,
+    current_user = Depends(get_current_user)
+):
+    """Get deleted/trash messages"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    skip = (page - 1) * limit
+    
+    pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user["id"],
+                    "is_deleted": True
+                }
+            }
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$skip": skip},
+        {"$limit": limit}
+    ]
+    
+    messages = await db.internal_mail.aggregate(pipeline).to_list(limit)
+    
+    enriched = []
+    for msg in messages:
+        sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
+        
+        enriched.append({
+            "id": msg["id"],
+            "subject": msg["subject"],
+            "body_preview": msg["body"][:150] + "..." if len(msg["body"]) > 150 else msg["body"],
+            "sender": {
+                "id": sender["id"] if sender else None,
+                "name": sender.get("name", "Usuario") if sender else "Usuario eliminado",
+                "photo_url": sender.get("photo_url") if sender else None,
+            },
+            "created_at": msg["created_at"],
+            "has_attachments": len(msg.get("attachments", [])) > 0
+        })
+    
+    return {"messages": enriched}
+
+# Get single message
+@api_router.get("/internal-mail/{message_id}")
+async def get_message(message_id: str, current_user = Depends(get_current_user)):
+    """Get a single message and mark as read"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    msg = await db.internal_mail.find_one({"id": message_id}, {"_id": 0})
+    if not msg:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    # Check if user is sender or recipient
+    is_sender = msg["sender_id"] == user["id"]
+    recipient_entry = next((r for r in msg.get("recipients", []) if r["user_id"] == user["id"]), None)
+    
+    if not is_sender and not recipient_entry:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este mensaje")
+    
+    # Mark as read if recipient
+    if recipient_entry and not recipient_entry.get("is_read"):
+        await db.internal_mail.update_one(
+            {"id": message_id, "recipients.user_id": user["id"]},
+            {"$set": {"recipients.$.is_read": True, "recipients.$.read_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
+    # Get sender info
+    sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
+    
+    # Get all recipients info
+    recipient_ids = [r["user_id"] for r in msg.get("recipients", [])]
+    recipients_data = await db.users.find(
+        {"id": {"$in": recipient_ids}},
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "photo_url": 1, "role": 1}
+    ).to_list(100)
+    
+    return {
+        "id": msg["id"],
+        "subject": msg["subject"],
+        "body": msg["body"],
+        "sender": {
+            "id": sender["id"] if sender else None,
+            "name": sender.get("name", "Usuario") if sender else "Usuario eliminado",
+            "email": sender.get("email", "") if sender else "",
+            "photo_url": sender.get("photo_url") if sender else None,
+            "role": sender.get("role", "") if sender else ""
+        },
+        "recipients": recipients_data,
+        "created_at": msg["created_at"],
+        "attachments": msg.get("attachments", []),
+        "is_read": recipient_entry.get("is_read", True) if recipient_entry else True,
+        "is_starred": recipient_entry.get("is_starred", False) if recipient_entry else False,
+        "is_archived": recipient_entry.get("is_archived", False) if recipient_entry else False,
+        "thread_id": msg.get("thread_id"),
+        "reply_to_id": msg.get("reply_to_id")
+    }
+
+# Send new message
+@api_router.post("/internal-mail/send")
+async def send_internal_mail(data: InternalMailCreate, current_user = Depends(get_current_user)):
+    """Send a new internal mail message"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    if not data.subject.strip():
+        raise HTTPException(status_code=400, detail="El asunto es requerido")
+    
+    if not data.body.strip():
+        raise HTTPException(status_code=400, detail="El cuerpo del mensaje es requerido")
+    
+    if not data.recipient_ids:
+        raise HTTPException(status_code=400, detail="Debe seleccionar al menos un destinatario")
+    
+    # RBAC: Students cannot send mass messages
+    if user.get("role") == "student" and len(data.recipient_ids) > 5:
+        raise HTTPException(status_code=403, detail="Los estudiantes no pueden enviar mensajes masivos")
+    
+    # Create recipient entries
+    recipients = []
+    for rid in data.recipient_ids:
+        recipients.append({
+            "user_id": rid,
+            "is_read": False,
+            "is_starred": False,
+            "is_archived": False,
+            "is_deleted": False
+        })
+    
+    message_id = str(uuid.uuid4())
+    thread_id = str(uuid.uuid4())  # New thread
+    
+    message = {
+        "id": message_id,
+        "thread_id": thread_id,
+        "sender_id": user["id"],
+        "subject": data.subject.strip(),
+        "body": data.body,
+        "recipients": recipients,
+        "attachments": data.attachments or [],
+        "school_id": user.get("school_id"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.internal_mail.insert_one(message)
+    
+    return {"id": message_id, "thread_id": thread_id, "message": "Mensaje enviado correctamente"}
+
+# Reply to message
+@api_router.post("/internal-mail/{message_id}/reply")
+async def reply_to_mail(message_id: str, data: InternalMailReply, current_user = Depends(get_current_user)):
+    """Reply to a message"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    original = await db.internal_mail.find_one({"id": message_id}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Mensaje original no encontrado")
+    
+    # Reply goes to original sender
+    reply_to_id = original["sender_id"]
+    
+    # Create recipient entry for original sender
+    recipients = [{
+        "user_id": reply_to_id,
+        "is_read": False,
+        "is_starred": False,
+        "is_archived": False,
+        "is_deleted": False
+    }]
+    
+    new_id = str(uuid.uuid4())
+    
+    reply = {
+        "id": new_id,
+        "thread_id": original.get("thread_id", message_id),
+        "reply_to_id": message_id,
+        "sender_id": user["id"],
+        "subject": f"Re: {original['subject']}" if not original['subject'].startswith("Re:") else original['subject'],
+        "body": data.body,
+        "recipients": recipients,
+        "attachments": data.attachments or [],
+        "school_id": user.get("school_id"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.internal_mail.insert_one(reply)
+    
+    return {"id": new_id, "message": "Respuesta enviada correctamente"}
+
+# Mark message as read/unread
+@api_router.put("/internal-mail/{message_id}/read")
+async def toggle_read(message_id: str, is_read: bool = True, current_user = Depends(get_current_user)):
+    """Mark message as read or unread"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    result = await db.internal_mail.update_one(
+        {"id": message_id, "recipients.user_id": user["id"]},
+        {"$set": {"recipients.$.is_read": is_read}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    return {"success": True}
+
+# Star/unstar message
+@api_router.put("/internal-mail/{message_id}/star")
+async def toggle_star(message_id: str, is_starred: bool = True, current_user = Depends(get_current_user)):
+    """Star or unstar a message"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    await db.internal_mail.update_one(
+        {"id": message_id, "recipients.user_id": user["id"]},
+        {"$set": {"recipients.$.is_starred": is_starred}}
+    )
+    
+    return {"success": True}
+
+# Archive message
+@api_router.put("/internal-mail/{message_id}/archive")
+async def archive_message(message_id: str, is_archived: bool = True, current_user = Depends(get_current_user)):
+    """Archive or unarchive a message"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    await db.internal_mail.update_one(
+        {"id": message_id, "recipients.user_id": user["id"]},
+        {"$set": {"recipients.$.is_archived": is_archived}}
+    )
+    
+    return {"success": True}
+
+# Delete message (soft delete)
+@api_router.delete("/internal-mail/{message_id}")
+async def delete_internal_mail(message_id: str, current_user = Depends(get_current_user)):
+    """Soft delete a message (move to trash)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    await db.internal_mail.update_one(
+        {"id": message_id, "recipients.user_id": user["id"]},
+        {"$set": {"recipients.$.is_deleted": True, "recipients.$.deleted_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    
+    return {"success": True}
+
+# Restore from trash
+@api_router.put("/internal-mail/{message_id}/restore")
+async def restore_message(message_id: str, current_user = Depends(get_current_user)):
+    """Restore a message from trash"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    await db.internal_mail.update_one(
+        {"id": message_id, "recipients.user_id": user["id"]},
+        {"$set": {"recipients.$.is_deleted": False}, "$unset": {"recipients.$.deleted_at": ""}}
+    )
+    
+    return {"success": True}
+
+# Get contacts for composing
+@api_router.get("/internal-mail/contacts/search")
+async def search_contacts(q: str = "", current_user = Depends(get_current_user)):
+    """Search contacts for message composition"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    school_id = user.get("school_id")
+    
+    query = {
+        "school_id": school_id,
+        "id": {"$ne": user["id"]},  # Exclude self
+        "is_active": True
+    }
+    
+    if q:
+        query["$or"] = [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"email": {"$regex": q, "$options": "i"}}
+        ]
+    
+    # RBAC: Parents can only see teachers of their children
+    if user.get("role") == "parent":
+        # Get children's teacher IDs
+        children = await db.users.find({"parent_ids": user["id"]}, {"_id": 0, "id": 1}).to_list(100)
+        child_ids = [c["id"] for c in children]
+        
+        enrollments = await db.enrollments.find({"student_id": {"$in": child_ids}}, {"_id": 0, "course_id": 1}).to_list(100)
+        course_ids = list(set([e["course_id"] for e in enrollments]))
+        
+        courses = await db.courses.find({"id": {"$in": course_ids}}, {"_id": 0, "teacher_id": 1}).to_list(100)
+        teacher_ids = list(set([c["teacher_id"] for c in courses if c.get("teacher_id")]))
+        
+        query["id"] = {"$in": teacher_ids}
+    
+    contacts = await db.users.find(
+        query,
+        {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1, "photo_url": 1}
+    ).limit(50).to_list(50)
+    
+    return {"contacts": contacts}
+
+# Get stats for sidebar badges
+@api_router.get("/internal-mail/stats")
+async def get_mail_stats(current_user = Depends(get_current_user)):
+    """Get mail statistics for badges"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    user_id = user["id"]
+    
+    # Unread count
+    unread_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_read": False,
+                    "is_deleted": {"$ne": True},
+                    "is_archived": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    unread_result = await db.internal_mail.aggregate(unread_pipeline).to_list(1)
+    unread = unread_result[0]["count"] if unread_result else 0
+    
+    # Inbox count (not archived, not deleted)
+    inbox_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_deleted": {"$ne": True},
+                    "is_archived": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    inbox_result = await db.internal_mail.aggregate(inbox_pipeline).to_list(1)
+    inbox = inbox_result[0]["count"] if inbox_result else 0
+    
+    # Sent count
+    sent = await db.internal_mail.count_documents({"sender_id": user_id})
+    
+    # Archived count
+    archived_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_archived": True,
+                    "is_deleted": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    archived_result = await db.internal_mail.aggregate(archived_pipeline).to_list(1)
+    archived = archived_result[0]["count"] if archived_result else 0
+    
+    # Trash count
+    trash_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_deleted": True
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    trash_result = await db.internal_mail.aggregate(trash_pipeline).to_list(1)
+    trash = trash_result[0]["count"] if trash_result else 0
+    
+    return {
+        "unread": unread,
+        "inbox": inbox,
+        "sent": sent,
+        "archived": archived,
+        "trash": trash
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
