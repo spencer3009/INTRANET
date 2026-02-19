@@ -15062,13 +15062,21 @@ async def get_exam_result(
         q_id = q["id"]
         graded = graded_answers.get(q_id, {})
         
+        # Extract correct_option_id from options array for multiple choice
+        correct_option_id = None
+        if q.get("question_type") == "multiple_choice":
+            for opt in q.get("options", []):
+                if opt.get("is_correct"):
+                    correct_option_id = opt.get("id")
+                    break
+        
         questions_review.append({
             "id": q_id,
             "question_text": q.get("question_text"),
             "question_type": q.get("question_type"),
             "image_url": q.get("image_url"),
             "options": q.get("options", []),
-            "correct_option_id": q.get("correct_option_id"),
+            "correct_option_id": correct_option_id,
             "correct_answer": q.get("correct_answer"),
             "student_answer": graded.get("selected_option_id") or graded.get("text_answer"),
             "is_correct": graded.get("is_correct", False),
