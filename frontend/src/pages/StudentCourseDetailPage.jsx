@@ -4063,7 +4063,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
               
               {/* Tabs */}
               <div className="mt-6">
-                <CourseTabs activeTab={activeTab} onTabChange={setActiveTab} />
+                <CourseTabs activeTab={activeTab} onTabChange={setActiveTab} messageStats={messageStats} />
               </div>
               
               {/* Tab Content */}
