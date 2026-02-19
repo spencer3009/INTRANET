@@ -565,7 +565,44 @@ function CourseInfoSidebar({ subject, subjectId, token, onActivityClick }) {
 function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
   const [showAllStudents, setShowAllStudents] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
+  const [presenceStatus, setPresenceStatus] = useState({});
   const displayedStudents = showAllStudents ? students : students.slice(0, 6);
+  
+  // Fetch presence status periodically
+  useEffect(() => {
+    const fetchPresence = async () => {
+      try {
+        const res = await axios.get(`${API}/presence/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setPresenceStatus(res.data);
+      } catch (err) {
+        console.log("Could not fetch presence");
+      }
+    };
+    
+    fetchPresence();
+    const interval = setInterval(fetchPresence, 30000); // Every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [token]);
+  
+  // Online status indicator component
+  const OnlineIndicator = ({ userId, size = "sm" }) => {
+    const status = presenceStatus[userId];
+    const isOnline = status?.is_online;
+    const sizeClasses = size === "sm" ? "w-3 h-3" : "w-4 h-4";
+    
+    return (
+      <div className={`${sizeClasses} rounded-full flex items-center justify-center ${
+        isOnline 
+          ? 'bg-green-500 ring-2 ring-white' 
+          : 'bg-red-400 ring-2 ring-white'
+      }`}>
+        {!isOnline && <Minus className="w-2 h-2 text-white" />}
+      </div>
+    );
+  };
   
   // Student Detail Modal using Portal
   const StudentDetailModal = selectedStudent ? createPortal(
