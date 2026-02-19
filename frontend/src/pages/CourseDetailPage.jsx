@@ -7620,7 +7620,8 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                   </button>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
