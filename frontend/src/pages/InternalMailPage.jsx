@@ -401,16 +401,16 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
             />
           </div>
           
-          {/* Body */}
+          {/* Body - Rich Text Editor */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje:</label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              placeholder="Escribe tu mensaje aquí..."
-              rows={10}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all resize-none"
-            />
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-500 transition-all">
+              <EditorToolbar editor={editor} />
+              <EditorContent 
+                editor={editor} 
+                className="min-h-[200px] max-h-[300px] overflow-y-auto"
+              />
+            </div>
           </div>
         </div>
         
