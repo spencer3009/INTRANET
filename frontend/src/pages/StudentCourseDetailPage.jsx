@@ -3856,6 +3856,14 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
         console.log("Could not load reminders:", e);
       }
       
+      // Load message stats for badge
+      try {
+        const msgStatsRes = await axios.get(`${API}/api/student-portal/messages/stats?course_id=${courseId}`, { headers });
+        setMessageStats(msgStatsRes.data || { unread: 0, inbox: 0, sent: 0 });
+      } catch (e) {
+        console.log("Could not load message stats:", e);
+      }
+      
       // Load course content
       await loadContent();
       
