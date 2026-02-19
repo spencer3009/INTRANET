@@ -4517,7 +4517,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
   const [startTime, setStartTime] = useState("09:00:00");
   const [endTime, setEndTime] = useState("11:00:00");
   const [durationMinutes, setDurationMinutes] = useState(60);
-  const [minScore, setMinScore] = useState(60);
+  const [minScore, setMinScore] = useState(55); // 55% = 11 de 20 en sistema peruano
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   
