@@ -3797,6 +3797,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const [activeTab, setActiveTab] = useState("tablero");
   const [highlightedPostId, setHighlightedPostId] = useState(null);
   const [messageStats, setMessageStats] = useState({ unread: 0, inbox: 0, sent: 0 });
+  const [directChatUser, setDirectChatUser] = useState(null); // For opening chat directly with teacher
   
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
