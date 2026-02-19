@@ -378,25 +378,30 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
                       <Loader2 className="w-4 h-4 animate-spin mx-auto" />
                     </div>
                   ) : (
-                    searchResults.map(contact => (
-                      <button
-                        key={contact.id}
-                        onClick={() => addRecipient(contact)}
-                        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
-                      >
-                        {contact.photo_url ? (
-                          <img src={contact.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                            {contact.name?.charAt(0)}
+                    searchResults.map(contact => {
+                      const fullName = contact.last_name 
+                        ? `${contact.name || contact.first_name || ''} ${contact.last_name}`.trim()
+                        : contact.name || contact.first_name || '';
+                      return (
+                        <button
+                          key={contact.id}
+                          onClick={() => addRecipient({...contact, name: fullName})}
+                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          {contact.photo_url ? (
+                            <img src={contact.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                              {fullName?.charAt(0)}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{fullName}</p>
+                            <p className="text-xs text-gray-500">{ROLE_LABELS[contact.role] || contact.role}</p>
                           </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800 truncate">{contact.name}</p>
-                          <p className="text-xs text-gray-500">{ROLE_LABELS[contact.role] || contact.role}</p>
-                        </div>
-                      </button>
-                    ))
+                        </button>
+                      );
+                    })
                   )}
                 </div>
               )}
