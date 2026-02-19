@@ -3819,6 +3819,13 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const [directChatUser, setDirectChatUser] = useState(null); // For opening chat directly with teacher
   const [openComposeWithTeacher, setOpenComposeWithTeacher] = useState(false); // For opening compose modal with teacher
   
+  // Reset openComposeWithTeacher when leaving mensajes tab
+  useEffect(() => {
+    if (activeTab !== "mensajes" && openComposeWithTeacher) {
+      setOpenComposeWithTeacher(false);
+    }
+  }, [activeTab]);
+  
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successModalContent, setSuccessModalContent] = useState({ title: "", message: "", type: "success" });
