@@ -1242,6 +1242,22 @@ Se implementó el sistema completo de toma de exámenes para estudiantes, incluy
 
 ## Actualizaciones Recientes (2025-02-19)
 
+### ✅ Bug Fix: Campo `duration_minutes` faltante en formulario de exámenes
+**Problema:** Al crear un nuevo examen, el campo `duration_minutes` no se enviaba al backend, causando error "El examen no tiene duración configurada (valor recibido: None, tipo: NoneType)".
+
+**Solución implementada:**
+1. **Frontend (`CourseDetailPage.jsx` - ExamModal)**:
+   - Añadido estado `durationMinutes` con valor inicial de 60
+   - Añadido campo de entrada numérico con botones de acceso rápido (30m, 45m, 60m, 90m, 120m)
+   - Texto de ayuda explicativo
+   - Validación para asegurar duración >= 1 minuto
+   - Se incluye `duration_minutes` en el payload enviado al backend
+
+2. **Backend (`server.py`)**:
+   - Cambiado `duration_minutes: Optional[int] = None` a `duration_minutes: int = 60` (valor por defecto obligatorio)
+   - Añadida validación explícita en endpoint `create_exam`
+   - Si no se envía, usa 60 minutos por defecto
+
 ### ✅ Verificación del Sistema de Exámenes en Línea
 **Testing completado al 100%** con todas las funcionalidades verificadas:
 
