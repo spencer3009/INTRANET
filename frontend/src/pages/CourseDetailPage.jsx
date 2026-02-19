@@ -4760,21 +4760,24 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
           {/* Min Score */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Porcentaje mínimo de aprobación
+              Nota mínima aprobatoria (0-20)
             </label>
             <div className="flex items-center gap-4">
               <input
                 type="range"
                 min="0"
-                max="100"
-                value={minScore}
-                onChange={(e) => setMinScore(parseInt(e.target.value))}
+                max="20"
+                value={Math.round(minScore * 20 / 100)}
+                onChange={(e) => setMinScore(Math.round(parseInt(e.target.value) * 100 / 20))}
                 className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600"
               />
               <span className="w-16 px-3 py-2 bg-purple-100 text-purple-700 font-bold rounded-lg text-center">
-                {minScore}%
+                {Math.round(minScore * 20 / 100)}
               </span>
             </div>
+            <p className="text-xs text-gray-500 mt-1">
+              En Perú: 0-10 desaprobado, 11-20 aprobado. Valor por defecto: 11
+            </p>
           </div>
           
           {/* Description */}
