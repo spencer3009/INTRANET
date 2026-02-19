@@ -342,7 +342,7 @@ export default function NotificationBell({ token }) {
     setSelectedReminder(reminder);
   };
 
-  const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0);
+  const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0) + unreadMessages;
   const hasNotifications = totalCount > 0;
 
   return (
@@ -392,6 +392,25 @@ export default function NotificationBell({ token }) {
               )}
             </div>
           </div>
+
+          {/* Messages notification */}
+          {unreadMessages > 0 && (
+            <a 
+              href={`/school/${window.location.pathname.split('/')[2]}/mensajes`}
+              className="flex items-center gap-3 px-4 py-3 bg-indigo-50 border-b border-indigo-100 hover:bg-indigo-100 transition-colors"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-indigo-900">
+                  {unreadMessages} mensaje{unreadMessages !== 1 ? "s" : ""} nuevo{unreadMessages !== 1 ? "s" : ""}
+                </p>
+                <p className="text-xs text-indigo-600">Haz clic para ver tu bandeja de entrada</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-indigo-400" />
+            </a>
+          )}
 
           {/* Tabs */}
           <div className="flex border-b border-gray-200">
