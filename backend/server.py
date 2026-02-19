@@ -6215,7 +6215,7 @@ async def get_presence_status(current_user = Depends(get_current_user)):
             "last_seen": p.get("last_seen")
         }
     
-    return result
+    return {"users": [{"user_id": k, "is_online": v["is_online"], "last_seen": v.get("last_seen")} for k, v in result.items()]}
 
 @api_router.post("/presence/offline")
 async def mark_offline(current_user = Depends(get_current_user)):
