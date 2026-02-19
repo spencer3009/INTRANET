@@ -8821,6 +8821,9 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   
   const [activeTab, setActiveTab] = useState("tablero");
   
+  // State for unread messages count
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  
   // State for opening chat directly with a user
   const [directChatUser, setDirectChatUser] = useState(null);
   
