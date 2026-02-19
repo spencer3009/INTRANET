@@ -14611,34 +14611,40 @@ async def start_exam_attempt(
         
         if questions_count == 0:
             raise HTTPException(status_code=400, detail="Este examen no tiene preguntas")
+        
+        attempt = {
+            "id": attempt_id,
+            "exam_id": exam_id,
+            "student_id": user["id"],
+            "student_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+            "school_id": user["school_id"],
+            "start_time": now.isoformat(),
+            "end_time": None,
+            "status": ExamAttemptStatus.in_progress.value,
+            "score": None,
+            "max_score": None,
+            "percentage": None,
+            "passed": None,
+            "answers": {},  # Dict of question_id -> answer
+            "tab_changes": 0,
+            "created_at": now.isoformat()
+        }
+        
+        await db.exam_attempts.insert_one(attempt)
+        
+        return {
+            "attempt_id": attempt_id,
+            "exam_id": exam_id,
+            "remaining_seconds": duration_minutes * 60,
+            "total_questions": questions_count,
+            "resumed": False
+        }
     
-    attempt = {
-        "id": attempt_id,
-        "exam_id": exam_id,
-        "student_id": user["id"],
-        "student_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
-        "school_id": user["school_id"],
-        "start_time": now.isoformat(),
-        "end_time": None,
-        "status": ExamAttemptStatus.in_progress.value,
-        "score": None,
-        "max_score": None,
-        "percentage": None,
-        "passed": None,
-        "answers": {},  # Dict of question_id -> answer
-        "tab_changes": 0,
-        "created_at": now.isoformat()
-    }
-    
-    await db.exam_attempts.insert_one(attempt)
-    
-    return {
-        "attempt_id": attempt_id,
-        "exam_id": exam_id,
-        "remaining_seconds": exam["duration_minutes"] * 60,
-        "total_questions": questions_count,
-        "resumed": False
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error starting exam attempt: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error al iniciar el examen: {str(e)}")
 
 
 @api_router.get("/exams/{exam_id}/questions-for-student")
