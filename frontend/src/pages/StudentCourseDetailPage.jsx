@@ -814,8 +814,44 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
     setVisiblePosts(prev => prev + POSTS_INCREMENT);
   };
 
+  // Quick access menu items
+  const quickAccessItems = [
+    { id: "foro", label: "FORO", icon: MessageCircle, color: "from-cyan-500 to-teal-500", bgLight: "bg-cyan-50", count: forumPosts?.length || 0 },
+    { id: "mensajes", label: "MENSAJES", icon: Mail, color: "from-indigo-500 to-purple-500", bgLight: "bg-indigo-50", count: messageStats?.unread || 0, isUnread: true },
+    { id: "recordatorios", label: "RECORDATORIOS", icon: Bell, color: "from-amber-500 to-orange-500", bgLight: "bg-amber-50", count: reminders?.length || 0 },
+  ];
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <div className="space-y-6">
+      {/* Quick Access Menu - 3 circular buttons */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div className="flex items-center justify-center gap-6">
+          {quickAccessItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onTabChange && onTabChange(item.id === "recordatorios" ? "tablero" : item.id)}
+                className="flex flex-col items-center gap-2 group"
+                data-testid={`quick-access-${item.id}`}
+              >
+                <div className={`relative w-16 h-16 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                  <Icon className="w-7 h-7 text-white" />
+                  {item.count > 0 && (
+                    <span className={`absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 ${item.isUnread ? 'bg-red-500' : 'bg-slate-600'} text-white text-xs font-bold rounded-full flex items-center justify-center shadow-md`}>
+                      {item.count > 99 ? "99+" : item.count}
+                    </span>
+                  )}
+                </div>
+                <span className="text-xs font-bold text-slate-600 uppercase tracking-wide">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main 3-column grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       {/* LEFT COLUMN - Course Image & Activity (Dynamic Sticky) */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
