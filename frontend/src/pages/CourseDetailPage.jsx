@@ -731,7 +731,8 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
                 {displayedStudents.map((student, idx) => (
                   <div 
                     key={idx}
-                    className="flex items-center gap-3 p-2.5 bg-white rounded-xl hover:bg-emerald-100/50 transition-colors cursor-pointer"
+                    onClick={() => setSelectedStudent(student)}
+                    className="flex items-center gap-3 p-2.5 bg-white rounded-xl hover:bg-emerald-100/50 transition-colors cursor-pointer group"
                   >
                     {student.photo_url ? (
                       <img
@@ -752,6 +753,7 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
                         <p className="text-xs text-gray-400">@{student.username}</p>
                       )}
                     </div>
+                    <MessageCircle className="w-4 h-4 text-gray-300 group-hover:text-emerald-500 transition-colors" />
                   </div>
                 ))}
               </div>
