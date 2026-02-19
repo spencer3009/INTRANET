@@ -14524,80 +14524,93 @@ async def start_exam_attempt(
     Start an exam attempt. Creates a new attempt record.
     Returns attempt_id and remaining time.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user:
-        raise HTTPException(status_code=403, detail="Usuario no encontrado")
-    
-    # Only students can take exams
-    if user.get("role") != "student":
-        raise HTTPException(status_code=403, detail="Solo los estudiantes pueden rendir exámenes")
-    
-    # Get exam
-    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
-    if not exam:
-        raise HTTPException(status_code=404, detail="Examen no encontrado")
-    
-    # Validate exam is published
-    if exam.get("status") != "published":
-        raise HTTPException(status_code=400, detail="Este examen no está disponible")
-    
-    # Validate date range
-    now = datetime.now(timezone.utc)
-    start_dt = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
-    end_dt = datetime.fromisoformat(exam["end_datetime"].replace("Z", "+00:00"))
-    
-    if now < start_dt:
-        raise HTTPException(status_code=400, detail="El examen aún no está disponible")
-    if now > end_dt:
-        raise HTTPException(status_code=400, detail="El tiempo para este examen ha finalizado")
-    
-    # Check for existing attempt
-    existing_attempt = await db.exam_attempts.find_one({
-        "exam_id": exam_id,
-        "student_id": user["id"]
-    }, {"_id": 0})
-    
-    if existing_attempt:
-        # Check status
-        if existing_attempt["status"] == ExamAttemptStatus.completed.value:
-            raise HTTPException(status_code=400, detail="Ya has completado este examen")
-        if existing_attempt["status"] == ExamAttemptStatus.expired.value:
-            raise HTTPException(status_code=400, detail="Tu tiempo para este examen ha expirado")
+    try:
+        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=403, detail="Usuario no encontrado")
         
-        # If in_progress, return existing attempt
-        if existing_attempt["status"] == ExamAttemptStatus.in_progress.value:
-            # Calculate remaining time
-            start_time = datetime.fromisoformat(existing_attempt["start_time"].replace("Z", "+00:00"))
-            elapsed = (now - start_time).total_seconds()
-            duration_seconds = exam["duration_minutes"] * 60
-            remaining = max(0, duration_seconds - elapsed)
-            
-            # Check if time has run out
-            if remaining <= 0:
-                # Auto-expire the attempt
-                await db.exam_attempts.update_one(
-                    {"id": existing_attempt["id"]},
-                    {"$set": {"status": ExamAttemptStatus.expired.value, "end_time": now.isoformat()}}
-                )
+        # Only students can take exams
+        if user.get("role") != "student":
+            raise HTTPException(status_code=403, detail="Solo los estudiantes pueden rendir exámenes")
+        
+        # Get exam
+        exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+        if not exam:
+            raise HTTPException(status_code=404, detail="Examen no encontrado")
+        
+        # Validate exam has duration
+        duration_minutes = exam.get("duration_minutes")
+        if not duration_minutes or duration_minutes <= 0:
+            raise HTTPException(status_code=400, detail="El examen no tiene duración configurada")
+        
+        # Validate exam is published
+        if exam.get("status") != "published":
+            raise HTTPException(status_code=400, detail="Este examen no está disponible")
+        
+        # Validate date range
+        now = datetime.now(timezone.utc)
+        
+        start_datetime_str = exam.get("start_datetime")
+        end_datetime_str = exam.get("end_datetime")
+        
+        if not start_datetime_str or not end_datetime_str:
+            raise HTTPException(status_code=400, detail="El examen no tiene fechas configuradas")
+        
+        start_dt = datetime.fromisoformat(start_datetime_str.replace("Z", "+00:00"))
+        end_dt = datetime.fromisoformat(end_datetime_str.replace("Z", "+00:00"))
+        
+        if now < start_dt:
+            raise HTTPException(status_code=400, detail="El examen aún no está disponible")
+        if now > end_dt:
+            raise HTTPException(status_code=400, detail="El tiempo para este examen ha finalizado")
+        
+        # Check for existing attempt
+        existing_attempt = await db.exam_attempts.find_one({
+            "exam_id": exam_id,
+            "student_id": user["id"]
+        }, {"_id": 0})
+        
+        if existing_attempt:
+            # Check status
+            if existing_attempt["status"] == ExamAttemptStatus.completed.value:
+                raise HTTPException(status_code=400, detail="Ya has completado este examen")
+            if existing_attempt["status"] == ExamAttemptStatus.expired.value:
                 raise HTTPException(status_code=400, detail="Tu tiempo para este examen ha expirado")
             
-            # Get questions count
-            questions_count = await db.exam_questions.count_documents({"exam_id": exam_id})
-            
-            return {
-                "attempt_id": existing_attempt["id"],
-                "exam_id": exam_id,
-                "remaining_seconds": int(remaining),
-                "total_questions": questions_count,
-                "resumed": True
-            }
-    
-    # Create new attempt
-    attempt_id = str(uuid.uuid4())
-    questions_count = await db.exam_questions.count_documents({"exam_id": exam_id})
-    
-    if questions_count == 0:
-        raise HTTPException(status_code=400, detail="Este examen no tiene preguntas")
+            # If in_progress, return existing attempt
+            if existing_attempt["status"] == ExamAttemptStatus.in_progress.value:
+                # Calculate remaining time
+                start_time = datetime.fromisoformat(existing_attempt["start_time"].replace("Z", "+00:00"))
+                elapsed = (now - start_time).total_seconds()
+                duration_seconds = duration_minutes * 60
+                remaining = max(0, duration_seconds - elapsed)
+                
+                # Check if time has run out
+                if remaining <= 0:
+                    # Auto-expire the attempt
+                    await db.exam_attempts.update_one(
+                        {"id": existing_attempt["id"]},
+                        {"$set": {"status": ExamAttemptStatus.expired.value, "end_time": now.isoformat()}}
+                    )
+                    raise HTTPException(status_code=400, detail="Tu tiempo para este examen ha expirado")
+                
+                # Get questions count
+                questions_count = await db.exam_questions.count_documents({"exam_id": exam_id})
+                
+                return {
+                    "attempt_id": existing_attempt["id"],
+                    "exam_id": exam_id,
+                    "remaining_seconds": int(remaining),
+                    "total_questions": questions_count,
+                    "resumed": True
+                }
+        
+        # Create new attempt
+        attempt_id = str(uuid.uuid4())
+        questions_count = await db.exam_questions.count_documents({"exam_id": exam_id})
+        
+        if questions_count == 0:
+            raise HTTPException(status_code=400, detail="Este examen no tiene preguntas")
     
     attempt = {
         "id": attempt_id,
