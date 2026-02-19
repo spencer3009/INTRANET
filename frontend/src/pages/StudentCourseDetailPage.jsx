@@ -4018,7 +4018,10 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             onNavigateToDetail={handleNavigateToDetail}
             token={token}
             user={user}
-            onSendMessage={() => setActiveTab("mensajes")}
+            onSendMessage={() => {
+              setOpenComposeWithTeacher(true);
+              setActiveTab("mensajes");
+            }}
             messageStats={messageStats}
             onTabChange={setActiveTab}
             onOpenChat={setDirectChatUser}
@@ -4033,7 +4036,15 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       case "foro":
         return <ForumContent posts={forumPosts} token={token} user={user} students={students} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
       case "mensajes":
-        return <StudentMessagesContent courseId={courseId} token={token} user={user} teacher={teacher} />;
+        return (
+          <StudentMessagesContent 
+            courseId={courseId} 
+            token={token} 
+            user={user} 
+            teacher={teacher} 
+            openComposeOnMount={openComposeWithTeacher}
+          />
+        );
       case "calificaciones":
         return <GradesContent tasks={tasks} exams={exams} studentId={user?.id} subject={subject} />;
       default:
@@ -4052,7 +4063,10 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             onNavigateToDetail={handleNavigateToDetail}
             token={token}
             user={user}
-            onSendMessage={() => setActiveTab("mensajes")}
+            onSendMessage={() => {
+              setOpenComposeWithTeacher(true);
+              setActiveTab("mensajes");
+            }}
             messageStats={messageStats}
             onTabChange={setActiveTab}
           />
