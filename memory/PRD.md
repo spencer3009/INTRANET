@@ -44,6 +44,11 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 | - Profesores del grado/nivel | Feb 2026 | ✅ |
 | - Compañeros de clase (misma sección) | Feb 2026 | ✅ |
 | - Mensajes entre estudiantes del mismo grado | Feb 2026 | ✅ |
+| **Tarjetas de estudiantes con estado de conexión** | Feb 2026 | ✅ |
+| - Indicador verde (conectado) / rojo con menos (desconectado) | Feb 2026 | ✅ |
+| - Popup al hacer clic con info completa (foto, nombre, email, teléfono) | Feb 2026 | ✅ |
+| - Botones "Chat en línea" y "Enviar Mensaje" funcionales | Feb 2026 | ✅ |
+| - Usuario actual no genera popup (solo visualiza su tarjeta) | Feb 2026 | ✅ |
 | **Menú circular de iconos en Portal Alumno** | Feb 2026 | ✅ |
 | - 8 botones circulares (Tablero, Tareas, etc.) | Feb 2026 | ✅ |
 | **Badges de mensajes no leídos** | Feb 2026 | ✅ |
