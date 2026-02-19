@@ -4689,42 +4689,73 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
           </div>
           
           {/* Duration */}
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <label className="block text-sm font-semibold text-amber-800 mb-2">
-              ⏱️ Duración del examen (minutos) *
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                min="1"
-                max="300"
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(e.target.value)}
-                className="flex-1 px-4 py-3 bg-white border border-amber-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 transition-all"
-                required
-              />
-              <div className="flex gap-2">
-                {[30, 45, 60, 90, 120].map((mins) => (
-                  <button
-                    key={mins}
-                    type="button"
-                    onClick={() => setDurationMinutes(mins)}
-                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      parseInt(durationMinutes) === mins
-                        ? 'bg-amber-500 text-white'
-                        : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-100'
+          {(() => {
+            // Calculate max duration based on availability window
+            const parseTime = (timeStr) => {
+              const [hours, minutes] = timeStr.split(':').map(Number);
+              return hours * 60 + minutes;
+            };
+            const startMins = parseTime(startTime);
+            const endMins = parseTime(endTime);
+            const windowMinutes = endMins > startMins ? endMins - startMins : 0;
+            const currentDuration = parseInt(durationMinutes) || 0;
+            const isOverWindow = windowMinutes > 0 && currentDuration > windowMinutes;
+            
+            return (
+              <div className={`rounded-xl p-4 ${isOverWindow ? 'bg-red-50 border border-red-300' : 'bg-amber-50 border border-amber-200'}`}>
+                <label className={`block text-sm font-semibold mb-2 ${isOverWindow ? 'text-red-800' : 'text-amber-800'}`}>
+                  ⏱️ Duración del examen (minutos) *
+                  {windowMinutes > 0 && (
+                    <span className="font-normal text-xs ml-2">
+                      (máx. {windowMinutes} min según ventana)
+                    </span>
+                  )}
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="1"
+                    max={windowMinutes > 0 ? windowMinutes : 300}
+                    value={durationMinutes}
+                    onChange={(e) => setDurationMinutes(e.target.value)}
+                    className={`flex-1 px-4 py-3 bg-white border rounded-xl focus:outline-none focus:ring-2 transition-all ${
+                      isOverWindow 
+                        ? 'border-red-300 focus:ring-red-500' 
+                        : 'border-amber-200 focus:ring-amber-500'
                     }`}
-                  >
-                    {mins}m
-                  </button>
-                ))}
+                    required
+                  />
+                  <div className="flex gap-2 flex-wrap">
+                    {[30, 45, 60, 90, 120].filter(m => windowMinutes <= 0 || m <= windowMinutes).map((mins) => (
+                      <button
+                        key={mins}
+                        type="button"
+                        onClick={() => setDurationMinutes(mins)}
+                        className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          parseInt(durationMinutes) === mins
+                            ? 'bg-amber-500 text-white'
+                            : 'bg-white text-amber-700 border border-amber-200 hover:bg-amber-100'
+                        }`}
+                      >
+                        {mins}m
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {isOverWindow ? (
+                  <p className="text-xs text-red-600 mt-2 font-medium">
+                    ⚠️ La duración ({currentDuration} min) excede la ventana de disponibilidad ({windowMinutes} min). 
+                    El estudiante solo tendrá {windowMinutes} minutos reales.
+                  </p>
+                ) : (
+                  <p className="text-xs text-amber-600 mt-2">
+                    Tiempo máximo para <strong>completar</strong> el examen. 
+                    Si un estudiante inicia cerca del cierre, tendrá menos tiempo.
+                  </p>
+                )}
               </div>
-            </div>
-            <p className="text-xs text-amber-600 mt-2">
-              Tiempo máximo para <strong>completar</strong> el examen una vez iniciado.
-              Ejemplo: Si un estudiante inicia a las 10:45pm con 30 min de duración, tiene hasta las 11:15pm.
-            </p>
-          </div>
+            );
+          })()}
           
           {/* Min Score */}
           <div>
