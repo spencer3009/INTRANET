@@ -176,7 +176,6 @@ function EditorToolbar({ editor }) {
 function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
   const [recipients, setRecipients] = useState([]);
   const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
@@ -186,6 +185,24 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
   
   const headers = { Authorization: `Bearer ${token}` };
   
+  // Rich text editor
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Highlight,
+      Link.configure({ openOnClick: false }),
+      Placeholder.configure({ placeholder: "Escribe tu mensaje aquí..." }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: {
+        class: "prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4",
+      },
+    },
+  });
+  
   useEffect(() => {
     if (replyTo) {
       setSubject(replyTo.subject.startsWith("Re:") ? replyTo.subject : `Re: ${replyTo.subject}`);
@@ -194,9 +211,11 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
       setSubject("");
       setRecipients([]);
     }
-    setBody("");
+    if (editor) {
+      editor.commands.setContent("");
+    }
     setError("");
-  }, [replyTo, isOpen]);
+  }, [replyTo, isOpen, editor]);
   
   const searchContacts = async (query) => {
     if (!query.trim()) {
