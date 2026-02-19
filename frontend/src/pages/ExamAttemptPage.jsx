@@ -166,7 +166,7 @@ export default function ExamAttemptPage() {
     setShowConfirmSubmit(false);
     
     try {
-      const res = await axios.post(`${API}/exam-attempts/${attemptId}/submit`, {}, { headers });
+      const res = await axios.post(`${API}/api/exam-attempts/${attemptId}/submit`, {}, { headers });
       setResult(res.data);
       setSubmitted(true);
       clearInterval(timerRef.current);
