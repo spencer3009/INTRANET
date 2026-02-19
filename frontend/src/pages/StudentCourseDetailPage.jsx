@@ -3774,6 +3774,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
   const [teacher, setTeacher] = useState(null);
   const [activeTab, setActiveTab] = useState("tablero");
   const [highlightedPostId, setHighlightedPostId] = useState(null);
+  const [messageStats, setMessageStats] = useState({ unread: 0, inbox: 0, sent: 0 });
   
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false);
