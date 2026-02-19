@@ -7584,27 +7584,27 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                 <div className="col-span-2 flex items-center justify-center gap-2">
                   <button
                     onClick={() => setSelectedTask(task)}
-                    className="w-9 h-9 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg flex items-center justify-center transition-colors"
+                    className="w-12 h-12 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-xl flex items-center justify-center transition-colors"
                     title="Ver tarea"
                     data-testid={`view-task-${task.id}`}
                   >
-                    <Eye className="w-4 h-4" />
+                    <Eye className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleEditClick(task)}
-                    className="w-9 h-9 bg-slate-100 hover:bg-amber-100 text-slate-600 hover:text-amber-600 rounded-lg flex items-center justify-center transition-colors"
+                    className="w-12 h-12 bg-amber-100 hover:bg-amber-200 text-amber-500 rounded-xl flex items-center justify-center transition-colors"
                     title="Editar tarea"
                     data-testid={`edit-task-${task.id}`}
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-5 h-5" />
                   </button>
                   <button
                     onClick={() => handleDeleteClick(task)}
-                    className="w-9 h-9 bg-slate-100 hover:bg-red-100 text-slate-600 hover:text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                    className="w-12 h-12 bg-red-100 hover:bg-red-200 text-red-500 rounded-xl flex items-center justify-center transition-colors"
                     title="Eliminar"
                     data-testid={`delete-task-${task.id}`}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
