@@ -40,6 +40,10 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 | **Botón "Chat en línea" en tarjeta profesor** | Feb 2026 | ✅ Probado |
 | - Abre MessageCenter con profesor preseleccionado | Feb 2026 | ✅ |
 | - Navegación directa desde curso → chat con profesor | Feb 2026 | ✅ |
+| **Contactos expandidos para estudiantes** | Feb 2026 | ✅ |
+| - Profesores del grado/nivel | Feb 2026 | ✅ |
+| - Compañeros de clase (misma sección) | Feb 2026 | ✅ |
+| - Mensajes entre estudiantes del mismo grado | Feb 2026 | ✅ |
 | **Menú circular de iconos en Portal Alumno** | Feb 2026 | ✅ |
 | - 8 botones circulares (Tablero, Tareas, etc.) | Feb 2026 | ✅ |
 | **Badges de mensajes no leídos** | Feb 2026 | ✅ |
