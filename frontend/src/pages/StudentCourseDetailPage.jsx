@@ -999,7 +999,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
               Profesor del curso
             </h4>
           </div>
-          <div className="p-4">
+          <div className="p-4 pb-[22px]">
             {teacher ? (
               <div className="text-center">
                 {teacher.photo_url ? (
