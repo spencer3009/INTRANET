@@ -1017,15 +1017,34 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                 <span className="inline-block px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full mt-2">
                   Profesor
                 </span>
-                {/* Send Message Button */}
-                <button
-                  onClick={() => onSendMessage && onSendMessage()}
-                  className="mt-3 w-full px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
-                  data-testid="send-message-teacher-btn"
-                >
-                  <Mail className="w-4 h-4" />
-                  Enviar mensaje
-                </button>
+                
+                {/* Two Buttons - Chat and Message */}
+                <div className="mt-4 space-y-2">
+                  {/* Chat en línea - Filled button */}
+                  <button
+                    onClick={() => {
+                      // Open direct chat with teacher
+                      if (window.openChatWithUser) {
+                        window.openChatWithUser(teacher);
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
+                    data-testid="chat-teacher-btn"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    Chat en línea
+                  </button>
+                  
+                  {/* Enviar mensaje - Outline button */}
+                  <button
+                    onClick={() => onSendMessage && onSendMessage()}
+                    className="w-full px-4 py-2.5 bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+                    data-testid="send-message-teacher-btn"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Enviar mensaje
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="text-center py-4">
