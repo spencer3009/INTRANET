@@ -3559,7 +3559,7 @@ function StudentMessagesContent({ courseId, token, user, teacher }) {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-slate-800 truncate">{recipient.name}</p>
                             <p className="text-xs text-slate-500">
-                              {recipient.role === "teacher" ? "Profesor" : "Compañero"}
+                              {recipient.role_label || (recipient.role === "teacher" ? "Profesor" : recipient.role === "owner" ? "Propietario" : recipient.role === "admin" ? "Administrador" : "Compañero")}
                             </p>
                           </div>
                         </button>
