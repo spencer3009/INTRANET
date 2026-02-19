@@ -1017,7 +1017,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                 </span>
                 {/* Send Message Button */}
                 <button
-                  onClick={() => setActiveTab("mensajes")}
+                  onClick={() => onSendMessage && onSendMessage()}
                   className="mt-3 w-full px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
                   data-testid="send-message-teacher-btn"
                 >
