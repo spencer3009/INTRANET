@@ -12978,7 +12978,7 @@ class ExamCreate(BaseModel):
     description: Optional[str] = None
     start_datetime: str  # ISO format datetime
     end_datetime: str    # ISO format datetime
-    duration_minutes: Optional[int] = None
+    duration_minutes: int = 60  # Default 60 minutes, required
     min_score_percentage: Optional[float] = 60.0
 
 
