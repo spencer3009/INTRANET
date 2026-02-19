@@ -1,12 +1,22 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import axios from "axios";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
 import {
   Mail, Inbox, Send, Archive, Trash2, Star, Search,
   ChevronLeft, ChevronRight, MoreVertical, Paperclip,
   X, User, Clock, RefreshCw, CheckCircle, Circle,
   Edit3, Reply, Forward, MailOpen, AlertCircle, Plus,
-  Loader2, StarOff, ArchiveRestore, ChevronDown
+  Loader2, StarOff, ArchiveRestore, ChevronDown,
+  Bold, Italic, Underline as UnderlineIcon, Strikethrough,
+  List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
+  Link as LinkIcon, Highlighter, Undo, Redo
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -19,6 +29,146 @@ const ROLE_LABELS = {
   student: "Estudiante",
   parent: "Padre/Apoderado"
 };
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RICH TEXT EDITOR TOOLBAR
+// ══════════════════════════════════════════════════════════════════════════════
+function EditorToolbar({ editor }) {
+  if (!editor) return null;
+  
+  const ToolButton = ({ onClick, isActive, children, title }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`p-2 rounded-lg transition-all ${
+        isActive 
+          ? "bg-indigo-100 text-indigo-700" 
+          : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+      }`}
+    >
+      {children}
+    </button>
+  );
+  
+  const Divider = () => <div className="w-px h-6 bg-gray-200 mx-1" />;
+  
+  return (
+    <div className="flex items-center flex-wrap gap-0.5 p-2 border-b border-gray-200 bg-gray-50 rounded-t-xl">
+      {/* Undo/Redo */}
+      <ToolButton 
+        onClick={() => editor.chain().focus().undo().run()}
+        title="Deshacer"
+      >
+        <Undo className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().redo().run()}
+        title="Rehacer"
+      >
+        <Redo className="w-4 h-4" />
+      </ToolButton>
+      
+      <Divider />
+      
+      {/* Text Formatting */}
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        isActive={editor.isActive("bold")}
+        title="Negrita (Ctrl+B)"
+      >
+        <Bold className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        isActive={editor.isActive("italic")}
+        title="Cursiva (Ctrl+I)"
+      >
+        <Italic className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        isActive={editor.isActive("underline")}
+        title="Subrayado (Ctrl+U)"
+      >
+        <UnderlineIcon className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        isActive={editor.isActive("strike")}
+        title="Tachado"
+      >
+        <Strikethrough className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleHighlight().run()}
+        isActive={editor.isActive("highlight")}
+        title="Resaltar"
+      >
+        <Highlighter className="w-4 h-4" />
+      </ToolButton>
+      
+      <Divider />
+      
+      {/* Lists */}
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        isActive={editor.isActive("bulletList")}
+        title="Lista con viñetas"
+      >
+        <List className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        isActive={editor.isActive("orderedList")}
+        title="Lista numerada"
+      >
+        <ListOrdered className="w-4 h-4" />
+      </ToolButton>
+      
+      <Divider />
+      
+      {/* Alignment */}
+      <ToolButton 
+        onClick={() => editor.chain().focus().setTextAlign("left").run()}
+        isActive={editor.isActive({ textAlign: "left" })}
+        title="Alinear izquierda"
+      >
+        <AlignLeft className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().setTextAlign("center").run()}
+        isActive={editor.isActive({ textAlign: "center" })}
+        title="Centrar"
+      >
+        <AlignCenter className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().setTextAlign("right").run()}
+        isActive={editor.isActive({ textAlign: "right" })}
+        title="Alinear derecha"
+      >
+        <AlignRight className="w-4 h-4" />
+      </ToolButton>
+      
+      <Divider />
+      
+      {/* Link */}
+      <ToolButton 
+        onClick={() => {
+          const url = window.prompt("URL del enlace:");
+          if (url) {
+            editor.chain().focus().setLink({ href: url }).run();
+          }
+        }}
+        isActive={editor.isActive("link")}
+        title="Insertar enlace"
+      >
+        <LinkIcon className="w-4 h-4" />
+      </ToolButton>
+    </div>
+  );
+}
 
 // ══════════════════════════════════════════════════════════════════════════════
 // COMPOSE MODAL
