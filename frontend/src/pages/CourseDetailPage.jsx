@@ -233,13 +233,14 @@ function CourseHeroHeader({ subject, level, grade, academicPeriod, onEdit, onVie
 // ══════════════════════════════════════════════════════════════════════════════
 // PREMIUM TABS COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
-function PremiumTabs({ activeTab, onTabChange }) {
+function PremiumTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
   return (
     <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-100 p-3">
       <div className="flex items-center justify-start overflow-x-auto hide-scrollbar gap-2">
         {TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const showBadge = tab.id === "mensajes" && unreadMessages > 0;
           
           return (
             <button
@@ -252,7 +253,14 @@ function PremiumTabs({ activeTab, onTabChange }) {
               }`}
               data-testid={`tab-${tab.id}`}
             >
-              <Icon className={`w-7 h-7 ${isActive ? "text-white" : "text-gray-400"}`} strokeWidth={1.5} />
+              <div className="relative">
+                <Icon className={`w-7 h-7 ${isActive ? "text-white" : "text-gray-400"}`} strokeWidth={1.5} />
+                {showBadge && (
+                  <span className={`absolute -top-2 -right-2 min-w-[20px] h-5 px-1 ${isActive ? "bg-white text-indigo-600" : "bg-red-500 text-white"} text-[10px] font-bold rounded-full flex items-center justify-center shadow-md`}>
+                    {unreadMessages > 99 ? "99+" : unreadMessages}
+                  </span>
+                )}
+              </div>
               <span className="uppercase tracking-wider font-semibold">{tab.label}</span>
             </button>
           );
