@@ -659,7 +659,7 @@ function PostCard({ post, token, user, onNavigateToDetail }) {
 }
 
 // Dashboard/Tablero Content - 3 Column Layout (matching owner's portal design)
-function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, exams, reminders, onViewPost, onNavigateToDetail, token, user, onSendMessage, messageStats, onTabChange }) {
+function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, exams, reminders, onViewPost, onNavigateToDetail, token, user, onSendMessage, messageStats, onTabChange, onOpenChat }) {
   const baseColor = subject?.color || "#06b6d4";
   
   // Refs for calculating dynamic sticky top
