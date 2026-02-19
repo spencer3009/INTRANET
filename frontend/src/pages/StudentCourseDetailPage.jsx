@@ -3546,6 +3546,41 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
     }
   };
 
+  // Archive message
+  const handleArchiveMessage = async (messageId) => {
+    try {
+      await axios.put(`${API}/api/internal-mail/${messageId}/archive`, { is_archived: true }, { headers });
+      // Remove from current list and clear selection
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      setSelectedMessage(null);
+      // Refresh stats
+      loadMessages();
+    } catch (err) {
+      console.error("Error archiving message:", err);
+      alert("Error al archivar el mensaje");
+    }
+  };
+
+  // Delete message (move to trash)
+  const handleDeleteMessage = async (messageId) => {
+    if (!window.confirm("¿Estás seguro de que deseas eliminar este mensaje?")) return;
+    
+    try {
+      await axios.delete(`${API}/api/internal-mail/${messageId}`, { headers });
+      // Remove from current list and clear selection
+      setMessages(prev => prev.filter(m => m.id !== messageId));
+      setSelectedMessage(null);
+      // Update stats
+      setStats(prev => ({ 
+        ...prev, 
+        inbox: Math.max(0, prev.inbox - 1)
+      }));
+    } catch (err) {
+      console.error("Error deleting message:", err);
+      alert("Error al eliminar el mensaje");
+    }
+  };
+
   const FOLDERS = [
     { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox },
     { id: "sent", label: "Enviados", icon: SendHorizontal, count: stats.sent },
