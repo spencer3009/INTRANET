@@ -31,7 +31,7 @@ export default function ExamResultPage() {
   const fetchResult = async () => {
     try {
       setLoading(true);
-      const res = await axios.get(`${API}/exam-attempts/${attemptId}/result`, { headers });
+      const res = await axios.get(`${API}/api/exam-attempts/${attemptId}/result`, { headers });
       setResult(res.data);
     } catch (err) {
       console.error('Error fetching result:', err);
