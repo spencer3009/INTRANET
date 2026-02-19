@@ -9136,6 +9136,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
                       subjectId={subjectId}
                       token={token}
                       userRole={user?.role}
+                      onOpenChat={(student) => setDirectChatUser(student)}
                     />
                   </aside>
                 )}
