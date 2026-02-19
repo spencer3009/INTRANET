@@ -93,13 +93,14 @@ function CourseHeader({ subject, teacher, onBack }) {
 }
 
 // Tabs Component
-function CourseTabs({ activeTab, onTabChange }) {
+function CourseTabs({ activeTab, onTabChange, messageStats }) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2">
       <div className="flex items-center gap-1 overflow-x-auto">
         {STUDENT_TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
+          const unreadCount = tab.id === "mensajes" ? messageStats?.unread : 0;
           
           return (
             <button
@@ -114,6 +115,13 @@ function CourseTabs({ activeTab, onTabChange }) {
             >
               <Icon className="w-4 h-4" />
               {tab.label}
+              {unreadCount > 0 && (
+                <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
+                  isActive ? "bg-white/30 text-white" : "bg-red-500 text-white"
+                }`}>
+                  {unreadCount}
+                </span>
+              )}
             </button>
           );
         })}
