@@ -4110,7 +4110,44 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
                 onBack={handleBack}
               />
               
-              {/* Tab Content - Menu circular icons are inside DashboardContent */}
+              {/* Circular Icons Menu */}
+              <div className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                <div className="flex flex-wrap items-center justify-center gap-8 md:gap-10">
+                  {[
+                    { id: "tablero", label: "TABLERO", icon: LayoutDashboard, color: "from-slate-600 to-slate-700" },
+                    { id: "tareas", label: "TAREAS", icon: FileText, color: "from-blue-500 to-blue-600", count: tasks?.filter(t => !t.submissions?.some(s => s.student_id === user?.id))?.length || 0 },
+                    { id: "material", label: "MATERIAL", icon: FolderOpen, color: "from-emerald-500 to-green-600", count: materials?.length || 0 },
+                    { id: "examenes", label: "EXÁMENES", icon: FlaskConical, color: "from-rose-500 to-pink-600", count: exams?.filter(e => e.status === "publicado")?.length || 0 },
+                    { id: "foro", label: "FORO", icon: MessageCircle, color: "from-cyan-500 to-teal-500", count: forumPosts?.length || 0 },
+                    { id: "mensajes", label: "MENSAJES", icon: Mail, color: "from-indigo-500 to-purple-500", count: messageStats?.unread || 0, isUnread: true },
+                    { id: "recordatorios", label: "RECORDATORIOS", icon: Bell, color: "from-amber-500 to-orange-500", count: reminders?.length || 0 },
+                    { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, color: "from-yellow-500 to-amber-500" },
+                  ].map((item) => {
+                    const Icon = item.icon;
+                    const isActive = activeTab === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id)}
+                        className={`flex flex-col items-center gap-2 group transition-all duration-300 ${isActive ? 'scale-110' : ''}`}
+                        data-testid={`menu-${item.id}`}
+                      >
+                        <div className={`relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-300 ${isActive ? 'ring-4 ring-offset-2 ring-cyan-400' : ''}`}>
+                          <Icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
+                          {item.count > 0 && (
+                            <span className={`absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 ${item.isUnread ? 'bg-red-500 animate-pulse' : 'bg-slate-700'} text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md`}>
+                              {item.count > 99 ? "99+" : item.count}
+                            </span>
+                          )}
+                        </div>
+                        <span className={`text-[10px] md:text-xs font-bold uppercase tracking-wide text-center ${isActive ? 'text-cyan-600' : 'text-slate-600'}`}>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              {/* Tab Content */}
               <div className="mt-6">
                 {renderContent()}
               </div>
