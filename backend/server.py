@@ -14515,6 +14515,51 @@ class SaveAnswerRequest(BaseModel):
 class SubmitExamRequest(BaseModel):
     answers: Optional[List[dict]] = None  # Optional - for bulk submission
 
+
+@api_router.get("/exams/{exam_id}/debug")
+async def debug_exam_data(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    DEBUG ENDPOINT - Temporary endpoint to check exam data.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get exam with all fields
+    exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0})
+    
+    if not exam:
+        return {"error": "Examen no encontrado", "exam_id": exam_id}
+    
+    # Get questions count
+    questions_count = await db.exam_questions.count_documents({"exam_id": exam_id})
+    
+    duration_raw = exam.get("duration_minutes")
+    
+    return {
+        "exam_id": exam_id,
+        "title": exam.get("title"),
+        "school_id": exam.get("school_id"),
+        "user_school_id": user.get("school_id"),
+        "school_match": exam.get("school_id") == user.get("school_id"),
+        "status": exam.get("status"),
+        "duration_minutes": {
+            "raw_value": duration_raw,
+            "type": type(duration_raw).__name__,
+            "is_none": duration_raw is None,
+            "is_empty_string": duration_raw == "",
+            "bool_value": bool(duration_raw)
+        },
+        "start_datetime": exam.get("start_datetime"),
+        "end_datetime": exam.get("end_datetime"),
+        "questions_count": questions_count,
+        "all_keys": list(exam.keys())
+    }
+
+
 @api_router.post("/exams/{exam_id}/start")
 async def start_exam_attempt(
     exam_id: str,
