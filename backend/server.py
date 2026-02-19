@@ -15803,7 +15803,25 @@ async def get_student_allowed_recipients(course_id: str, current_user = Depends(
     
     allowed_recipients = []
     
-    # 1. Find teacher from academic_assignments for this subject and section
+    # 1. Add school owner/admin first (priority)
+    owners = await db.users.find({
+        "school_id": school_id,
+        "role": {"$in": ["owner", "admin"]},
+        "is_active": {"$ne": False}
+    }, {"_id": 0, "id": 1, "name": 1, "first_name": 1, "last_name": 1, "email": 1, "photo_url": 1, "role": 1}).to_list(10)
+    
+    for owner in owners:
+        full_name = f"{owner.get('name', '')} {owner.get('last_name', '')}".strip() or owner.get('first_name', '')
+        allowed_recipients.append({
+            "id": owner["id"],
+            "name": full_name,
+            "email": owner.get("email"),
+            "photo_url": owner.get("photo_url"),
+            "role": "owner" if owner.get("role") == "owner" else "admin",
+            "role_label": "Propietario" if owner.get("role") == "owner" else "Administrador"
+        })
+    
+    # 2. Find teacher from academic_assignments for this subject and section
     assignment = await db.academic_assignments.find_one({
         "school_id": school_id,
         "subject_id": subject_id,
@@ -15827,7 +15845,7 @@ async def get_student_allowed_recipients(course_id: str, current_user = Depends(
                 "course_name": subject_name
             })
     
-    # 2. Add classmates (students in same section)
+    # 3. Add classmates (students in same section)
     if seccion_id:
         classmates = await db.users.find({
             "school_id": school_id,
