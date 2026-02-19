@@ -691,17 +691,28 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
             </div>
           )}
           
-          {/* Chat Button */}
-          <button
-            onClick={() => {
-              // TODO: Implementar navegación al chat
-              alert('Funcionalidad de chat próximamente');
-            }}
-            className="w-full mt-4 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
-          >
-            <MessageCircle className="w-5 h-5" />
-            Enviar mensaje
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-3 mt-4">
+            <button
+              onClick={() => {
+                // TODO: Implementar chat en línea
+                alert('Chat en línea próximamente');
+              }}
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
+            >
+              <MessageCircle className="w-5 h-5" />
+              Chat en línea
+            </button>
+            <button
+              onClick={() => {
+                // TODO: Implementar envío de mensaje
+                alert('Enviar mensaje próximamente');
+              }}
+              className="py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
+            >
+              <Mail className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
     </div>,
