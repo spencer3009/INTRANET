@@ -14538,10 +14538,29 @@ async def start_exam_attempt(
         if not exam:
             raise HTTPException(status_code=404, detail="Examen no encontrado")
         
-        # Validate exam has duration
-        duration_minutes = exam.get("duration_minutes")
-        if not duration_minutes or duration_minutes <= 0:
-            raise HTTPException(status_code=400, detail="El examen no tiene duración configurada")
+        # DEBUG: Log exam data
+        duration_raw = exam.get("duration_minutes")
+        logger.info(f"EXAM DEBUG - ID: {exam_id}")
+        logger.info(f"EXAM DEBUG - duration_minutes raw value: {duration_raw}")
+        logger.info(f"EXAM DEBUG - duration_minutes type: {type(duration_raw)}")
+        logger.info(f"EXAM DEBUG - exam keys: {list(exam.keys())}")
+        
+        # Robust conversion to int - handle string, None, empty string, etc.
+        duration_minutes = 0
+        try:
+            if duration_raw is not None and duration_raw != "" and duration_raw != "null":
+                duration_minutes = int(float(str(duration_raw)))
+        except (TypeError, ValueError) as e:
+            logger.warning(f"EXAM DEBUG - Could not convert duration: {e}")
+            duration_minutes = 0
+        
+        logger.info(f"EXAM DEBUG - duration_minutes after conversion: {duration_minutes}")
+        
+        if duration_minutes <= 0:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"El examen no tiene duración configurada (valor recibido: {duration_raw}, tipo: {type(duration_raw).__name__})"
+            )
         
         # Validate exam is published
         if exam.get("status") != "published":
