@@ -1157,3 +1157,83 @@ Las entregas de tareas de los estudiantes NO aparecían en el portal del profeso
 
 **Estado:** COMPLETADO Y VERIFICADO
 
+
+
+---
+
+## Sistema de Exámenes para Estudiantes (2025-02-18)
+
+### Funcionalidad Implementada
+
+Se implementó el sistema completo de toma de exámenes para estudiantes, incluyendo:
+
+#### Backend (`/app/backend/server.py`)
+
+**Nuevos Endpoints:**
+1. `POST /api/exams/{exam_id}/start` - Inicia un intento de examen
+2. `GET /api/exams/{exam_id}/questions-for-student` - Obtiene preguntas sin respuestas correctas
+3. `POST /api/exam-attempts/{attempt_id}/save-answer` - Guarda respuesta (auto-save)
+4. `POST /api/exam-attempts/{attempt_id}/report-tab-change` - Anti-trampa por cambio de pestaña
+5. `POST /api/exam-attempts/{attempt_id}/submit` - Envía examen y auto-califica
+6. `GET /api/exam-attempts/{attempt_id}/result` - Obtiene resultados detallados
+7. `GET /api/exams/{exam_id}/my-attempt` - Verifica si el estudiante tiene un intento
+
+**Colección `exam_attempts`:**
+- `id`, `exam_id`, `student_id`, `student_name`, `school_id`
+- `start_time`, `end_time`, `status` (in_progress, completed, expired)
+- `score`, `max_score`, `percentage`, `passed`
+- `answers`, `graded_answers`, `tab_changes`
+
+**Características del Backend:**
+- Validación de disponibilidad (fechas inicio/fin)
+- Validación de examen no repetido (si ya completó)
+- Cálculo automático de tiempo restante al reconectar
+- Auto-corrección de respuestas (multiple_choice, true_false, fill_blanks)
+- Detección de cambios de pestaña (anti-trampa)
+- Auto-expiración cuando se agota el tiempo
+
+#### Frontend
+
+**Nuevas Páginas:**
+1. `/app/frontend/src/pages/ExamAttemptPage.jsx` - Página de toma de examen
+2. `/app/frontend/src/pages/ExamResultPage.jsx` - Página de resultados
+
+**Características de la UI:**
+- Diseño premium tipo LMS
+- Contador regresivo en tiempo real (rojo cuando < 5 minutos)
+- Navegador de preguntas con indicadores de estado
+- Soporte para imágenes en preguntas y opciones
+- Auto-guardado de respuestas
+- Modal de confirmación antes de enviar
+- Advertencia por cambio de pestaña (anti-trampa)
+- Vista de resultados con revisión de respuestas
+
+**Rutas agregadas en App.js:**
+- `/school/:subdomain/exam/:examId/attempt`
+- `/school/:subdomain/exam/:examId/result/:attemptId`
+
+**Componente ExamsContent actualizado:**
+- Verificación de estado de intento por API
+- Botón "Iniciar Examen" funcional
+- Botón "Continuar Examen" para intentos en progreso
+- Botón "Ver resultados" para intentos completados
+
+### Estados del Examen
+
+| Estado | Descripción | Acción disponible |
+|--------|-------------|-------------------|
+| `available` | Dentro del rango de fechas, sin intento | Iniciar Examen |
+| `in_progress` | Intento iniciado, tiempo restante | Continuar Examen |
+| `completed` | Intento completado | Ver resultados |
+| `expired` | Tiempo agotado | Ver resultados |
+| `upcoming` | Antes de fecha inicio | No disponible |
+| `closed` | Después de fecha fin | Examen cerrado |
+
+### Anti-Trampa
+
+- Detección de cambios de pestaña
+- Advertencia en primer y segundo cambio
+- Auto-envío al tercer cambio de pestaña
+- Auto-envío cuando el contador llega a 0
+
+**Estado:** COMPLETADO - Pendiente de verificación completa en producción
