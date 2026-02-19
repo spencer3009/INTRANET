@@ -4527,7 +4527,11 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
       setDescription(exam.description || "");
       if (exam.start_datetime) {
         const startDt = new Date(exam.start_datetime);
-        setDate(startDt.toISOString().split('T')[0]);
+        // Use local date components to avoid timezone issues
+        const year = startDt.getFullYear();
+        const month = String(startDt.getMonth() + 1).padStart(2, '0');
+        const day = String(startDt.getDate()).padStart(2, '0');
+        setDate(`${year}-${month}-${day}`);
         setStartTime(`${startDt.getHours().toString().padStart(2, '0')}:${startDt.getMinutes().toString().padStart(2, '0')}`);
       }
       if (exam.end_datetime) {
