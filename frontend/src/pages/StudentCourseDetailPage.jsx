@@ -1007,6 +1007,15 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                 <span className="inline-block px-3 py-1 bg-amber-500 text-white text-xs font-bold rounded-full mt-2">
                   Profesor
                 </span>
+                {/* Send Message Button */}
+                <button
+                  onClick={() => setActiveTab("mensajes")}
+                  className="mt-3 w-full px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
+                  data-testid="send-message-teacher-btn"
+                >
+                  <Mail className="w-4 h-4" />
+                  Enviar mensaje
+                </button>
               </div>
             ) : (
               <div className="text-center py-4">
