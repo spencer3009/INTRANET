@@ -36,13 +36,30 @@ const STATUS_CONFIG = {
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN MESSAGE CENTER COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
-export default function MessageCenter({ token, user }) {
+export default function MessageCenter({ token, user, openWithUser, onClose }) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("academic");
   const [stats, setStats] = useState({ total_unread: 0, institutional: 0, support: 0, academic: 0 });
   const [loading, setLoading] = useState(false);
+  const [directChatUser, setDirectChatUser] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
+  
+  // Handle opening with a specific user (from external trigger)
+  useEffect(() => {
+    if (openWithUser) {
+      setDirectChatUser(openWithUser);
+      setActiveTab("academic");
+      setIsOpen(true);
+    }
+  }, [openWithUser]);
+  
+  // Handle close
+  const handleClose = () => {
+    setIsOpen(false);
+    setDirectChatUser(null);
+    if (onClose) onClose();
+  };
 
   // Load stats
   const loadStats = async () => {
