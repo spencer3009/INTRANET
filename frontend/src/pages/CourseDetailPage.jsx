@@ -4233,18 +4233,21 @@ const EXAM_STATUS_CONFIG = {
 // Time picker component with circular dial - supports hours, minutes and seconds
 function TimePicker({ value, onChange, label }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [hours, setHours] = useState(value ? parseInt(value.split(':')[0]) : 9);
+  const [hours, setHours] = useState(value ? parseInt(value.split(':')[0]) % 12 || 12 : 9);
   const [minutes, setMinutes] = useState(value ? parseInt(value.split(':')[1]) : 0);
   const [seconds, setSeconds] = useState(value && value.split(':')[2] ? parseInt(value.split(':')[2]) : 0);
+  const [period, setPeriod] = useState(value && parseInt(value.split(':')[0]) >= 12 ? 'PM' : 'AM');
   const [selectingMode, setSelectingMode] = useState('hours'); // 'hours', 'minutes', 'seconds'
   const dialRef = useRef(null);
   
   useEffect(() => {
     if (value) {
       const parts = value.split(':');
-      setHours(parseInt(parts[0]) || 0);
+      const h = parseInt(parts[0]) || 0;
+      setHours(h % 12 || 12);
       setMinutes(parseInt(parts[1]) || 0);
       setSeconds(parseInt(parts[2]) || 0);
+      setPeriod(h >= 12 ? 'PM' : 'AM');
     }
   }, [value]);
   
@@ -4262,7 +4265,7 @@ function TimePicker({ value, onChange, label }) {
     
     if (selectingMode === 'hours') {
       const hour = Math.round(angle / 30) % 12 || 12;
-      setHours(hour > 12 ? hour - 12 : hour);
+      setHours(hour);
     } else if (selectingMode === 'minutes') {
       const minute = Math.round(angle / 6) % 60;
       setMinutes(minute);
@@ -4273,7 +4276,14 @@ function TimePicker({ value, onChange, label }) {
   };
   
   const confirmTime = () => {
-    const timeStr = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    // Convert to 24h format
+    let hour24 = hours;
+    if (period === 'AM' && hours === 12) {
+      hour24 = 0;
+    } else if (period === 'PM' && hours !== 12) {
+      hour24 = hours + 12;
+    }
+    const timeStr = `${hour24.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
     onChange(timeStr);
     setIsOpen(false);
   };
@@ -4295,8 +4305,12 @@ function TimePicker({ value, onChange, label }) {
       ? minutes * 6 
       : seconds * 6;
   
-  // Format display
-  const displayTime = value || "09:00:00";
+  // Format display with AM/PM
+  const displayHour = value ? (parseInt(value.split(':')[0]) % 12 || 12) : 9;
+  const displayPeriod = value && parseInt(value.split(':')[0]) >= 12 ? 'PM' : 'AM';
+  const displayTime = value 
+    ? `${displayHour.toString().padStart(2, '0')}:${value.split(':')[1]}:${value.split(':')[2] || '00'} ${displayPeriod}`
+    : "09:00:00 AM";
   
   return (
     <div className="relative">
@@ -4319,27 +4333,46 @@ function TimePicker({ value, onChange, label }) {
             {/* Header */}
             <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
               <p className="text-indigo-200 text-sm mb-1">Seleccionar hora</p>
-              <div className="flex items-baseline gap-1 justify-center">
-                <button
-                  onClick={() => setSelectingMode('hours')}
-                  className={`text-4xl font-light transition-all ${selectingMode === 'hours' ? 'text-white scale-110' : 'text-white/50'}`}
-                >
-                  {hours.toString().padStart(2, '0')}
-                </button>
-                <span className="text-4xl font-light text-white/50">:</span>
-                <button
-                  onClick={() => setSelectingMode('minutes')}
-                  className={`text-4xl font-light transition-all ${selectingMode === 'minutes' ? 'text-white scale-110' : 'text-white/50'}`}
-                >
-                  {minutes.toString().padStart(2, '0')}
-                </button>
-                <span className="text-4xl font-light text-white/50">:</span>
-                <button
-                  onClick={() => setSelectingMode('seconds')}
-                  className={`text-4xl font-light transition-all ${selectingMode === 'seconds' ? 'text-white scale-110' : 'text-white/50'}`}
-                >
-                  {seconds.toString().padStart(2, '0')}
-                </button>
+              <div className="flex items-center gap-3 justify-center">
+                <div className="flex items-baseline gap-1">
+                  <button
+                    onClick={() => setSelectingMode('hours')}
+                    className={`text-4xl font-light transition-all ${selectingMode === 'hours' ? 'text-white scale-110' : 'text-white/50'}`}
+                  >
+                    {hours.toString().padStart(2, '0')}
+                  </button>
+                  <span className="text-4xl font-light text-white/50">:</span>
+                  <button
+                    onClick={() => setSelectingMode('minutes')}
+                    className={`text-4xl font-light transition-all ${selectingMode === 'minutes' ? 'text-white scale-110' : 'text-white/50'}`}
+                  >
+                    {minutes.toString().padStart(2, '0')}
+                  </button>
+                  <span className="text-4xl font-light text-white/50">:</span>
+                  <button
+                    onClick={() => setSelectingMode('seconds')}
+                    className={`text-4xl font-light transition-all ${selectingMode === 'seconds' ? 'text-white scale-110' : 'text-white/50'}`}
+                  >
+                    {seconds.toString().padStart(2, '0')}
+                  </button>
+                </div>
+                {/* AM/PM Selector */}
+                <div className="flex flex-col gap-1 ml-2">
+                  <button
+                    type="button"
+                    onClick={() => setPeriod('AM')}
+                    className={`px-2 py-0.5 rounded text-sm font-bold transition-all ${period === 'AM' ? 'bg-white text-indigo-600' : 'text-white/50 hover:text-white/80'}`}
+                  >
+                    AM
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPeriod('PM')}
+                    className={`px-2 py-0.5 rounded text-sm font-bold transition-all ${period === 'PM' ? 'bg-white text-indigo-600' : 'text-white/50 hover:text-white/80'}`}
+                  >
+                    PM
+                  </button>
+                </div>
               </div>
             </div>
             
