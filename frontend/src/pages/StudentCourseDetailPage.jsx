@@ -1157,6 +1157,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
           </div>
         )}
       </div>
+      </div>
     </div>
   );
 }
