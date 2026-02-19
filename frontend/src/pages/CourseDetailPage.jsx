@@ -8816,6 +8816,10 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   // State for opening chat directly with a user
   const [directChatUser, setDirectChatUser] = useState(null);
   
+  // State for opening mail compose with a user
+  const [directMailUser, setDirectMailUser] = useState(null);
+  const [showComposeModal, setShowComposeModal] = useState(false);
+  
   // Mock data - empty, will be loaded from API
   // (Keeping this for backwards compatibility if needed)
   
