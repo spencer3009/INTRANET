@@ -4041,6 +4041,30 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
 
   const headers = { Authorization: `Bearer ${token}` };
   
+  // Heartbeat for presence - mark user as online
+  const sendHeartbeat = useCallback(async () => {
+    try {
+      await axios.post(`${API}/api/presence/heartbeat`, {}, { headers: { Authorization: `Bearer ${token}` } });
+    } catch (err) {
+      console.error("Heartbeat error:", err);
+    }
+  }, [token]);
+
+  // Setup heartbeat interval
+  useEffect(() => {
+    // Send initial heartbeat
+    sendHeartbeat();
+    
+    // Setup interval (every 30 seconds)
+    const interval = setInterval(sendHeartbeat, 30000);
+    
+    // Cleanup on unmount - mark offline
+    return () => {
+      clearInterval(interval);
+      axios.post(`${API}/api/presence/offline`, {}, { headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    };
+  }, [sendHeartbeat, token]);
+  
   // Function to navigate to detail view from feed
   const handleNavigateToDetail = (tab, postId) => {
     setActiveTab(tab);
