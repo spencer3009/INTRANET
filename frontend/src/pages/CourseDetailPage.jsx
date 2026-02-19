@@ -695,8 +695,8 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole, onO
           <div className="flex gap-3 mt-4">
             <button
               onClick={() => {
-                // TODO: Implementar chat en línea
-                alert('Chat en línea próximamente');
+                setSelectedStudent(null);
+                if (onOpenChat) onOpenChat(selectedStudent);
               }}
               className="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
             >
