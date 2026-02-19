@@ -774,17 +774,23 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
                     onClick={() => setSelectedStudent(student)}
                     className="flex items-center gap-3 p-2.5 bg-white rounded-xl hover:bg-emerald-100/50 transition-colors cursor-pointer group"
                   >
-                    {student.photo_url ? (
-                      <img
-                        src={student.photo_url}
-                        alt={student.name}
-                        className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-200"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-emerald-200">
-                        {student.name?.charAt(0)}
+                    <div className="relative">
+                      {student.photo_url ? (
+                        <img
+                          src={student.photo_url}
+                          alt={student.name}
+                          className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-200"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-emerald-200">
+                          {student.name?.charAt(0)}
+                        </div>
+                      )}
+                      {/* Online indicator */}
+                      <div className="absolute -bottom-0.5 -right-0.5">
+                        <OnlineIndicator userId={student.id} size="sm" />
                       </div>
-                    )}
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-800 truncate">
                         {student.name} {student.last_name?.charAt(0)}.
