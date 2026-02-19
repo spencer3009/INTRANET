@@ -708,9 +708,10 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
                 // TODO: Implementar envío de mensaje
                 alert('Enviar mensaje próximamente');
               }}
-              className="py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
+              className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
             >
               <Mail className="w-5 h-5" />
+              Enviar Mensaje
             </button>
           </div>
         </div>
