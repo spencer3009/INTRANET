@@ -9069,7 +9069,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         <main className="flex-1 px-6 lg:px-8 py-6">
           {/* Hero Header - Hidden on full-width tabs */}
           {(() => {
-            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones"];
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             if (!isFullWidth) {
               return (
