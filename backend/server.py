@@ -1317,7 +1317,7 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
     )
     students = await students_cursor.to_list(length=100)
     
-    # Return simplified student info
+    # Return student info with contact details for messaging
     return {
         "students": [
             {
@@ -1325,7 +1325,9 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
                 "name": s.get("name"),
                 "last_name": s.get("last_name"),
                 "photo_url": s.get("photo_url"),
-                "username": s.get("username")
+                "username": s.get("username"),
+                "email": s.get("email"),
+                "phone": s.get("phone")
             }
             for s in students
         ]
