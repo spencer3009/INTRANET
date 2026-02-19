@@ -662,11 +662,69 @@ function PostCard({ post, token, user, onNavigateToDetail }) {
 function DashboardContent({ subject, teacher, posts, students, tasks, materials, forumPosts, exams, reminders, onViewPost, onNavigateToDetail, token, user, onSendMessage, messageStats, onTabChange, onOpenChat }) {
   const baseColor = subject?.color || "#06b6d4";
   
+  // State for student detail popup
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [presenceData, setPresenceData] = useState({});
+  
   // Refs for calculating dynamic sticky top
   const leftColumnRef = useRef(null);
   const rightColumnRef = useRef(null);
   const [leftStickyTop, setLeftStickyTop] = useState('auto');
   const [rightStickyTop, setRightStickyTop] = useState('auto');
+  
+  // Load presence data
+  useEffect(() => {
+    const loadPresence = async () => {
+      try {
+        const res = await axios.get(`${API}/api/presence/users`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const presenceMap = {};
+        (res.data.users || []).forEach(u => {
+          presenceMap[u.user_id] = u.is_online;
+        });
+        setPresenceData(presenceMap);
+      } catch (err) {
+        console.error("Error loading presence:", err);
+      }
+    };
+    
+    loadPresence();
+    // Refresh presence every 30 seconds
+    const interval = setInterval(loadPresence, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
+  
+  // Handle student card click
+  const handleStudentClick = (student) => {
+    // Don't open popup for the current user
+    if (student.id === user?.id) return;
+    setSelectedStudent(student);
+  };
+  
+  // Handle chat with student
+  const handleChatWithStudent = () => {
+    if (selectedStudent && onOpenChat) {
+      onOpenChat({
+        id: selectedStudent.id,
+        name: selectedStudent.name || '',
+        last_name: selectedStudent.last_name || '',
+        email: selectedStudent.email || '',
+        photo_url: selectedStudent.photo_url,
+        role: 'student'
+      });
+    }
+    setSelectedStudent(null);
+  };
+  
+  // Handle send message to student
+  const handleSendMessageToStudent = () => {
+    // Navigate to messages tab and open compose with this student
+    if (onTabChange) {
+      onTabChange("mensajes");
+    }
+    setSelectedStudent(null);
+  };
   
   // Calculate dynamic sticky top values based on column heights
   useEffect(() => {
