@@ -3622,60 +3622,92 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
           )}
         </div>
 
-        {/* Center: Message List */}
-        <div className="w-80 border-r border-slate-200 overflow-y-auto">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+        {/* CENTER - Message List */}
+        <div className="w-80 border-r border-slate-200 flex flex-col">
+          {/* Search Bar */}
+          <div className="p-3 border-b border-slate-200">
+            <div className="relative">
+              <input
+                type="text"
+                value={messageSearchQuery}
+                onChange={(e) => setMessageSearchQuery(e.target.value)}
+                placeholder="Buscar mensajes..."
+                className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border-0 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+              />
+              <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-          ) : messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-slate-400">
-              <Mail className="w-12 h-12 mb-2" />
-              <p>Sin mensajes</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100">
-              {messages.map(msg => (
-                <button
-                  key={msg.id}
-                  onClick={() => viewMessage(msg)}
-                  className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors ${
-                    selectedMessage?.id === msg.id ? "bg-indigo-50" : ""
-                  } ${!msg.is_read && activeFolder === "inbox" ? "bg-indigo-50/50" : ""}`}
-                >
-                  <div className="flex items-start gap-3">
-                    {(activeFolder === "inbox" ? msg.sender?.photo_url : msg.recipient?.photo_url) ? (
-                      <img
-                        src={activeFolder === "inbox" ? msg.sender?.photo_url : msg.recipient?.photo_url}
-                        alt=""
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                        {(activeFolder === "inbox" ? msg.sender?.name : msg.recipient?.name)?.charAt(0) || "?"}
+          </div>
+
+          {/* Messages List */}
+          <div className="flex-1 overflow-y-auto">
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+              </div>
+            ) : filteredMessages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 p-4">
+                <Mail className="w-12 h-12 mb-2" />
+                <p className="text-sm">Sin mensajes</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100">
+                {filteredMessages.map(msg => {
+                  const isUnread = !msg.is_read && activeFolder === "inbox";
+                  const personName = activeFolder === "inbox" ? msg.sender?.name : msg.recipient?.name;
+                  const personPhoto = activeFolder === "inbox" ? msg.sender?.photo_url : msg.recipient?.photo_url;
+                  
+                  return (
+                    <button
+                      key={msg.id}
+                      onClick={() => viewMessage(msg)}
+                      className={`w-full px-4 py-3.5 text-left hover:bg-slate-50 transition-colors ${
+                        selectedMessage?.id === msg.id ? "bg-indigo-50 border-l-4 border-indigo-500" : ""
+                      } ${isUnread ? "bg-indigo-50/30" : ""}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Avatar */}
+                        {personPhoto ? (
+                          <img
+                            src={personPhoto}
+                            alt=""
+                            className="w-11 h-11 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                            {personName?.charAt(0) || "?"}
+                          </div>
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          {/* Name and Time */}
+                          <div className="flex items-center justify-between mb-0.5">
+                            <span className={`text-sm truncate ${isUnread ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
+                              {personName}
+                            </span>
+                            <span className="text-xs text-slate-400 flex-shrink-0 ml-2">
+                              {formatDate(msg.created_at)}
+                            </span>
+                          </div>
+                          
+                          {/* Subject */}
+                          <p className={`text-sm truncate ${isUnread ? "font-semibold text-slate-800" : "text-slate-600"}`}>
+                            {msg.subject}
+                          </p>
+                          
+                          {/* Preview */}
+                          <p className="text-xs text-slate-400 truncate mt-0.5">
+                            {msg.body?.replace(/<[^>]*>/g, "").substring(0, 50)}...
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className={`text-sm truncate ${!msg.is_read && activeFolder === "inbox" ? "font-bold text-slate-900" : "text-slate-700"}`}>
-                          {activeFolder === "inbox" ? msg.sender?.name : `Para: ${msg.recipient?.name}`}
-                        </span>
-                        <span className="text-xs text-slate-400 flex-shrink-0 ml-2">
-                          {formatDate(msg.created_at)}
-                        </span>
-                      </div>
-                      <p className={`text-sm truncate ${!msg.is_read && activeFolder === "inbox" ? "font-semibold text-slate-800" : "text-slate-600"}`}>
-                        {msg.subject}
-                      </p>
-                      <p className="text-xs text-slate-400 truncate mt-0.5">
-                        {msg.body?.replace(/<[^>]*>/g, "").substring(0, 60)}...
-                      </p>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right: Message Detail */}
