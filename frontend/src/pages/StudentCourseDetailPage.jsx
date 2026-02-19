@@ -3389,9 +3389,21 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
   const loadMessages = useCallback(async () => {
     try {
       setLoading(true);
-      const endpoint = activeFolder === "sent" 
-        ? `${API}/api/student-portal/messages/sent?course_id=${courseId}`
-        : `${API}/api/student-portal/messages/inbox?course_id=${courseId}`;
+      let endpoint;
+      
+      switch (activeFolder) {
+        case "sent":
+          endpoint = `${API}/api/student-portal/messages/sent?course_id=${courseId}`;
+          break;
+        case "archived":
+          endpoint = `${API}/api/internal-mail/archived`;
+          break;
+        case "trash":
+          endpoint = `${API}/api/internal-mail/trash`;
+          break;
+        default: // inbox
+          endpoint = `${API}/api/student-portal/messages/inbox?course_id=${courseId}`;
+      }
       
       const [messagesRes, statsRes] = await Promise.all([
         axios.get(endpoint, { headers }),
