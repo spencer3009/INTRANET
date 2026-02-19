@@ -3547,9 +3547,21 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
   };
 
   const FOLDERS = [
-    { id: "inbox", label: "Entrada", icon: Inbox, count: stats.inbox },
+    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox },
     { id: "sent", label: "Enviados", icon: SendHorizontal, count: stats.sent },
+    { id: "archived", label: "Archivados", icon: Archive, count: 0 },
+    { id: "trash", label: "Papelera", icon: Trash2, count: 0 },
   ];
+
+  // Message search filter
+  const filteredMessages = messages.filter(msg => {
+    if (!messageSearchQuery.trim()) return true;
+    const searchLower = messageSearchQuery.toLowerCase();
+    const senderName = (activeFolder === "inbox" ? msg.sender?.name : msg.recipient?.name)?.toLowerCase() || "";
+    const subject = msg.subject?.toLowerCase() || "";
+    const body = msg.body?.replace(/<[^>]*>/g, "").toLowerCase() || "";
+    return senderName.includes(searchLower) || subject.includes(searchLower) || body.includes(searchLower);
+  });
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" style={{ minHeight: "600px" }}>
