@@ -15777,11 +15777,15 @@ async def get_mail_stats(current_user = Depends(get_current_user)):
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STUDENT PORTAL - MESSAGES (Course Context)
+# Uses subject_id as course identifier, academic_assignments for teacher info,
+# and seccion_id for classmates
 # ══════════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/student-portal/messages/allowed-recipients")
 async def get_student_allowed_recipients(course_id: str, current_user = Depends(get_current_user)):
-    """Get allowed recipients for a student within a course context"""
+    """Get allowed recipients for a student within a subject/course context
+    course_id is actually subject_id from the frontend
+    """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
@@ -15789,21 +15793,27 @@ async def get_student_allowed_recipients(course_id: str, current_user = Depends(
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Solo estudiantes pueden acceder a este endpoint")
     
-    # Get course info
-    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
-    if not course:
-        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    subject_id = course_id  # course_id is actually subject_id
     
     # Get subject name
-    subject = await db.subjects.find_one({"id": course.get("subject_id")}, {"_id": 0, "name": 1})
+    subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id}, {"_id": 0, "name": 1})
     subject_name = subject.get("name") if subject else "Asignatura"
     
     allowed_recipients = []
     
-    # 1. Add teacher of the course
-    if course.get("teacher_id"):
+    # 1. Find teacher from academic_assignments for this subject and section
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "section_id": seccion_id,
+        "status": "activo"
+    }, {"_id": 0, "teacher_id": 1})
+    
+    if assignment and assignment.get("teacher_id"):
         teacher = await db.users.find_one(
-            {"id": course["teacher_id"]},
+            {"id": assignment["teacher_id"]},
             {"_id": 0, "id": 1, "name": 1, "first_name": 1, "last_name": 1, "email": 1, "photo_url": 1, "role": 1}
         )
         if teacher:
@@ -15817,23 +15827,15 @@ async def get_student_allowed_recipients(course_id: str, current_user = Depends(
                 "course_name": subject_name
             })
     
-    # 2. Add classmates (students enrolled in the same course/section)
-    # Get section_id from course
-    section_id = course.get("section_id")
-    
-    # Get all enrollments for this course
-    enrollments = await db.enrollments.find(
-        {"course_id": course_id},
-        {"_id": 0, "student_id": 1}
-    ).to_list(100)
-    
-    student_ids = [e["student_id"] for e in enrollments if e["student_id"] != user["id"]]
-    
-    if student_ids:
-        classmates = await db.users.find(
-            {"id": {"$in": student_ids}, "is_active": {"$ne": False}},
-            {"_id": 0, "id": 1, "name": 1, "first_name": 1, "last_name": 1, "email": 1, "photo_url": 1, "role": 1}
-        ).to_list(100)
+    # 2. Add classmates (students in same section)
+    if seccion_id:
+        classmates = await db.users.find({
+            "school_id": school_id,
+            "seccion_id": seccion_id,
+            "role": "student",
+            "id": {"$ne": user["id"]},
+            "is_active": {"$ne": False}
+        }, {"_id": 0, "id": 1, "name": 1, "first_name": 1, "last_name": 1, "email": 1, "photo_url": 1, "role": 1}).to_list(100)
         
         for student in classmates:
             full_name = f"{student.get('name', '')} {student.get('last_name', '')}".strip() or student.get('first_name', '')
@@ -15860,22 +15862,45 @@ async def get_student_messages_inbox(
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    # Get course and allowed users
-    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
-    if not course:
-        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    subject_id = course_id
     
-    # Get allowed user IDs (teacher + classmates)
-    allowed_ids = []
-    if course.get("teacher_id"):
-        allowed_ids.append(course["teacher_id"])
+    # Build list of allowed sender IDs (teacher + classmates)
+    allowed_ids = [user["id"]]  # Include self for sent messages in same context
     
-    enrollments = await db.enrollments.find({"course_id": course_id}, {"_id": 0, "student_id": 1}).to_list(100)
-    allowed_ids.extend([e["student_id"] for e in enrollments])
+    # Get teacher
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "section_id": seccion_id,
+        "status": "activo"
+    }, {"_id": 0, "teacher_id": 1})
     
-    # Pipeline to get messages where:
-    # 1. User is a recipient
-    # 2. Sender is in allowed_ids (course context)
+    if assignment and assignment.get("teacher_id"):
+        allowed_ids.append(assignment["teacher_id"])
+    
+    # Get classmates
+    if seccion_id:
+        classmates = await db.users.find({
+            "school_id": school_id,
+            "seccion_id": seccion_id,
+            "role": "student",
+            "is_active": {"$ne": False}
+        }, {"_id": 0, "id": 1}).to_list(100)
+        allowed_ids.extend([c["id"] for c in classmates])
+    
+    # Also include school owner/admin messages
+    owners = await db.users.find({
+        "school_id": school_id,
+        "role": {"$in": ["owner", "admin"]}
+    }, {"_id": 0, "id": 1}).to_list(20)
+    allowed_ids.extend([o["id"] for o in owners])
+    
+    # Remove duplicates
+    allowed_ids = list(set(allowed_ids))
+    
+    # Get messages where user is recipient and sender is in allowed list
     pipeline = [
         {
             "$match": {
@@ -15948,30 +15973,14 @@ async def get_student_messages_sent(
     limit: int = 50,
     current_user = Depends(get_current_user)
 ):
-    """Get sent messages for a student within a course context"""
+    """Get sent messages for a student"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    # Get course and allowed users
-    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
-    if not course:
-        raise HTTPException(status_code=404, detail="Curso no encontrado")
-    
-    # Get allowed user IDs
-    allowed_ids = []
-    if course.get("teacher_id"):
-        allowed_ids.append(course["teacher_id"])
-    
-    enrollments = await db.enrollments.find({"course_id": course_id}, {"_id": 0, "student_id": 1}).to_list(100)
-    allowed_ids.extend([e["student_id"] for e in enrollments])
-    
-    # Get sent messages where at least one recipient is in allowed_ids
+    # Get sent messages
     messages = await db.internal_mail.find(
-        {
-            "sender_id": user["id"],
-            "recipients.user_id": {"$in": allowed_ids}
-        },
+        {"sender_id": user["id"]},
         {"_id": 0}
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
@@ -15996,32 +16005,51 @@ async def get_student_messages_sent(
             "thread_id": msg.get("thread_id")
         })
     
-    total = await db.internal_mail.count_documents({
-        "sender_id": user["id"],
-        "recipients.user_id": {"$in": allowed_ids}
-    })
+    total = await db.internal_mail.count_documents({"sender_id": user["id"]})
     
     return {"messages": result, "total": total}
 
 
 @api_router.get("/student-portal/messages/stats")
 async def get_student_messages_stats(course_id: str, current_user = Depends(get_current_user)):
-    """Get message stats for a student within a course context"""
+    """Get message stats for a student"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    # Get allowed user IDs for this course
-    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
-    if not course:
-        return {"unread": 0, "inbox": 0, "sent": 0}
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    subject_id = course_id
     
-    allowed_ids = []
-    if course.get("teacher_id"):
-        allowed_ids.append(course["teacher_id"])
+    # Build allowed IDs
+    allowed_ids = [user["id"]]
     
-    enrollments = await db.enrollments.find({"course_id": course_id}, {"_id": 0, "student_id": 1}).to_list(100)
-    allowed_ids.extend([e["student_id"] for e in enrollments])
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "section_id": seccion_id,
+        "status": "activo"
+    }, {"_id": 0, "teacher_id": 1})
+    
+    if assignment and assignment.get("teacher_id"):
+        allowed_ids.append(assignment["teacher_id"])
+    
+    if seccion_id:
+        classmates = await db.users.find({
+            "school_id": school_id,
+            "seccion_id": seccion_id,
+            "role": "student",
+            "is_active": {"$ne": False}
+        }, {"_id": 0, "id": 1}).to_list(100)
+        allowed_ids.extend([c["id"] for c in classmates])
+    
+    owners = await db.users.find({
+        "school_id": school_id,
+        "role": {"$in": ["owner", "admin"]}
+    }, {"_id": 0, "id": 1}).to_list(20)
+    allowed_ids.extend([o["id"] for o in owners])
+    
+    allowed_ids = list(set(allowed_ids))
     
     # Unread count
     unread_pipeline = [
@@ -16063,10 +16091,7 @@ async def get_student_messages_stats(course_id: str, current_user = Depends(get_
     inbox = inbox_result[0]["count"] if inbox_result else 0
     
     # Sent count
-    sent = await db.internal_mail.count_documents({
-        "sender_id": user["id"],
-        "recipients.user_id": {"$in": allowed_ids}
-    })
+    sent = await db.internal_mail.count_documents({"sender_id": user["id"]})
     
     return {"unread": unread, "inbox": inbox, "sent": sent}
 
@@ -16081,19 +16106,42 @@ async def send_student_message(data: InternalMailCreate, course_id: str, current
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Solo estudiantes pueden usar este endpoint")
     
-    # Get course and allowed users
-    course = await db.courses.find_one({"id": course_id}, {"_id": 0})
-    if not course:
-        raise HTTPException(status_code=404, detail="Curso no encontrado")
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    subject_id = course_id
     
-    # Build allowed IDs
+    # Build allowed recipient IDs
     allowed_ids = set()
-    if course.get("teacher_id"):
-        allowed_ids.add(course["teacher_id"])
     
-    enrollments = await db.enrollments.find({"course_id": course_id}, {"_id": 0, "student_id": 1}).to_list(100)
-    for e in enrollments:
-        allowed_ids.add(e["student_id"])
+    # Teacher
+    assignment = await db.academic_assignments.find_one({
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "section_id": seccion_id,
+        "status": "activo"
+    }, {"_id": 0, "teacher_id": 1})
+    
+    if assignment and assignment.get("teacher_id"):
+        allowed_ids.add(assignment["teacher_id"])
+    
+    # Classmates
+    if seccion_id:
+        classmates = await db.users.find({
+            "school_id": school_id,
+            "seccion_id": seccion_id,
+            "role": "student",
+            "is_active": {"$ne": False}
+        }, {"_id": 0, "id": 1}).to_list(100)
+        for c in classmates:
+            allowed_ids.add(c["id"])
+    
+    # Owners/Admins
+    owners = await db.users.find({
+        "school_id": school_id,
+        "role": {"$in": ["owner", "admin"]}
+    }, {"_id": 0, "id": 1}).to_list(20)
+    for o in owners:
+        allowed_ids.add(o["id"])
     
     # CRITICAL VALIDATION: Check all recipients are allowed
     for rid in data.recipient_ids:
@@ -16122,8 +16170,8 @@ async def send_student_message(data: InternalMailCreate, course_id: str, current
         "body": data.body,
         "recipients": recipients,
         "attachments": data.attachments or [],
-        "school_id": user.get("school_id"),
-        "course_id": course_id,  # Track course context
+        "school_id": school_id,
+        "course_id": subject_id,  # Track course context
         "created_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -16192,7 +16240,6 @@ async def mark_student_message_read(message_id: str, current_user = Depends(get_
         raise HTTPException(status_code=404, detail="Mensaje no encontrado")
     
     return {"message": "Marcado como leído"}
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
