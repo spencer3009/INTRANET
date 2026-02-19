@@ -9146,6 +9146,10 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
                       token={token}
                       userRole={user?.role}
                       onOpenChat={(student) => setDirectChatUser(student)}
+                      onOpenMail={(student) => {
+                        setDirectMailUser(student);
+                        setShowComposeModal(true);
+                      }}
                     />
                   </aside>
                 )}
@@ -9162,6 +9166,19 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         openWithUser={directChatUser}
         onClose={() => setDirectChatUser(null)}
       />
+      
+      {/* Internal Mail Compose Modal */}
+      {showComposeModal && (
+        <InternalMailComposeModal
+          isOpen={showComposeModal}
+          onClose={() => {
+            setShowComposeModal(false);
+            setDirectMailUser(null);
+          }}
+          token={token}
+          preselectedRecipient={directMailUser}
+        />
+      )}
     </div>
   );
 }
