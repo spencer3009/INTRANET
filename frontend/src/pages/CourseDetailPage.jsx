@@ -4547,7 +4547,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
       setStartTime("09:00:00");
       setEndTime("11:00:00");
       setDurationMinutes(60);
-      setMinScore(60);
+      setMinScore(55); // 55% = 11 de 20 en sistema peruano
     }
     setError("");
   }, [exam, isOpen]);
