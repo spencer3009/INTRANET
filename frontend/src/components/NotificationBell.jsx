@@ -276,7 +276,7 @@ export default function NotificationBell({ token }) {
       const [remindersRes, generalRes, messagesRes] = await Promise.all([
         axios.get(`${API}/notifications/reminders`, { headers }),
         axios.get(`${API}/notifications/all`, { headers }).catch(() => ({ data: { notifications: [], unread_count: 0 } })),
-        axios.get(`${API}/api/internal-mail/stats`, { headers }).catch(() => ({ data: { unread: 0 } }))
+        axios.get(`${API}/internal-mail/stats`, { headers }).catch(() => ({ data: { unread: 0 } }))
       ]);
       setNotifications(remindersRes.data);
       setGeneralNotifications(generalRes.data);
