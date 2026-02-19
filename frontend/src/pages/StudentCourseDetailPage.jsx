@@ -22,7 +22,8 @@ import {
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight, AlignJustify,
   Quote, Code, Link as LinkIcon, Highlighter,
   Heading1, Heading2, Heading3, HardDrive, Cloud,
-  ClipboardList, MessagesSquare
+  ClipboardList, MessagesSquare, Mail, Inbox, SendHorizontal,
+  Reply, Trash2, Star, Archive
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -34,6 +35,7 @@ const STUDENT_TABS = [
   { id: "material", label: "Material", icon: FolderOpen },
   { id: "examenes", label: "Exámenes", icon: FlaskConical },
   { id: "foro", label: "Foro", icon: MessageCircle },
+  { id: "mensajes", label: "Mensajes", icon: Mail },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy },
 ];
 
