@@ -13074,6 +13074,10 @@ async def create_exam(
     if end_dt <= start_dt:
         raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser posterior a la de inicio")
     
+    # Validate duration
+    if not data.duration_minutes or data.duration_minutes < 1:
+        raise HTTPException(status_code=400, detail="La duración del examen debe ser al menos 1 minuto")
+    
     # Create exam
     exam_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
