@@ -3283,6 +3283,17 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
     setShowCompose(true);
   };
 
+  // Auto-open compose with teacher when triggered from parent
+  useEffect(() => {
+    if (openComposeOnMount && teacher && !hasOpenedCompose) {
+      setHasOpenedCompose(true);
+      // Small delay to ensure component is mounted
+      setTimeout(() => {
+        openComposeWithTeacher();
+      }, 100);
+    }
+  }, [openComposeOnMount, teacher, hasOpenedCompose]);
+
   // Filter recipients for search
   useEffect(() => {
     if (searchQuery.trim()) {
