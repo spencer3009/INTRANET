@@ -689,10 +689,14 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
       }
     };
     
-    loadPresence();
-    // Refresh presence every 30 seconds
-    const interval = setInterval(loadPresence, 30000);
-    return () => clearInterval(interval);
+    // Small delay to allow heartbeat to be sent first
+    const initialTimer = setTimeout(loadPresence, 500);
+    // Refresh presence every 15 seconds (more frequent)
+    const interval = setInterval(loadPresence, 15000);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
   }, [token]);
   
   // Handle student card click
