@@ -12882,7 +12882,17 @@ async def send_academic_message(data: AcademicMessageCreate, current_user = Depe
         raise HTTPException(status_code=404, detail="Destinatario no encontrado")
     
     if user.get("role") == "student" and receiver.get("role") == "student":
-        raise HTTPException(status_code=403, detail="No puedes enviar mensajes a otros estudiantes")
+        # Allow students to message classmates in the same section/grade
+        user_seccion = user.get("seccion_id")
+        receiver_seccion = receiver.get("seccion_id")
+        user_grade = user.get("grade_id") or user.get("grado_id")
+        receiver_grade = receiver.get("grade_id") or receiver.get("grado_id")
+        
+        # Must be in the same section or at least same grade
+        if user_seccion and receiver_seccion and user_seccion != receiver_seccion:
+            raise HTTPException(status_code=403, detail="Solo puedes enviar mensajes a compañeros de tu misma sección")
+        if not user_seccion and user_grade != receiver_grade:
+            raise HTTPException(status_code=403, detail="Solo puedes enviar mensajes a compañeros de tu mismo grado")
     
     thread = await db.academic_threads.find_one({
         "school_id": user["school_id"],
