@@ -14492,6 +14492,546 @@ async def check_drive_for_materials(
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# EXAM ATTEMPTS - STUDENT EXAM TAKING SYSTEM
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ExamAttemptStatus(str, Enum):
+    in_progress = "in_progress"
+    completed = "completed"
+    expired = "expired"
+    abandoned = "abandoned"
+
+class StartExamResponse(BaseModel):
+    attempt_id: str
+    exam_id: str
+    remaining_seconds: int
+    total_questions: int
+
+class SaveAnswerRequest(BaseModel):
+    question_id: str
+    selected_option_id: Optional[str] = None
+    text_answer: Optional[str] = None
+
+class SubmitExamRequest(BaseModel):
+    answers: Optional[List[dict]] = None  # Optional - for bulk submission
+
+@api_router.post("/exams/{exam_id}/start")
+async def start_exam_attempt(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Start an exam attempt. Creates a new attempt record.
+    Returns attempt_id and remaining time.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Only students can take exams
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Solo los estudiantes pueden rendir exámenes")
+    
+    # Get exam
+    exam = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    # Validate exam is published
+    if exam.get("status") != "published":
+        raise HTTPException(status_code=400, detail="Este examen no está disponible")
+    
+    # Validate date range
+    now = datetime.now(timezone.utc)
+    start_dt = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
+    end_dt = datetime.fromisoformat(exam["end_datetime"].replace("Z", "+00:00"))
+    
+    if now < start_dt:
+        raise HTTPException(status_code=400, detail="El examen aún no está disponible")
+    if now > end_dt:
+        raise HTTPException(status_code=400, detail="El tiempo para este examen ha finalizado")
+    
+    # Check for existing attempt
+    existing_attempt = await db.exam_attempts.find_one({
+        "exam_id": exam_id,
+        "student_id": user["id"]
+    }, {"_id": 0})
+    
+    if existing_attempt:
+        # Check status
+        if existing_attempt["status"] == ExamAttemptStatus.completed.value:
+            raise HTTPException(status_code=400, detail="Ya has completado este examen")
+        if existing_attempt["status"] == ExamAttemptStatus.expired.value:
+            raise HTTPException(status_code=400, detail="Tu tiempo para este examen ha expirado")
+        
+        # If in_progress, return existing attempt
+        if existing_attempt["status"] == ExamAttemptStatus.in_progress.value:
+            # Calculate remaining time
+            start_time = datetime.fromisoformat(existing_attempt["start_time"].replace("Z", "+00:00"))
+            elapsed = (now - start_time).total_seconds()
+            duration_seconds = exam["duration_minutes"] * 60
+            remaining = max(0, duration_seconds - elapsed)
+            
+            # Check if time has run out
+            if remaining <= 0:
+                # Auto-expire the attempt
+                await db.exam_attempts.update_one(
+                    {"id": existing_attempt["id"]},
+                    {"$set": {"status": ExamAttemptStatus.expired.value, "end_time": now.isoformat()}}
+                )
+                raise HTTPException(status_code=400, detail="Tu tiempo para este examen ha expirado")
+            
+            # Get questions count
+            questions_count = await db.exam_questions.count_documents({"exam_id": exam_id})
+            
+            return {
+                "attempt_id": existing_attempt["id"],
+                "exam_id": exam_id,
+                "remaining_seconds": int(remaining),
+                "total_questions": questions_count,
+                "resumed": True
+            }
+    
+    # Create new attempt
+    attempt_id = str(uuid.uuid4())
+    questions_count = await db.exam_questions.count_documents({"exam_id": exam_id})
+    
+    if questions_count == 0:
+        raise HTTPException(status_code=400, detail="Este examen no tiene preguntas")
+    
+    attempt = {
+        "id": attempt_id,
+        "exam_id": exam_id,
+        "student_id": user["id"],
+        "student_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "school_id": user["school_id"],
+        "start_time": now.isoformat(),
+        "end_time": None,
+        "status": ExamAttemptStatus.in_progress.value,
+        "score": None,
+        "max_score": None,
+        "percentage": None,
+        "passed": None,
+        "answers": {},  # Dict of question_id -> answer
+        "tab_changes": 0,
+        "created_at": now.isoformat()
+    }
+    
+    await db.exam_attempts.insert_one(attempt)
+    
+    return {
+        "attempt_id": attempt_id,
+        "exam_id": exam_id,
+        "remaining_seconds": exam["duration_minutes"] * 60,
+        "total_questions": questions_count,
+        "resumed": False
+    }
+
+
+@api_router.get("/exams/{exam_id}/questions-for-student")
+async def get_exam_questions_for_student(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get exam questions for a student taking the exam.
+    Does NOT include correct answers.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Verify student has an active attempt
+    attempt = await db.exam_attempts.find_one({
+        "exam_id": exam_id,
+        "student_id": user["id"],
+        "status": ExamAttemptStatus.in_progress.value
+    }, {"_id": 0})
+    
+    if not attempt:
+        raise HTTPException(status_code=400, detail="No tienes un intento activo para este examen")
+    
+    # Get questions without correct_answer field
+    questions = await db.exam_questions.find(
+        {"exam_id": exam_id},
+        {"_id": 0, "correct_answer": 0, "correct_option_id": 0}  # Exclude answers
+    ).sort("order", 1).to_list(200)
+    
+    # Get exam for subject info
+    exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0, "title": 1, "subject_id": 1, "duration_minutes": 1})
+    subject = await db.subjects.find_one({"id": exam.get("subject_id")}, {"_id": 0, "name": 1, "color": 1}) if exam else None
+    
+    # Get previously saved answers
+    saved_answers = attempt.get("answers", {})
+    
+    return {
+        "exam_id": exam_id,
+        "exam_title": exam.get("title", "") if exam else "",
+        "subject_name": subject.get("name", "") if subject else "",
+        "subject_color": subject.get("color", "#6366F1") if subject else "#6366F1",
+        "questions": questions,
+        "saved_answers": saved_answers,
+        "total_questions": len(questions)
+    }
+
+
+@api_router.post("/exam-attempts/{attempt_id}/save-answer")
+async def save_exam_answer(
+    attempt_id: str,
+    data: SaveAnswerRequest,
+    current_user = Depends(get_current_user)
+):
+    """
+    Save a single answer during exam. Auto-save functionality.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get attempt
+    attempt = await db.exam_attempts.find_one({
+        "id": attempt_id,
+        "student_id": user["id"]
+    }, {"_id": 0})
+    
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Intento no encontrado")
+    
+    if attempt["status"] != ExamAttemptStatus.in_progress.value:
+        raise HTTPException(status_code=400, detail="Este intento ya no está activo")
+    
+    # Check if time has expired
+    exam = await db.online_exams.find_one({"id": attempt["exam_id"]}, {"_id": 0})
+    if exam:
+        start_time = datetime.fromisoformat(attempt["start_time"].replace("Z", "+00:00"))
+        now = datetime.now(timezone.utc)
+        elapsed = (now - start_time).total_seconds()
+        duration_seconds = exam["duration_minutes"] * 60
+        
+        if elapsed > duration_seconds:
+            # Auto-expire
+            await db.exam_attempts.update_one(
+                {"id": attempt_id},
+                {"$set": {"status": ExamAttemptStatus.expired.value, "end_time": now.isoformat()}}
+            )
+            raise HTTPException(status_code=400, detail="El tiempo ha expirado")
+    
+    # Save answer
+    answer_data = {
+        "selected_option_id": data.selected_option_id,
+        "text_answer": data.text_answer,
+        "saved_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.exam_attempts.update_one(
+        {"id": attempt_id},
+        {"$set": {f"answers.{data.question_id}": answer_data}}
+    )
+    
+    return {"message": "Respuesta guardada", "question_id": data.question_id}
+
+
+@api_router.post("/exam-attempts/{attempt_id}/report-tab-change")
+async def report_tab_change(
+    attempt_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Report when student changes browser tab. Anti-cheat measure.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    attempt = await db.exam_attempts.find_one({
+        "id": attempt_id,
+        "student_id": user["id"],
+        "status": ExamAttemptStatus.in_progress.value
+    }, {"_id": 0})
+    
+    if not attempt:
+        return {"message": "Intento no encontrado o ya finalizado", "force_submit": False}
+    
+    new_count = attempt.get("tab_changes", 0) + 1
+    
+    await db.exam_attempts.update_one(
+        {"id": attempt_id},
+        {"$set": {"tab_changes": new_count}}
+    )
+    
+    # If 3 or more tab changes, force submit
+    force_submit = new_count >= 3
+    
+    return {
+        "tab_changes": new_count,
+        "force_submit": force_submit,
+        "warning": f"Advertencia: Has cambiado de pestaña {new_count} vez(es). Al llegar a 3, el examen se enviará automáticamente." if new_count < 3 else "Se ha excedido el límite de cambios de pestaña."
+    }
+
+
+@api_router.post("/exam-attempts/{attempt_id}/submit")
+async def submit_exam_attempt(
+    attempt_id: str,
+    data: Optional[SubmitExamRequest] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Submit exam and auto-grade.
+    Can be called manually by student or automatically when time runs out.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get attempt
+    attempt = await db.exam_attempts.find_one({
+        "id": attempt_id,
+        "student_id": user["id"]
+    }, {"_id": 0})
+    
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Intento no encontrado")
+    
+    # Allow submission even if expired (for auto-submit on timeout)
+    if attempt["status"] == ExamAttemptStatus.completed.value:
+        raise HTTPException(status_code=400, detail="Este examen ya fue enviado")
+    
+    # Get exam
+    exam = await db.online_exams.find_one({"id": attempt["exam_id"]}, {"_id": 0})
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    # Get all questions with answers
+    questions = await db.exam_questions.find(
+        {"exam_id": attempt["exam_id"]},
+        {"_id": 0}
+    ).to_list(200)
+    
+    # Calculate score
+    total_points = 0
+    earned_points = 0
+    correct_count = 0
+    incorrect_count = 0
+    unanswered_count = 0
+    
+    answers = attempt.get("answers", {})
+    graded_answers = {}
+    
+    for question in questions:
+        q_id = question["id"]
+        q_points = question.get("points", 1)
+        total_points += q_points
+        
+        student_answer = answers.get(q_id, {})
+        selected_option = student_answer.get("selected_option_id")
+        text_answer = student_answer.get("text_answer")
+        
+        is_correct = False
+        
+        if question["question_type"] == "multiple_choice":
+            correct_option = question.get("correct_option_id")
+            if selected_option and selected_option == correct_option:
+                is_correct = True
+                earned_points += q_points
+                correct_count += 1
+            elif selected_option:
+                incorrect_count += 1
+            else:
+                unanswered_count += 1
+        
+        elif question["question_type"] == "true_false":
+            correct_answer = question.get("correct_answer")
+            if selected_option:
+                # selected_option will be "true" or "false"
+                if selected_option.lower() == str(correct_answer).lower():
+                    is_correct = True
+                    earned_points += q_points
+                    correct_count += 1
+                else:
+                    incorrect_count += 1
+            else:
+                unanswered_count += 1
+        
+        elif question["question_type"] == "fill_blanks":
+            correct_answer = question.get("correct_answer", "").lower().strip()
+            if text_answer and text_answer.lower().strip() == correct_answer:
+                is_correct = True
+                earned_points += q_points
+                correct_count += 1
+            elif text_answer:
+                incorrect_count += 1
+            else:
+                unanswered_count += 1
+        
+        graded_answers[q_id] = {
+            "selected_option_id": selected_option,
+            "text_answer": text_answer,
+            "is_correct": is_correct,
+            "points_earned": q_points if is_correct else 0,
+            "points_possible": q_points
+        }
+    
+    # Calculate percentage and pass/fail
+    percentage = (earned_points / total_points * 100) if total_points > 0 else 0
+    min_percentage = exam.get("min_score_percentage", 60)
+    passed = percentage >= min_percentage
+    
+    now = datetime.now(timezone.utc)
+    start_time = datetime.fromisoformat(attempt["start_time"].replace("Z", "+00:00"))
+    time_used_seconds = int((now - start_time).total_seconds())
+    
+    # Update attempt
+    await db.exam_attempts.update_one(
+        {"id": attempt_id},
+        {"$set": {
+            "status": ExamAttemptStatus.completed.value,
+            "end_time": now.isoformat(),
+            "score": earned_points,
+            "max_score": total_points,
+            "percentage": round(percentage, 2),
+            "passed": passed,
+            "correct_count": correct_count,
+            "incorrect_count": incorrect_count,
+            "unanswered_count": unanswered_count,
+            "graded_answers": graded_answers,
+            "time_used_seconds": time_used_seconds
+        }}
+    )
+    
+    return {
+        "message": "Examen enviado exitosamente",
+        "attempt_id": attempt_id,
+        "score": earned_points,
+        "max_score": total_points,
+        "percentage": round(percentage, 2),
+        "passed": passed,
+        "correct_count": correct_count,
+        "incorrect_count": incorrect_count,
+        "unanswered_count": unanswered_count,
+        "time_used_seconds": time_used_seconds,
+        "min_percentage": min_percentage
+    }
+
+
+@api_router.get("/exam-attempts/{attempt_id}/result")
+async def get_exam_result(
+    attempt_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get exam result after completion.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get attempt
+    attempt = await db.exam_attempts.find_one({
+        "id": attempt_id,
+        "student_id": user["id"]
+    }, {"_id": 0})
+    
+    if not attempt:
+        raise HTTPException(status_code=404, detail="Intento no encontrado")
+    
+    if attempt["status"] not in [ExamAttemptStatus.completed.value, ExamAttemptStatus.expired.value]:
+        raise HTTPException(status_code=400, detail="El examen aún no ha sido completado")
+    
+    # Get exam info
+    exam = await db.online_exams.find_one({"id": attempt["exam_id"]}, {"_id": 0})
+    
+    # Get subject info
+    subject = None
+    if exam:
+        subject = await db.subjects.find_one({"id": exam.get("subject_id")}, {"_id": 0, "name": 1, "color": 1})
+    
+    # Get questions for review (with correct answers)
+    questions = await db.exam_questions.find(
+        {"exam_id": attempt["exam_id"]},
+        {"_id": 0}
+    ).sort("order", 1).to_list(200)
+    
+    # Build detailed result
+    graded_answers = attempt.get("graded_answers", {})
+    questions_review = []
+    
+    for q in questions:
+        q_id = q["id"]
+        graded = graded_answers.get(q_id, {})
+        
+        questions_review.append({
+            "id": q_id,
+            "question_text": q.get("question_text"),
+            "question_type": q.get("question_type"),
+            "image_url": q.get("image_url"),
+            "options": q.get("options", []),
+            "correct_option_id": q.get("correct_option_id"),
+            "correct_answer": q.get("correct_answer"),
+            "student_answer": graded.get("selected_option_id") or graded.get("text_answer"),
+            "is_correct": graded.get("is_correct", False),
+            "points_earned": graded.get("points_earned", 0),
+            "points_possible": graded.get("points_possible", q.get("points", 1))
+        })
+    
+    return {
+        "attempt_id": attempt_id,
+        "exam_id": attempt["exam_id"],
+        "exam_title": exam.get("title", "") if exam else "",
+        "subject_name": subject.get("name", "") if subject else "",
+        "subject_color": subject.get("color", "#6366F1") if subject else "#6366F1",
+        "student_name": attempt.get("student_name", ""),
+        "start_time": attempt.get("start_time"),
+        "end_time": attempt.get("end_time"),
+        "time_used_seconds": attempt.get("time_used_seconds", 0),
+        "score": attempt.get("score", 0),
+        "max_score": attempt.get("max_score", 0),
+        "percentage": attempt.get("percentage", 0),
+        "passed": attempt.get("passed", False),
+        "min_percentage": exam.get("min_score_percentage", 60) if exam else 60,
+        "correct_count": attempt.get("correct_count", 0),
+        "incorrect_count": attempt.get("incorrect_count", 0),
+        "unanswered_count": attempt.get("unanswered_count", 0),
+        "questions": questions_review,
+        "tab_changes": attempt.get("tab_changes", 0)
+    }
+
+
+@api_router.get("/exams/{exam_id}/my-attempt")
+async def get_my_exam_attempt(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """
+    Check if student has an attempt for this exam.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    attempt = await db.exam_attempts.find_one({
+        "exam_id": exam_id,
+        "student_id": user["id"]
+    }, {"_id": 0})
+    
+    if not attempt:
+        return {"has_attempt": False, "attempt": None}
+    
+    return {
+        "has_attempt": True,
+        "attempt": {
+            "id": attempt["id"],
+            "status": attempt["status"],
+            "score": attempt.get("score"),
+            "max_score": attempt.get("max_score"),
+            "percentage": attempt.get("percentage"),
+            "passed": attempt.get("passed"),
+            "start_time": attempt.get("start_time"),
+            "end_time": attempt.get("end_time")
+        }
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
