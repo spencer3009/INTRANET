@@ -190,7 +190,10 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
   // Rich text editor
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        // Disable extensions we want to configure separately
+        heading: { levels: [1, 2, 3] },
+      }),
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Highlight,
