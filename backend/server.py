@@ -14651,7 +14651,13 @@ async def start_exam_attempt(
                 start_time = datetime.fromisoformat(existing_attempt["start_time"].replace("Z", "+00:00"))
                 elapsed = (now - start_time).total_seconds()
                 duration_seconds = duration_minutes * 60
-                remaining = max(0, duration_seconds - elapsed)
+                
+                # Calculate time until exam window closes
+                time_until_end = (end_dt - now).total_seconds()
+                
+                # Remaining time is the minimum of: (duration - elapsed) OR time until window closes
+                remaining_by_duration = duration_seconds - elapsed
+                remaining = max(0, min(remaining_by_duration, time_until_end))
                 
                 # Check if time has run out
                 if remaining <= 0:
