@@ -41,14 +41,14 @@ export default function ExamAttemptPage() {
       setLoading(true);
       
       // Start attempt
-      const startRes = await axios.post(`${API}/exams/${examId}/start`, {}, { headers });
+      const startRes = await axios.post(`${API}/api/exams/${examId}/start`, {}, { headers });
       const { attempt_id, remaining_seconds } = startRes.data;
       
       setAttemptId(attempt_id);
       setRemainingSeconds(remaining_seconds);
       
       // Get questions
-      const questionsRes = await axios.get(`${API}/exams/${examId}/questions-for-student`, { headers });
+      const questionsRes = await axios.get(`${API}/api/exams/${examId}/questions-for-student`, { headers });
       setExamData({
         title: questionsRes.data.exam_title,
         subjectName: questionsRes.data.subject_name,
