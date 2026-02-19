@@ -840,7 +840,7 @@ const ROLE_LABELS = {
   parent: "Padre de familia"
 };
 
-function AcademicTab({ token, user, onRefreshStats }) {
+function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirectChat }) {
   const [threads, setThreads] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -913,6 +913,23 @@ function AcademicTab({ token, user, onRefreshStats }) {
     loadThreads();
     loadContacts();
   }, [token]);
+  
+  // Handle directChatUser - open chat directly with this user
+  useEffect(() => {
+    if (directChatUser && contacts.length > 0) {
+      // Convert directChatUser to contact format and select it
+      const contactFromUser = {
+        id: directChatUser.id,
+        name: directChatUser.name,
+        last_name: directChatUser.last_name,
+        email: directChatUser.email,
+        role: directChatUser.role || 'student',
+        photo_url: directChatUser.photo_url
+      };
+      handleSelectContact(contactFromUser);
+      if (onClearDirectChat) onClearDirectChat();
+    }
+  }, [directChatUser, contacts]);
 
   const handleSendMessage = async () => {
     if (!messageText.trim()) return;
