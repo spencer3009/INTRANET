@@ -3114,6 +3114,493 @@ function ForumContent({ posts, token, user, students, highlightedPostId, onClear
   );
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// STUDENT MESSAGES CONTENT - Gmail-like interface
+// ══════════════════════════════════════════════════════════════════════════════
+function StudentMessagesContent({ courseId, token, user, teacher }) {
+  const [activeFolder, setActiveFolder] = useState("inbox");
+  const [messages, setMessages] = useState([]);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ unread: 0, inbox: 0, sent: 0 });
+  const [showCompose, setShowCompose] = useState(false);
+  const [allowedRecipients, setAllowedRecipients] = useState([]);
+  const [composeData, setComposeData] = useState({ subject: "", body: "", recipients: [] });
+  const [sending, setSending] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredRecipients, setFilteredRecipients] = useState([]);
+  const [preselectedTeacher, setPreselectedTeacher] = useState(null);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // Load messages and stats
+  const loadMessages = useCallback(async () => {
+    try {
+      setLoading(true);
+      const endpoint = activeFolder === "sent" 
+        ? `${API}/api/student-portal/messages/sent?course_id=${courseId}`
+        : `${API}/api/student-portal/messages/inbox?course_id=${courseId}`;
+      
+      const [messagesRes, statsRes] = await Promise.all([
+        axios.get(endpoint, { headers }),
+        axios.get(`${API}/api/student-portal/messages/stats?course_id=${courseId}`, { headers })
+      ]);
+      
+      setMessages(messagesRes.data.messages || []);
+      setStats(statsRes.data);
+    } catch (err) {
+      console.error("Error loading messages:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [courseId, token, activeFolder]);
+
+  // Load allowed recipients
+  const loadAllowedRecipients = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/api/student-portal/messages/allowed-recipients?course_id=${courseId}`, { headers });
+      setAllowedRecipients(res.data.recipients || []);
+    } catch (err) {
+      console.error("Error loading recipients:", err);
+    }
+  }, [courseId, token]);
+
+  useEffect(() => {
+    loadMessages();
+    loadAllowedRecipients();
+  }, [loadMessages, loadAllowedRecipients]);
+
+  // View message detail
+  const viewMessage = async (msg) => {
+    try {
+      const res = await axios.get(`${API}/api/student-portal/messages/${msg.id}`, { headers });
+      setSelectedMessage(res.data);
+      
+      // Update local read status
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
+      
+      // Update stats
+      if (!msg.is_read) {
+        setStats(prev => ({ ...prev, unread: Math.max(0, prev.unread - 1) }));
+      }
+    } catch (err) {
+      console.error("Error viewing message:", err);
+    }
+  };
+
+  // Send message
+  const handleSend = async () => {
+    if (!composeData.subject.trim() || !composeData.body.trim() || composeData.recipients.length === 0) {
+      alert("Por favor completa todos los campos");
+      return;
+    }
+
+    try {
+      setSending(true);
+      await axios.post(
+        `${API}/api/student-portal/messages/send?course_id=${courseId}`,
+        {
+          subject: composeData.subject,
+          body: composeData.body,
+          recipient_ids: composeData.recipients.map(r => r.id)
+        },
+        { headers }
+      );
+      
+      setShowCompose(false);
+      setComposeData({ subject: "", body: "", recipients: [] });
+      setPreselectedTeacher(null);
+      loadMessages();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al enviar mensaje");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  // Open compose with preselected teacher
+  const openComposeWithTeacher = () => {
+    if (teacher) {
+      const fullName = `${teacher.name || ''} ${teacher.last_name || ''}`.trim();
+      setComposeData({
+        subject: "",
+        body: "",
+        recipients: [{
+          id: teacher.id,
+          name: fullName,
+          role: "teacher",
+          photo_url: teacher.photo_url
+        }]
+      });
+    }
+    setShowCompose(true);
+  };
+
+  // Filter recipients for search
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setFilteredRecipients(
+        allowedRecipients.filter(r => 
+          r.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
+          !composeData.recipients.find(cr => cr.id === r.id)
+        )
+      );
+    } else {
+      setFilteredRecipients([]);
+    }
+  }, [searchQuery, allowedRecipients, composeData.recipients]);
+
+  // Add recipient
+  const addRecipient = (recipient) => {
+    setComposeData(prev => ({
+      ...prev,
+      recipients: [...prev.recipients, recipient]
+    }));
+    setSearchQuery("");
+    setFilteredRecipients([]);
+  };
+
+  // Remove recipient
+  const removeRecipient = (id) => {
+    setComposeData(prev => ({
+      ...prev,
+      recipients: prev.recipients.filter(r => r.id !== id)
+    }));
+  };
+
+  // Format date
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now - date) / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return date.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+    } else if (diffDays < 7) {
+      return date.toLocaleDateString("es-PE", { weekday: "short" });
+    } else {
+      return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
+    }
+  };
+
+  const FOLDERS = [
+    { id: "inbox", label: "Entrada", icon: Inbox, count: stats.inbox },
+    { id: "sent", label: "Enviados", icon: SendHorizontal, count: stats.sent },
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden" style={{ minHeight: "600px" }}>
+      {/* Header */}
+      <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-500 to-purple-500">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Mail className="w-6 h-6" />
+            Mensajes
+            {stats.unread > 0 && (
+              <span className="px-2 py-0.5 bg-white/20 text-white text-xs font-bold rounded-full">
+                {stats.unread} nuevos
+              </span>
+            )}
+          </h2>
+          <button
+            onClick={() => setShowCompose(true)}
+            className="px-4 py-2 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-indigo-50 transition-all flex items-center gap-2 shadow-lg"
+          >
+            <Send className="w-4 h-4" />
+            Redactar
+          </button>
+        </div>
+      </div>
+
+      {/* 3-Column Layout */}
+      <div className="flex" style={{ height: "550px" }}>
+        {/* Left: Folders */}
+        <div className="w-48 border-r border-slate-200 bg-slate-50 p-3">
+          <div className="space-y-1">
+            {FOLDERS.map(folder => (
+              <button
+                key={folder.id}
+                onClick={() => { setActiveFolder(folder.id); setSelectedMessage(null); }}
+                className={`w-full px-3 py-2.5 rounded-xl flex items-center gap-2 transition-all ${
+                  activeFolder === folder.id
+                    ? "bg-indigo-100 text-indigo-700 font-semibold"
+                    : "text-slate-600 hover:bg-slate-100"
+                }`}
+              >
+                <folder.icon className="w-4 h-4" />
+                <span className="flex-1 text-left text-sm">{folder.label}</span>
+                {folder.count > 0 && (
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    activeFolder === folder.id ? "bg-indigo-200" : "bg-slate-200"
+                  }`}>
+                    {folder.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Quick action: Message teacher */}
+          {teacher && (
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <button
+                onClick={openComposeWithTeacher}
+                className="w-full px-3 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all flex items-center gap-2"
+              >
+                <Mail className="w-4 h-4" />
+                Escribir al profesor
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Center: Message List */}
+        <div className="w-80 border-r border-slate-200 overflow-y-auto">
+          {loading ? (
+            <div className="flex items-center justify-center h-full">
+              <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full text-slate-400">
+              <Mail className="w-12 h-12 mb-2" />
+              <p>Sin mensajes</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {messages.map(msg => (
+                <button
+                  key={msg.id}
+                  onClick={() => viewMessage(msg)}
+                  className={`w-full px-4 py-3 text-left hover:bg-slate-50 transition-colors ${
+                    selectedMessage?.id === msg.id ? "bg-indigo-50" : ""
+                  } ${!msg.is_read && activeFolder === "inbox" ? "bg-indigo-50/50" : ""}`}
+                >
+                  <div className="flex items-start gap-3">
+                    {(activeFolder === "inbox" ? msg.sender?.photo_url : msg.recipient?.photo_url) ? (
+                      <img
+                        src={activeFolder === "inbox" ? msg.sender?.photo_url : msg.recipient?.photo_url}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                        {(activeFolder === "inbox" ? msg.sender?.name : msg.recipient?.name)?.charAt(0) || "?"}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className={`text-sm truncate ${!msg.is_read && activeFolder === "inbox" ? "font-bold text-slate-900" : "text-slate-700"}`}>
+                          {activeFolder === "inbox" ? msg.sender?.name : `Para: ${msg.recipient?.name}`}
+                        </span>
+                        <span className="text-xs text-slate-400 flex-shrink-0 ml-2">
+                          {formatDate(msg.created_at)}
+                        </span>
+                      </div>
+                      <p className={`text-sm truncate ${!msg.is_read && activeFolder === "inbox" ? "font-semibold text-slate-800" : "text-slate-600"}`}>
+                        {msg.subject}
+                      </p>
+                      <p className="text-xs text-slate-400 truncate mt-0.5">
+                        {msg.body?.replace(/<[^>]*>/g, "").substring(0, 60)}...
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Right: Message Detail */}
+        <div className="flex-1 overflow-y-auto">
+          {selectedMessage ? (
+            <div className="p-6">
+              <div className="mb-6">
+                <h3 className="text-xl font-bold text-slate-800 mb-4">{selectedMessage.subject}</h3>
+                <div className="flex items-center gap-3 mb-4">
+                  {selectedMessage.sender?.photo_url ? (
+                    <img
+                      src={selectedMessage.sender.photo_url}
+                      alt=""
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                      {selectedMessage.sender?.name?.charAt(0) || "?"}
+                    </div>
+                  )}
+                  <div>
+                    <p className="font-semibold text-slate-800">{selectedMessage.sender?.name}</p>
+                    <p className="text-sm text-slate-500">
+                      {new Date(selectedMessage.created_at).toLocaleString("es-PE")}
+                    </p>
+                  </div>
+                  {selectedMessage.sender?.role === "teacher" && (
+                    <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+                      Profesor
+                    </span>
+                  )}
+                </div>
+              </div>
+              
+              <div 
+                className="prose prose-sm max-w-none text-slate-700"
+                dangerouslySetInnerHTML={{ __html: selectedMessage.body }}
+              />
+
+              {/* Actions */}
+              <div className="mt-6 pt-4 border-t border-slate-200 flex gap-2">
+                <button
+                  onClick={() => {
+                    setComposeData({
+                      subject: `Re: ${selectedMessage.subject}`,
+                      body: "",
+                      recipients: [{
+                        id: selectedMessage.sender?.id,
+                        name: selectedMessage.sender?.name,
+                        photo_url: selectedMessage.sender?.photo_url,
+                        role: selectedMessage.sender?.role
+                      }]
+                    });
+                    setShowCompose(true);
+                  }}
+                  className="px-4 py-2 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition-colors flex items-center gap-2"
+                >
+                  <Reply className="w-4 h-4" />
+                  Responder
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-slate-400">
+              <Mail className="w-16 h-16 mb-3" />
+              <p>Selecciona un mensaje para leer</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Compose Modal */}
+      {showCompose && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Send className="w-5 h-5" />
+                Nuevo mensaje
+              </h3>
+              <button
+                onClick={() => { setShowCompose(false); setComposeData({ subject: "", body: "", recipients: [] }); }}
+                className="text-white/80 hover:text-white transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 overflow-y-auto" style={{ maxHeight: "calc(90vh - 140px)" }}>
+              {/* Recipients */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Para:</label>
+                <div className="relative">
+                  <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl min-h-[48px]">
+                    {composeData.recipients.map(r => (
+                      <span
+                        key={r.id}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm"
+                      >
+                        {r.name}
+                        <button onClick={() => removeRecipient(r.id)} className="hover:text-indigo-900">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={composeData.recipients.length === 0 ? "Buscar destinatarios..." : ""}
+                      className="flex-1 min-w-[150px] bg-transparent focus:outline-none text-sm"
+                    />
+                  </div>
+                  
+                  {/* Search Results */}
+                  {filteredRecipients.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                      {filteredRecipients.map(recipient => (
+                        <button
+                          key={recipient.id}
+                          onClick={() => addRecipient(recipient)}
+                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left"
+                        >
+                          {recipient.photo_url ? (
+                            <img src={recipient.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                              {recipient.name?.charAt(0)}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-800 truncate">{recipient.name}</p>
+                            <p className="text-xs text-slate-500">
+                              {recipient.role === "teacher" ? "Profesor" : "Compañero"}
+                            </p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Subject */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Asunto:</label>
+                <input
+                  type="text"
+                  value={composeData.subject}
+                  onChange={(e) => setComposeData(prev => ({ ...prev, subject: e.target.value }))}
+                  placeholder="Escribe el asunto del mensaje..."
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+              </div>
+
+              {/* Body */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Mensaje:</label>
+                <textarea
+                  value={composeData.body}
+                  onChange={(e) => setComposeData(prev => ({ ...prev, body: e.target.value }))}
+                  placeholder="Escribe tu mensaje aquí..."
+                  rows={8}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 resize-none"
+                />
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => { setShowCompose(false); setComposeData({ subject: "", body: "", recipients: [] }); }}
+                className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSend}
+                disabled={sending || composeData.recipients.length === 0 || !composeData.subject.trim()}
+                className="px-6 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold rounded-xl hover:from-indigo-600 hover:to-purple-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Enviar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Grades Content - Show student's grades for this course
 function GradesContent({ tasks, exams, studentId, subject }) {
   // Calculate grades from tasks
