@@ -1,108 +1,89 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The initial objective was to fix a critical bug preventing teachers from seeing student task submissions. After resolving this, the scope expanded to implementing a full-featured, production-ready student exam system, along with numerous UI/UX enhancements based on user feedback.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The initial objective was to fix critical bugs and then expanded to implementing a full-featured, production-ready student exam system. The scope has since grown to include a premium internal messaging system, real-time presence indicators, and numerous UI/UX enhancements based on continuous user feedback.
 
 PRODUCT REQUIREMENTS:
-- Fix the bug where student task submissions were not visible in the owner portal. (COMPLETED)
-- Implement a complete student exam-taking flow, including:
-    - A dedicated, premium-designed exam-taking page.
-    - A countdown timer that persists across page reloads.
-    - Dynamic loading of questions and support for images.
-    - Progressive saving of answers and automatic submission when time runs out.
-    - Automatic grading and a results page.
-- Implement various UI/UX improvements:
-    - Add loading spinners to buttons.
-    - Improve table layouts to prevent text wrapping.
-    - Replace browser s with premium modals.
-    - Fix missing student profile pictures.
-    - Adjust icon colors and sizes.
-    - Add an Overdue status for tasks.
-    - Add an AM/PM selector to the exam time picker.
+- Fix critical bugs related to task submissions and exam functionality. (COMPLETED)
+- Implement a complete student exam system, from taking the exam to viewing results. (COMPLETED)
+- Implement a premium, Gmail-like internal messaging system for asynchronous communication. (COMPLETED)
+- Implement a student presence system (online/offline indicators). (COMPLETED)
+- Implement a student detail pop-up accessible from the course dashboard. (COMPLETED)
+- Address numerous UX/UI issues, including timezone bugs, confusing form labels, and missing functionality like rich text editors. (MOSTLY COMPLETED)
+- Connect various UI elements for a cohesive user experience (e.g., student pop-up -> messaging). (IN PROGRESS)
 
-**User's preferred language**: Spanish. The next agent MUST respond in Spanish.
+**User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack monolith with a FastAPI backend and React frontend. The critical bug preventing teachers from seeing student submissions has been resolved. A comprehensive UI for grading submissions, including downloading files and leaving feedback, has been implemented.
-
-A complete, end-to-end student exam system has been built from scratch. This includes new backend collections (, ), multiple new API endpoints to manage the exam lifecycle (start, save answer, submit, get results), and new frontend pages (, ). Several bugs related to this new feature (incorrect API routes, missing  data) have been debugged and fixed. The last action was a complete redesign of the exam-taking page as per the user's request for a more premium, high-impact look.
+The application is a full-stack monolith with a FastAPI backend and React frontend. A comprehensive student exam system is fully functional, including a premium UI and robust backend logic. A new, full-featured internal mail system has been implemented with a three-column layout () and a rich text editor (TipTap). A real-time student presence system is active, showing online/offline status indicators. Key UI components like a student detail modal have been added. The backend database has been a point of confusion, but is now consistently using , which contains the user's persistent data.
 
 **Last working item**:
--   **Last item agent was working:** The user requested a complete visual overhaul of the newly created exam-taking page to give it a more premium, high-impact feel. The agent completed this by overwriting the entire  file with a new design.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
--   **Which testing method agent to use?**: both.
-    1.  **Frontend**: Use the screenshot tool to visually verify the new premium design of .
-    2.  **Backend/E2E**: Use the testing agent to perform a full end-to-end test of the exam functionality:
-        - Log in as a student.
-        - Start an exam.
-        - Verify the timer starts correctly.
-        - Answer a few questions.
-        - Submit the exam.
-        - Verify redirection to the results page and that the score is correct.
--   **User Testing Done**: N
+- **Last item agent was working:** The user requested that the green Enviar Mensaje button in the student detail pop-up should open the new internal mail compose modal, with the selected student pre-filled as the recipient. The agent implemented this by exporting the  from , adding state and callbacks to  to manage the modal's visibility and pre-selected recipient, and connecting the button's  event.
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: Frontend testing agent. The agent should be instructed to:
+    1. Log in as a teacher ().
+    2. Navigate to a course page.
+    3. Click on a student in the right-hand sidebar.
+    4. In the pop-up modal that appears, click the green Enviar Mensaje button.
+    5. Verify that the Nuevo mensaje compose modal opens with the selected student's name pre-filled in the Para: field.
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Verify and Test the New Exam Page Design (P0)**
-    -   **Attempted fixes**: The agent has just overwritten  with a completely new design. No testing has been done.
-    -   **Next debug checklist**:
-        1.  Start the application and take a screenshot of the exam page () to confirm the new design renders correctly without breaking the UI.
-        2.  Run a full end-to-end test of the exam flow to ensure the new JSX structure didn't break functionality (timer, question navigation, answer selection, submission).
-        3.  Check for any new linting or console errors.
-    -   **Why fix this issue and what will be achieved with the fix?**: The user explicitly requested a redesign. This task will confirm if the new design meets expectations and is functional.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: N
-    -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Blocked on other issue**: None.
+- **Issue 1: Test the Send Message button flow (P0)**
+    - **Attempted fixes**: The agent has modified  and  to pass props and callbacks to connect the button to the compose modal. No testing has been performed.
+    - **Next debug checklist**:
+        1. Perform the frontend test described in the **Last working item** section to verify the complete flow.
+        2. Check for console errors or unexpected UI behavior when the modal opens.
+    - **Why fix this issue and what will be achieved with the fix?**: This is a direct user request that connects two major features (student details and internal mail), creating a seamless user experience.
+    - **Status**: IN PROGRESS
+    - **Is recurring issue?**: N
+    - **Should Test frontend/backend/both after fix?**: Frontend.
+    - **Blocked on other issue**: None.
 
--   **Issue 2: Root cause of  being  may still exist (P1)**
-    -   **Attempted fixes**: The agent fixed the  error by making the backend resilient to  values and manually updating existing exams in the database to have a duration.
-    -   **Next debug checklist**:
-        1.  Navigate to the Owner Portal where exams are created/edited.
-        2.  Inspect the form and the code in  related to saving an exam.
-        3.  Verify that if an owner creates or edits an exam and leaves the duration field blank, it does not save as . It should either have a default value or trigger a validation error. The backend model  allows  to be . This should probably be a required field.
-    -   **Why fix this issue and what will be achieved with the fix?**: The previous fix was reactive. This proactive fix will prevent new exams from being created without a duration, avoiding future bugs.
-    -   **Status**: NOT STARTED
-    -   **Is recurring issue?**: Y
-    -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Blocked on other issue**: None.
+- **Issue 2: Agent confusion with database name (High Risk of Recurrence)**
+    - **Attempted fixes**: The agent identified that it had changed the  in  from  (where user data is) to  for debugging, causing the user's data to disappear. The agent reverted this change and restarted the backend.
+    - **Next debug checklist**: The next agent **must** be aware of this. Before performing any operations that create or rely on test data, it should first verify that  is pointing to . It should not change this value.
+    - **Why fix this issue and what will be achieved with the fix?**: Prevents user frustration and avoids wasting time re-creating data or debugging issues caused by an empty database. This is critical for maintaining continuity.
+    - **Status**: RESOLVED (but requires vigilance)
+    - **Is recurring issue?**: Y
+    - **Should Test frontend/backend/both after fix?**: NA
+    - **Blocked on other issue**: None.
 
 **In progress Task List**:
--   **Task 1: Finalize and test the premium redesign of  (P0)**
-    -   **Where to resume**: The file has been overwritten. The next step is to test it visually and functionally as described in Issue 1.
-    -   **What will be achieved with this?**: A user-facing, high-impact feature will be ready for final user verification.
-    -   **Status**: IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?**: Both.
-    -   **Blocked on something**: None.
+- **Task 1: Complete and test the integration of the Send Message button (P0)**
+    - **Where to resume**: The code modifications are complete. The next and final step is to test the functionality as described under **Last working item**.
+    - **What will be achieved with this?**: A more intuitive and connected user interface, allowing teachers to message students directly from the course dashboard.
+    - **Status**: IN PROGRESS
+    - **Should Test frontend/backend/both after fix?**: Frontend.
+    - **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    -   **P0: Refactor **: This file is now over 8,500 lines. It is a critical source of technical debt and must be broken down into smaller components (e.g., , , ).
-    -   **P1: Refactor **: This file has also grown significantly and should be refactored.
-    -   **P1: Implement Centro de Mensajes** (Phases 2 & 3: Support/Tickets and Academic Messaging).
-    -   **P2: Implement basic anti-cheat security for exams** (detect tab changes).
--   **Future Tasks:**
-    -   Build Matrículas (Enrollments) module.
-    -   Enhance the Exams module with a Question Bank and advanced analytics for teachers.
-    -   Fix the Smart Sticky column layout instability causing UI flickering in .
-    -   Perform a project-wide replacement of  and  with custom modals.
+- **Upcoming Tasks:**
+    - **P0: Refactor **: This file is now over 9,000 lines and is a critical source of technical debt. It must be broken down into smaller, manageable components (e.g., , , ).
+    - **P1: Refactor **: The monolithic backend file is increasingly difficult to maintain. It should be broken down into a routed structure (e.g., , , ).
+    - **P2: Implement basic anti-cheat security for exams** (e.g., detect when a student navigates away from the exam tab).
+- **Future Tasks:**
+    - Build Matrículas (Enrollments) module.
+    - Enhance the Exams module with a Question Bank.
+    - Fix the Smart Sticky column layout instability causing UI flickering in .
+    - Perform a project-wide replacement of  and  with custom modals.
 
 **Completed work in this session**
--   **Critical Bug Fix**: Resolved the issue where student task submissions were not visible to teachers. This involved backend query fixes and a complete frontend implementation of a submission review/grading UI in .
--   **Feature Implementation**: Built a complete, end-to-end student exam system, including backend logic and frontend pages for taking the exam and viewing results.
--   **Bug Fixes (Exam System)**:
-    -   Fixed  errors by adding the  prefix to all frontend API calls.
-    -   Fixed a  caused by exams having no . Made the backend more robust and patched the database.
--   **UI/UX Enhancements**:
-    -   Added loading spinners and disabled states to buttons during async operations (downloading files, saving grades).
-    -   Replaced native s with a premium, reusable notification modal for success/error feedback when grading.
-    -   Adjusted table layouts to be more compact and prevent text wrapping.
-    -   Fixed missing student profile pictures by checking for both  and .
-    -   Recolored and resized task action icons (view, edit, delete) as per user's image specification.
-    -   Implemented a Vencida (Overdue) status for tasks with appropriate styling.
-    -   Added an AM/PM selector to the  component used for creating exams.
+- **Feature: Premium Internal Mail System:** Implemented a full-featured, Gmail-like internal mail system () with a 3-column layout, backend endpoints, and a TipTap rich-text editor for composing messages.
+- **Feature: Student Presence & Details:** Implemented a real-time presence system showing online/offline status for students. Added a student detail pop-up on the course dashboard with buttons to initiate chat or send an internal mail.
+- **Critical Bug Fix: Exam Grading Logic:** Fixed a bug where correct answers were marked incorrect. The grading logic in  was corrected to find the correct option within the question's  array instead of looking for a non-existent .
+- **Critical Bug Fix: Missing Exam Duration:** Fixed a bug where newly created exams had no duration. This involved adding the  field to the frontend  in  and adding backend validation.
+- **UX/Bug Fixes for Exam Creation Form:**
+    - Fixed a timezone bug that caused the exam date to shift by one day upon editing.
+    - Improved UI clarity by changing labels (Hora de inicio -> Disponible desde) and adding explanatory text.
+    - Implemented a stricter time limit logic where an exam attempt cannot exceed the availability window.
+    - Added UI validation to prevent setting a duration longer than the availability window.
+    - Changed the grading input from a percentage to a 0-20 scale slider, which is standard in Peru.
+    - Fixed the exam modal not being scrollable on smaller screens.
+- **Feature Verification: Premium Exam Page:** Successfully debugged database and routing issues to create seed data, log in, and perform a full end-to-end test of the redesigned exam page using both screenshots and the testing agent.
 
 **Earlier issues found/mentioned but not fixed**
--   The Smart Sticky column layout issue in  which causes UI flickering remains.
--   A project-wide replacement of  with custom modals is still pending, though a reusable modal was created for grading feedback.
+- The Smart Sticky column layout issue in  which causes UI flickering remains.
+- A project-wide replacement of  and  with custom modals is still pending.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -111,87 +92,87 @@ A complete, end-to-end student exam system has been built from scratch. This inc
 
 
 **Key Technical Concepts**
--   **Backend Robustness**: Handling  values from the DB gracefully (e.g., ), providing default values, and using try-except blocks for safe type conversions ().
--   **Frontend State Management**: Using state variables like  and  to provide user feedback during API calls. The new  manages a complex state including a timer (), question index, and answers.
--   **Database Patching**: The agent directly connected to the MongoDB shell to inspect and update documents () to fix a data-related bug ().
+- **Database Seeding & Debugging:** The agent created a Python script to seed an empty database and debugged numerous issues related to environment mismatches (DB names in , collection names, document schemas).
+- **Component Communication (Props & Callbacks):** Used callbacks (, ) to communicate from a child component () to its parent () to trigger actions like opening modals.
+- **React Portals:** Used  to fix a  issue with the student detail modal, ensuring it always renders on top.
+- **Rich Text Editing:** Integrated the TipTap library to provide a premium rich text editor in the mail composition modal.
+- **Timezone Handling:** Debugged and fixed a frontend timezone bug by replacing  with local date construction to prevent date shifting.
 
 **key DB schema**
--   **** (New): 
--   : The  array within documents now supports  and .
+- ****: 
+- ****: 
+- ****:  field is used for the presence system.
 
 **All files of reference**
--    (Heavily Modified)
--    (Heavily Modified)
--    (Modified)
--    (New, Overwritten)
--    (New)
--    (Modified)
+-  (Heavily Modified)
+-  (Heavily Modified, CRITICAL DEBT)
+-  (New, contains exported )
+-  (Modified)
+-  (Modified,  is critical)
+-  (Updated)
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This file's size is unmanageable. The logic for task lists, submission views, and various modals must be extracted into separate components.
--   ** (HIGH):** The logic for displaying different content tabs (posts, tasks, exams) should be broken down into child components.
--   ** (HIGH):** The monolithic backend file should be broken down into a routed structure (e.g., , ).
+- ** (CRITICAL):** This file's size and complexity are unmanageable. It handles the state and rendering for at least five distinct features. It must be broken down into smaller components with more localized state management.
+- ** (HIGH):** The monolithic backend is becoming a bottleneck. The routing logic should be separated into different files based on functionality (e.g., , ).
 
 **key api endpoints**
--   **New Exam System Endpoints**:
-    -   
-    -   
-    -   
-    -   
-    -   
-    -   
-    -   
-    -    (Temporary diagnostic endpoint)
--   **New Grading Endpoints**:
-    -   
-    -   
+- **Internal Mail System**:
+    - 
+    - 
+    - 
+    -  (for archive, delete, etc.)
+    - 
+    - 
+- **Presence System**:
+    - 
+    - 
 
 **Critical Info for New Agent**
--   **Communicate in Spanish.**
--   Your immediate priority is to **verify and test the new premium design of the exam page ()**. The file was just overwritten and is completely untested and unverified.
--   The user is testing in a production-like environment with persistent data. Your forked environment starts with a fresh, often empty, database. This discrepancy has caused bugs (like the  issue). Be aware that data may not exist in your fork, and you might need to create test data or patch the DB to reproduce user-reported issues.
--   After verifying the exam page, the highest-priority technical debt is refactoring .
+- **Communicate in Spanish.**
+- **DATABASE IS CRITICAL:** The user's persistent data is in the database named . Before starting, you **must** verify that  has . Do not change this value, as it will cause the user's data to become inaccessible.
+- Your immediate priority is to test the Send Message button flow that was just implemented.
+- Be extremely cautious when editing . Due to its size and complexity, changes can have unintended side effects. Proposing a refactor of this file is a high-priority upcoming task.
 
 **documents and test reports created in this job**
--   
--    (updated)
+- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. User requests a more premium, high-impact design for the exam-taking page, including a larger timer. (IN PROGRESS)
-9.  User reports that after fixing the  issue, the exam starts but needs a better design. (RESOLVED)
-8.  User reports a  error when starting an exam. Agent diagnosed it as  being  and patched the database. (RESOLVED)
-7.  User reports a  error when starting an exam. Agent diagnosed it as missing  prefixes in frontend calls and fixed it. (RESOLVED)
-6.  User provides a detailed functional requirement document for a complete student exam-taking system. (IN PROGRESS)
-5.  User requests an AM/PM selector for the exam time picker. (COMPLETED)
-4.  User requests that overdue tasks be highlighted in red/pink. (COMPLETED)
-3.  User requests a specific size (2.25rem) for the task action icons. (COMPLETED)
-2.  User requests specific colors for the task action icons (edit, view, delete). (COMPLETED)
-1.  User reports that the student's photo is not showing up in the task submission detail view. (COMPLETED)
+1.  **User Query:** User asked a detailed question about the platform's scalability and concurrency for the Emergent support team. **Status: RESOLVED.** The agent used the  to provide a templated response directing the user to the correct support channels.
+2.  **Feature Request:** cuando le de clic al boton verde debe abrirse el popup para enviar mensaje... User requested connecting the Send Message button to the compose modal and improving contact search. **Status: IN PROGRESS.**
+3.  **Feature Request:** recuerda que para redactar, el textarea debe tener un editor con opciones avanzadas... User asked for a rich text editor in the compose modal. **Status: COMPLETED.**
+4.  **Feature Request:** User sent a large PRD-like message detailing requirements for a premium internal mail system. **Status: COMPLETED.**
+5.  **UI Feedback:** allí el boton morado debe decir: Chat en linea... User requested UI changes to the student detail popup buttons, splitting it into two distinct actions. **Status: COMPLETED.**
+6.  **Feature Request:** si el alumno esta conectado en tiempo real... User requested online presence indicators for students. **Status: COMPLETED.**
+7.  **Bug Report:** mirab como se ve el popup... User reported a z-index bug on the student detail popup. **Status: COMPLETED.**
+8.  **Feature Request:** estroy dentro de una asignatura... User requested the student detail popup feature. **Status: COMPLETED.**
+9.  **User Query:** para que serviría esta opción... User asked for clarification on the minimum grade field in the exam form. **Status: RESOLVED.**
+10. **UI Feedback:** esta parte hay que revisarla... User requested changing the exam grading scale from percentage to a 0-20 score. **Status: COMPLETED.**
 
 **Project Health Check:**
--   **Broken**:
-    -   The exam-taking page () is in an unknown state after being completely overwritten with a new design. It needs immediate visual and functional testing.
--   **Mocked**: N/A
+- **Broken**: The connection between the Send Message button and the compose modal is implemented but has not been tested.
+- **Mocked**: N/A
 
 **3rd Party Integrations**
--   **Cloudinary**: Used for image hosting and as a fallback for file submissions.
--   **Google Drive API**: Used for teacher-created content and student task submissions.
+- **TipTap / Prosemirror**: Used for the rich text editor in the internal mail system.
+- **Cloudinary**: Used for image hosting.
+- **Google Drive API**: Used for file submissions.
 
 **Testing status**
--   **Testing agent used after significant changes**: YES, for the backend task submission fix.
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: A temporary Python script was used to validate the grading endpoint.
--   **Known regressions**: The UI flickering on the Smart Sticky column in  persists.
+- **Testing agent used after significant changes**: YES, to verify the end-to-end functionality of the exam system after its redesign.
+- **Troubleshoot agent used after agent stuck in loop**: NO
+- **Test files created**: Agent used temporary python scripts and extensive  commands to test backend logic for login, database seeding, exam creation, and grading.
+- **Known regressions**: The UI flickering on the Smart Sticky column in  persists from the previous session.
 
 **Credentials to test flow:**
--   **Student:**
-    -   **Username**: 
-    -   **Password**: 
--   **Owner/Teacher:**
-    -   **Username**: 
-    -   **Password**: 
--   **School Identifier**: 
+- **Primary School for testing:** 
+    - **URL path**: 
+    - **User**: 
+    - **Password**: 
+- **School with more data:** 
+    - **URL path**: 
+    - **User**: 
+    - **Password**: 
 
 **What agent forgot to execute**
--   The agent did not test the new  after overwriting it with a new design.
--   The agent did not investigate the root cause in the Create/Edit Exam form that allowed  to be saved as . Instead, it applied a backend patch and manually fixed the database. This underlying issue may still exist.</analysis>
+- The agent has not yet started the high-priority refactoring tasks for  and , which were identified in the previous handoff and remain critical.
+- The agent has not addressed the Smart Sticky column UI bug.</analysis>
