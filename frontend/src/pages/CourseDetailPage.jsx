@@ -7551,34 +7551,46 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
               </button>
             </div>
           ) : (
-            tasks.map((task) => (
-              <div key={task.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
-                {/* Status */}
-                <div className="col-span-2">
-                  <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
-                    Publicado
-                  </span>
-                </div>
-                
-                {/* Title */}
-                <div className="col-span-4">
-                  <p className="font-semibold text-slate-800 truncate">{task.title}</p>
-                </div>
-                
-                {/* Type */}
-                <div className="col-span-2">
-                  <span className="inline-block px-3 py-1.5 bg-lime-500 text-white rounded text-xs font-semibold">
-                    {getDeliveryType(task.content)}
-                  </span>
-                </div>
-                
-                {/* Due Date */}
-                <div className="col-span-2">
-                  <p className="text-sm text-slate-600">
-                    {extractDueDate(task) ? formatDate(extractDueDate(task)) : <span className="text-slate-400">Sin fecha</span>}
-                  </p>
-                </div>
+            tasks.map((task) => {
+              // Check if task is expired
+              const dueDate = extractDueDate(task);
+              const isExpired = dueDate && new Date(dueDate) < new Date();
+              
+              return (
+                <div key={task.id} className="grid grid-cols-12 gap-4 px-6 py-4 items-center hover:bg-slate-50 transition-colors">
+                  {/* Status */}
+                  <div className="col-span-2">
+                    {isExpired ? (
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-red-100 text-red-600 rounded-full text-xs font-semibold">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        Vencida
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full"></span>
+                        Publicado
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Title */}
+                  <div className="col-span-4">
+                    <p className="font-semibold text-slate-800 truncate">{task.title}</p>
+                  </div>
+                  
+                  {/* Type */}
+                  <div className="col-span-2">
+                    <span className="inline-block px-3 py-1.5 bg-lime-500 text-white rounded text-xs font-semibold">
+                      {getDeliveryType(task.content)}
+                    </span>
+                  </div>
+                  
+                  {/* Due Date */}
+                  <div className="col-span-2">
+                    <p className="text-sm text-slate-600">
+                      {dueDate ? formatDate(dueDate) : <span className="text-slate-400">Sin fecha</span>}
+                    </p>
+                  </div>
                 
                 {/* Actions */}
                 <div className="col-span-2 flex items-center justify-center gap-2">
