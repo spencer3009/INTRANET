@@ -814,47 +814,8 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
     setVisiblePosts(prev => prev + POSTS_INCREMENT);
   };
 
-  // Quick access menu items - All sections with circular icons
-  const quickAccessItems = [
-    { id: "tablero", label: "TABLERO", icon: LayoutDashboard, color: "from-slate-600 to-slate-700" },
-    { id: "tareas", label: "TAREAS", icon: FileText, color: "from-blue-500 to-blue-600", count: tasks?.filter(t => !t.submissions?.some(s => s.student_id === user?.id))?.length || 0 },
-    { id: "material", label: "MATERIAL", icon: FolderOpen, color: "from-emerald-500 to-green-600", count: materials?.length || 0 },
-    { id: "examenes", label: "EXÁMENES", icon: FlaskConical, color: "from-rose-500 to-pink-600", count: exams?.filter(e => e.status === "publicado")?.length || 0 },
-    { id: "foro", label: "FORO", icon: MessageCircle, color: "from-cyan-500 to-teal-500", count: forumPosts?.length || 0 },
-    { id: "mensajes", label: "MENSAJES", icon: Mail, color: "from-indigo-500 to-purple-500", count: messageStats?.unread || 0, isUnread: true },
-    { id: "recordatorios", label: "RECORDATORIOS", icon: Bell, color: "from-amber-500 to-orange-500", count: reminders?.length || 0 },
-    { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, color: "from-yellow-500 to-amber-500" },
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Quick Access Menu - All sections with circular icons */}
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-10">
-          {quickAccessItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <button
-                key={item.id}
-                onClick={() => onTabChange && onTabChange(item.id)}
-                className="flex flex-col items-center gap-2 group"
-                data-testid={`quick-access-${item.id}`}
-              >
-                <div className={`relative w-14 h-14 md:w-16 md:h-16 rounded-full bg-gradient-to-br ${item.color} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:shadow-xl transition-all duration-300`}>
-                  <Icon className="w-6 h-6 md:w-7 md:h-7 text-white" />
-                  {item.count > 0 && (
-                    <span className={`absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 ${item.isUnread ? 'bg-red-500 animate-pulse' : 'bg-slate-700'} text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-md`}>
-                      {item.count > 99 ? "99+" : item.count}
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wide text-center">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Main 3-column grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
