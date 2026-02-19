@@ -209,6 +209,15 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
     if (replyTo) {
       setSubject(replyTo.subject.startsWith("Re:") ? replyTo.subject : `Re: ${replyTo.subject}`);
       setRecipients([replyTo.sender]);
+    } else if (preselectedRecipient) {
+      setSubject("");
+      setRecipients([{
+        id: preselectedRecipient.id,
+        name: preselectedRecipient.name || `${preselectedRecipient.first_name || ''} ${preselectedRecipient.last_name || ''}`.trim(),
+        email: preselectedRecipient.email,
+        photo_url: preselectedRecipient.photo_url,
+        role: preselectedRecipient.role
+      }]);
     } else {
       setSubject("");
       setRecipients([]);
@@ -217,7 +226,7 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
       editor.commands.setContent("");
     }
     setError("");
-  }, [replyTo, isOpen, editor]);
+  }, [replyTo, preselectedRecipient, isOpen, editor]);
   
   const searchContacts = async (query) => {
     if (!query.trim()) {
