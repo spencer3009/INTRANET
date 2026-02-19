@@ -25,7 +25,7 @@ import {
   ChevronDown, ChevronUp, User, GraduationCap,
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
-  Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud
+  Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
