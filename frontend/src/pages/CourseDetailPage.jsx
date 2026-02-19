@@ -567,95 +567,98 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const displayedStudents = showAllStudents ? students : students.slice(0, 6);
   
+  // Student Detail Modal using Portal
+  const StudentDetailModal = selectedStudent ? createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedStudent(null)} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Header with gradient */}
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-8 text-center relative">
+          <button 
+            onClick={() => setSelectedStudent(null)}
+            className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
+          >
+            <X className="w-5 h-5 text-white" />
+          </button>
+          {selectedStudent.photo_url ? (
+            <img
+              src={selectedStudent.photo_url}
+              alt={selectedStudent.name}
+              className="w-24 h-24 rounded-full object-cover mx-auto mb-4 ring-4 ring-white/50 shadow-lg"
+            />
+          ) : (
+            <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 ring-4 ring-white/50 text-white text-3xl font-bold">
+              {selectedStudent.name?.charAt(0)}
+            </div>
+          )}
+          <h3 className="text-xl font-bold text-white">
+            {selectedStudent.name} {selectedStudent.last_name}
+          </h3>
+          {selectedStudent.username && (
+            <p className="text-emerald-100 text-sm mt-1">@{selectedStudent.username}</p>
+          )}
+        </div>
+        
+        {/* Student Info */}
+        <div className="p-6 space-y-4">
+          {selectedStudent.email && (
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <Mail className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Correo electrónico</p>
+                <p className="text-sm font-medium text-gray-800">{selectedStudent.email}</p>
+              </div>
+            </div>
+          )}
+          
+          {selectedStudent.phone && (
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Phone className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Teléfono</p>
+                <p className="text-sm font-medium text-gray-800">{selectedStudent.phone}</p>
+              </div>
+            </div>
+          )}
+          
+          {selectedStudent.grade_name && (
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <GraduationCap className="w-5 h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500">Grado / Sección</p>
+                <p className="text-sm font-medium text-gray-800">
+                  {selectedStudent.grade_name} {selectedStudent.section_name && `- ${selectedStudent.section_name}`}
+                </p>
+              </div>
+            </div>
+          )}
+          
+          {/* Chat Button */}
+          <button
+            onClick={() => {
+              // TODO: Implementar navegación al chat
+              alert('Funcionalidad de chat próximamente');
+            }}
+            className="w-full mt-4 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
+          >
+            <MessageCircle className="w-5 h-5" />
+            Enviar mensaje
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+  
   return (
     <div className="space-y-5 lg:sticky lg:top-4">
-      {/* Student Detail Modal */}
-      {selectedStudent && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedStudent(null)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
-            {/* Header with gradient */}
-            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-8 text-center relative">
-              <button 
-                onClick={() => setSelectedStudent(null)}
-                className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-white" />
-              </button>
-              {selectedStudent.photo_url ? (
-                <img
-                  src={selectedStudent.photo_url}
-                  alt={selectedStudent.name}
-                  className="w-24 h-24 rounded-full object-cover mx-auto mb-4 ring-4 ring-white/50 shadow-lg"
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-white/20 flex items-center justify-center mx-auto mb-4 ring-4 ring-white/50 text-white text-3xl font-bold">
-                  {selectedStudent.name?.charAt(0)}
-                </div>
-              )}
-              <h3 className="text-xl font-bold text-white">
-                {selectedStudent.name} {selectedStudent.last_name}
-              </h3>
-              {selectedStudent.username && (
-                <p className="text-emerald-100 text-sm mt-1">@{selectedStudent.username}</p>
-              )}
-            </div>
-            
-            {/* Student Info */}
-            <div className="p-6 space-y-4">
-              {selectedStudent.email && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                    <Mail className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Correo electrónico</p>
-                    <p className="text-sm font-medium text-gray-800">{selectedStudent.email}</p>
-                  </div>
-                </div>
-              )}
-              
-              {selectedStudent.phone && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <Phone className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Teléfono</p>
-                    <p className="text-sm font-medium text-gray-800">{selectedStudent.phone}</p>
-                  </div>
-                </div>
-              )}
-              
-              {selectedStudent.grade_name && (
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                  <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <GraduationCap className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Grado / Sección</p>
-                    <p className="text-sm font-medium text-gray-800">
-                      {selectedStudent.grade_name} {selectedStudent.section_name && `- ${selectedStudent.section_name}`}
-                    </p>
-                  </div>
-                </div>
-              )}
-              
-              {/* Chat Button */}
-              <button
-                onClick={() => {
-                  // TODO: Implementar navegación al chat
-                  alert('Funcionalidad de chat próximamente');
-                }}
-                className="w-full mt-4 py-3 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Enviar mensaje
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {StudentDetailModal}
       {/* Teacher Card */}
       <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl overflow-hidden border border-amber-100 shadow-sm">
         <div className="px-5 py-4 bg-gradient-to-r from-amber-500 to-orange-500">
