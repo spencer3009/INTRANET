@@ -8810,6 +8810,9 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   
   const [activeTab, setActiveTab] = useState("tablero");
   
+  // State for opening chat directly with a user
+  const [directChatUser, setDirectChatUser] = useState(null);
+  
   // Mock data - empty, will be loaded from API
   // (Keeping this for backwards compatibility if needed)
   
