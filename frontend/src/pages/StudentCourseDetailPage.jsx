@@ -2369,7 +2369,7 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
         const attempts = {};
         for (const exam of exams) {
           try {
-            const res = await axios.get(`${API}/exams/${exam.id}/my-attempt`, { headers });
+            const res = await axios.get(`${API}/api/exams/${exam.id}/my-attempt`, { headers });
             if (res.data.has_attempt) {
               attempts[exam.id] = res.data.attempt;
             }
