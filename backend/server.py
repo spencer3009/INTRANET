@@ -15656,12 +15656,15 @@ async def search_contacts(q: str = "", current_user = Depends(get_current_user))
     query = {
         "school_id": school_id,
         "id": {"$ne": user["id"]},  # Exclude self
-        "is_active": True
+        "is_active": {"$ne": False}  # Include users with is_active=True or missing field
     }
     
     if q:
+        # Search in name, first_name, last_name and email
         query["$or"] = [
             {"name": {"$regex": q, "$options": "i"}},
+            {"first_name": {"$regex": q, "$options": "i"}},
+            {"last_name": {"$regex": q, "$options": "i"}},
             {"email": {"$regex": q, "$options": "i"}}
         ]
     
@@ -15681,7 +15684,7 @@ async def search_contacts(q: str = "", current_user = Depends(get_current_user))
     
     contacts = await db.users.find(
         query,
-        {"_id": 0, "id": 1, "name": 1, "email": 1, "role": 1, "photo_url": 1}
+        {"_id": 0, "id": 1, "name": 1, "first_name": 1, "last_name": 1, "email": 1, "role": 1, "photo_url": 1}
     ).limit(50).to_list(50)
     
     return {"contacts": contacts}
