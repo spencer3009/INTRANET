@@ -6,7 +6,7 @@ import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import CourseRemindersPanel from "../components/CourseRemindersPanel";
 import MessageCenter from "../components/MessageCenter";
-import InternalMailPage from "./InternalMailPage";
+import InternalMailPage, { ComposeModal as InternalMailComposeModal } from "./InternalMailPage";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { useEditor, EditorContent } from "@tiptap/react";
