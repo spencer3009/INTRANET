@@ -12774,11 +12774,13 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             for s in students:
                 contacts.append({"id": s["id"], "name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(), "photo_url": s.get("photo_url"), "role": "student", "subject_name": subject.get("name", "")})
     elif user_role == "student":
-        grade = await db.grades.find_one({"id": user.get("grade_id")}, {"_id": 0, "subjects": 1})
-        if grade:
-            for subj in grade.get("subjects", []):
-                subject = await db.subjects.find_one({"id": subj.get("subject_id")}, {"_id": 0})
-                if subject and subject.get("teacher_id"):
+        # Get grade_id from user (support both grade_id and grado_id field names)
+        grade_id = user.get("grade_id") or user.get("grado_id")
+        if grade_id:
+            # Query subjects directly by grade_id instead of expecting subjects array in grade
+            subjects = await db.subjects.find({"grade_id": grade_id, "teacher_id": {"$exists": True, "$ne": None}}, {"_id": 0}).to_list(100)
+            for subject in subjects:
+                if subject.get("teacher_id"):
                     teacher = await db.users.find_one({"id": subject["teacher_id"]}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1})
                     if teacher:
                         contacts.append({"id": teacher["id"], "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(), "photo_url": teacher.get("photo_url"), "role": "teacher", "subject_name": subject.get("name", "")})
