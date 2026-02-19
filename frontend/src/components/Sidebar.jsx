@@ -39,10 +39,13 @@ const navItems = [
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", hasBadge: true },
 ];
 
-export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token }) {
+export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  
+  // Get token from props or localStorage
+  const token = propToken || localStorage.getItem("token");
   
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;
