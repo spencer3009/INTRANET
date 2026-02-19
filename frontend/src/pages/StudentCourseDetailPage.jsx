@@ -1027,7 +1027,9 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                       if (onOpenChat) {
                         onOpenChat({
                           id: teacher.id,
-                          name: `${teacher.name || ''} ${teacher.last_name || ''}`.trim(),
+                          name: teacher.name || '',
+                          last_name: teacher.last_name || '',
+                          email: teacher.email || '',
                           photo_url: teacher.photo_url,
                           role: 'teacher'
                         });
