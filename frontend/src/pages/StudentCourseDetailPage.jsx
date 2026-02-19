@@ -4110,12 +4110,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
                 onBack={handleBack}
               />
               
-              {/* Tabs */}
-              <div className="mt-6">
-                <CourseTabs activeTab={activeTab} onTabChange={setActiveTab} messageStats={messageStats} />
-              </div>
-              
-              {/* Tab Content */}
+              {/* Tab Content - Menu circular icons are inside DashboardContent */}
               <div className="mt-6">
                 {renderContent()}
               </div>
