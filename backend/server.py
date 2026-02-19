@@ -12774,16 +12774,96 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             for s in students:
                 contacts.append({"id": s["id"], "name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(), "photo_url": s.get("photo_url"), "role": "student", "subject_name": subject.get("name", "")})
     elif user_role == "student":
-        # Get grade_id from user (support both grade_id and grado_id field names)
+        # Get grade_id and seccion_id from user
         grade_id = user.get("grade_id") or user.get("grado_id")
+        seccion_id = user.get("seccion_id")
+        school_id = user.get("school_id")
+        added_teacher_ids = set()  # Track added teachers to avoid duplicates
+        
         if grade_id:
-            # Query subjects directly by grade_id instead of expecting subjects array in grade
+            # 1. Add all teachers who teach subjects in this grade
             subjects = await db.subjects.find({"grade_id": grade_id, "teacher_id": {"$exists": True, "$ne": None}}, {"_id": 0}).to_list(100)
             for subject in subjects:
-                if subject.get("teacher_id"):
-                    teacher = await db.users.find_one({"id": subject["teacher_id"]}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1})
+                teacher_id = subject.get("teacher_id")
+                if teacher_id and teacher_id not in added_teacher_ids:
+                    teacher = await db.users.find_one({"id": teacher_id, "is_active": {"$ne": False}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1})
                     if teacher:
-                        contacts.append({"id": teacher["id"], "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(), "photo_url": teacher.get("photo_url"), "role": "teacher", "subject_name": subject.get("name", "")})
+                        contacts.append({
+                            "id": teacher["id"], 
+                            "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(), 
+                            "last_name": teacher.get("last_name", ""),
+                            "email": teacher.get("email"),
+                            "photo_url": teacher.get("photo_url"), 
+                            "role": "teacher", 
+                            "subject_name": subject.get("name", "")
+                        })
+                        added_teacher_ids.add(teacher_id)
+            
+            # 2. Also check academic_assignments for teachers in this grade
+            assignments = await db.academic_assignments.find({
+                "school_id": school_id,
+                "grade_id": grade_id,
+                "teacher_id": {"$exists": True, "$ne": None},
+                "status": "activo"
+            }, {"_id": 0, "teacher_id": 1, "subject_id": 1}).to_list(100)
+            
+            for assignment in assignments:
+                teacher_id = assignment.get("teacher_id")
+                if teacher_id and teacher_id not in added_teacher_ids:
+                    teacher = await db.users.find_one({"id": teacher_id, "is_active": {"$ne": False}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1})
+                    if teacher:
+                        # Get subject name
+                        subject = await db.subjects.find_one({"id": assignment.get("subject_id")}, {"_id": 0, "name": 1})
+                        subject_name = subject.get("name", "") if subject else ""
+                        contacts.append({
+                            "id": teacher["id"], 
+                            "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(), 
+                            "last_name": teacher.get("last_name", ""),
+                            "email": teacher.get("email"),
+                            "photo_url": teacher.get("photo_url"), 
+                            "role": "teacher", 
+                            "subject_name": subject_name
+                        })
+                        added_teacher_ids.add(teacher_id)
+        
+        # 3. Add classmates (students in the same section/grade)
+        if seccion_id:
+            classmates = await db.users.find({
+                "school_id": school_id,
+                "seccion_id": seccion_id,
+                "role": "student",
+                "id": {"$ne": user["id"]},
+                "is_active": {"$ne": False}
+            }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1}).to_list(100)
+            
+            for classmate in classmates:
+                contacts.append({
+                    "id": classmate["id"],
+                    "name": f"{classmate.get('name', '')} {classmate.get('last_name', '')}".strip(),
+                    "last_name": classmate.get("last_name", ""),
+                    "email": classmate.get("email"),
+                    "photo_url": classmate.get("photo_url"),
+                    "role": "student"
+                })
+        elif grade_id:
+            # If no section, get all students in the same grade
+            classmates = await db.users.find({
+                "school_id": school_id,
+                "$or": [{"grade_id": grade_id}, {"grado_id": grade_id}],
+                "role": "student",
+                "id": {"$ne": user["id"]},
+                "is_active": {"$ne": False}
+            }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1}).to_list(100)
+            
+            for classmate in classmates:
+                contacts.append({
+                    "id": classmate["id"],
+                    "name": f"{classmate.get('name', '')} {classmate.get('last_name', '')}".strip(),
+                    "last_name": classmate.get("last_name", ""),
+                    "email": classmate.get("email"),
+                    "photo_url": classmate.get("photo_url"),
+                    "role": "student"
+                })
     elif user_role in ["admin", "owner", "director", "coordinator"]:
         all_users = await db.users.find({"school_id": user["school_id"], "id": {"$ne": user["id"]}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}).to_list(500)
         for u in all_users:
