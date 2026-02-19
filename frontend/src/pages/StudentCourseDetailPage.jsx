@@ -830,7 +830,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
     <div className="space-y-6">
       {/* Quick Access Menu - All sections with circular icons */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-        <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6">
+        <div className="flex flex-wrap items-center justify-center gap-8 md:gap-10">
           {quickAccessItems.map((item) => {
             const Icon = item.icon;
             return (
@@ -848,7 +848,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                     </span>
                   )}
                 </div>
-                <span className="text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wide text-center max-w-[70px]">{item.label}</span>
+                <span className="text-[10px] md:text-xs font-bold text-slate-600 uppercase tracking-wide text-center">{item.label}</span>
               </button>
             );
           })}
