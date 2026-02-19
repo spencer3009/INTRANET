@@ -14925,8 +14925,15 @@ async def submit_exam_attempt(
         is_correct = False
         
         if question["question_type"] == "multiple_choice":
-            correct_option = question.get("correct_option_id")
-            if selected_option and selected_option == correct_option:
+            # Find the correct option from the options array
+            correct_option_id = None
+            options = question.get("options", [])
+            for opt in options:
+                if opt.get("is_correct"):
+                    correct_option_id = opt.get("id")
+                    break
+            
+            if selected_option and correct_option_id and selected_option == correct_option_id:
                 is_correct = True
                 earned_points += q_points
                 correct_count += 1
