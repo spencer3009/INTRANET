@@ -707,8 +707,9 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole, onO
             </button>
             <button
               onClick={() => {
-                // TODO: Implementar envío de mensaje
-                alert('Enviar mensaje próximamente');
+                const studentForMail = selectedStudent;
+                setSelectedStudent(null);
+                if (onOpenMail) onOpenMail(studentForMail);
               }}
               className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-xl"
             >
