@@ -1018,8 +1018,8 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                   Profesor
                 </span>
                 
-                {/* Two Buttons - Chat and Message */}
-                <div className="mt-4 space-y-2">
+                {/* Two Buttons - Chat and Message (side by side) */}
+                <div className="mt-4 flex gap-2">
                   {/* Chat en línea - Filled button */}
                   <button
                     onClick={() => {
@@ -1028,7 +1028,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                         window.openChatWithUser(teacher);
                       }
                     }}
-                    className="w-full px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all shadow-md hover:shadow-lg"
+                    className="flex-1 px-3 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md hover:shadow-lg"
                     data-testid="chat-teacher-btn"
                   >
                     <MessageCircle className="w-4 h-4" />
@@ -1038,7 +1038,7 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
                   {/* Enviar mensaje - Outline button */}
                   <button
                     onClick={() => onSendMessage && onSendMessage()}
-                    className="w-full px-4 py-2.5 bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 text-sm font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+                    className="flex-1 px-3 py-2.5 bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all"
                     data-testid="send-message-teacher-btn"
                   >
                     <Mail className="w-4 h-4" />
