@@ -14789,7 +14789,16 @@ async def save_exam_answer(
         start_time = datetime.fromisoformat(attempt["start_time"].replace("Z", "+00:00"))
         now = datetime.now(timezone.utc)
         elapsed = (now - start_time).total_seconds()
-        duration_seconds = exam["duration_minutes"] * 60
+        
+        # Safely get duration_minutes
+        duration_minutes = exam.get("duration_minutes")
+        try:
+            if duration_minutes:
+                duration_seconds = int(float(str(duration_minutes))) * 60
+            else:
+                duration_seconds = 60 * 60  # Default 60 minutes if not set
+        except (TypeError, ValueError):
+            duration_seconds = 60 * 60
         
         if elapsed > duration_seconds:
             # Auto-expire
