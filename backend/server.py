@@ -15414,6 +15414,93 @@ async def get_trash(
     
     return {"messages": enriched}
 
+
+# Get mail stats - MUST be before {message_id} route
+@api_router.get("/internal-mail/stats")
+async def get_mail_stats(current_user = Depends(get_current_user)):
+    """Get mail statistics for badges"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    user_id = user["id"]
+    
+    # Unread count
+    unread_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_read": False,
+                    "is_deleted": {"$ne": True},
+                    "is_archived": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    unread_result = await db.internal_mail.aggregate(unread_pipeline).to_list(1)
+    unread = unread_result[0]["count"] if unread_result else 0
+    
+    # Inbox count (not archived, not deleted)
+    inbox_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_deleted": {"$ne": True},
+                    "is_archived": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    inbox_result = await db.internal_mail.aggregate(inbox_pipeline).to_list(1)
+    inbox = inbox_result[0]["count"] if inbox_result else 0
+    
+    # Sent count
+    sent = await db.internal_mail.count_documents({"sender_id": user_id})
+    
+    # Archived count
+    archived_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_archived": True,
+                    "is_deleted": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    archived_result = await db.internal_mail.aggregate(archived_pipeline).to_list(1)
+    archived = archived_result[0]["count"] if archived_result else 0
+    
+    # Trash count
+    trash_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_deleted": True
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    trash_result = await db.internal_mail.aggregate(trash_pipeline).to_list(1)
+    trash = trash_result[0]["count"] if trash_result else 0
+    
+    return {
+        "unread": unread,
+        "inbox": inbox,
+        "sent": sent,
+        "archived": archived,
+        "trash": trash
+    }
+
+
 # Get single message
 @api_router.get("/internal-mail/{message_id}")
 async def get_message(message_id: str, current_user = Depends(get_current_user)):
