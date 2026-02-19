@@ -564,7 +564,7 @@ function CourseInfoSidebar({ subject, subjectId, token, onActivityClick }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // RIGHT SIDEBAR - TEACHER & STUDENTS
 // ══════════════════════════════════════════════════════════════════════════════
-function CourseRightSidebar({ teacher, students, subjectId, token, userRole, onOpenChat }) {
+function CourseRightSidebar({ teacher, students, subjectId, token, userRole, onOpenChat, onOpenMail }) {
   const [showAllStudents, setShowAllStudents] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [presenceStatus, setPresenceStatus] = useState({});
