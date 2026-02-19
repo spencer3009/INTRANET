@@ -3755,10 +3755,18 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
                   {selectedMessage.subject}
                 </h2>
                 <div className="flex items-center gap-2">
-                  <button className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors" title="Archivar">
+                  <button 
+                    onClick={() => handleArchiveMessage(selectedMessage.id)}
+                    className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" 
+                    title="Archivar"
+                  >
                     <Archive className="w-5 h-5" />
                   </button>
-                  <button className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar">
+                  <button 
+                    onClick={() => handleDeleteMessage(selectedMessage.id)}
+                    className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" 
+                    title="Eliminar"
+                  >
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
