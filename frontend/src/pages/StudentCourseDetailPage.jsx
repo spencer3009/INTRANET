@@ -2355,7 +2355,43 @@ function MaterialContent({ materials, token, highlightedPostId, onClearHighlight
 }
 
 // Exams Content - Cards view like owner's portal (Read-only for students)
-function ExamsContent({ exams, studentId }) {
+function ExamsContent({ exams, studentId, subdomain, token }) {
+  const navigate = useNavigate();
+  const headers = { Authorization: `Bearer ${token}` };
+  const [examAttempts, setExamAttempts] = useState({});
+  const [loadingAttempts, setLoadingAttempts] = useState(true);
+  const [startingExam, setStartingExam] = useState(null);
+  
+  // Fetch attempt status for each exam
+  useEffect(() => {
+    const fetchAttempts = async () => {
+      try {
+        const attempts = {};
+        for (const exam of exams) {
+          try {
+            const res = await axios.get(`${API}/exams/${exam.id}/my-attempt`, { headers });
+            if (res.data.has_attempt) {
+              attempts[exam.id] = res.data.attempt;
+            }
+          } catch (err) {
+            // Ignore individual errors
+          }
+        }
+        setExamAttempts(attempts);
+      } catch (err) {
+        console.error('Error fetching attempts:', err);
+      } finally {
+        setLoadingAttempts(false);
+      }
+    };
+    
+    if (exams.length > 0) {
+      fetchAttempts();
+    } else {
+      setLoadingAttempts(false);
+    }
+  }, [exams]);
+  
   if (exams.length === 0) {
     return (
       <EmptyState
@@ -2367,12 +2403,40 @@ function ExamsContent({ exams, studentId }) {
   }
 
   const getExamStatus = (exam) => {
-    const attempt = exam.attempts?.find(a => a.student_id === studentId);
+    const attempt = examAttempts[exam.id];
+    
     if (attempt) {
-      return { status: "completed", label: "Completado", color: "bg-emerald-100 text-emerald-700", borderColor: "border-emerald-200", score: attempt.score };
+      if (attempt.status === 'completed') {
+        return { 
+          status: "completed", 
+          label: "Completado", 
+          color: "bg-emerald-100 text-emerald-700", 
+          borderColor: "border-emerald-200", 
+          score: attempt.percentage,
+          attemptId: attempt.id 
+        };
+      }
+      if (attempt.status === 'in_progress') {
+        return { 
+          status: "in_progress", 
+          label: "En progreso", 
+          color: "bg-amber-100 text-amber-700", 
+          borderColor: "border-amber-200",
+          attemptId: attempt.id 
+        };
+      }
+      if (attempt.status === 'expired') {
+        return { 
+          status: "expired", 
+          label: "Tiempo agotado", 
+          color: "bg-red-100 text-red-700", 
+          borderColor: "border-red-200",
+          attemptId: attempt.id 
+        };
+      }
     }
     
-    // Use is_available flag from API if present, otherwise calculate
+    // Use is_available flag from API if present
     if (exam.is_available === false && exam.availability_message?.includes('finalizado')) {
       return { status: "closed", label: "Cerrado", color: "bg-red-100 text-red-700", borderColor: "border-red-200" };
     }
@@ -2389,6 +2453,15 @@ function ExamsContent({ exams, studentId }) {
     }
     return { status: "available", label: "Disponible", color: "bg-cyan-100 text-cyan-700", borderColor: "border-cyan-200" };
   };
+  
+  const handleStartExam = (exam) => {
+    setStartingExam(exam.id);
+    navigate(`/school/${subdomain}/exam/${exam.id}/attempt`);
+  };
+  
+  const handleViewResults = (exam, attemptId) => {
+    navigate(`/school/${subdomain}/exam/${exam.id}/result/${attemptId}`);
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2403,8 +2476,9 @@ function ExamsContent({ exams, studentId }) {
             {/* Exam Header with gradient */}
             <div className={`px-5 py-4 ${
               examStatus.status === 'available' ? 'bg-gradient-to-r from-cyan-500 to-cyan-600' :
+              examStatus.status === 'in_progress' ? 'bg-gradient-to-r from-amber-500 to-amber-600' :
               examStatus.status === 'completed' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600' :
-              examStatus.status === 'closed' ? 'bg-gradient-to-r from-red-400 to-red-500' :
+              examStatus.status === 'closed' || examStatus.status === 'expired' ? 'bg-gradient-to-r from-red-400 to-red-500' :
               'bg-gradient-to-r from-slate-400 to-slate-500'
             }`}>
               <div className="flex items-center justify-between">
@@ -2467,7 +2541,7 @@ function ExamsContent({ exams, studentId }) {
                       <Trophy className="w-4 h-4" />
                       Tu puntaje
                     </span>
-                    <span className="font-bold text-emerald-600 text-lg">{examStatus.score}%</span>
+                    <span className="font-bold text-emerald-600 text-lg">{examStatus.score?.toFixed(1)}%</span>
                   </div>
                 )}
               </div>
@@ -2475,9 +2549,31 @@ function ExamsContent({ exams, studentId }) {
               {/* Action Button */}
               <div className="mt-5">
                 {examStatus.status === "available" && (
-                  <button className="w-full py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold rounded-xl hover:from-cyan-600 hover:to-cyan-700 transition-all flex items-center justify-center gap-2">
-                    <Play className="w-5 h-5" />
+                  <button 
+                    onClick={() => handleStartExam(exam)}
+                    disabled={startingExam === exam.id}
+                    className="w-full py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 text-white font-semibold rounded-xl hover:from-cyan-600 hover:to-cyan-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {startingExam === exam.id ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Play className="w-5 h-5" />
+                    )}
                     Iniciar Examen
+                  </button>
+                )}
+                {examStatus.status === "in_progress" && (
+                  <button 
+                    onClick={() => handleStartExam(exam)}
+                    disabled={startingExam === exam.id}
+                    className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-amber-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {startingExam === exam.id ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Play className="w-5 h-5" />
+                    )}
+                    Continuar Examen
                   </button>
                 )}
                 {examStatus.status === "upcoming" && (
@@ -2492,8 +2588,20 @@ function ExamsContent({ exams, studentId }) {
                     Examen cerrado
                   </div>
                 )}
+                {examStatus.status === "expired" && (
+                  <button 
+                    onClick={() => handleViewResults(exam, examStatus.attemptId)}
+                    className="w-full py-3 bg-red-50 text-red-600 font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-red-100"
+                  >
+                    <Eye className="w-5 h-5" />
+                    Ver resultados
+                  </button>
+                )}
                 {examStatus.status === "completed" && (
-                  <button className="w-full py-3 bg-emerald-50 text-emerald-600 font-semibold rounded-xl flex items-center justify-center gap-2">
+                  <button 
+                    onClick={() => handleViewResults(exam, examStatus.attemptId)}
+                    className="w-full py-3 bg-emerald-50 text-emerald-600 font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-emerald-100"
+                  >
                     <Eye className="w-5 h-5" />
                     Ver resultados
                   </button>
