@@ -173,7 +173,9 @@ function EditorToolbar({ editor }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // COMPOSE MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
+// COMPOSE MODAL - Also exported for use in other components
+// ══════════════════════════════════════════════════════════════════════════════
+export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselectedRecipient }) {
   const [recipients, setRecipients] = useState([]);
   const [subject, setSubject] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
