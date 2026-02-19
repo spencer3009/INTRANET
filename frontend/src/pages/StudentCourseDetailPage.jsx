@@ -4013,6 +4013,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             token={token}
             user={user}
             onSendMessage={() => setActiveTab("mensajes")}
+            messageStats={messageStats}
+            onTabChange={setActiveTab}
           />
         );
       case "tareas":
