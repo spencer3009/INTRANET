@@ -102,7 +102,7 @@ export default function ExamAttemptPage() {
     const handleVisibilityChange = async () => {
       if (document.hidden && attemptId && !submitted) {
         try {
-          const res = await axios.post(`${API}/exam-attempts/${attemptId}/report-tab-change`, {}, { headers });
+          const res = await axios.post(`${API}/api/exam-attempts/${attemptId}/report-tab-change`, {}, { headers });
           setTabWarning(res.data.warning);
           
           if (res.data.force_submit) {
