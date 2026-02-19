@@ -9146,7 +9146,12 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       </div>
 
       {/* Global Message Center - Floating Button + Drawer */}
-      <MessageCenter token={token} user={user} />
+      <MessageCenter 
+        token={token} 
+        user={user} 
+        openWithUser={directChatUser}
+        onClose={() => setDirectChatUser(null)}
+      />
     </div>
   );
 }
