@@ -4006,6 +4006,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             onSendMessage={() => setActiveTab("mensajes")}
             messageStats={messageStats}
             onTabChange={setActiveTab}
+            onOpenChat={setDirectChatUser}
           />
         );
       case "tareas":
