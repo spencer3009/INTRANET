@@ -1157,11 +1157,21 @@ async def get_student_profile(current_user = Depends(get_current_user)):
             "due_date": {"$gte": datetime.now(timezone.utc).isoformat()}
         })
     
-    # Get unread messages count
-    unread_messages = await db.institutional_messages.count_documents({
-        "school_id": school_id,
-        "read_by": {"$ne": user["id"]}
-    })
+    # Get unread messages count from internal_mail
+    unread_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user["id"],
+                    "is_read": False,
+                    "is_deleted": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    unread_result = await db.internal_mail.aggregate(unread_pipeline).to_list(1)
+    unread_messages = unread_result[0]["count"] if unread_result else 0
     
     return {
         "user": {
