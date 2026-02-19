@@ -4209,7 +4209,12 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       )}
 
       {/* Message Center */}
-      <MessageCenter token={token} user={user} />
+      <MessageCenter 
+        token={token} 
+        user={user} 
+        openWithUser={directChatUser}
+        onCloseChat={() => setDirectChatUser(null)}
+      />
     </div>
   );
 }
