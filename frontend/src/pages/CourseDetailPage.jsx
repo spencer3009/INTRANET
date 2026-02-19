@@ -8971,6 +8971,8 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         return <ExamsContent subjectId={subjectId} token={token} userRole={user?.role} />;
       case "foro":
         return <ForumContent subjectId={subjectId} token={token} user={user} students={students} />;
+      case "mensajes":
+        return <InternalMailPage user={user} token={token} />;
       case "recordatorios":
         return <RemindersTabContent subjectId={subjectId} token={token} userRole={user?.role} />;
       case "calificaciones":
