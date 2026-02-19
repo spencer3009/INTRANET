@@ -134,7 +134,7 @@ export default function ExamAttemptPage() {
     
     setSavingAnswer(true);
     try {
-      await axios.post(`${API}/exam-attempts/${attemptId}/save-answer`, {
+      await axios.post(`${API}/api/exam-attempts/${attemptId}/save-answer`, {
         question_id: questionId,
         selected_option_id: optionId || null,
         text_answer: textAnswer || null
