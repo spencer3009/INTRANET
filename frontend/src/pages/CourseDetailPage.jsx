@@ -4675,6 +4675,43 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
             />
           </div>
           
+          {/* Duration */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Duración del examen (minutos) *
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min="1"
+                max="300"
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(e.target.value)}
+                className="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+                required
+              />
+              <div className="flex gap-2">
+                {[30, 45, 60, 90, 120].map((mins) => (
+                  <button
+                    key={mins}
+                    type="button"
+                    onClick={() => setDurationMinutes(mins)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                      parseInt(durationMinutes) === mins
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {mins}m
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Tiempo máximo que tendrá el estudiante para completar el examen
+            </p>
+          </div>
+          
           {/* Min Score */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
