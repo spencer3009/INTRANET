@@ -1093,6 +1093,24 @@ function App() {
             }
           />
           
+          {/* Exam Taking Routes - Student */}
+          <Route
+            path="/school/:subdomain/exam/:examId/attempt"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ExamAttemptPage user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/school/:subdomain/exam/:examId/result/:attemptId"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ExamResultPage user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Teacher Portal - Route based */}
           <Route
             path="/school/:subdomain/teacher"
