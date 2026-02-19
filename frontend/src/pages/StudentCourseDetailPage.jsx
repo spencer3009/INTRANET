@@ -3163,7 +3163,7 @@ function ForumContent({ posts, token, user, students, highlightedPostId, onClear
 // ══════════════════════════════════════════════════════════════════════════════
 // STUDENT MESSAGES CONTENT - Gmail-like interface
 // ══════════════════════════════════════════════════════════════════════════════
-function StudentMessagesContent({ courseId, token, user, teacher }) {
+function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnMount = false }) {
   const [activeFolder, setActiveFolder] = useState("inbox");
   const [messages, setMessages] = useState([]);
   const [selectedMessage, setSelectedMessage] = useState(null);
@@ -3176,6 +3176,7 @@ function StudentMessagesContent({ courseId, token, user, teacher }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredRecipients, setFilteredRecipients] = useState([]);
   const [preselectedTeacher, setPreselectedTeacher] = useState(null);
+  const [hasOpenedCompose, setHasOpenedCompose] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
