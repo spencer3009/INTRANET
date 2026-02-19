@@ -14706,10 +14706,15 @@ async def start_exam_attempt(
         
         await db.exam_attempts.insert_one(attempt)
         
+        # Calculate remaining time as minimum of: duration OR time until window closes
+        duration_seconds = duration_minutes * 60
+        time_until_end = (end_dt - now).total_seconds()
+        remaining_seconds = int(min(duration_seconds, time_until_end))
+        
         return {
             "attempt_id": attempt_id,
             "exam_id": exam_id,
-            "remaining_seconds": duration_minutes * 60,
+            "remaining_seconds": remaining_seconds,
             "total_questions": questions_count,
             "resumed": False
         }
