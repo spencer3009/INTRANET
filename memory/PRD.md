@@ -14,10 +14,11 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 4. Sistema de tareas con entregas
 5. Sistema de mensajería interna (correo interno)
 6. Presencia en tiempo real de estudiantes
+7. Sistema de mensajes para Portal del Alumno
 
 ---
 
-## Estado Actual - Diciembre 2025
+## Estado Actual - Febrero 2026
 
 ### ✅ Completado
 | Feature | Fecha | Estado |
@@ -30,6 +31,12 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 | Bug fix: Duración de exámenes | Dic 2025 | ✅ Corregido |
 | Bug fix: Timezone en fechas | Dic 2025 | ✅ Corregido |
 | Escala de calificación 0-20 (Perú) | Dic 2025 | ✅ Implementado |
+| Bug fix: Búsqueda de contactos (nombre completo) | Feb 2026 | ✅ Corregido |
+| **Sistema de Mensajes Portal Alumno** | Feb 2026 | ✅ Probado |
+| - Tab "Mensajes" con badge | Feb 2026 | ✅ |
+| - UI Gmail 3 columnas | Feb 2026 | ✅ |
+| - Botón "Enviar mensaje" en tarjeta profesor | Feb 2026 | ✅ |
+| - Restricción por asignatura/sección | Feb 2026 | ✅ |
 
 ### 🔴 P0 - Crítico
 - [ ] Refactorizar `CourseDetailPage.jsx` (>9,000 líneas)
