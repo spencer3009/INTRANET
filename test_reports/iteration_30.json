@@ -1,0 +1,100 @@
+{
+  "summary": "Frontend testing completed for 'Chat en línea' button in teacher card. Found and fixed 1 backend bug: contacts API was not returning teachers for students due to incorrect data query. After fix, the Chat en línea button correctly opens MessageCenter with the teacher selected for chat.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Login as student (pepito@gmail.com) at /school/elroble/login",
+    "Navigate to student dashboard",
+    "Click on 'Mis Cursos' to view courses",
+    "Click on 'Ver curso' to enter course detail page (Histortia)",
+    "Course detail page loads with 'Tablero' tab active",
+    "Teacher card shows 'Sonia Velasquez Romero' with 'Profesor' badge",
+    "Two buttons visible: 'Chat en línea' (filled) and 'Enviar mensaje' (outline)",
+    "'Chat en línea' button has data-testid='chat-teacher-btn'",
+    "Click 'Chat en línea' opens MessageCenter drawer",
+    "MessageCenter shows 'Mensajes' tab active",
+    "Teacher 'Sonia Velasquez Romero' is selected with 'Profesor' label",
+    "Chat compose view ready with message input field",
+    "No JavaScript console errors"
+  ],
+
+  "bugs_fixed": [
+    {
+      "file": "/app/backend/server.py",
+      "line": "12776-12784",
+      "issue": "Contacts API returned empty list for students because: 1) Code looked for user.grade_id but student had grado_id, 2) Code expected grade.subjects array but subjects are in separate collection",
+      "fix": "Updated get_academic_contacts endpoint to: 1) Support both grade_id and grado_id field names, 2) Query subjects collection directly by grade_id instead of expecting subjects array in grade document"
+    }
+  ],
+
+  "data_fixes": [
+    {
+      "collection": "subjects",
+      "document": "Histortia",
+      "fix": "Added teacher_id field linking to teacher Sonia Velasquez Romero"
+    },
+    {
+      "collection": "users",
+      "document": "pepito@gmail.com",
+      "fix": "Added grade_id field (same value as grado_id) for compatibility"
+    }
+  ],
+
+  "test_report_links": [
+    "/app/backend/server.py"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [
+    "Backend contacts API had field name inconsistency (grade_id vs grado_id) - fixed",
+    "Backend expected subjects array in grade document but subjects are in separate collection - fixed"
+  ],
+
+  "updated_files": [
+    "/app/backend/server.py"
+  ],
+
+  "success_rate": {
+    "backend": "N/A (frontend only testing requested)",
+    "frontend": "100% (13/13 tests passed after bug fix)"
+  },
+
+  "test_credentials": {
+    "email": "pepito@gmail.com",
+    "password": "1234abc8",
+    "school_subdomain": "elroble",
+    "login_url": "https://edunet-mensajeria.preview.emergentagent.com/school/elroble/login"
+  },
+
+  "seed_data_creation": "Updated existing data: 1) Added teacher_id to subject 'Histortia', 2) Added grade_id to student 'pepito@gmail.com'",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Chat en línea button in teacher card is fully working. Key implementation: 1) Button in StudentCourseDetailPage.jsx (line 1024-1041) calls onOpenChat with teacher data, 2) onOpenChat sets directChatUser state which is passed to MessageCenter, 3) MessageCenter's AcademicTab handles directChatUser via useEffect (line 917-932) to select the teacher for chat. Backend fix: get_academic_contacts endpoint now queries subjects by grade_id directly instead of expecting subjects array in grade document.",
+
+  "verified_features": {
+    "chat_en_linea_button": {
+      "location": "Teacher card in course detail page (right sidebar)",
+      "selector": "data-testid='chat-teacher-btn'",
+      "action": "Opens MessageCenter with teacher selected for chat",
+      "status": "Working"
+    },
+    "message_center_integration": {
+      "prop_flow": "onOpenChat -> setDirectChatUser -> MessageCenter.openWithUser -> AcademicTab.directChatUser",
+      "status": "Working"
+    }
+  }
+}
