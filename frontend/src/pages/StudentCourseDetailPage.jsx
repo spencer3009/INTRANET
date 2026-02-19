@@ -4004,6 +4004,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
             onNavigateToDetail={handleNavigateToDetail}
             token={token}
             user={user}
+            onSendMessage={() => setActiveTab("mensajes")}
           />
         );
     }
