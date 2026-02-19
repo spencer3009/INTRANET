@@ -1135,34 +1135,65 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
           </div>
           <div className="p-4">
             {students.length > 0 ? (
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                {students.slice(0, 8).map((student, idx) => (
-                  <div 
-                    key={student.id || idx}
-                    className="flex items-center gap-3 p-2 bg-white rounded-xl hover:bg-emerald-100/50 transition-colors"
-                  >
-                    {student.photo_url ? (
-                      <img
-                        src={student.photo_url}
-                        alt={student.name}
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-emerald-200"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-emerald-200">
-                        {student.name?.charAt(0)}
+              <div className="space-y-2 max-h-[280px] overflow-y-auto">
+                {students.slice(0, 10).map((student, idx) => {
+                  const isOnline = presenceData[student.id] || false;
+                  const isCurrentUser = student.id === user?.id;
+                  
+                  return (
+                    <div 
+                      key={student.id || idx}
+                      onClick={() => handleStudentClick(student)}
+                      className={`flex items-center gap-3 p-2.5 bg-white rounded-xl transition-all ${
+                        isCurrentUser 
+                          ? 'opacity-70 cursor-default' 
+                          : 'hover:bg-emerald-100/50 hover:shadow-sm cursor-pointer'
+                      }`}
+                    >
+                      {/* Photo with status indicator */}
+                      <div className="relative">
+                        {student.photo_url ? (
+                          <img
+                            src={student.photo_url}
+                            alt={student.name}
+                            className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-200"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold ring-2 ring-emerald-200">
+                            {student.name?.charAt(0)}
+                          </div>
+                        )}
+                        {/* Status indicator */}
+                        <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white flex items-center justify-center ${
+                          isOnline ? 'bg-green-500' : 'bg-red-500'
+                        }`}>
+                          {!isOnline && (
+                            <span className="text-white text-[8px] font-bold">−</span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-800 truncate">
-                        {student.name} {student.last_name?.charAt(0) || ''}.
-                      </p>
+                      
+                      {/* Name and username */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">
+                          {student.name} {student.last_name?.charAt(0) || ''}.
+                        </p>
+                        {student.username && (
+                          <p className="text-xs text-gray-500 truncate">@{student.username}</p>
+                        )}
+                      </div>
+                      
+                      {/* Chat icon (only for other students) */}
+                      {!isCurrentUser && (
+                        <MessageCircle className="w-4 h-4 text-gray-400" />
+                      )}
                     </div>
-                  </div>
-                ))}
-                {students.length > 8 && (
+                  );
+                })}
+                {students.length > 10 && (
                   <div className="text-center pt-2">
                     <span className="text-xs text-emerald-600 font-medium">
-                      +{students.length - 8} más estudiantes
+                      +{students.length - 10} más estudiantes
                     </span>
                   </div>
                 )}
