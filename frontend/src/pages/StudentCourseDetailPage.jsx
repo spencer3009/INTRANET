@@ -3840,7 +3840,29 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
             <div className="p-6 space-y-4 overflow-y-auto" style={{ maxHeight: "calc(90vh - 140px)" }}>
               {/* Recipients */}
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Para:</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-slate-700">Para:</label>
+                  {teacher && !composeData.recipients.find(r => r.id === teacher.id) && (
+                    <button
+                      onClick={() => {
+                        const teacherRecipient = {
+                          id: teacher.id,
+                          name: `${teacher.name || ''} ${teacher.last_name || ''}`.trim(),
+                          photo_url: teacher.photo_url,
+                          role: "teacher"
+                        };
+                        setComposeData(prev => ({
+                          ...prev,
+                          recipients: [...prev.recipients, teacherRecipient]
+                        }));
+                      }}
+                      className="px-3 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors flex items-center gap-1"
+                    >
+                      <Mail className="w-3 h-3" />
+                      Escribir al profesor
+                    </button>
+                  )}
+                </div>
                 <div className="relative">
                   <div className="flex flex-wrap gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl min-h-[48px]">
                     {composeData.recipients.map(r => (
