@@ -8952,6 +8952,24 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
     }
   };
 
+  // Load unread messages count
+  useEffect(() => {
+    const loadUnreadMessages = async () => {
+      if (!token) return;
+      try {
+        const res = await axios.get(`${API}/internal-mail/stats`, { headers });
+        setUnreadMessages(res.data.unread || 0);
+      } catch (err) {
+        console.log("Could not load unread messages:", err);
+      }
+    };
+    
+    loadUnreadMessages();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadUnreadMessages, 30000);
+    return () => clearInterval(interval);
+  }, [token]);
+
   // Handle clicking on an activity to navigate to its content
   const handleActivityClick = (activity) => {
     const { reference_type, activity_type } = activity;
