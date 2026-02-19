@@ -4564,6 +4564,10 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
       setError("Las horas de inicio y fin son requeridas");
       return;
     }
+    if (!durationMinutes || durationMinutes < 1) {
+      setError("La duración debe ser al menos 1 minuto");
+      return;
+    }
     
     // Combine date and time (time already includes seconds as HH:MM:SS)
     const startDatetime = new Date(`${date}T${startTime}`).toISOString();
@@ -4582,6 +4586,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
         description: description.trim(),
         start_datetime: startDatetime,
         end_datetime: endDatetime,
+        duration_minutes: parseInt(durationMinutes),
         min_score_percentage: minScore
       }, exam?.id);
       onClose();
