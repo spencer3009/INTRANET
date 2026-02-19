@@ -170,7 +170,7 @@ export default function MessageCenter({ token, user, openWithUser, onClose }) {
                 <SupportTab token={token} user={user} onRefreshStats={loadStats} />
               )}
               {activeTab === "academic" && (
-                <AcademicTab token={token} user={user} onRefreshStats={loadStats} />
+                <AcademicTab token={token} user={user} onRefreshStats={loadStats} directChatUser={directChatUser} onClearDirectChat={() => setDirectChatUser(null)} />
               )}
             </div>
           </div>
