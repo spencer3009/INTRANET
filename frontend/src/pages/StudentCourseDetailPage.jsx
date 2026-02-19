@@ -23,7 +23,7 @@ import {
   Quote, Code, Link as LinkIcon, Highlighter,
   Heading1, Heading2, Heading3, HardDrive, Cloud,
   ClipboardList, MessagesSquare, Mail, Inbox, SendHorizontal,
-  Reply, Trash2, Star, Archive
+  Reply, Trash2, Star, Archive, Phone
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
