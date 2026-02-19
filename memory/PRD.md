@@ -37,9 +37,17 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 | - UI Gmail 3 columnas | Feb 2026 | ✅ |
 | - Botón "Enviar mensaje" en tarjeta profesor | Feb 2026 | ✅ |
 | - Restricción por asignatura/sección | Feb 2026 | ✅ |
+| **Botón "Chat en línea" en tarjeta profesor** | Feb 2026 | ✅ Probado |
+| - Abre MessageCenter con profesor preseleccionado | Feb 2026 | ✅ |
+| - Navegación directa desde curso → chat con profesor | Feb 2026 | ✅ |
+| **Menú circular de iconos en Portal Alumno** | Feb 2026 | ✅ |
+| - 8 botones circulares (Tablero, Tareas, etc.) | Feb 2026 | ✅ |
+| **Badges de mensajes no leídos** | Feb 2026 | ✅ |
+| - Sidebar, campana de notificaciones, dashboard | Feb 2026 | ✅ |
 
 ### 🔴 P0 - Crítico
 - [ ] Refactorizar `CourseDetailPage.jsx` (>9,000 líneas)
+- [ ] Refactorizar `StudentCourseDetailPage.jsx` (>4,000 líneas) - NUEVO
 - [ ] Refactorizar `server.py` (backend monolítico)
 
 ### 🟠 P1 - Alta Prioridad
