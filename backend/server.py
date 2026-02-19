@@ -495,7 +495,15 @@ async def login(creds: UserLogin):
         ]
     })
     
-    if not user or not verify_password(creds.password, user["password"]):
+    logger.info(f"Login attempt for: {identifier}, user found: {user is not None}")
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Credenciales inválidas")
+    
+    logger.info(f"Password field exists: {'password' in user}, checking password...")
+    
+    if not verify_password(creds.password, user["password"]):
+        logger.info(f"Password check failed for user {identifier}")
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     
     # Get school info if user has one
