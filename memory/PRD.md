@@ -114,6 +114,8 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 - [ ] Módulo de "Matrículas"
 - [ ] Banco de preguntas para exámenes
 - [ ] Reemplazar `window.confirm`/`alert` con modales
+- [ ] Notificaciones automáticas de exámenes a estudiantes
+- [ ] Copiar/duplicar configuración de breaks entre secciones
 
 ---
 
