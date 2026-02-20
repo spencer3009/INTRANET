@@ -6180,16 +6180,25 @@ BREAK_LABELS = {
 }
 
 @api_router.get("/schedule/breaks")
-async def get_schedule_breaks(current_user = Depends(get_current_user)):
-    """Get all schedule breaks (recreos, almuerzos, eventos) for school"""
+async def get_schedule_breaks(
+    grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get schedule breaks (recreos, almuerzos, eventos) filtered by grade and section"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    breaks = await db.schedule_breaks.find(
-        {"school_id": user["school_id"]},
-        {"_id": 0}
-    ).sort("start_time", 1).to_list(50)
+    query = {"school_id": user["school_id"]}
+    
+    # Filter by grade and section if provided
+    if grade_id:
+        query["grade_id"] = grade_id
+    if section_id:
+        query["section_id"] = section_id
+    
+    breaks = await db.schedule_breaks.find(query, {"_id": 0}).sort("start_time", 1).to_list(100)
     
     return {"breaks": breaks}
 
