@@ -23,8 +23,6 @@ const EXAM_TYPES = [
   { id: "quiz", label: "Quiz", color: "#F59E0B", icon: "⚡" }
 ];
 
-const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-
 // Tab configurations
 const SCHEDULE_TABS = [
   { id: "clases", label: "Horario de Clases", icon: Calendar, description: "Horarios por grado y sección" },
