@@ -1047,10 +1047,32 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 // ══════════════════════════════════════════════════════════════════════════════
 // CALENDAR GRID - Professional weekly view (supports horizontal & vertical modes)
 // ══════════════════════════════════════════════════════════════════════════════
-function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers, sections }) {
+function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers, sections, breaks, onAddBreak, onEditBreak, onDeleteBreak }) {
   // Get visible days based on settings
   const visibleDays = getVisibleDays(settings);
   const viewMode = settings?.view_mode || "horizontal";
+  
+  // Context menu state
+  const [contextMenu, setContextMenu] = useState(null);
+  
+  // Check if a time slot is blocked by a break
+  const isTimeBlocked = useCallback((timeSlot) => {
+    const [slotHour] = timeSlot.split(':').map(Number);
+    return breaks?.find(b => {
+      const [startH] = b.start_time.split(':').map(Number);
+      const [endH] = b.end_time.split(':').map(Number);
+      return slotHour >= startH && slotHour < endH;
+    });
+  }, [breaks]);
+
+  // Get break for a time slot
+  const getBreakForSlot = useCallback((timeSlot) => {
+    const [slotHour] = timeSlot.split(':').map(Number);
+    return breaks?.find(b => {
+      const [startH] = b.start_time.split(':').map(Number);
+      return slotHour === startH;
+    });
+  }, [breaks]);
   
   // Generate time slots based on settings
   const generateTimeSlots = useCallback(() => {
