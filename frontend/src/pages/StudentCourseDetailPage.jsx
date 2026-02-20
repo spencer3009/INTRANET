@@ -4159,7 +4159,75 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
                 ) : (
                   <>
                     <Trash2 className="w-4 h-4" />
-                    Eliminar mensaje
+                    {activeFolder === "trash" ? "Eliminar permanentemente" : "Eliminar mensaje"}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Empty Trash Confirmation Modal */}
+      {showEmptyTrashConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !emptyingTrash && setShowEmptyTrashConfirm(false)}>
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 bg-gradient-to-r from-red-500 to-rose-500">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Vaciar papelera</h3>
+                  <p className="text-white/80 text-sm">Esta acción no se puede deshacer</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
+                  <div>
+                    <p className="font-semibold text-red-800">¡Atención!</p>
+                    <p className="text-sm text-red-600">Se eliminarán {stats.trash} mensaje{stats.trash !== 1 ? 's' : ''} permanentemente.</p>
+                  </div>
+                </div>
+              </div>
+              
+              <p className="text-slate-600 text-sm">
+                ¿Estás seguro de que deseas vaciar la papelera? Todos los mensajes serán eliminados permanentemente y no podrán ser recuperados.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-200">
+              <button
+                onClick={() => setShowEmptyTrashConfirm(false)}
+                disabled={emptyingTrash}
+                className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 font-medium rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEmptyTrash}
+                disabled={emptyingTrash}
+                className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-600 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {emptyingTrash ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Vaciando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Vaciar papelera
                   </>
                 )}
               </button>
