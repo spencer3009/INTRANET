@@ -20,15 +20,28 @@ const SCHEDULE_TABS = [
   { id: "examenes", label: "Horario de Exámenes", icon: FileText, description: "Calendario de evaluaciones" }
 ];
 
-// Days of the week
-const DAYS = [
+// All days of the week (full list)
+const ALL_DAYS = [
   { id: "lunes", label: "Lunes", short: "Lun" },
   { id: "martes", label: "Martes", short: "Mar" },
   { id: "miercoles", label: "Miércoles", short: "Mié" },
   { id: "jueves", label: "Jueves", short: "Jue" },
   { id: "viernes", label: "Viernes", short: "Vie" },
-  { id: "sabado", label: "Sábado", short: "Sáb" }
+  { id: "sabado", label: "Sábado", short: "Sáb" },
+  { id: "domingo", label: "Domingo", short: "Dom" }
 ];
+
+// Function to get visible days based on settings
+const getVisibleDays = (settings) => {
+  let days = ALL_DAYS.slice(0, 5); // Lunes a Viernes por defecto
+  if (settings?.include_saturday) {
+    days = [...days, ALL_DAYS[5]];
+  }
+  if (settings?.include_sunday) {
+    days = [...days, ALL_DAYS[6]];
+  }
+  return days;
+};
 
 // Color palette for subjects
 const SUBJECT_COLORS = [
