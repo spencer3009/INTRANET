@@ -6102,7 +6102,11 @@ async def get_schedules(
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    query = {"school_id": user["school_id"], "tipo": tipo}
+    query = {"school_id": user["school_id"]}
+    
+    # Only filter by tipo if explicitly provided for classes
+    if tipo:
+        query["tipo"] = tipo
     
     if grado_id:
         query["grado_id"] = grado_id
@@ -6111,8 +6115,8 @@ async def get_schedules(
     if profesor_id:
         query["profesor_id"] = profesor_id
     
-    schedules = await db.schedules.find(query, {"_id": 0}).sort("hora_inicio", 1).to_list(500)
-    return schedules
+    schedules = await db.schedules.find(query, {"_id": 0}).sort([("dia", 1), ("hora_inicio", 1)]).to_list(500)
+    return {"schedules": schedules}
 
 async def check_schedule_conflicts(
     school_id: str, 
