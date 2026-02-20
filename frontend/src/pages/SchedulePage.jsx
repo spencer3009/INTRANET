@@ -1970,6 +1970,27 @@ export default function SchedulePage({ user, token, onLogout }) {
               onCellClick={handleCellClick}
               teachers={teachers}
               sections={sections}
+              breaks={breaks}
+              onAddBreak={(time, type) => {
+                setBreakPreselectedTime(time);
+                setEditBreak(null);
+                setShowBreakModal(true);
+              }}
+              onEditBreak={(breakItem) => {
+                setEditBreak(breakItem);
+                setBreakPreselectedTime(null);
+                setShowBreakModal(true);
+              }}
+              onDeleteBreak={async (breakItem) => {
+                if (window.confirm(`¿Eliminar ${breakItem.label}?`)) {
+                  try {
+                    await axios.delete(`${API}/schedule/breaks/${breakItem.id}`, { headers });
+                    setBreaks(prev => prev.filter(b => b.id !== breakItem.id));
+                  } catch (err) {
+                    console.error("Error deleting break:", err);
+                  }
+                }
+              }}
             />
           )}
 
