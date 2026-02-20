@@ -2162,81 +2162,70 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           setUserToDelete(null);
         }}
         onConfirm={confirmDeleteUser}
-        title="Eliminar usuario"
+        title=""
         message={userToDelete ? (
-          <div className="space-y-4">
-            <p className="text-slate-600">
-              Estás a punto de eliminar a <span className="font-semibold text-slate-800">"{userToDelete.name} {userToDelete.last_name || ''}"</span>
+          <div className="text-center">
+            {/* Trash Icon */}
+            <div className="mx-auto w-16 h-16 rounded-full bg-red-500 flex items-center justify-center mb-4">
+              <Trash2 className="w-8 h-8 text-white" />
+            </div>
+            
+            {/* Title */}
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">
+              ¿Eliminar usuario?
+            </h3>
+            
+            {/* Subtitle */}
+            <p className="text-slate-500 text-sm mb-5">
+              Estás a punto de eliminar a <span className="font-medium">{userToDelete.name} {userToDelete.last_name || ''}</span>
             </p>
             
-            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
-              <p className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-500" />
-                Se eliminarán los siguientes datos:
-              </p>
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-slate-600">
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+            {/* Data to delete box */}
+            <div className="bg-amber-50/70 rounded-xl p-4 text-left mb-2">
+              <p className="text-sm text-slate-600 mb-3">Se eliminarán los siguientes datos:</p>
+              <ul className="space-y-1.5 text-sm text-slate-600">
+                <li className="flex items-start gap-2">
+                  <span className="text-slate-400 mt-0.5">•</span>
                   Cuenta y foto de perfil
-                </span>
+                </li>
                 {userToDelete.role === 'student' && (
                   <>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      Registros de asistencia
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      Calificaciones
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      Tareas entregadas
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      Exámenes realizados
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      Reportes de disciplina
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      Respuestas a encuestas
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                    <li className="flex items-start gap-2">
+                      <span className="text-slate-400 mt-0.5">•</span>
+                      Registros de asistencia y calificaciones
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-slate-400 mt-0.5">•</span>
+                      Tareas y exámenes entregados
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-slate-400 mt-0.5">•</span>
+                      Reportes de disciplina y encuestas
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-slate-400 mt-0.5">•</span>
                       Matrículas en cursos
-                    </span>
+                    </li>
                   </>
                 )}
                 {userToDelete.role === 'teacher' && (
-                  <>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      Asignación de materias
-                    </span>
-                  </>
+                  <li className="flex items-start gap-2">
+                    <span className="text-slate-400 mt-0.5">•</span>
+                    Asignación de materias
+                  </li>
                 )}
                 {userToDelete.role === 'parent' && (
-                  <>
-                    <span className="flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                      Vinculación con hijos
-                    </span>
-                  </>
+                  <li className="flex items-start gap-2">
+                    <span className="text-slate-400 mt-0.5">•</span>
+                    Vinculación con hijos
+                  </li>
                 )}
-                <span className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
-                  Correos y mensajes
-                </span>
-              </div>
+                <li className="flex items-start gap-2">
+                  <span className="text-slate-400 mt-0.5">•</span>
+                  Correos internos y mensajes
+                </li>
+              </ul>
             </div>
-            
-            <p className="text-xs text-slate-400 text-center">
-              Esta acción es permanente y no se puede deshacer
-            </p>
           </div>
         ) : ""}
         confirmText="Eliminar"
