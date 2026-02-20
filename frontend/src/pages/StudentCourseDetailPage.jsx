@@ -3382,6 +3382,9 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
   const [preselectedTeacher, setPreselectedTeacher] = useState(null);
   const [hasOpenedCompose, setHasOpenedCompose] = useState(false);
   const [messageSearchQuery, setMessageSearchQuery] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
