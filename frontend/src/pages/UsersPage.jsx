@@ -1876,6 +1876,21 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <span>{u.phone}</span>
                       </div>
                     )}
+                    
+                    {/* Academic info - Only for students */}
+                    {selectedRole === 'student' && (u.grado_id || u.seccion_id) && (
+                      <div className="flex items-center gap-2 text-sm text-slate-600">
+                        <div className={`w-6 h-6 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
+                          <GraduationCap className={`w-3 h-3 ${roleConfig.textColor}`} />
+                        </div>
+                        <span>
+                          {grades.find(g => g.id === u.grado_id)?.nombre || "Sin grado"}
+                          {" - "}
+                          {sections.find(s => s.id === u.seccion_id)?.nombre || "Sin sección"}
+                        </span>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-sm text-slate-500">
                         <div className={`w-6 h-6 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
