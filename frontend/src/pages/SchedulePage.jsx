@@ -732,22 +732,21 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 
           {/* Teacher */}
           {type === "clases" && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Profesor <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={form.profesor_id}
-                onChange={(e) => setForm(p => ({ ...p, profesor_id: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Seleccionar profesor...</option>
-                {teachers.map(t => (
-                  <option key={t.id} value={t.id}>{t.name} {t.last_name}</option>
-                ))}
-              </select>
-            </div>
+            <Combobox
+              label="Profesor"
+              value={form.profesor_id}
+              onChange={(val) => setForm(p => ({ ...p, profesor_id: val }))}
+              placeholder="Seleccionar profesor..."
+              searchPlaceholder="Buscar profesor..."
+              required
+              emptyMessage="No hay profesores disponibles"
+              options={teachers.map(t => ({
+                id: t.id,
+                label: `${t.name} ${t.last_name || ""}`.trim(),
+                sublabel: t.email || t.specialty || "",
+                image: t.profile_image || t.photo_url || null
+              }))}
+            />
           )}
 
           {/* Day */}
