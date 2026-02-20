@@ -6296,13 +6296,15 @@ async def update_schedule_break(
     
     update_data = {k: v for k, v in data.dict().items() if v is not None}
     
-    # If changing time, check for overlaps
+    # If changing time, check for overlaps within SAME grade/section
     new_start = update_data.get("start_time", existing["start_time"])
     new_end = update_data.get("end_time", existing["end_time"])
     
     if "start_time" in update_data or "end_time" in update_data:
         overlap_query = {
             "school_id": school_id,
+            "grade_id": existing.get("grade_id"),
+            "section_id": existing.get("section_id"),
             "id": {"$ne": break_id},
             "start_time": {"$lt": new_end},
             "end_time": {"$gt": new_start}
@@ -6312,6 +6314,20 @@ async def update_schedule_break(
             raise HTTPException(
                 status_code=400,
                 detail=f"Se solapa con: {overlapping['label']} ({overlapping['start_time']} - {overlapping['end_time']})"
+            )
+        
+        # Also check for overlapping classes
+        class_overlap = await db.schedules.find_one({
+            "school_id": school_id,
+            "grado_id": existing.get("grade_id"),
+            "seccion_id": existing.get("section_id"),
+            "hora_inicio": {"$lt": new_end},
+            "hora_fin": {"$gt": new_start}
+        })
+        if class_overlap:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Hay clases programadas en ese horario ({class_overlap['materia']}). Elimínalas primero."
             )
     
     # Update color if type changed
