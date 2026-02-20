@@ -196,7 +196,20 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 ---
 
 ## Últimas Pruebas
+- **iteration_38.json:** Botón "Ver QR" en vista de tarjetas de estudiantes - 100% passed (Frontend 6/6)
 - **iteration_35.json:** Módulo Horario de Exámenes - 100% passed (Backend 19/19, Frontend OK)
 - **iteration_34.json:** Breaks por Grado/Sección - 100% passed (Backend 14/14, Frontend OK)
 - **iteration_33.json:** Horario Portal Alumno (Read-Only) - 100% passed (Backend 11/11, Frontend OK)
 - **iteration_32.json:** Bloques Especiales (Recreo/Almuerzo/Evento) - 100% passed (Backend 9/9, Frontend OK)
+
+## Sistema de Códigos QR (Feb 2026)
+| Feature | Estado |
+|---------|--------|
+| Generación de `qr_token` (JWT) al crear estudiante | ✅ Funcional |
+| Botón "Ver QR" en vista tabla (AdminStudentsPage.jsx) | ✅ Funcional |
+| **🆕 Botón "Ver QR" en vista tarjetas (UsersPage.jsx)** | ✅ Probado |
+| Modal con código QR y datos del estudiante | ✅ Funcional |
+| Descargar QR como imagen | ✅ Funcional |
+| Imprimir credencial con QR | ✅ Funcional |
+| Endpoint de escaneo: POST /api/attendance/qr/scan | ✅ Funcional |
+| Tab "Escanear QR" en módulo de Asistencia | ✅ Funcional |
