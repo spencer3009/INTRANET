@@ -741,6 +741,133 @@ function ReportsTab({ token, schoolId }) {
   const gradeName = grades.find(g => g.id === selectedGrade)?.nombre || "";
   const sectionName = sections.find(s => s.id === selectedSection)?.nombre || "";
 
+  // Export to PDF function
+  const exportToPDF = () => {
+    if (!report) return;
+    
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(88, 28, 135); // Purple color
+    doc.text("Reporte de Asistencia de Estudiantes", pageWidth / 2, 20, { align: "center" });
+    
+    // Subtitle with grade, section and dates
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    const subtitle = `${gradeName} - Sección ${sectionName}`;
+    const dateRange = `Período: ${new Date(startDate + 'T12:00:00').toLocaleDateString("es-PE")} - ${new Date(endDate + 'T12:00:00').toLocaleDateString("es-PE")}`;
+    doc.text(subtitle, pageWidth / 2, 28, { align: "center" });
+    doc.text(dateRange, pageWidth / 2, 34, { align: "center" });
+    
+    // Summary section
+    doc.setFontSize(12);
+    doc.setTextColor(0, 0, 0);
+    doc.text("Resumen General", 14, 48);
+    
+    // Summary boxes
+    const summaryY = 54;
+    const boxWidth = 42;
+    const boxHeight = 18;
+    const startX = 14;
+    
+    // Total
+    doc.setFillColor(241, 245, 249);
+    doc.roundedRect(startX, summaryY, boxWidth, boxHeight, 2, 2, 'F');
+    doc.setFontSize(14);
+    doc.setTextColor(30, 41, 59);
+    doc.text(String(report.summary.total_records), startX + boxWidth/2, summaryY + 8, { align: "center" });
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Total registros", startX + boxWidth/2, summaryY + 14, { align: "center" });
+    
+    // Asistencias
+    doc.setFillColor(209, 250, 229);
+    doc.roundedRect(startX + boxWidth + 4, summaryY, boxWidth, boxHeight, 2, 2, 'F');
+    doc.setFontSize(14);
+    doc.setTextColor(4, 120, 87);
+    doc.text(String(report.summary.present), startX + boxWidth + 4 + boxWidth/2, summaryY + 8, { align: "center" });
+    doc.setFontSize(8);
+    doc.text("Asistencias", startX + boxWidth + 4 + boxWidth/2, summaryY + 14, { align: "center" });
+    
+    // Tardanzas
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(startX + (boxWidth + 4) * 2, summaryY, boxWidth, boxHeight, 2, 2, 'F');
+    doc.setFontSize(14);
+    doc.setTextColor(180, 83, 9);
+    doc.text(String(report.summary.late), startX + (boxWidth + 4) * 2 + boxWidth/2, summaryY + 8, { align: "center" });
+    doc.setFontSize(8);
+    doc.text("Tardanzas", startX + (boxWidth + 4) * 2 + boxWidth/2, summaryY + 14, { align: "center" });
+    
+    // Inasistencias
+    doc.setFillColor(254, 226, 226);
+    doc.roundedRect(startX + (boxWidth + 4) * 3, summaryY, boxWidth, boxHeight, 2, 2, 'F');
+    doc.setFontSize(14);
+    doc.setTextColor(185, 28, 28);
+    doc.text(String(report.summary.absent), startX + (boxWidth + 4) * 3 + boxWidth/2, summaryY + 8, { align: "center" });
+    doc.setFontSize(8);
+    doc.text("Inasistencias", startX + (boxWidth + 4) * 3 + boxWidth/2, summaryY + 14, { align: "center" });
+    
+    // Table
+    if (report.report.length > 0) {
+      const tableData = report.report.map(item => [
+        item.student_name,
+        item.total_days,
+        item.present,
+        item.late,
+        item.absent,
+        `${item.attendance_rate}%`
+      ]);
+      
+      doc.autoTable({
+        startY: 80,
+        head: [['Estudiante', 'Días', 'Asistencias', 'Tardanzas', 'Inasistencias', '% Asistencia']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { 
+          fillColor: [124, 58, 237],
+          textColor: 255,
+          fontSize: 10,
+          fontStyle: 'bold'
+        },
+        bodyStyles: {
+          fontSize: 9
+        },
+        columnStyles: {
+          0: { cellWidth: 60 },
+          1: { cellWidth: 20, halign: 'center' },
+          2: { cellWidth: 25, halign: 'center' },
+          3: { cellWidth: 25, halign: 'center' },
+          4: { cellWidth: 28, halign: 'center' },
+          5: { cellWidth: 28, halign: 'center' }
+        },
+        alternateRowStyles: {
+          fillColor: [248, 250, 252]
+        }
+      });
+    }
+    
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageHeight = doc.internal.pageSize.getHeight();
+      doc.text(
+        `Generado el ${new Date().toLocaleDateString("es-PE")} - Página ${i} de ${pageCount}`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: "center" }
+      );
+    }
+    
+    // Save
+    const fileName = `reporte_asistencia_${gradeName.replace(/\s+/g, '_')}_${sectionName}_${startDate}_${endDate}.pdf`;
+    doc.save(fileName);
+  };
+
   return (
     <div className="space-y-6" data-testid="attendance-reports-tab">
       {/* Filters */}
