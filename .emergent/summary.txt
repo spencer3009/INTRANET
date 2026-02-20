@@ -1,161 +1,177 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project involves building out a full-featured student and owner portal. The immediate and primary goal is to completely overhaul the Horario de Clases (Class Schedule) module, transforming it from a basic card view into a professional, Google Calendar-style weekly grid.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project involves creating several core modules, including a professional Horario de Clases (Class Schedule), a Horario de Exámenes (Exam Schedule), a student-focused Reportes de Asistencia (Attendance Reports), and a QR code-based system for student identification and attendance tracking. The project also involves significant refactoring to manage technical debt and fixing various UI/UX bugs.
 
-**PRODUCT REQUIREMENTS (New Major Task):**
--   **Structure:** Create a weekly grid view with configurable hours on the Y-axis and days of the week on the X-axis.
--   **Configuration:** Add a settings modal (⚙️ icon) to allow school admins to define:
-    -   Visible hour range (e.g., 07:00 to 22:00).
-    -   Time format (12h/24h).
--   **Dynamic Grid:** The hour rows must be generated dynamically based on the configuration.
--   **Class Blocks:** Schedule entries should appear as colored blocks on the grid, showing subject, teacher, and classroom. Blocks should span multiple rows for longer classes.
--   **Add/Edit Modal:** The modal for adding a schedule entry must include fields for Course, Teacher, Day, Start Time, End Time, and an optional Classroom. The Course field must be a search-and-select combobox populated with subjects from the selected grade.
--   **Conflict Validation (Critical):** The backend must prevent creating or updating schedule entries that result in conflicts (e.g., the same teacher or classroom booked at the same time).
--   **Responsive Design:** The grid must be horizontally scrollable on smaller screens, with the time column remaining sticky.
+**PRODUCT REQUIREMENTS:**
+-   **Core Modules:** Implement robust, professional modules for Class Schedules, Exam Schedules, and Attendance, with distinct views and permissions for admins and students.
+-   **QR Code System:** Generate a unique, persistent QR code for each student upon creation. This QR code will be used for marking attendance via a camera-based scanner and for general student identification. The QR code data should be a secure JWT containing the  and .
+-   **UI/UX:** Maintain a professional, responsive, and intuitive user interface. Consolidate related features into tabs to avoid sidebar clutter. Address UI bugs like flickering to ensure a smooth user experience.
+-   **Technical Debt Management:** Proactively refactor monolithic files (, ) into smaller, modular components and routers to ensure long-term maintainability and scalability.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack monolith (FastAPI + React). The student portal contains a highly advanced, feature-rich internal messaging system with a 3-column, Gmail-like UI. This system includes real-time presence indicators (online/offline status), student profile popups, direct chat initiation, a full suite of message management tools (archive, soft delete, permanent delete, empty trash), accurate folder counts, and premium custom modals.
-
-The Horario de Clases page currently exists but is very basic. A recent update converted the free-text Subject field in its modal to a data-driven combobox, but the main UI is still a simple list of cards, which is now slated for a complete replacement. The codebase carries significant technical debt, with  and  having been modified extensively and becoming very large.
+The application is a full-stack monolith (FastAPI + React). It features:
+-   A complete **Class Schedule** and **Exam Schedule** module for both admins and students.
+-   A fully refactored and student-focused **Attendance Reports** module with grade/section filters, key metrics, and PDF export functionality.
+-   **Successful Refactoring:**
+    -   The massive  has been broken down into smaller components located in , reducing its size by over 70%.
+-   **Completed Bug Fixes:**
+    -   The UI flickering issue on the sticky columns in  has been resolved.
+    -   Multiple bugs in the Attendance module (incorrect section filtering, date display errors) have been fixed.
+-   **QR Code System (Partially Implemented):**
+    -   The backend generates a  (JWT) when a student is created and has an endpoint () to validate it and log attendance.
+    -   The frontend has a new Escanear QR tab in the Attendance module that uses the device camera.
+    -   A modal to display a student's QR code () has been created.
 
 **Last working item**:
-- **Last item agent was working:** The user delivered a comprehensive Product Requirements Document (PRD) to completely overhaul the Horario de Clases module. The agent had just begun analyzing the existing  to understand the current structure before starting this massive refactoring and implementation effort.
-- **Status**: NOT STARTED
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: both.
-    -   **Backend Testing Agent**: To create and test new API endpoints for schedule configuration () and especially the conflict validation logic when creating/updating schedule entries.
-    -   **Frontend Testing Agent**: To validate the complex new grid UI, including dynamic row generation, rendering of class blocks, functionality of the settings modal, and the responsive behavior (sticky time column, horizontal scroll).
-- **User Testing Done**: N
+-   **Last item agent was working**: The user reported that after creating a new student, they could not find the Ver QR button. The agent determined that the button was correctly added to the table/list view of students but is missing from the card/grid view, which is what the user was seeing. The agent was in the process of locating the component responsible for the card view to add the missing button.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: screenshot tool
+-   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- None. The previous tasks were all completed, and the agent is about to start a new, large feature.
+-   **Issue 1: Ver QR button is missing from the student card view (P0)**
+    -   **Attempted fixes:** The agent successfully added the Ver QR button to the  component in , which renders students in a table. However, this did not solve the issue for the card view shown in the user's screenshot.
+    -   **Next debug checklist:**
+        1.  Re-examine  to identify the logic that toggles between the table view and the card view, or find the separate component that renders the student cards.
+        2.  Search the codebase for the component that renders the student card layout. A good starting point is to look for unique CSS classes visible in the user's screenshot.
+        3.  Once the correct component is found, implement the same dropdown menu logic (with the three-dot icon) and the  handler that was added to the  component.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a blocker for the QR code feature. Fixing it will allow administrators to view, download, and print the QR codes for all students, regardless of the UI view they are using.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** N
+    -   **Should Test frontend/backend/both after fix?** frontend
 
 **In progress Task List**:
-- **Task 1: (P0) Implement the Professional Schedule Module**
-    - **Where to resume**: Start by planning the implementation within . The agent needs to design the new component structure, including the state management for schedule settings, entries, and the grid data. The first step will likely be building the static grid layout before populating it with dynamic data.
-    - **What will be achieved with this?**: This will deliver a core, professional-grade feature for the SaaS application, moving it from a basic list to an interactive, configurable, and conflict-aware schedule management tool, as specified by the user's detailed PRD.
-    - **Status**: NOT STARTED
-    - **Should Test frontend/backend/both after fix?**: Both
-    - **Blocked on something**: None.
+-   **Task 1: Complete the QR Code Feature (P0)**
+    -   **Where to resume:** Begin by fixing the missing Ver QR button as described in Issue 1 above.
+    -   **What will be achieved with this?** A fully functional end-to-end QR code system where admins can generate and view codes, and the Escanear QR tab can be used to take attendance.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on something:** Resolving Issue 1.
 
 **Upcoming and Future Tasks**
-- **Upcoming Tasks:**
-    - **P0: Refactor  (> 9000 lines),  (> 4000 lines), and  (> 16,000 lines)**: These files are sources of major technical debt. They must be broken down into smaller, manageable components and routed modules.
-- **Future Tasks:**
-    - **P1: Implement basic anti-cheat security for exams** (e.g., detect when a student navigates away from the exam tab).
-    - **P1: Build Matrículas (Enrollments) module.**
-    - **P1: Enhance the Exams module with a Question Bank.**
-    - **P2: Fix the Smart Sticky column layout instability** causing UI flickering in .
-    - **P2: Perform a project-wide replacement of all remaining  and  instances with custom modals.**
+-   **Upcoming Tasks:**
+    -   **P0: Modularize :** CRITICAL. The backend  file is over 17,000 lines and is a significant source of technical debt. Follow the plan in  to break it down into domain-specific  files (e.g., , , ).
+-   **Future Tasks:**
+    -   **P1:** Implement a basic anti-cheating system for exams (detecting tab changes, loss of focus, etc.).
+    -   **P1:** Build a Matrículas (Enrollments) module.
+    -   **P1:** Enhance the Exams module with a Question Bank.
+    -   **P1:** Implement automatic notifications for students (e.g., when a new exam is scheduled).
+    -   **P2:** Perform a project-wide replacement of native  and  dialogs with custom modals for a more professional look and feel.
 
 **Completed work in this session**
-- **Feature: Student List with Presence & Popups:** Implemented a student list on the course dashboard with real-time online/offline status indicators. Clicking a student opens a detailed popup with their contact info and buttons to initiate a chat or message. The current user's card is correctly non-interactive.
-- **Feature: Student Presence System:** Fixed a bug where students always appeared offline by implementing a heartbeat mechanism in the student portal (, ) and correcting a backend response format issue.
-- **Feature: Complete Messaging UI Overhaul:** Redesigned the student messaging interface into a premium 3-column, Gmail-style layout, based on user-provided images.
-- **Feature: Advanced Message Management:**
-    - Implemented functional Archive and Delete (soft delete) buttons.
-    - Replaced the native  with a premium, custom-designed confirmation modal.
-    - Fixed a bug preventing the deletion/archiving of sent items.
-    - Implemented permanent deletion from the trash folder and an Empty Trash feature, complete with distinct confirmation modals and backend logic.
-- **Feature: Accurate Message Count Badges:** Rewrote the backend statistics aggregation pipeline () to provide correct, real-time counts for inbox, sent, archived, and trash folders.
-- **Feature: Message Composition Shortcuts:** Added Escribir al profesor and Enviar mensaje buttons that pre-populate the compose modal with the teacher's contact information.
-- **Feature: Enhanced Schedule Modal:** Upgraded the Materia / Asignatura field in the schedule creation modal from a plain text input to a modern, searchable combobox that fetches available subjects based on the selected grade.
-- **Bug Fix: Expanded Student Contacts:** Modified the backend to ensure students can see and contact all classmates in their section and all teachers in their grade, not just their specific course teacher.
-- **Task Completion: Chat en línea Button:** Fully implemented and tested the Chat en línea button on the teacher card, which now correctly opens the chat widget directly to a conversation with that teacher.
+-   **Feature: QR Code System (Partial)**
+    -   Implemented backend logic to generate a unique  for each student ().
+    -   Created a backend endpoint to validate the QR token and record attendance ().
+    -   Built a Scan QR tab with a camera scanner UI in the frontend (, ).
+    -   Added a button to view the QR code in the student list view ().
+-   **Feature: PDF Export for Attendance Reports**
+    -   Implemented PDF export functionality for student attendance reports using  and  in .
+-   **Feature: Attendance Reports Overhaul**
+    -   The  in  was completely rewritten to be student-centric, with new filters, metrics, and UI.
+-   **Bugfix: Multiple Attendance Report Fixes**
+    -   Fixed a bug where the section dropdown did not filter correctly based on the selected grade.
+    -   Resolved a date-off-by-one error in the report header caused by timezone handling.
+-   **Bugfix: Sticky Column Flickering**
+    -   Fixed a major UI bug in  where sticky columns would flicker during scroll. Verified with the testing agent.
+-   **Refactor: **
+    -   Successfully broke down the ~2,600 line  monolith into smaller, manageable components, improving code quality and maintainability. Verified with the testing agent.
+-   **Feature: Student Exam Calendar**
+    -   Completed and verified the read-only calendar view for students to see their exam schedules.
 
 **Earlier issues found/mentioned but not fixed**
-- The Smart Sticky column layout issue in  which causes UI flickering remains.
-- A project-wide replacement of  and  with custom modals is still pending (though one critical instance was fixed).
+-   The project-wide replacement of  and  with custom modals is still pending as a future task.
+-   The large-scale refactoring of  has been planned but not yet executed.
 
 **Known issue recurrence from previous fork**
-- None.
+-   None.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Complex Component State Management:** Extensive use of , , and  within a single massive component () to manage UI state, modals, data fetching, and real-time updates. This highlights the urgent need for refactoring into smaller components and potentially using a state management library.
-- **Advanced Backend Aggregation:** Rewrote a complex MongoDB aggregation pipeline using  to calculate multiple counts (inbox, sent, archived, trash) in a single query for the messaging stats endpoint.
-- **Backend API Development & Modification:** Created and modified numerous endpoints in  to support new features, including permanent deletion, trash management, and fetching related academic data (classmates, subjects).
-- **Conditional Rendering:** Heavily used for showing/hiding UI elements based on application state (e.g., showing Empty Trash button only in the trash folder, changing modal text for permanent deletion).
-- **Custom UI Component Implementation:** Built a searchable combobox from scratch within .
+-   **Component Refactoring:** Successfully broke down a mega-monolith React component () into smaller, single-responsibility components, significantly improving maintainability.
+-   **CSS Sticky Positioning:** Debugged and fixed a common  flickering issue by replacing dynamic JavaScript-based position calculations with a pure, stable CSS approach.
+-   **Date/Timezone Handling in JS:** Addressed a common JavaScript bug where creating a  object from a  string defaults to UTC midnight, causing timezone-related shifts. The fix involved specifying a neutral time () to ensure date consistency.
+-   **Client-Side PDF Generation:** Implemented PDF creation directly in the browser using  and  to generate reports from API data without server-side processing.
+-   **JWT for Identification:** Used JSON Web Tokens not for authentication, but as a secure, self-contained identifier () for the QR code system. This avoids exposing raw IDs and allows for secure validation on the backend.
 
 **key DB schema**
-- ****: Collection used to track user online status via heartbeats.
-- ****: Core collection for all messages. Now includes ,  flags in addition to the recipient-side flags.
-- ****: Existing collection that will be central to the new schedule module.
-- ****: Used to populate the new combobox in the schedule modal.
-- **(New) **: A new collection will be required to store school-specific schedule configurations (start/end hour, time format).
+-   ** (Updated):** Student documents now contain a  field (string), which stores the signed JWT used for generating their QR code.
+
+**changes in tech stack**
+-   **Frontend Dependencies Added:**
+    -   
+    -   
+    -   
+    -   
 
 **All files of reference**
--  (Massively Modified, Critical)
--  (Heavily Modified, Critical)
--  (Modified, Target for Next Major Task)
--  (Modified)
--  (Updated)
+-    (CRITICAL: Contains the bug for the current issue)
+-    (Heavily modified for reports and QR scanner)
+-    (Heavily modified, pending major refactor)
+-    (New component for the QR feature)
+-    (New component for the QR feature)
+-    (New documentation for backend refactor plan)
+-    (Updated)
 
 **Areas that need refactoring**:
-- ** (CRITICAL):** This file has become a god component, managing logic for the dashboard, 8 different content sections, messaging, chat, and multiple modals. It is extremely difficult to maintain and must be broken down.
-- ** (CRITICAL):** The backend is a massive monolith. Routes must be separated into dedicated files (e.g., , ) to improve maintainability.
-- ** (HIGH):** This file remains a significant source of technical debt from previous sessions.
+-   ** (CRITICAL):** This is the highest priority for refactoring. The backend monolith is a significant source of technical debt and risk. The plan in  should be executed next.
+-   ** (High):** While the sticky bug was fixed, the file remains extremely large (~4.8k lines) and should be broken down into smaller components, similar to how  was handled.
 
 **key api endpoints**
-- **Permanent Message Deletion (New):**
-    - 
-    - 
-- **Presence/Heartbeat (Implemented):**
-    - 
-    -  (Response format fixed)
-- **Messaging (Modified):**
-    -  (Logic completely rewritten)
-    -  (Logic updated for sent items)
-    -  (Logic updated for sent items)
-    -  (Response updated to include more fields)
-- **Schedules (Relevant for next task):**
-    - 
+-   **QR Code System (New/Modified):**
+    -   : Modified to generate  when creating a student.
+    -   : New endpoint to validate a QR token and record student attendance.
+-   **Attendance Reports (Modified):**
+    -   : The frontend was corrected to pass  (instead of ) to properly filter sections.
 
 **Critical Info for New Agent**
-- **IMMEDIATE PRIORITY: Implement the new Professional Schedule Module.** The user has provided a detailed PRD (in message #482) for a complete overhaul of . This is a large, high-priority task.
-- **Communicate in Spanish.**
-- **Technical Debt:** Be aware of the massive technical debt in  and . While the primary task is the schedule module, opportunities for minor, non-disruptive refactoring should be considered, and the long-term goal is to break these files apart.
-- **Test Data Dependency:** The previous task on  revealed that the test database for the school  might lack necessary data (e.g., subjects associated with grades). The implementation should gracefully handle cases where data is missing and display informative messages to the user (e.g., No subjects found for this grade).
+-   **Communicate in Spanish.**
+-   **Immediate Priority:** Fix the missing Ver QR button. The user is blocked on a new feature. You must find the component that renders students as **cards** (not table rows) and add the dropdown menu with the Ver QR option there. The logic should be reusable from the existing  component in .
+-   **Next Major Task:** After fixing the QR bug and ensuring the feature is complete, you must begin the backend refactoring of . This is a critical P0 task to manage technical debt and improve the stability of the application. Refer to .
 
 **documents and test reports created in this job**
-- 
-- 
+-   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User Request:** PRD for a complete overhaul of the class schedule module into a professional, Google Calendar-style grid. **Status: NOT STARTED.**
-2.  **User Request:** The Subject field in the schedule modal should be a modern combobox, not a text input. **Status: COMPLETED.**
-3.  **User Request:** In the trash folder, the delete button should be a permanent delete, add an Empty Trash button, and hide the archive button. **Status: COMPLETED.**
-4.  **User Request:** The message count badges for all folders (inbox, sent, archived, trash) are incorrect and need to be fixed. **Status: COMPLETED.**
-5.  **User Bug:** Deleting or archiving messages from the Sent folder does not work. **Status: COMPLETED.**
-6.  **User Feedback:** The  for deleting a message is not acceptable; it must be a premium, custom modal. **Status: COMPLETED.**
-7.  **User Request:** Make the archive and delete buttons in the message view functional. **Status: COMPLETED.**
-8.  **User Request:** Add a shortcut button Escribir al profesor in the compose message modal. **Status: COMPLETED.**
-9.  **User Request:** A complete redesign of the student messaging page to a 3-column, Gmail-style layout. **Status: COMPLETED.**
-10. **User Bug:** The user's own presence indicator is showing as offline (red) when it should be online (green). **Status: COMPLETED.**
+1.  **User:** Requests implementation of a QR code system for student identification and attendance. **Status: IN PROGRESS.**
+2.  **User:** After creating a student, asks where to view the QR code. **Status: IN PROGRESS.**
+3.  **User:** I only see edit and delete. This confirms the Ver QR button is missing from their view. **Status: PENDING.**
+4.  **User:** The PDF export button doesn't work. **Status: COMPLETED.**
+5.  **User:** The date range in the attendance report header is off by one day. **Status: COMPLETED.**
+6.  **User:** The sections dropdown in attendance reports isn't filtering correctly by grade. **Status: COMPLETED.**
+7.  **User:** The attendance report module should be focused on students, not teachers. **Status: COMPLETED.**
+8.  **User:** Remove the Horario de Profesores tab from the schedules page. **Status: COMPLETED.**
+9.  **User:** Asks to prioritize fixing the sticky column flickering bug. **Status: COMPLETED.**
+10. **User:** Approves the plan to refactor  and then . **Status: ADDRESSED** (Frontend part is done, backend is pending).
 
 **Project Health Check:**
-- **Broken**: None. All user-reported bugs and requested features from the session were completed.
-- **Mocked**: N/A.
+-   **Broken**: The QR Code feature is broken for users who see the card layout for students, as they have no way to access the generated QR codes. The QR scanner's end-to-end flow is also untested.
+-   **Mocked**: N/A
 
 **3rd Party Integrations**
-- **TipTap / Prosemirror**: Used for the rich text editor in the internal mail system.
-- **Cloudinary**: Used for image hosting.
-- **Google Drive API**: Used for file submissions.
+-   TipTap / Prosemirror
+-   Cloudinary
+-   Google Drive API
+-   ** & **: For client-side PDF generation.
+-   ****: For rendering QR code images in the UI.
+-   ****: For using the device camera to scan QR codes.
 
 **Testing status**
-- **Testing agent used after significant changes**: YES, to validate the initial Chat en línea button flow.
-- **Troubleshoot agent used after agent stuck in loop**: NO
-- **Test files created**: None.
-- **Known regressions**: The UI flickering on the Smart Sticky column in  persists.
+-   **Testing agent used after significant changes**: YES (for  refactor and sticky column fix).
+-   **Troubleshoot agent used after agent stuck in loop**: NO
+-   **Test files created**: , 
+-   **Known regressions**: None.
 
 **Credentials to test flow:**
-- **Primary School for testing:** 
-    - **Owner/Admin**:  / 
-    - **Student**:  / 
+-   **Primary School for testing:** 
+-   **Owner/Admin**:  / 
+-   **Student**:  / 
 
 **What agent forgot to execute**
-- The agent successfully addressed all incoming user requests in a sequential manner. The high-priority refactoring of monolithic files (, ) was postponed in favor of implementing the user's immediate, high-value feature requests. This was a strategic choice rather than an oversight.</analysis>
+-   The agent did not account for all UI variations when implementing the Ver QR button. They correctly added it to the list/table view but missed the card/grid view, resulting in an incomplete and confusing feature rollout for the user.</analysis>
