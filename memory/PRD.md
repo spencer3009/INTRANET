@@ -101,9 +101,10 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 |   - Responsive con scroll horizontal y columna sticky | Feb 2026 | ✅ |
 
 ### 🔴 P0 - Crítico (Refactoring Técnico)
+- [ ] Refactorizar `SchedulePage.jsx` (>2,500 líneas) - Dividir en `ClassScheduleTab`, `ExamScheduleTab`, etc.
 - [ ] Refactorizar `CourseDetailPage.jsx` (>9,000 líneas)
 - [ ] Refactorizar `StudentCourseDetailPage.jsx` (>4,000 líneas)
-- [ ] Refactorizar `server.py` (backend monolítico >16,000 líneas)
+- [ ] Refactorizar `server.py` (backend monolítico >17,000 líneas)
 
 ### 🟠 P1 - Alta Prioridad
 - [ ] Sistema anti-trampa básico para exámenes
