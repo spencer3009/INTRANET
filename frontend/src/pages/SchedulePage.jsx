@@ -626,7 +626,9 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
                       </div>
                     ) : (
                       filteredSubjects.map(subject => {
-                        const teacher = teachers.find(t => t.id === subject.teacher_id);
+                        // Get teacher from primary_teacher or assigned_teachers
+                        const subjectTeacher = subject.primary_teacher || subject.assigned_teachers?.[0];
+                        const teacher = subjectTeacher || teachers.find(t => t.id === subject.teacher_id);
                         return (
                           <button
                             key={subject.id}
