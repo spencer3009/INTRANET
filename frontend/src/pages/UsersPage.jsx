@@ -9,8 +9,9 @@ import {
   GraduationCap, Building2, Check, AlertCircle, Plus, Eye, EyeOff,
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles, Search, UserCheck,
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Key, RefreshCw, 
-  ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle
+  ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode
 } from "lucide-react";
+import StudentQRCard from "@/components/StudentQRCard";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
