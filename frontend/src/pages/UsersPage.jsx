@@ -2163,8 +2163,49 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         }}
         onConfirm={confirmDeleteUser}
         title="Eliminar usuario"
-        message={userToDelete ? `¿Estás seguro de eliminar a "${userToDelete.name}"? Esta acción eliminará permanentemente al usuario y su foto de perfil.` : ""}
-        confirmText="Sí, eliminar"
+        message={userToDelete ? (
+          <div className="space-y-3">
+            <p className="font-medium text-slate-800">
+              ¿Estás seguro de eliminar a "{userToDelete.name} {userToDelete.last_name || ''}"?
+            </p>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+              <p className="text-sm font-semibold text-red-700 mb-2">
+                ⚠️ Esta acción eliminará permanentemente:
+              </p>
+              <ul className="text-sm text-red-600 space-y-1 ml-4 list-disc">
+                <li>La cuenta del usuario y su foto de perfil</li>
+                {userToDelete.role === 'student' && (
+                  <>
+                    <li>Todos los registros de asistencia</li>
+                    <li>Todas las calificaciones</li>
+                    <li>Todas las tareas entregadas</li>
+                    <li>Todos los exámenes realizados</li>
+                    <li>Reportes de disciplina</li>
+                    <li>Respuestas a encuestas</li>
+                    <li>Matrículas en cursos</li>
+                  </>
+                )}
+                {userToDelete.role === 'teacher' && (
+                  <>
+                    <li>Asignación como profesor de materias</li>
+                    <li>Mensajes enviados</li>
+                  </>
+                )}
+                {userToDelete.role === 'parent' && (
+                  <>
+                    <li>Vinculación con sus hijos</li>
+                    <li>Mensajes enviados</li>
+                  </>
+                )}
+                <li>Correos internos y mensajes</li>
+              </ul>
+            </div>
+            <p className="text-xs text-slate-500 italic">
+              Esta acción no se puede deshacer.
+            </p>
+          </div>
+        ) : ""}
+        confirmText="Sí, eliminar todo"
         cancelText="Cancelar"
         type="danger"
         loading={deleteLoading}
