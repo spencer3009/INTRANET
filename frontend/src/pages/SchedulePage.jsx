@@ -1120,7 +1120,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
           <div 
             key={day.id} 
             data-testid={`schedule-day-column-${day.id}`}
-            className="flex-1 min-w-[120px] border-r last:border-r-0 border-slate-200 relative"
+            className="flex-1 min-w-[160px] border-r last:border-r-0 border-slate-200 relative"
             style={{ height: `${timeSlots.length * 64}px` }}
           >
             {/* Hour lines */}
@@ -1137,13 +1137,17 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
             {/* Schedule blocks */}
             {schedulesByDay[day.id].map(schedule => {
               const teacher = teachers?.find(t => t.id === schedule.profesor_id);
+              const section = sections?.find(s => s.id === schedule.seccion_id);
+              const studentCount = section?.student_count || section?.students_count || 0;
               const blockStyle = getBlockStyle(schedule);
+              const teacherFullName = teacher ? `${teacher.name} ${teacher.last_name || ''}`.trim() : '';
+              const teacherPhoto = teacher?.profile_image || teacher?.photo_url;
               
               return (
                 <div
                   key={schedule.id}
                   data-testid={`schedule-block-${schedule.id}`}
-                  className="absolute left-1 right-1 rounded-lg shadow-md overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:scale-[1.02] z-20"
+                  className="absolute left-1 right-1 rounded-xl shadow-md overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:scale-[1.02] z-20"
                   style={{
                     ...blockStyle,
                     ...getColorStyle(schedule.color)
@@ -1151,17 +1155,44 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
                   onClick={() => onEdit(schedule)}
                 >
                   <div className="h-full p-2 flex flex-col text-white">
-                    <p className="font-semibold text-sm truncate leading-tight">{schedule.materia}</p>
+                    {/* Subject name */}
+                    <p className="font-bold text-sm truncate leading-tight mb-0.5">{schedule.materia}</p>
+                    
+                    {/* Teacher with photo */}
                     {teacher && (
-                      <p className="text-xs opacity-90 truncate">{teacher.name}</p>
-                    )}
-                    {schedule.aula && (
-                      <p className="text-xs opacity-75 truncate mt-auto">{schedule.aula}</p>
+                      <div className="flex items-center gap-1.5 mb-0.5">
+                        {teacherPhoto ? (
+                          <img 
+                            src={teacherPhoto} 
+                            alt={teacherFullName}
+                            className="w-5 h-5 rounded-full object-cover border border-white/30 flex-shrink-0"
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                            <Users className="w-2.5 h-2.5 text-white/80" />
+                          </div>
+                        )}
+                        <span className="text-[11px] opacity-95 truncate">{teacherFullName}</span>
+                      </div>
                     )}
                     
-                    {/* Time badge */}
-                    <div className="absolute bottom-1 right-1 bg-black/20 rounded px-1.5 py-0.5 text-[10px] font-medium">
-                      {schedule.hora_inicio} - {schedule.hora_fin}
+                    {/* Students count */}
+                    {studentCount > 0 && (
+                      <div className="flex items-center gap-1 text-[10px] opacity-80">
+                        <GraduationCap className="w-3 h-3" />
+                        <span>{studentCount} alumnos</span>
+                      </div>
+                    )}
+                    
+                    {/* Room & Time badge */}
+                    <div className="absolute bottom-1 right-1 flex items-center gap-1">
+                      {schedule.aula && (
+                        <span className="bg-black/20 rounded px-1 py-0.5 text-[9px]">{schedule.aula}</span>
+                      )}
+                      <span className="bg-black/20 rounded px-1.5 py-0.5 text-[10px] font-medium">
+                        {schedule.hora_inicio} - {schedule.hora_fin}
+                      </span>
                     </div>
                   </div>
 
