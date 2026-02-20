@@ -16336,10 +16336,46 @@ async def get_student_messages_stats(course_id: str, current_user = Depends(get_
     inbox_result = await db.internal_mail.aggregate(inbox_pipeline).to_list(1)
     inbox = inbox_result[0]["count"] if inbox_result else 0
     
-    # Sent count
-    sent = await db.internal_mail.count_documents({"sender_id": user["id"]})
+    # Sent count (exclude deleted and archived by sender)
+    sent = await db.internal_mail.count_documents({
+        "sender_id": user["id"],
+        "sender_deleted": {"$ne": True},
+        "sender_archived": {"$ne": True}
+    })
     
-    return {"unread": unread, "inbox": inbox, "sent": sent}
+    # Archived count (both received and sent)
+    archived_received = await db.internal_mail.count_documents({
+        "recipients": {
+            "$elemMatch": {
+                "user_id": user["id"],
+                "is_archived": True,
+                "is_deleted": {"$ne": True}
+            }
+        }
+    })
+    archived_sent = await db.internal_mail.count_documents({
+        "sender_id": user["id"],
+        "sender_archived": True,
+        "sender_deleted": {"$ne": True}
+    })
+    archived = archived_received + archived_sent
+    
+    # Trash count (both received and sent)
+    trash_received = await db.internal_mail.count_documents({
+        "recipients": {
+            "$elemMatch": {
+                "user_id": user["id"],
+                "is_deleted": True
+            }
+        }
+    })
+    trash_sent = await db.internal_mail.count_documents({
+        "sender_id": user["id"],
+        "sender_deleted": True
+    })
+    trash = trash_received + trash_sent
+    
+    return {"unread": unread, "inbox": inbox, "sent": sent, "archived": archived, "trash": trash}
 
 
 @api_router.post("/student-portal/messages/send")
