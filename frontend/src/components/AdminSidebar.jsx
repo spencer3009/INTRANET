@@ -54,7 +54,8 @@ const NAV_SECTIONS = [
       { id: "notas", label: "Notas", icon: BarChart3, route: "/admin/grades-management" },
       { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/admin/attendance" },
       { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/admin/tasks" },
-      { id: "examenes", label: "Exámenes", icon: FileEdit, route: "/admin/exams" },
+      { id: "examenes", label: "Exámenes Online", icon: FileEdit, route: "/admin/exams" },
+      { id: "examenes-programados", label: "Exámenes Programados", icon: Calendar, route: "/admin/exam-schedule" },
     ]
   },
   {
