@@ -17135,6 +17135,494 @@ async def mark_student_message_read(message_id: str, current_user = Depends(get_
     return {"message": "Marcado como leído"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# EXAM SCHEDULES (Horario de Exámenes)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ExamScheduleCreate(BaseModel):
+    grade_id: str  # OBLIGATORIO
+    section_id: str  # OBLIGATORIO
+    subject_id: str
+    teacher_id: str
+    classroom_id: Optional[str] = None
+    date: str  # YYYY-MM-DD
+    start_time: str  # HH:MM
+    end_time: str  # HH:MM
+    type: str  # "parcial", "final", "práctica", "quiz"
+    title: str
+    description: Optional[str] = None
+
+class ExamScheduleUpdate(BaseModel):
+    subject_id: Optional[str] = None
+    teacher_id: Optional[str] = None
+    classroom_id: Optional[str] = None
+    date: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    type: Optional[str] = None
+    title: Optional[str] = None
+    description: Optional[str] = None
+
+# Exam type colors and labels
+EXAM_TYPES = {
+    "parcial": {"label": "Parcial", "color": "#6366F1"},
+    "final": {"label": "Final", "color": "#DC2626"},
+    "práctica": {"label": "Práctica", "color": "#059669"},
+    "quiz": {"label": "Quiz", "color": "#F59E0B"}
+}
+
+def calculate_exam_status(exam_date: str, start_time: str, end_time: str) -> str:
+    """Calculate exam status: upcoming, ongoing, finished"""
+    now = datetime.now(timezone.utc)
+    exam_start = datetime.fromisoformat(f"{exam_date}T{start_time}:00+00:00")
+    exam_end = datetime.fromisoformat(f"{exam_date}T{end_time}:00+00:00")
+    
+    if now < exam_start:
+        return "upcoming"
+    elif exam_start <= now <= exam_end:
+        return "ongoing"
+    else:
+        return "finished"
+
+def calculate_duration_minutes(start_time: str, end_time: str) -> int:
+    """Calculate duration in minutes"""
+    start_h, start_m = map(int, start_time.split(':'))
+    end_h, end_m = map(int, end_time.split(':'))
+    return (end_h * 60 + end_m) - (start_h * 60 + start_m)
+
+@api_router.get("/exam-schedules")
+async def get_exam_schedules(
+    grade_id: str,
+    section_id: str,
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get exam schedules filtered by grade and section (REQUIRED)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Build query - grade_id and section_id are ALWAYS required
+    query = {
+        "school_id": school_id,
+        "grade_id": grade_id,
+        "section_id": section_id
+    }
+    
+    # Date range filter for performance
+    if from_date or to_date:
+        date_filter = {}
+        if from_date:
+            date_filter["$gte"] = from_date
+        if to_date:
+            date_filter["$lte"] = to_date
+        if date_filter:
+            query["date"] = date_filter
+    
+    exams = await db.exam_schedules.find(query, {"_id": 0}).sort([("date", 1), ("start_time", 1)]).to_list(200)
+    
+    # Enrich with teacher, subject info and calculate status
+    enriched_exams = []
+    for exam in exams:
+        # Get teacher info
+        teacher_name = None
+        teacher_photo = None
+        if exam.get("teacher_id"):
+            teacher = await db.users.find_one(
+                {"id": exam["teacher_id"]},
+                {"_id": 0, "name": 1, "last_name": 1, "profile_image": 1, "photo_url": 1}
+            )
+            if teacher:
+                teacher_name = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+                teacher_photo = teacher.get("profile_image") or teacher.get("photo_url")
+        
+        # Get subject info
+        subject_name = None
+        subject_color = None
+        if exam.get("subject_id"):
+            subject = await db.subjects.find_one(
+                {"id": exam["subject_id"]},
+                {"_id": 0, "nombre": 1, "color": 1}
+            )
+            if subject:
+                subject_name = subject.get("nombre")
+                subject_color = subject.get("color")
+        
+        # Get classroom info
+        classroom_name = None
+        if exam.get("classroom_id"):
+            classroom = await db.classrooms.find_one(
+                {"id": exam["classroom_id"]},
+                {"_id": 0, "nombre": 1}
+            )
+            if classroom:
+                classroom_name = classroom.get("nombre")
+        
+        # Calculate status dynamically
+        status = calculate_exam_status(exam["date"], exam["start_time"], exam["end_time"])
+        
+        enriched_exams.append({
+            **exam,
+            "teacher_name": teacher_name,
+            "teacher_photo": teacher_photo,
+            "subject_name": subject_name or exam.get("subject_name"),
+            "subject_color": subject_color or "#6366F1",
+            "classroom_name": classroom_name,
+            "status": status,
+            "type_label": EXAM_TYPES.get(exam.get("type"), {}).get("label", exam.get("type")),
+            "type_color": EXAM_TYPES.get(exam.get("type"), {}).get("color", "#6366F1")
+        })
+    
+    return {"exams": enriched_exams}
+
+@api_router.post("/exam-schedules")
+async def create_exam_schedule(
+    data: ExamScheduleCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new exam schedule for a specific grade/section"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden programar exámenes")
+    
+    school_id = user["school_id"]
+    
+    # Validate grade exists
+    grade = await db.grades.find_one({"id": data.grade_id, "school_id": school_id})
+    if not grade:
+        raise HTTPException(status_code=400, detail="Grado no válido")
+    
+    # Validate section exists
+    section = await db.sections.find_one({"id": data.section_id, "school_id": school_id})
+    if not section:
+        raise HTTPException(status_code=400, detail="Sección no válida")
+    
+    # Validate subject exists
+    subject = await db.subjects.find_one({"id": data.subject_id, "school_id": school_id})
+    if not subject:
+        raise HTTPException(status_code=400, detail="Materia no válida")
+    
+    # Validate teacher exists
+    teacher = await db.users.find_one({"id": data.teacher_id, "school_id": school_id, "role": "teacher"})
+    if not teacher:
+        raise HTTPException(status_code=400, detail="Profesor no válido")
+    
+    # Validate end_time > start_time
+    if data.end_time <= data.start_time:
+        raise HTTPException(status_code=400, detail="La hora fin debe ser mayor a la hora inicio")
+    
+    # Calculate duration
+    duration_minutes = calculate_duration_minutes(data.start_time, data.end_time)
+    
+    # VALIDATION 1: Check section conflict (same section, date, overlapping time)
+    section_conflict = await db.exam_schedules.find_one({
+        "school_id": school_id,
+        "section_id": data.section_id,
+        "date": data.date,
+        "start_time": {"$lt": data.end_time},
+        "end_time": {"$gt": data.start_time}
+    })
+    if section_conflict:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Ya hay un examen programado para esta sección en ese horario: {section_conflict.get('title')} ({section_conflict['start_time']} - {section_conflict['end_time']})"
+        )
+    
+    # VALIDATION 2: Check teacher conflict (same teacher, date, overlapping time)
+    teacher_conflict = await db.exam_schedules.find_one({
+        "school_id": school_id,
+        "teacher_id": data.teacher_id,
+        "date": data.date,
+        "start_time": {"$lt": data.end_time},
+        "end_time": {"$gt": data.start_time}
+    })
+    if teacher_conflict:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El profesor ya tiene otro examen programado en ese horario"
+        )
+    
+    # VALIDATION 3: Check classroom conflict (if classroom_id provided)
+    if data.classroom_id:
+        classroom_conflict = await db.exam_schedules.find_one({
+            "school_id": school_id,
+            "classroom_id": data.classroom_id,
+            "date": data.date,
+            "start_time": {"$lt": data.end_time},
+            "end_time": {"$gt": data.start_time}
+        })
+        if classroom_conflict:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El aula ya está reservada para otro examen en ese horario"
+            )
+    
+    # Get nivel_id from grade
+    nivel_id = grade.get("nivel_id")
+    
+    # Create exam record
+    exam_data = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "nivel_id": nivel_id,
+        "grade_id": data.grade_id,
+        "section_id": data.section_id,
+        "subject_id": data.subject_id,
+        "teacher_id": data.teacher_id,
+        "classroom_id": data.classroom_id,
+        "date": data.date,
+        "start_time": data.start_time,
+        "end_time": data.end_time,
+        "duration_minutes": duration_minutes,
+        "type": data.type,
+        "title": data.title,
+        "description": data.description,
+        "subject_name": subject.get("nombre"),
+        "grade_name": grade.get("nombre"),
+        "section_name": section.get("nombre"),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"]
+    }
+    
+    await db.exam_schedules.insert_one(exam_data)
+    if "_id" in exam_data:
+        del exam_data["_id"]
+    
+    # Add status
+    exam_data["status"] = calculate_exam_status(data.date, data.start_time, data.end_time)
+    
+    return {"message": "Examen programado correctamente", "exam": exam_data}
+
+@api_router.put("/exam-schedules/{exam_id}")
+async def update_exam_schedule(
+    exam_id: str,
+    data: ExamScheduleUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update an exam schedule"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden modificar exámenes")
+    
+    school_id = user["school_id"]
+    
+    existing = await db.exam_schedules.find_one({"id": exam_id, "school_id": school_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    
+    # Get values for validation
+    new_date = update_data.get("date", existing["date"])
+    new_start = update_data.get("start_time", existing["start_time"])
+    new_end = update_data.get("end_time", existing["end_time"])
+    new_teacher = update_data.get("teacher_id", existing["teacher_id"])
+    new_classroom = update_data.get("classroom_id", existing.get("classroom_id"))
+    
+    # Validate end_time > start_time
+    if new_end <= new_start:
+        raise HTTPException(status_code=400, detail="La hora fin debe ser mayor a la hora inicio")
+    
+    # Check conflicts if time/date changed
+    if "date" in update_data or "start_time" in update_data or "end_time" in update_data:
+        # Section conflict
+        section_conflict = await db.exam_schedules.find_one({
+            "school_id": school_id,
+            "section_id": existing["section_id"],
+            "date": new_date,
+            "id": {"$ne": exam_id},
+            "start_time": {"$lt": new_end},
+            "end_time": {"$gt": new_start}
+        })
+        if section_conflict:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Conflicto con otro examen de la sección: {section_conflict.get('title')}"
+            )
+    
+    # Teacher conflict
+    if "teacher_id" in update_data or "date" in update_data or "start_time" in update_data or "end_time" in update_data:
+        teacher_conflict = await db.exam_schedules.find_one({
+            "school_id": school_id,
+            "teacher_id": new_teacher,
+            "date": new_date,
+            "id": {"$ne": exam_id},
+            "start_time": {"$lt": new_end},
+            "end_time": {"$gt": new_start}
+        })
+        if teacher_conflict:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El profesor ya tiene otro examen en ese horario"
+            )
+    
+    # Classroom conflict
+    if new_classroom and ("classroom_id" in update_data or "date" in update_data or "start_time" in update_data or "end_time" in update_data):
+        classroom_conflict = await db.exam_schedules.find_one({
+            "school_id": school_id,
+            "classroom_id": new_classroom,
+            "date": new_date,
+            "id": {"$ne": exam_id},
+            "start_time": {"$lt": new_end},
+            "end_time": {"$gt": new_start}
+        })
+        if classroom_conflict:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El aula ya está reservada en ese horario"
+            )
+    
+    # Update duration if times changed
+    if "start_time" in update_data or "end_time" in update_data:
+        update_data["duration_minutes"] = calculate_duration_minutes(new_start, new_end)
+    
+    # Update subject name if subject changed
+    if "subject_id" in update_data:
+        subject = await db.subjects.find_one({"id": update_data["subject_id"]})
+        if subject:
+            update_data["subject_name"] = subject.get("nombre")
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.exam_schedules.update_one({"id": exam_id}, {"$set": update_data})
+    
+    updated = await db.exam_schedules.find_one({"id": exam_id}, {"_id": 0})
+    updated["status"] = calculate_exam_status(updated["date"], updated["start_time"], updated["end_time"])
+    
+    return {"message": "Examen actualizado", "exam": updated}
+
+@api_router.delete("/exam-schedules/{exam_id}")
+async def delete_exam_schedule(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete an exam schedule"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar exámenes")
+    
+    result = await db.exam_schedules.delete_one({
+        "id": exam_id,
+        "school_id": user["school_id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    return {"message": "Examen eliminado correctamente"}
+
+# Student endpoint - auto-filtered by student's grade/section
+@api_router.get("/student/exam-schedule")
+async def get_student_exam_schedule(
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get exam schedule for student - auto-filtered by their grade/section.
+    NO parameters for grade/section - extracted from authenticated user.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    # SECURITY: Only students can access this endpoint
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    
+    school_id = user.get("school_id")
+    grade_id = user.get("grado_id")
+    section_id = user.get("seccion_id")
+    
+    # Get grade and section names for header
+    grade_name = None
+    section_name = None
+    
+    if grade_id:
+        grade = await db.grades.find_one({"id": grade_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        if grade:
+            grade_name = grade.get("nombre")
+    
+    if section_id:
+        section = await db.sections.find_one({"id": section_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        if section:
+            section_name = section.get("nombre")
+    
+    # If no grade/section, return empty
+    if not grade_id or not section_id:
+        return {
+            "exams": [],
+            "grade_name": grade_name,
+            "section_name": section_name
+        }
+    
+    # Build query
+    query = {
+        "school_id": school_id,
+        "grade_id": grade_id,
+        "section_id": section_id
+    }
+    
+    # Date range filter - default to from today
+    if from_date or to_date:
+        date_filter = {}
+        if from_date:
+            date_filter["$gte"] = from_date
+        if to_date:
+            date_filter["$lte"] = to_date
+        if date_filter:
+            query["date"] = date_filter
+    else:
+        # Default: show from today onwards
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        query["date"] = {"$gte": today}
+    
+    exams = await db.exam_schedules.find(query, {"_id": 0}).sort([("date", 1), ("start_time", 1)]).to_list(100)
+    
+    # Enrich exams with teacher info and status
+    enriched_exams = []
+    for exam in exams:
+        teacher_name = None
+        teacher_photo = None
+        if exam.get("teacher_id"):
+            teacher = await db.users.find_one(
+                {"id": exam["teacher_id"]},
+                {"_id": 0, "name": 1, "last_name": 1, "profile_image": 1, "photo_url": 1}
+            )
+            if teacher:
+                teacher_name = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+                teacher_photo = teacher.get("profile_image") or teacher.get("photo_url")
+        
+        # Calculate status
+        status = calculate_exam_status(exam["date"], exam["start_time"], exam["end_time"])
+        
+        enriched_exams.append({
+            **exam,
+            "teacher_name": teacher_name,
+            "teacher_photo": teacher_photo,
+            "status": status,
+            "type_label": EXAM_TYPES.get(exam.get("type"), {}).get("label", exam.get("type")),
+            "type_color": EXAM_TYPES.get(exam.get("type"), {}).get("color", "#6366F1")
+        })
+    
+    return {
+        "exams": enriched_exams,
+        "grade_name": grade_name,
+        "section_name": section_name
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
 # APP SETUP
 # ══════════════════════════════════════════════════════════════════════════════
 
