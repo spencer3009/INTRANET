@@ -1009,7 +1009,7 @@ export default function SchedulePage({ user, token, onLogout }) {
   useEffect(() => {
     const loadSchoolSettings = async () => {
       try {
-        const res = await axios.get(`${API}/school-settings`, { headers });
+        const res = await axios.get(`${API}/settings`, { headers });
         setSchoolSettings(res.data);
       } catch (err) {
         console.error("Error loading school settings:", err);
