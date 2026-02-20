@@ -983,13 +983,13 @@ export default function SchedulePage({ user, token, onLogout }) {
       setLoading(true);
       try {
         const [gradesRes, sectionsRes, teachersRes, settingsRes] = await Promise.all([
-          axios.get(`${API}/grades`, { headers }),
+          axios.get(`${API}/academic/grades`, { headers }),
           axios.get(`${API}/secciones`, { headers }),
           axios.get(`${API}/teachers`, { headers }),
           axios.get(`${API}/schedule-settings`, { headers }).catch(() => ({ data: null }))
         ]);
 
-        setGrades(gradesRes.data.grades || []);
+        setGrades(gradesRes.data || []);
         setSections(sectionsRes.data.secciones || []);
         setTeachers(teachersRes.data.teachers || []);
         
