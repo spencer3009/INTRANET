@@ -128,16 +128,30 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 ```
 /app
 ├── backend/
-│   └── server.py              # FastAPI monolítico (>16,000 líneas) - NECESITA REFACTOR
+│   ├── server.py              # FastAPI monolítico (~17,650 líneas) - MODULARIZACIÓN EN PROGRESO
+│   ├── utils/                 # 🆕 Utilidades extraídas
+│   │   ├── config.py          # DB, JWT, constantes
+│   │   ├── auth.py            # Helpers de autenticación, RBAC
+│   │   └── __init__.py        # Exports
+│   └── MODULARIZATION.md      # 🆕 Plan de modularización
 ├── frontend/
 │   └── src/
 │       ├── pages/
-│       │   ├── CourseDetailPage.jsx    # >9,000 líneas - NECESITA REFACTOR
-│       │   ├── SchedulePage.jsx        # 🆕 Módulo de horarios profesional
-│       │   ├── InternalMailPage.jsx    # Sistema de correo interno
-│       │   └── ExamAttemptPage.jsx     # Página de exámenes
+│       │   ├── CourseDetailPage.jsx      # >9,000 líneas - NECESITA REFACTOR
+│       │   ├── SchedulePage.jsx          # ✅ Refactorizado (~670 líneas)
+│       │   ├── StudentExamSchedulePage.jsx # 🆕 Calendario exámenes estudiante
+│       │   ├── InternalMailPage.jsx      # Sistema de correo interno
+│       │   └── ExamAttemptPage.jsx       # Página de exámenes
 │       └── components/
-│           └── MessageCenter.jsx       # Chat en tiempo real
+│           ├── schedule/                 # 🆕 Componentes de horarios
+│           │   ├── CalendarGrid.jsx      # Grilla semanal horizontal/vertical
+│           │   ├── ScheduleSettingsModal.jsx
+│           │   ├── ScheduleEntryModal.jsx
+│           │   ├── BreakModal.jsx
+│           │   ├── ExamScheduleComponents.jsx
+│           │   ├── constants.js
+│           │   └── index.js
+│           └── MessageCenter.jsx         # Chat en tiempo real
 ```
 
 ## Base de Datos
