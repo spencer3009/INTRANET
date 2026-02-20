@@ -1002,12 +1002,11 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
-      {/* RIGHT COLUMN - Teacher, Students, Reminders (Dynamic Sticky) */}
+      {/* RIGHT COLUMN - Teacher, Students, Reminders (Fixed Sticky - no flickering) */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <div 
-        ref={rightColumnRef}
-        className="lg:col-span-3 space-y-4 lg:sticky self-start"
-        style={{ top: rightStickyTop }}
+        className="lg:col-span-3 space-y-4 lg:sticky"
+        style={{ top: STICKY_TOP, willChange: 'transform' }}
       >
         {/* Teacher Card - Orange gradient header like owner's portal */}
         <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl overflow-hidden border border-amber-100 shadow-sm">
