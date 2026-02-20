@@ -1388,9 +1388,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrStudent, setQRStudent] = useState(null);
   
-  // Academic data for QR card (grade/section names)
+  // Academic data for QR card (grade/section/level names)
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
+  const [levels, setLevels] = useState([]);
   
   // Filter parents based on search query
   const filteredParents = users.filter(u => 
