@@ -186,7 +186,7 @@ export default function StudentQRCard({ student, schoolName, onClose }) {
               </div>
               <div class="info">
                 <p class="name">${student.name} ${student.last_name || ""}</p>
-                <p class="grade">${student.grade_name || ""} - ${student.section_name || ""}</p>
+                <p class="grade">${student.level_name ? student.level_name + " - " : ""}${student.grade_name || ""} - ${student.section_name || ""}</p>
               </div>
             </div>
             <div class="qr-section">
