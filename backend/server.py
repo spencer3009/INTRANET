@@ -5992,12 +5992,20 @@ async def migrate_periods_to_years(
 # SCHEDULES API
 # ══════════════════════════════════════════════════════════════════════════════
 
+# Schedule Settings Model (persistent per school)
+class ScheduleSettingsCreate(BaseModel):
+    start_hour: str = "07:00"
+    end_hour: str = "18:00"
+    time_format: str = "24h"  # "12h" or "24h"
+    block_duration: int = 45  # minutes
+
 class ScheduleCreate(BaseModel):
     tipo: str  # "clases", "profesores", "examenes"
     grado_id: Optional[str] = None
     seccion_id: Optional[str] = None
     profesor_id: Optional[str] = None
     materia: str
+    subject_id: Optional[str] = None
     dia: str
     hora_inicio: str
     hora_fin: str
@@ -6009,11 +6017,77 @@ class ScheduleUpdate(BaseModel):
     seccion_id: Optional[str] = None
     profesor_id: Optional[str] = None
     materia: Optional[str] = None
+    subject_id: Optional[str] = None
     dia: Optional[str] = None
     hora_inicio: Optional[str] = None
     hora_fin: Optional[str] = None
     aula: Optional[str] = None
     color: Optional[str] = None
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCHEDULE SETTINGS ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@api_router.get("/schedule-settings")
+async def get_schedule_settings(current_user = Depends(get_current_user)):
+    """Get schedule settings for school"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    settings = await db.schedule_settings.find_one(
+        {"school_id": user["school_id"]}, 
+        {"_id": 0}
+    )
+    
+    if not settings:
+        # Return default settings
+        return {
+            "school_id": user["school_id"],
+            "start_hour": "07:00",
+            "end_hour": "18:00",
+            "time_format": "24h",
+            "block_duration": 45
+        }
+    
+    return settings
+
+@api_router.post("/schedule-settings")
+async def save_schedule_settings(
+    data: ScheduleSettingsCreate,
+    current_user = Depends(get_current_user)
+):
+    """Save or update schedule settings for school"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden modificar configuración")
+    
+    school_id = user["school_id"]
+    
+    settings_data = {
+        "school_id": school_id,
+        "start_hour": data.start_hour,
+        "end_hour": data.end_hour,
+        "time_format": data.time_format,
+        "block_duration": data.block_duration,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Upsert - create if not exists, update if exists
+    await db.schedule_settings.update_one(
+        {"school_id": school_id},
+        {"$set": settings_data},
+        upsert=True
+    )
+    
+    return {"message": "Configuración guardada correctamente", "settings": settings_data}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SCHEDULE ENTRIES ENDPOINTS
+# ─────────────────────────────────────────────────────────────────────────────
 
 @api_router.get("/schedules")
 async def get_schedules(
