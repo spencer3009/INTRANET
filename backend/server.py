@@ -1336,13 +1336,15 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
 @api_router.get("/student/schedule")
 async def get_student_schedule(current_user = Depends(get_current_user)):
     """
-    Get schedule for student based on their section/grade.
-    Returns the weekly class schedule configured by admin.
+    Get complete schedule for student based on their section/grade.
+    Returns schedules, breaks, settings, and academic context.
+    NO parameters accepted - all data extracted from authenticated user.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
+    # SECURITY: Only students can access this endpoint
     if user.get("role") != "student":
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
     
@@ -1350,8 +1352,45 @@ async def get_student_schedule(current_user = Depends(get_current_user)):
     seccion_id = user.get("seccion_id")
     grado_id = user.get("grado_id")
     
+    # Get grade and section info for header
+    grade_name = None
+    section_name = None
+    
+    if grado_id:
+        grado = await db.grades.find_one({"id": grado_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        if grado:
+            grade_name = grado.get("nombre")
+    
+    if seccion_id:
+        seccion = await db.sections.find_one({"id": seccion_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        if seccion:
+            section_name = seccion.get("nombre")
+    
+    # Get schedule settings for this school
+    settings = await db.schedule_settings.find_one({"school_id": school_id}, {"_id": 0})
+    if not settings:
+        settings = {
+            "start_hour": "07:00",
+            "end_hour": "18:00",
+            "time_format": "24h",
+            "block_duration": 45,
+            "view_mode": "horizontal",
+            "include_saturday": False,
+            "include_sunday": False
+        }
+    
+    # Get breaks (recreo, almuerzo, evento) for this school
+    breaks = await db.schedule_breaks.find({"school_id": school_id}, {"_id": 0}).to_list(50)
+    
+    # If no section/grade, return empty but with context
     if not seccion_id and not grado_id:
-        return []
+        return {
+            "schedules": [],
+            "breaks": breaks,
+            "settings": settings,
+            "grade_name": grade_name,
+            "section_name": section_name
+        }
     
     # Build query - get schedules for student's section or grade
     query = {
@@ -1367,22 +1406,34 @@ async def get_student_schedule(current_user = Depends(get_current_user)):
     
     schedules = await db.schedules.find(query, {"_id": 0}).sort([("dia", 1), ("hora_inicio", 1)]).to_list(100)
     
-    # Enrich with teacher and subject info
+    # Enrich with teacher info (name + photo)
     enriched_schedules = []
     for schedule in schedules:
-        # Get teacher name if profesor_id exists
         profesor_nombre = None
+        profesor_foto = None
+        
         if schedule.get("profesor_id"):
-            teacher = await db.users.find_one({"id": schedule["profesor_id"]}, {"_id": 0, "name": 1, "last_name": 1})
+            teacher = await db.users.find_one(
+                {"id": schedule["profesor_id"]}, 
+                {"_id": 0, "name": 1, "last_name": 1, "profile_image": 1, "photo_url": 1}
+            )
             if teacher:
                 profesor_nombre = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+                profesor_foto = teacher.get("profile_image") or teacher.get("photo_url")
         
         enriched_schedules.append({
             **schedule,
-            "profesor_nombre": profesor_nombre or schedule.get("profesor_nombre")
+            "profesor_nombre": profesor_nombre or schedule.get("profesor_nombre"),
+            "profesor_foto": profesor_foto
         })
     
-    return enriched_schedules
+    return {
+        "schedules": enriched_schedules,
+        "breaks": breaks,
+        "settings": settings,
+        "grade_name": grade_name,
+        "section_name": section_name
+    }
 
 @api_router.get("/student/dashboard")
 async def get_student_dashboard(current_user = Depends(get_current_user)):
