@@ -85,11 +85,12 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 ```
 /app
 ├── backend/
-│   └── server.py              # FastAPI monolítico (>15,000 líneas) - NECESITA REFACTOR
+│   └── server.py              # FastAPI monolítico (>16,000 líneas) - NECESITA REFACTOR
 ├── frontend/
 │   └── src/
 │       ├── pages/
 │       │   ├── CourseDetailPage.jsx    # >9,000 líneas - NECESITA REFACTOR
+│       │   ├── SchedulePage.jsx        # 🆕 Módulo de horarios profesional
 │       │   ├── InternalMailPage.jsx    # Sistema de correo interno
 │       │   └── ExamAttemptPage.jsx     # Página de exámenes
 │       └── components/
@@ -98,7 +99,23 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 
 ## Base de Datos
 - **MongoDB:** `test_database` (NO CAMBIAR)
-- **Colecciones principales:** users, courses, exams, tasks, messages, message_recipients
+- **Colecciones principales:** users, courses, exams, tasks, messages, message_recipients, schedules, schedule_settings
+
+## Nuevas Colecciones (Feb 2026)
+| Colección | Descripción |
+|-----------|-------------|
+| `schedules` | Entradas de horarios con validación de conflictos |
+| `schedule_settings` | Configuración persistente por school_id |
+
+## API Endpoints Horarios
+| Endpoint | Método | Descripción |
+|----------|--------|-------------|
+| `/api/schedule-settings` | GET | Obtener configuración de horarios |
+| `/api/schedule-settings` | POST | Guardar configuración de horarios |
+| `/api/schedules` | GET | Listar horarios (filtros: tipo, grado_id, seccion_id) |
+| `/api/schedules` | POST | Crear horario con validación de conflictos |
+| `/api/schedules/{id}` | PUT | Actualizar horario con validación |
+| `/api/schedules/{id}` | DELETE | Eliminar horario |
 
 ## Credenciales de Prueba
 - **Escuela:** elroble
@@ -114,6 +131,7 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 ---
 
 ## Últimas Pruebas
+- **iteration_31.json:** Módulo de Horarios - 100% passed (Backend 11/11, Frontend OK)
 - **iteration_30.json:** Botón "Chat en línea" - 100% passed (13/13)
 - **iteration_29.json:** Sistema mensajes alumno - Validado
 - **iteration_28.json:** Flujo "Enviar Mensaje" - 100% passed (10/10)
