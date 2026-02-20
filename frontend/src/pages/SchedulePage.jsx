@@ -874,9 +874,13 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// CALENDAR GRID - Professional weekly view
+// CALENDAR GRID - Professional weekly view (supports horizontal & vertical modes)
 // ══════════════════════════════════════════════════════════════════════════════
 function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers }) {
+  // Get visible days based on settings
+  const visibleDays = getVisibleDays(settings);
+  const viewMode = settings?.view_mode || "horizontal";
+  
   // Generate time slots based on settings
   const generateTimeSlots = useCallback(() => {
     const slots = [];
@@ -891,7 +895,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
 
   const timeSlots = generateTimeSlots();
 
-  // Format time for display
+  // Format time for display based on mode
   const formatTime = (time) => {
     if (!time) return time;
     if (settings?.time_format === "12h") {
@@ -904,7 +908,23 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
     return time;
   };
 
-  // Get color classes for a schedule
+  // Format time range for horizontal mode (e.g., "7:00 AM - 8:00 AM")
+  const formatTimeRange = (time) => {
+    const [h] = time.split(':');
+    const hour = parseInt(h);
+    const nextHour = hour + 1;
+    
+    if (settings?.time_format === "12h") {
+      const ampm1 = hour >= 12 ? 'PM' : 'AM';
+      const ampm2 = nextHour >= 12 ? 'PM' : 'AM';
+      const hour12_1 = hour % 12 || 12;
+      const hour12_2 = nextHour % 12 || 12;
+      return `${hour12_1}:00 ${ampm1} - ${hour12_2}:00 ${ampm2}`;
+    }
+    return `${time} - ${nextHour.toString().padStart(2, '0')}:00`;
+  };
+
+  // Get color style
   const getColorStyle = (color) => {
     return {
       backgroundColor: color || '#6366F1',
@@ -912,7 +932,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
     };
   };
 
-  // Calculate block position and height
+  // Calculate block position and height (for vertical mode)
   const getBlockStyle = (schedule) => {
     const startHour = parseInt(settings?.start_hour?.split(':')[0] || '7');
     const [startH, startM] = schedule.hora_inicio.split(':').map(Number);
@@ -933,13 +953,135 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
 
   // Group schedules by day
   const schedulesByDay = {};
-  DAYS.forEach(d => { schedulesByDay[d.id] = []; });
+  ALL_DAYS.forEach(d => { schedulesByDay[d.id] = []; });
   schedules.forEach(s => {
     if (schedulesByDay[s.dia]) {
       schedulesByDay[s.dia].push(s);
     }
   });
 
+  // Get schedules for a specific time slot and day (for horizontal mode)
+  const getSchedulesForSlot = (day, timeSlot) => {
+    const [slotHour] = timeSlot.split(':').map(Number);
+    return schedulesByDay[day].filter(s => {
+      const [startH] = s.hora_inicio.split(':').map(Number);
+      const [endH] = s.hora_fin.split(':').map(Number);
+      return slotHour >= startH && slotHour < endH;
+    });
+  };
+
+  // Check if schedule starts at this slot (for horizontal mode)
+  const scheduleStartsAtSlot = (schedule, timeSlot) => {
+    const [slotHour] = timeSlot.split(':').map(Number);
+    const [startH] = schedule.hora_inicio.split(':').map(Number);
+    return slotHour === startH;
+  };
+
+  // HORIZONTAL MODE - Time ranges as rows, days as columns
+  if (viewMode === "horizontal") {
+    return (
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="schedule-calendar-grid">
+        {/* Header - Days */}
+        <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
+          {/* Time column header */}
+          <div className="w-36 flex-shrink-0 p-3 border-r border-slate-200 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-slate-400" />
+          </div>
+          
+          {/* Day headers */}
+          {visibleDays.map(day => (
+            <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[140px]">
+              <p className="font-bold text-slate-800">{day.label}</p>
+              <p className="text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Grid Body - Time ranges as rows */}
+        <div className="overflow-x-auto">
+          {timeSlots.map((time, idx) => (
+            <div key={time} className="flex border-b border-slate-100 min-h-[64px]">
+              {/* Time range cell */}
+              <div 
+                className="w-36 flex-shrink-0 px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center"
+                data-testid={`schedule-time-slot-${time.replace(':', '')}`}
+              >
+                <span className="text-xs font-medium text-slate-600 text-center leading-tight">
+                  {formatTimeRange(time)}
+                </span>
+              </div>
+              
+              {/* Day cells */}
+              {visibleDays.map(day => {
+                const slotSchedules = getSchedulesForSlot(day.id, time);
+                
+                return (
+                  <div 
+                    key={`${day.id}-${time}`}
+                    data-testid={`schedule-cell-${day.id}-${time.replace(':', '')}`}
+                    className="flex-1 min-w-[140px] border-r last:border-r-0 border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors p-1"
+                    onClick={() => onCellClick(day.id, time)}
+                  >
+                    {slotSchedules.map(schedule => {
+                      // Only render if this is the start slot
+                      if (!scheduleStartsAtSlot(schedule, time)) return null;
+                      
+                      const teacher = teachers?.find(t => t.id === schedule.profesor_id);
+                      const [startH] = schedule.hora_inicio.split(':').map(Number);
+                      const [endH] = schedule.hora_fin.split(':').map(Number);
+                      const spanRows = endH - startH;
+                      
+                      return (
+                        <div
+                          key={schedule.id}
+                          data-testid={`schedule-block-${schedule.id}`}
+                          className="rounded-lg shadow-sm overflow-hidden cursor-pointer group transition-all hover:shadow-md relative"
+                          style={{
+                            ...getColorStyle(schedule.color),
+                            minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : '56px'
+                          }}
+                          onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
+                        >
+                          <div className="h-full p-2 flex flex-col text-white">
+                            <p className="font-semibold text-sm truncate">{schedule.materia}</p>
+                            {teacher && <p className="text-xs opacity-90 truncate">{teacher.name}</p>}
+                            {schedule.aula && <p className="text-xs opacity-75 truncate">{schedule.aula}</p>}
+                            <p className="text-[10px] opacity-75 mt-auto">
+                              {schedule.hora_inicio} - {schedule.hora_fin}
+                            </p>
+                          </div>
+                          
+                          {/* Hover actions */}
+                          <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <button
+                              data-testid={`schedule-edit-btn-${schedule.id}`}
+                              onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
+                              className="p-1 bg-white/90 rounded shadow hover:bg-white"
+                            >
+                              <Pencil className="w-3 h-3 text-slate-700" />
+                            </button>
+                            <button
+                              data-testid={`schedule-delete-btn-${schedule.id}`}
+                              onClick={(e) => { e.stopPropagation(); onDelete(schedule); }}
+                              className="p-1 bg-white/90 rounded shadow hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-500" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // VERTICAL MODE - Original view (time column on left, days as columns with positioned blocks)
   return (
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="schedule-calendar-grid">
       {/* Header - Days */}
@@ -950,7 +1092,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
         </div>
         
         {/* Day headers */}
-        {DAYS.map(day => (
+        {visibleDays.map(day => (
           <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[120px]">
             <p className="font-bold text-slate-800">{day.label}</p>
             <p className="text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
@@ -962,12 +1104,89 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
       <div className="flex overflow-x-auto">
         {/* Time column - Sticky */}
         <div className="w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10" data-testid="schedule-time-column">
-          {timeSlots.map((time, idx) => (
+          {timeSlots.map((time) => (
             <div 
               key={time} 
               className="h-16 px-2 flex items-start justify-center pt-1 border-b border-slate-100 text-xs font-medium text-slate-500"
               data-testid={`schedule-time-slot-${time.replace(':', '')}`}
             >
+              {formatTime(time)}
+            </div>
+          ))}
+        </div>
+
+        {/* Day columns */}
+        {visibleDays.map(day => (
+          <div 
+            key={day.id} 
+            data-testid={`schedule-day-column-${day.id}`}
+            className="flex-1 min-w-[120px] border-r last:border-r-0 border-slate-200 relative"
+            style={{ height: `${timeSlots.length * 64}px` }}
+          >
+            {/* Hour lines */}
+            {timeSlots.map((time, idx) => (
+              <div 
+                key={time}
+                data-testid={`schedule-cell-${day.id}-${time.replace(':', '')}`}
+                className="absolute w-full h-16 border-b border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors"
+                style={{ top: `${idx * 64}px` }}
+                onClick={() => onCellClick(day.id, time)}
+              />
+            ))}
+
+            {/* Schedule blocks */}
+            {schedulesByDay[day.id].map(schedule => {
+              const teacher = teachers?.find(t => t.id === schedule.profesor_id);
+              const blockStyle = getBlockStyle(schedule);
+              
+              return (
+                <div
+                  key={schedule.id}
+                  data-testid={`schedule-block-${schedule.id}`}
+                  className="absolute left-1 right-1 rounded-lg shadow-md overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:scale-[1.02] z-20"
+                  style={{
+                    ...blockStyle,
+                    ...getColorStyle(schedule.color)
+                  }}
+                  onClick={() => onEdit(schedule)}
+                >
+                  <div className="h-full p-2 flex flex-col text-white">
+                    <p className="font-semibold text-sm truncate leading-tight">{schedule.materia}</p>
+                    {teacher && (
+                      <p className="text-xs opacity-90 truncate">{teacher.name}</p>
+                    )}
+                    {schedule.aula && (
+                      <p className="text-xs opacity-75 truncate mt-auto">{schedule.aula}</p>
+                    )}
+                    
+                    {/* Time badge */}
+                    <div className="absolute bottom-1 right-1 bg-black/20 rounded px-1.5 py-0.5 text-[10px] font-medium">
+                      {schedule.hora_inicio} - {schedule.hora_fin}
+                    </div>
+                  </div>
+
+                  {/* Hover actions */}
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <button
+                      data-testid={`schedule-edit-btn-${schedule.id}`}
+                      onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
+                      className="p-1.5 bg-white/90 rounded-lg shadow hover:bg-white"
+                    >
+                      <Pencil className="w-3 h-3 text-slate-700" />
+                    </button>
+                    <button
+                      data-testid={`schedule-delete-btn-${schedule.id}`}
+                      onClick={(e) => { e.stopPropagation(); onDelete(schedule); }}
+                      className="p-1.5 bg-white/90 rounded-lg shadow hover:bg-red-50"
+                    >
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ))}
               {formatTime(time)}
             </div>
           ))}
