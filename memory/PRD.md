@@ -116,6 +116,7 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 |-----------|-------------|
 | `schedules` | Entradas de horarios con validación de conflictos |
 | `schedule_settings` | Configuración persistente por school_id |
+| `schedule_breaks` | Bloques especiales (recreo, almuerzo, evento) |
 
 ## API Endpoints Horarios
 | Endpoint | Método | Descripción |
