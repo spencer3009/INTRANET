@@ -1,0 +1,375 @@
+import { useState, useEffect, useCallback } from "react";
+import axios from "axios";
+import { Scanner } from "@yudiel/react-qr-scanner";
+import { 
+  QrCode, Camera, Check, AlertTriangle, X, Clock, 
+  User, Loader2, History, RefreshCw, Volume2, VolumeX
+} from "lucide-react";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+export default function QRScannerTab({ token }) {
+  const [scanning, setScanning] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [cameraError, setCameraError] = useState(null);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+
+  // Load scan history
+  const loadHistory = useCallback(async () => {
+    setLoadingHistory(true);
+    try {
+      const res = await axios.get(`${API}/attendance/qr/history?limit=10`, { headers });
+      setHistory(res.data.history || []);
+    } catch (err) {
+      console.error("Error loading history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
+
+  // Play success/error sound
+  const playSound = (type) => {
+    if (!soundEnabled) return;
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      if (type === "success") {
+        oscillator.frequency.value = 880; // A5
+        gainNode.gain.value = 0.3;
+      } else if (type === "warning") {
+        oscillator.frequency.value = 440; // A4
+        gainNode.gain.value = 0.2;
+      } else {
+        oscillator.frequency.value = 220; // A3
+        gainNode.gain.value = 0.2;
+      }
+      
+      oscillator.start();
+      setTimeout(() => oscillator.stop(), 150);
+    } catch (e) {
+      console.log("Audio not supported");
+    }
+  };
+
+  // Handle QR scan
+  const handleScan = async (detectedCodes) => {
+    if (loading || !detectedCodes || detectedCodes.length === 0) return;
+    
+    const qrToken = detectedCodes[0].rawValue;
+    if (!qrToken) return;
+    
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    
+    try {
+      const res = await axios.post(`${API}/attendance/qr/scan`, { qr_token: qrToken }, { headers });
+      setResult(res.data);
+      
+      if (res.data.status === "success") {
+        playSound("success");
+      } else if (res.data.status === "already_marked") {
+        playSound("warning");
+      }
+      
+      // Refresh history
+      loadHistory();
+      
+      // Clear result after 5 seconds
+      setTimeout(() => setResult(null), 5000);
+      
+    } catch (err) {
+      const errorData = err.response?.data?.detail;
+      if (typeof errorData === 'object') {
+        setError(errorData.message || "Error al escanear");
+      } else {
+        setError(errorData || "Error al escanear el QR");
+      }
+      playSound("error");
+      
+      // Clear error after 3 seconds
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleError = (err) => {
+    console.error("Camera error:", err);
+    setCameraError("No se pudo acceder a la cámara. Verifica los permisos.");
+  };
+
+  return (
+    <div className="space-y-6" data-testid="qr-scanner-tab">
+      {/* Scanner Section */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Scanner */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
+                  <QrCode className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Escanear QR</h3>
+                  <p className="text-white/70 text-sm">Registra asistencia con código QR</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSoundEnabled(!soundEnabled)}
+                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                title={soundEnabled ? "Desactivar sonido" : "Activar sonido"}
+              >
+                {soundEnabled ? (
+                  <Volume2 className="w-5 h-5 text-white" />
+                ) : (
+                  <VolumeX className="w-5 h-5 text-white/50" />
+                )}
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-6">
+            {!scanning ? (
+              <div className="text-center py-12">
+                <div className="w-24 h-24 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Camera className="w-12 h-12 text-violet-600" />
+                </div>
+                <h4 className="text-xl font-bold text-slate-800 mb-2">Cámara desactivada</h4>
+                <p className="text-slate-500 mb-6">Activa la cámara para escanear códigos QR de estudiantes</p>
+                <button
+                  data-testid="start-scanner-btn"
+                  onClick={() => { setScanning(true); setCameraError(null); }}
+                  className="px-8 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 transition-all flex items-center gap-2 mx-auto"
+                >
+                  <Camera className="w-5 h-5" />
+                  Activar Cámara
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {cameraError ? (
+                  <div className="text-center py-8">
+                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <X className="w-8 h-8 text-red-600" />
+                    </div>
+                    <p className="text-red-600 font-medium mb-4">{cameraError}</p>
+                    <button
+                      onClick={() => { setCameraError(null); setScanning(false); }}
+                      className="px-6 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium"
+                    >
+                      Reintentar
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="relative aspect-square max-w-md mx-auto rounded-2xl overflow-hidden border-4 border-violet-500">
+                      <Scanner
+                        onScan={handleScan}
+                        onError={handleError}
+                        formats={["qr_code"]}
+                        components={{
+                          audio: false,
+                          torch: true,
+                          finder: true
+                        }}
+                        styles={{
+                          container: { width: '100%', height: '100%' },
+                          video: { objectFit: 'cover' }
+                        }}
+                      />
+                      
+                      {/* Scanning overlay */}
+                      {loading && (
+                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                          <div className="bg-white rounded-xl p-4 flex items-center gap-3">
+                            <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                            <span className="font-medium">Procesando...</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex justify-center">
+                      <button
+                        onClick={() => setScanning(false)}
+                        className="px-6 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium flex items-center gap-2"
+                      >
+                        <X className="w-4 h-4" />
+                        Detener cámara
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Result & Status */}
+        <div className="space-y-6">
+          {/* Current Result */}
+          <div className={`rounded-2xl shadow-lg overflow-hidden transition-all ${
+            result?.status === "success" ? "bg-emerald-50 border-2 border-emerald-500" :
+            result?.status === "already_marked" ? "bg-amber-50 border-2 border-amber-500" :
+            error ? "bg-red-50 border-2 border-red-500" :
+            "bg-white"
+          }`}>
+            <div className="p-6">
+              {result ? (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    {result.status === "success" ? (
+                      <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
+                        <Check className="w-6 h-6 text-white" />
+                      </div>
+                    ) : (
+                      <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center">
+                        <AlertTriangle className="w-6 h-6 text-white" />
+                      </div>
+                    )}
+                    <div>
+                      <p className={`text-lg font-bold ${result.status === "success" ? "text-emerald-700" : "text-amber-700"}`}>
+                        {result.status === "success" ? "¡Asistencia Registrada!" : "Ya registrado hoy"}
+                      </p>
+                      <p className="text-sm text-slate-600">{result.attendance?.time}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Student Info */}
+                  <div className="flex items-center gap-4 p-4 bg-white rounded-xl">
+                    {result.student?.photo_url ? (
+                      <img 
+                        src={result.student.photo_url} 
+                        alt="" 
+                        className="w-16 h-16 rounded-full object-cover border-2 border-slate-200"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold">
+                        {result.student?.name?.charAt(0) || "E"}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xl font-bold text-slate-800">{result.student?.full_name}</p>
+                      <p className="text-slate-500">
+                        {result.student?.grade_name} - Sección {result.student?.section_name}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                    <X className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-red-700">Error</p>
+                    <p className="text-red-600">{error}</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <User className="w-8 h-8 text-slate-400" />
+                  </div>
+                  <p className="text-slate-500">Esperando escaneo...</p>
+                  <p className="text-sm text-slate-400 mt-1">El resultado aparecerá aquí</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Quick Stats for today */}
+          <div className="bg-white rounded-2xl shadow-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h4 className="font-bold text-slate-800 flex items-center gap-2">
+                <Clock className="w-5 h-5 text-violet-600" />
+                Hoy
+              </h4>
+              <span className="text-sm text-slate-500">
+                {new Date().toLocaleDateString("es-PE", { weekday: 'long', day: 'numeric', month: 'long' })}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-emerald-50 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-emerald-600">{history.length}</p>
+                <p className="text-sm text-emerald-700">Escaneados por QR</p>
+              </div>
+              <div className="bg-violet-50 rounded-xl p-4 text-center">
+                <p className="text-3xl font-bold text-violet-600">
+                  {scanning ? "🟢" : "⚪"}
+                </p>
+                <p className="text-sm text-violet-700">{scanning ? "Escaneando" : "Detenido"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Scans History */}
+      <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+          <h4 className="font-bold text-slate-800 flex items-center gap-2">
+            <History className="w-5 h-5 text-violet-600" />
+            Últimos escaneos de hoy
+          </h4>
+          <button
+            onClick={loadHistory}
+            disabled={loadingHistory}
+            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+          >
+            <RefreshCw className={`w-5 h-5 text-slate-500 ${loadingHistory ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
+        
+        {history.length > 0 ? (
+          <div className="divide-y divide-slate-100">
+            {history.map((item, idx) => (
+              <div key={item.id || idx} className="px-6 py-3 flex items-center gap-4 hover:bg-slate-50">
+                {item.photo_url ? (
+                  <img src={item.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white font-bold">
+                    {item.student_name?.charAt(0) || "E"}
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800 truncate">{item.student_name}</p>
+                  <p className="text-sm text-slate-500">
+                    {item.grade_name} - Sección {item.section_name}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                    ✓ Presente
+                  </span>
+                  <p className="text-sm text-slate-500 mt-1">{item.time}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-8 text-center">
+            <p className="text-slate-500">No hay escaneos registrados hoy</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
