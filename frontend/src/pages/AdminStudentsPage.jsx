@@ -1082,6 +1082,8 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrStudent, setQRStudent] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = user?.subdomain;
