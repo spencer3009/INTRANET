@@ -965,9 +965,9 @@ function ReportsTab({ token, schoolId }) {
               </div>
               <div className="flex gap-3">
                 <button
-                  disabled
-                  className="px-4 py-2 bg-white/20 text-white/60 rounded-lg flex items-center gap-2 cursor-not-allowed"
-                  title="Próximamente"
+                  onClick={exportToPDF}
+                  data-testid="report-export-pdf-btn"
+                  className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg flex items-center gap-2 transition-colors"
                 >
                   <Download className="w-5 h-5" />
                   Exportar PDF
