@@ -1383,6 +1383,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [showParentDropdown, setShowParentDropdown] = useState(false);
   const [showExtraInfoSection, setShowExtraInfoSection] = useState(false);
   
+  // QR Modal states
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrStudent, setQRStudent] = useState(null);
+  
   // Filter parents based on search query
   const filteredParents = users.filter(u => 
     u.role === 'parent' && 
