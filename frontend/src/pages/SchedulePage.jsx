@@ -773,34 +773,16 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 
           {/* Time */}
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Hora inicio</label>
-              <select
-                value={form.hora_inicio}
-                onChange={(e) => setForm(p => ({ ...p, hora_inicio: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Seleccionar...</option>
-                {timeOptions.map(t => (
-                  <option key={t} value={t}>{formatTime(t)}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Hora fin</label>
-              <select
-                value={form.hora_fin}
-                onChange={(e) => setForm(p => ({ ...p, hora_fin: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Seleccionar...</option>
-                {timeOptions.filter(t => t > form.hora_inicio).map(t => (
-                  <option key={t} value={t}>{formatTime(t)}</option>
-                ))}
-              </select>
-            </div>
+            <TimePicker
+              label="Hora inicio *"
+              value={form.hora_inicio}
+              onChange={(val) => setForm(p => ({ ...p, hora_inicio: val }))}
+            />
+            <TimePicker
+              label="Hora fin *"
+              value={form.hora_fin}
+              onChange={(val) => setForm(p => ({ ...p, hora_fin: val }))}
+            />
           </div>
 
           {/* Room */}
