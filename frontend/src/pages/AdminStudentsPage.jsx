@@ -106,6 +106,17 @@ function StudentRow({ student, levels, grades, sections, onEdit, onDelete, onVie
                 </button>
                 <button
                   onClick={() => {
+                    onShowQR(student);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full px-4 py-2 text-left text-sm hover:bg-violet-50 text-violet-600 flex items-center gap-2"
+                  data-testid={`show-qr-btn-${student.id}`}
+                >
+                  <QrCode className="w-4 h-4" />
+                  Ver QR
+                </button>
+                <button
+                  onClick={() => {
                     onEdit(student);
                     setMenuOpen(false);
                   }}
