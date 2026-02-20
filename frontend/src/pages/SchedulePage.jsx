@@ -242,7 +242,8 @@ export default function SchedulePage({ user, token, onLogout }) {
     setPreselectedData({
       grado_id: selectedGrade,
       seccion_id: selectedSection,
-      profesor_id: selectedTeacher,
+      grado_id: selectedGrade,
+      seccion_id: selectedSection,
       dia: day,
       hora_inicio: time
     });
