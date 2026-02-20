@@ -3572,21 +3572,27 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
       loadMessages();
     } catch (err) {
       console.error("Error archiving message:", err);
-      alert("Error al archivar el mensaje");
     }
   };
 
+  // Show delete confirmation modal
+  const confirmDeleteMessage = (message) => {
+    setMessageToDelete(message);
+    setShowDeleteConfirm(true);
+  };
+
   // Delete message (move to trash)
-  const handleDeleteMessage = async (messageId) => {
-    if (!window.confirm("¿Estás seguro de que deseas eliminar este mensaje?")) return;
+  const handleDeleteMessage = async () => {
+    if (!messageToDelete) return;
     
+    setDeleting(true);
     try {
-      await axios.delete(`${API}/api/internal-mail/${messageId}`, { headers });
+      await axios.delete(`${API}/api/internal-mail/${messageToDelete.id}`, { headers });
       // Remove from current list and clear selection
-      setMessages(prev => prev.filter(m => m.id !== messageId));
+      setMessages(prev => prev.filter(m => m.id !== messageToDelete.id));
       setSelectedMessage(null);
       // Update stats
-      setStats(prev => ({ 
+      setStats(prev => ({
         ...prev, 
         inbox: Math.max(0, prev.inbox - 1)
       }));
