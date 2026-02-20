@@ -903,17 +903,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+          {/* Redirect legacy exam-schedule route to horarios (exam schedule is now a tab) */}
           <Route
             path="/school/:subdomain/admin/exam-schedule"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdmin(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <ExamSchedulePage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
+            element={<Navigate to="/school/:subdomain/horarios" replace />}
           />
           <Route
             path="/school/:subdomain/admin/settings"
