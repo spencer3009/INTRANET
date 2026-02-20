@@ -1174,6 +1174,37 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
   if (viewMode === "horizontal") {
     return (
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="schedule-calendar-grid">
+        {/* Context Menu for adding breaks */}
+        {contextMenu && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setContextMenu(null)} />
+            <div 
+              className="fixed z-50 bg-white rounded-xl shadow-xl border border-slate-200 py-2 min-w-[180px]"
+              style={{ top: contextMenu.y, left: contextMenu.x }}
+            >
+              <p className="px-3 py-1 text-xs text-slate-500 font-medium">Bloquear fila</p>
+              <button
+                onClick={() => { onAddBreak(contextMenu.time, "break"); setContextMenu(null); }}
+                className="w-full px-3 py-2 text-left hover:bg-yellow-50 flex items-center gap-2 text-sm"
+              >
+                <span>☕</span> Marcar como Recreo
+              </button>
+              <button
+                onClick={() => { onAddBreak(contextMenu.time, "lunch"); setContextMenu(null); }}
+                className="w-full px-3 py-2 text-left hover:bg-orange-50 flex items-center gap-2 text-sm"
+              >
+                <span>🍽️</span> Marcar como Almuerzo
+              </button>
+              <button
+                onClick={() => { onAddBreak(contextMenu.time, "event"); setContextMenu(null); }}
+                className="w-full px-3 py-2 text-left hover:bg-blue-50 flex items-center gap-2 text-sm"
+              >
+                <span>🎉</span> Marcar como Evento
+              </button>
+            </div>
+          </>
+        )}
+
         {/* Header - Days */}
         <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
           {/* Time column header */}
@@ -1192,12 +1223,84 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
 
         {/* Grid Body - Time ranges as rows */}
         <div className="overflow-x-auto">
-          {timeSlots.map((time, idx) => (
-            <div key={time} className="flex border-b border-slate-100 min-h-[64px]">
-              {/* Time range cell */}
-              <div 
-                className="w-36 flex-shrink-0 px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center"
-                data-testid={`schedule-time-slot-${time.replace(':', '')}`}
+          {timeSlots.map((time, idx) => {
+            const breakItem = getBreakForSlot(time);
+            const isBlocked = isTimeBlocked(time);
+            
+            // If this slot has a break that starts here, render break row
+            if (breakItem) {
+              const breakTypeConfig = {
+                break: { bg: "bg-yellow-100", border: "border-yellow-300", text: "text-yellow-800", icon: "☕" },
+                lunch: { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-800", icon: "🍽️" },
+                event: { bg: "bg-blue-100", border: "border-blue-300", text: "text-blue-800", icon: "🎉" }
+              }[breakItem.type] || { bg: "bg-slate-100", border: "border-slate-300", text: "text-slate-800", icon: "⏸️" };
+              
+              return (
+                <div key={time} className={`flex border-b ${breakTypeConfig.border} min-h-[64px] ${breakTypeConfig.bg}`}>
+                  {/* Time cell */}
+                  <div 
+                    className={`w-36 flex-shrink-0 px-2 py-2 border-r ${breakTypeConfig.border} sticky left-0 z-10 flex items-center justify-center ${breakTypeConfig.bg}`}
+                  >
+                    <span className={`text-xs font-medium ${breakTypeConfig.text}`}>
+                      {formatTimeRange(time)}
+                    </span>
+                  </div>
+                  
+                  {/* Break spans all days */}
+                  <div 
+                    className="flex-1 flex items-center justify-center gap-3 px-4 cursor-pointer group"
+                    onClick={() => onEditBreak(breakItem)}
+                  >
+                    <span className="text-2xl">{breakTypeConfig.icon}</span>
+                    <span className={`font-bold text-lg ${breakTypeConfig.text}`}>{breakItem.label}</span>
+                    <span className={`text-sm ${breakTypeConfig.text} opacity-70`}>
+                      ({breakItem.start_time} - {breakItem.end_time})
+                    </span>
+                    
+                    {/* Delete button on hover */}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onDeleteBreak(breakItem); }}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 bg-white rounded-lg shadow hover:bg-red-50 transition-all ml-2"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-500" />
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+            
+            // Skip rows that are within a break but not the start
+            if (isBlocked) {
+              return null;
+            }
+            
+            // Normal row
+            return (
+              <div key={time} className="flex border-b border-slate-100 min-h-[64px]">
+                {/* Time range cell with right-click to add break */}
+                <div 
+                  className="w-36 flex-shrink-0 px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors group"
+                  data-testid={`schedule-time-slot-${time.replace(':', '')}`}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    setContextMenu({ x: e.clientX, y: e.clientY, time });
+                  }}
+                >
+                  <span className="text-xs font-medium text-slate-600 text-center leading-tight">
+                    {formatTimeRange(time)}
+                  </span>
+                  {/* Add break button on hover */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setContextMenu({ x: e.clientX, y: e.clientY, time });
+                    }}
+                    className="absolute right-1 opacity-0 group-hover:opacity-100 p-1 bg-white rounded shadow hover:bg-blue-50 transition-all"
+                    title="Bloquear fila"
+                  >
+                    <Plus className="w-3 h-3 text-slate-500" />
+                  </button>
+                </div>
               >
                 <span className="text-xs font-medium text-slate-600 text-center leading-tight">
                   {formatTimeRange(time)}
