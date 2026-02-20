@@ -4002,7 +4002,7 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
 
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user = Depends(get_current_user)):
-    """Delete a user and their Cloudinary image"""
+    """Delete a user and all their related data (cascade delete)"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -4023,33 +4023,141 @@ async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     if target.get("is_protected") or target.get("is_owner") or target.get("is_super_admin"):
         raise HTTPException(status_code=400, detail="Este usuario es el propietario de la intranet y no puede ser eliminado")
     
+    school_id = user["school_id"]
+    target_role = target.get("role", "")
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # CASCADE DELETE - Clean up all related data based on user role
+    # ═══════════════════════════════════════════════════════════════════════════
+    
+    try:
+        # STUDENT-SPECIFIC CLEANUP
+        if target_role == "student":
+            # Delete attendance records
+            await db.attendance.delete_many({"student_id": user_id, "school_id": school_id})
+            await db.attendances.delete_many({"student_id": user_id, "school_id": school_id})
+            
+            # Delete grades
+            await db.grades.delete_many({"student_id": user_id, "school_id": school_id})
+            
+            # Delete exam attempts and submissions
+            await db.exam_attempts.delete_many({"student_id": user_id, "school_id": school_id})
+            
+            # Remove from exam submissions (embedded in online_exams)
+            await db.online_exams.update_many(
+                {"school_id": school_id},
+                {"$pull": {"submissions": {"student_id": user_id}}}
+            )
+            
+            # Remove from task submissions (embedded in academic_assignments)
+            await db.academic_assignments.update_many(
+                {"school_id": school_id},
+                {"$pull": {"submissions": {"student_id": user_id}}}
+            )
+            
+            # Delete discipline reports
+            await db.discipline_reports.delete_many({"student_id": user_id, "school_id": school_id})
+            
+            # Delete survey answers
+            await db.survey_answers.delete_many({"user_id": user_id, "school_id": school_id})
+            
+            # Remove from enrolled_students in subjects/courses
+            await db.subjects.update_many(
+                {"school_id": school_id},
+                {"$pull": {"enrolled_students": user_id}}
+            )
+            
+            # Remove likes from course posts
+            await db.course_posts.update_many(
+                {"school_id": school_id},
+                {"$pull": {"likes": user_id}}
+            )
+            
+            # Remove student from parent's children list
+            await db.users.update_many(
+                {"school_id": school_id, "children": user_id},
+                {"$pull": {"children": user_id}}
+            )
+            
+            logger.info(f"Cleaned up student data for user {user_id}")
+        
+        # TEACHER-SPECIFIC CLEANUP
+        elif target_role == "teacher":
+            # Remove teacher from subjects
+            await db.subjects.update_many(
+                {"school_id": school_id, "teacher_id": user_id},
+                {"$set": {"teacher_id": None}}
+            )
+            
+            # Remove as secondary teacher
+            await db.subjects.update_many(
+                {"school_id": school_id},
+                {"$pull": {"secondary_teachers": user_id}}
+            )
+            
+            logger.info(f"Cleaned up teacher data for user {user_id}")
+        
+        # PARENT-SPECIFIC CLEANUP
+        elif target_role == "parent":
+            # Remove parent reference from children (if any)
+            await db.users.update_many(
+                {"school_id": school_id, "parent_id": user_id},
+                {"$unset": {"parent_id": ""}}
+            )
+            
+            logger.info(f"Cleaned up parent data for user {user_id}")
+        
+        # COMMON CLEANUP FOR ALL USERS
+        # Delete messages sent by user
+        await db.messages.delete_many({"sender_id": user_id, "school_id": school_id})
+        
+        # Delete internal mail
+        await db.internal_mail.delete_many({
+            "$or": [
+                {"sender_id": user_id},
+                {"recipient_ids": user_id}
+            ],
+            "school_id": school_id
+        })
+        
+        # Remove from recipients in internal mail
+        await db.internal_mail.update_many(
+            {"school_id": school_id},
+            {"$pull": {"recipient_ids": user_id, "read_by": user_id, "deleted_by": user_id}}
+        )
+        
+        # Delete academic thread messages
+        await db.academic_threads.update_many(
+            {"school_id": school_id},
+            {"$pull": {"messages": {"sender_id": user_id}}}
+        )
+        
+    except Exception as e:
+        logger.error(f"Error during cascade delete for user {user_id}: {e}")
+        # Continue with user deletion even if some cleanup fails
+    
     # Delete photo from Cloudinary if exists
     if target.get("photo_url"):
         try:
-            # Extract public_id from Cloudinary URL
-            # URL format: https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/{folder}/{filename}.{ext}
             photo_url = target["photo_url"]
             if "cloudinary.com" in photo_url:
-                # Extract the part after /upload/
                 parts = photo_url.split("/upload/")
                 if len(parts) > 1:
-                    # Remove version prefix (v123456789/) and file extension
                     path_with_ext = parts[1]
-                    # Remove version prefix if present
                     if path_with_ext.startswith("v"):
                         path_with_ext = "/".join(path_with_ext.split("/")[1:])
-                    # Remove file extension
                     public_id = path_with_ext.rsplit(".", 1)[0]
-                    # Delete from Cloudinary
                     cloudinary.uploader.destroy(public_id)
                     logger.info(f"Deleted Cloudinary image: {public_id}")
         except Exception as e:
             logger.error(f"Error deleting Cloudinary image: {e}")
-            # Continue with user deletion even if image deletion fails
     
+    # Finally, delete the user
     await db.users.delete_one({"id": user_id})
     
-    return {"message": "Usuario eliminado correctamente"}
+    logger.info(f"User {user_id} ({target_role}) deleted with cascade cleanup by {user['id']}")
+    
+    return {"message": "Usuario eliminado correctamente junto con todos sus datos relacionados"}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC SETTINGS - NIVELES EDUCATIVOS
