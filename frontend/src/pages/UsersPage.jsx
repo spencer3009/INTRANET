@@ -1797,10 +1797,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         {selectedRole === 'student' && (
                           <button
                             onClick={() => {
-                              // Add grade and section names for QR card
-                              const gradeName = grades.find(g => g.id === u.grado_id)?.nombre || "";
+                              // Add grade, section and level names for QR card
+                              const grade = grades.find(g => g.id === u.grado_id);
                               const sectionName = sections.find(s => s.id === u.seccion_id)?.nombre || "";
-                              setQRStudent({ ...u, grade_name: gradeName, section_name: sectionName });
+                              const levelName = grade ? levels.find(l => l.id === grade.nivel_id)?.nombre || "" : "";
+                              setQRStudent({ 
+                                ...u, 
+                                grade_name: grade?.nombre || "", 
+                                section_name: sectionName,
+                                level_name: levelName
+                              });
                               setShowQRModal(true);
                               setOpenMenuId(null);
                             }}
