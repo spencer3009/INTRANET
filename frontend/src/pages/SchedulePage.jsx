@@ -1617,13 +1617,17 @@ export default function SchedulePage({ user, token, onLogout }) {
 
   // Load breaks
   const loadBreaks = useCallback(async () => {
+    if (!selectedGrade || !selectedSection) {
+      setBreaks([]);
+      return;
+    }
     try {
-      const res = await axios.get(`${API}/schedule/breaks`, { headers });
+      const res = await axios.get(`${API}/schedule/breaks?grade_id=${selectedGrade}&section_id=${selectedSection}`, { headers });
       setBreaks(res.data.breaks || []);
     } catch (err) {
       console.error("Error loading breaks:", err);
     }
-  }, [token]);
+  }, [token, selectedGrade, selectedSection]);
 
   // Load initial data
   useEffect(() => {
