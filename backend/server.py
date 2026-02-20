@@ -9815,6 +9815,55 @@ async def get_subjects(
     
     return subjects
 
+@api_router.get("/academic/teacher-subjects")
+async def get_teacher_subjects(
+    teacher_id: str,
+    grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
+    current_user = Depends(get_current_user)
+):
+    """Get subjects assigned to a specific teacher, optionally filtered by grade and section"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    school_id = user["school_id"]
+    
+    # Build query for academic_assignments
+    query = {
+        "school_id": school_id,
+        "teacher_id": teacher_id
+    }
+    
+    if grade_id:
+        query["grade_id"] = grade_id
+    if section_id:
+        query["section_id"] = section_id
+    
+    # Get assignments for this teacher
+    assignments = await db.academic_assignments.find(query, {"_id": 0}).to_list(100)
+    
+    # Get unique subject IDs
+    subject_ids = list(set([a.get("subject_id") for a in assignments if a.get("subject_id")]))
+    
+    if not subject_ids:
+        return []
+    
+    # Get subjects
+    subjects = await db.subjects.find({
+        "id": {"$in": subject_ids},
+        "school_id": school_id
+    }, {"_id": 0}).to_list(100)
+    
+    # Add assignment info to each subject
+    for subject in subjects:
+        assignment = next((a for a in assignments if a.get("subject_id") == subject["id"]), None)
+        if assignment:
+            subject["assignment_id"] = assignment.get("id")
+            subject["role"] = assignment.get("role", "titular")
+    
+    return subjects
+
 @api_router.post("/academic/subjects")
 async def create_subject(data: SubjectCreate, current_user = Depends(get_current_user)):
     """Create a new subject"""
