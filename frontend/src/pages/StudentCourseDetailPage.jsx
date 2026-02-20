@@ -3826,17 +3826,21 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
                   {selectedMessage.subject}
                 </h2>
                 <div className="flex items-center gap-2">
-                  <button 
-                    onClick={() => handleArchiveMessage(selectedMessage.id)}
-                    className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" 
-                    title="Archivar"
-                  >
-                    <Archive className="w-5 h-5" />
-                  </button>
+                  {/* Archive button - NOT shown in trash */}
+                  {activeFolder !== "trash" && (
+                    <button 
+                      onClick={() => handleArchiveMessage(selectedMessage.id)}
+                      className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors" 
+                      title="Archivar"
+                    >
+                      <Archive className="w-5 h-5" />
+                    </button>
+                  )}
+                  {/* Delete button */}
                   <button 
                     onClick={() => confirmDeleteMessage(selectedMessage)}
                     className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" 
-                    title="Eliminar"
+                    title={activeFolder === "trash" ? "Eliminar permanentemente" : "Eliminar"}
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
