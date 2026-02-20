@@ -73,6 +73,10 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 |   - Modal de edición con TimePicker | Feb 2026 | ✅ |
 |   - Validación de solapamiento entre breaks | Feb 2026 | ✅ |
 |   - Previene programar clases en horarios bloqueados | Feb 2026 | ✅ |
+|   - **🆕 Configurables por Grado + Sección** | Feb 2026 | ✅ Probado |
+|     - Cada grado/sección tiene breaks independientes | Feb 2026 | ✅ |
+|     - Backend: POST/GET/PUT usan grade_id + section_id | Feb 2026 | ✅ |
+|     - Admin: Filtrado automático por selección actual | Feb 2026 | ✅ |
 | **🆕 Horario en Portal del Alumno (Read-Only)** | Feb 2026 | ✅ Probado |
 |   - Auto-detección de grado y sección del estudiante | Feb 2026 | ✅ |
 |   - Endpoint seguro GET /api/student/schedule (sin parámetros) | Feb 2026 | ✅ |
