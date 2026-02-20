@@ -337,47 +337,45 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 
   const timeOptions = generateTimeOptions();
 
-  // Load subjects when grade changes
+  // Load subjects when PROFESOR + GRADO + SECCION change
   useEffect(() => {
-    const loadSubjects = async () => {
-      if (!form.grado_id) {
+    const loadTeacherSubjects = async () => {
+      // Need all three: profesor, grado, seccion
+      if (!form.profesor_id || !form.grado_id || !form.seccion_id) {
         setSubjects([]);
         return;
       }
       
       setLoadingSubjects(true);
       try {
-        const res = await axios.get(`${API}/academic/subjects?grade_id=${form.grado_id}`, { headers });
-        // API returns array directly, not wrapped in {subjects: [...]}
-        setSubjects(Array.isArray(res.data) ? res.data : (res.data.subjects || []));
+        const res = await axios.get(
+          `${API}/academic/teacher-subjects?teacher_id=${form.profesor_id}&grade_id=${form.grado_id}&section_id=${form.seccion_id}`, 
+          { headers }
+        );
+        setSubjects(Array.isArray(res.data) ? res.data : []);
       } catch (err) {
-        console.error("Error loading subjects:", err);
+        console.error("Error loading teacher subjects:", err);
         setSubjects([]);
       } finally {
         setLoadingSubjects(false);
       }
     };
     
-    loadSubjects();
-  }, [form.grado_id, token]);
+    loadTeacherSubjects();
+  }, [form.profesor_id, form.grado_id, form.seccion_id, token]);
 
-  // Filter subjects
+  // Filter subjects by search
   const filteredSubjects = subjects.filter(s => 
     s.name?.toLowerCase().includes(subjectSearch.toLowerCase())
   );
 
   // Handle subject selection
   const handleSelectSubject = (subject) => {
-    // Get teacher_id from primary_teacher or assigned_teachers
-    const teacherId = subject.primary_teacher?.id || 
-                      subject.assigned_teachers?.[0]?.id || 
-                      subject.teacher_id;
     setForm(p => ({ 
       ...p, 
       materia: subject.name,
       subject_id: subject.id,
-      color: subject.color || p.color,
-      profesor_id: teacherId || p.profesor_id
+      color: subject.color || p.color
     }));
     setSubjectSearch("");
     setShowSubjectDropdown(false);
