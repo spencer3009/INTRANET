@@ -705,7 +705,7 @@ function ReportsTab({ token, schoolId }) {
 
   const loadSections = async (gradeId) => {
     try {
-      const res = await axios.get(`${API}/academic/sections?grade_id=${gradeId}`, { headers });
+      const res = await axios.get(`${API}/academic/sections?grado_id=${gradeId}`, { headers });
       setSections(res.data || []);
     } catch (err) {
       console.error("Error loading sections:", err);
