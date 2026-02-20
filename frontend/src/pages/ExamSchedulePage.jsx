@@ -611,7 +611,7 @@ export default function ExamSchedulePage({ user, token, onLogout }) {
         const [gradesRes, sectionsRes, subjectsRes, teachersRes, settingsRes] = await Promise.all([
           axios.get(`${API}/api/academic/grades`, { headers }),
           axios.get(`${API}/api/academic/sections`, { headers }),
-          axios.get(`${API}/api/subjects`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/api/academic/subjects`, { headers }).catch(() => ({ data: [] })),
           axios.get(`${API}/api/users/teachers/active`, { headers }),
           axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
         ]);
