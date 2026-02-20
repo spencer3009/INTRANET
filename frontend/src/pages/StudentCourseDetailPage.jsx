@@ -724,45 +724,8 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
     setSelectedStudent(null);
   };
   
-  // Calculate dynamic sticky top values based on column heights
-  useEffect(() => {
-    const calculateStickyTops = () => {
-      // Only on desktop
-      if (window.innerWidth < 1024) {
-        setLeftStickyTop('auto');
-        setRightStickyTop('auto');
-        return;
-      }
-      
-      const headerHeight = 96; // Height of sticky header
-      const viewportHeight = window.innerHeight;
-      
-      if (leftColumnRef.current) {
-        const leftHeight = leftColumnRef.current.offsetHeight;
-        // Calculate top so sticky activates when bottom of column is visible
-        // top = viewportHeight - columnHeight - headerHeight
-        const leftTop = Math.max(headerHeight, viewportHeight - leftHeight);
-        setLeftStickyTop(`${leftTop}px`);
-      }
-      
-      if (rightColumnRef.current) {
-        const rightHeight = rightColumnRef.current.offsetHeight;
-        const rightTop = Math.max(headerHeight, viewportHeight - rightHeight);
-        setRightStickyTop(`${rightTop}px`);
-      }
-    };
-    
-    // Initial calculation after render
-    const timer = setTimeout(calculateStickyTops, 100);
-    
-    // Recalculate on resize
-    window.addEventListener('resize', calculateStickyTops);
-    
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', calculateStickyTops);
-    };
-  }, [posts, tasks, materials, forumPosts, students, reminders]); // Recalculate when content changes
+  // Fixed sticky top value - based on header height (no dynamic calculation to avoid flickering)
+  const STICKY_TOP = '104px'; // header (~96px) + small gap
   
   // Calculate student's grades for "Mi rendimiento" card
   const studentId = user?.id;
