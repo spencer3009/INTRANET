@@ -1279,7 +1279,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
               <div key={time} className="flex border-b border-slate-100 min-h-[64px]">
                 {/* Time range cell with right-click to add break */}
                 <div 
-                  className="w-36 flex-shrink-0 px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors group"
+                  className="w-36 flex-shrink-0 px-2 py-2 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 flex items-center justify-center cursor-pointer hover:bg-slate-100 transition-colors group relative"
                   data-testid={`schedule-time-slot-${time.replace(':', '')}`}
                   onContextMenu={(e) => {
                     e.preventDefault();
@@ -1301,33 +1301,28 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
                     <Plus className="w-3 h-3 text-slate-500" />
                   </button>
                 </div>
-              >
-                <span className="text-xs font-medium text-slate-600 text-center leading-tight">
-                  {formatTimeRange(time)}
-                </span>
-              </div>
               
-              {/* Day cells */}
-              {visibleDays.map(day => {
-                const slotSchedules = getSchedulesForSlot(day.id, time);
-                
-                return (
-                  <div 
-                    key={`${day.id}-${time}`}
-                    data-testid={`schedule-cell-${day.id}-${time.replace(':', '')}`}
-                    className="flex-1 min-w-[180px] border-r last:border-r-0 border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors p-1"
-                    onClick={() => onCellClick(day.id, time)}
-                  >
-                    {slotSchedules.map(schedule => {
-                      // Only render if this is the start slot
-                      if (!scheduleStartsAtSlot(schedule, time)) return null;
-                      
-                      const teacher = teachers?.find(t => t.id === schedule.profesor_id);
-                      const section = sections?.find(s => s.id === schedule.seccion_id);
-                      const studentCount = section?.student_count || section?.students_count || 0;
-                      const [startH] = schedule.hora_inicio.split(':').map(Number);
-                      const [endH] = schedule.hora_fin.split(':').map(Number);
-                      const spanRows = endH - startH;
+                {/* Day cells */}
+                {visibleDays.map(day => {
+                  const slotSchedules = getSchedulesForSlot(day.id, time);
+                  
+                  return (
+                    <div 
+                      key={`${day.id}-${time}`}
+                      data-testid={`schedule-cell-${day.id}-${time.replace(':', '')}`}
+                      className="flex-1 min-w-[180px] border-r last:border-r-0 border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors p-1"
+                      onClick={() => onCellClick(day.id, time)}
+                    >
+                      {slotSchedules.map(schedule => {
+                        // Only render if this is the start slot
+                        if (!scheduleStartsAtSlot(schedule, time)) return null;
+                        
+                        const teacher = teachers?.find(t => t.id === schedule.profesor_id);
+                        const section = sections?.find(s => s.id === schedule.seccion_id);
+                        const studentCount = section?.student_count || section?.students_count || 0;
+                        const [startH] = schedule.hora_inicio.split(':').map(Number);
+                        const [endH] = schedule.hora_fin.split(':').map(Number);
+                        const spanRows = endH - startH;
                       const teacherFullName = teacher ? `${teacher.name} ${teacher.last_name || ''}`.trim() : '';
                       const teacherPhoto = teacher?.profile_image || teacher?.photo_url;
                       
