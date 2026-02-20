@@ -15,6 +15,7 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 5. Sistema de mensajería interna (correo interno)
 6. Presencia en tiempo real de estudiantes
 7. Sistema de mensajes para Portal del Alumno
+8. **Sistema profesional de horarios académicos**
 
 ---
 
@@ -53,11 +54,20 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 | - 8 botones circulares (Tablero, Tareas, etc.) | Feb 2026 | ✅ |
 | **Badges de mensajes no leídos** | Feb 2026 | ✅ |
 | - Sidebar, campana de notificaciones, dashboard | Feb 2026 | ✅ |
+| **🆕 Módulo Profesional de Horarios (Horario de Clases)** | Feb 2026 | ✅ Probado |
+| - Grilla semanal estilo Google Calendar | Feb 2026 | ✅ |
+| - Configuración persistente por school_id (horas, formato 12h/24h) | Feb 2026 | ✅ |
+| - Validación de conflictos (profesor/aula/sección) | Feb 2026 | ✅ |
+| - CRUD completo de horarios | Feb 2026 | ✅ |
+| - Colores por materia | Feb 2026 | ✅ |
+| - Filtros por grado/sección | Feb 2026 | ✅ |
+| - Modal de agregar/editar con combobox de materias | Feb 2026 | ✅ |
+| - Responsive con scroll horizontal y columna sticky | Feb 2026 | ✅ |
 
-### 🔴 P0 - Crítico
+### 🔴 P0 - Crítico (Refactoring Técnico)
 - [ ] Refactorizar `CourseDetailPage.jsx` (>9,000 líneas)
-- [ ] Refactorizar `StudentCourseDetailPage.jsx` (>4,000 líneas) - NUEVO
-- [ ] Refactorizar `server.py` (backend monolítico)
+- [ ] Refactorizar `StudentCourseDetailPage.jsx` (>4,000 líneas)
+- [ ] Refactorizar `server.py` (backend monolítico >16,000 líneas)
 
 ### 🟠 P1 - Alta Prioridad
 - [ ] Sistema anti-trampa básico para exámenes
