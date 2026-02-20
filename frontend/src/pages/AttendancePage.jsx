@@ -1203,6 +1203,10 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
             <TeacherAttendanceTab token={token} schoolId={user?.school_id} />
           )}
           
+          {activeTab === "qr-scanner" && (
+            <QRScannerTab token={token} schoolId={user?.school_id} />
+          )}
+          
           {activeTab === "reports" && (
             <ReportsTab token={token} schoolId={user?.school_id} />
           )}
