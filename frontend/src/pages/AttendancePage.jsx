@@ -820,7 +820,7 @@ function ReportsTab({ token, schoolId }) {
         `${item.attendance_rate}%`
       ]);
       
-      doc.autoTable({
+      autoTable(doc, {
         startY: 80,
         head: [['Estudiante', 'Días', 'Asistencias', 'Tardanzas', 'Inasistencias', '% Asistencia']],
         body: tableData,
