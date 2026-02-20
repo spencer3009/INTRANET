@@ -3609,8 +3609,8 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
   const FOLDERS = [
     { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox },
     { id: "sent", label: "Enviados", icon: SendHorizontal, count: stats.sent },
-    { id: "archived", label: "Archivados", icon: Archive, count: 0 },
-    { id: "trash", label: "Papelera", icon: Trash2, count: 0 },
+    { id: "archived", label: "Archivados", icon: Archive, count: stats.archived || 0 },
+    { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash || 0 },
   ];
 
   // Message search filter
