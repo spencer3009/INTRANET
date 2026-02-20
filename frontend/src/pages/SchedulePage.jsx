@@ -1925,6 +1925,97 @@ export default function SchedulePage({ user, token, onLogout }) {
     }
   }, [token, selectedGrade, selectedSection]);
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // EXAM SCHEDULE STATES
+  // ═══════════════════════════════════════════════════════════════════════════
+  const [exams, setExams] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [selectedExamDate, setSelectedExamDate] = useState(null);
+  const [showExamPanel, setShowExamPanel] = useState(false);
+  const [editingExam, setEditingExam] = useState(null);
+  const [showExamDeleteConfirm, setShowExamDeleteConfirm] = useState(false);
+  const [examToDelete, setExamToDelete] = useState(null);
+
+  // Load exams when on exam tab
+  const loadExams = useCallback(async () => {
+    if (activeTab !== "examenes" || !selectedGrade || !selectedSection) {
+      setExams([]);
+      return;
+    }
+    try {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      const fromDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month + 1, 0).getDate();
+      const toDate = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
+      
+      const res = await axios.get(
+        `${API}/exam-schedules?grade_id=${selectedGrade}&section_id=${selectedSection}&from_date=${fromDate}&to_date=${toDate}`,
+        { headers }
+      );
+      setExams(res.data.exams || []);
+    } catch (err) {
+      console.error("Error loading exams:", err);
+    }
+  }, [activeTab, selectedGrade, selectedSection, currentMonth, token]);
+
+  // Load subjects for exam form
+  const loadSubjects = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/academic/subjects`, { headers });
+      setSubjects(res.data || []);
+    } catch (err) {
+      console.error("Error loading subjects:", err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadExams();
+  }, [loadExams]);
+
+  useEffect(() => {
+    if (activeTab === "examenes") {
+      loadSubjects();
+    }
+  }, [activeTab, loadSubjects]);
+
+  // Exam handlers
+  const handleAddExam = () => {
+    setEditingExam(null);
+    setShowExamPanel(true);
+  };
+  const handleEditExam = (exam) => {
+    setEditingExam(exam);
+    setShowExamPanel(true);
+  };
+  const handleDeleteExam = (exam) => {
+    setExamToDelete(exam);
+    setShowExamDeleteConfirm(true);
+  };
+  const confirmDeleteExam = async () => {
+    if (!examToDelete) return;
+    try {
+      await axios.delete(`${API}/exam-schedules/${examToDelete.id}`, { headers });
+      loadExams();
+    } catch (err) {
+      console.error("Error deleting exam:", err);
+    } finally {
+      setShowExamDeleteConfirm(false);
+      setExamToDelete(null);
+    }
+  };
+
+  // Month navigation
+  const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+  const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+
+  // Get exams for selected date
+  const examsForSelectedDate = selectedExamDate ? exams.filter(e => e.date === selectedExamDate) : [];
+
+  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const currentMonthName = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
+
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
