@@ -6154,6 +6154,8 @@ class ScheduleBreakCreate(BaseModel):
     label: str
     start_time: str
     end_time: str
+    grade_id: str  # Required - break belongs to specific grade
+    section_id: str  # Required - break belongs to specific section
     color: Optional[str] = None
 
 class ScheduleBreakUpdate(BaseModel):
@@ -6162,6 +6164,7 @@ class ScheduleBreakUpdate(BaseModel):
     start_time: Optional[str] = None
     end_time: Optional[str] = None
     color: Optional[str] = None
+    # grade_id and section_id cannot be changed after creation
 
 # Default colors for break types
 BREAK_COLORS = {
