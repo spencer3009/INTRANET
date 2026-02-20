@@ -4128,7 +4128,9 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
               </div>
               
               <p className="text-slate-600 text-sm">
-                ¿Estás seguro de que deseas eliminar este mensaje? Podrás recuperarlo desde la papelera.
+                {activeFolder === "trash" 
+                  ? "¿Estás seguro de que deseas eliminar permanentemente este mensaje? Esta acción no se puede deshacer."
+                  : "¿Estás seguro de que deseas eliminar este mensaje? Podrás recuperarlo desde la papelera."}
               </p>
             </div>
 
