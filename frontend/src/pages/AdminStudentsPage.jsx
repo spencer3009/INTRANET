@@ -4,12 +4,13 @@ import axios from "axios";
 import AdminSidebar from "@/components/AdminSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import ConfirmModal from "@/components/ConfirmModal";
+import StudentQRCard from "@/components/StudentQRCard";
 import { 
   GraduationCap, UserPlus, ArrowLeft, Loader2, X, Camera,
   Check, AlertCircle, Plus, Eye, EyeOff, Search, UserCheck,
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles,
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Users,
-  Filter, Download, Mail, ChevronDown
+  Filter, Download, Mail, ChevronDown, QrCode
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
