@@ -15424,14 +15424,15 @@ async def get_archived(
     limit: int = 20,
     current_user = Depends(get_current_user)
 ):
-    """Get archived messages"""
+    """Get archived messages (both received and sent)"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
     skip = (page - 1) * limit
     
-    pipeline = [
+    # Get archived received messages
+    received_pipeline = [
         {"$match": {
             "recipients": {
                 "$elemMatch": {
@@ -15441,31 +15442,76 @@ async def get_archived(
                 }
             }
         }},
-        {"$sort": {"created_at": -1}},
-        {"$skip": skip},
-        {"$limit": limit}
+        {"$addFields": {"message_type": "received"}}
     ]
     
-    messages = await db.internal_mail.aggregate(pipeline).to_list(limit)
+    # Get archived sent messages
+    sent_pipeline = [
+        {"$match": {
+            "sender_id": user["id"],
+            "sender_archived": True,
+            "sender_deleted": {"$ne": True}
+        }},
+        {"$addFields": {"message_type": "sent"}}
+    ]
+    
+    # Combine both
+    all_messages = []
+    received = await db.internal_mail.aggregate(received_pipeline).to_list(100)
+    sent = await db.internal_mail.aggregate(sent_pipeline).to_list(100)
+    all_messages = received + sent
+    
+    # Sort by created_at and paginate
+    all_messages.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    messages = all_messages[skip:skip + limit]
     
     enriched = []
     for msg in messages:
-        sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
-        recipient_entry = next((r for r in msg.get("recipients", []) if r["user_id"] == user["id"]), {})
-        
-        enriched.append({
-            "id": msg["id"],
-            "subject": msg["subject"],
-            "body_preview": msg["body"][:150] + "..." if len(msg["body"]) > 150 else msg["body"],
-            "sender": {
-                "id": sender["id"] if sender else None,
-                "name": sender.get("name", "Usuario") if sender else "Usuario eliminado",
-                "photo_url": sender.get("photo_url") if sender else None,
-            },
-            "created_at": msg["created_at"],
-            "is_read": recipient_entry.get("is_read", False),
-            "has_attachments": len(msg.get("attachments", [])) > 0
-        })
+        if msg.get("message_type") == "sent":
+            # For sent messages, show recipient info
+            first_recipient_id = msg["recipients"][0]["user_id"] if msg.get("recipients") else None
+            recipient = await db.users.find_one({"id": first_recipient_id}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}) if first_recipient_id else None
+            enriched.append({
+                "id": msg["id"],
+                "subject": msg["subject"],
+                "body_preview": msg["body"][:150] + "..." if len(msg.get("body", "")) > 150 else msg.get("body", ""),
+                "body": msg.get("body", ""),
+                "sender": {
+                    "id": user["id"],
+                    "name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+                    "photo_url": user.get("photo_url"),
+                },
+                "recipient": {
+                    "id": recipient["id"] if recipient else first_recipient_id,
+                    "name": f"{recipient.get('name', '')} {recipient.get('last_name', '')}".strip() if recipient else "Usuario",
+                    "photo_url": recipient.get("photo_url") if recipient else None,
+                },
+                "created_at": msg["created_at"],
+                "is_read": True,
+                "message_type": "sent",
+                "has_attachments": len(msg.get("attachments", [])) > 0
+            })
+        else:
+            # For received messages, show sender info
+            sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
+            recipient_entry = next((r for r in msg.get("recipients", []) if r["user_id"] == user["id"]), {})
+            enriched.append({
+                "id": msg["id"],
+                "subject": msg["subject"],
+                "body_preview": msg["body"][:150] + "..." if len(msg.get("body", "")) > 150 else msg.get("body", ""),
+                "body": msg.get("body", ""),
+                "sender": {
+                    "id": sender["id"] if sender else None,
+                    "name": f"{sender.get('name', '')} {sender.get('last_name', '')}".strip() if sender else "Usuario eliminado",
+                    "photo_url": sender.get("photo_url") if sender else None,
+                    "role": sender.get("role") if sender else None,
+                    "email": sender.get("email") if sender else None,
+                },
+                "created_at": msg["created_at"],
+                "is_read": recipient_entry.get("is_read", False),
+                "message_type": "received",
+                "has_attachments": len(msg.get("attachments", [])) > 0
+            })
     
     return {"messages": enriched}
 
@@ -15476,14 +15522,15 @@ async def get_trash(
     limit: int = 20,
     current_user = Depends(get_current_user)
 ):
-    """Get deleted/trash messages"""
+    """Get deleted/trash messages (both received and sent)"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
     skip = (page - 1) * limit
     
-    pipeline = [
+    # Get deleted received messages
+    received_pipeline = [
         {"$match": {
             "recipients": {
                 "$elemMatch": {
@@ -15492,29 +15539,70 @@ async def get_trash(
                 }
             }
         }},
-        {"$sort": {"created_at": -1}},
-        {"$skip": skip},
-        {"$limit": limit}
+        {"$addFields": {"message_type": "received"}}
     ]
     
-    messages = await db.internal_mail.aggregate(pipeline).to_list(limit)
+    # Get deleted sent messages
+    sent_pipeline = [
+        {"$match": {
+            "sender_id": user["id"],
+            "sender_deleted": True
+        }},
+        {"$addFields": {"message_type": "sent"}}
+    ]
+    
+    # Combine both
+    all_messages = []
+    received = await db.internal_mail.aggregate(received_pipeline).to_list(100)
+    sent = await db.internal_mail.aggregate(sent_pipeline).to_list(100)
+    all_messages = received + sent
+    
+    # Sort by created_at and paginate
+    all_messages.sort(key=lambda x: x.get("created_at", ""), reverse=True)
+    messages = all_messages[skip:skip + limit]
     
     enriched = []
     for msg in messages:
-        sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
-        
-        enriched.append({
-            "id": msg["id"],
-            "subject": msg["subject"],
-            "body_preview": msg["body"][:150] + "..." if len(msg["body"]) > 150 else msg["body"],
-            "sender": {
-                "id": sender["id"] if sender else None,
-                "name": sender.get("name", "Usuario") if sender else "Usuario eliminado",
-                "photo_url": sender.get("photo_url") if sender else None,
-            },
-            "created_at": msg["created_at"],
-            "has_attachments": len(msg.get("attachments", [])) > 0
-        })
+        if msg.get("message_type") == "sent":
+            first_recipient_id = msg["recipients"][0]["user_id"] if msg.get("recipients") else None
+            recipient = await db.users.find_one({"id": first_recipient_id}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}) if first_recipient_id else None
+            enriched.append({
+                "id": msg["id"],
+                "subject": msg["subject"],
+                "body_preview": msg["body"][:150] + "..." if len(msg.get("body", "")) > 150 else msg.get("body", ""),
+                "body": msg.get("body", ""),
+                "sender": {
+                    "id": user["id"],
+                    "name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+                    "photo_url": user.get("photo_url"),
+                },
+                "recipient": {
+                    "id": recipient["id"] if recipient else first_recipient_id,
+                    "name": f"{recipient.get('name', '')} {recipient.get('last_name', '')}".strip() if recipient else "Usuario",
+                    "photo_url": recipient.get("photo_url") if recipient else None,
+                },
+                "created_at": msg["created_at"],
+                "message_type": "sent",
+                "has_attachments": len(msg.get("attachments", [])) > 0
+            })
+        else:
+            sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
+            enriched.append({
+                "id": msg["id"],
+                "subject": msg["subject"],
+                "body_preview": msg["body"][:150] + "..." if len(msg.get("body", "")) > 150 else msg.get("body", ""),
+                "body": msg.get("body", ""),
+                "sender": {
+                    "id": sender["id"] if sender else None,
+                    "name": f"{sender.get('name', '')} {sender.get('last_name', '')}".strip() if sender else "Usuario eliminado",
+                    "photo_url": sender.get("photo_url") if sender else None,
+                    "role": sender.get("role") if sender else None,
+                    "email": sender.get("email") if sender else None,
+                },
+                "created_at": msg["created_at"],
+                "message_type": "received",
+                "has_attachments": len(msg.get("attachments", [])) > 0
+            })
     
     return {"messages": enriched}
 
