@@ -1883,7 +1883,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setQRStudent(u);
+                            // Add grade and section names for QR card
+                            const gradeName = grades.find(g => g.id === u.grado_id)?.nombre || "";
+                            const sectionName = sections.find(s => s.id === u.seccion_id)?.nombre || "";
+                            setQRStudent({ ...u, grade_name: gradeName, section_name: sectionName });
                             setShowQRModal(true);
                           }}
                           className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-50 transition-colors group"
