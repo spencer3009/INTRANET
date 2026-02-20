@@ -17635,7 +17635,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://peru-school-saas.preview.emergentagent.com",
+        "https://peru-edunet-1.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,

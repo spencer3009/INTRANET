@@ -60,11 +60,11 @@
     "student_email": "pepito@gmail.com",
     "student_password": "1234abc8",
     "school_subdomain": "elroble",
-    "schedule_url": "https://peru-school-saas.preview.emergentagent.com/horarios",
-    "student_schedule_url": "https://peru-school-saas.preview.emergentagent.com/student/schedule"
+    "schedule_url": "https://peru-edunet-1.preview.emergentagent.com/horarios",
+    "student_schedule_url": "https://peru-edunet-1.preview.emergentagent.com/student/schedule"
   },
 
-  "seed_data_creation": "None - used existing test data. Grade IDs: 3 años=6ef8ab18-41b2-45e7-b482-06a84d95c34d, 1°=4bcad3be-c38e-4b7c-8a80-eb3dd4bf8f6e. Section IDs: ÚNICA=11f50cbc-f5f6-422a-a989-87b2af6027f1, A=18dd37fa-79d6-4b38-b5a2-46deeb1b00fe",
+  "seed_data_creation": "None - used existing test data. Grade IDs: 3 años=peru-edunet-1, 1°=peru-edunet-1. Section IDs: ÚNICA=peru-edunet-1, A=peru-edunet-1",
 
   "retest_needed": false,
 

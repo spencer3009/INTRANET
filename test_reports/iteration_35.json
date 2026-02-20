@@ -64,8 +64,8 @@
     "student_email": "pepito@gmail.com",
     "student_password": "1234abc8",
     "school_subdomain": "elroble",
-    "admin_exam_schedule_url": "https://peru-school-saas.preview.emergentagent.com/school/elroble/admin/exam-schedule",
-    "student_exam_schedule_url": "https://peru-school-saas.preview.emergentagent.com/student/exams"
+    "admin_exam_schedule_url": "https://peru-edunet-1.preview.emergentagent.com/school/elroble/admin/exam-schedule",
+    "student_exam_schedule_url": "https://peru-edunet-1.preview.emergentagent.com/student/exams"
   },
 
   "seed_data_creation": "None - used existing test data. Exam on Feb 25 for '3 años ÚNICA' - Ciencias Naturales, 09:00-10:30, Parcial",
@@ -74,7 +74,7 @@
 
   "should_main_agent_self_test": false,
 
-  "context_for_next_testing_agent": "Exam Schedule module fully tested. Backend: POST/GET/PUT/DELETE /api/exam-schedules with grade_id and section_id required. Conflict validation for section and teacher overlaps. GET /api/student/exam-schedule auto-filters by student's grade/section. Frontend: Admin page at /school/{subdomain}/admin/exam-schedule has calendar view with exam count badges, side panel for day details, form panel for creating/editing exams. Student page at /student/exams shows exams grouped by date with relative time. Test data: Grade ID=6ef8ab18-41b2-45e7-b482-06a84d95c34d (3 años), Section ID=11f50cbc-f5f6-422a-a989-87b2af6027f1 (ÚNICA).",
+  "context_for_next_testing_agent": "Exam Schedule module fully tested. Backend: POST/GET/PUT/DELETE /api/exam-schedules with grade_id and section_id required. Conflict validation for section and teacher overlaps. GET /api/student/exam-schedule auto-filters by student's grade/section. Frontend: Admin page at /school/{subdomain}/admin/exam-schedule has calendar view with exam count badges, side panel for day details, form panel for creating/editing exams. Student page at /student/exams shows exams grouped by date with relative time. Test data: Grade ID=peru-edunet-1 (3 años), Section ID=peru-edunet-1 (ÚNICA).",
 
   "verified_features": {
     "backend_api": {
