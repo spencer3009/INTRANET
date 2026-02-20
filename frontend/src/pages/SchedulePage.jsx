@@ -2261,7 +2261,7 @@ export default function SchedulePage({ user, token, onLogout }) {
           {/* Filters */}
           <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6" data-testid="schedule-filters">
             <div className="flex flex-wrap items-center gap-4">
-              {activeTab === "clases" && (
+              {(activeTab === "clases" || activeTab === "examenes") && (
                 <>
                   {/* Grade filter */}
                   <div className="flex-1 min-w-[200px]">
