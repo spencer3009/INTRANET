@@ -2164,48 +2164,82 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         onConfirm={confirmDeleteUser}
         title="Eliminar usuario"
         message={userToDelete ? (
-          <div className="space-y-3">
-            <p className="font-medium text-slate-800">
-              ¿Estás seguro de eliminar a "{userToDelete.name} {userToDelete.last_name || ''}"?
+          <div className="space-y-4">
+            <p className="text-slate-600">
+              Estás a punto de eliminar a <span className="font-semibold text-slate-800">"{userToDelete.name} {userToDelete.last_name || ''}"</span>
             </p>
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-              <p className="text-sm font-semibold text-red-700 mb-2">
-                ⚠️ Esta acción eliminará permanentemente:
+            
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+              <p className="text-sm font-medium text-slate-700 mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-500" />
+                Se eliminarán los siguientes datos:
               </p>
-              <ul className="text-sm text-red-600 space-y-1 ml-4 list-disc">
-                <li>La cuenta del usuario y su foto de perfil</li>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-sm text-slate-600">
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                  Cuenta y foto de perfil
+                </span>
                 {userToDelete.role === 'student' && (
                   <>
-                    <li>Todos los registros de asistencia</li>
-                    <li>Todas las calificaciones</li>
-                    <li>Todas las tareas entregadas</li>
-                    <li>Todos los exámenes realizados</li>
-                    <li>Reportes de disciplina</li>
-                    <li>Respuestas a encuestas</li>
-                    <li>Matrículas en cursos</li>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Registros de asistencia
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Calificaciones
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Tareas entregadas
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Exámenes realizados
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Reportes de disciplina
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Respuestas a encuestas
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Matrículas en cursos
+                    </span>
                   </>
                 )}
                 {userToDelete.role === 'teacher' && (
                   <>
-                    <li>Asignación como profesor de materias</li>
-                    <li>Mensajes enviados</li>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Asignación de materias
+                    </span>
                   </>
                 )}
                 {userToDelete.role === 'parent' && (
                   <>
-                    <li>Vinculación con sus hijos</li>
-                    <li>Mensajes enviados</li>
+                    <span className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                      Vinculación con hijos
+                    </span>
                   </>
                 )}
-                <li>Correos internos y mensajes</li>
-              </ul>
+                <span className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                  Correos y mensajes
+                </span>
+              </div>
             </div>
-            <p className="text-xs text-slate-500 italic">
-              Esta acción no se puede deshacer.
+            
+            <p className="text-xs text-slate-400 text-center">
+              Esta acción es permanente y no se puede deshacer
             </p>
           </div>
         ) : ""}
-        confirmText="Sí, eliminar todo"
+        confirmText="Eliminar"
         cancelText="Cancelar"
         type="danger"
         loading={deleteLoading}
