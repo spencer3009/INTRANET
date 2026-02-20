@@ -728,7 +728,7 @@ export default function ExamSchedulePage({ user, token, onLogout }) {
   return (
     <div className="min-h-screen bg-slate-50 flex" data-testid="exam-schedule-page">
       {/* Sidebar */}
-      <Sidebar
+      <AdminSidebar
         active="examenes-programados"
         expanded={sidebarExpanded}
         onToggle={() => setSidebarExpanded(!sidebarExpanded)}
