@@ -6050,7 +6050,10 @@ async def get_schedule_settings(current_user = Depends(get_current_user)):
             "start_hour": "07:00",
             "end_hour": "18:00",
             "time_format": "24h",
-            "block_duration": 45
+            "block_duration": 45,
+            "view_mode": "horizontal",
+            "include_saturday": False,
+            "include_sunday": False
         }
     
     return settings
@@ -6076,6 +6079,9 @@ async def save_schedule_settings(
         "end_hour": data.end_hour,
         "time_format": data.time_format,
         "block_duration": data.block_duration,
+        "view_mode": data.view_mode,
+        "include_saturday": data.include_saturday,
+        "include_sunday": data.include_sunday,
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
