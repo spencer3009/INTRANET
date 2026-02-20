@@ -123,32 +123,18 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
               Rango de horas visibles
             </label>
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Desde</label>
-                <select
-                  data-testid="settings-start-hour"
-                  value={form.start_hour}
-                  onChange={(e) => setForm(p => ({ ...p, start_hour: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {hourOptions.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs text-slate-500 mb-1">Hasta</label>
-                <select
-                  data-testid="settings-end-hour"
-                  value={form.end_hour}
-                  onChange={(e) => setForm(p => ({ ...p, end_hour: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {hourOptions.map(h => (
-                    <option key={h} value={h}>{h}</option>
-                  ))}
-                </select>
-              </div>
+              <TimePicker
+                label="Desde"
+                value={form.start_hour}
+                onChange={(val) => setForm(p => ({ ...p, start_hour: val }))}
+                data-testid="settings-start-hour"
+              />
+              <TimePicker
+                label="Hasta"
+                value={form.end_hour}
+                onChange={(val) => setForm(p => ({ ...p, end_hour: val }))}
+                data-testid="settings-end-hour"
+              />
             </div>
           </div>
 
