@@ -2564,6 +2564,42 @@ export default function SchedulePage({ user, token, onLogout }) {
         gradeId={selectedGrade}
         sectionId={selectedSection}
       />
+
+      {/* Exam Form Panel */}
+      <ExamFormPanel
+        isOpen={showExamPanel}
+        onClose={() => {
+          setShowExamPanel(false);
+          setEditingExam(null);
+        }}
+        token={token}
+        exam={editingExam}
+        onSuccess={loadExams}
+        gradeId={selectedGrade}
+        sectionId={selectedSection}
+        subjects={subjects}
+        teachers={teachers}
+        selectedDate={selectedExamDate}
+      />
+
+      {/* Backdrop for exam panel */}
+      {showExamPanel && (
+        <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setShowExamPanel(false)} />
+      )}
+
+      {/* Exam Delete Confirmation */}
+      <ConfirmModal
+        isOpen={showExamDeleteConfirm}
+        onClose={() => {
+          setShowExamDeleteConfirm(false);
+          setExamToDelete(null);
+        }}
+        onConfirm={confirmDeleteExam}
+        title="Eliminar examen"
+        message={`¿Estás seguro de eliminar "${examToDelete?.title}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        type="danger"
+      />
     </div>
   );
 }
