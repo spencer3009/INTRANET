@@ -6315,6 +6315,7 @@ async def check_schedule_conflicts(
 ) -> list:
     """
     Check for schedule conflicts:
+    0. Break conflict: blocked time slot (recreo, almuerzo, evento)
     1. Teacher conflict: same teacher at same time in ANY section
     2. Room conflict: same room at same time
     3. Section conflict: same section already has class at this time
@@ -6322,6 +6323,20 @@ async def check_schedule_conflicts(
     Returns list of conflict descriptions
     """
     conflicts = []
+    
+    # 0. Check for break/block conflicts (recreo, almuerzo, evento)
+    break_conflict = await db.schedule_breaks.find_one({
+        "school_id": school_id,
+        "start_time": {"$lt": hora_fin},
+        "end_time": {"$gt": hora_inicio}
+    }, {"_id": 0})
+    
+    if break_conflict:
+        conflicts.append({
+            "type": "break",
+            "message": f"Este horario está bloqueado: {break_conflict['label']} ({break_conflict['start_time']} - {break_conflict['end_time']})"
+        })
+        return conflicts  # Return immediately, can't create class in blocked time
     
     # Base time overlap query
     time_overlap = {
