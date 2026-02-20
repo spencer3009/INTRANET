@@ -1204,7 +1204,7 @@ export default function SchedulePage({ user, token, onLogout }) {
           </div>
 
           {/* Filters */}
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6">
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6" data-testid="schedule-filters">
             <div className="flex flex-wrap items-center gap-4">
               {activeTab === "clases" && (
                 <>
@@ -1212,6 +1212,7 @@ export default function SchedulePage({ user, token, onLogout }) {
                   <div className="flex-1 min-w-[200px]">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Grado</label>
                     <select
+                      data-testid="schedule-grade-select"
                       value={selectedGrade}
                       onChange={(e) => handleGradeChange(e.target.value)}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1227,6 +1228,7 @@ export default function SchedulePage({ user, token, onLogout }) {
                   <div className="flex-1 min-w-[200px]">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Sección</label>
                     <select
+                      data-testid="schedule-section-select"
                       value={selectedSection}
                       onChange={(e) => setSelectedSection(e.target.value)}
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
@@ -1245,6 +1247,7 @@ export default function SchedulePage({ user, token, onLogout }) {
                 <div className="flex-1 min-w-[300px]">
                   <label className="block text-xs font-medium text-slate-500 mb-1">Profesor</label>
                   <select
+                    data-testid="schedule-teacher-select"
                     value={selectedTeacher}
                     onChange={(e) => setSelectedTeacher(e.target.value)}
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -1261,6 +1264,7 @@ export default function SchedulePage({ user, token, onLogout }) {
               <div className="flex-shrink-0">
                 <label className="block text-xs font-medium text-transparent mb-1">.</label>
                 <button
+                  data-testid="schedule-add-btn"
                   onClick={() => {
                     setPreselectedData({
                       grado_id: selectedGrade,
@@ -1282,11 +1286,11 @@ export default function SchedulePage({ user, token, onLogout }) {
 
           {/* Calendar Grid */}
           {loading ? (
-            <div className="flex items-center justify-center py-20">
+            <div className="flex items-center justify-center py-20" data-testid="schedule-loading">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             </div>
           ) : (activeTab === "clases" && (!selectedGrade || !selectedSection)) || (activeTab === "profesores" && !selectedTeacher) ? (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center" data-testid="schedule-empty-state">
               <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-10 h-10 text-slate-400" />
               </div>
