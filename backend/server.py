@@ -6248,7 +6248,7 @@ async def update_schedule(
     data: ScheduleUpdate,
     current_user = Depends(get_current_user)
 ):
-    """Update a schedule entry"""
+    """Update a schedule entry with conflict validation"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -6256,18 +6256,46 @@ async def update_schedule(
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar horarios")
     
+    school_id = user["school_id"]
+    
     schedule = await db.schedules.find_one({
         "id": schedule_id,
-        "school_id": user["school_id"]
+        "school_id": school_id
     })
     
     if not schedule:
         raise HTTPException(status_code=404, detail="Horario no encontrado")
     
-    update_data = {k: v for k, v in data.dict().items() if v is not None}
-    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    # Merge existing data with updates
+    updated_fields = {k: v for k, v in data.dict().items() if v is not None}
+    merged = {**schedule, **updated_fields}
     
-    await db.schedules.update_one({"id": schedule_id}, {"$set": update_data})
+    # Check for conflicts (excluding current schedule)
+    if any(k in updated_fields for k in ['dia', 'hora_inicio', 'hora_fin', 'profesor_id', 'aula', 'grado_id', 'seccion_id']):
+        conflicts = await check_schedule_conflicts(
+            school_id=school_id,
+            dia=merged.get("dia"),
+            hora_inicio=merged.get("hora_inicio"),
+            hora_fin=merged.get("hora_fin"),
+            grado_id=merged.get("grado_id"),
+            seccion_id=merged.get("seccion_id"),
+            profesor_id=merged.get("profesor_id"),
+            aula=merged.get("aula"),
+            exclude_id=schedule_id  # Exclude self from conflict check
+        )
+        
+        if conflicts:
+            raise HTTPException(
+                status_code=400, 
+                detail={
+                    "message": conflicts[0]["message"],
+                    "conflicts": conflicts
+                }
+            )
+    
+    updated_fields["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.schedules.update_one({"id": schedule_id}, {"$set": updated_fields})
     
     updated = await db.schedules.find_one({"id": schedule_id}, {"_id": 0})
     return {"message": "Horario actualizado correctamente", "schedule": updated}
