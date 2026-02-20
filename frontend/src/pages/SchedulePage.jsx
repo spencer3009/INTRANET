@@ -292,7 +292,6 @@ export default function SchedulePage({ user, token, onLogout }) {
   const refreshSchedules = async () => {
     let url = `${API}/schedules?tipo=${activeTab}`;
     if (activeTab === "clases") url += `&grado_id=${selectedGrade}&seccion_id=${selectedSection}`;
-    else if (activeTab === "profesores") url += `&profesor_id=${selectedTeacher}`;
 
     try {
       const res = await axios.get(url, { headers });
