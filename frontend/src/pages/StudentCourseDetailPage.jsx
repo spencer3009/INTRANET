@@ -3581,21 +3581,47 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
     setShowDeleteConfirm(true);
   };
 
-  // Delete message (move to trash)
+  // Delete message (move to trash OR permanent delete if in trash)
   const handleDeleteMessage = async () => {
     if (!messageToDelete) return;
     
     setDeleting(true);
     try {
-      await axios.delete(`${API}/api/internal-mail/${messageToDelete.id}`, { headers });
+      if (activeFolder === "trash") {
+        // Permanent delete from trash
+        await axios.delete(`${API}/api/internal-mail/${messageToDelete.id}/permanent`, { headers });
+        // Update trash count
+        setStats(prev => ({
+          ...prev, 
+          trash: Math.max(0, prev.trash - 1)
+        }));
+      } else {
+        // Soft delete (move to trash)
+        await axios.delete(`${API}/api/internal-mail/${messageToDelete.id}`, { headers });
+        // Update stats based on folder
+        if (activeFolder === "inbox") {
+          setStats(prev => ({
+            ...prev, 
+            inbox: Math.max(0, prev.inbox - 1),
+            trash: prev.trash + 1
+          }));
+        } else if (activeFolder === "sent") {
+          setStats(prev => ({
+            ...prev, 
+            sent: Math.max(0, prev.sent - 1),
+            trash: prev.trash + 1
+          }));
+        } else if (activeFolder === "archived") {
+          setStats(prev => ({
+            ...prev, 
+            archived: Math.max(0, prev.archived - 1),
+            trash: prev.trash + 1
+          }));
+        }
+      }
       // Remove from current list and clear selection
       setMessages(prev => prev.filter(m => m.id !== messageToDelete.id));
       setSelectedMessage(null);
-      // Update stats
-      setStats(prev => ({
-        ...prev, 
-        inbox: Math.max(0, prev.inbox - 1)
-      }));
       // Close modal
       setShowDeleteConfirm(false);
       setMessageToDelete(null);
@@ -3603,6 +3629,26 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
       console.error("Error deleting message:", err);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Empty entire trash
+  const [emptyingTrash, setEmptyingTrash] = useState(false);
+  const [showEmptyTrashConfirm, setShowEmptyTrashConfirm] = useState(false);
+  
+  const handleEmptyTrash = async () => {
+    setEmptyingTrash(true);
+    try {
+      await axios.delete(`${API}/api/internal-mail/trash/empty`, { headers });
+      // Clear messages and update stats
+      setMessages([]);
+      setSelectedMessage(null);
+      setStats(prev => ({ ...prev, trash: 0 }));
+      setShowEmptyTrashConfirm(false);
+    } catch (err) {
+      console.error("Error emptying trash:", err);
+    } finally {
+      setEmptyingTrash(false);
     }
   };
 
