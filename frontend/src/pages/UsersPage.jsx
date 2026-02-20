@@ -2181,7 +2181,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             </p>
             
             {/* Data to delete box */}
-            <div className="bg-[#f5f0e8] rounded-xl p-4 text-left">
+            <div className="rounded-xl p-4 text-left">
               <p className="text-sm text-slate-600 mb-3 font-medium">Se eliminarán los siguientes datos:</p>
               
               {userToDelete.role === 'student' ? (
