@@ -906,7 +906,7 @@ function App() {
           {/* Redirect legacy exam-schedule route to horarios (exam schedule is now a tab) */}
           <Route
             path="/school/:subdomain/admin/exam-schedule"
-            element={<Navigate to="/school/:subdomain/horarios" replace />}
+            element={<Navigate to="../horarios" replace />}
           />
           <Route
             path="/school/:subdomain/admin/settings"
