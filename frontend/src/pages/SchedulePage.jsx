@@ -43,7 +43,6 @@ export default function SchedulePage({ user, token, onLogout }) {
   // Filters
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
-  const [selectedTeacher, setSelectedTeacher] = useState("");
 
   // Settings
   const [settings, setSettings] = useState({
