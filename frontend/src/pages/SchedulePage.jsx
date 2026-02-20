@@ -292,12 +292,16 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 
   // Handle subject selection
   const handleSelectSubject = (subject) => {
+    // Get teacher_id from primary_teacher or assigned_teachers
+    const teacherId = subject.primary_teacher?.id || 
+                      subject.assigned_teachers?.[0]?.id || 
+                      subject.teacher_id;
     setForm(p => ({ 
       ...p, 
       materia: subject.name,
       subject_id: subject.id,
       color: subject.color || p.color,
-      profesor_id: subject.teacher_id || p.profesor_id
+      profesor_id: teacherId || p.profesor_id
     }));
     setSubjectSearch("");
     setShowSubjectDropdown(false);
