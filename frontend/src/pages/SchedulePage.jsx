@@ -1221,7 +1221,10 @@ export default function SchedulePage({ user, token, onLogout }) {
     start_hour: "07:00",
     end_hour: "18:00",
     time_format: "24h",
-    block_duration: 45
+    block_duration: 45,
+    view_mode: "horizontal",
+    include_saturday: false,
+    include_sunday: false
   });
   const [showSettings, setShowSettings] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
