@@ -1379,14 +1379,19 @@ async def get_student_schedule(current_user = Depends(get_current_user)):
             "include_sunday": False
         }
     
-    # Get breaks (recreo, almuerzo, evento) for this school
-    breaks = await db.schedule_breaks.find({"school_id": school_id}, {"_id": 0}).to_list(50)
+    # Get breaks (recreo, almuerzo, evento) ONLY for student's grade and section
+    breaks_query = {"school_id": school_id}
+    if grado_id:
+        breaks_query["grade_id"] = grado_id
+    if seccion_id:
+        breaks_query["section_id"] = seccion_id
+    breaks = await db.schedule_breaks.find(breaks_query, {"_id": 0}).to_list(50)
     
     # If no section/grade, return empty but with context
     if not seccion_id and not grado_id:
         return {
             "schedules": [],
-            "breaks": breaks,
+            "breaks": [],
             "settings": settings,
             "grade_name": grade_name,
             "section_name": section_name
