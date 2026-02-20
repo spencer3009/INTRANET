@@ -12,7 +12,8 @@ import {
   LogOut,
   GraduationCap,
   Clock,
-  Trophy
+  Trophy,
+  Calendar
 } from "lucide-react";
 
 // Student navigation items - simplified menu
@@ -20,6 +21,7 @@ const studentNavItems = [
   { id: "inicio", label: "Dashboard", icon: Home, route: "/student" },
   { id: "cursos", label: "Mis Cursos", icon: BookOpen, route: "/student/courses" },
   { id: "horarios", label: "Mi Horario", icon: CalendarCheck, route: "/student/schedule" },
+  { id: "examenes", label: "Mis Exámenes", icon: Calendar, route: "/student/exams" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/student/tasks" },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy, route: "/student/grades" },
   { id: "asistencia", label: "Asistencia", icon: Clock, route: "/student/attendance" },
