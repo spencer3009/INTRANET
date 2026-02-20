@@ -374,6 +374,9 @@ function BreakModal({ isOpen, onClose, token, breakItem, onSuccess, preselectedT
       if (isEdit) {
         await axios.put(`${API}/schedule/breaks/${breakItem.id}`, payload, { headers });
       } else {
+        // Include grade_id and section_id for new breaks
+        payload.grade_id = gradeId;
+        payload.section_id = sectionId;
         await axios.post(`${API}/schedule/breaks`, payload, { headers });
       }
       
