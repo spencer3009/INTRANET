@@ -52,7 +52,10 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
     start_hour: "07:00",
     end_hour: "18:00",
     time_format: "24h",
-    block_duration: 45
+    block_duration: 45,
+    view_mode: "horizontal",
+    include_saturday: false,
+    include_sunday: false
   });
 
   useEffect(() => {
@@ -61,7 +64,10 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
         start_hour: settings.start_hour || "07:00",
         end_hour: settings.end_hour || "18:00",
         time_format: settings.time_format || "24h",
-        block_duration: settings.block_duration || 45
+        block_duration: settings.block_duration || 45,
+        view_mode: settings.view_mode || "horizontal",
+        include_saturday: settings.include_saturday || false,
+        include_sunday: settings.include_sunday || false
       });
     }
   }, [isOpen, settings]);
@@ -82,9 +88,9 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="schedule-settings-modal">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="px-6 py-5 bg-gradient-to-r from-slate-700 to-slate-800">
+        <div className="px-6 py-5 bg-gradient-to-r from-slate-700 to-slate-800 sticky top-0">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Settings className="w-6 h-6 text-white" />
