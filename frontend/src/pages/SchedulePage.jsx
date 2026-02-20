@@ -284,19 +284,125 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
               </div>
             )}
 
-            {/* Subject/Materia */}
+            {/* Subject/Materia - Smart Select with Search */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-slate-700 mb-2">
                 Materia / Asignatura <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={form.materia}
-                onChange={(e) => setForm(p => ({ ...p, materia: e.target.value }))}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Ej: Matemáticas, Comunicación, Ciencias..."
-                required
-              />
+              
+              {/* Show message if no grade selected */}
+              {!form.grado_id && type === "clases" ? (
+                <div className="w-full px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4" />
+                  Primero selecciona un grado para ver las asignaturas disponibles
+                </div>
+              ) : (
+                <div className="relative">
+                  {/* Selected subject display / Search input */}
+                  <div 
+                    className={`w-full px-4 py-3 bg-slate-50 border rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
+                      showSubjectDropdown ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                    onClick={() => setShowSubjectDropdown(true)}
+                  >
+                    {form.materia ? (
+                      <>
+                        <div 
+                          className="w-3 h-3 rounded-full flex-shrink-0" 
+                          style={{ backgroundColor: form.color }}
+                        />
+                        <span className="flex-1 text-slate-800">{form.materia}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setForm(p => ({ ...p, materia: "", subject_id: "" }));
+                          }}
+                          className="p-1 hover:bg-slate-200 rounded-full"
+                        >
+                          <X className="w-4 h-4 text-slate-400" />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <BookOpen className="w-5 h-5 text-slate-400" />
+                        <input
+                          ref={subjectInputRef}
+                          type="text"
+                          value={subjectSearch}
+                          onChange={(e) => {
+                            setSubjectSearch(e.target.value);
+                            setShowSubjectDropdown(true);
+                          }}
+                          onFocus={() => setShowSubjectDropdown(true)}
+                          className="flex-1 bg-transparent border-0 focus:outline-none text-sm"
+                          placeholder="Buscar o seleccionar asignatura..."
+                        />
+                        {loadingSubjects && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Dropdown with subjects */}
+                  {showSubjectDropdown && !form.materia && (
+                    <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                      {loadingSubjects ? (
+                        <div className="p-4 text-center text-slate-500">
+                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                          Cargando asignaturas...
+                        </div>
+                      ) : filteredSubjects.length === 0 ? (
+                        <div className="p-4 text-center text-slate-500">
+                          <BookOpen className="w-8 h-8 mx-auto mb-2 text-slate-300" />
+                          {subjects.length === 0 
+                            ? "No hay asignaturas para este grado" 
+                            : "No se encontraron asignaturas"}
+                        </div>
+                      ) : (
+                        <div className="py-2">
+                          {filteredSubjects.map(subject => {
+                            const teacher = teachers.find(t => t.id === subject.teacher_id);
+                            return (
+                              <button
+                                key={subject.id}
+                                type="button"
+                                onClick={() => handleSelectSubject(subject)}
+                                className="w-full px-4 py-3 text-left hover:bg-blue-50 flex items-center gap-3 transition-colors"
+                              >
+                                <div 
+                                  className="w-4 h-4 rounded-full flex-shrink-0" 
+                                  style={{ backgroundColor: subject.color || '#6366F1' }}
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-slate-800">{subject.name}</p>
+                                  {teacher && (
+                                    <p className="text-xs text-slate-500 truncate">
+                                      Prof. {teacher.name} {teacher.last_name}
+                                    </p>
+                                  )}
+                                </div>
+                                {subject.teacher_id && (
+                                  <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
+                                    Con profesor
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Click outside to close dropdown */}
+              {showSubjectDropdown && (
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowSubjectDropdown(false)}
+                />
+              )}
             </div>
 
             {/* Day and Time */}
