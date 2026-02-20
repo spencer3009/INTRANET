@@ -1781,6 +1781,23 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                           </div>
                           Editar
                         </button>
+                        {/* Ver QR option - only for students */}
+                        {selectedRole === 'student' && (
+                          <button
+                            onClick={() => {
+                              setQRStudent(u);
+                              setShowQRModal(true);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm text-violet-600 hover:bg-violet-50 flex items-center gap-3 transition-colors"
+                            data-testid={`show-qr-${u.id}`}
+                          >
+                            <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center">
+                              <QrCode className="w-4 h-4 text-violet-600" />
+                            </div>
+                            Ver QR
+                          </button>
+                        )}
                         <button
                           onClick={() => handleDeleteClick(u)}
                           className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
