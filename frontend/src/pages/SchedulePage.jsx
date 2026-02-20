@@ -1398,7 +1398,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
                 );
               })}
             </div>
-          ))}
+          })}
         </div>
       </div>
     );
