@@ -17247,7 +17247,7 @@ async def get_exam_schedules(
                 {"_id": 0, "nombre": 1, "color": 1}
             )
             if subject:
-                subject_name = subject.get("nombre")
+                subject_name = subject.get("name") or subject.get("nombre")
                 subject_color = subject.get("color")
         
         # Get classroom info
@@ -17382,7 +17382,7 @@ async def create_exam_schedule(
         "type": data.type,
         "title": data.title,
         "description": data.description,
-        "subject_name": subject.get("nombre"),
+        "subject_name": subject.get("name") or subject.get("nombre"),
         "grade_name": grade.get("nombre"),
         "section_name": section.get("nombre"),
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -17488,7 +17488,7 @@ async def update_exam_schedule(
     if "subject_id" in update_data:
         subject = await db.subjects.find_one({"id": update_data["subject_id"]})
         if subject:
-            update_data["subject_name"] = subject.get("nombre")
+            update_data["subject_name"] = subject.get("name") or subject.get("nombre")
     
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     
