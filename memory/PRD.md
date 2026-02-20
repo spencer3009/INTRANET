@@ -160,8 +160,7 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 ---
 
 ## Últimas Pruebas
+- **iteration_34.json:** Breaks por Grado/Sección - 100% passed (Backend 14/14, Frontend OK)
 - **iteration_33.json:** Horario Portal Alumno (Read-Only) - 100% passed (Backend 11/11, Frontend OK)
 - **iteration_32.json:** Bloques Especiales (Recreo/Almuerzo/Evento) - 100% passed (Backend 9/9, Frontend OK)
 - **iteration_31.json:** Módulo de Horarios - 100% passed (Backend 11/11, Frontend OK)
-- **iteration_30.json:** Botón "Chat en línea" - 100% passed (13/13)
-- **iteration_29.json:** Sistema mensajes alumno - Validado
