@@ -840,7 +840,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
   });
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200">
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="schedule-calendar-grid">
       {/* Header - Days */}
       <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
         {/* Time column header */}
@@ -850,7 +850,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
         
         {/* Day headers */}
         {DAYS.map(day => (
-          <div key={day.id} className="flex-1 p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[120px]">
+          <div key={day.id} data-testid={`schedule-day-header-${day.id}`} className="flex-1 p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[120px]">
             <p className="font-bold text-slate-800">{day.label}</p>
             <p className="text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
           </div>
@@ -860,11 +860,12 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
       {/* Grid Body */}
       <div className="flex overflow-x-auto">
         {/* Time column - Sticky */}
-        <div className="w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10">
+        <div className="w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10" data-testid="schedule-time-column">
           {timeSlots.map((time, idx) => (
             <div 
               key={time} 
               className="h-16 px-2 flex items-start justify-center pt-1 border-b border-slate-100 text-xs font-medium text-slate-500"
+              data-testid={`schedule-time-slot-${time.replace(':', '')}`}
             >
               {formatTime(time)}
             </div>
@@ -875,6 +876,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
         {DAYS.map(day => (
           <div 
             key={day.id} 
+            data-testid={`schedule-day-column-${day.id}`}
             className="flex-1 min-w-[120px] border-r last:border-r-0 border-slate-200 relative"
             style={{ height: `${timeSlots.length * 64}px` }}
           >
@@ -882,6 +884,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
             {timeSlots.map((time, idx) => (
               <div 
                 key={time}
+                data-testid={`schedule-cell-${day.id}-${time.replace(':', '')}`}
                 className="absolute w-full h-16 border-b border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors"
                 style={{ top: `${idx * 64}px` }}
                 onClick={() => onCellClick(day.id, time)}
@@ -896,6 +899,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
               return (
                 <div
                   key={schedule.id}
+                  data-testid={`schedule-block-${schedule.id}`}
                   className="absolute left-1 right-1 rounded-lg shadow-md overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:scale-[1.02] z-20"
                   style={{
                     ...blockStyle,
@@ -921,12 +925,14 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
                   {/* Hover actions */}
                   <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                     <button
+                      data-testid={`schedule-edit-btn-${schedule.id}`}
                       onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
                       className="p-1.5 bg-white/90 rounded-lg shadow hover:bg-white"
                     >
                       <Pencil className="w-3 h-3 text-slate-700" />
                     </button>
                     <button
+                      data-testid={`schedule-delete-btn-${schedule.id}`}
                       onClick={(e) => { e.stopPropagation(); onDelete(schedule); }}
                       className="p-1.5 bg-white/90 rounded-lg shadow hover:bg-red-50"
                     >
