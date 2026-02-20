@@ -4,6 +4,7 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import ConfirmModal from "../components/ConfirmModal";
+import { TimePicker } from "../components/ui/time-picker";
 import { 
   Calendar, Clock, BookOpen, GraduationCap, Users, 
   Plus, Pencil, Trash2, Loader2, X, Check, AlertCircle,
