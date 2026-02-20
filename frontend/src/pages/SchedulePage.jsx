@@ -1174,6 +1174,7 @@ export default function SchedulePage({ user, token, onLogout }) {
               
               {/* Settings button */}
               <button
+                data-testid="schedule-settings-btn"
                 onClick={() => setShowSettings(true)}
                 className="p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 flex items-center gap-2 text-slate-600 hover:text-slate-800"
               >
@@ -1184,10 +1185,11 @@ export default function SchedulePage({ user, token, onLogout }) {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2" data-testid="schedule-tabs">
             {SCHEDULE_TABS.map(tab => (
               <button
                 key={tab.id}
+                data-testid={`schedule-tab-${tab.id}`}
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-5 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all whitespace-nowrap ${
                   activeTab === tab.id
