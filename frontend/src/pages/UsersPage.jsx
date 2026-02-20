@@ -2656,6 +2656,35 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* QR Modal for Students */}
+      {showQRModal && qrStudent && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-violet-600" />
+                Código QR del Estudiante
+              </h3>
+              <button
+                onClick={() => {
+                  setShowQRModal(false);
+                  setQRStudent(null);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-6">
+              <StudentQRCard 
+                student={qrStudent}
+                schoolName={settings?.system_name || "EduNet"}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
