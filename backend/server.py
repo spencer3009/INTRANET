@@ -3829,6 +3829,16 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
             new_user["persona_autorizada_telefono"] = f"+51{data.persona_autorizada_telefono}" if data.persona_autorizada_telefono and not data.persona_autorizada_telefono.startswith("+") else data.persona_autorizada_telefono
         if data.notas:
             new_user["notas"] = data.notas
+        
+        # Generate unique QR token for student (JWT signed)
+        qr_payload = {
+            "student_id": new_user["id"],
+            "school_id": school_id,
+            "issued_at": datetime.now(timezone.utc).isoformat(),
+            "type": "student_qr"
+        }
+        qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+        new_user["qr_token"] = qr_token
     
     # Add parent-specific fields
     if data.role == "parent":
