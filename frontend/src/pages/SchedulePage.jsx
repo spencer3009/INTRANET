@@ -978,6 +978,9 @@ export default function SchedulePage({ user, token, onLogout }) {
   const [schedules, setSchedules] = useState([]);
   const [allSchedules, setAllSchedules] = useState([]); // For conflict checking
 
+  // School settings (for logo)
+  const [schoolSettings, setSchoolSettings] = useState(null);
+
   // Filters
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
@@ -1001,6 +1004,19 @@ export default function SchedulePage({ user, token, onLogout }) {
   const [entryToDelete, setEntryToDelete] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Load school settings for logo
+  useEffect(() => {
+    const loadSchoolSettings = async () => {
+      try {
+        const res = await axios.get(`${API}/school-settings`, { headers });
+        setSchoolSettings(res.data);
+      } catch (err) {
+        console.error("Error loading school settings:", err);
+      }
+    };
+    loadSchoolSettings();
+  }, [token]);
 
   // Load initial data
   useEffect(() => {
