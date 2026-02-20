@@ -10,8 +10,18 @@ import {
   Calendar, Clock, BookOpen, GraduationCap, Users, 
   Plus, Pencil, Trash2, Loader2, X, Check, AlertCircle,
   ChevronRight, ArrowLeft, FileText, CalendarDays, Settings,
-  ChevronDown, AlertTriangle
+  ChevronDown, AlertTriangle, ChevronLeft, User, MapPin, Timer, Archive
 } from "lucide-react";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Exam types configuration
+const EXAM_TYPES = [
+  { id: "parcial", label: "Parcial", color: "#6366F1", icon: "📝" },
+  { id: "final", label: "Final", color: "#DC2626", icon: "📋" },
+  { id: "práctica", label: "Práctica", color: "#059669", icon: "✍️" },
+  { id: "quiz", label: "Quiz", color: "#F59E0B", icon: "⚡" }
+];
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
