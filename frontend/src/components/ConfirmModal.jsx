@@ -72,7 +72,7 @@ export default function ConfirmModal({
       data-testid="confirm-modal-overlay"
     >
       <div 
-        className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl animate-in fade-in zoom-in-95 duration-200"
         data-testid="confirm-modal"
       >
         {/* Header */}
