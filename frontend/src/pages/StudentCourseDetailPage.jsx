@@ -3372,7 +3372,7 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
   const [messages, setMessages] = useState([]);
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ unread: 0, inbox: 0, sent: 0 });
+  const [stats, setStats] = useState({ unread: 0, inbox: 0, sent: 0, archived: 0, trash: 0 });
   const [showCompose, setShowCompose] = useState(false);
   const [allowedRecipients, setAllowedRecipients] = useState([]);
   const [composeData, setComposeData] = useState({ subject: "", body: "", recipients: [] });
