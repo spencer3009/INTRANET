@@ -1282,21 +1282,39 @@ export default function SchedulePage({ user, token, onLogout }) {
     loadSchoolSettings();
   }, [token]);
 
+  // State for breaks (recreo, almuerzo, eventos)
+  const [breaks, setBreaks] = useState([]);
+  const [showBreakModal, setShowBreakModal] = useState(false);
+  const [editBreak, setEditBreak] = useState(null);
+  const [breakPreselectedTime, setBreakPreselectedTime] = useState(null);
+
+  // Load breaks
+  const loadBreaks = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API}/schedule/breaks`, { headers });
+      setBreaks(res.data.breaks || []);
+    } catch (err) {
+      console.error("Error loading breaks:", err);
+    }
+  }, [token]);
+
   // Load initial data
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       try {
-        const [gradesRes, sectionsRes, teachersRes, settingsRes] = await Promise.all([
+        const [gradesRes, sectionsRes, teachersRes, settingsRes, breaksRes] = await Promise.all([
           axios.get(`${API}/academic/grades`, { headers }),
           axios.get(`${API}/academic/sections`, { headers }),
           axios.get(`${API}/users/teachers/active`, { headers }),
-          axios.get(`${API}/schedule-settings`, { headers }).catch(() => ({ data: null }))
+          axios.get(`${API}/schedule-settings`, { headers }).catch(() => ({ data: null })),
+          axios.get(`${API}/schedule/breaks`, { headers }).catch(() => ({ data: { breaks: [] } }))
         ]);
 
         setGrades(gradesRes.data || []);
         setSections(sectionsRes.data || []);
         setTeachers(teachersRes.data || []);
+        setBreaks(breaksRes.data?.breaks || []);
         
         if (settingsRes.data) {
           setSettings(settingsRes.data);
