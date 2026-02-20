@@ -54,11 +54,18 @@ const SUBJECT_COLORS = [
 function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, sections, teachers, type, preselectedData }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [subjects, setSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+  const [subjectSearch, setSubjectSearch] = useState("");
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
+  const subjectInputRef = useRef(null);
+  
   const [form, setForm] = useState({
     grado_id: "",
     seccion_id: "",
     profesor_id: "",
     materia: "",
+    subject_id: "",
     dia: "",
     hora_inicio: "",
     hora_fin: "",
@@ -68,6 +75,48 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 
   const isEdit = !!entry;
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Load subjects when grade changes
+  useEffect(() => {
+    const loadSubjects = async () => {
+      if (!form.grado_id) {
+        setSubjects([]);
+        return;
+      }
+      
+      setLoadingSubjects(true);
+      try {
+        const res = await axios.get(`${API}/subjects?grade_id=${form.grado_id}`, { headers });
+        setSubjects(res.data.subjects || []);
+      } catch (err) {
+        console.error("Error loading subjects:", err);
+        setSubjects([]);
+      } finally {
+        setLoadingSubjects(false);
+      }
+    };
+    
+    loadSubjects();
+  }, [form.grado_id, token]);
+
+  // Filter subjects by search
+  const filteredSubjects = subjects.filter(s => 
+    s.name?.toLowerCase().includes(subjectSearch.toLowerCase())
+  );
+
+  // Handle subject selection
+  const handleSelectSubject = (subject) => {
+    setForm(p => ({ 
+      ...p, 
+      materia: subject.name,
+      subject_id: subject.id,
+      color: subject.color || p.color,
+      // Auto-assign teacher if subject has one
+      profesor_id: subject.teacher_id || p.profesor_id
+    }));
+    setSubjectSearch("");
+    setShowSubjectDropdown(false);
+  };
 
   useEffect(() => {
     if (isOpen) {
