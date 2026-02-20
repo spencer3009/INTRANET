@@ -126,6 +126,7 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
           seccion_id: entry.seccion_id || "",
           profesor_id: entry.profesor_id || "",
           materia: entry.materia || "",
+          subject_id: entry.subject_id || "",
           dia: entry.dia || "",
           hora_inicio: entry.hora_inicio || "",
           hora_fin: entry.hora_fin || "",
@@ -138,6 +139,7 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
           seccion_id: preselectedData?.seccion_id || "",
           profesor_id: preselectedData?.profesor_id || "",
           materia: "",
+          subject_id: "",
           dia: preselectedData?.dia || "",
           hora_inicio: preselectedData?.hora_inicio || "",
           hora_fin: "",
@@ -146,6 +148,8 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
         });
       }
       setError("");
+      setSubjectSearch("");
+      setShowSubjectDropdown(false);
     }
   }, [isOpen, entry, preselectedData]);
 
