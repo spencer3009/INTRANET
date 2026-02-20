@@ -207,7 +207,8 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 |---------|--------|
 | Generación de `qr_token` (JWT) al crear estudiante | ✅ Funcional |
 | Botón "Ver QR" en vista tabla (AdminStudentsPage.jsx) | ✅ Funcional |
-| **🆕 Botón "Ver QR" en vista tarjetas (UsersPage.jsx)** | ✅ Probado |
+| Botón "Ver QR" en vista tarjetas (UsersPage.jsx) | ✅ Probado |
+| **🆕 Mini QR visible en tarjeta de estudiante** | ✅ Probado |
 | Modal con código QR y datos del estudiante | ✅ Funcional |
 | Descargar QR como imagen | ✅ Funcional |
 | Imprimir credencial con QR | ✅ Funcional |
