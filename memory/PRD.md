@@ -126,6 +126,11 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 | `/api/schedules` | POST | Crear horario con validación de conflictos |
 | `/api/schedules/{id}` | PUT | Actualizar horario con validación |
 | `/api/schedules/{id}` | DELETE | Eliminar horario |
+| `/api/schedule/breaks` | GET | Listar bloques especiales (recreo, almuerzo, evento) |
+| `/api/schedule/breaks` | POST | Crear bloque especial |
+| `/api/schedule/breaks/{id}` | PUT | Actualizar bloque especial |
+| `/api/schedule/breaks/{id}` | DELETE | Eliminar bloque especial |
+| `/api/academic/teacher-subjects` | GET | Materias del profesor para grado/sección |
 
 ## Credenciales de Prueba
 - **Escuela:** elroble
