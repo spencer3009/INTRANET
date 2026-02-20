@@ -7705,8 +7705,232 @@ async def get_student_attendance_report(
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# CALENDAR MODULE
+# QR CODE ATTENDANCE SYSTEM
 # ══════════════════════════════════════════════════════════════════════════════
+
+class QRScanRequest(BaseModel):
+    """Request to scan QR and register attendance"""
+    qr_token: str
+
+@api_router.post("/attendance/qr/scan")
+async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_current_user)):
+    """
+    Scan student QR code and register attendance.
+    Returns student info and attendance status.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    
+    school_id = user["school_id"]
+    
+    # Validate QR token (JWT)
+    try:
+        qr_data = jwt.decode(data.qr_token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=400, detail={
+            "status": "error",
+            "message": "QR expirado",
+            "code": "QR_EXPIRED"
+        })
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=400, detail={
+            "status": "error", 
+            "message": "QR inválido",
+            "code": "QR_INVALID"
+        })
+    
+    # Verify QR type
+    if qr_data.get("type") != "student_qr":
+        raise HTTPException(status_code=400, detail={
+            "status": "error",
+            "message": "Este QR no es de un estudiante",
+            "code": "QR_WRONG_TYPE"
+        })
+    
+    # Verify school match
+    if qr_data.get("school_id") != school_id:
+        raise HTTPException(status_code=403, detail={
+            "status": "error",
+            "message": "Este estudiante no pertenece a tu institución",
+            "code": "SCHOOL_MISMATCH"
+        })
+    
+    student_id = qr_data.get("student_id")
+    
+    # Get student info
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "password": 0}
+    )
+    
+    if not student:
+        raise HTTPException(status_code=404, detail={
+            "status": "error",
+            "message": "Estudiante no encontrado",
+            "code": "STUDENT_NOT_FOUND"
+        })
+    
+    # Check if attendance already marked today
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    existing_attendance = await db.student_attendance.find_one({
+        "student_id": student_id,
+        "date": today,
+        "school_id": school_id
+    })
+    
+    # Get grade and section names
+    grade = await db.grados.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
+    section = await db.secciones.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
+    
+    student_info = {
+        "id": student["id"],
+        "name": student.get("name", ""),
+        "last_name": student.get("last_name", ""),
+        "full_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+        "photo_url": student.get("photo_url"),
+        "grade_name": grade.get("nombre") if grade else None,
+        "section_name": section.get("nombre") if section else None,
+        "grado_id": student.get("grado_id"),
+        "seccion_id": student.get("seccion_id")
+    }
+    
+    if existing_attendance:
+        # Already marked today
+        return {
+            "status": "already_marked",
+            "message": f"Ya se registró asistencia hoy para {student_info['full_name']}",
+            "student": student_info,
+            "attendance": {
+                "status": existing_attendance.get("status"),
+                "time": existing_attendance.get("check_in_time"),
+                "date": today
+            }
+        }
+    
+    # Register new attendance
+    now = datetime.now(timezone.utc)
+    check_in_time = now.strftime("%H:%M")
+    
+    attendance_record = {
+        "id": str(uuid.uuid4()),
+        "student_id": student_id,
+        "school_id": school_id,
+        "date": today,
+        "status": "present",  # Default to present when scanned
+        "check_in_time": check_in_time,
+        "method": "qr_scan",  # Indicates it was via QR
+        "scanned_by": current_user["sub"],
+        "created_at": now.isoformat(),
+        "grado_id": student.get("grado_id"),
+        "seccion_id": student.get("seccion_id")
+    }
+    
+    await db.student_attendance.insert_one(attendance_record)
+    
+    logger.info(f"QR Attendance: {student_info['full_name']} marked present at {check_in_time}")
+    
+    return {
+        "status": "success",
+        "message": f"¡Asistencia registrada para {student_info['full_name']}!",
+        "student": student_info,
+        "attendance": {
+            "status": "present",
+            "time": check_in_time,
+            "date": today
+        }
+    }
+
+@api_router.post("/attendance/qr/generate")
+async def generate_qr_for_existing_students(current_user = Depends(get_current_user)):
+    """
+    Generate QR tokens for existing students that don't have one.
+    Admin only endpoint.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar esta acción")
+    
+    school_id = user["school_id"]
+    
+    # Find students without qr_token
+    students_without_qr = await db.users.find({
+        "school_id": school_id,
+        "role": "student",
+        "qr_token": {"$exists": False}
+    }).to_list(None)
+    
+    updated_count = 0
+    for student in students_without_qr:
+        qr_payload = {
+            "student_id": student["id"],
+            "school_id": school_id,
+            "issued_at": datetime.now(timezone.utc).isoformat(),
+            "type": "student_qr"
+        }
+        qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+        
+        await db.users.update_one(
+            {"id": student["id"]},
+            {"$set": {"qr_token": qr_token}}
+        )
+        updated_count += 1
+    
+    return {
+        "message": f"QR generados para {updated_count} estudiantes",
+        "updated_count": updated_count
+    }
+
+@api_router.get("/attendance/qr/history")
+async def get_qr_attendance_history(
+    limit: int = 20,
+    current_user = Depends(get_current_user)
+):
+    """
+    Get recent QR attendance scan history for today.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    
+    school_id = user["school_id"]
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    
+    # Get recent scans via QR
+    records = await db.student_attendance.find({
+        "school_id": school_id,
+        "date": today,
+        "method": "qr_scan"
+    }).sort("created_at", -1).limit(limit).to_list(None)
+    
+    # Enrich with student info
+    history = []
+    for record in records:
+        student = await db.users.find_one(
+            {"id": record["student_id"]},
+            {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "grado_id": 1, "seccion_id": 1}
+        )
+        if student:
+            grade = await db.grados.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
+            section = await db.secciones.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
+            
+            history.append({
+                "id": record.get("id"),
+                "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+                "photo_url": student.get("photo_url"),
+                "grade_name": grade.get("nombre") if grade else None,
+                "section_name": section.get("nombre") if section else None,
+                "status": record.get("status"),
+                "time": record.get("check_in_time"),
+                "created_at": record.get("created_at")
+            })
+    
+    return {
+        "date": today,
+        "total_scans": len(history),
+        "history": history
+    }
 
 # Event types with default colors
 EVENT_TYPES = {
