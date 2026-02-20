@@ -439,7 +439,13 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
       onSuccess();
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar el horario");
+      // Handle new error format with conflicts array
+      const errorDetail = err.response?.data?.detail;
+      if (typeof errorDetail === 'object' && errorDetail.message) {
+        setError(errorDetail.message);
+      } else {
+        setError(errorDetail || "Error al guardar el horario");
+      }
     } finally {
       setLoading(false);
     }
