@@ -617,21 +617,22 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
                   ))}
                 </select>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
-                <select
-                  value={form.seccion_id}
-                  onChange={(e) => setForm(p => ({ ...p, seccion_id: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
-                  disabled={!form.grado_id}
-                  required
-                >
-                  <option value="">Seleccionar...</option>
-                  {filteredSections.map(s => (
-                    <option key={s.id} value={s.id}>{s.nombre}</option>
-                  ))}
-                </select>
-              </div>
+              <Combobox
+                label="Sección"
+                value={form.seccion_id}
+                onChange={(val) => setForm(p => ({ ...p, seccion_id: val }))}
+                placeholder="Seleccionar sección..."
+                searchPlaceholder="Buscar sección..."
+                disabled={!form.grado_id}
+                required
+                emptyMessage="No hay secciones para este grado"
+                options={filteredSections.map(s => ({
+                  id: s.id,
+                  label: s.nombre,
+                  sublabel: s.turno || s.nivel || "",
+                  color: s.color || "#6366F1"
+                }))}
+              />
             </div>
           )}
 
