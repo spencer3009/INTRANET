@@ -6207,7 +6207,7 @@ async def create_schedule_break(
     data: ScheduleBreakCreate,
     current_user = Depends(get_current_user)
 ):
-    """Create a new schedule break (recreo, almuerzo, evento)"""
+    """Create a new schedule break (recreo, almuerzo, evento) for specific grade/section"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -6217,9 +6217,20 @@ async def create_schedule_break(
     
     school_id = user["school_id"]
     
-    # Check for overlapping breaks
+    # Validate grade and section exist
+    grade = await db.grades.find_one({"id": data.grade_id, "school_id": school_id})
+    if not grade:
+        raise HTTPException(status_code=400, detail="Grado no válido")
+    
+    section = await db.sections.find_one({"id": data.section_id, "school_id": school_id})
+    if not section:
+        raise HTTPException(status_code=400, detail="Sección no válida")
+    
+    # Check for overlapping breaks in the SAME grade/section
     overlap_query = {
         "school_id": school_id,
+        "grade_id": data.grade_id,
+        "section_id": data.section_id,
         "start_time": {"$lt": data.end_time},
         "end_time": {"$gt": data.start_time}
     }
@@ -6230,21 +6241,25 @@ async def create_schedule_break(
             detail=f"Ya existe un bloque en ese horario: {existing_break['label']} ({existing_break['start_time']} - {existing_break['end_time']})"
         )
     
-    # Check for overlapping classes in ANY section
+    # Check for overlapping classes in the SAME grade/section
     class_overlap = await db.schedules.find_one({
         "school_id": school_id,
+        "grado_id": data.grade_id,
+        "seccion_id": data.section_id,
         "hora_inicio": {"$lt": data.end_time},
         "hora_fin": {"$gt": data.start_time}
     })
     if class_overlap:
         raise HTTPException(
             status_code=400,
-            detail=f"Hay clases programadas en ese horario. Elimínalas primero."
+            detail=f"Hay clases programadas en ese horario ({class_overlap['materia']}). Elimínalas primero."
         )
     
     break_data = {
         "id": str(uuid.uuid4()),
         "school_id": school_id,
+        "grade_id": data.grade_id,
+        "section_id": data.section_id,
         "type": data.type,
         "label": data.label or BREAK_LABELS.get(data.type, "Bloque"),
         "start_time": data.start_time,
