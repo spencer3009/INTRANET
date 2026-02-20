@@ -766,8 +766,8 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Día <span className="text-red-500">*</span>
             </label>
-            <div className="grid grid-cols-6 gap-2">
-              {DAYS.map(day => (
+            <div className="grid grid-cols-5 sm:grid-cols-7 gap-2">
+              {getVisibleDays(settings).map(day => (
                 <button
                   key={day.id}
                   type="button"
