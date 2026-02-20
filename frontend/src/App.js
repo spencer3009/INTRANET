@@ -1063,6 +1063,20 @@ function App() {
             }
           />
           <Route
+            path="/school/:subdomain/student/exams"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {isTeacher(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/teacher`} replace />
+                ) : isAdminOnly(user) ? (
+                  <Navigate to={`/school/${user?.subdomain}/admin`} replace />
+                ) : (
+                  <StudentExamSchedulePage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/school/:subdomain/student/tasks"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
