@@ -1865,13 +1865,38 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         <span>{u.phone}</span>
                       </div>
                     )}
-                    <div className="flex items-center gap-2 text-sm text-slate-500">
-                      <div className={`w-6 h-6 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
-                        <svg className={`w-3 h-3 ${roleConfig.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <div className={`w-6 h-6 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
+                          <svg className={`w-3 h-3 ${roleConfig.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </div>
+                        <span>Registrado: {u.created_at ? new Date(u.created_at).toLocaleDateString('es-PE') : '-'}</span>
                       </div>
-                      <span>Registrado: {u.created_at ? new Date(u.created_at).toLocaleDateString('es-PE') : '-'}</span>
+                      
+                      {/* Mini QR Code - Only for students with qr_token */}
+                      {selectedRole === 'student' && u.qr_token && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setQRStudent(u);
+                            setShowQRModal(true);
+                          }}
+                          className="flex flex-col items-center gap-1 p-2 rounded-lg hover:bg-slate-50 transition-colors group"
+                          title="Ver código QR completo"
+                          data-testid={`mini-qr-${u.id}`}
+                        >
+                          <div className="bg-white p-1 rounded-lg shadow-sm border border-slate-200 group-hover:shadow-md transition-shadow">
+                            <QRCodeSVG 
+                              value={u.qr_token} 
+                              size={48}
+                              level="L"
+                            />
+                          </div>
+                          <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Verificar</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
