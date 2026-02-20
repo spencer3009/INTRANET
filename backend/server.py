@@ -5998,6 +5998,9 @@ class ScheduleSettingsCreate(BaseModel):
     end_hour: str = "18:00"
     time_format: str = "24h"  # "12h" or "24h"
     block_duration: int = 45  # minutes
+    view_mode: str = "horizontal"  # "horizontal" (time ranges in rows) or "vertical" (time in column)
+    include_saturday: bool = False
+    include_sunday: bool = False
 
 class ScheduleCreate(BaseModel):
     tipo: str  # "clases", "profesores", "examenes"
