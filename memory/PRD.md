@@ -111,8 +111,10 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
   - Utils creados: `/app/backend/utils/` (config.py, auth.py)
 
 ### 🟠 P1 - Alta Prioridad
+- [x] ✅ Bug: Flickering en "Smart Sticky" columns - Feb 2026
+  - Eliminado cálculo dinámico del `top` que causaba re-renders
+  - Ahora usa `STICKY_TOP='104px'` fijo + `will-change:transform`
 - [ ] Sistema anti-trampa básico para exámenes
-- [ ] Bug: Flickering en "Smart Sticky" columns
 
 ### 🟡 P2 - Media Prioridad
 - [ ] Módulo de "Matrículas"
