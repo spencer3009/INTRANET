@@ -844,7 +844,7 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 // ══════════════════════════════════════════════════════════════════════════════
 // CALENDAR GRID - Professional weekly view (supports horizontal & vertical modes)
 // ══════════════════════════════════════════════════════════════════════════════
-function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers }) {
+function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers, sections }) {
   // Get visible days based on settings
   const visibleDays = getVisibleDays(settings);
   const viewMode = settings?.view_mode || "horizontal";
