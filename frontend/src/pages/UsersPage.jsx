@@ -12,6 +12,7 @@ import {
   ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
+import { QRCodeSVG } from "qrcode.react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
