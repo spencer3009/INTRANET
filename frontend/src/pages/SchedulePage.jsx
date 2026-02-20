@@ -81,7 +81,7 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="schedule-settings-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="px-6 py-5 bg-gradient-to-r from-slate-700 to-slate-800">
@@ -106,6 +106,7 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
               <div>
                 <label className="block text-xs text-slate-500 mb-1">Desde</label>
                 <select
+                  data-testid="settings-start-hour"
                   value={form.start_hour}
                   onChange={(e) => setForm(p => ({ ...p, start_hour: e.target.value }))}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -118,6 +119,7 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
               <div>
                 <label className="block text-xs text-slate-500 mb-1">Hasta</label>
                 <select
+                  data-testid="settings-end-hour"
                   value={form.end_hour}
                   onChange={(e) => setForm(p => ({ ...p, end_hour: e.target.value }))}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
