@@ -4027,6 +4027,75 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && messageToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => !deleting && setShowDeleteConfirm(false)}>
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="px-6 py-5 bg-gradient-to-r from-red-500 to-rose-500">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <Trash2 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white">Eliminar mensaje</h3>
+                  <p className="text-white/80 text-sm">Esta acción moverá el mensaje a la papelera</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6">
+              <div className="bg-slate-50 rounded-xl p-4 mb-4">
+                <p className="text-sm text-slate-500 mb-1">Mensaje a eliminar:</p>
+                <p className="font-semibold text-slate-800 truncate">{messageToDelete.subject}</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  De: {messageToDelete.sender?.name || "Desconocido"}
+                </p>
+              </div>
+              
+              <p className="text-slate-600 text-sm">
+                ¿Estás seguro de que deseas eliminar este mensaje? Podrás recuperarlo desde la papelera.
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="px-6 py-4 bg-slate-50 flex justify-end gap-3 border-t border-slate-200">
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setMessageToDelete(null);
+                }}
+                disabled={deleting}
+                className="px-5 py-2.5 text-slate-600 hover:bg-slate-100 font-medium rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteMessage}
+                disabled={deleting}
+                className="px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white font-semibold rounded-xl hover:from-red-600 hover:to-rose-600 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Eliminando...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Eliminar mensaje
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
