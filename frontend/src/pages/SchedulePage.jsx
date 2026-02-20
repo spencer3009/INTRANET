@@ -2068,6 +2068,20 @@ export default function SchedulePage({ user, token, onLogout }) {
         confirmText="Eliminar"
         type="danger"
       />
+
+      <BreakModal
+        isOpen={showBreakModal}
+        onClose={() => {
+          setShowBreakModal(false);
+          setEditBreak(null);
+          setBreakPreselectedTime(null);
+        }}
+        token={token}
+        breakItem={editBreak}
+        onSuccess={loadBreaks}
+        preselectedTime={breakPreselectedTime}
+        settings={settings}
+      />
     </div>
   );
 }
