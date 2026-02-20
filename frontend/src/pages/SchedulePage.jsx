@@ -1002,14 +1002,14 @@ export default function SchedulePage({ user, token, onLogout }) {
       try {
         const [gradesRes, sectionsRes, teachersRes, settingsRes] = await Promise.all([
           axios.get(`${API}/academic/grades`, { headers }),
-          axios.get(`${API}/secciones`, { headers }),
-          axios.get(`${API}/teachers`, { headers }),
+          axios.get(`${API}/academic/sections`, { headers }),
+          axios.get(`${API}/users/teachers/active`, { headers }),
           axios.get(`${API}/schedule-settings`, { headers }).catch(() => ({ data: null }))
         ]);
 
         setGrades(gradesRes.data || []);
-        setSections(sectionsRes.data.secciones || []);
-        setTeachers(teachersRes.data.teachers || []);
+        setSections(sectionsRes.data || []);
+        setTeachers(teachersRes.data || []);
         
         if (settingsRes.data) {
           setSettings(settingsRes.data);
