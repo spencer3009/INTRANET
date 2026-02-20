@@ -4105,8 +4105,14 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
                   <Trash2 className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">Eliminar mensaje</h3>
-                  <p className="text-white/80 text-sm">Esta acción moverá el mensaje a la papelera</p>
+                  <h3 className="text-lg font-bold text-white">
+                    {activeFolder === "trash" ? "Eliminar permanentemente" : "Eliminar mensaje"}
+                  </h3>
+                  <p className="text-white/80 text-sm">
+                    {activeFolder === "trash" 
+                      ? "Esta acción no se puede deshacer" 
+                      : "Esta acción moverá el mensaje a la papelera"}
+                  </p>
                 </div>
               </div>
             </div>
