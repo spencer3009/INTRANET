@@ -271,7 +271,7 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
       
       setLoadingSubjects(true);
       try {
-        const res = await axios.get(`${API}/subjects?grade_id=${form.grado_id}`, { headers });
+        const res = await axios.get(`${API}/academic/subjects?grade_id=${form.grado_id}`, { headers });
         setSubjects(res.data.subjects || []);
       } catch (err) {
         console.error("Error loading subjects:", err);
