@@ -838,12 +838,11 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
       {/* Main 3-column grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
-      {/* LEFT COLUMN - Course Image & Activity (Dynamic Sticky) */}
+      {/* LEFT COLUMN - Course Image & Activity (Fixed Sticky - no flickering) */}
       {/* ═══════════════════════════════════════════════════════════════════════════ */}
       <div 
-        ref={leftColumnRef}
-        className="lg:col-span-3 space-y-4 lg:sticky self-start"
-        style={{ top: leftStickyTop }}
+        className="lg:col-span-3 space-y-4 lg:sticky"
+        style={{ top: STICKY_TOP, willChange: 'transform' }}
       >
         {/* Course Image Card - Elegant Design */}
         <div className="bg-gradient-to-br from-indigo-50/50 to-violet-50/30 rounded-2xl p-4 border border-indigo-200/40 shadow-sm">
