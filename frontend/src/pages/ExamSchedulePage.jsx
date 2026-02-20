@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import Sidebar from "../components/Sidebar";
+import AdminSidebar from "../components/AdminSidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import {
   Calendar,
