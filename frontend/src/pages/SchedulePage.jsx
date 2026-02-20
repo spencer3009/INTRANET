@@ -634,16 +634,38 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
             </div>
           )}
 
-          {/* Subject with Smart Select */}
+          {/* Teacher - MUST be selected before Subject */}
+          {type === "clases" && (
+            <Combobox
+              label="Profesor"
+              value={form.profesor_id}
+              onChange={(val) => setForm(p => ({ ...p, profesor_id: val, materia: "", subject_id: "" }))}
+              placeholder="Seleccionar profesor..."
+              searchPlaceholder="Buscar profesor..."
+              required
+              disabled={!form.grado_id || !form.seccion_id}
+              emptyMessage="No hay profesores disponibles"
+              options={teachers.map(t => ({
+                id: t.id,
+                label: `${t.name} ${t.last_name || ""}`.trim(),
+                sublabel: t.email || t.specialty || "",
+                image: t.profile_image || t.photo_url || null
+              }))}
+            />
+          )}
+
+          {/* Subject with Smart Select - Filtered by Profesor + Grado + Seccion */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Materia / Asignatura <span className="text-red-500">*</span>
             </label>
             
-            {!form.grado_id && type === "clases" ? (
+            {(!form.grado_id || !form.seccion_id || !form.profesor_id) && type === "clases" ? (
               <div className="w-full px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-center gap-2">
                 <AlertCircle className="w-4 h-4" />
-                Primero selecciona un grado
+                {!form.grado_id ? "Primero selecciona un grado" : 
+                 !form.seccion_id ? "Selecciona una sección" :
+                 "Selecciona un profesor"}
               </div>
             ) : (
               <div className="relative">
@@ -697,13 +719,10 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
                       </div>
                     ) : filteredSubjects.length === 0 ? (
                       <div className="p-4 text-center text-slate-500 text-sm">
-                        {subjects.length === 0 ? "No hay asignaturas para este grado" : "Sin resultados"}
+                        {subjects.length === 0 ? "Este profesor no tiene asignaturas en esta sección" : "Sin resultados"}
                       </div>
                     ) : (
                       filteredSubjects.map(subject => {
-                        // Get teacher from primary_teacher or assigned_teachers
-                        const subjectTeacher = subject.primary_teacher || subject.assigned_teachers?.[0];
-                        const teacher = subjectTeacher || teachers.find(t => t.id === subject.teacher_id);
                         return (
                           <button
                             key={subject.id}
@@ -714,7 +733,7 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
                             <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: subject.color || '#6366F1' }} />
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-slate-800">{subject.name}</p>
-                              {teacher && <p className="text-xs text-slate-500">Prof. {teacher.name}</p>}
+                              {subject.role && <p className="text-xs text-slate-500">{subject.role === 'titular' ? 'Titular' : 'Auxiliar'}</p>}
                             </div>
                           </button>
                         );
@@ -727,25 +746,6 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
             
             {showSubjectDropdown && <div className="fixed inset-0 z-40" onClick={() => setShowSubjectDropdown(false)} />}
           </div>
-
-          {/* Teacher */}
-          {type === "clases" && (
-            <Combobox
-              label="Profesor"
-              value={form.profesor_id}
-              onChange={(val) => setForm(p => ({ ...p, profesor_id: val }))}
-              placeholder="Seleccionar profesor..."
-              searchPlaceholder="Buscar profesor..."
-              required
-              emptyMessage="No hay profesores disponibles"
-              options={teachers.map(t => ({
-                id: t.id,
-                label: `${t.name} ${t.last_name || ""}`.trim(),
-                sublabel: t.email || t.specialty || "",
-                image: t.profile_image || t.photo_url || null
-              }))}
-            />
-          )}
 
           {/* Day */}
           <div>
