@@ -1628,6 +1628,7 @@ export default function SchedulePage({ user, token, onLogout }) {
               onDelete={handleDelete}
               onCellClick={handleCellClick}
               teachers={teachers}
+              sections={sections}
             />
           )}
 
