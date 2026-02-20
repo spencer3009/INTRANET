@@ -2341,12 +2341,12 @@ export default function SchedulePage({ user, token, onLogout }) {
             </div>
           </div>
 
-          {/* Calendar Grid */}
+          {/* Calendar Grid / Exam Calendar */}
           {loading ? (
             <div className="flex items-center justify-center py-20" data-testid="schedule-loading">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             </div>
-          ) : (activeTab === "clases" && (!selectedGrade || !selectedSection)) || (activeTab === "profesores" && !selectedTeacher) ? (
+          ) : (activeTab === "clases" && (!selectedGrade || !selectedSection)) || (activeTab === "profesores" && !selectedTeacher) || (activeTab === "examenes" && (!selectedGrade || !selectedSection)) ? (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center" data-testid="schedule-empty-state">
               <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-10 h-10 text-slate-400" />
@@ -2357,8 +2357,89 @@ export default function SchedulePage({ user, token, onLogout }) {
                   ? "Elige un grado y sección para ver el horario"
                   : activeTab === "profesores"
                   ? "Elige un profesor para ver su horario"
+                  : activeTab === "examenes"
+                  ? "Elige un grado y sección para ver los exámenes programados"
                   : "Selecciona los filtros necesarios"}
               </p>
+            </div>
+          ) : activeTab === "examenes" ? (
+            /* EXAM CALENDAR VIEW */
+            <div className="grid lg:grid-cols-5 gap-6">
+              {/* Calendar - 3 columns */}
+              <div className="lg:col-span-3">
+                {/* Month Navigation */}
+                <div className="flex items-center justify-between mb-4">
+                  <button onClick={prevMonth} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <ChevronLeft className="w-5 h-5 text-slate-600" />
+                  </button>
+                  <h2 className="text-lg font-bold text-slate-800">{currentMonthName}</h2>
+                  <button onClick={nextMonth} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                    <ChevronRight className="w-5 h-5 text-slate-600" />
+                  </button>
+                </div>
+                
+                {/* Calendar Grid */}
+                <ExamCalendar
+                  currentMonth={currentMonth}
+                  exams={exams}
+                  onDayClick={(dateStr) => setSelectedExamDate(dateStr)}
+                  selectedDate={selectedExamDate}
+                />
+                
+                {/* Context info */}
+                <div className="mt-4 p-3 bg-indigo-50 rounded-lg flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-indigo-600" />
+                  <span className="text-sm font-medium text-indigo-700">
+                    {grades.find(g => g.id === selectedGrade)?.nombre} - Sección {filteredSections.find(s => s.id === selectedSection)?.nombre}
+                  </span>
+                  <span className="ml-auto text-sm text-indigo-600">
+                    {exams.length} exámenes este mes
+                  </span>
+                </div>
+              </div>
+
+              {/* Day Detail Panel - 2 columns */}
+              <div className="lg:col-span-2">
+                <div className="bg-white rounded-xl border border-slate-200 h-full">
+                  <div className="px-4 py-3 border-b border-slate-200 bg-slate-50 rounded-t-xl flex items-center justify-between">
+                    <h3 className="font-semibold text-slate-700 flex items-center gap-2">
+                      <Calendar className="w-4 h-4" />
+                      {selectedExamDate ? (
+                        new Date(selectedExamDate + 'T12:00:00').toLocaleDateString('es-PE', { weekday: 'long', day: 'numeric', month: 'long' })
+                      ) : "Selecciona un día"}
+                    </h3>
+                    {selectedExamDate && (
+                      <button onClick={handleAddExam} className="px-3 py-1.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 flex items-center gap-1">
+                        <Plus className="w-4 h-4" />Agregar
+                      </button>
+                    )}
+                  </div>
+                  <div className="p-4 max-h-[500px] overflow-y-auto">
+                    {!selectedExamDate ? (
+                      <div className="text-center py-8 text-slate-500">
+                        <Clock className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                        <p>Haz clic en un día del calendario</p>
+                      </div>
+                    ) : examsForSelectedDate.length === 0 ? (
+                      <div className="text-center py-8">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 rounded-full flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-slate-400" />
+                        </div>
+                        <p className="text-slate-500 mb-4">No hay exámenes programados</p>
+                        <button onClick={handleAddExam} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 inline-flex items-center gap-2">
+                          <Plus className="w-4 h-4" />Programar examen
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {examsForSelectedDate.map(exam => (
+                          <ExamCard key={exam.id} exam={exam} onEdit={handleEditExam} onDelete={handleDeleteExam} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           ) : (
             <CalendarGrid
