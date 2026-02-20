@@ -661,8 +661,10 @@ function TeacherAttendanceTab({ token, schoolId }) {
 // REPORTS TAB
 // ══════════════════════════════════════════════════════════════════════════════
 function ReportsTab({ token, schoolId }) {
-  const [teachers, setTeachers] = useState([]);
-  const [selectedTeacher, setSelectedTeacher] = useState("");
+  const [grades, setGrades] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [selectedGrade, setSelectedGrade] = useState("");
+  const [selectedSection, setSelectedSection] = useState("");
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
     date.setMonth(date.getMonth() - 1);
@@ -671,42 +673,60 @@ function ReportsTab({ token, schoolId }) {
   const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [loadingTeachers, setLoadingTeachers] = useState(true);
+  const [loadingGrades, setLoadingGrades] = useState(true);
   
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load teachers
+  // Load grades on mount
   useEffect(() => {
-    loadTeachers();
+    loadGrades();
   }, []);
 
-  const loadTeachers = async () => {
+  const loadGrades = async () => {
     try {
-      const res = await axios.get(`${API}/users`, { headers });
-      const teacherList = res.data.filter(u => u.role === "teacher");
-      setTeachers(teacherList);
+      const res = await axios.get(`${API}/academic/grades`, { headers });
+      setGrades(res.data || []);
     } catch (err) {
-      console.error("Error loading teachers:", err);
+      console.error("Error loading grades:", err);
     } finally {
-      setLoadingTeachers(false);
+      setLoadingGrades(false);
+    }
+  };
+
+  // Load sections when grade changes
+  useEffect(() => {
+    if (selectedGrade) {
+      loadSections(selectedGrade);
+    } else {
+      setSections([]);
+      setSelectedSection("");
+    }
+  }, [selectedGrade]);
+
+  const loadSections = async (gradeId) => {
+    try {
+      const res = await axios.get(`${API}/academic/sections?grade_id=${gradeId}`, { headers });
+      setSections(res.data || []);
+    } catch (err) {
+      console.error("Error loading sections:", err);
     }
   };
 
   const loadReport = async () => {
+    if (!selectedGrade || !selectedSection) {
+      return;
+    }
+    
     setLoading(true);
     try {
-      const params = {
+      const params = new URLSearchParams({
+        grade_id: selectedGrade,
+        section_id: selectedSection,
         start_date: startDate,
         end_date: endDate
-      };
-      if (selectedTeacher) {
-        params.teacher_id = selectedTeacher;
-      }
-      
-      const res = await axios.get(`${API}/attendance/reports/teachers`, {
-        headers,
-        params
       });
+      
+      const res = await axios.get(`${API}/attendance/reports/students?${params}`, { headers });
       setReport(res.data);
     } catch (err) {
       console.error("Error loading report:", err);
@@ -715,29 +735,50 @@ function ReportsTab({ token, schoolId }) {
     }
   };
 
+  // Get grade and section names for display
+  const gradeName = grades.find(g => g.id === selectedGrade)?.nombre || "";
+  const sectionName = sections.find(s => s.id === selectedSection)?.nombre || "";
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="attendance-reports-tab">
       {/* Filters */}
       <div className="bg-white rounded-2xl shadow-lg p-6">
         <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
           <Filter className="w-5 h-5 text-violet-600" />
-          Filtros del Reporte
+          Filtros del Reporte de Estudiantes
         </h3>
         
-        <div className="grid md:grid-cols-4 gap-4">
-          {/* Teacher */}
+        <div className="grid md:grid-cols-5 gap-4">
+          {/* Grade */}
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Profesor</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Grado</label>
             <select
-              value={selectedTeacher}
-              onChange={(e) => setSelectedTeacher(e.target.value)}
+              data-testid="report-grade-select"
+              value={selectedGrade}
+              onChange={(e) => setSelectedGrade(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+              disabled={loadingGrades}
             >
-              <option value="">Todos los profesores</option>
-              {teachers.map(t => (
-                <option key={t.id} value={t.id}>
-                  {t.name} {t.last_name}
-                </option>
+              <option value="">Seleccionar grado...</option>
+              {grades.map(g => (
+                <option key={g.id} value={g.id}>{g.nombre}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Section */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
+            <select
+              data-testid="report-section-select"
+              value={selectedSection}
+              onChange={(e) => setSelectedSection(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+              disabled={!selectedGrade}
+            >
+              <option value="">Seleccionar sección...</option>
+              {sections.map(s => (
+                <option key={s.id} value={s.id}>{s.nombre}</option>
               ))}
             </select>
           </div>
@@ -747,6 +788,7 @@ function ReportsTab({ token, schoolId }) {
             <label className="block text-sm font-semibold text-slate-700 mb-2">Desde</label>
             <input
               type="date"
+              data-testid="report-start-date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -758,6 +800,7 @@ function ReportsTab({ token, schoolId }) {
             <label className="block text-sm font-semibold text-slate-700 mb-2">Hasta</label>
             <input
               type="date"
+              data-testid="report-end-date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
@@ -767,9 +810,10 @@ function ReportsTab({ token, schoolId }) {
           {/* Generate button */}
           <div className="flex items-end">
             <button
+              data-testid="report-generate-btn"
               onClick={loadReport}
-              disabled={loading}
-              className="w-full px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 flex items-center justify-center gap-2"
+              disabled={loading || !selectedGrade || !selectedSection}
+              className="w-full px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
               Generar Reporte
@@ -780,14 +824,14 @@ function ReportsTab({ token, schoolId }) {
 
       {/* Report results */}
       {report && (
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden" data-testid="attendance-report-results">
           {/* Header */}
           <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 text-white">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
-                <h3 className="text-xl font-bold">Reporte de Asistencia</h3>
+                <h3 className="text-xl font-bold">Reporte de Asistencia de Estudiantes</h3>
                 <p className="text-violet-100">
-                  {new Date(startDate).toLocaleDateString("es-PE")} - {new Date(endDate).toLocaleDateString("es-PE")}
+                  {gradeName} - Sección {sectionName} | {new Date(startDate).toLocaleDateString("es-PE")} - {new Date(endDate).toLocaleDateString("es-PE")}
                 </p>
               </div>
               <div className="flex gap-3">
@@ -805,14 +849,14 @@ function ReportsTab({ token, schoolId }) {
 
           {/* Summary cards */}
           <div className="p-6 border-b border-slate-200">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-slate-50 rounded-xl p-4 text-center">
                 <p className="text-3xl font-bold text-slate-800">{report.summary.total_records}</p>
                 <p className="text-sm text-slate-500">Total registros</p>
               </div>
               <div className="bg-emerald-50 rounded-xl p-4 text-center">
                 <p className="text-3xl font-bold text-emerald-600">{report.summary.present}</p>
-                <p className="text-sm text-emerald-700">Presentes</p>
+                <p className="text-sm text-emerald-700">Asistencias</p>
               </div>
               <div className="bg-amber-50 rounded-xl p-4 text-center">
                 <p className="text-3xl font-bold text-amber-600">{report.summary.late}</p>
@@ -820,43 +864,38 @@ function ReportsTab({ token, schoolId }) {
               </div>
               <div className="bg-red-50 rounded-xl p-4 text-center">
                 <p className="text-3xl font-bold text-red-600">{report.summary.absent}</p>
-                <p className="text-sm text-red-700">Ausentes</p>
-              </div>
-              <div className="bg-blue-50 rounded-xl p-4 text-center">
-                <p className="text-3xl font-bold text-blue-600">{report.summary.justified}</p>
-                <p className="text-sm text-blue-700">Justificados</p>
+                <p className="text-sm text-red-700">Inasistencias</p>
               </div>
             </div>
           </div>
 
-          {/* Teacher breakdown */}
+          {/* Student breakdown */}
           {report.report.length > 0 ? (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50">
-                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">Profesor</th>
+                    <th className="px-6 py-4 text-left text-sm font-bold text-slate-700">Estudiante</th>
                     <th className="px-4 py-4 text-center text-sm font-bold text-slate-700">Días</th>
-                    <th className="px-4 py-4 text-center text-sm font-bold text-emerald-600">Presente</th>
-                    <th className="px-4 py-4 text-center text-sm font-bold text-amber-600">Tardanza</th>
-                    <th className="px-4 py-4 text-center text-sm font-bold text-red-600">Ausente</th>
-                    <th className="px-4 py-4 text-center text-sm font-bold text-blue-600">Justificado</th>
-                    <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">Asistencia</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-emerald-600">Asistencias</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-amber-600">Tardanzas</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-red-600">Inasistencias</th>
+                    <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">% Asistencia</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {report.report.map((item, idx) => (
-                    <tr key={item.teacher_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <tr key={item.student_id} className={idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {item.teacher_photo ? (
-                            <img src={item.teacher_photo} alt="" className="w-10 h-10 rounded-full object-cover" />
+                          {item.student_photo ? (
+                            <img src={item.student_photo} alt="" className="w-10 h-10 rounded-full object-cover" />
                           ) : (
                             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white font-bold">
-                              {item.teacher_name?.charAt(0) || "P"}
+                              {item.student_name?.charAt(0) || "E"}
                             </div>
                           )}
-                          <span className="font-semibold text-slate-800">{item.teacher_name}</span>
+                          <span className="font-semibold text-slate-800">{item.student_name}</span>
                         </div>
                       </td>
                       <td className="px-4 py-4 text-center text-slate-600">{item.total_days}</td>
@@ -873,11 +912,6 @@ function ReportsTab({ token, schoolId }) {
                       <td className="px-4 py-4 text-center">
                         <span className="px-3 py-1 bg-red-100 text-red-700 rounded-full font-medium">
                           {item.absent}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4 text-center">
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">
-                          {item.justified}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -906,9 +940,9 @@ function ReportsTab({ token, schoolId }) {
             </div>
           ) : (
             <div className="p-12 text-center">
-              <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-              <h3 className="text-xl font-bold text-slate-700 mb-2">Sin datos</h3>
-              <p className="text-slate-500">No hay registros de asistencia en el rango seleccionado.</p>
+              <Users className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-xl font-bold text-slate-700 mb-2">Sin datos de estudiantes</h3>
+              <p className="text-slate-500">No hay registros de asistencia en el rango seleccionado para esta sección.</p>
             </div>
           )}
         </div>
@@ -917,9 +951,10 @@ function ReportsTab({ token, schoolId }) {
       {/* Initial state */}
       {!report && !loading && (
         <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-          <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-          <h3 className="text-xl font-bold text-slate-700 mb-2">Genera un Reporte</h3>
-          <p className="text-slate-500">Selecciona los filtros y presiona "Generar Reporte"</p>
+          <Users className="w-16 h-16 mx-auto mb-4 text-slate-300" />
+          <h3 className="text-xl font-bold text-slate-700 mb-2">Reporte de Asistencia de Estudiantes</h3>
+          <p className="text-slate-500 mb-4">Selecciona un grado, sección y rango de fechas para generar el reporte.</p>
+          <p className="text-sm text-slate-400">El reporte mostrará las asistencias, tardanzas e inasistencias de cada alumno.</p>
         </div>
       )}
     </div>
