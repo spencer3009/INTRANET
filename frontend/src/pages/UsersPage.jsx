@@ -1874,53 +1874,55 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   </div>
                   
                   {/* User details */}
-                  <div className={`pt-3 border-t ${roleConfig.borderColor} space-y-1.5`}>
-                    {u.phone && (
-                      <div className="flex items-center gap-2 text-sm text-slate-600">
-                        <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
-                          <svg className={`w-3 h-3 ${roleConfig.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                        </div>
-                        <span>{u.phone}</span>
-                      </div>
-                    )}
-                    
-                    {/* Academic info - Only for students */}
-                    {selectedRole === 'student' && (u.grado_id || u.seccion_id) && (() => {
-                      const grade = grades.find(g => g.id === u.grado_id);
-                      const section = sections.find(s => s.id === u.seccion_id);
-                      const level = grade ? levels.find(l => l.id === grade.nivel_id) : null;
-                      return (
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
-                            <GraduationCap className={`w-3 h-3 ${roleConfig.textColor}`} />
+                  <div className={`pt-3 border-t ${roleConfig.borderColor}`}>
+                    <div className="flex justify-between items-start gap-2">
+                      {/* Left side - Info */}
+                      <div className="space-y-1 flex-1 min-w-0">
+                        {u.phone && (
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                            <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center flex-shrink-0`}>
+                              <svg className={`w-3 h-3 ${roleConfig.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                              </svg>
+                            </div>
+                            <span className="truncate">{u.phone}</span>
                           </div>
-                          <span className="truncate">
-                            {level?.nombre || ""}{level ? " - " : ""}
-                            {grade?.nombre || "Sin grado"}{" - "}
-                            {section?.nombre || "Sin sección"}
-                          </span>
+                        )}
+                        
+                        {/* Academic info - Only for students */}
+                        {selectedRole === 'student' && (u.grado_id || u.seccion_id) && (() => {
+                          const grade = grades.find(g => g.id === u.grado_id);
+                          const section = sections.find(s => s.id === u.seccion_id);
+                          const level = grade ? levels.find(l => l.id === grade.nivel_id) : null;
+                          return (
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center flex-shrink-0`}>
+                                <GraduationCap className={`w-3 h-3 ${roleConfig.textColor}`} />
+                              </div>
+                              <span className="truncate">
+                                {level?.nombre || ""}{level ? " - " : ""}
+                                {grade?.nombre || "Sin grado"}{" - "}
+                                {section?.nombre || "Sin sección"}
+                              </span>
+                            </div>
+                          );
+                        })()}
+                        
+                        <div className="flex items-center gap-2 text-sm text-slate-500">
+                          <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center flex-shrink-0`}>
+                            <svg className={`w-3 h-3 ${roleConfig.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <span>Registrado: {u.created_at ? new Date(u.created_at).toLocaleDateString('es-PE') : '-'}</span>
                         </div>
-                      );
-                    })()}
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center`}>
-                          <svg className={`w-3 h-3 ${roleConfig.textColor}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        <span>Registrado: {u.created_at ? new Date(u.created_at).toLocaleDateString('es-PE') : '-'}</span>
                       </div>
                       
-                      {/* Mini QR Code - Only for students with qr_token */}
+                      {/* Right side - Mini QR Code */}
                       {selectedRole === 'student' && u.qr_token && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Add grade, section and level names for QR card
                             const grade = grades.find(g => g.id === u.grado_id);
                             const sectionName = sections.find(s => s.id === u.seccion_id)?.nombre || "";
                             const levelName = grade ? levels.find(l => l.id === grade.nivel_id)?.nombre || "" : "";
@@ -1932,18 +1934,18 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                             });
                             setShowQRModal(true);
                           }}
-                          className="flex flex-col items-center gap-0.5 p-1.5 rounded-lg hover:bg-slate-50 transition-colors group"
+                          className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-slate-50 transition-colors group flex-shrink-0"
                           title="Ver código QR completo"
                           data-testid={`mini-qr-${u.id}`}
                         >
                           <div className="bg-white p-1 rounded-lg shadow-sm border border-slate-200 group-hover:shadow-md transition-shadow">
                             <QRCodeSVG 
                               value={u.qr_token} 
-                              size={44}
+                              size={50}
                               level="L"
                             />
                           </div>
-                          <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">Verificar</span>
+                          <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">QR</span>
                         </button>
                       )}
                     </div>
