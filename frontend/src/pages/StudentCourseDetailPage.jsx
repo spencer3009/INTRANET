@@ -3596,9 +3596,13 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
         ...prev, 
         inbox: Math.max(0, prev.inbox - 1)
       }));
+      // Close modal
+      setShowDeleteConfirm(false);
+      setMessageToDelete(null);
     } catch (err) {
       console.error("Error deleting message:", err);
-      alert("Error al eliminar el mensaje");
+    } finally {
+      setDeleting(false);
     }
   };
 
