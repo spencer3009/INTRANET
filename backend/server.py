@@ -15941,12 +15941,98 @@ async def restore_message(message_id: str, current_user = Depends(get_current_us
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    await db.internal_mail.update_one(
-        {"id": message_id, "recipients.user_id": user["id"]},
-        {"$set": {"recipients.$.is_deleted": False}, "$unset": {"recipients.$.deleted_at": ""}}
-    )
+    # Check if user is sender or recipient
+    message = await db.internal_mail.find_one({"id": message_id}, {"_id": 0, "sender_id": 1})
+    if not message:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    if message.get("sender_id") == user["id"]:
+        # User is sender
+        await db.internal_mail.update_one(
+            {"id": message_id},
+            {"$set": {"sender_deleted": False}, "$unset": {"sender_deleted_at": ""}}
+        )
+    else:
+        # User is recipient
+        await db.internal_mail.update_one(
+            {"id": message_id, "recipients.user_id": user["id"]},
+            {"$set": {"recipients.$.is_deleted": False}, "$unset": {"recipients.$.deleted_at": ""}}
+        )
     
     return {"success": True}
+
+# Permanently delete message from trash
+@api_router.delete("/internal-mail/{message_id}/permanent")
+async def permanent_delete_message(message_id: str, current_user = Depends(get_current_user)):
+    """Permanently delete a message from trash (cannot be recovered)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Check if user is sender or recipient
+    message = await db.internal_mail.find_one({"id": message_id}, {"_id": 0, "sender_id": 1, "recipients": 1})
+    if not message:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    if message.get("sender_id") == user["id"]:
+        # User is sender - check if it's in their trash
+        if message.get("sender_deleted"):
+            # Delete the entire message if user is the sender
+            await db.internal_mail.delete_one({"id": message_id})
+    else:
+        # User is recipient - remove them from recipients array
+        recipient_entry = next((r for r in message.get("recipients", []) if r.get("user_id") == user["id"]), None)
+        if recipient_entry and recipient_entry.get("is_deleted"):
+            # Remove recipient from the message
+            await db.internal_mail.update_one(
+                {"id": message_id},
+                {"$pull": {"recipients": {"user_id": user["id"]}}}
+            )
+            # If no recipients left and sender also deleted, remove the entire message
+            updated_msg = await db.internal_mail.find_one({"id": message_id}, {"_id": 0, "recipients": 1, "sender_deleted": 1})
+            if updated_msg and len(updated_msg.get("recipients", [])) == 0 and updated_msg.get("sender_deleted"):
+                await db.internal_mail.delete_one({"id": message_id})
+    
+    return {"success": True}
+
+# Empty entire trash
+@api_router.delete("/internal-mail/trash/empty")
+async def empty_trash(current_user = Depends(get_current_user)):
+    """Permanently delete all messages in trash"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    # Get all messages in user's trash (both sent and received)
+    # Received messages in trash
+    received_in_trash = await db.internal_mail.find({
+        "recipients": {
+            "$elemMatch": {
+                "user_id": user["id"],
+                "is_deleted": True
+            }
+        }
+    }, {"_id": 0, "id": 1}).to_list(1000)
+    
+    # Remove user from recipients for received messages
+    for msg in received_in_trash:
+        await db.internal_mail.update_one(
+            {"id": msg["id"]},
+            {"$pull": {"recipients": {"user_id": user["id"]}}}
+        )
+    
+    # Sent messages in trash - delete entirely
+    await db.internal_mail.delete_many({
+        "sender_id": user["id"],
+        "sender_deleted": True
+    })
+    
+    # Clean up messages with no recipients and deleted sender
+    await db.internal_mail.delete_many({
+        "recipients": {"$size": 0}
+    })
+    
+    return {"success": True, "message": "Papelera vaciada correctamente"}
 
 # Get contacts for composing
 @api_router.get("/internal-mail/contacts/search")
