@@ -831,7 +831,7 @@ function ReportsTab({ token, schoolId }) {
               <div>
                 <h3 className="text-xl font-bold">Reporte de Asistencia de Estudiantes</h3>
                 <p className="text-violet-100">
-                  {gradeName} - Sección {sectionName} | {new Date(startDate).toLocaleDateString("es-PE")} - {new Date(endDate).toLocaleDateString("es-PE")}
+                  {gradeName} - Sección {sectionName} | {new Date(startDate + 'T12:00:00').toLocaleDateString("es-PE")} - {new Date(endDate + 'T12:00:00').toLocaleDateString("es-PE")}
                 </p>
               </div>
               <div className="flex gap-3">
