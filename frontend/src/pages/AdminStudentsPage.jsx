@@ -1366,6 +1366,13 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
                         onEdit={handleEdit}
                         onDelete={handleDelete}
                         onViewDetails={(s) => console.log('View details:', s)}
+                        onShowQR={(s) => {
+                          // Add grade and section names for QR card
+                          const gradeName = grades.find(g => g.id === s.grado_id)?.nombre || "";
+                          const sectionName = sections.find(sec => sec.id === s.seccion_id)?.nombre || "";
+                          setQRStudent({ ...s, grade_name: gradeName, section_name: sectionName });
+                          setShowQRModal(true);
+                        }}
                       />
                     ))}
                   </tbody>
