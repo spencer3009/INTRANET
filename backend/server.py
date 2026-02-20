@@ -6095,6 +6095,181 @@ async def save_schedule_settings(
     return {"message": "Configuración guardada correctamente", "settings": settings_data}
 
 # ─────────────────────────────────────────────────────────────────────────────
+# SCHEDULE BREAKS (Recreo, Almuerzo, Eventos)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ScheduleBreakCreate(BaseModel):
+    type: str  # "break" (recreo), "lunch" (almuerzo), "event" (evento)
+    label: str
+    start_time: str
+    end_time: str
+    color: Optional[str] = None
+
+class ScheduleBreakUpdate(BaseModel):
+    type: Optional[str] = None
+    label: Optional[str] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    color: Optional[str] = None
+
+# Default colors for break types
+BREAK_COLORS = {
+    "break": "#FCD34D",   # Yellow - Recreo
+    "lunch": "#FB923C",   # Orange - Almuerzo
+    "event": "#60A5FA"    # Blue - Evento
+}
+
+BREAK_LABELS = {
+    "break": "Recreo",
+    "lunch": "Almuerzo", 
+    "event": "Evento"
+}
+
+@api_router.get("/schedule/breaks")
+async def get_schedule_breaks(current_user = Depends(get_current_user)):
+    """Get all schedule breaks (recreos, almuerzos, eventos) for school"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    breaks = await db.schedule_breaks.find(
+        {"school_id": user["school_id"]},
+        {"_id": 0}
+    ).sort("start_time", 1).to_list(50)
+    
+    return {"breaks": breaks}
+
+@api_router.post("/schedule/breaks")
+async def create_schedule_break(
+    data: ScheduleBreakCreate,
+    current_user = Depends(get_current_user)
+):
+    """Create a new schedule break (recreo, almuerzo, evento)"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar bloques")
+    
+    school_id = user["school_id"]
+    
+    # Check for overlapping breaks
+    overlap_query = {
+        "school_id": school_id,
+        "start_time": {"$lt": data.end_time},
+        "end_time": {"$gt": data.start_time}
+    }
+    existing_break = await db.schedule_breaks.find_one(overlap_query)
+    if existing_break:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Ya existe un bloque en ese horario: {existing_break['label']} ({existing_break['start_time']} - {existing_break['end_time']})"
+        )
+    
+    # Check for overlapping classes in ANY section
+    class_overlap = await db.schedules.find_one({
+        "school_id": school_id,
+        "hora_inicio": {"$lt": data.end_time},
+        "hora_fin": {"$gt": data.start_time}
+    })
+    if class_overlap:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Hay clases programadas en ese horario. Elimínalas primero."
+        )
+    
+    break_data = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "type": data.type,
+        "label": data.label or BREAK_LABELS.get(data.type, "Bloque"),
+        "start_time": data.start_time,
+        "end_time": data.end_time,
+        "color": data.color or BREAK_COLORS.get(data.type, "#94A3B8"),
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.schedule_breaks.insert_one(break_data)
+    del break_data["_id"] if "_id" in break_data else None
+    
+    return {"message": "Bloque creado correctamente", "break": break_data}
+
+@api_router.put("/schedule/breaks/{break_id}")
+async def update_schedule_break(
+    break_id: str,
+    data: ScheduleBreakUpdate,
+    current_user = Depends(get_current_user)
+):
+    """Update a schedule break"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar bloques")
+    
+    school_id = user["school_id"]
+    
+    existing = await db.schedule_breaks.find_one({"id": break_id, "school_id": school_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Bloque no encontrado")
+    
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    
+    # If changing time, check for overlaps
+    new_start = update_data.get("start_time", existing["start_time"])
+    new_end = update_data.get("end_time", existing["end_time"])
+    
+    if "start_time" in update_data or "end_time" in update_data:
+        overlap_query = {
+            "school_id": school_id,
+            "id": {"$ne": break_id},
+            "start_time": {"$lt": new_end},
+            "end_time": {"$gt": new_start}
+        }
+        overlapping = await db.schedule_breaks.find_one(overlap_query)
+        if overlapping:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Se solapa con: {overlapping['label']} ({overlapping['start_time']} - {overlapping['end_time']})"
+            )
+    
+    # Update color if type changed
+    if "type" in update_data and "color" not in update_data:
+        update_data["color"] = BREAK_COLORS.get(update_data["type"], existing.get("color"))
+    
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    
+    await db.schedule_breaks.update_one({"id": break_id}, {"$set": update_data})
+    
+    updated = await db.schedule_breaks.find_one({"id": break_id}, {"_id": 0})
+    return {"message": "Bloque actualizado", "break": updated}
+
+@api_router.delete("/schedule/breaks/{break_id}")
+async def delete_schedule_break(
+    break_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Delete a schedule break"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar bloques")
+    
+    result = await db.schedule_breaks.delete_one({
+        "id": break_id,
+        "school_id": user["school_id"]
+    })
+    
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Bloque no encontrado")
+    
+    return {"message": "Bloque eliminado correctamente"}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # SCHEDULE ENTRIES ENDPOINTS
 # ─────────────────────────────────────────────────────────────────────────────
 
