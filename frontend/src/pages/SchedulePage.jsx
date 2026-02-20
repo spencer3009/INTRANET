@@ -987,7 +987,7 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
                   <div 
                     key={`${day.id}-${time}`}
                     data-testid={`schedule-cell-${day.id}-${time.replace(':', '')}`}
-                    className="flex-1 min-w-[140px] border-r last:border-r-0 border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors p-1"
+                    className="flex-1 min-w-[180px] border-r last:border-r-0 border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors p-1"
                     onClick={() => onCellClick(day.id, time)}
                   >
                     {slotSchedules.map(schedule => {
@@ -995,28 +995,60 @@ function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teac
                       if (!scheduleStartsAtSlot(schedule, time)) return null;
                       
                       const teacher = teachers?.find(t => t.id === schedule.profesor_id);
+                      const section = sections?.find(s => s.id === schedule.seccion_id);
+                      const studentCount = section?.student_count || section?.students_count || 0;
                       const [startH] = schedule.hora_inicio.split(':').map(Number);
                       const [endH] = schedule.hora_fin.split(':').map(Number);
                       const spanRows = endH - startH;
+                      const teacherFullName = teacher ? `${teacher.name} ${teacher.last_name || ''}`.trim() : '';
+                      const teacherPhoto = teacher?.profile_image || teacher?.photo_url;
                       
                       return (
                         <div
                           key={schedule.id}
                           data-testid={`schedule-block-${schedule.id}`}
-                          className="rounded-lg shadow-sm overflow-hidden cursor-pointer group transition-all hover:shadow-md relative"
+                          className="rounded-xl shadow-sm overflow-hidden cursor-pointer group transition-all hover:shadow-lg relative"
                           style={{
                             ...getColorStyle(schedule.color),
-                            minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : '56px'
+                            minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : '70px'
                           }}
                           onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
                         >
-                          <div className="h-full p-2 flex flex-col text-white">
-                            <p className="font-semibold text-sm truncate">{schedule.materia}</p>
-                            {teacher && <p className="text-xs opacity-90 truncate">{teacher.name}</p>}
-                            {schedule.aula && <p className="text-xs opacity-75 truncate">{schedule.aula}</p>}
-                            <p className="text-[10px] opacity-75 mt-auto">
-                              {schedule.hora_inicio} - {schedule.hora_fin}
-                            </p>
+                          <div className="h-full p-2.5 flex flex-col text-white">
+                            {/* Subject name */}
+                            <p className="font-bold text-sm truncate mb-1">{schedule.materia}</p>
+                            
+                            {/* Teacher with photo */}
+                            {teacher && (
+                              <div className="flex items-center gap-2 mb-1">
+                                {teacherPhoto ? (
+                                  <img 
+                                    src={teacherPhoto} 
+                                    alt={teacherFullName}
+                                    className="w-6 h-6 rounded-full object-cover border border-white/30 flex-shrink-0"
+                                    onError={(e) => { e.target.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                                    <Users className="w-3 h-3 text-white/80" />
+                                  </div>
+                                )}
+                                <span className="text-xs opacity-95 truncate">{teacherFullName}</span>
+                              </div>
+                            )}
+                            
+                            {/* Students count & room */}
+                            <div className="flex items-center gap-2 text-[10px] opacity-80 mt-auto">
+                              {studentCount > 0 && (
+                                <span className="flex items-center gap-1 bg-white/15 px-1.5 py-0.5 rounded">
+                                  <GraduationCap className="w-3 h-3" />
+                                  {studentCount} alumnos
+                                </span>
+                              )}
+                              {schedule.aula && (
+                                <span className="truncate">{schedule.aula}</span>
+                              )}
+                            </div>
                           </div>
                           
                           {/* Hover actions */}
