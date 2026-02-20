@@ -1644,7 +1644,7 @@ export default function SchedulePage({ user, token, onLogout }) {
         setGrades(gradesRes.data || []);
         setSections(sectionsRes.data || []);
         setTeachers(teachersRes.data || []);
-        setBreaks(breaksRes.data?.breaks || []);
+        // Breaks se cargan por grado/sección cuando se seleccionan
         
         if (settingsRes.data) {
           setSettings(settingsRes.data);
@@ -1658,6 +1658,11 @@ export default function SchedulePage({ user, token, onLogout }) {
 
     loadData();
   }, [token]);
+
+  // Load breaks when grade/section changes
+  useEffect(() => {
+    loadBreaks();
+  }, [loadBreaks]);
 
   // Load schedules when filters change
   useEffect(() => {
