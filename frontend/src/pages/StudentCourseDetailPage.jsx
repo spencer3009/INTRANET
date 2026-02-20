@@ -666,12 +666,6 @@ function DashboardContent({ subject, teacher, posts, students, tasks, materials,
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [presenceData, setPresenceData] = useState({});
   
-  // Refs for calculating dynamic sticky top
-  const leftColumnRef = useRef(null);
-  const rightColumnRef = useRef(null);
-  const [leftStickyTop, setLeftStickyTop] = useState('auto');
-  const [rightStickyTop, setRightStickyTop] = useState('auto');
-  
   // Load presence data
   useEffect(() => {
     const loadPresence = async () => {
