@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import QRScannerTab from "../components/QRScannerTab";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import { 
