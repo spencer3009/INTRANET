@@ -3714,8 +3714,21 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
             ))}
           </div>
 
+          {/* Empty Trash button - only shown in trash folder */}
+          {activeFolder === "trash" && stats.trash > 0 && (
+            <div className="pt-4 border-t border-slate-200">
+              <button
+                onClick={() => setShowEmptyTrashConfirm(true)}
+                className="w-full px-3 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white rounded-xl text-sm font-medium hover:from-red-600 hover:to-rose-600 transition-all flex items-center gap-2 justify-center"
+              >
+                <Trash2 className="w-4 h-4" />
+                Vaciar papelera
+              </button>
+            </div>
+          )}
+
           {/* Quick action: Message teacher */}
-          {teacher && (
+          {teacher && activeFolder !== "trash" && (
             <div className="pt-4 border-t border-slate-200">
               <button
                 onClick={openComposeWithTeacher}
