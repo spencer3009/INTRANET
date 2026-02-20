@@ -234,6 +234,7 @@ export default function StudentQRCard({ student, schoolName, onClose }) {
               </p>
               <p className="text-slate-500 flex items-center gap-1">
                 <GraduationCap className="w-4 h-4" />
+                {student.level_name ? `${student.level_name} - ` : ""}
                 {student.grade_name || "Sin grado"} - {student.section_name || "Sin sección"}
               </p>
             </div>
