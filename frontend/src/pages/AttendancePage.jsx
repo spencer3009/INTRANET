@@ -8,7 +8,7 @@ import autoTable from "jspdf-autotable";
 import { 
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
-  User, Filter, CheckCircle2, XCircle, AlertTriangle
+  User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
