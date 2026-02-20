@@ -6191,7 +6191,8 @@ async def create_schedule_break(
     }
     
     await db.schedule_breaks.insert_one(break_data)
-    del break_data["_id"] if "_id" in break_data else None
+    if "_id" in break_data:
+        del break_data["_id"]
     
     return {"message": "Bloque creado correctamente", "break": break_data}
 
