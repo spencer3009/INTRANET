@@ -2093,6 +2093,8 @@ export default function SchedulePage({ user, token, onLogout }) {
         onSuccess={loadBreaks}
         preselectedTime={breakPreselectedTime}
         settings={settings}
+        gradeId={selectedGrade}
+        sectionId={selectedSection}
       />
     </div>
   );
