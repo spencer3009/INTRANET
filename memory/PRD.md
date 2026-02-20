@@ -63,6 +63,16 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 | - Filtros por grado/sección | Feb 2026 | ✅ |
 | - Modal de agregar/editar con combobox de materias | Feb 2026 | ✅ |
 | - Responsive con scroll horizontal y columna sticky | Feb 2026 | ✅ |
+| - **Vista Horizontal/Vertical configurable** | Feb 2026 | ✅ |
+| - **TimePicker circular personalizado** | Feb 2026 | ✅ |
+| - **Combobox reutilizable (Profesor con foto, Sección)** | Feb 2026 | ✅ |
+| - **Filtrado dependiente: Grado→Sección→Profesor→Materia** | Feb 2026 | ✅ |
+| - **🆕 Bloques Especiales (Recreo/Almuerzo/Evento)** | Feb 2026 | ✅ Probado |
+|   - Fila completa bloqueada para toda la semana | Feb 2026 | ✅ |
+|   - Menú contextual (clic derecho) para agregar | Feb 2026 | ✅ |
+|   - Modal de edición con TimePicker | Feb 2026 | ✅ |
+|   - Validación de solapamiento entre breaks | Feb 2026 | ✅ |
+|   - Previene programar clases en horarios bloqueados | Feb 2026 | ✅ |
 
 ### 🔴 P0 - Crítico (Refactoring Técnico)
 - [ ] Refactorizar `CourseDetailPage.jsx` (>9,000 líneas)
