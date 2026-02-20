@@ -1154,18 +1154,32 @@ export default function SchedulePage({ user, token, onLogout }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      <Sidebar 
-        user={user} 
-        expanded={sidebarExpanded} 
-        setExpanded={setSidebarExpanded}
-        activePage="schedule"
+    <div className="flex min-h-screen bg-gradient-to-br from-slate-50 to-blue-50" data-testid="schedule-page">
+      <Sidebar
+        active="horarios"
+        onNavigate={() => {}}
+        expanded={sidebarExpanded}
+        onToggle={() => setSidebarExpanded(!sidebarExpanded)}
+        onLogout={onLogout}
+        subdomain={user?.subdomain}
+        token={token}
       />
       
-      <div className={`transition-all duration-300 ${sidebarExpanded ? "md:ml-64" : "md:ml-20"}`}>
-        <DashboardHeader user={user} onLogout={onLogout} />
+      {sidebarExpanded && (
+        <div
+          className="fixed inset-0 bg-black/30 z-30 lg:hidden"
+          onClick={() => setSidebarExpanded(false)}
+        />
+      )}
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <DashboardHeader 
+          user={user} 
+          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout} 
+        />
         
-        <main className="p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
