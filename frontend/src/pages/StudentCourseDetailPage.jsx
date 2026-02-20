@@ -3788,7 +3788,7 @@ function StudentMessagesContent({ courseId, token, user, teacher, openComposeOnM
                     <Archive className="w-5 h-5" />
                   </button>
                   <button 
-                    onClick={() => handleDeleteMessage(selectedMessage.id)}
+                    onClick={() => confirmDeleteMessage(selectedMessage)}
                     className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" 
                     title="Eliminar"
                   >
