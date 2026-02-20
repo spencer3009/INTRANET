@@ -299,7 +299,7 @@ const BREAK_TYPES = [
   { id: "event", label: "Evento", icon: "🎉", color: "#60A5FA", bgClass: "bg-blue-100", textClass: "text-blue-700", borderClass: "border-blue-400" }
 ];
 
-function BreakModal({ isOpen, onClose, token, breakItem, onSuccess, preselectedTime, settings }) {
+function BreakModal({ isOpen, onClose, token, breakItem, onSuccess, preselectedTime, settings, gradeId, sectionId }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
