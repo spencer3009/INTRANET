@@ -18,6 +18,7 @@ import {
   Newspaper,
   Landmark,
   UserCheck,
+  FileEdit,
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -30,6 +31,7 @@ const navItems = [
   { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas" },
   { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente" },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios" },
+  { id: "examenes-programados", label: "Exámenes Programados", icon: FileEdit, route: "/admin/exam-schedule" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias" },
   { id: "calendario", label: "Calendario", icon: CalendarDays, route: "/calendario" },
   { id: "encuestas", label: "Encuestas", icon: ClipboardList, route: "/encuestas" },
