@@ -733,7 +733,7 @@ function App() {
             path="/admin/exam-schedule"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
+                {!isAdmin(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <ExamSchedulePage user={user} token={token} onLogout={handleLogout} />
