@@ -16128,9 +16128,13 @@ async def get_student_messages_sent(
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    # Get sent messages
+    # Get sent messages (exclude deleted and archived by sender)
     messages = await db.internal_mail.find(
-        {"sender_id": user["id"]},
+        {
+            "sender_id": user["id"],
+            "sender_deleted": {"$ne": True},
+            "sender_archived": {"$ne": True}
+        },
         {"_id": 0}
     ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
@@ -16155,7 +16159,11 @@ async def get_student_messages_sent(
             "thread_id": msg.get("thread_id")
         })
     
-    total = await db.internal_mail.count_documents({"sender_id": user["id"]})
+    total = await db.internal_mail.count_documents({
+        "sender_id": user["id"],
+        "sender_deleted": {"$ne": True},
+        "sender_archived": {"$ne": True}
+    })
     
     return {"messages": result, "total": total}
 
