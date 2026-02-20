@@ -1,4 +1,4 @@
-import { Calendar, GraduationCap, FileText } from "lucide-react";
+import { Calendar, FileText } from "lucide-react";
 
 // Exam types configuration
 export const EXAM_TYPES = [
@@ -8,10 +8,9 @@ export const EXAM_TYPES = [
   { id: "quiz", label: "Quiz", color: "#F59E0B", icon: "⚡" }
 ];
 
-// Tab configurations
+// Tab configurations (only Clases and Exámenes)
 export const SCHEDULE_TABS = [
   { id: "clases", label: "Horario de Clases", icon: Calendar, description: "Horarios por grado y sección" },
-  { id: "profesores", label: "Horario de Profesores", icon: GraduationCap, description: "Horarios por profesor" },
   { id: "examenes", label: "Horario de Exámenes", icon: FileText, description: "Calendario de evaluaciones" }
 ];
 
