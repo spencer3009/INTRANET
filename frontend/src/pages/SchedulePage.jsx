@@ -406,33 +406,18 @@ export default function SchedulePage({ user, token, onLogout }) {
                 </>
               )}
 
-              {activeTab === "profesores" && (
-                <div className="flex-1 min-w-[300px]">
-                  <label className="block text-xs font-medium text-slate-500 mb-1">Profesor</label>
-                  <select
-                    data-testid="schedule-teacher-select"
-                    value={selectedTeacher}
-                    onChange={(e) => setSelectedTeacher(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Seleccionar profesor...</option>
-                    {teachers.map(t => <option key={t.id} value={t.id}>{t.name} {t.last_name}</option>)}
-                  </select>
-                </div>
-              )}
-
               {/* Add button - only for class schedule tab */}
-              {activeTab !== "examenes" && (
+              {activeTab === "clases" && (
                 <div className="flex-shrink-0">
                   <label className="block text-xs font-medium text-transparent mb-1">.</label>
                   <button
                     data-testid="schedule-add-btn"
                     onClick={() => {
-                      setPreselectedData({ grado_id: selectedGrade, seccion_id: selectedSection, profesor_id: selectedTeacher });
+                      setPreselectedData({ grado_id: selectedGrade, seccion_id: selectedSection });
                       setEditEntry(null);
                       setShowEntryModal(true);
                     }}
-                    disabled={(activeTab === "clases" && (!selectedGrade || !selectedSection)) || (activeTab === "profesores" && !selectedTeacher)}
+                    disabled={!selectedGrade || !selectedSection}
                     className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-5 h-5" />
@@ -448,7 +433,7 @@ export default function SchedulePage({ user, token, onLogout }) {
             <div className="flex items-center justify-center py-20" data-testid="schedule-loading">
               <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             </div>
-          ) : (activeTab === "clases" && (!selectedGrade || !selectedSection)) || (activeTab === "profesores" && !selectedTeacher) || (activeTab === "examenes" && (!selectedGrade || !selectedSection)) ? (
+          ) : (activeTab === "clases" && (!selectedGrade || !selectedSection)) || (activeTab === "examenes" && (!selectedGrade || !selectedSection)) ? (
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center" data-testid="schedule-empty-state">
               <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Calendar className="w-10 h-10 text-slate-400" />
@@ -456,7 +441,6 @@ export default function SchedulePage({ user, token, onLogout }) {
               <h3 className="text-xl font-bold text-slate-800 mb-2">Selecciona los filtros</h3>
               <p className="text-slate-500">
                 {activeTab === "clases" ? "Elige un grado y sección para ver el horario" :
-                 activeTab === "profesores" ? "Elige un profesor para ver su horario" :
                  "Elige un grado y sección para ver los exámenes programados"}
               </p>
             </div>
