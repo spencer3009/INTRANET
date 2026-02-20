@@ -1201,7 +1201,7 @@ export default function SchedulePage({ user, token, onLogout }) {
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
           onLogout={onLogout}
           logoUrl={schoolSettings?.logo_url}
-          schoolName={schoolSettings?.school_name}
+          schoolName={schoolSettings?.system_name || user?.name}
           subdomain={user?.subdomain}
           token={token}
         />
