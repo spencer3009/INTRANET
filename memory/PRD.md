@@ -84,8 +84,12 @@ Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataform
 ||   - Validación de conflictos: sección + profesor | Feb 2026 | ✅ |
 ||   - Tipos: Parcial, Final, Práctica, Quiz con badges | Feb 2026 | ✅ |
 ||   - Estados dinámicos: Próximo, En curso, Finalizado | Feb 2026 | ✅ |
-||   - Portal estudiante: Lista cronológica agrupada por fecha | Feb 2026 | ✅ |
 ||   - Auto-filtrado por grado/sección del estudiante | Feb 2026 | ✅ |
+||   - **🆕 Vista Calendario para Estudiantes** | Feb 2026 | ✅ Probado |
+||     - Calendario mensual igual que admin (read-only) | Feb 2026 | ✅ |
+||     - Panel lateral con detalles del examen | Feb 2026 | ✅ |
+||     - Navegación entre meses con filtrado dinámico | Feb 2026 | ✅ |
+||     - Backend con filtro `from_date` y `to_date` | Feb 2026 | ✅ |
 | **🆕 Horario en Portal del Alumno (Read-Only)** | Feb 2026 | ✅ Probado |
 |   - Auto-detección de grado y sección del estudiante | Feb 2026 | ✅ |
 |   - Endpoint seguro GET /api/student/schedule (sin parámetros) | Feb 2026 | ✅ |
