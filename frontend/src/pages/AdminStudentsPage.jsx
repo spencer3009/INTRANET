@@ -35,7 +35,7 @@ function StatusBadge({ status }) {
 }
 
 // Student Row Component
-function StudentRow({ student, levels, grades, sections, onEdit, onDelete, onViewDetails }) {
+function StudentRow({ student, levels, grades, sections, onEdit, onDelete, onViewDetails, onShowQR }) {
   const [menuOpen, setMenuOpen] = useState(false);
   
   // Get academic info names
