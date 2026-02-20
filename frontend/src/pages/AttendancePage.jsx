@@ -17,6 +17,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const ATTENDANCE_TABS = [
   { id: "students", label: "Estudiantes", icon: Users, description: "Asistencia de alumnos" },
   { id: "teachers", label: "Profesores", icon: UserCheck, description: "Asistencia de docentes" },
+  { id: "qr-scanner", label: "Escanear QR", icon: QrCode, description: "Asistencia por código QR" },
   { id: "reports", label: "Reportes", icon: FileText, description: "Reportes de asistencia" }
 ];
 
