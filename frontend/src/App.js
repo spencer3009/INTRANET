@@ -458,6 +458,20 @@ function App() {
             }
           />
           <Route
+            path="/student/exams"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {isTeacher(user) ? (
+                  <Navigate to="/teacher" replace />
+                ) : isAdminOnly(user) ? (
+                  <Navigate to="/admin" replace />
+                ) : (
+                  <StudentExamSchedulePage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/student/tasks"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
