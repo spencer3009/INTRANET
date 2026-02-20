@@ -192,6 +192,7 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
           <div className="flex gap-3 pt-2">
             <button
               type="button"
+              data-testid="settings-cancel-btn"
               onClick={onClose}
               className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
             >
@@ -199,6 +200,7 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
             </button>
             <button
               type="submit"
+              data-testid="settings-save-btn"
               disabled={loading}
               className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
             >
