@@ -468,7 +468,7 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="schedule-entry-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 sticky top-0">
@@ -486,7 +486,7 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
                 </p>
               </div>
             </div>
-            <button onClick={onClose} className="text-white/80 hover:text-white">
+            <button data-testid="entry-modal-close" onClick={onClose} className="text-white/80 hover:text-white">
               <X className="w-6 h-6" />
             </button>
           </div>
