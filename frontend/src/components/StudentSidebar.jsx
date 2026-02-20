@@ -19,10 +19,10 @@ import {
 const studentNavItems = [
   { id: "inicio", label: "Dashboard", icon: Home, route: "/student" },
   { id: "cursos", label: "Mis Cursos", icon: BookOpen, route: "/student/courses" },
-  { id: "horarios", label: "Horarios", icon: Clock, route: "/student/schedule" },
+  { id: "horarios", label: "Mi Horario", icon: CalendarCheck, route: "/student/schedule" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/student/tasks" },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy, route: "/student/grades" },
-  { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/student/attendance" },
+  { id: "asistencia", label: "Asistencia", icon: Clock, route: "/student/attendance" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/student/messages" },
 ];
 
