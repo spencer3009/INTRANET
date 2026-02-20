@@ -194,6 +194,75 @@ function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
             </div>
           </div>
 
+          {/* View Mode */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Modo de vista
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                data-testid="settings-view-horizontal"
+                onClick={() => setForm(p => ({ ...p, view_mode: "horizontal" }))}
+                className={`flex-1 px-4 py-3 rounded-xl border-2 font-medium transition-all ${
+                  form.view_mode === "horizontal"
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-slate-200 hover:border-slate-300 text-slate-600"
+                }`}
+              >
+                <div className="text-center">
+                  <span className="block text-sm">Horizontal</span>
+                  <span className="block text-xs text-slate-500 mt-1">7:00 AM - 8:00 AM</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                data-testid="settings-view-vertical"
+                onClick={() => setForm(p => ({ ...p, view_mode: "vertical" }))}
+                className={`flex-1 px-4 py-3 rounded-xl border-2 font-medium transition-all ${
+                  form.view_mode === "vertical"
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-slate-200 hover:border-slate-300 text-slate-600"
+                }`}
+              >
+                <div className="text-center">
+                  <span className="block text-sm">Vertical</span>
+                  <span className="block text-xs text-slate-500 mt-1">07:00, 08:00...</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          {/* Days Configuration */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Días visibles
+            </label>
+            <p className="text-xs text-slate-500 mb-3">Lunes a Viernes siempre están visibles</p>
+            <div className="flex gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  data-testid="settings-saturday"
+                  checked={form.include_saturday}
+                  onChange={(e) => setForm(p => ({ ...p, include_saturday: e.target.checked }))}
+                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-slate-700">Sábado</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  data-testid="settings-sunday"
+                  checked={form.include_sunday}
+                  onChange={(e) => setForm(p => ({ ...p, include_sunday: e.target.checked }))}
+                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-slate-700">Domingo</span>
+              </label>
+            </div>
+          </div>
+
           {/* Buttons */}
           <div className="flex gap-3 pt-2">
             <button
