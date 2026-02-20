@@ -332,7 +332,7 @@ function ExamFormPanel({
           >
             <option value="">Seleccionar materia...</option>
             {subjects.map(s => (
-              <option key={s.id} value={s.id}>{s.nombre}</option>
+              <option key={s.id} value={s.id}>{s.name || s.nombre}</option>
             ))}
           </select>
         </div>
@@ -813,7 +813,7 @@ export default function ExamSchedulePage({ user, token, onLogout }) {
                 >
                   <option value="">Seleccionar sección...</option>
                   {filteredSections.map(s => (
-                    <option key={s.id} value={s.id}>{s.nombre}</option>
+                    <option key={s.id} value={s.id}>{s.name || s.nombre}</option>
                   ))}
                 </select>
               </div>
