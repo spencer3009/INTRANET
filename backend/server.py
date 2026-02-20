@@ -6114,12 +6114,79 @@ async def get_schedules(
     schedules = await db.schedules.find(query, {"_id": 0}).sort("hora_inicio", 1).to_list(500)
     return schedules
 
+async def check_schedule_conflicts(
+    school_id: str, 
+    dia: str, 
+    hora_inicio: str, 
+    hora_fin: str,
+    grado_id: Optional[str] = None,
+    seccion_id: Optional[str] = None,
+    profesor_id: Optional[str] = None,
+    aula: Optional[str] = None,
+    exclude_id: Optional[str] = None
+) -> list:
+    """
+    Check for schedule conflicts:
+    1. Teacher conflict: same teacher at same time in ANY section
+    2. Room conflict: same room at same time
+    3. Section conflict: same section already has class at this time
+    
+    Returns list of conflict descriptions
+    """
+    conflicts = []
+    
+    # Base time overlap query
+    time_overlap = {
+        "school_id": school_id,
+        "dia": dia,
+        "hora_inicio": {"$lt": hora_fin},
+        "hora_fin": {"$gt": hora_inicio}
+    }
+    
+    if exclude_id:
+        time_overlap["id"] = {"$ne": exclude_id}
+    
+    # 1. Check teacher conflict (teacher busy at this time in ANY section)
+    if profesor_id:
+        teacher_query = {**time_overlap, "profesor_id": profesor_id}
+        teacher_conflict = await db.schedules.find_one(teacher_query, {"_id": 0})
+        if teacher_conflict:
+            # Get section name for better message
+            section = await db.secciones.find_one({"id": teacher_conflict.get("seccion_id")}, {"_id": 0, "nombre": 1})
+            section_name = section.get("nombre") if section else "otra sección"
+            conflicts.append({
+                "type": "teacher",
+                "message": f"El profesor ya tiene clase de '{teacher_conflict['materia']}' en {section_name} ({teacher_conflict['hora_inicio']} - {teacher_conflict['hora_fin']})"
+            })
+    
+    # 2. Check room conflict (room occupied at this time)
+    if aula and aula.strip():
+        room_query = {**time_overlap, "aula": aula}
+        room_conflict = await db.schedules.find_one(room_query, {"_id": 0})
+        if room_conflict:
+            conflicts.append({
+                "type": "room", 
+                "message": f"El aula '{aula}' ya está ocupada con '{room_conflict['materia']}' ({room_conflict['hora_inicio']} - {room_conflict['hora_fin']})"
+            })
+    
+    # 3. Check section conflict (section already has class at this time)
+    if grado_id and seccion_id:
+        section_query = {**time_overlap, "grado_id": grado_id, "seccion_id": seccion_id}
+        section_conflict = await db.schedules.find_one(section_query, {"_id": 0})
+        if section_conflict:
+            conflicts.append({
+                "type": "section",
+                "message": f"Esta sección ya tiene '{section_conflict['materia']}' a esta hora ({section_conflict['hora_inicio']} - {section_conflict['hora_fin']})"
+            })
+    
+    return conflicts
+
 @api_router.post("/schedules")
 async def create_schedule(
     data: ScheduleCreate,
     current_user = Depends(get_current_user)
 ):
-    """Create a new schedule entry"""
+    """Create a new schedule entry with robust conflict validation"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
@@ -6127,35 +6194,39 @@ async def create_schedule(
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden gestionar horarios")
     
-    # Check for time conflicts
-    conflict_query = {
-        "school_id": user["school_id"],
-        "dia": data.dia,
-        "hora_inicio": {"$lt": data.hora_fin},
-        "hora_fin": {"$gt": data.hora_inicio}
-    }
+    school_id = user["school_id"]
     
-    if data.tipo == "clases" and data.grado_id and data.seccion_id:
-        conflict_query["grado_id"] = data.grado_id
-        conflict_query["seccion_id"] = data.seccion_id
-    elif data.tipo == "profesores" and data.profesor_id:
-        conflict_query["profesor_id"] = data.profesor_id
+    # Comprehensive conflict check
+    conflicts = await check_schedule_conflicts(
+        school_id=school_id,
+        dia=data.dia,
+        hora_inicio=data.hora_inicio,
+        hora_fin=data.hora_fin,
+        grado_id=data.grado_id,
+        seccion_id=data.seccion_id,
+        profesor_id=data.profesor_id,
+        aula=data.aula
+    )
     
-    existing = await db.schedules.find_one(conflict_query)
-    if existing:
+    if conflicts:
+        # Return first conflict as main error, all conflicts in detail
         raise HTTPException(
             status_code=400, 
-            detail=f"Conflicto de horario: ya existe una clase en ese horario ({existing['materia']} de {existing['hora_inicio']} a {existing['hora_fin']})"
+            detail={
+                "message": conflicts[0]["message"],
+                "conflicts": conflicts
+            }
         )
     
     schedule = {
         "id": str(uuid.uuid4()),
-        "school_id": user["school_id"],
+        "school_id": school_id,
         "tipo": data.tipo,
         "grado_id": data.grado_id,
         "seccion_id": data.seccion_id,
         "profesor_id": data.profesor_id,
         "materia": data.materia,
+        "subject_id": data.subject_id,
         "dia": data.dia,
         "hora_inicio": data.hora_inicio,
         "hora_fin": data.hora_fin,
