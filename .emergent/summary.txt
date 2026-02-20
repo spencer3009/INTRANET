@@ -1,78 +1,72 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The initial objective was to fix critical bugs and has since expanded to implementing a full-featured, production-ready student exam system, a premium internal messaging system, and numerous UI/UX enhancements based on continuous user feedback. The most recent major task was to implement a complete, course-scoped messaging system within the Student Portal, mirroring the functionality of the existing system in the Owner/Teacher portal.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project involves building out a full-featured student and owner portal. The immediate and primary goal is to completely overhaul the Horario de Clases (Class Schedule) module, transforming it from a basic card view into a professional, Google Calendar-style weekly grid.
 
-PRODUCT REQUIREMENTS:
-- Implement a premium, Gmail-like internal messaging system for students, restricted to communication within their current course (teacher, owner, and classmates). (COMPLETED)
-- Add notification badges for unread messages across the application (sidebars, notification bells, dashboards) for both students and owners. (COMPLETED)
-- Overhaul the UI of the student's course page to use a single menu of large, circular icon buttons instead of a traditional tab bar. (COMPLETED)
-- Implement a direct chat feature from the teacher's contact card in the student portal. (IN PROGRESS)
-- Fix bugs related to contact search and full name display in the messaging system. (COMPLETED)
-- Address numerous UI/UX requests regarding button layouts, spacing, and styling. (COMPLETED)
+**PRODUCT REQUIREMENTS (New Major Task):**
+-   **Structure:** Create a weekly grid view with configurable hours on the Y-axis and days of the week on the X-axis.
+-   **Configuration:** Add a settings modal (⚙️ icon) to allow school admins to define:
+    -   Visible hour range (e.g., 07:00 to 22:00).
+    -   Time format (12h/24h).
+-   **Dynamic Grid:** The hour rows must be generated dynamically based on the configuration.
+-   **Class Blocks:** Schedule entries should appear as colored blocks on the grid, showing subject, teacher, and classroom. Blocks should span multiple rows for longer classes.
+-   **Add/Edit Modal:** The modal for adding a schedule entry must include fields for Course, Teacher, Day, Start Time, End Time, and an optional Classroom. The Course field must be a search-and-select combobox populated with subjects from the selected grade.
+-   **Conflict Validation (Critical):** The backend must prevent creating or updating schedule entries that result in conflicts (e.g., the same teacher or classroom booked at the same time).
+-   **Responsive Design:** The grid must be horizontally scrollable on smaller screens, with the time column remaining sticky.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack monolith (FastAPI + React). A comprehensive student exam system and a premium internal mail system for teachers/owners are fully functional. A new, course-scoped messaging module has been successfully implemented for the Student Portal in , reusing the existing backend collections (, ).
+The application is a full-stack monolith (FastAPI + React). The student portal contains a highly advanced, feature-rich internal messaging system with a 3-column, Gmail-like UI. This system includes real-time presence indicators (online/offline status), student profile popups, direct chat initiation, a full suite of message management tools (archive, soft delete, permanent delete, empty trash), accurate folder counts, and premium custom modals.
 
-The UI for the student course page has been significantly overhauled based on user requests. The previous tab-based navigation has been replaced with a single, more modern menu of large, circular icon buttons. A robust notification system is now in place, displaying badges for unread messages on sidebars, dashboard cards, and notification bells for both student and owner portals. The contact search functionality has been fixed and improved.
+The Horario de Clases page currently exists but is very basic. A recent update converted the free-text Subject field in its modal to a data-driven combobox, but the main UI is still a simple list of cards, which is now slated for a complete replacement. The codebase carries significant technical debt, with  and  having been modified extensively and becoming very large.
 
 **Last working item**:
-- **Last item agent was working:** The user requested that clicking the Chat en línea button on the teacher's card within the student portal () should open the  chat widget directly to a conversation with that teacher. The agent implemented this by adding a  state to the page, passing an  callback down to the component containing the button, and connecting the button's  event to set the teacher as the active chat user.
-- **Status**: IN PROGRESS
+- **Last item agent was working:** The user delivered a comprehensive Product Requirements Document (PRD) to completely overhaul the Horario de Clases module. The agent had just begun analyzing the existing  to understand the current structure before starting this massive refactoring and implementation effort.
+- **Status**: NOT STARTED
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: Frontend testing agent. The agent should be instructed to:
-    1. Log in as a student (e.g., ).
-    2. Navigate to a course page.
-    3. The main content area for the Tablero tab is rendered by default. In the right-hand sidebar, locate the teacher's card.
-    4. Click the Chat en línea button.
-    5. Verify that the  chat widget opens and that the conversation with the course teacher is pre-selected and visible.
+- **Which testing method agent to use?**: both.
+    -   **Backend Testing Agent**: To create and test new API endpoints for schedule configuration () and especially the conflict validation logic when creating/updating schedule entries.
+    -   **Frontend Testing Agent**: To validate the complex new grid UI, including dynamic row generation, rendering of class blocks, functionality of the settings modal, and the responsive behavior (sticky time column, horizontal scroll).
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-- **Issue 1: Test the Chat en línea button flow in the student portal (P0)**
-    - **Attempted fixes**: The agent has implemented the required state and prop drilling in  to connect the button to the  component. No testing has been performed on this specific change.
-    - **Next debug checklist**:
-        1. Execute the frontend test described in the **Last working item** section.
-        2. Verify there are no console errors when the chat widget opens.
-        3. Ensure the correct teacher's conversation is loaded.
-    - **Why fix this issue and what will be achieved with the fix?**: This is a direct user request to complete the integration between the teacher card and the live chat system, providing a crucial communication shortcut for students.
-    - **Status**: IN PROGRESS
-    - **Is recurring issue?**: N
-    - **Should Test frontend/backend/both after fix?**: Frontend.
-    - **Blocked on other issue**: None.
+- None. The previous tasks were all completed, and the agent is about to start a new, large feature.
 
 **In progress Task List**:
-- **Task 1: Complete and test the integration of the Chat en línea button (P0)**
-    - **Where to resume**: The code is implemented. The immediate next step is to perform a frontend test to validate the entire flow from button click to chat window opening.
-    - **What will be achieved with this?**: A more intuitive and connected user interface, allowing students to instantly start a chat with their teacher from the course dashboard.
-    - **Status**: IN PROGRESS
-    - **Should Test frontend/backend/both after fix?**: Frontend.
+- **Task 1: (P0) Implement the Professional Schedule Module**
+    - **Where to resume**: Start by planning the implementation within . The agent needs to design the new component structure, including the state management for schedule settings, entries, and the grid data. The first step will likely be building the static grid layout before populating it with dynamic data.
+    - **What will be achieved with this?**: This will deliver a core, professional-grade feature for the SaaS application, moving it from a basic list to an interactive, configurable, and conflict-aware schedule management tool, as specified by the user's detailed PRD.
+    - **Status**: NOT STARTED
+    - **Should Test frontend/backend/both after fix?**: Both
     - **Blocked on something**: None.
 
 **Upcoming and Future Tasks**
 - **Upcoming Tasks:**
-    - **P0: Refactor  and **: Both files have become massive and are a source of technical debt ( > 9000 lines,  > 4000 lines). They must be broken down into smaller, manageable components.
-    - **P1: Refactor **: The monolithic backend file is increasingly difficult to maintain. It should be broken down into a routed structure (e.g., , ).
-    - **P2: Implement basic anti-cheat security for exams** (e.g., detect when a student navigates away from the exam tab).
+    - **P0: Refactor  (> 9000 lines),  (> 4000 lines), and  (> 16,000 lines)**: These files are sources of major technical debt. They must be broken down into smaller, manageable components and routed modules.
 - **Future Tasks:**
-    - Build Matrículas (Enrollments) module.
-    - Enhance the Exams module with a Question Bank.
-    - Fix the Smart Sticky column layout instability causing UI flickering in .
-    - Perform a project-wide replacement of  and  with custom modals.
+    - **P1: Implement basic anti-cheat security for exams** (e.g., detect when a student navigates away from the exam tab).
+    - **P1: Build Matrículas (Enrollments) module.**
+    - **P1: Enhance the Exams module with a Question Bank.**
+    - **P2: Fix the Smart Sticky column layout instability** causing UI flickering in .
+    - **P2: Perform a project-wide replacement of all remaining  and  instances with custom modals.**
 
 **Completed work in this session**
-- **Feature: Student Portal Messaging System:** Implemented a full, course-scoped messaging system in  with a 3-column UI, backed by new endpoints that correctly use  and  to enforce communication boundaries.
-- **Feature: Notification Badges for Unread Messages:** Successfully implemented and debugged real-time numeric badges for unread messages on the sidebars, notification bells, and dashboards for both owner and student portals.
-- **Feature: UI Overhaul for Student Course Menu:** Replaced the traditional tab bar in the student course view with a single, modern menu of 8 large, circular, and fully functional icon buttons, adjusting spacing and styles based on user feedback.
-- **Feature: UI Update for Teacher Card:** Redesigned the teacher's contact card in the student portal to have Chat en línea and Enviar mensaje buttons side-by-side with updated styling and padding, as per user's visual spec.
-- **Bug Fix: Contact Search Logic:** Fixed a critical bug where the contact search was failing to find users. The backend query was improved to search across  and  and to correctly handle the  flag.
-- **Bug Fix: Display Full Name:** Corrected the frontend () to construct and display the user's full name in the messaging UI instead of just the first name.
-- **Bug Fix: API Route Conflict:** Resolved a 404 error on the  endpoint by reordering the routes in  to prioritize specific routes over wildcard routes.
-- **Bug Fix: Duplicate  URL:** Fixed a frontend bug in  that was causing failed API calls due to a malformed URL.
+- **Feature: Student List with Presence & Popups:** Implemented a student list on the course dashboard with real-time online/offline status indicators. Clicking a student opens a detailed popup with their contact info and buttons to initiate a chat or message. The current user's card is correctly non-interactive.
+- **Feature: Student Presence System:** Fixed a bug where students always appeared offline by implementing a heartbeat mechanism in the student portal (, ) and correcting a backend response format issue.
+- **Feature: Complete Messaging UI Overhaul:** Redesigned the student messaging interface into a premium 3-column, Gmail-style layout, based on user-provided images.
+- **Feature: Advanced Message Management:**
+    - Implemented functional Archive and Delete (soft delete) buttons.
+    - Replaced the native  with a premium, custom-designed confirmation modal.
+    - Fixed a bug preventing the deletion/archiving of sent items.
+    - Implemented permanent deletion from the trash folder and an Empty Trash feature, complete with distinct confirmation modals and backend logic.
+- **Feature: Accurate Message Count Badges:** Rewrote the backend statistics aggregation pipeline () to provide correct, real-time counts for inbox, sent, archived, and trash folders.
+- **Feature: Message Composition Shortcuts:** Added Escribir al profesor and Enviar mensaje buttons that pre-populate the compose modal with the teacher's contact information.
+- **Feature: Enhanced Schedule Modal:** Upgraded the Materia / Asignatura field in the schedule creation modal from a plain text input to a modern, searchable combobox that fetches available subjects based on the selected grade.
+- **Bug Fix: Expanded Student Contacts:** Modified the backend to ensure students can see and contact all classmates in their section and all teachers in their grade, not just their specific course teacher.
+- **Task Completion: Chat en línea Button:** Fully implemented and tested the Chat en línea button on the teacher card, which now correctly opens the chat widget directly to a conversation with that teacher.
 
 **Earlier issues found/mentioned but not fixed**
 - The Smart Sticky column layout issue in  which causes UI flickering remains.
-- A project-wide replacement of  and  with custom modals is still pending.
+- A project-wide replacement of  and  with custom modals is still pending (though one critical instance was fixed).
 
 **Known issue recurrence from previous fork**
 - None.
@@ -81,71 +75,71 @@ The UI for the student course page has been significantly overhauled based on us
 
 
 **Key Technical Concepts**
-- **State Lifting & Prop Drilling:** Heavily used to connect components, especially for triggering chat () and passing stats (). This reinforces the need for refactoring (e.g., with Context API or Zustand).
-- **Component-based UI Development:** Created a new circular icon menu and modified several other components to meet specific, iterative UI requests from the user.
-- **Backend API Development:** Created new context-aware API endpoints for the student portal, correctly identifying that course context is defined by  and the  collection.
-- **API Debugging:** Successfully diagnosed and fixed both a backend route ordering issue in FastAPI and a frontend URL construction error.
-- **Database Query Improvement:** Enhanced a MongoDB search query to be more robust by including more fields and using a more flexible filter ().
+- **Complex Component State Management:** Extensive use of , , and  within a single massive component () to manage UI state, modals, data fetching, and real-time updates. This highlights the urgent need for refactoring into smaller components and potentially using a state management library.
+- **Advanced Backend Aggregation:** Rewrote a complex MongoDB aggregation pipeline using  to calculate multiple counts (inbox, sent, archived, trash) in a single query for the messaging stats endpoint.
+- **Backend API Development & Modification:** Created and modified numerous endpoints in  to support new features, including permanent deletion, trash management, and fetching related academic data (classmates, subjects).
+- **Conditional Rendering:** Heavily used for showing/hiding UI elements based on application state (e.g., showing Empty Trash button only in the trash folder, changing modal text for permanent deletion).
+- **Custom UI Component Implementation:** Built a searchable combobox from scratch within .
 
 **key DB schema**
-- ****: Identified as the key collection for determining course context (student-teacher-classmate relationships) via  and .
-- ****: The  flag is now consistently used. Search relies on , , and .
-- **** and ****: The existing collections were successfully reused for the student-facing messaging feature.
+- ****: Collection used to track user online status via heartbeats.
+- ****: Core collection for all messages. Now includes ,  flags in addition to the recipient-side flags.
+- ****: Existing collection that will be central to the new schedule module.
+- ****: Used to populate the new combobox in the schedule modal.
+- **(New) **: A new collection will be required to store school-specific schedule configurations (start/end hour, time format).
 
 **All files of reference**
--  (Heavily Modified)
--  (Heavily Modified, CRITICAL)
--  (Modified, CRITICAL DEBT)
--  (Modified)
--  (Modified)
--  (Modified)
+-  (Massively Modified, Critical)
+-  (Heavily Modified, Critical)
+-  (Modified, Target for Next Major Task)
 -  (Modified)
 -  (Updated)
 
 **Areas that need refactoring**:
-- ** (HIGH):** This file's complexity has exploded. It now manages state and rendering for 8 different sections, plus modals and chat. It must be broken into smaller components (e.g., , ).
-- ** (CRITICAL):** This remains a massive source of technical debt that slows down development and increases the risk of bugs.
-- ** (HIGH):** The monolithic backend is becoming unmanageable. Routes should be separated into modules.
+- ** (CRITICAL):** This file has become a god component, managing logic for the dashboard, 8 different content sections, messaging, chat, and multiple modals. It is extremely difficult to maintain and must be broken down.
+- ** (CRITICAL):** The backend is a massive monolith. Routes must be separated into dedicated files (e.g., , ) to improve maintainability.
+- ** (HIGH):** This file remains a significant source of technical debt from previous sessions.
 
 **key api endpoints**
-- **Student Portal Messages (New)**:
+- **Permanent Message Deletion (New):**
     - 
     - 
-    -  / 
+- **Presence/Heartbeat (Implemented):**
     - 
-- **Internal Mail (Modified)**:
-    -  (Route order fixed)
-    -  (Logic improved)
-- **Student Profile (Modified)**:
-    -  (Correctly counts unread messages)
+    -  (Response format fixed)
+- **Messaging (Modified):**
+    -  (Logic completely rewritten)
+    -  (Logic updated for sent items)
+    -  (Logic updated for sent items)
+    -  (Response updated to include more fields)
+- **Schedules (Relevant for next task):**
+    - 
 
 **Critical Info for New Agent**
+- **IMMEDIATE PRIORITY: Implement the new Professional Schedule Module.** The user has provided a detailed PRD (in message #482) for a complete overhaul of . This is a large, high-priority task.
 - **Communicate in Spanish.**
-- **DATABASE IS CRITICAL:** The user's persistent data is in the database named . Verify  has  and DO NOT change it.
-- **IMMEDIATE PRIORITY:** Test the Chat en línea button on the teacher's card in . The code is implemented but untested.
-- **CODE STRUCTURE:** The student-facing course view is , and the owner/teacher view is . Both are extremely large and complex. Be cautious when editing.
-- **COURSE CONTEXT:** The application logic uses  (often passed as  from the frontend) and the  collection to define course relationships.
+- **Technical Debt:** Be aware of the massive technical debt in  and . While the primary task is the schedule module, opportunities for minor, non-disruptive refactoring should be considered, and the long-term goal is to break these files apart.
+- **Test Data Dependency:** The previous task on  revealed that the test database for the school  might lack necessary data (e.g., subjects associated with grades). The implementation should gracefully handle cases where data is missing and display informative messages to the user (e.g., No subjects found for this grade).
 
 **documents and test reports created in this job**
 - 
 - 
-- 
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User Query:** Add more padding to the bottom of the teacher card. **Status: COMPLETED.**
-2.  **User Query:** The Chat en línea button on the teacher card should open the chat directly with the teacher. **Status: IN PROGRESS (Implemented, not tested).**
-3.  **User Query:** The two buttons on the teacher card should be side-by-side, not stacked. **Status: COMPLETED.**
-4.  **User Query:** The teacher card should have two specific buttons with a certain design. **Status: COMPLETED.**
-5.  **User Query:** Remove the top tab bar menu and only keep the new circular icon menu. **Status: COMPLETED.**
-6.  **User Query:** Expand the circular icon menu to include all 8 sections (Tablero, Tareas, etc.) and make them functional. **Status: COMPLETED.**
-7.  **User Query:** The text below the circular icons is overlapping; add more space. **Status: COMPLETED.**
-8.  **User Query:** The message icon in the student's course menu should show a badge for unread messages. **Status: COMPLETED.**
-9.  **User Query:** The message icon in the *owner's* course portal does not show a badge. **Status: COMPLETED.**
-10. **User Query:** The message icon and notification bell should show a count of new messages for both owner and student portals. **Status: COMPLETED.**
+1.  **User Request:** PRD for a complete overhaul of the class schedule module into a professional, Google Calendar-style grid. **Status: NOT STARTED.**
+2.  **User Request:** The Subject field in the schedule modal should be a modern combobox, not a text input. **Status: COMPLETED.**
+3.  **User Request:** In the trash folder, the delete button should be a permanent delete, add an Empty Trash button, and hide the archive button. **Status: COMPLETED.**
+4.  **User Request:** The message count badges for all folders (inbox, sent, archived, trash) are incorrect and need to be fixed. **Status: COMPLETED.**
+5.  **User Bug:** Deleting or archiving messages from the Sent folder does not work. **Status: COMPLETED.**
+6.  **User Feedback:** The  for deleting a message is not acceptable; it must be a premium, custom modal. **Status: COMPLETED.**
+7.  **User Request:** Make the archive and delete buttons in the message view functional. **Status: COMPLETED.**
+8.  **User Request:** Add a shortcut button Escribir al profesor in the compose message modal. **Status: COMPLETED.**
+9.  **User Request:** A complete redesign of the student messaging page to a 3-column, Gmail-style layout. **Status: COMPLETED.**
+10. **User Bug:** The user's own presence indicator is showing as offline (red) when it should be online (green). **Status: COMPLETED.**
 
 **Project Health Check:**
-- **Broken**: The Chat en línea button functionality in the student portal () has been coded but is completely untested.
-- **Mocked**: N/A
+- **Broken**: None. All user-reported bugs and requested features from the session were completed.
+- **Mocked**: N/A.
 
 **3rd Party Integrations**
 - **TipTap / Prosemirror**: Used for the rich text editor in the internal mail system.
@@ -153,7 +147,7 @@ The UI for the student course page has been significantly overhauled based on us
 - **Google Drive API**: Used for file submissions.
 
 **Testing status**
-- **Testing agent used after significant changes**: YES, the agent was used to validate the initial implementation and fixes for the student messaging page ().
+- **Testing agent used after significant changes**: YES, to validate the initial Chat en línea button flow.
 - **Troubleshoot agent used after agent stuck in loop**: NO
 - **Test files created**: None.
 - **Known regressions**: The UI flickering on the Smart Sticky column in  persists.
@@ -162,8 +156,6 @@ The UI for the student course page has been significantly overhauled based on us
 - **Primary School for testing:** 
     - **Owner/Admin**:  / 
     - **Student**:  / 
-- **School with more data:** 
-    - **Owner/Admin**:  / 
 
 **What agent forgot to execute**
-- The high-priority refactoring of  and  remains unaddressed despite being carried over from the previous session.  should now also be added to this high-priority refactoring list.</analysis>
+- The agent successfully addressed all incoming user requests in a sequential manner. The high-priority refactoring of monolithic files (, ) was postponed in favor of implementing the user's immediate, high-value feature requests. This was a strategic choice rather than an oversight.</analysis>
