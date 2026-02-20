@@ -204,15 +204,10 @@ export default function SchedulePage({ user, token, onLogout }) {
         setSchedules([]);
         return;
       }
-      if (activeTab === "profesores" && !selectedTeacher) {
-        setSchedules([]);
-        return;
-      }
 
       try {
         let url = `${API}/schedules?tipo=${activeTab}`;
         if (activeTab === "clases") url += `&grado_id=${selectedGrade}&seccion_id=${selectedSection}`;
-        else if (activeTab === "profesores") url += `&profesor_id=${selectedTeacher}`;
 
         const res = await axios.get(url, { headers });
         setSchedules(res.data.schedules || []);
@@ -221,7 +216,7 @@ export default function SchedulePage({ user, token, onLogout }) {
       }
     };
     loadSchedules();
-  }, [activeTab, selectedGrade, selectedSection, selectedTeacher, token]);
+  }, [activeTab, selectedGrade, selectedSection, token]);
 
   // Load all schedules for conflict checking
   useEffect(() => {
