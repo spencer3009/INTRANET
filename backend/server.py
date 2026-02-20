@@ -15797,10 +15797,23 @@ async def archive_message(message_id: str, is_archived: bool = True, current_use
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    await db.internal_mail.update_one(
-        {"id": message_id, "recipients.user_id": user["id"]},
-        {"$set": {"recipients.$.is_archived": is_archived}}
-    )
+    # Check if user is sender or recipient
+    message = await db.internal_mail.find_one({"id": message_id}, {"_id": 0, "sender_id": 1, "recipients": 1})
+    if not message:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    if message.get("sender_id") == user["id"]:
+        # User is sender - update sender_archived flag
+        await db.internal_mail.update_one(
+            {"id": message_id},
+            {"$set": {"sender_archived": is_archived}}
+        )
+    else:
+        # User is recipient - update recipient's is_archived
+        await db.internal_mail.update_one(
+            {"id": message_id, "recipients.user_id": user["id"]},
+            {"$set": {"recipients.$.is_archived": is_archived}}
+        )
     
     return {"success": True}
 
@@ -15812,10 +15825,23 @@ async def delete_internal_mail(message_id: str, current_user = Depends(get_curre
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    await db.internal_mail.update_one(
-        {"id": message_id, "recipients.user_id": user["id"]},
-        {"$set": {"recipients.$.is_deleted": True, "recipients.$.deleted_at": datetime.now(timezone.utc).isoformat()}}
-    )
+    # Check if user is sender or recipient
+    message = await db.internal_mail.find_one({"id": message_id}, {"_id": 0, "sender_id": 1, "recipients": 1})
+    if not message:
+        raise HTTPException(status_code=404, detail="Mensaje no encontrado")
+    
+    if message.get("sender_id") == user["id"]:
+        # User is sender - update sender_deleted flag
+        await db.internal_mail.update_one(
+            {"id": message_id},
+            {"$set": {"sender_deleted": True, "sender_deleted_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    else:
+        # User is recipient - update recipient's is_deleted
+        await db.internal_mail.update_one(
+            {"id": message_id, "recipients.user_id": user["id"]},
+            {"$set": {"recipients.$.is_deleted": True, "recipients.$.deleted_at": datetime.now(timezone.utc).isoformat()}}
+        )
     
     return {"success": True}
 
