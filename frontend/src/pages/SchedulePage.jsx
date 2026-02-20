@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
@@ -7,7 +7,8 @@ import ConfirmModal from "../components/ConfirmModal";
 import { 
   Calendar, Clock, BookOpen, GraduationCap, Users, 
   Plus, Pencil, Trash2, Loader2, X, Check, AlertCircle,
-  ChevronRight, ArrowLeft, FileText, CalendarDays
+  ChevronRight, ArrowLeft, FileText, CalendarDays, Settings,
+  ChevronDown, AlertTriangle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -29,36 +30,197 @@ const DAYS = [
   { id: "sabado", label: "Sábado", short: "Sáb" }
 ];
 
-// Time slots
-const TIME_SLOTS = [
-  "07:00", "07:45", "08:30", "09:15", "10:00", "10:45", 
-  "11:30", "12:15", "13:00", "13:45", "14:30", "15:15",
-  "16:00", "16:45", "17:30", "18:15", "19:00", "19:45"
-];
-
 // Color palette for subjects
 const SUBJECT_COLORS = [
-  { name: "Azul", value: "#3B82F6", bg: "bg-blue-100", text: "text-blue-700" },
-  { name: "Verde", value: "#10B981", bg: "bg-emerald-100", text: "text-emerald-700" },
-  { name: "Naranja", value: "#F59E0B", bg: "bg-amber-100", text: "text-amber-700" },
-  { name: "Rojo", value: "#EF4444", bg: "bg-red-100", text: "text-red-700" },
-  { name: "Morado", value: "#8B5CF6", bg: "bg-violet-100", text: "text-violet-700" },
-  { name: "Rosa", value: "#EC4899", bg: "bg-pink-100", text: "text-pink-700" },
-  { name: "Cyan", value: "#06B6D4", bg: "bg-cyan-100", text: "text-cyan-700" },
-  { name: "Índigo", value: "#6366F1", bg: "bg-indigo-100", text: "text-indigo-700" }
+  { name: "Azul", value: "#3B82F6", bg: "bg-blue-500", light: "bg-blue-100", text: "text-blue-700", border: "border-blue-300" },
+  { name: "Verde", value: "#10B981", bg: "bg-emerald-500", light: "bg-emerald-100", text: "text-emerald-700", border: "border-emerald-300" },
+  { name: "Naranja", value: "#F59E0B", bg: "bg-amber-500", light: "bg-amber-100", text: "text-amber-700", border: "border-amber-300" },
+  { name: "Rojo", value: "#EF4444", bg: "bg-red-500", light: "bg-red-100", text: "text-red-700", border: "border-red-300" },
+  { name: "Morado", value: "#8B5CF6", bg: "bg-violet-500", light: "bg-violet-100", text: "text-violet-700", border: "border-violet-300" },
+  { name: "Rosa", value: "#EC4899", bg: "bg-pink-500", light: "bg-pink-100", text: "text-pink-700", border: "border-pink-300" },
+  { name: "Cyan", value: "#06B6D4", bg: "bg-cyan-500", light: "bg-cyan-100", text: "text-cyan-700", border: "border-cyan-300" },
+  { name: "Índigo", value: "#6366F1", bg: "bg-indigo-500", light: "bg-indigo-100", text: "text-indigo-700", border: "border-indigo-300" },
+  { name: "Teal", value: "#14B8A6", bg: "bg-teal-500", light: "bg-teal-100", text: "text-teal-700", border: "border-teal-300" },
+  { name: "Slate", value: "#64748B", bg: "bg-slate-500", light: "bg-slate-100", text: "text-slate-700", border: "border-slate-300" }
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SCHEDULE ENTRY MODAL
+// SETTINGS MODAL - Configuration for schedule hours
 // ══════════════════════════════════════════════════════════════════════════════
-function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, sections, teachers, type, preselectedData }) {
+function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loading }) {
+  const [form, setForm] = useState({
+    start_hour: "07:00",
+    end_hour: "18:00",
+    time_format: "24h",
+    block_duration: 45
+  });
+
+  useEffect(() => {
+    if (isOpen && settings) {
+      setForm({
+        start_hour: settings.start_hour || "07:00",
+        end_hour: settings.end_hour || "18:00",
+        time_format: settings.time_format || "24h",
+        block_duration: settings.block_duration || 45
+      });
+    }
+  }, [isOpen, settings]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(form);
+  };
+
+  // Generate hour options
+  const hourOptions = [];
+  for (let h = 0; h < 24; h++) {
+    const hour = h.toString().padStart(2, '0') + ':00';
+    hourOptions.push(hour);
+  }
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className="px-6 py-5 bg-gradient-to-r from-slate-700 to-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+              <Settings className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-white">Configuración de Horarios</h3>
+              <p className="text-white/70 text-sm">Ajusta las horas del calendario</p>
+            </div>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Time Range */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Rango de horas visibles
+            </label>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Desde</label>
+                <select
+                  value={form.start_hour}
+                  onChange={(e) => setForm(p => ({ ...p, start_hour: e.target.value }))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {hourOptions.map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1">Hasta</label>
+                <select
+                  value={form.end_hour}
+                  onChange={(e) => setForm(p => ({ ...p, end_hour: e.target.value }))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {hourOptions.map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Time Format */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Formato de hora
+            </label>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, time_format: "12h" }))}
+                className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
+                  form.time_format === "12h" 
+                    ? "border-blue-500 bg-blue-50 text-blue-700" 
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <p className="font-semibold">12 horas</p>
+                <p className="text-sm opacity-70">2:00 PM</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, time_format: "24h" }))}
+                className={`flex-1 px-4 py-3 rounded-xl border-2 transition-all ${
+                  form.time_format === "24h" 
+                    ? "border-blue-500 bg-blue-50 text-blue-700" 
+                    : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <p className="font-semibold">24 horas</p>
+                <p className="text-sm opacity-70">14:00</p>
+              </button>
+            </div>
+          </div>
+
+          {/* Block Duration */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-3">
+              Duración de bloque (minutos)
+            </label>
+            <div className="flex gap-2">
+              {[30, 45, 60, 90].map(mins => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, block_duration: mins }))}
+                  className={`flex-1 px-3 py-2.5 rounded-xl border-2 font-medium transition-all ${
+                    form.block_duration === mins 
+                      ? "border-blue-500 bg-blue-50 text-blue-700" 
+                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                  }`}
+                >
+                  {mins} min
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+              Guardar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SCHEDULE ENTRY MODAL - Add/Edit class
+// ══════════════════════════════════════════════════════════════════════════════
+function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, sections, teachers, type, preselectedData, existingSchedules, settings }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [conflicts, setConflicts] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
   const [subjectSearch, setSubjectSearch] = useState("");
   const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
-  const subjectInputRef = useRef(null);
   
   const [form, setForm] = useState({
     grado_id: "",
@@ -75,6 +237,25 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
 
   const isEdit = !!entry;
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Generate time options based on settings
+  const generateTimeOptions = useCallback(() => {
+    const options = [];
+    const startHour = parseInt(settings?.start_hour?.split(':')[0] || '7');
+    const endHour = parseInt(settings?.end_hour?.split(':')[0] || '18');
+    const blockDuration = settings?.block_duration || 45;
+    
+    for (let h = startHour; h <= endHour; h++) {
+      for (let m = 0; m < 60; m += blockDuration) {
+        if (h === endHour && m > 0) break;
+        const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        options.push(time);
+      }
+    }
+    return options;
+  }, [settings]);
+
+  const timeOptions = generateTimeOptions();
 
   // Load subjects when grade changes
   useEffect(() => {
@@ -99,7 +280,7 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
     loadSubjects();
   }, [form.grado_id, token]);
 
-  // Filter subjects by search
+  // Filter subjects
   const filteredSubjects = subjects.filter(s => 
     s.name?.toLowerCase().includes(subjectSearch.toLowerCase())
   );
@@ -111,13 +292,13 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
       materia: subject.name,
       subject_id: subject.id,
       color: subject.color || p.color,
-      // Auto-assign teacher if subject has one
       profesor_id: subject.teacher_id || p.profesor_id
     }));
     setSubjectSearch("");
     setShowSubjectDropdown(false);
   };
 
+  // Initialize form
   useEffect(() => {
     if (isOpen) {
       if (entry) {
@@ -148,399 +329,502 @@ function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, grades, 
         });
       }
       setError("");
+      setConflicts([]);
       setSubjectSearch("");
       setShowSubjectDropdown(false);
     }
   }, [isOpen, entry, preselectedData]);
 
-  // Filter sections by selected grade
-  const filteredSections = form.grado_id 
-    ? sections.filter(s => s.grado_id === form.grado_id) 
-    : [];
+  // Check for conflicts
+  const checkConflicts = useCallback(() => {
+    if (!form.dia || !form.hora_inicio || !form.hora_fin) return [];
+    
+    const newStart = form.hora_inicio;
+    const newEnd = form.hora_fin;
+    const foundConflicts = [];
+    
+    existingSchedules?.forEach(schedule => {
+      // Skip self when editing
+      if (isEdit && schedule.id === entry?.id) return;
+      
+      // Check same day
+      if (schedule.dia !== form.dia) return;
+      
+      const existStart = schedule.hora_inicio;
+      const existEnd = schedule.hora_fin;
+      
+      // Check time overlap
+      const hasOverlap = (newStart < existEnd && newEnd > existStart);
+      
+      if (hasOverlap) {
+        // Check specific conflict types
+        if (form.profesor_id && schedule.profesor_id === form.profesor_id) {
+          foundConflicts.push({
+            type: "teacher",
+            message: `El profesor ya tiene clase de ${schedule.materia} a esta hora`,
+            schedule
+          });
+        }
+        if (form.aula && schedule.aula && schedule.aula === form.aula) {
+          foundConflicts.push({
+            type: "room",
+            message: `El aula ${form.aula} ya está ocupada con ${schedule.materia}`,
+            schedule
+          });
+        }
+        if (form.grado_id === schedule.grado_id && form.seccion_id === schedule.seccion_id) {
+          foundConflicts.push({
+            type: "section",
+            message: `Esta sección ya tiene ${schedule.materia} a esta hora`,
+            schedule
+          });
+        }
+      }
+    });
+    
+    return foundConflicts;
+  }, [form, existingSchedules, isEdit, entry]);
+
+  // Update conflicts when form changes
+  useEffect(() => {
+    const c = checkConflicts();
+    setConflicts(c);
+  }, [checkConflicts]);
+
+  // Filter sections by grade
+  const filteredSections = sections.filter(s => s.grado_id === form.grado_id);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    if (type === "clases") {
-      if (!form.grado_id || !form.seccion_id) {
-        setError("Selecciona el grado y la sección");
-        return;
-      }
-    } else if (type === "profesores") {
-      if (!form.profesor_id) {
-        setError("Selecciona el profesor");
-        return;
-      }
-    }
-    
-    if (!form.materia || !form.dia || !form.hora_inicio || !form.hora_fin) {
-      setError("Completa todos los campos obligatorios");
+    setError("");
+
+    // Validations
+    if (!form.materia.trim()) {
+      setError("Selecciona una materia");
       return;
     }
-
+    if (!form.dia) {
+      setError("Selecciona el día");
+      return;
+    }
+    if (!form.hora_inicio || !form.hora_fin) {
+      setError("Selecciona hora de inicio y fin");
+      return;
+    }
     if (form.hora_inicio >= form.hora_fin) {
-      setError("La hora de inicio debe ser anterior a la hora de fin");
+      setError("La hora de fin debe ser posterior a la de inicio");
+      return;
+    }
+    if (type === "clases" && !form.profesor_id) {
+      setError("Selecciona el profesor");
+      return;
+    }
+    
+    // Block if there are conflicts
+    if (conflicts.length > 0) {
+      setError("Resuelve los conflictos antes de guardar");
       return;
     }
 
     setLoading(true);
     try {
       const payload = { ...form, tipo: type };
-      const res = isEdit 
-        ? await axios.put(`${API}/schedules/${entry.id}`, payload, { headers }) 
-        : await axios.post(`${API}/schedules`, payload, { headers });
-      onSuccess(res.data.schedule, isEdit ? "update" : "create");
+      
+      if (isEdit) {
+        await axios.put(`${API}/schedules/${entry.id}`, payload, { headers });
+      } else {
+        await axios.post(`${API}/schedules`, payload, { headers });
+      }
+      
+      onSuccess();
       onClose();
-    } catch (err) { 
-      setError(err.response?.data?.detail || "Error al guardar"); 
-    } finally { 
-      setLoading(false); 
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar el horario");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Format time for display
+  const formatTime = (time) => {
+    if (!time || settings?.time_format === "24h") return time;
+    const [h, m] = time.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${m} ${ampm}`;
   };
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
-      <div className="min-h-full flex items-center justify-center p-4 py-8">
-        <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
-          <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 sticky top-0">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Calendar className="w-8 h-8 text-white" />
-              <div className="text-white">
-                <h2 className="text-xl font-bold">{isEdit ? "Editar" : "Agregar"} Horario</h2>
-                <p className="text-blue-100 text-sm">{type === "clases" ? "Clase" : type === "profesores" ? "Profesor" : "Examen"}</p>
+              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                <Calendar className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-white">
+                  {isEdit ? "Editar Horario" : "Agregar Horario"}
+                </h3>
+                <p className="text-white/70 text-sm">
+                  {type === "clases" ? "Horario de clase" : type === "profesores" ? "Horario de profesor" : "Horario de examen"}
+                </p>
               </div>
             </div>
-            <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white">
-              <X className="w-5 h-5" />
+            <button onClick={onClose} className="text-white/80 hover:text-white">
+              <X className="w-6 h-6" />
             </button>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit} className="p-6">
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                <span>{error}</span>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Error */}
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+              <p className="text-red-700 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Conflicts Warning */}
+          {conflicts.length > 0 && (
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl">
+              <div className="flex items-center gap-2 text-amber-700 font-semibold mb-2">
+                <AlertTriangle className="w-5 h-5" />
+                Conflictos detectados
               </div>
-            )}
+              <ul className="space-y-1">
+                {conflicts.map((c, i) => (
+                  <li key={i} className="text-sm text-amber-600 flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 flex-shrink-0" />
+                    {c.message}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-            {/* Grade/Section selects for class schedule */}
-            {type === "clases" && (
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Grado <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={form.grado_id}
-                    onChange={(e) => setForm(p => ({ ...p, grado_id: e.target.value, seccion_id: "" }))}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Seleccionar...</option>
-                    {grades.map(g => (
-                      <option key={g.id} value={g.id}>{g.nombre} - {g.nivel_nombre}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">
-                    Sección <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={form.seccion_id}
-                    onChange={(e) => setForm(p => ({ ...p, seccion_id: e.target.value }))}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-                    required
-                    disabled={!form.grado_id}
-                  >
-                    <option value="">{form.grado_id ? "Seleccionar..." : "Primero elige grado"}</option>
-                    {filteredSections.map(s => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            {/* Teacher select for teacher schedule */}
-            {type === "profesores" && (
-              <div className="mb-4">
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Profesor <span className="text-red-500">*</span>
-                </label>
+          {/* Grade & Section (for classes) */}
+          {type === "clases" && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Grado</label>
                 <select
-                  value={form.profesor_id}
-                  onChange={(e) => setForm(p => ({ ...p, profesor_id: e.target.value }))}
+                  value={form.grado_id}
+                  onChange={(e) => setForm(p => ({ ...p, grado_id: e.target.value, seccion_id: "" }))}
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
-                  <option value="">Seleccionar profesor...</option>
-                  {teachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.name} {t.last_name}</option>
+                  <option value="">Seleccionar...</option>
+                  {grades.map(g => (
+                    <option key={g.id} value={g.id}>{g.nombre}</option>
                   ))}
                 </select>
               </div>
-            )}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
+                <select
+                  value={form.seccion_id}
+                  onChange={(e) => setForm(p => ({ ...p, seccion_id: e.target.value }))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                  disabled={!form.grado_id}
+                  required
+                >
+                  <option value="">Seleccionar...</option>
+                  {filteredSections.map(s => (
+                    <option key={s.id} value={s.id}>{s.nombre}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
 
-            {/* Subject/Materia - Smart Select with Search */}
-            <div className="mb-4">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Materia / Asignatura <span className="text-red-500">*</span>
-              </label>
-              
-              {/* Show message if no grade selected */}
-              {!form.grado_id && type === "clases" ? (
-                <div className="w-full px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  Primero selecciona un grado para ver las asignaturas disponibles
-                </div>
-              ) : (
-                <div className="relative">
-                  {/* Selected subject display / Search input */}
-                  <div 
-                    className={`w-full px-4 py-3 bg-slate-50 border rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
-                      showSubjectDropdown ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300'
-                    }`}
-                    onClick={() => setShowSubjectDropdown(true)}
-                  >
-                    {form.materia ? (
-                      <>
-                        <div 
-                          className="w-3 h-3 rounded-full flex-shrink-0" 
-                          style={{ backgroundColor: form.color }}
-                        />
-                        <span className="flex-1 text-slate-800">{form.materia}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setForm(p => ({ ...p, materia: "", subject_id: "" }));
-                          }}
-                          className="p-1 hover:bg-slate-200 rounded-full"
-                        >
-                          <X className="w-4 h-4 text-slate-400" />
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <BookOpen className="w-5 h-5 text-slate-400" />
-                        <input
-                          ref={subjectInputRef}
-                          type="text"
-                          value={subjectSearch}
-                          onChange={(e) => {
-                            setSubjectSearch(e.target.value);
-                            setShowSubjectDropdown(true);
-                          }}
-                          onFocus={() => setShowSubjectDropdown(true)}
-                          className="flex-1 bg-transparent border-0 focus:outline-none text-sm"
-                          placeholder="Buscar o seleccionar asignatura..."
-                        />
-                        {loadingSubjects && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
-                      </>
-                    )}
-                  </div>
-                  
-                  {/* Dropdown with subjects */}
-                  {showSubjectDropdown && !form.materia && (
-                    <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
-                      {loadingSubjects ? (
-                        <div className="p-4 text-center text-slate-500">
-                          <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                          Cargando asignaturas...
-                        </div>
-                      ) : filteredSubjects.length === 0 ? (
-                        <div className="p-4 text-center text-slate-500">
-                          <BookOpen className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                          {subjects.length === 0 
-                            ? "No hay asignaturas para este grado" 
-                            : "No se encontraron asignaturas"}
-                        </div>
-                      ) : (
-                        <div className="py-2">
-                          {filteredSubjects.map(subject => {
-                            const teacher = teachers.find(t => t.id === subject.teacher_id);
-                            return (
-                              <button
-                                key={subject.id}
-                                type="button"
-                                onClick={() => handleSelectSubject(subject)}
-                                className="w-full px-4 py-3 text-left hover:bg-blue-50 flex items-center gap-3 transition-colors"
-                              >
-                                <div 
-                                  className="w-4 h-4 rounded-full flex-shrink-0" 
-                                  style={{ backgroundColor: subject.color || '#6366F1' }}
-                                />
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-slate-800">{subject.name}</p>
-                                  {teacher && (
-                                    <p className="text-xs text-slate-500 truncate">
-                                      Prof. {teacher.name} {teacher.last_name}
-                                    </p>
-                                  )}
-                                </div>
-                                {subject.teacher_id && (
-                                  <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full">
-                                    Con profesor
-                                  </span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
+          {/* Subject with Smart Select */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Materia / Asignatura <span className="text-red-500">*</span>
+            </label>
+            
+            {!form.grado_id && type === "clases" ? (
+              <div className="w-full px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                Primero selecciona un grado
+              </div>
+            ) : (
+              <div className="relative">
+                <div 
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
+                    showSubjectDropdown ? 'border-blue-500 ring-2 ring-blue-500/20' : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                  onClick={() => !form.materia && setShowSubjectDropdown(true)}
+                >
+                  {form.materia ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: form.color }} />
+                      <span className="flex-1 text-slate-800 font-medium">{form.materia}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setForm(p => ({ ...p, materia: "", subject_id: "" }));
+                        }}
+                        className="p-1 hover:bg-slate-200 rounded-full"
+                      >
+                        <X className="w-4 h-4 text-slate-400" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <BookOpen className="w-5 h-5 text-slate-400" />
+                      <input
+                        type="text"
+                        value={subjectSearch}
+                        onChange={(e) => {
+                          setSubjectSearch(e.target.value);
+                          setShowSubjectDropdown(true);
+                        }}
+                        onFocus={() => setShowSubjectDropdown(true)}
+                        className="flex-1 bg-transparent border-0 focus:outline-none text-sm"
+                        placeholder="Buscar asignatura..."
+                      />
+                      {loadingSubjects && <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />}
+                    </>
                   )}
                 </div>
-              )}
-              
-              {/* Click outside to close dropdown */}
-              {showSubjectDropdown && (
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setShowSubjectDropdown(false)}
-                />
-              )}
-            </div>
-
-            {/* Day and Time */}
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Día <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={form.dia}
-                  onChange={(e) => setForm(p => ({ ...p, dia: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Día...</option>
-                  {DAYS.map(d => (
-                    <option key={d.id} value={d.id}>{d.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Hora inicio <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={form.hora_inicio}
-                  onChange={(e) => setForm(p => ({ ...p, hora_inicio: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Inicio...</option>
-                  {TIME_SLOTS.map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Hora fin <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={form.hora_fin}
-                  onChange={(e) => setForm(p => ({ ...p, hora_fin: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Fin...</option>
-                  {TIME_SLOTS.filter(t => t > form.hora_inicio).map(t => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Classroom and Color */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Aula / Salón
-                </label>
-                <input
-                  type="text"
-                  value={form.aula}
-                  onChange={(e) => setForm(p => ({ ...p, aula: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ej: Aula 101, Lab. Ciencias"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Color
-                </label>
-                <div className="flex gap-2 flex-wrap">
-                  {SUBJECT_COLORS.map(c => (
-                    <button
-                      key={c.value}
-                      type="button"
-                      onClick={() => setForm(p => ({ ...p, color: c.value }))}
-                      className={`w-8 h-8 rounded-lg transition-all ${form.color === c.value ? "ring-2 ring-offset-2 ring-slate-400 scale-110" : "hover:scale-105"}`}
-                      style={{ backgroundColor: c.value }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Also assign to class (for teacher schedule) */}
-            {type === "profesores" && (
-              <div className="mb-4 p-4 bg-slate-50 rounded-xl">
-                <p className="text-sm font-semibold text-slate-700 mb-3">Asignar a grado/sección (opcional)</p>
-                <div className="grid grid-cols-2 gap-4">
-                  <select
-                    value={form.grado_id}
-                    onChange={(e) => setForm(p => ({ ...p, grado_id: e.target.value, seccion_id: "" }))}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm"
-                  >
-                    <option value="">Sin asignar</option>
-                    {grades.map(g => (
-                      <option key={g.id} value={g.id}>{g.nombre}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={form.seccion_id}
-                    onChange={(e) => setForm(p => ({ ...p, seccion_id: e.target.value }))}
-                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-lg text-sm disabled:bg-slate-100"
-                    disabled={!form.grado_id}
-                  >
-                    <option value="">Sección...</option>
-                    {filteredSections.map(s => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
-                </div>
+                
+                {/* Dropdown */}
+                {showSubjectDropdown && !form.materia && (
+                  <div className="absolute z-50 w-full mt-2 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {loadingSubjects ? (
+                      <div className="p-4 text-center text-slate-500">
+                        <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                        Cargando...
+                      </div>
+                    ) : filteredSubjects.length === 0 ? (
+                      <div className="p-4 text-center text-slate-500 text-sm">
+                        {subjects.length === 0 ? "No hay asignaturas para este grado" : "Sin resultados"}
+                      </div>
+                    ) : (
+                      filteredSubjects.map(subject => {
+                        const teacher = teachers.find(t => t.id === subject.teacher_id);
+                        return (
+                          <button
+                            key={subject.id}
+                            type="button"
+                            onClick={() => handleSelectSubject(subject)}
+                            className="w-full px-4 py-3 text-left hover:bg-blue-50 flex items-center gap-3 transition-colors"
+                          >
+                            <div className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: subject.color || '#6366F1' }} />
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-800">{subject.name}</p>
+                              {teacher && <p className="text-xs text-slate-500">Prof. {teacher.name}</p>}
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
               </div>
             )}
+            
+            {showSubjectDropdown && <div className="fixed inset-0 z-40" onClick={() => setShowSubjectDropdown(false)} />}
+          </div>
 
-            {/* Buttons */}
-            <div className="flex gap-3">
-              <button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">
-                Cancelar
-              </button>
-              <button type="submit" disabled={loading} className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2">
-                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
-                {isEdit ? "Guardar" : "Agregar"}
-              </button>
+          {/* Teacher */}
+          {type === "clases" && (
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Profesor <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={form.profesor_id}
+                onChange={(e) => setForm(p => ({ ...p, profesor_id: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Seleccionar profesor...</option>
+                {teachers.map(t => (
+                  <option key={t.id} value={t.id}>{t.name} {t.last_name}</option>
+                ))}
+              </select>
             </div>
-          </form>
-        </div>
+          )}
+
+          {/* Day */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Día <span className="text-red-500">*</span>
+            </label>
+            <div className="grid grid-cols-6 gap-2">
+              {DAYS.map(day => (
+                <button
+                  key={day.id}
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, dia: day.id }))}
+                  className={`px-2 py-3 rounded-xl border-2 text-center transition-all ${
+                    form.dia === day.id
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                  }`}
+                >
+                  <p className="font-semibold text-sm">{day.short}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Time */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Hora inicio</label>
+              <select
+                value={form.hora_inicio}
+                onChange={(e) => setForm(p => ({ ...p, hora_inicio: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Seleccionar...</option>
+                {timeOptions.map(t => (
+                  <option key={t} value={t}>{formatTime(t)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Hora fin</label>
+              <select
+                value={form.hora_fin}
+                onChange={(e) => setForm(p => ({ ...p, hora_fin: e.target.value }))}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Seleccionar...</option>
+                {timeOptions.filter(t => t > form.hora_inicio).map(t => (
+                  <option key={t} value={t}>{formatTime(t)}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Room */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Aula (opcional)</label>
+            <input
+              type="text"
+              value={form.aula}
+              onChange={(e) => setForm(p => ({ ...p, aula: e.target.value }))}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ej: A-101, Laboratorio, etc."
+            />
+          </div>
+
+          {/* Color */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Color</label>
+            <div className="flex flex-wrap gap-2">
+              {SUBJECT_COLORS.map(c => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, color: c.value }))}
+                  className={`w-8 h-8 rounded-full transition-all ${
+                    form.color === c.value ? "ring-2 ring-offset-2 ring-slate-400 scale-110" : "hover:scale-110"
+                  }`}
+                  style={{ backgroundColor: c.value }}
+                  title={c.name}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Buttons */}
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || conflicts.length > 0}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}
+              {isEdit ? "Guardar" : "Agregar"}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// SCHEDULE GRID COMPONENT
+// CALENDAR GRID - Professional weekly view
 // ══════════════════════════════════════════════════════════════════════════════
-function ScheduleGrid({ schedules, onEdit, onDelete, onAddClick }) {
-  // Group schedules by day and time
+function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClick, teachers }) {
+  // Generate time slots based on settings
+  const generateTimeSlots = useCallback(() => {
+    const slots = [];
+    const startHour = parseInt(settings?.start_hour?.split(':')[0] || '7');
+    const endHour = parseInt(settings?.end_hour?.split(':')[0] || '18');
+    
+    for (let h = startHour; h < endHour; h++) {
+      slots.push(`${h.toString().padStart(2, '0')}:00`);
+    }
+    return slots;
+  }, [settings]);
+
+  const timeSlots = generateTimeSlots();
+
+  // Format time for display
+  const formatTime = (time) => {
+    if (!time) return time;
+    if (settings?.time_format === "12h") {
+      const [h, m] = time.split(':');
+      const hour = parseInt(h);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${m} ${ampm}`;
+    }
+    return time;
+  };
+
+  // Get color classes for a schedule
+  const getColorStyle = (color) => {
+    return {
+      backgroundColor: color || '#6366F1',
+      borderColor: color || '#6366F1'
+    };
+  };
+
+  // Calculate block position and height
+  const getBlockStyle = (schedule) => {
+    const startHour = parseInt(settings?.start_hour?.split(':')[0] || '7');
+    const [startH, startM] = schedule.hora_inicio.split(':').map(Number);
+    const [endH, endM] = schedule.hora_fin.split(':').map(Number);
+    
+    const startMinutes = (startH - startHour) * 60 + startM;
+    const duration = (endH * 60 + endM) - (startH * 60 + startM);
+    
+    const top = (startMinutes / 60) * 64; // 64px per hour
+    const height = Math.max((duration / 60) * 64, 32); // Min 32px height
+    
+    return {
+      top: `${top}px`,
+      height: `${height}px`,
+      minHeight: '32px'
+    };
+  };
+
+  // Group schedules by day
   const schedulesByDay = {};
   DAYS.forEach(d => { schedulesByDay[d.id] = []; });
   schedules.forEach(s => {
@@ -549,75 +833,103 @@ function ScheduleGrid({ schedules, onEdit, onDelete, onAddClick }) {
     }
   });
 
-  // Sort each day's schedules by start time
-  Object.keys(schedulesByDay).forEach(day => {
-    schedulesByDay[day].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
-  });
-
-  const getColorClasses = (color) => {
-    const colorObj = SUBJECT_COLORS.find(c => c.value === color);
-    return colorObj ? `${colorObj.bg} ${colorObj.text}` : "bg-slate-100 text-slate-700";
-  };
-
   return (
-    <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-      <div className="grid grid-cols-6 border-b">
+    <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200">
+      {/* Header - Days */}
+      <div className="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-10">
+        {/* Time column header */}
+        <div className="w-20 flex-shrink-0 p-3 border-r border-slate-200 flex items-center justify-center">
+          <Clock className="w-5 h-5 text-slate-400" />
+        </div>
+        
+        {/* Day headers */}
         {DAYS.map(day => (
-          <div key={day.id} className="p-4 text-center border-r last:border-r-0 bg-slate-50">
+          <div key={day.id} className="flex-1 p-3 text-center border-r last:border-r-0 border-slate-200 min-w-[120px]">
             <p className="font-bold text-slate-800">{day.label}</p>
             <p className="text-xs text-slate-500">{schedulesByDay[day.id].length} clases</p>
           </div>
         ))}
       </div>
-      
-      <div className="grid grid-cols-6 min-h-[400px]">
+
+      {/* Grid Body */}
+      <div className="flex overflow-x-auto">
+        {/* Time column - Sticky */}
+        <div className="w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10">
+          {timeSlots.map((time, idx) => (
+            <div 
+              key={time} 
+              className="h-16 px-2 flex items-start justify-center pt-1 border-b border-slate-100 text-xs font-medium text-slate-500"
+            >
+              {formatTime(time)}
+            </div>
+          ))}
+        </div>
+
+        {/* Day columns */}
         {DAYS.map(day => (
-          <div key={day.id} className="border-r last:border-r-0 p-2 space-y-2">
-            {schedulesByDay[day.id].length === 0 ? (
-              <button
-                onClick={() => onAddClick(day.id)}
-                className="w-full h-20 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all flex items-center justify-center gap-2"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="text-sm">Agregar</span>
-              </button>
-            ) : (
-              schedulesByDay[day.id].map(schedule => (
+          <div 
+            key={day.id} 
+            className="flex-1 min-w-[120px] border-r last:border-r-0 border-slate-200 relative"
+            style={{ height: `${timeSlots.length * 64}px` }}
+          >
+            {/* Hour lines */}
+            {timeSlots.map((time, idx) => (
+              <div 
+                key={time}
+                className="absolute w-full h-16 border-b border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors"
+                style={{ top: `${idx * 64}px` }}
+                onClick={() => onCellClick(day.id, time)}
+              />
+            ))}
+
+            {/* Schedule blocks */}
+            {schedulesByDay[day.id].map(schedule => {
+              const teacher = teachers?.find(t => t.id === schedule.profesor_id);
+              const blockStyle = getBlockStyle(schedule);
+              
+              return (
                 <div
                   key={schedule.id}
-                  className={`p-3 rounded-xl ${getColorClasses(schedule.color)} group relative cursor-pointer hover:shadow-md transition-all`}
+                  className="absolute left-1 right-1 rounded-lg shadow-md overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:scale-[1.02] z-20"
+                  style={{
+                    ...blockStyle,
+                    ...getColorStyle(schedule.color)
+                  }}
                   onClick={() => onEdit(schedule)}
                 >
-                  <p className="font-semibold text-sm truncate">{schedule.materia}</p>
-                  <p className="text-xs opacity-75">{schedule.hora_inicio} - {schedule.hora_fin}</p>
-                  {schedule.aula && <p className="text-xs opacity-60 mt-1">{schedule.aula}</p>}
-                  
+                  <div className="h-full p-2 flex flex-col text-white">
+                    <p className="font-semibold text-sm truncate leading-tight">{schedule.materia}</p>
+                    {teacher && (
+                      <p className="text-xs opacity-90 truncate">{teacher.name}</p>
+                    )}
+                    {schedule.aula && (
+                      <p className="text-xs opacity-75 truncate mt-auto">{schedule.aula}</p>
+                    )}
+                    
+                    {/* Time badge */}
+                    <div className="absolute bottom-1 right-1 bg-black/20 rounded px-1.5 py-0.5 text-[10px] font-medium">
+                      {schedule.hora_inicio} - {schedule.hora_fin}
+                    </div>
+                  </div>
+
                   {/* Hover actions */}
                   <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                     <button
                       onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
-                      className="p-1 bg-white rounded-lg shadow hover:bg-blue-50"
+                      className="p-1.5 bg-white/90 rounded-lg shadow hover:bg-white"
                     >
-                      <Pencil className="w-3 h-3 text-blue-600" />
+                      <Pencil className="w-3 h-3 text-slate-700" />
                     </button>
                     <button
                       onClick={(e) => { e.stopPropagation(); onDelete(schedule); }}
-                      className="p-1 bg-white rounded-lg shadow hover:bg-red-50"
+                      className="p-1.5 bg-white/90 rounded-lg shadow hover:bg-red-50"
                     >
-                      <Trash2 className="w-3 h-3 text-red-600" />
+                      <Trash2 className="w-3 h-3 text-red-500" />
                     </button>
                   </div>
                 </div>
-              ))
-            )}
-            {schedulesByDay[day.id].length > 0 && (
-              <button
-                onClick={() => onAddClick(day.id)}
-                className="w-full py-2 border border-dashed border-slate-200 rounded-lg text-slate-400 hover:border-blue-400 hover:text-blue-500 text-xs flex items-center justify-center gap-1"
-              >
-                <Plus className="w-3 h-3" /> Agregar
-              </button>
-            )}
+              );
+            })}
           </div>
         ))}
       </div>
@@ -626,283 +938,308 @@ function ScheduleGrid({ schedules, onEdit, onDelete, onAddClick }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE
+// MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
-export default function SchedulePage({ user, token, subdomain, onLogout }) {
+export default function SchedulePage({ user, token, onLogout }) {
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [settings, setSettings] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [activeTab, setActiveTab] = useState("clases");
-  
+  const [loading, setLoading] = useState(true);
+
   // Data
-  const [schedules, setSchedules] = useState([]);
-  const [levels, setLevels] = useState([]);
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
   const [teachers, setTeachers] = useState([]);
-  
+  const [schedules, setSchedules] = useState([]);
+  const [allSchedules, setAllSchedules] = useState([]); // For conflict checking
+
   // Filters
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
   const [selectedTeacher, setSelectedTeacher] = useState("");
-  
-  // Modal states
+
+  // Settings
+  const [settings, setSettings] = useState({
+    start_hour: "07:00",
+    end_hour: "18:00",
+    time_format: "24h",
+    block_duration: 45
+  });
+  const [showSettings, setShowSettings] = useState(false);
+  const [savingSettings, setSavingSettings] = useState(false);
+
+  // Modals
   const [showEntryModal, setShowEntryModal] = useState(false);
-  const [editingEntry, setEditingEntry] = useState(null);
+  const [editEntry, setEditEntry] = useState(null);
   const [preselectedData, setPreselectedData] = useState(null);
-  
-  // Delete modal
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-  
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [entryToDelete, setEntryToDelete] = useState(null);
+
   const headers = { Authorization: `Bearer ${token}` };
 
+  // Load initial data
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const [gradesRes, sectionsRes, teachersRes, settingsRes] = await Promise.all([
+          axios.get(`${API}/grades`, { headers }),
+          axios.get(`${API}/secciones`, { headers }),
+          axios.get(`${API}/teachers`, { headers }),
+          axios.get(`${API}/schedule-settings`, { headers }).catch(() => ({ data: null }))
+        ]);
 
-  useEffect(() => {
-    if (activeTab === "clases" && selectedGrade && selectedSection) {
-      loadSchedules();
-    } else if (activeTab === "profesores" && selectedTeacher) {
-      loadSchedules();
-    }
-  }, [activeTab, selectedGrade, selectedSection, selectedTeacher]);
-
-  const loadInitialData = async () => {
-    setLoading(true);
-    try {
-      const [settingsRes, levelsRes, gradesRes, sectionsRes, usersRes] = await Promise.all([
-        axios.get(`${API}/settings`, { headers }),
-        axios.get(`${API}/academic/levels`, { headers }),
-        axios.get(`${API}/academic/grades`, { headers }),
-        axios.get(`${API}/academic/sections`, { headers }),
-        axios.get(`${API}/users`, { headers })
-      ]);
-      setSettings(settingsRes.data);
-      
-      // Sort levels by standard order: Inicial, Primaria, Secundaria
-      const levelOrder = { 'inicial': 1, 'primaria': 2, 'secundaria': 3 };
-      const sortedLevels = levelsRes.data.filter(l => l.activo).sort((a, b) => {
-        const orderA = levelOrder[a.nombre.toLowerCase()] || 99;
-        const orderB = levelOrder[b.nombre.toLowerCase()] || 99;
-        return orderA - orderB;
-      });
-      setLevels(sortedLevels);
-      
-      // Sort grades by level order first, then by grade order
-      const gradesData = gradesRes.data.filter(g => g.activo);
-      const sortedGrades = gradesData.sort((a, b) => {
-        const levelA = levelOrder[a.nivel_nombre?.toLowerCase()] || 99;
-        const levelB = levelOrder[b.nivel_nombre?.toLowerCase()] || 99;
-        if (levelA !== levelB) return levelA - levelB;
-        return (a.orden || 0) - (b.orden || 0);
-      });
-      setGrades(sortedGrades);
-      
-      setSections(sectionsRes.data.filter(s => s.activo));
-      setTeachers(usersRes.data.filter(u => u.role === 'teacher'));
-    } catch (err) {
-      console.error("Error loading data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadSchedules = async () => {
-    try {
-      let url = `${API}/schedules?tipo=${activeTab}`;
-      if (activeTab === "clases" && selectedGrade && selectedSection) {
-        url += `&grado_id=${selectedGrade}&seccion_id=${selectedSection}`;
-      } else if (activeTab === "profesores" && selectedTeacher) {
-        url += `&profesor_id=${selectedTeacher}`;
+        setGrades(gradesRes.data.grades || []);
+        setSections(sectionsRes.data.secciones || []);
+        setTeachers(teachersRes.data.teachers || []);
+        
+        if (settingsRes.data) {
+          setSettings(settingsRes.data);
+        }
+      } catch (err) {
+        console.error("Error loading data:", err);
+      } finally {
+        setLoading(false);
       }
-      const res = await axios.get(url, { headers });
-      setSchedules(res.data);
-    } catch (err) {
-      console.error("Error loading schedules:", err);
-    }
+    };
+
+    loadData();
+  }, [token]);
+
+  // Load schedules when filters change
+  useEffect(() => {
+    const loadSchedules = async () => {
+      if (activeTab === "clases" && (!selectedGrade || !selectedSection)) {
+        setSchedules([]);
+        return;
+      }
+      if (activeTab === "profesores" && !selectedTeacher) {
+        setSchedules([]);
+        return;
+      }
+
+      try {
+        let url = `${API}/schedules?tipo=${activeTab}`;
+        if (activeTab === "clases") {
+          url += `&grado_id=${selectedGrade}&seccion_id=${selectedSection}`;
+        } else if (activeTab === "profesores") {
+          url += `&profesor_id=${selectedTeacher}`;
+        }
+
+        const res = await axios.get(url, { headers });
+        setSchedules(res.data.schedules || []);
+      } catch (err) {
+        console.error("Error loading schedules:", err);
+      }
+    };
+
+    loadSchedules();
+  }, [activeTab, selectedGrade, selectedSection, selectedTeacher, token]);
+
+  // Load all schedules for conflict checking
+  useEffect(() => {
+    const loadAllSchedules = async () => {
+      try {
+        const res = await axios.get(`${API}/schedules?tipo=clases`, { headers });
+        setAllSchedules(res.data.schedules || []);
+      } catch (err) {
+        console.error("Error loading all schedules:", err);
+      }
+    };
+
+    loadAllSchedules();
+  }, [token]);
+
+  // Filter sections by selected grade
+  const filteredSections = sections.filter(s => s.grado_id === selectedGrade);
+
+  // Handle grade change
+  const handleGradeChange = (gradeId) => {
+    setSelectedGrade(gradeId);
+    setSelectedSection("");
   };
 
-  const handleEntrySuccess = (entry, action) => {
-    if (action === "create") {
-      setSchedules(prev => [...prev, entry]);
-    } else {
-      setSchedules(prev => prev.map(s => s.id === entry.id ? entry : s));
-    }
-  };
-
-  const handleDeleteEntry = async () => {
-    if (!deleteTarget) return;
-    setDeleteLoading(true);
-    try {
-      await axios.delete(`${API}/schedules/${deleteTarget.id}`, { headers });
-      setSchedules(prev => prev.filter(s => s.id !== deleteTarget.id));
-      setShowDeleteModal(false);
-      setDeleteTarget(null);
-    } catch (err) {
-      alert(err.response?.data?.detail || "Error al eliminar");
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
-  const handleAddClick = (dia) => {
-    setEditingEntry(null);
+  // Handle add click (from calendar cell)
+  const handleCellClick = (day, time) => {
     setPreselectedData({
       grado_id: selectedGrade,
       seccion_id: selectedSection,
       profesor_id: selectedTeacher,
-      dia
+      dia: day,
+      hora_inicio: time
     });
+    setEditEntry(null);
     setShowEntryModal(true);
   };
 
-  // Filtered sections based on selected grade
-  const filteredSections = selectedGrade 
-    ? sections.filter(s => s.grado_id === selectedGrade) 
-    : [];
+  // Handle edit
+  const handleEdit = (schedule) => {
+    setEditEntry(schedule);
+    setPreselectedData(null);
+    setShowEntryModal(true);
+  };
 
-  // Get selected grade info
-  const selectedGradeInfo = grades.find(g => g.id === selectedGrade);
-  const selectedSectionInfo = sections.find(s => s.id === selectedSection);
-  const selectedTeacherInfo = teachers.find(t => t.id === selectedTeacher);
+  // Handle delete
+  const handleDelete = (schedule) => {
+    setEntryToDelete(schedule);
+    setShowDeleteConfirm(true);
+  };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC]">
-        <Loader2 className="w-10 h-10 text-[#001f4b] animate-spin" />
-      </div>
-    );
-  }
+  const confirmDelete = async () => {
+    if (!entryToDelete) return;
+    
+    try {
+      await axios.delete(`${API}/schedules/${entryToDelete.id}`, { headers });
+      setSchedules(prev => prev.filter(s => s.id !== entryToDelete.id));
+      setAllSchedules(prev => prev.filter(s => s.id !== entryToDelete.id));
+    } catch (err) {
+      console.error("Error deleting schedule:", err);
+    } finally {
+      setShowDeleteConfirm(false);
+      setEntryToDelete(null);
+    }
+  };
+
+  // Handle save settings
+  const handleSaveSettings = async (newSettings) => {
+    setSavingSettings(true);
+    try {
+      await axios.post(`${API}/schedule-settings`, newSettings, { headers });
+      setSettings(newSettings);
+      setShowSettings(false);
+    } catch (err) {
+      console.error("Error saving settings:", err);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  // Refresh schedules
+  const refreshSchedules = async () => {
+    let url = `${API}/schedules?tipo=${activeTab}`;
+    if (activeTab === "clases") {
+      url += `&grado_id=${selectedGrade}&seccion_id=${selectedSection}`;
+    } else if (activeTab === "profesores") {
+      url += `&profesor_id=${selectedTeacher}`;
+    }
+
+    try {
+      const res = await axios.get(url, { headers });
+      setSchedules(res.data.schedules || []);
+      
+      // Also refresh all schedules for conflict checking
+      const allRes = await axios.get(`${API}/schedules?tipo=clases`, { headers });
+      setAllSchedules(allRes.data.schedules || []);
+    } catch (err) {
+      console.error("Error refreshing schedules:", err);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="schedule-page">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <Sidebar 
         user={user} 
-        settings={settings} 
-        isOpen={sidebarOpen} 
-        setIsOpen={setSidebarOpen}
-        subdomain={subdomain}
-        onLogout={onLogout}
+        expanded={sidebarExpanded} 
+        setExpanded={setSidebarExpanded}
+        activePage="schedule"
       />
       
-      <div className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader
-          user={user}
-          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-          onLogout={onLogout}
-          logoUrl={settings?.logo_url}
-          schoolName={settings?.system_name}
-          subdomain={subdomain}
-        />
-
-        {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
-          {/* Page Title */}
-          <div className="relative overflow-hidden rounded-3xl mb-8">
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
-            </div>
-            <div className="relative px-8 py-10 flex items-center gap-6">
-              <div className="w-20 h-20 bg-white rounded-2xl flex items-center justify-center shadow-xl">
-                <Calendar className="w-10 h-10 text-blue-600" />
+      <div className={`transition-all duration-300 ${sidebarExpanded ? "md:ml-64" : "md:ml-20"}`}>
+        <DashboardHeader user={user} onLogout={onLogout} />
+        
+        <main className="p-4 md:p-6 lg:p-8">
+          {/* Header */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => navigate(-1)}
+                  className="p-2 hover:bg-white rounded-xl transition-colors"
+                >
+                  <ArrowLeft className="w-5 h-5 text-slate-600" />
+                </button>
+                <div>
+                  <h1 className="text-2xl md:text-3xl font-bold text-slate-800">
+                    Horario de Clases
+                  </h1>
+                  <p className="text-slate-500">Gestión de horarios académicos</p>
+                </div>
               </div>
-              <div className="text-white">
-                <h1 className="text-4xl font-bold tracking-tight mb-2">Horarios</h1>
-                <p className="text-blue-200 text-lg">Gestiona los horarios de clases, profesores y exámenes</p>
-              </div>
+              
+              {/* Settings button */}
+              <button
+                onClick={() => setShowSettings(true)}
+                className="p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-slate-200 flex items-center gap-2 text-slate-600 hover:text-slate-800"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="hidden md:inline font-medium">Configuración</span>
+              </button>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
-            {SCHEDULE_TABS.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setSchedules([]);
-                  }}
-                  className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-semibold transition-all whitespace-nowrap ${
-                    isActive 
-                      ? "bg-white shadow-lg text-blue-600 border-2 border-blue-200" 
-                      : "bg-white/50 text-slate-600 hover:bg-white hover:shadow border-2 border-transparent"
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? "bg-blue-100" : "bg-slate-100"}`}>
-                    <Icon className={`w-6 h-6 ${isActive ? "text-blue-600" : "text-slate-500"}`} />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-bold">{tab.label}</p>
-                    <p className="text-xs opacity-60">{tab.description}</p>
-                  </div>
-                  {isActive && <ChevronRight className="w-5 h-5 ml-2" />}
-                </button>
-              );
-            })}
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            {SCHEDULE_TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-5 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? "bg-blue-600 text-white shadow-lg shadow-blue-500/30"
+                    : "bg-white text-slate-600 hover:bg-slate-50 border border-slate-200"
+                }`}
+              >
+                <tab.icon className="w-5 h-5" />
+                {tab.label}
+              </button>
+            ))}
           </div>
 
-          {/* Filters based on active tab */}
-          <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
-            {activeTab === "clases" && (
-              <div className="flex flex-wrap items-end gap-4">
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Filtrar por grado</label>
-                  <select
-                    value={selectedGrade}
-                    onChange={(e) => {
-                      setSelectedGrade(e.target.value);
-                      setSelectedSection("");
-                      setSchedules([]);
-                    }}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Seleccionar grado...</option>
-                    {grades.map(g => (
-                      <option key={g.id} value={g.id}>{g.nombre} - {g.nivel_nombre}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Sección</label>
-                  <select
-                    value={selectedSection}
-                    onChange={(e) => setSelectedSection(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100"
-                    disabled={!selectedGrade}
-                  >
-                    <option value="">{selectedGrade ? "Seleccionar sección..." : "Primero elige grado"}</option>
-                    {filteredSections.map(s => (
-                      <option key={s.id} value={s.id}>{s.nombre}</option>
-                    ))}
-                  </select>
-                </div>
-                {selectedGrade && selectedSection && (
-                  <button
-                    onClick={() => handleAddClick("")}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Agregar horario
-                  </button>
-                )}
-              </div>
-            )}
+          {/* Filters */}
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6">
+            <div className="flex flex-wrap items-center gap-4">
+              {activeTab === "clases" && (
+                <>
+                  {/* Grade filter */}
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Grado</label>
+                    <select
+                      value={selectedGrade}
+                      onChange={(e) => handleGradeChange(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Seleccionar grado...</option>
+                      {grades.map(g => (
+                        <option key={g.id} value={g.id}>{g.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
 
-            {activeTab === "profesores" && (
-              <div className="flex flex-wrap items-end gap-4">
+                  {/* Section filter */}
+                  <div className="flex-1 min-w-[200px]">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Sección</label>
+                    <select
+                      value={selectedSection}
+                      onChange={(e) => setSelectedSection(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      disabled={!selectedGrade}
+                    >
+                      <option value="">Seleccionar sección...</option>
+                      {filteredSections.map(s => (
+                        <option key={s.id} value={s.id}>{s.nombre}</option>
+                      ))}
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {activeTab === "profesores" && (
                 <div className="flex-1 min-w-[300px]">
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Profesor</label>
+                  <label className="block text-xs font-medium text-slate-500 mb-1">Profesor</label>
                   <select
                     value={selectedTeacher}
                     onChange={(e) => setSelectedTeacher(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">Seleccionar profesor...</option>
                     {teachers.map(t => (
@@ -910,120 +1247,134 @@ export default function SchedulePage({ user, token, subdomain, onLogout }) {
                     ))}
                   </select>
                 </div>
-                {selectedTeacher && (
-                  <button
-                    onClick={() => handleAddClick("")}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Agregar horario
-                  </button>
-                )}
-              </div>
-            )}
+              )}
 
-            {activeTab === "examenes" && (
-              <div className="text-center py-8 text-slate-500">
-                <FileText className="w-16 h-16 mx-auto mb-4 text-slate-300" />
-                <p className="text-lg font-semibold">Horario de Exámenes</p>
-                <p className="text-sm">Próximamente - Calendario de evaluaciones</p>
+              {/* Add button */}
+              <div className="flex-shrink-0">
+                <label className="block text-xs font-medium text-transparent mb-1">.</label>
+                <button
+                  onClick={() => {
+                    setPreselectedData({
+                      grado_id: selectedGrade,
+                      seccion_id: selectedSection,
+                      profesor_id: selectedTeacher
+                    });
+                    setEditEntry(null);
+                    setShowEntryModal(true);
+                  }}
+                  disabled={(activeTab === "clases" && (!selectedGrade || !selectedSection)) || (activeTab === "profesores" && !selectedTeacher)}
+                  className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold flex items-center gap-2 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-5 h-5" />
+                  Agregar horario
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Schedule Display */}
-          {activeTab === "clases" && selectedGrade && selectedSection && (
-            <div>
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-                  <BookOpen className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800">Horario de clases</h2>
-                  <p className="text-slate-500">{selectedGradeInfo?.nombre} - Sección {selectedSectionInfo?.nombre}</p>
-                </div>
-              </div>
-              
-              <ScheduleGrid
-                schedules={schedules}
-                onEdit={(s) => { setEditingEntry(s); setShowEntryModal(true); }}
-                onDelete={(s) => { setDeleteTarget(s); setShowDeleteModal(true); }}
-                onAddClick={handleAddClick}
-              />
+          {/* Calendar Grid */}
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
             </div>
+          ) : (activeTab === "clases" && (!selectedGrade || !selectedSection)) || (activeTab === "profesores" && !selectedTeacher) ? (
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center">
+              <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="w-10 h-10 text-slate-400" />
+              </div>
+              <h3 className="text-xl font-bold text-slate-800 mb-2">Selecciona los filtros</h3>
+              <p className="text-slate-500">
+                {activeTab === "clases" 
+                  ? "Elige un grado y sección para ver el horario"
+                  : activeTab === "profesores"
+                  ? "Elige un profesor para ver su horario"
+                  : "Selecciona los filtros necesarios"}
+              </p>
+            </div>
+          ) : (
+            <CalendarGrid
+              schedules={schedules}
+              settings={settings}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onCellClick={handleCellClick}
+              teachers={teachers}
+            />
           )}
 
-          {activeTab === "profesores" && selectedTeacher && (
-            <div>
-              <div className="flex items-center gap-4 mb-6">
-                {selectedTeacherInfo?.photo_url ? (
-                  <img src={selectedTeacherInfo.photo_url} alt="" className="w-16 h-16 rounded-2xl object-cover shadow-lg" />
-                ) : (
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg">
-                    <GraduationCap className="w-8 h-8 text-white" />
-                  </div>
-                )}
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-800">Horario de profesores</h2>
-                  <p className="text-slate-500">{selectedTeacherInfo?.name} {selectedTeacherInfo?.last_name}</p>
-                </div>
+          {/* Stats Summary */}
+          {schedules.length > 0 && (
+            <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
+                <p className="text-sm text-slate-500">Total clases</p>
+                <p className="text-2xl font-bold text-slate-800">{schedules.length}</p>
               </div>
-              
-              <ScheduleGrid
-                schedules={schedules}
-                onEdit={(s) => { setEditingEntry(s); setShowEntryModal(true); }}
-                onDelete={(s) => { setDeleteTarget(s); setShowDeleteModal(true); }}
-                onAddClick={handleAddClick}
-              />
-            </div>
-          )}
-
-          {/* Empty state when no filter selected */}
-          {activeTab === "clases" && (!selectedGrade || !selectedSection) && (
-            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-blue-100 flex items-center justify-center">
-                <Calendar className="w-12 h-12 text-blue-500" />
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
+                <p className="text-sm text-slate-500">Horas semanales</p>
+                <p className="text-2xl font-bold text-blue-600">
+                  {schedules.reduce((acc, s) => {
+                    const [startH, startM] = s.hora_inicio.split(':').map(Number);
+                    const [endH, endM] = s.hora_fin.split(':').map(Number);
+                    return acc + ((endH * 60 + endM) - (startH * 60 + startM)) / 60;
+                  }, 0).toFixed(1)}h
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Selecciona un grado y sección</h3>
-              <p className="text-slate-500">Elige el grado y la sección para ver y gestionar su horario de clases</p>
-            </div>
-          )}
-
-          {activeTab === "profesores" && !selectedTeacher && (
-            <div className="bg-white rounded-2xl shadow-lg p-12 text-center">
-              <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-emerald-100 flex items-center justify-center">
-                <GraduationCap className="w-12 h-12 text-emerald-500" />
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
+                <p className="text-sm text-slate-500">Días con clases</p>
+                <p className="text-2xl font-bold text-emerald-600">
+                  {new Set(schedules.map(s => s.dia)).size}
+                </p>
               </div>
-              <h3 className="text-xl font-bold text-slate-800 mb-2">Selecciona un profesor</h3>
-              <p className="text-slate-500">Elige un profesor para ver y gestionar su horario de clases</p>
+              <div className="bg-white rounded-xl p-4 border border-slate-200">
+                <p className="text-sm text-slate-500">Profesores</p>
+                <p className="text-2xl font-bold text-violet-600">
+                  {new Set(schedules.map(s => s.profesor_id).filter(Boolean)).size}
+                </p>
+              </div>
             </div>
           )}
         </main>
       </div>
 
       {/* Modals */}
+      <ScheduleSettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        settings={settings}
+        onSave={handleSaveSettings}
+        loading={savingSettings}
+      />
+
       <ScheduleEntryModal
         isOpen={showEntryModal}
-        onClose={() => { setShowEntryModal(false); setEditingEntry(null); setPreselectedData(null); }}
+        onClose={() => {
+          setShowEntryModal(false);
+          setEditEntry(null);
+          setPreselectedData(null);
+        }}
         token={token}
-        entry={editingEntry}
-        onSuccess={handleEntrySuccess}
+        entry={editEntry}
+        onSuccess={refreshSchedules}
         grades={grades}
         sections={sections}
         teachers={teachers}
         type={activeTab}
         preselectedData={preselectedData}
+        existingSchedules={allSchedules}
+        settings={settings}
       />
 
       <ConfirmModal
-        isOpen={showDeleteModal}
-        onClose={() => { setShowDeleteModal(false); setDeleteTarget(null); }}
-        onConfirm={handleDeleteEntry}
+        isOpen={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setEntryToDelete(null);
+        }}
+        onConfirm={confirmDelete}
         title="Eliminar horario"
-        message={`¿Eliminar "${deleteTarget?.materia}" del horario? Esta acción no se puede deshacer.`}
-        confirmText="Sí, eliminar"
+        message={`¿Estás seguro de eliminar ${entryToDelete?.materia}? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
         type="danger"
-        loading={deleteLoading}
       />
     </div>
   );
