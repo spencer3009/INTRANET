@@ -2182,49 +2182,89 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             
             {/* Data to delete box */}
             <div className="bg-[#f5f0e8] rounded-xl p-4 text-left">
-              <p className="text-sm text-slate-600 mb-3">Se eliminarán los siguientes datos:</p>
-              <ul className="space-y-1.5 text-sm text-slate-600">
-                <li className="flex items-start gap-2">
-                  <span className="text-slate-400 mt-0.5">•</span>
-                  Cuenta y foto de perfil
-                </li>
-                {userToDelete.role === 'student' && (
-                  <>
-                    <li className="flex items-start gap-2">
-                      <span className="text-slate-400 mt-0.5">•</span>
-                      Registros de asistencia y calificaciones
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-slate-400 mt-0.5">•</span>
-                      Tareas y exámenes entregados
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-slate-400 mt-0.5">•</span>
-                      Reportes de disciplina y encuestas
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-slate-400 mt-0.5">•</span>
-                      Matrículas en cursos
-                    </li>
-                  </>
-                )}
-                {userToDelete.role === 'teacher' && (
-                  <li className="flex items-start gap-2">
-                    <span className="text-slate-400 mt-0.5">•</span>
-                    Asignación de materias
-                  </li>
-                )}
-                {userToDelete.role === 'parent' && (
-                  <li className="flex items-start gap-2">
-                    <span className="text-slate-400 mt-0.5">•</span>
-                    Vinculación con hijos
-                  </li>
-                )}
-                <li className="flex items-start gap-2">
-                  <span className="text-slate-400 mt-0.5">•</span>
-                  Correos internos y mensajes
-                </li>
-              </ul>
+              <p className="text-sm text-slate-600 mb-3 font-medium">Se eliminarán los siguientes datos:</p>
+              
+              {userToDelete.role === 'student' ? (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Cuenta y foto de perfil</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Registros de asistencia</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Calificaciones</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Tareas entregadas</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Exámenes realizados</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Reportes de disciplina</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Respuestas a encuestas</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Matrículas en cursos</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Correos y mensajes</span>
+                  </div>
+                </div>
+              ) : userToDelete.role === 'teacher' ? (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Cuenta y foto de perfil</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Asignación de materias</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Correos y mensajes</span>
+                  </div>
+                </div>
+              ) : userToDelete.role === 'parent' ? (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Cuenta y foto de perfil</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Vinculación con hijos</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Correos y mensajes</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Cuenta y foto de perfil</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                    <span>Correos y mensajes</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         ) : ""}
