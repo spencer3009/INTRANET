@@ -1786,7 +1786,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         {selectedRole === 'student' && (
                           <button
                             onClick={() => {
-                              setQRStudent(u);
+                              // Add grade and section names for QR card
+                              const gradeName = grades.find(g => g.id === u.grado_id)?.nombre || "";
+                              const sectionName = sections.find(s => s.id === u.seccion_id)?.nombre || "";
+                              setQRStudent({ ...u, grade_name: gradeName, section_name: sectionName });
                               setShowQRModal(true);
                               setOpenMenuId(null);
                             }}
