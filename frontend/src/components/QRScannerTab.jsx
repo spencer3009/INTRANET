@@ -340,19 +340,93 @@ export default function QRScannerTab({ token }) {
           <div className="p-6">
             {!scanning ? (
               <div className="text-center py-12">
-                <div className="w-24 h-24 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Camera className="w-12 h-12 text-violet-600" />
-                </div>
-                <h4 className="text-xl font-bold text-slate-800 mb-2">Cámara desactivada</h4>
-                <p className="text-slate-500 mb-6">Activa la cámara para escanear códigos QR de estudiantes</p>
-                <button
-                  data-testid="start-scanner-btn"
-                  onClick={() => { setScanning(true); setCameraError(null); }}
-                  className="px-8 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 transition-all flex items-center gap-2 mx-auto"
-                >
-                  <Camera className="w-5 h-5" />
-                  Activar Cámara
-                </button>
+                {cameraError ? (
+                  // Camera Error State
+                  <div className="space-y-4">
+                    <div className={`w-20 h-20 bg-${cameraError.color}-100 rounded-full flex items-center justify-center mx-auto`}>
+                      {cameraError.icon && <cameraError.icon className={`w-10 h-10 text-${cameraError.color}-600`} />}
+                    </div>
+                    <div>
+                      <h4 className={`text-xl font-bold text-${cameraError.color}-700 mb-2`}>{cameraError.title}</h4>
+                      <p className="text-slate-600 mb-6 max-w-sm mx-auto">{cameraError.message}</p>
+                    </div>
+                    
+                    {/* Instructions based on error type */}
+                    {cameraError.action === "retry" && (
+                      <div className="bg-slate-50 rounded-xl p-4 mb-4 text-left max-w-sm mx-auto">
+                        <p className="text-sm font-medium text-slate-700 mb-2">Para activar la cámara:</p>
+                        <ol className="text-sm text-slate-600 space-y-1 list-decimal list-inside">
+                          <li>Haz clic en el ícono de candado/cámara en la barra de direcciones</li>
+                          <li>Selecciona "Permitir" en Cámara</li>
+                          <li>Recarga la página si es necesario</li>
+                        </ol>
+                      </div>
+                    )}
+                    
+                    <div className="flex gap-3 justify-center flex-wrap">
+                      <button
+                        onClick={handleErrorAction}
+                        disabled={checkingCamera}
+                        className={`px-6 py-3 bg-${cameraError.color}-500 text-white rounded-xl font-semibold hover:bg-${cameraError.color}-600 transition-all flex items-center gap-2`}
+                      >
+                        {checkingCamera ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : cameraError.action === "openFullWindow" ? (
+                          <ExternalLink className="w-5 h-5" />
+                        ) : cameraError.action === "openSecure" ? (
+                          <Shield className="w-5 h-5" />
+                        ) : (
+                          <RefreshCw className="w-5 h-5" />
+                        )}
+                        {cameraError.action === "openFullWindow" ? "Abrir en ventana nueva" :
+                         cameraError.action === "openSecure" ? "Ir a versión segura" : 
+                         "Reintentar"}
+                      </button>
+                      
+                      <button
+                        onClick={() => setCameraError(null)}
+                        className="px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-all"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // Initial State - No error
+                  <>
+                    <div className="w-24 h-24 bg-violet-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Camera className="w-12 h-12 text-violet-600" />
+                    </div>
+                    <h4 className="text-xl font-bold text-slate-800 mb-2">Cámara desactivada</h4>
+                    <p className="text-slate-500 mb-6">Activa la cámara para escanear códigos QR de estudiantes</p>
+                    
+                    {/* Camera count indicator */}
+                    {availableCameras.length > 0 && (
+                      <p className="text-sm text-slate-400 mb-4">
+                        {availableCameras.length} cámara{availableCameras.length !== 1 ? 's' : ''} detectada{availableCameras.length !== 1 ? 's' : ''}
+                      </p>
+                    )}
+                    
+                    <button
+                      data-testid="start-scanner-btn"
+                      onClick={startScanning}
+                      disabled={checkingCamera}
+                      className="px-8 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 transition-all flex items-center gap-2 mx-auto disabled:opacity-50"
+                    >
+                      {checkingCamera ? (
+                        <>
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          Verificando cámara...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-5 h-5" />
+                          Activar Cámara
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
