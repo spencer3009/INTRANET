@@ -1531,6 +1531,35 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     );
   }
 
+  // RBAC: Show access denied if user doesn't have permission
+  if (!hasAccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex">
+        <Sidebar 
+          user={user} 
+          settings={settings} 
+          isOpen={sidebarOpen} 
+          setIsOpen={setSidebarOpen}
+          subdomain={subdomain}
+          onLogout={onLogout}
+        />
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader
+            user={user}
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+            onLogout={onLogout}
+            subdomain={subdomain}
+          />
+          <AccessDenied 
+            title="Acceso a Contabilidad Restringido"
+            message="No tienes permisos para acceder al módulo de contabilidad."
+            suggestion="El propietario puede habilitar el acceso desde Ajustes > Configuración de Roles."
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex" data-testid="accounting-page">
       <Sidebar 
