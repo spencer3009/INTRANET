@@ -1,15 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import {
   ClipboardList,
-  Menu,
   Loader2,
   Search,
-  Filter,
   CheckCircle,
   Clock,
   AlertCircle,
@@ -30,41 +29,54 @@ const STATUS_CONFIG = {
   late: { label: "Atrasada", color: "bg-red-100 text-red-700", icon: AlertCircle }
 };
 
+// API fetch functions
+const fetchStudentTasks = async (token) => {
+  const response = await axios.get(`${API}/api/student/tasks`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
+const fetchSettings = async (token) => {
+  const response = await axios.get(`${API}/api/settings`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data;
+};
+
 export default function StudentTasksPage({ user, token, onLogout }) {
   const navigate = useNavigate();
   const { subdomain } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [tasks, setTasks] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [settings, setSettings] = useState(null);
 
-  const headers = { Authorization: `Bearer ${token}` };
+  // React Query for tasks - cached for 60s, stale after 60s
+  const { 
+    data: tasksData, 
+    isLoading: tasksLoading,
+    isFetching: tasksFetching 
+  } = useQuery({
+    queryKey: ['studentTasks', user?.id],
+    queryFn: () => fetchStudentTasks(token),
+    enabled: !!token,
+    staleTime: 60000,     // 60 seconds - match backend cache
+    cacheTime: 300000,    // 5 minutes
+    refetchOnWindowFocus: false,
+  });
 
-  useEffect(() => {
-    loadData();
-  }, [token]);
+  // React Query for settings
+  const { data: settings } = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => fetchSettings(token),
+    enabled: !!token,
+    staleTime: 300000,    // 5 minutes for settings
+    cacheTime: 600000,    // 10 minutes
+    refetchOnWindowFocus: false,
+  });
 
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      // Single API call to get all tasks with stats
-      const [tasksRes, settingsRes] = await Promise.all([
-        axios.get(`${API}/api/student/tasks`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
-      ]);
-      
-      setTasks(tasksRes.data.tasks || []);
-      if (settingsRes.data) {
-        setSettings(settingsRes.data);
-      }
-    } catch (err) {
-      console.error("Error loading tasks:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const tasks = tasksData?.tasks || [];
+  const loading = tasksLoading;
 
   // Get display values from settings
   const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
