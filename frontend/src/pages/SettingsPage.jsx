@@ -257,6 +257,37 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     );
   }
 
+  // RBAC: Show access denied if user doesn't have permission
+  if (!hasAccess) {
+    return (
+      <div className="flex min-h-screen bg-[#F8FAFC]">
+        <Sidebar
+          active="ajustes"
+          onNavigate={() => {}}
+          expanded={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          schoolName={schoolName}
+          subdomain={subdomain}
+          user={user}
+        />
+        <div className="flex-1 flex flex-col">
+          <DashboardHeader
+            user={user}
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+            onLogout={onLogout}
+            subdomain={subdomain}
+          />
+          <AccessDenied 
+            title="Acceso Restringido"
+            message="Solo el propietario puede acceder a los ajustes del sistema."
+            suggestion="Contacta al propietario si necesitas realizar cambios en la configuración."
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="settings-page">
       <Sidebar
