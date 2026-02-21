@@ -447,6 +447,48 @@ function StudentAttendanceTab({ token, schoolId }) {
           </button>
         </div>
       )}
+
+      {/* Pending Confirmation Modal */}
+      {showPendingModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in-95">
+            <div className="p-6 text-center">
+              {/* Warning Icon */}
+              <div className="mx-auto w-16 h-16 rounded-full bg-amber-100 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-8 h-8 text-amber-500" />
+              </div>
+              
+              {/* Title */}
+              <h3 className="text-xl font-semibold text-slate-800 mb-2">
+                Estudiantes sin registrar
+              </h3>
+              
+              {/* Message */}
+              <p className="text-slate-500 mb-6">
+                Hay <span className="font-bold text-amber-600">{summary.pending} estudiante{summary.pending !== 1 ? 's' : ''}</span> sin registrar asistencia.
+                <br />
+                ¿Deseas continuar de todas formas?
+              </p>
+              
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowPendingModal(false)}
+                  className="flex-1 px-4 py-3 border border-slate-300 text-slate-700 rounded-xl font-semibold hover:bg-slate-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={saveAttendance}
+                  className="flex-1 px-4 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors"
+                >
+                  Guardar de todos modos
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
