@@ -3,10 +3,50 @@ import axios from "axios";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { 
   QrCode, Camera, Check, AlertTriangle, X, Clock, 
-  User, Loader2, History, RefreshCw, Volume2, VolumeX
+  User, Loader2, History, RefreshCw, Volume2, VolumeX,
+  Shield, ExternalLink, Settings, SwitchCamera
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// Camera error types and messages
+const CAMERA_ERROR_TYPES = {
+  NOT_SECURE: {
+    title: "Conexión no segura",
+    message: "La cámara requiere una conexión segura (HTTPS)",
+    icon: Shield,
+    color: "amber",
+    action: "openSecure"
+  },
+  PERMISSION_DENIED: {
+    title: "Permiso denegado",
+    message: "Activa los permisos de cámara en tu navegador",
+    icon: Settings,
+    color: "red",
+    action: "retry"
+  },
+  NOT_SUPPORTED: {
+    title: "Entorno no soportado",
+    message: "La cámara no funciona en este entorno (iframe/preview)",
+    icon: ExternalLink,
+    color: "blue",
+    action: "openFullWindow"
+  },
+  NOT_FOUND: {
+    title: "Cámara no encontrada",
+    message: "No se detectó ninguna cámara en este dispositivo",
+    icon: Camera,
+    color: "slate",
+    action: "retry"
+  },
+  GENERIC: {
+    title: "Error de cámara",
+    message: "No se pudo acceder a la cámara",
+    icon: X,
+    color: "red",
+    action: "retry"
+  }
+};
 
 export default function QRScannerTab({ token }) {
   const [scanning, setScanning] = useState(false);
@@ -17,8 +57,146 @@ export default function QRScannerTab({ token }) {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [cameraError, setCameraError] = useState(null);
+  const [cameraFacing, setCameraFacing] = useState("environment"); // "environment" = back, "user" = front
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [checkingCamera, setCheckingCamera] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Check environment on mount
+  useEffect(() => {
+    checkEnvironment();
+  }, []);
+
+  // Check if environment supports camera
+  const checkEnvironment = async () => {
+    // Check HTTPS
+    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
+    
+    // Check if in iframe
+    const isInIframe = window !== window.top;
+    
+    // Check if navigator.mediaDevices is available
+    const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    
+    if (!isSecure) {
+      setCameraError(CAMERA_ERROR_TYPES.NOT_SECURE);
+      return;
+    }
+    
+    if (isInIframe) {
+      // Try to check if camera permissions are available in iframe
+      try {
+        const permissionStatus = await navigator.permissions.query({ name: 'camera' });
+        if (permissionStatus.state === 'denied') {
+          setCameraError(CAMERA_ERROR_TYPES.NOT_SUPPORTED);
+          return;
+        }
+      } catch (e) {
+        // Permission API not supported, try anyway
+      }
+    }
+    
+    if (!hasMediaDevices) {
+      setCameraError(CAMERA_ERROR_TYPES.NOT_SUPPORTED);
+      return;
+    }
+    
+    // Try to enumerate cameras
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setAvailableCameras(videoDevices);
+    } catch (e) {
+      console.log("Could not enumerate devices:", e);
+    }
+  };
+
+  // Request camera permission explicitly
+  const requestCameraPermission = async () => {
+    setCheckingCamera(true);
+    setCameraError(null);
+    
+    try {
+      // Check HTTPS first
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+        setCameraError(CAMERA_ERROR_TYPES.NOT_SECURE);
+        return false;
+      }
+      
+      // Request permission
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: cameraFacing } 
+      });
+      
+      // Stop the stream immediately - we just wanted to check permission
+      stream.getTracks().forEach(track => track.stop());
+      
+      // Enumerate cameras again after permission granted
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const videoDevices = devices.filter(device => device.kind === 'videoinput');
+      setAvailableCameras(videoDevices);
+      
+      return true;
+    } catch (err) {
+      console.error("Camera permission error:", err);
+      
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraError(CAMERA_ERROR_TYPES.PERMISSION_DENIED);
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setCameraError(CAMERA_ERROR_TYPES.NOT_FOUND);
+      } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
+        setCameraError({
+          ...CAMERA_ERROR_TYPES.GENERIC,
+          message: "La cámara está siendo usada por otra aplicación"
+        });
+      } else if (err.name === 'SecurityError') {
+        setCameraError(CAMERA_ERROR_TYPES.NOT_SECURE);
+      } else {
+        setCameraError(CAMERA_ERROR_TYPES.GENERIC);
+      }
+      
+      return false;
+    } finally {
+      setCheckingCamera(false);
+    }
+  };
+
+  // Start scanning
+  const startScanning = async () => {
+    const hasPermission = await requestCameraPermission();
+    if (hasPermission) {
+      setScanning(true);
+    }
+  };
+
+  // Toggle camera (front/back)
+  const toggleCamera = () => {
+    setCameraFacing(prev => prev === "environment" ? "user" : "environment");
+  };
+
+  // Handle action button in error state
+  const handleErrorAction = () => {
+    if (!cameraError) return;
+    
+    switch (cameraError.action) {
+      case "openSecure":
+        // Try to redirect to HTTPS
+        if (window.location.protocol === 'http:') {
+          window.location.href = window.location.href.replace('http:', 'https:');
+        }
+        break;
+      case "openFullWindow":
+        // Open in new window
+        window.open(window.location.href, '_blank', 'noopener,noreferrer');
+        break;
+      case "retry":
+      default:
+        setCameraError(null);
+        startScanning();
+        break;
+    }
+  };
 
   // Load scan history
   const loadHistory = useCallback(async () => {
