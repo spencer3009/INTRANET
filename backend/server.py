@@ -7420,12 +7420,20 @@ async def save_student_attendance(data: AttendanceBatchSave, current_user = Depe
     school_id = user["school_id"]
     now = datetime.now(timezone.utc).isoformat()
     
-    # Delete existing records for this date/grade/section
+    # Delete existing records for this date/grade/section (both collections)
     await db.attendances.delete_many({
         "school_id": school_id,
         "type": "student",
         "grade_id": data.grade_id,
         "section_id": data.section_id,
+        "date": data.date
+    })
+    
+    # Also delete from student_attendance (QR scanner collection) for consistency
+    await db.student_attendance.delete_many({
+        "school_id": school_id,
+        "grado_id": data.grade_id,
+        "seccion_id": data.section_id,
         "date": data.date
     })
     
