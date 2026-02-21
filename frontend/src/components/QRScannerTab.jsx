@@ -430,59 +430,60 @@ export default function QRScannerTab({ token }) {
               </div>
             ) : (
               <div className="space-y-4">
-                {cameraError ? (
-                  <div className="text-center py-8">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <X className="w-8 h-8 text-red-600" />
-                    </div>
-                    <p className="text-red-600 font-medium mb-4">{cameraError}</p>
+                <>
+                  <div className="relative aspect-square max-w-md mx-auto rounded-2xl overflow-hidden border-4 border-violet-500">
+                    <Scanner
+                      key={cameraFacing} // Force re-mount when camera changes
+                      onScan={handleScan}
+                      onError={handleError}
+                      formats={["qr_code"]}
+                      constraints={{
+                        facingMode: cameraFacing
+                      }}
+                      components={{
+                        audio: false,
+                        torch: true,
+                        finder: true
+                      }}
+                      styles={{
+                        container: { width: '100%', height: '100%' },
+                        video: { objectFit: 'cover' }
+                      }}
+                    />
+                    
+                    {/* Scanning overlay */}
+                    {loading && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <div className="bg-white rounded-xl p-4 flex items-center gap-3">
+                          <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                          <span className="font-medium">Procesando...</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex justify-center gap-3">
+                    {/* Toggle Camera Button (only show if multiple cameras) */}
+                    {availableCameras.length > 1 && (
+                      <button
+                        onClick={toggleCamera}
+                        className="px-4 py-2 bg-violet-100 hover:bg-violet-200 rounded-lg text-violet-700 font-medium flex items-center gap-2"
+                        title={cameraFacing === "environment" ? "Cambiar a cámara frontal" : "Cambiar a cámara trasera"}
+                      >
+                        <SwitchCamera className="w-4 h-4" />
+                        {cameraFacing === "environment" ? "Frontal" : "Trasera"}
+                      </button>
+                    )}
+                    
                     <button
-                      onClick={() => { setCameraError(null); setScanning(false); }}
-                      className="px-6 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium"
+                      onClick={() => setScanning(false)}
+                      className="px-6 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium flex items-center gap-2"
                     >
-                      Reintentar
+                      <X className="w-4 h-4" />
+                      Detener cámara
                     </button>
                   </div>
-                ) : (
-                  <>
-                    <div className="relative aspect-square max-w-md mx-auto rounded-2xl overflow-hidden border-4 border-violet-500">
-                      <Scanner
-                        onScan={handleScan}
-                        onError={handleError}
-                        formats={["qr_code"]}
-                        components={{
-                          audio: false,
-                          torch: true,
-                          finder: true
-                        }}
-                        styles={{
-                          container: { width: '100%', height: '100%' },
-                          video: { objectFit: 'cover' }
-                        }}
-                      />
-                      
-                      {/* Scanning overlay */}
-                      {loading && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <div className="bg-white rounded-xl p-4 flex items-center gap-3">
-                            <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
-                            <span className="font-medium">Procesando...</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-center">
-                      <button
-                        onClick={() => setScanning(false)}
-                        className="px-6 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium flex items-center gap-2"
-                      >
-                        <X className="w-4 h-4" />
-                        Detener cámara
-                      </button>
-                    </div>
-                  </>
-                )}
+                </>
               </div>
             )}
           </div>
