@@ -1508,11 +1508,28 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
     
     # Get attendance summary (last 30 days)
     thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
-    attendance_records = await db.attendance.find({
+    
+    # Check both attendance collections for compatibility
+    # Primary: attendances (new format with user_id)
+    attendance_records = await db.attendances.find({
+        "school_id": school_id,
+        "user_id": user["id"],
+        "type": "student",
+        "date": {"$gte": thirty_days_ago}
+    }, {"_id": 0}).to_list(100)
+    
+    # Also check student_attendance (QR-based attendance)
+    qr_attendance = await db.student_attendance.find({
         "school_id": school_id,
         "student_id": user["id"],
         "date": {"$gte": thirty_days_ago}
     }, {"_id": 0}).to_list(100)
+    
+    # Merge records (avoid duplicates by date)
+    attendance_dates = {a.get("date") for a in attendance_records}
+    for qr in qr_attendance:
+        if qr.get("date") not in attendance_dates:
+            attendance_records.append(qr)
     
     attendance_summary = {
         "present": sum(1 for a in attendance_records if a.get("status") == "present"),
