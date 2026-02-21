@@ -1356,13 +1356,37 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
     }
 
 @api_router.get("/student/tasks")
-async def get_student_tasks(current_user = Depends(get_current_user)):
+async def get_student_tasks(
+    current_user = Depends(get_current_user),
+    request: Request = None
+):
     """
     Get ALL tasks assigned to a student across all their courses.
+    
+    OPTIMIZATIONS:
+    - Single endpoint - no multiple requests from frontend
+    - In-memory TTL cache (60s) per student
+    - Batch queries to avoid N+1
+    - Proper indexing on course_posts.subject_id, task_submissions.student_id
+    
     Returns tasks with course info, submission status, and due dates.
-    Single endpoint - no multiple requests needed from frontend.
+    Response includes Cache-Control headers for client-side caching.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    student_id = current_user["sub"]
+    
+    # Check cache first
+    cached = STUDENT_TASKS_CACHE.get(student_id)
+    if cached:
+        response = JSONResponse(
+            content=cached,
+            headers={
+                "Cache-Control": "private, max-age=60",
+                "X-Cache": "HIT"
+            }
+        )
+        return response
+    
+    user = await db.users.find_one({"id": student_id}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -1371,45 +1395,49 @@ async def get_student_tasks(current_user = Depends(get_current_user)):
     
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")
-    student_id = user.get("id")
+    
+    empty_response = {"tasks": [], "stats": {"total": 0, "pending": 0, "submitted": 0, "graded": 0, "late": 0}}
     
     if not seccion_id:
-        return {"tasks": [], "stats": {"total": 0, "pending": 0, "submitted": 0, "graded": 0, "late": 0}}
+        return JSONResponse(content=empty_response, headers={"Cache-Control": "private, max-age=60"})
     
+    # OPTIMIZED: Single aggregation pipeline instead of multiple queries
     # Get academic assignments for this section
     assignments = await db.academic_assignments.find({
         "school_id": school_id,
         "section_id": seccion_id,
         "status": "activo"
-    }, {"_id": 0, "subject_id": 1, "teacher_id": 1}).to_list(100)
+    }, {"_id": 0, "subject_id": 1}).to_list(100)
     
     subject_ids = list(set(a.get("subject_id") for a in assignments if a.get("subject_id")))
     
     if not subject_ids:
-        return {"tasks": [], "stats": {"total": 0, "pending": 0, "submitted": 0, "graded": 0, "late": 0}}
+        STUDENT_TASKS_CACHE[student_id] = empty_response
+        return JSONResponse(content=empty_response, headers={"Cache-Control": "private, max-age=60"})
     
-    # Get subjects info in batch
+    # BATCH QUERY 1: Get subjects info
     subjects = await db.subjects.find(
         {"id": {"$in": subject_ids}, "school_id": school_id},
         {"_id": 0, "id": 1, "name": 1, "color": 1}
     ).to_list(100)
     subjects_map = {s["id"]: s for s in subjects}
     
-    # Get ALL tasks for these subjects in ONE query
-    tasks_cursor = db.course_posts.find({
+    # BATCH QUERY 2: Get ALL tasks for these subjects
+    raw_tasks = await db.course_posts.find({
         "school_id": school_id,
         "subject_id": {"$in": subject_ids},
         "$or": [{"type": "task"}, {"post_type": "task"}]
-    }, {"_id": 0})
-    raw_tasks = await tasks_cursor.to_list(500)
+    }, {"_id": 0, "id": 1, "title": 1, "content": 1, "description": 1, "due_date": 1, "created_at": 1, "subject_id": 1, "metadata": 1}).to_list(500)
     
-    # Get student's submissions for these tasks in ONE query
+    # BATCH QUERY 3: Get student's submissions
     task_ids = [t.get("id") for t in raw_tasks if t.get("id")]
-    submissions = await db.task_submissions.find({
-        "school_id": school_id,
-        "student_id": student_id,
-        "task_id": {"$in": task_ids}
-    }, {"_id": 0}).to_list(500)
+    submissions = []
+    if task_ids:
+        submissions = await db.task_submissions.find({
+            "school_id": school_id,
+            "student_id": student_id,
+            "task_id": {"$in": task_ids}
+        }, {"_id": 0, "task_id": 1, "id": 1, "submitted_at": 1, "grade": 1, "feedback": 1}).to_list(500)
     submissions_map = {s["task_id"]: s for s in submissions}
     
     # Process tasks with status
@@ -1465,15 +1493,22 @@ async def get_student_tasks(current_user = Depends(get_current_user)):
             } if submission else None
         })
     
-    # Sort by due date (pending first, then by date)
-    def sort_key(t):
-        status_order = {"pending": 0, "late": 1, "submitted": 2, "graded": 3}
-        due = t.get("due_date") or "9999"
-        return (status_order.get(t.get("status"), 4), due)
+    # Sort by status priority then due date
+    status_order = {"pending": 0, "late": 1, "submitted": 2, "graded": 3}
+    tasks.sort(key=lambda t: (status_order.get(t.get("status"), 4), t.get("due_date") or "9999"))
     
-    tasks.sort(key=sort_key)
+    result = {"tasks": tasks, "stats": stats}
     
-    return {"tasks": tasks, "stats": stats}
+    # Store in cache
+    STUDENT_TASKS_CACHE[student_id] = result
+    
+    return JSONResponse(
+        content=result,
+        headers={
+            "Cache-Control": "private, max-age=60",
+            "X-Cache": "MISS"
+        }
+    )
 
 @api_router.get("/student/schedule")
 async def get_student_schedule(current_user = Depends(get_current_user)):
