@@ -963,7 +963,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                         Restaurar
                       </button>
                       <button
-                        onClick={() => handleDeletePermanently(selectedMessage.id)}
+                        onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
                         className="py-3 px-4 bg-red-100 hover:bg-red-200 text-red-600 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
                         data-testid="delete-permanent-btn"
                       >
