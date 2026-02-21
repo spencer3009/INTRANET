@@ -276,12 +276,13 @@ function App() {
       return user?.subdomain ? `/school/${user.subdomain}/teacher` : '/teacher';
     }
     
-    // Only role="admin" goes to admin portal (NOT owner, director, coordinator)
+    // Admin role uses the SAME Owner portal with RBAC restrictions
+    // NO separate admin portal - uses Dashboard with filtered sections
     if (isAdminOnly(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
-        return '/admin';
+        return '/dashboard';
       }
-      return user?.subdomain ? `/school/${user.subdomain}/admin` : '/admin';
+      return user?.subdomain ? `/school/${user.subdomain}/dashboard` : '/dashboard';
     }
     
     // Default: regular dashboard (owner, director, coordinator, etc.)
