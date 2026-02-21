@@ -338,14 +338,19 @@ function StudentAttendanceTab({ token, schoolId }) {
                 <h3 className="text-xl font-bold">Asistencia del {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}</h3>
                 <p className="text-blue-100">{summary.total} estudiantes</p>
               </div>
-              <div className="flex gap-4 text-sm">
-                <div className="bg-white/20 px-4 py-2 rounded-lg">
+              <div className="flex gap-3 text-sm flex-wrap">
+                {summary.pending > 0 && (
+                  <div className="bg-white/20 px-3 py-2 rounded-lg">
+                    <span className="text-slate-300">○ {summary.pending}</span> Pendientes
+                  </div>
+                )}
+                <div className="bg-white/20 px-3 py-2 rounded-lg">
                   <span className="text-emerald-300">✓ {summary.present}</span> Presentes
                 </div>
-                <div className="bg-white/20 px-4 py-2 rounded-lg">
+                <div className="bg-white/20 px-3 py-2 rounded-lg">
                   <span className="text-amber-300">⏰ {summary.late}</span> Tardanzas
                 </div>
-                <div className="bg-white/20 px-4 py-2 rounded-lg">
+                <div className="bg-white/20 px-3 py-2 rounded-lg">
                   <span className="text-red-300">✗ {summary.absent}</span> Ausentes
                 </div>
               </div>
