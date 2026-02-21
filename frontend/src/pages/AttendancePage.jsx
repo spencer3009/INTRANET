@@ -393,7 +393,13 @@ function StudentAttendanceTab({ token, schoolId }) {
 
                 {/* Status buttons */}
                 <div className="flex gap-2">
-                  {STUDENT_STATUSES.map(status => (
+                  {student.status === "pending" && (
+                    <div className="px-3 py-2 rounded-lg bg-slate-100 text-slate-500 text-sm font-medium flex items-center gap-1.5">
+                      <Circle className="w-4 h-4" />
+                      Pendiente
+                    </div>
+                  )}
+                  {STUDENT_STATUSES.filter(s => s.id !== "pending").map(status => (
                     <StatusButton
                       key={status.id}
                       status={status}
