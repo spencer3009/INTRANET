@@ -7391,7 +7391,7 @@ async def get_students_for_attendance(
             "full_name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(),
             "photo_url": s.get("photo_url"),
             "email": s.get("email"),
-            "status": attendance["status"] if attendance else "present",  # Default to present
+            "status": attendance["status"] if attendance else "pending",  # Default to PENDING (not present)
             "has_record": attendance is not None  # Whether a record exists for this date
         })
     
