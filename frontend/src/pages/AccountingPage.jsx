@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import AccessDenied from "../components/AccessDenied";
+import { canAccessSection } from "../lib/permissions";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { 
   Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
