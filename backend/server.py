@@ -1474,7 +1474,7 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         tasks = await db.course_posts.find({
             "school_id": school_id,
             "subject_id": {"$in": subject_ids},
-            "post_type": "task",  # Fixed: was "type", should be "post_type"
+            "$or": [{"post_type": "task"}, {"type": "task"}],  # Support both field names
             "due_date": {"$gte": now.isoformat(), "$lte": week_later.isoformat()}
         }, {"_id": 0}).sort("due_date", 1).to_list(50)
         
