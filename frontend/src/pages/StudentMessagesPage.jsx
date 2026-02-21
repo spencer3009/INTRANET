@@ -13,7 +13,7 @@ import StudentHeader from "../components/StudentHeader";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
   ChevronLeft, Paperclip, X, Clock, Loader2, Circle,
-  Edit3, Reply, MailOpen, AlertCircle,
+  Edit3, Reply, MailOpen, AlertCircle, AlertTriangle,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore
