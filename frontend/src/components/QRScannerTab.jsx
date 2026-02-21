@@ -236,9 +236,13 @@ export default function QRScannerTab({ token }) {
           window.location.href = window.location.href.replace('http:', 'https:');
         }
         break;
+      case "breakIframe":
+        // Try to break out of iframe first, then open new window as fallback
+        breakOutOfIframe();
+        break;
       case "openFullWindow":
         // Open in new window
-        window.open(window.location.href, '_blank', 'noopener,noreferrer');
+        openInNewWindow();
         break;
       case "retry":
       default:
