@@ -1019,6 +1019,9 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
     contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     getRoleLabel(contact.role)?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  
+  // Get threads with unread messages (to show at the top)
+  const unreadThreads = threads.filter(t => t.has_unread);
 
   // Thread detail view (conversation)
   if (selectedThread) {
