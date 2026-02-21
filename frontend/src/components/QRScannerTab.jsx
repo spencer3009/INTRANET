@@ -60,49 +60,30 @@ export default function QRScannerTab({ token }) {
   const [cameraFacing, setCameraFacing] = useState("environment"); // "environment" = back, "user" = front
   const [availableCameras, setAvailableCameras] = useState([]);
   const [checkingCamera, setCheckingCamera] = useState(false);
+  const [isInIframe, setIsInIframe] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Check environment on mount
+  // Check environment on mount - but DON'T block, just detect
   useEffect(() => {
-    checkEnvironment();
+    // Detect iframe (for informational purposes only)
+    try {
+      setIsInIframe(window.self !== window.top);
+    } catch (e) {
+      // Cross-origin iframe, definitely blocked
+      setIsInIframe(true);
+    }
+    
+    // Try to enumerate cameras (won't work without permission but worth trying)
+    enumerateCameras();
   }, []);
 
-  // Check if environment supports camera
-  const checkEnvironment = async () => {
-    // Check HTTPS
-    const isSecure = window.location.protocol === 'https:' || window.location.hostname === 'localhost';
-    
-    // Check if in iframe
-    const isInIframe = window !== window.top;
-    
-    // Check if navigator.mediaDevices is available
-    const hasMediaDevices = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-    
-    if (!isSecure) {
-      setCameraError(CAMERA_ERROR_TYPES.NOT_SECURE);
+  // Try to enumerate available cameras
+  const enumerateCameras = async () => {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
       return;
     }
     
-    if (isInIframe) {
-      // Try to check if camera permissions are available in iframe
-      try {
-        const permissionStatus = await navigator.permissions.query({ name: 'camera' });
-        if (permissionStatus.state === 'denied') {
-          setCameraError(CAMERA_ERROR_TYPES.NOT_SUPPORTED);
-          return;
-        }
-      } catch (e) {
-        // Permission API not supported, try anyway
-      }
-    }
-    
-    if (!hasMediaDevices) {
-      setCameraError(CAMERA_ERROR_TYPES.NOT_SUPPORTED);
-      return;
-    }
-    
-    // Try to enumerate cameras
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter(device => device.kind === 'videoinput');
@@ -112,19 +93,50 @@ export default function QRScannerTab({ token }) {
     }
   };
 
-  // Request camera permission explicitly
+  // Open in new window (break out of iframe)
+  const openInNewWindow = () => {
+    const currentUrl = window.location.href;
+    window.open(currentUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  // Try to redirect parent to break out of iframe
+  const breakOutOfIframe = () => {
+    try {
+      if (window.self !== window.top) {
+        window.top.location.href = window.location.href;
+      }
+    } catch (e) {
+      // Cross-origin, can't redirect parent - open new window instead
+      openInNewWindow();
+    }
+  };
+
+  // Request camera permission explicitly - ALWAYS TRY FIRST
   const requestCameraPermission = async () => {
     setCheckingCamera(true);
     setCameraError(null);
     
     try {
-      // Check HTTPS first
-      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+      // Check if mediaDevices API exists
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        setCameraError({
+          ...CAMERA_ERROR_TYPES.NOT_SUPPORTED,
+          message: "Tu navegador no soporta acceso a la cámara"
+        });
+        return false;
+      }
+      
+      // Check HTTPS (localhost is allowed)
+      const isSecure = window.location.protocol === 'https:' || 
+                       window.location.hostname === 'localhost' ||
+                       window.location.hostname === '127.0.0.1';
+      
+      if (!isSecure) {
         setCameraError(CAMERA_ERROR_TYPES.NOT_SECURE);
         return false;
       }
       
-      // Request permission
+      // TRY TO GET CAMERA - Let the browser handle permissions
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { facingMode: cameraFacing } 
       });
