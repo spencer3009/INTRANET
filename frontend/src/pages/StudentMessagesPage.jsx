@@ -858,7 +858,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                             <ArchiveRestore className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => handleDeletePermanently(selectedMessage.id)}
+                            onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
                             className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
                             title="Eliminar permanentemente"
                           >
