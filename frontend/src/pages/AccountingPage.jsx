@@ -1330,6 +1330,9 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
   
+  // RBAC: Check if user can access accounting
+  const hasAccess = canAccessSection(user, 'accounting');
+  
   const [summary, setSummary] = useState(null);
   const [payments, setPayments] = useState([]);
   const [expenses, setExpenses] = useState([]);
