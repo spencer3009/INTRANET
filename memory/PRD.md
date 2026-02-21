@@ -50,6 +50,13 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
   - Archivos modificados: `/app/backend/server.py` (líneas 7886-7998)
   - Testing: Verificado con curl y screenshot que ambos estudiantes aparecen con "Presente" ✓
 
+- **BUG FIX: Estado por defecto "Pendiente"** ✅
+  - Problema: Estudiantes sin registro aparecían como "Presente" por defecto (no tenía sentido usar QR)
+  - Solución: Cambiado el valor por defecto de "present" a "pending" en:
+    1. `/api/attendance/students` (línea 7394)
+    2. `/api/attendance/teachers` (línea 7558)
+  - Ahora: Sin registro → "Pendiente" | Con registro (QR/manual) → Estado real
+
 ### Previous Sessions
 - Cascade delete implementado para usuarios
 - UI/UX mejorado en modales de eliminación y edición de usuarios
