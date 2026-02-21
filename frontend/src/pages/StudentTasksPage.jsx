@@ -66,8 +66,9 @@ export default function StudentTasksPage({ user, token, onLogout }) {
       const allTasks = [];
       for (const course of studentCourses) {
         try {
-          const tasksRes = await axios.get(`${API}/api/courses/${course.id}/posts?type=task`, { headers });
-          const courseTasks = (tasksRes.data || []).map(task => ({
+          const tasksRes = await axios.get(`${API}/api/course/${course.id}/posts?post_type=task`, { headers });
+          const postsData = tasksRes.data?.posts || tasksRes.data || [];
+          const courseTasks = postsData.map(task => ({
             ...task,
             course_name: course.name,
             course_color: course.color,
