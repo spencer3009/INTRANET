@@ -1,216 +1,100 @@
-# EduNet - PRD (Product Requirements Document)
+# EduNet - Product Requirements Document
 
-## Problema Original
-Sistema educativo SaaS multi-tenant premium para escuelas en Perú. La plataforma permite gestionar cursos, tareas, exámenes, y comunicación interna entre profesores y estudiantes.
+## Overview
+EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módulos de gestión escolar como horarios, asistencia, exámenes, y comunicación.
 
-## Usuarios
-- **Administradores/Profesores:** Gestionan cursos, crean exámenes, califican tareas, se comunican con estudiantes
-- **Estudiantes:** Realizan exámenes, entregan tareas, se comunican con profesores
+## Core Modules
 
-## Requerimientos Core
-1. Sistema de autenticación multi-tenant por escuela
-2. Gestión de cursos y asignaturas
-3. Sistema de exámenes con calificación automática
-4. Sistema de tareas con entregas
-5. Sistema de mensajería interna (correo interno)
-6. Presencia en tiempo real de estudiantes
-7. Sistema de mensajes para Portal del Alumno
-8. **Sistema profesional de horarios académicos**
+### 1. Asistencia (Attendance)
+- **Pestaña Estudiantes**: Control manual de asistencia con estados (Presente, Tardanza, Ausente, Pendiente)
+- **Pestaña Profesores**: Control de asistencia para docentes
+- **Escanear QR**: Asistencia automática mediante escaneo de códigos QR únicos por estudiante
+- **Reportes**: Informes de asistencia por período
 
----
+### 2. Sistema QR
+- Cada estudiante tiene un QR único (JWT con student_id y school_id)
+- El QR se genera automáticamente al crear un estudiante
+- Los admins pueden ver/descargar el QR de cada estudiante
+- El escáner usa la cámara para detectar y registrar asistencia
 
-## Estado Actual - Febrero 2026
+### 3. Gestión de Usuarios
+- Roles: owner, admin, teacher, student
+- Vista de tarjetas con información del estudiante
+- Edición de información académica (nivel, grado, sección, turno)
+- Eliminación con cascade delete para evitar datos huérfanos
 
-### ✅ Completado
-| Feature | Fecha | Estado |
-|---------|-------|--------|
-| Sistema de correo interno premium (TipTap) | Dic 2025 | ✅ Funcional |
-| Sistema de presencia online/offline | Dic 2025 | ✅ Funcional |
-| Pop-up detalle de estudiante | Dic 2025 | ✅ Funcional |
-| Botón "Enviar Mensaje" → Modal composición | Dic 2025 | ✅ Probado |
-| Bug fix: Calificación de exámenes | Dic 2025 | ✅ Corregido |
-| Bug fix: Duración de exámenes | Dic 2025 | ✅ Corregido |
-| Bug fix: Timezone en fechas | Dic 2025 | ✅ Corregido |
-| Escala de calificación 0-20 (Perú) | Dic 2025 | ✅ Implementado |
-| Bug fix: Búsqueda de contactos (nombre completo) | Feb 2026 | ✅ Corregido |
-| **Sistema de Mensajes Portal Alumno** | Feb 2026 | ✅ Probado |
-| - Tab "Mensajes" con badge | Feb 2026 | ✅ |
-| - UI Gmail 3 columnas | Feb 2026 | ✅ |
-| - Botón "Enviar mensaje" en tarjeta profesor | Feb 2026 | ✅ |
-| - Restricción por asignatura/sección | Feb 2026 | ✅ |
-| **Botón "Chat en línea" en tarjeta profesor** | Feb 2026 | ✅ Probado |
-| - Abre MessageCenter con profesor preseleccionado | Feb 2026 | ✅ |
-| - Navegación directa desde curso → chat con profesor | Feb 2026 | ✅ |
-| **Contactos expandidos para estudiantes** | Feb 2026 | ✅ |
-| - Profesores del grado/nivel | Feb 2026 | ✅ |
-| - Compañeros de clase (misma sección) | Feb 2026 | ✅ |
-| - Mensajes entre estudiantes del mismo grado | Feb 2026 | ✅ |
-| **Tarjetas de estudiantes con estado de conexión** | Feb 2026 | ✅ |
-| - Indicador verde (conectado) / rojo con menos (desconectado) | Feb 2026 | ✅ |
-| - Popup al hacer clic con info completa (foto, nombre, email, teléfono) | Feb 2026 | ✅ |
-| - Botones "Chat en línea" y "Enviar Mensaje" funcionales | Feb 2026 | ✅ |
-| - Usuario actual no genera popup (solo visualiza su tarjeta) | Feb 2026 | ✅ |
-| **Menú circular de iconos en Portal Alumno** | Feb 2026 | ✅ |
-| - 8 botones circulares (Tablero, Tareas, etc.) | Feb 2026 | ✅ |
-| **Badges de mensajes no leídos** | Feb 2026 | ✅ |
-| - Sidebar, campana de notificaciones, dashboard | Feb 2026 | ✅ |
-| **🆕 Módulo Profesional de Horarios (Horario de Clases)** | Feb 2026 | ✅ Probado |
-| - Grilla semanal estilo Google Calendar | Feb 2026 | ✅ |
-| - Configuración persistente por school_id (horas, formato 12h/24h) | Feb 2026 | ✅ |
-| - Validación de conflictos (profesor/aula/sección) | Feb 2026 | ✅ |
-| - CRUD completo de horarios | Feb 2026 | ✅ |
-| - Colores por materia | Feb 2026 | ✅ |
-| - Filtros por grado/sección | Feb 2026 | ✅ |
-| - Modal de agregar/editar con combobox de materias | Feb 2026 | ✅ |
-| - Responsive con scroll horizontal y columna sticky | Feb 2026 | ✅ |
-| - **Vista Horizontal/Vertical configurable** | Feb 2026 | ✅ |
-| - **TimePicker circular personalizado** | Feb 2026 | ✅ |
-| - **Combobox reutilizable (Profesor con foto, Sección)** | Feb 2026 | ✅ |
-| - **Filtrado dependiente: Grado→Sección→Profesor→Materia** | Feb 2026 | ✅ |
-| - **🆕 Bloques Especiales (Recreo/Almuerzo/Evento)** | Feb 2026 | ✅ Probado |
-|   - Fila completa bloqueada para toda la semana | Feb 2026 | ✅ |
-|   - Menú contextual (clic derecho) para agregar | Feb 2026 | ✅ |
-|   - Modal de edición con TimePicker | Feb 2026 | ✅ |
-|   - Validación de solapamiento entre breaks | Feb 2026 | ✅ |
-|   - Previene programar clases en horarios bloqueados | Feb 2026 | ✅ |
-|   - **🆕 Configurables por Grado + Sección** | Feb 2026 | ✅ Probado |
-|     - Cada grado/sección tiene breaks independientes | Feb 2026 | ✅ |
-|     - Backend: POST/GET/PUT usan grade_id + section_id | Feb 2026 | ✅ |
-|     - Admin: Filtrado automático por selección actual | Feb 2026 | ✅ |
-|| **🆕 Módulo Horario de Exámenes** | Feb 2026 | ✅ Probado |
-||   - Sistema de programación por fechas específicas (NO semanal) | Feb 2026 | ✅ |
-||   - Calendario mensual para admin con badges de cantidad | Feb 2026 | ✅ |
-||   - Panel lateral para ver/agregar exámenes por día | Feb 2026 | ✅ |
-||   - Validación de conflictos: sección + profesor | Feb 2026 | ✅ |
-||   - Tipos: Parcial, Final, Práctica, Quiz con badges | Feb 2026 | ✅ |
-||   - Estados dinámicos: Próximo, En curso, Finalizado | Feb 2026 | ✅ |
-||   - Auto-filtrado por grado/sección del estudiante | Feb 2026 | ✅ |
-||   - **🆕 Vista Calendario para Estudiantes** | Feb 2026 | ✅ Probado |
-||     - Calendario mensual igual que admin (read-only) | Feb 2026 | ✅ |
-||     - Panel lateral con detalles del examen | Feb 2026 | ✅ |
-||     - Navegación entre meses con filtrado dinámico | Feb 2026 | ✅ |
-||     - Backend con filtro `from_date` y `to_date` | Feb 2026 | ✅ |
-| **🆕 Horario en Portal del Alumno (Read-Only)** | Feb 2026 | ✅ Probado |
-|   - Auto-detección de grado y sección del estudiante | Feb 2026 | ✅ |
-|   - Endpoint seguro GET /api/student/schedule (sin parámetros) | Feb 2026 | ✅ |
-|   - Header dinámico con grado y sección desde backend | Feb 2026 | ✅ |
-|   - Clases con foto y nombre del profesor | Feb 2026 | ✅ |
-|   - Breaks (Recreo/Almuerzo) visibles como fila completa | Feb 2026 | ✅ |
-|   - Tooltip informativo al pasar mouse | Feb 2026 | ✅ |
-|   - Modo read-only: sin edición, sin menú contextual | Feb 2026 | ✅ |
-|   - Responsive con scroll horizontal y columna sticky | Feb 2026 | ✅ |
+### 4. Horarios
+- Horario de clases por sección
+- Horario de exámenes
 
-### 🔴 P0 - Crítico (Refactoring Técnico)
-- [x] ✅ Refactorizar `SchedulePage.jsx` (~2,600 → ~670 líneas) - Feb 2026
-  - Componentes extraídos a `/app/frontend/src/components/schedule/`
-  - CalendarGrid, ScheduleSettingsModal, BreakModal, ScheduleEntryModal, ExamScheduleComponents
-- [ ] Refactorizar `CourseDetailPage.jsx` (>9,000 líneas)
-- [ ] Refactorizar `StudentCourseDetailPage.jsx` (>4,000 líneas)
-- [ ] Modularizar `server.py` (backend monolítico ~17,650 líneas)
-  - Estructura propuesta: Ver `/app/backend/MODULARIZATION.md`
-  - Utils creados: `/app/backend/utils/` (config.py, auth.py)
+## Technical Architecture
 
-### 🟠 P1 - Alta Prioridad
-- [x] ✅ Bug: Flickering en "Smart Sticky" columns - Feb 2026
-  - Eliminado cálculo dinámico del `top` que causaba re-renders
-  - Ahora usa `STICKY_TOP='104px'` fijo + `will-change:transform`
-- [ ] Sistema anti-trampa básico para exámenes
+### Backend (FastAPI)
+- `/app/backend/server.py` - Archivo principal (~17k líneas - DEUDA TÉCNICA CRÍTICA)
+- MongoDB como base de datos
+- JWT para autenticación
 
-### 🟡 P2 - Media Prioridad
-- [ ] Módulo de "Matrículas"
-- [ ] Banco de preguntas para exámenes
-- [ ] Reemplazar `window.confirm`/`alert` con modales
-- [ ] Notificaciones automáticas de exámenes a estudiantes
-- [ ] Copiar/duplicar configuración de breaks entre secciones
+### Frontend (React)
+- `/app/frontend/src/` - Código fuente
+- Shadcn UI components
+- React Router para navegación
 
----
+## What's Been Implemented
 
-## Arquitectura
+### Session: 2026-02-21
+- **BUG FIX: Sincronización de asistencia QR** ✅
+  - Problema: El escáner QR guardaba en `student_attendance` pero la pestaña "Estudiantes" leía de `attendances`
+  - Solución: Modificado `/app/backend/server.py` endpoint `/api/attendance/qr/scan` para:
+    1. Guardar en AMBAS colecciones cuando se escanea un nuevo QR
+    2. Sincronizar registros existentes de `student_attendance` a `attendances` cuando se detecta ya marcado
+  - Archivos modificados: `/app/backend/server.py` (líneas 7886-7998)
+  - Testing: Verificado con curl y screenshot que ambos estudiantes aparecen con "Presente" ✓
 
-```
-/app
-├── backend/
-│   ├── server.py              # FastAPI monolítico (~17,650 líneas) - MODULARIZACIÓN EN PROGRESO
-│   ├── utils/                 # 🆕 Utilidades extraídas
-│   │   ├── config.py          # DB, JWT, constantes
-│   │   ├── auth.py            # Helpers de autenticación, RBAC
-│   │   └── __init__.py        # Exports
-│   └── MODULARIZATION.md      # 🆕 Plan de modularización
-├── frontend/
-│   └── src/
-│       ├── pages/
-│       │   ├── CourseDetailPage.jsx      # >9,000 líneas - NECESITA REFACTOR
-│       │   ├── SchedulePage.jsx          # ✅ Refactorizado (~670 líneas)
-│       │   ├── StudentExamSchedulePage.jsx # 🆕 Calendario exámenes estudiante
-│       │   ├── InternalMailPage.jsx      # Sistema de correo interno
-│       │   └── ExamAttemptPage.jsx       # Página de exámenes
-│       └── components/
-│           ├── schedule/                 # 🆕 Componentes de horarios
-│           │   ├── CalendarGrid.jsx      # Grilla semanal horizontal/vertical
-│           │   ├── ScheduleSettingsModal.jsx
-│           │   ├── ScheduleEntryModal.jsx
-│           │   ├── BreakModal.jsx
-│           │   ├── ExamScheduleComponents.jsx
-│           │   ├── constants.js
-│           │   └── index.js
-│           └── MessageCenter.jsx         # Chat en tiempo real
-```
+### Previous Sessions
+- Cascade delete implementado para usuarios
+- UI/UX mejorado en modales de eliminación y edición de usuarios
+- Estado "Pendiente" por defecto en asistencia
+- Manejo de errores en escáner QR (permisos, HTTPS, iframe)
+- Botón "Ver QR" en tarjetas de estudiantes
 
-## Base de Datos
-- **MongoDB:** `test_database` (NO CAMBIAR)
-- **Colecciones principales:** users, courses, exams, tasks, messages, message_recipients, schedules, schedule_settings
+## Pending Issues (P0)
+- Ninguno crítico actualmente
 
-## Nuevas Colecciones (Feb 2026)
-| Colección | Descripción |
-|-----------|-------------|
-| `schedules` | Entradas de horarios con validación de conflictos |
-| `schedule_settings` | Configuración persistente por school_id |
-| `schedule_breaks` | Bloques especiales (recreo, almuerzo, evento) |
+## Upcoming Tasks
 
-## API Endpoints Horarios
-| Endpoint | Método | Descripción |
-|----------|--------|-------------|
-| `/api/schedule-settings` | GET | Obtener configuración de horarios |
-| `/api/schedule-settings` | POST | Guardar configuración de horarios |
-| `/api/schedules` | GET | Listar horarios (filtros: tipo, grado_id, seccion_id) |
-| `/api/schedules` | POST | Crear horario con validación de conflictos |
-| `/api/schedules/{id}` | PUT | Actualizar horario con validación |
-| `/api/schedules/{id}` | DELETE | Eliminar horario |
-| `/api/schedule/breaks` | GET | Listar bloques especiales (recreo, almuerzo, evento) |
-| `/api/schedule/breaks` | POST | Crear bloque especial |
-| `/api/schedule/breaks/{id}` | PUT | Actualizar bloque especial |
-| `/api/schedule/breaks/{id}` | DELETE | Eliminar bloque especial |
-| `/api/academic/teacher-subjects` | GET | Materias del profesor para grado/sección |
+### P0 - Critical Technical Debt
+- **Modularizar server.py**: El archivo tiene >17,000 líneas. Seguir plan en `/app/backend/MODULARIZATION.md`
+  - Separar en routers por dominio: users, attendance, exams, grades, etc.
 
-## Credenciales de Prueba
-- **Escuela:** elroble
-- **URL:** `/school/elroble/login`
-- **Usuario:** admin@elroble.edu
-- **Password:** 1234abc8
+### P1 - Features
+- Módulo de Matrículas (Enrollments)
+- Sistema anti-trampas para exámenes
+- Banco de preguntas para exámenes
+- Notificaciones automáticas
 
-## Integraciones
-- TipTap/Prosemirror (editor de texto)
+### P2 - Improvements
+- Reemplazar `window.confirm` y `alert` con modales custom
+- Refactorizar `UsersPage.jsx` (~3,300 líneas)
+- Refactorizar `StudentCourseDetailPage.jsx` (~4,800 líneas)
+
+## Test Credentials
+- **School**: elroble
+- **Admin**: admin@elroble.edu / 1234abc8
+- **Student**: pepito@gmail.com / 1234abc8
+
+## Key Endpoints
+- `POST /api/attendance/qr/scan` - Escanear QR y registrar asistencia
+- `GET /api/attendance/students` - Obtener estudiantes con estado de asistencia
+- `POST /api/attendance/students/save` - Guardar asistencia en batch
+- `GET /api/attendance/qr/history` - Historial de escaneos del día
+
+## Database Collections
+- `student_attendance` - Registros de escaneo QR (legacy)
+- `attendances` - Registros de asistencia principal (usada por UI)
+- `users` - Usuarios con campo `qr_token`
+
+## Third-Party Integrations
 - Cloudinary (imágenes)
-- Google Drive API (entregas de archivos)
-
----
-
-## Últimas Pruebas
-- **iteration_38.json:** Botón "Ver QR" en vista de tarjetas de estudiantes - 100% passed (Frontend 6/6)
-- **iteration_35.json:** Módulo Horario de Exámenes - 100% passed (Backend 19/19, Frontend OK)
-- **iteration_34.json:** Breaks por Grado/Sección - 100% passed (Backend 14/14, Frontend OK)
-- **iteration_33.json:** Horario Portal Alumno (Read-Only) - 100% passed (Backend 11/11, Frontend OK)
-- **iteration_32.json:** Bloques Especiales (Recreo/Almuerzo/Evento) - 100% passed (Backend 9/9, Frontend OK)
-
-## Sistema de Códigos QR (Feb 2026)
-| Feature | Estado |
-|---------|--------|
-| Generación de `qr_token` (JWT) al crear estudiante | ✅ Funcional |
-| Botón "Ver QR" en vista tabla (AdminStudentsPage.jsx) | ✅ Funcional |
-| Botón "Ver QR" en vista tarjetas (UsersPage.jsx) | ✅ Probado |
-| **🆕 Mini QR visible en tarjeta de estudiante** | ✅ Probado |
-| Modal con código QR y datos del estudiante | ✅ Funcional |
-| Descargar QR como imagen | ✅ Funcional |
-| Imprimir credencial con QR | ✅ Funcional |
-| Endpoint de escaneo: POST /api/attendance/qr/scan | ✅ Funcional |
-| Tab "Escanear QR" en módulo de Asistencia | ✅ Funcional |
+- qrcode.react (generación QR)
+- @yudiel/react-qr-scanner (escaneo QR)
+- jspdf & jspdf-autotable (PDFs)
