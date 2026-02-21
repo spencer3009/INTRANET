@@ -620,29 +620,22 @@ function App() {
           />
           
           {/* ════════════════════════════════════════════════════════════════════
-              ADMIN PORTAL - Direct path (for subdomain mode)
+              ADMIN PORTAL REDIRECT - Admin uses Owner's dashboard with RBAC
+              All /admin routes redirect to /dashboard for unified experience
           ════════════════════════════════════════════════════════════════════ */}
           <Route
             path="/admin"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminDashboardPage user={user} token={token} onLogout={handleLogout} />
-                )}
+                <Navigate to={getDashboardPath()} replace />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/admin/users"
+            path="/admin/*"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminUsersPage user={user} token={token} onLogout={handleLogout} />
-                )}
+                <Navigate to={getDashboardPath()} replace />
               </ProtectedRoute>
             }
           />
