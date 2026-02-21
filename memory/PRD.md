@@ -110,6 +110,11 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 - `GET /api/attendance/students` - Obtener estudiantes con estado de asistencia
 - `POST /api/attendance/students/save` - Guardar asistencia en batch
 - `GET /api/attendance/qr/history` - Historial de escaneos del día
+- `GET /api/internal-mail/inbox` - Bandeja de entrada de mensajes
+- `GET /api/internal-mail/sent` - Mensajes enviados
+- `POST /api/internal-mail/send` - Enviar nuevo mensaje
+- `POST /api/internal-mail/{id}/reply` - Responder mensaje
+- `GET /api/internal-mail/contacts/search` - Buscar contactos
 
 ## Database Collections
 - `student_attendance` - Registros de escaneo QR (legacy)
