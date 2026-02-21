@@ -692,12 +692,14 @@ export default function SubjectDetailPage({ user, token, subdomain, onLogout, su
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-100 via-blue-50/50 to-indigo-100/50 flex">
       <Sidebar 
-        user={user} 
-        settings={settings} 
-        isOpen={sidebarOpen} 
-        setIsOpen={setSidebarOpen}
-        subdomain={subdomain}
+        active="asignaturas"
+        onNavigate={() => {}}
+        expanded={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
         onLogout={onLogout}
+        schoolName={settings?.system_name}
+        subdomain={subdomain}
+        user={user}
       />
       
       <div className="flex-1 flex flex-col min-w-0">
