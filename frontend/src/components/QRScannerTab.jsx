@@ -289,7 +289,21 @@ export default function QRScannerTab({ token }) {
 
   const handleError = (err) => {
     console.error("Camera error:", err);
-    setCameraError("No se pudo acceder a la cámara. Verifica los permisos.");
+    
+    // Parse the error
+    const errorMessage = err?.message || err?.toString() || "";
+    
+    if (errorMessage.includes('Permission') || errorMessage.includes('NotAllowed')) {
+      setCameraError(CAMERA_ERROR_TYPES.PERMISSION_DENIED);
+    } else if (errorMessage.includes('NotFound') || errorMessage.includes('no camera')) {
+      setCameraError(CAMERA_ERROR_TYPES.NOT_FOUND);
+    } else if (errorMessage.includes('Secure') || errorMessage.includes('HTTPS')) {
+      setCameraError(CAMERA_ERROR_TYPES.NOT_SECURE);
+    } else {
+      setCameraError(CAMERA_ERROR_TYPES.GENERIC);
+    }
+    
+    setScanning(false);
   };
 
   return (
