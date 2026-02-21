@@ -1535,13 +1535,21 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     const userToEdit = users.find(u => u.id === userId);
     if (userToEdit) {
       setEditingUser(userToEdit);
+      // Normalize gender value (old values used M/F, new uses male/female)
+      const normalizeGender = (g) => {
+        if (!g) return "";
+        if (g === "M" || g === "male") return "male";
+        if (g === "F" || g === "female") return "female";
+        return g;
+      };
+      
       setEditForm({
         name: userToEdit.name || "",
         last_name: userToEdit.last_name || "",
         email: userToEdit.email || "",
         phone: userToEdit.phone || "",
         birthday: userToEdit.birthday || "",
-        gender: userToEdit.gender || "",
+        gender: normalizeGender(userToEdit.gender),
         address: userToEdit.address || "",
         photo_url: userToEdit.photo_url || "",
         // Student fields
