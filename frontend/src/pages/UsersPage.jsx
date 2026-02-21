@@ -2124,6 +2124,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         onLogout={onLogout}
         schoolName={schoolName}
         subdomain={subdomain}
+        user={user}
       />
 
       {sidebarOpen && (
