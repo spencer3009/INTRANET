@@ -1555,7 +1555,7 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         tasks_with_grades = await db.course_posts.find({
             "school_id": school_id,
             "subject_id": {"$in": subject_ids},
-            "type": "task",
+            "$or": [{"post_type": "task"}, {"type": "task"}],
             "submissions.student_id": user["id"],
             "submissions.grade": {"$exists": True, "$ne": None}
         }, {"_id": 0, "submissions": 1, "max_grade": 1}).to_list(500)
