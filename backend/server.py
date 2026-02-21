@@ -677,7 +677,6 @@ async def login(creds: UserLogin):
     Accepts email OR username for login.
     """
     identifier = creds.email.lower().strip()
-    logger.info(f"Login attempt for: {identifier}")
     
     # Try to find user by email or username
     user = await db.users.find_one({
@@ -687,14 +686,7 @@ async def login(creds: UserLogin):
         ]
     })
     
-    if not user:
-        logger.warning(f"User not found: {identifier}")
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    
-    logger.info(f"User found: {user.get('email')}, verifying password...")
-    
-    if not verify_password(creds.password, user["password"]):
-        logger.warning(f"Invalid password for: {identifier}")
+    if not user or not verify_password(creds.password, user["password"]):
         raise HTTPException(status_code=401, detail="Credenciales inválidas")
     
     # Get school info if user has one
