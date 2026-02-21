@@ -1011,6 +1011,23 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
         onSent={() => { loadMessages(activeFolder); loadStats(); }}
         replyTo={replyTo}
       />
+      
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null, messageId: null })}
+        onConfirm={handleConfirmAction}
+        title={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar mensaje"}
+        message={
+          confirmModal.type === "emptyTrash"
+            ? "¿Estás seguro de vaciar la papelera? Se eliminarán todos los mensajes de forma permanente y esta acción no se puede deshacer."
+            : "¿Estás seguro de eliminar este mensaje permanentemente? Esta acción no se puede deshacer."
+        }
+        confirmText={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar"}
+        confirmStyle="danger"
+        icon={AlertTriangle}
+        loading={confirmLoading}
+      />
     </div>
   );
 }
