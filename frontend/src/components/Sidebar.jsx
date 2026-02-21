@@ -43,22 +43,14 @@ const allNavItems = [
 
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken, user }) {
   const navigate = useNavigate();
+  const [isHovered, setIsHovered] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
-  const [isDesktop, setIsDesktop] = useState(false);
   
   // Get token from props or localStorage
   const token = propToken || localStorage.getItem("token");
   
-  // Detect desktop screen size reactively
-  useEffect(() => {
-    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
-    checkDesktop();
-    window.addEventListener('resize', checkDesktop);
-    return () => window.removeEventListener('resize', checkDesktop);
-  }, []);
-  
-  // Sidebar is ALWAYS expanded on desktop, manual toggle for mobile
-  const isExpanded = isDesktop || expanded;
+  // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
+  const isExpanded = isHovered || expanded;
   
   // Owner sees everything - Admin sees filtered items based on RBAC
   const navItems = isOwner(user) 
@@ -120,6 +112,8 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         isExpanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
       data-testid="sidebar"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Top: Logo + Toggle */}
       <div className="flex items-center justify-center h-16 border-b border-white/10 px-3">
