@@ -634,6 +634,18 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                   )}
                 </button>
               ))}
+              
+              {/* Empty Trash Button */}
+              {activeFolder === "trash" && stats.trash > 0 && (
+                <button
+                  onClick={handleEmptyTrash}
+                  className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all border border-red-200"
+                  data-testid="empty-trash-btn"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="font-medium text-sm">Vaciar papelera</span>
+                </button>
+              )}
             </nav>
           </aside>
           
