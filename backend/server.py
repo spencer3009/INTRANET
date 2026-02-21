@@ -13829,12 +13829,38 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
     contacts = []
     user_role = user.get("role", "student")
     
+    # Get all threads where user is participant to count unread messages
+    user_threads = await db.academic_threads.find({
+        "school_id": user["school_id"],
+        "participant_ids": user["id"]
+    }, {"_id": 0}).to_list(500)
+    
+    # Build a map of contact_id -> unread_count
+    unread_by_contact = {}
+    for thread in user_threads:
+        if user["id"] in thread.get("unread_by", []):
+            # Find the other participant
+            other_participant_id = None
+            for pid in thread.get("participant_ids", []):
+                if pid != user["id"]:
+                    other_participant_id = pid
+                    break
+            if other_participant_id:
+                unread_by_contact[other_participant_id] = unread_by_contact.get(other_participant_id, 0) + 1
+    
     if user_role == "teacher":
         subjects = await db.subjects.find({"school_id": user["school_id"], "teacher_id": user["id"]}, {"_id": 0}).to_list(100)
         for subject in subjects:
             students = await db.users.find({"school_id": user["school_id"], "grade_id": subject.get("grade_id"), "role": "student"}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(100)
             for s in students:
-                contacts.append({"id": s["id"], "name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(), "photo_url": s.get("photo_url"), "role": "student", "subject_name": subject.get("name", "")})
+                contacts.append({
+                    "id": s["id"], 
+                    "name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(), 
+                    "photo_url": s.get("photo_url"), 
+                    "role": "student", 
+                    "subject_name": subject.get("name", ""),
+                    "unread_count": unread_by_contact.get(s["id"], 0)
+                })
     elif user_role == "student":
         # Get grade_id and seccion_id from user
         grade_id = user.get("grade_id") or user.get("grado_id")
@@ -13857,7 +13883,8 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
                             "email": teacher.get("email"),
                             "photo_url": teacher.get("photo_url"), 
                             "role": "teacher", 
-                            "subject_name": subject.get("name", "")
+                            "subject_name": subject.get("name", ""),
+                            "unread_count": unread_by_contact.get(teacher["id"], 0)
                         })
                         added_teacher_ids.add(teacher_id)
             
@@ -13884,7 +13911,8 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
                             "email": teacher.get("email"),
                             "photo_url": teacher.get("photo_url"), 
                             "role": "teacher", 
-                            "subject_name": subject_name
+                            "subject_name": subject_name,
+                            "unread_count": unread_by_contact.get(teacher["id"], 0)
                         })
                         added_teacher_ids.add(teacher_id)
         
@@ -13905,7 +13933,8 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
                     "last_name": classmate.get("last_name", ""),
                     "email": classmate.get("email"),
                     "photo_url": classmate.get("photo_url"),
-                    "role": "student"
+                    "role": "student",
+                    "unread_count": unread_by_contact.get(classmate["id"], 0)
                 })
         elif grade_id:
             # If no section, get all students in the same grade
@@ -13924,12 +13953,22 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
                     "last_name": classmate.get("last_name", ""),
                     "email": classmate.get("email"),
                     "photo_url": classmate.get("photo_url"),
-                    "role": "student"
+                    "role": "student",
+                    "unread_count": unread_by_contact.get(classmate["id"], 0)
                 })
     elif user_role in ["admin", "owner", "director", "coordinator"]:
         all_users = await db.users.find({"school_id": user["school_id"], "id": {"$ne": user["id"]}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}).to_list(500)
         for u in all_users:
-            contacts.append({"id": u["id"], "name": f"{u.get('name', '')} {u.get('last_name', '')}".strip(), "photo_url": u.get("photo_url"), "role": u.get("role", "student")})
+            contacts.append({
+                "id": u["id"], 
+                "name": f"{u.get('name', '')} {u.get('last_name', '')}".strip(), 
+                "photo_url": u.get("photo_url"), 
+                "role": u.get("role", "student"),
+                "unread_count": unread_by_contact.get(u["id"], 0)
+            })
+    
+    # Sort contacts: those with unread messages first
+    contacts.sort(key=lambda x: (-x.get("unread_count", 0), x.get("name", "")))
     
     return {"contacts": contacts}
 
