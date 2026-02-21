@@ -486,13 +486,23 @@ export default function QRScannerTab({ token }) {
                       <Camera className="w-12 h-12 text-violet-600" />
                     </div>
                     <h4 className="text-xl font-bold text-slate-800 mb-2">Cámara desactivada</h4>
-                    <p className="text-slate-500 mb-6">Activa la cámara para escanear códigos QR de estudiantes</p>
+                    <p className="text-slate-500 mb-4">Activa la cámara para escanear códigos QR de estudiantes</p>
                     
                     {/* Camera count indicator */}
                     {availableCameras.length > 0 && (
                       <p className="text-sm text-slate-400 mb-4">
                         {availableCameras.length} cámara{availableCameras.length !== 1 ? 's' : ''} detectada{availableCameras.length !== 1 ? 's' : ''}
                       </p>
+                    )}
+                    
+                    {/* Iframe warning - informational only, doesn't block */}
+                    {isInIframe && (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 max-w-sm mx-auto">
+                        <p className="text-sm text-blue-700 flex items-center gap-2">
+                          <ExternalLink className="w-4 h-4 flex-shrink-0" />
+                          <span>Si la cámara no funciona, prueba <button onClick={openInNewWindow} className="underline font-medium">abrir en ventana nueva</button></span>
+                        </p>
+                      </div>
                     )}
                     
                     <button
