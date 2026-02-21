@@ -775,6 +775,62 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
               </section>
             )}
 
+            {/* Role Settings Section - Only for owner */}
+            {user?.role === "owner" && (
+              <section className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm mt-8" data-testid="role-settings-section">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-bold text-slate-800">Configuración de Roles</h2>
+                    <p className="text-sm text-slate-500">Controla los permisos de acceso por rol</p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  {/* Admin Accounting Access Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-slate-200">
+                        <Users className="w-5 h-5 text-slate-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-800">Acceso de Administradores a Contabilidad</h3>
+                        <p className="text-sm text-slate-500">
+                          Permite que usuarios con rol "Administrador" vean el módulo de Contabilidad
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleAdminAccounting}
+                      disabled={savingRoles}
+                      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                        allowAdminAccounting ? 'bg-indigo-600' : 'bg-slate-300'
+                      } ${savingRoles ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      data-testid="toggle-admin-accounting"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                          allowAdminAccounting ? 'translate-x-8' : 'translate-x-1'
+                        }`}
+                      />
+                      {savingRoles && (
+                        <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Info text */}
+                  <p className="text-xs text-slate-400 pl-2">
+                    Los administradores tienen acceso a gestión de usuarios, cursos, horarios y asistencia por defecto. 
+                    Solo el propietario puede acceder a Ajustes del sistema.
+                  </p>
+                </div>
+              </section>
+            )}
+
             {/* Carousel Manager - Only for owners/super admins */}
             {(user?.is_owner || user?.is_super_admin || user?.role === "owner" || user?.role === "director") && (
               <section className="mt-8" data-testid="carousel-section">
