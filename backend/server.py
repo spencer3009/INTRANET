@@ -20,6 +20,8 @@ import cloudinary
 import cloudinary.utils
 import cloudinary.uploader
 import io
+from cachetools import TTLCache
+import asyncio
 
 # Google Drive imports
 from google.oauth2.credentials import Credentials
@@ -32,6 +34,26 @@ import hashlib
 
 # Import demo seeder
 from demo_seeder import seed_demo_data_for_school, delete_demo_data_for_school
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CACHE CONFIGURATION - In-memory TTL cache for scalable performance
+# ══════════════════════════════════════════════════════════════════════════════
+# Cache for student dashboard tasks - key: student_id, value: response data
+# maxsize=5000 supports ~5000 concurrent students, TTL=60 seconds
+STUDENT_TASKS_CACHE = TTLCache(maxsize=5000, ttl=60)
+STUDENT_DASHBOARD_CACHE = TTLCache(maxsize=5000, ttl=60)
+
+def invalidate_student_cache(student_id: str):
+    """Invalidate all caches for a specific student"""
+    STUDENT_TASKS_CACHE.pop(student_id, None)
+    STUDENT_DASHBOARD_CACHE.pop(student_id, None)
+
+def invalidate_course_caches(course_id: str, school_id: str):
+    """Invalidate caches for all students in a course (used when tasks change)"""
+    # For simplicity, we clear related caches
+    # In production with Redis, we'd use pub/sub or tags
+    STUDENT_TASKS_CACHE.clear()
+    STUDENT_DASHBOARD_CACHE.clear()
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
