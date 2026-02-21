@@ -53,6 +53,7 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
     5. Funciones: Responder, Archivar, Eliminar, Marcar como leído/no leído
     6. Búsqueda de mensajes y contactos
     7. Indicadores de mensajes no leídos (badge y punto azul)
+    8. **Papelera completa**: Restaurar mensaje, Eliminar permanentemente, Vaciar papelera
   - Archivos creados: `/app/frontend/src/pages/StudentMessagesPage.jsx`
   - Archivos modificados: `/app/frontend/src/App.js` (importación y rutas)
   - También corregido el strip de HTML en preview de mensajes en InternalMailPage.jsx
