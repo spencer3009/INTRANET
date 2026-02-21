@@ -18417,6 +18417,31 @@ app.add_middleware(
 
 app.include_router(api_router)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# DATABASE INDEXES - Create on startup for optimized queries
+# ══════════════════════════════════════════════════════════════════════════════
+@app.on_event("startup")
+async def create_indexes():
+    """Create MongoDB indexes for optimized queries"""
+    try:
+        # Indexes for student tasks endpoint
+        await db.course_posts.create_index([("school_id", 1), ("subject_id", 1), ("type", 1)])
+        await db.course_posts.create_index([("school_id", 1), ("subject_id", 1), ("post_type", 1)])
+        await db.task_submissions.create_index([("school_id", 1), ("student_id", 1), ("task_id", 1)])
+        await db.academic_assignments.create_index([("school_id", 1), ("section_id", 1), ("status", 1)])
+        
+        # Indexes for attendance
+        await db.attendances.create_index([("school_id", 1), ("user_id", 1), ("date", 1)])
+        await db.student_attendance.create_index([("school_id", 1), ("student_id", 1), ("date", 1)])
+        
+        # Indexes for messaging
+        await db.academic_threads.create_index([("school_id", 1), ("participant_ids", 1)])
+        await db.internal_messages.create_index([("school_id", 1), ("recipient_id", 1), ("is_deleted", 1)])
+        
+        logging.info("MongoDB indexes created successfully")
+    except Exception as e:
+        logging.error(f"Error creating indexes: {e}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
