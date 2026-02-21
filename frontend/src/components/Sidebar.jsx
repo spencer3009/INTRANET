@@ -19,27 +19,29 @@ import {
   Landmark,
   UserCheck,
 } from "lucide-react";
+import { canAccessSection } from "../lib/permissions";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-const navItems = [
+// Navigation items with optional section for RBAC
+const allNavItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
-  { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users" },
-  { id: "anos-academicos", label: "Años Académicos", icon: Calendar, route: "/anos-academicos" },
-  { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings" },
-  { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas" },
-  { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente" },
-  { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios" },
-  { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias" },
+  { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users", section: "users" },
+  { id: "anos-academicos", label: "Años Académicos", icon: Calendar, route: "/anos-academicos", section: "grades" },
+  { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings", section: "grades" },
+  { id: "asignaturas", label: "Asignaturas", icon: BookOpen, route: "/asignaturas", section: "courses" },
+  { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente", section: "courses" },
+  { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios", section: "schedule" },
+  { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
   { id: "calendario", label: "Calendario", icon: CalendarDays, route: "/calendario" },
   { id: "encuestas", label: "Encuestas", icon: ClipboardList, route: "/encuestas" },
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina" },
   { id: "noticias", label: "Noticias", icon: Newspaper, route: "/noticias" },
-  { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad" },
-  { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", hasBadge: true },
+  { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad", section: "accounting" },
+  { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
 ];
 
-export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken }) {
+export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken, user }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
@@ -49,6 +51,17 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
   
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;
+  
+  // Filter navigation items based on RBAC permissions
+  const navItems = allNavItems.filter(item => {
+    // If no section restriction, show the item
+    if (!item.section) return true;
+    // Check if user has access to this section
+    return canAccessSection(user, item.section);
+  });
+  
+  // Check if user can access settings (only owner)
+  const canAccessSettings = canAccessSection(user, "settings");
   
   // Load unread messages count
   useEffect(() => {
@@ -121,7 +134,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         )}
       </div>
 
-      {/* Nav items */}
+      {/* Nav items - filtered by RBAC */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto custom-scroll">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -157,18 +170,20 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         })}
       </nav>
 
-      {/* Bottom: Settings only (Profile and Logout moved to header dropdown) */}
-      <div className="border-t border-white/10 p-2 space-y-1">
-        <button
-          onClick={handleSettingsClick}
-          className="sidebar-link w-full"
-          data-testid="sidebar-settings"
-          title="Ajustes"
-        >
-          <span className="link-icon"><Settings className="w-5 h-5" /></span>
-          {isExpanded && <span className="text-sm font-medium">Ajustes</span>}
-        </button>
-      </div>
+      {/* Bottom: Settings - only visible to owner */}
+      {canAccessSettings && (
+        <div className="border-t border-white/10 p-2 space-y-1">
+          <button
+            onClick={handleSettingsClick}
+            className="sidebar-link w-full"
+            data-testid="sidebar-settings"
+            title="Ajustes"
+          >
+            <span className="link-icon"><Settings className="w-5 h-5" /></span>
+            {isExpanded && <span className="text-sm font-medium">Ajustes</span>}
+          </button>
+        </div>
+      )}
     </aside>
   );
 }
