@@ -19,11 +19,11 @@ import {
   Landmark,
   UserCheck,
 } from "lucide-react";
-import { canAccessSection } from "../lib/permissions";
+import { canAccessSection, isOwner } from "../lib/permissions";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// Navigation items with optional section for RBAC
+// Navigation items with optional section for RBAC (only affects non-owner roles)
 const allNavItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users", section: "users" },
@@ -52,16 +52,16 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;
   
-  // Filter navigation items based on RBAC permissions
-  const navItems = allNavItems.filter(item => {
-    // If no section restriction, show the item
-    if (!item.section) return true;
-    // Check if user has access to this section
-    return canAccessSection(user, item.section);
-  });
+  // Owner sees everything - Admin sees filtered items based on RBAC
+  const navItems = isOwner(user) 
+    ? allNavItems 
+    : allNavItems.filter(item => {
+        if (!item.section) return true;
+        return canAccessSection(user, item.section);
+      });
   
-  // Check if user can access settings (only owner)
-  const canAccessSettings = canAccessSection(user, "settings");
+  // Settings: Owner always sees it, Admin never sees it
+  const showSettings = isOwner(user);
   
   // Load unread messages count
   useEffect(() => {
@@ -134,7 +134,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         )}
       </div>
 
-      {/* Nav items - filtered by RBAC */}
+      {/* Nav items */}
       <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto custom-scroll">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -170,8 +170,8 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         })}
       </nav>
 
-      {/* Bottom: Settings - only visible to owner */}
-      {canAccessSettings && (
+      {/* Bottom: Settings - Only visible to Owner */}
+      {showSettings && (
         <div className="border-t border-white/10 p-2 space-y-1">
           <button
             onClick={handleSettingsClick}
