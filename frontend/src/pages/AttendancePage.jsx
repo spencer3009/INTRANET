@@ -166,7 +166,12 @@ function StudentAttendanceTab({ token, schoolId }) {
           date: selectedDate
         }
       });
-      setStudents(res.data.students);
+      // If no saved records, set all students to "pending" status
+      const studentsData = res.data.students.map(s => ({
+        ...s,
+        status: res.data.has_saved_records ? s.status : "pending"
+      }));
+      setStudents(studentsData);
       setHasSavedRecords(res.data.has_saved_records);
       setHasChanges(false);
     } catch (err) {
