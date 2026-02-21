@@ -120,6 +120,7 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 - `student_attendance` - Registros de escaneo QR (legacy)
 - `attendances` - Registros de asistencia principal (usada por UI)
 - `users` - Usuarios con campo `qr_token`
+- `internal_messages` - Mensajes internos del sistema de correo
 
 ## Third-Party Integrations
 - Cloudinary (imágenes)
