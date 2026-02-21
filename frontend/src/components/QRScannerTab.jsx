@@ -527,45 +527,83 @@ export default function QRScannerTab({ token }) {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <>
-                  <div className="relative aspect-square max-w-md mx-auto rounded-2xl overflow-hidden border-4 border-violet-500">
-                    <Scanner
-                      key={cameraFacing} // Force re-mount when camera changes
-                      onScan={handleScan}
-                      onError={handleError}
-                      formats={["qr_code"]}
-                      constraints={{
-                        facingMode: cameraFacing
-                      }}
-                      components={{
-                        audio: false,
-                        torch: true,
-                        finder: true
-                      }}
-                      styles={{
-                        container: { width: '100%', height: '100%' },
-                        video: { objectFit: 'cover' }
-                      }}
-                    />
+                  {/* Camera container - centered with better visual guides */}
+                  <div className="flex flex-col items-center">
+                    {/* Instructions */}
+                    <p className="text-slate-600 text-center mb-4">
+                      Centra el código QR dentro del recuadro
+                    </p>
                     
-                    {/* Scanning overlay */}
-                    {loading && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                        <div className="bg-white rounded-xl p-4 flex items-center gap-3">
-                          <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
-                          <span className="font-medium">Procesando...</span>
+                    {/* Camera view */}
+                    <div className="relative w-full max-w-sm mx-auto">
+                      {/* Scanner container */}
+                      <div className="relative aspect-square rounded-2xl overflow-hidden border-4 border-violet-500 shadow-lg">
+                        <Scanner
+                          key={cameraFacing}
+                          onScan={handleScan}
+                          onError={handleError}
+                          formats={["qr_code"]}
+                          constraints={{
+                            facingMode: cameraFacing
+                          }}
+                          components={{
+                            audio: false,
+                            torch: true,
+                            finder: false // Disable default finder, we'll add our own
+                          }}
+                          styles={{
+                            container: { width: '100%', height: '100%' },
+                            video: { objectFit: 'cover' }
+                          }}
+                        />
+                        
+                        {/* Custom centered scanning guide */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                          {/* Semi-transparent overlay with hole in center */}
+                          <div className="absolute inset-0 bg-black/30"></div>
+                          
+                          {/* Clear center area */}
+                          <div className="relative w-48 h-48 bg-transparent">
+                            {/* Clear the overlay in center */}
+                            <div className="absolute inset-0 bg-black/30" style={{ 
+                              boxShadow: '0 0 0 9999px rgba(0,0,0,0.3)',
+                              backgroundColor: 'transparent'
+                            }}></div>
+                            
+                            {/* Corner guides */}
+                            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-violet-400 rounded-tl-lg"></div>
+                            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-violet-400 rounded-tr-lg"></div>
+                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-violet-400 rounded-bl-lg"></div>
+                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-violet-400 rounded-br-lg"></div>
+                            
+                            {/* Animated scan line */}
+                            <div className="absolute left-2 right-2 h-0.5 bg-violet-400 animate-pulse" 
+                                 style={{ top: '50%', boxShadow: '0 0 8px rgba(139, 92, 246, 0.8)' }}></div>
+                          </div>
                         </div>
+                        
+                        {/* Processing overlay */}
+                        {loading && (
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                            <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-xl">
+                              <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
+                              <span className="font-medium">Procesando QR...</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                   
+                  {/* Control buttons */}
                   <div className="flex justify-center gap-3">
                     {/* Toggle Camera Button (only show if multiple cameras) */}
                     {availableCameras.length > 1 && (
                       <button
                         onClick={toggleCamera}
-                        className="px-4 py-2 bg-violet-100 hover:bg-violet-200 rounded-lg text-violet-700 font-medium flex items-center gap-2"
+                        className="px-4 py-2.5 bg-violet-100 hover:bg-violet-200 rounded-xl text-violet-700 font-medium flex items-center gap-2 transition-colors"
                         title={cameraFacing === "environment" ? "Cambiar a cámara frontal" : "Cambiar a cámara trasera"}
                       >
                         <SwitchCamera className="w-4 h-4" />
@@ -575,7 +613,7 @@ export default function QRScannerTab({ token }) {
                     
                     <button
                       onClick={() => setScanning(false)}
-                      className="px-6 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 font-medium flex items-center gap-2"
+                      className="px-6 py-2.5 bg-red-100 hover:bg-red-200 rounded-xl text-red-700 font-medium flex items-center gap-2 transition-colors"
                     >
                       <X className="w-4 h-4" />
                       Detener cámara
