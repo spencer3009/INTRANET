@@ -4413,6 +4413,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
     const postId = urlParams.get('postId');
+    const taskId = urlParams.get('task');
     
     if (tab && postId) {
       setActiveTab(tab);
@@ -4421,6 +4422,17 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
       const url = new URL(window.location.href);
       url.searchParams.delete('tab');
       url.searchParams.delete('postId');
+      window.history.replaceState({}, '', url.toString());
+    }
+    
+    // Handle task parameter - navigate to tasks tab and open the task
+    if (taskId) {
+      setActiveTab("tasks");
+      // Set a flag to open the task modal after loading
+      setSelectedTaskId(taskId);
+      // Clean up URL params
+      const url = new URL(window.location.href);
+      url.searchParams.delete('task');
       window.history.replaceState({}, '', url.toString());
     }
   }, []);
