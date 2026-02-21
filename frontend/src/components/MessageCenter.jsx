@@ -1268,7 +1268,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
           </div>
-        ) : filteredContacts.length === 0 ? (
+        ) : filteredContacts.length === 0 && unreadThreads.length === 0 ? (
           <div className="text-center py-12 px-6">
             <div className="w-16 h-16 bg-amber-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <GraduationCap className="w-8 h-8 text-amber-300" />
@@ -1282,6 +1282,47 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
+            {/* Show unread threads first (conversations with unread messages) */}
+            {unreadThreads.map((thread) => {
+              const other = thread.other_participant;
+              const lastMessage = thread.messages?.[thread.messages.length - 1];
+              // Check if this contact is already in the list (to avoid duplicates)
+              const isInContacts = filteredContacts.some(c => c.id === other?.id);
+              if (isInContacts) return null;
+              
+              return (
+                <div
+                  key={thread.id}
+                  onClick={() => loadThread(thread.id)}
+                  className="px-4 py-3 hover:bg-amber-50 cursor-pointer transition-colors flex items-center gap-3 bg-amber-50/50"
+                >
+                  {/* Avatar with unread indicator */}
+                  <div className="relative">
+                    {other?.photo_url ? (
+                      <img src={other.photo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center ring-2 ring-amber-400">
+                        <User className="w-5 h-5 text-amber-500" />
+                      </div>
+                    )}
+                    {/* Unread indicator */}
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      !
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-800">{other?.name}</p>
+                    <p className="text-xs text-amber-600 truncate">
+                      {lastMessage?.deleted ? "Mensaje eliminado" : lastMessage?.content?.substring(0, 40)}
+                      {lastMessage?.content?.length > 40 ? "..." : ""}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-amber-500" />
+                </div>
+              );
+            })}
+            
+            {/* Regular contacts */}
             {filteredContacts.map((contact) => (
               <div
                 key={contact.id}
