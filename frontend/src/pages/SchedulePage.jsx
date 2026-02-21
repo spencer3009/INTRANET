@@ -313,6 +313,8 @@ export default function SchedulePage({ user, token, onLogout }) {
         onLogout={onLogout}
         subdomain={user?.subdomain}
         token={token}
+        user={user}
+        schoolName={schoolSettings?.system_name}
       />
       
       {sidebarExpanded && (
