@@ -2386,9 +2386,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] outline-none"
                   >
                     <option value="">Seleccionar...</option>
-                    <option value="M">Masculino</option>
-                    <option value="F">Femenino</option>
-                    <option value="O">Otro</option>
+                    <option value="male">Masculino</option>
+                    <option value="female">Femenino</option>
                   </select>
                 </div>
                 {/* Dirección */}
