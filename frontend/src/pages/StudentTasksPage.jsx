@@ -79,27 +79,10 @@ export default function StudentTasksPage({ user, token, onLogout }) {
   };
 
   // Helper to get task due date
-  const getTaskDueDate = (task) => task.due_date || task.metadata?.due_date || null;
+  const getTaskDueDate = (task) => task.due_date || null;
 
-  // Determine task status
-  const getTaskStatus = (task) => {
-    // Check if student has submitted
-    const submission = task.submissions?.find(s => s.student_id === user?.id);
-    if (submission) {
-      if (submission.grade !== null && submission.grade !== undefined) {
-        return "graded";
-      }
-      return "submitted";
-    }
-    
-    // Check if past due date
-    const dueDate = getTaskDueDate(task);
-    if (dueDate && new Date(dueDate) < new Date()) {
-      return "late";
-    }
-    
-    return "pending";
-  };
+  // Get task status (now comes from backend)
+  const getTaskStatus = (task) => task.status || "pending";
 
   // Filter tasks
   const filteredTasks = tasks.filter(task => {
@@ -111,17 +94,16 @@ export default function StudentTasksPage({ user, token, onLogout }) {
     
     if (statusFilter === "all") return true;
     
-    const status = getTaskStatus(task);
-    return status === statusFilter;
+    return task.status === statusFilter;
   });
 
-  // Stats
+  // Stats (calculate from filtered data for display)
   const stats = {
     total: tasks.length,
-    pending: tasks.filter(t => getTaskStatus(t) === "pending").length,
-    submitted: tasks.filter(t => getTaskStatus(t) === "submitted").length,
-    graded: tasks.filter(t => getTaskStatus(t) === "graded").length,
-    late: tasks.filter(t => getTaskStatus(t) === "late").length
+    pending: tasks.filter(t => t.status === "pending").length,
+    submitted: tasks.filter(t => t.status === "submitted").length,
+    graded: tasks.filter(t => t.status === "graded").length,
+    late: tasks.filter(t => t.status === "late").length
   };
 
   return (
