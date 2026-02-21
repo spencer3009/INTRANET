@@ -20,8 +20,8 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const ROLE_CARDS = [
   { 
     id: "owner", 
-    label: "Directores", 
-    labelSingular: "Director",
+    label: "Propietarios", 
+    labelSingular: "Propietario",
     color: "from-blue-500 to-blue-600",
     bgColor: "bg-blue-50",
     iconBg: "bg-blue-100",
