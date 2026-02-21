@@ -1640,24 +1640,68 @@ async def get_student_attendance(
         raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
     
     school_id = user.get("school_id")
+    student_id = user["id"]
     
-    # Build query
-    query = {
-        "school_id": school_id,
-        "student_id": user["id"]
-    }
-    
-    # Date filters
+    # Build base query for date filters
+    date_filter = {}
     if start_date and end_date:
-        query["date"] = {"$gte": start_date, "$lte": end_date}
+        date_filter["date"] = {"$gte": start_date, "$lte": end_date}
     elif start_date:
-        query["date"] = {"$gte": start_date}
+        date_filter["date"] = {"$gte": start_date}
     elif end_date:
-        query["date"] = {"$lte": end_date}
+        date_filter["date"] = {"$lte": end_date}
     
-    records = await db.attendance.find(query, {"_id": 0}).sort("date", -1).to_list(100)
+    # Query main attendances collection (user_id field)
+    query_attendances = {
+        "school_id": school_id,
+        "user_id": student_id,
+        "type": "student",
+        **date_filter
+    }
+    records_attendances = await db.attendances.find(query_attendances, {"_id": 0}).to_list(500)
     
-    return {"records": records}
+    # Query QR-based attendance (student_id field)
+    query_qr = {
+        "school_id": school_id,
+        "student_id": student_id,
+        **date_filter
+    }
+    records_qr = await db.student_attendance.find(query_qr, {"_id": 0}).to_list(500)
+    
+    # Merge records avoiding duplicates by date
+    all_records = []
+    dates_seen = set()
+    
+    # Add records from main collection first
+    for r in records_attendances:
+        date = r.get("date")
+        if date and date not in dates_seen:
+            dates_seen.add(date)
+            all_records.append({
+                "id": r.get("id", ""),
+                "date": date,
+                "status": r.get("status", "present"),
+                "check_in_time": r.get("check_in_time", ""),
+                "method": r.get("method", "manual")
+            })
+    
+    # Add QR records if date not already covered
+    for r in records_qr:
+        date = r.get("date")
+        if date and date not in dates_seen:
+            dates_seen.add(date)
+            all_records.append({
+                "id": r.get("id", ""),
+                "date": date,
+                "status": r.get("status", "present"),
+                "check_in_time": r.get("check_in_time", ""),
+                "method": r.get("method", "qr_scan")
+            })
+    
+    # Sort by date descending
+    all_records.sort(key=lambda x: x.get("date", ""), reverse=True)
+    
+    return {"records": all_records}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TEACHER PORTAL ENDPOINTS
