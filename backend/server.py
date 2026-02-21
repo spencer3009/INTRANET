@@ -7937,6 +7937,38 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     
     await db.student_attendance.insert_one(attendance_record)
     
+    # ALSO update the main attendances collection (used by the "Estudiantes" tab)
+    # This ensures QR-scanned attendance shows up in the regular attendance view
+    await db.attendances.update_one(
+        {
+            "school_id": school_id,
+            "type": "student",
+            "user_id": student_id,
+            "grade_id": student.get("grado_id"),
+            "section_id": student.get("seccion_id"),
+            "date": today
+        },
+        {
+            "$set": {
+                "status": "present",
+                "recorded_by": current_user["sub"],
+                "created_at": now.isoformat(),
+                "method": "qr_scan",
+                "check_in_time": check_in_time
+            },
+            "$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "school_id": school_id,
+                "type": "student",
+                "user_id": student_id,
+                "grade_id": student.get("grado_id"),
+                "section_id": student.get("seccion_id"),
+                "date": today
+            }
+        },
+        upsert=True
+    )
+    
     logger.info(f"QR Attendance: {student_info['full_name']} marked present at {check_in_time}")
     
     return {
