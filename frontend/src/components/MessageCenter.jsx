@@ -870,15 +870,19 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
   };
 
   const loadContacts = async () => {
-    setLoading(true);
     try {
       const res = await axios.get(`${API}/messaging/academic/contacts`, { headers });
       setContacts(res.data.contacts || []);
     } catch (err) {
       console.error("Error:", err);
-    } finally {
-      setLoading(false);
     }
+  };
+  
+  // Load both threads and contacts together
+  const loadData = async () => {
+    setLoading(true);
+    await Promise.all([loadThreads(), loadContacts()]);
+    setLoading(false);
   };
 
   const loadThread = async (threadId) => {
