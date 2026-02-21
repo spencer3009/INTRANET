@@ -161,6 +161,11 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
   const [settings, setSettings] = useState(null);
   const [banners, setBanners] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
+  
+  // Pagination states
+  const [coursesPage, setCoursesPage] = useState(1);
+  const [tasksPage, setTasksPage] = useState(1);
+  const ITEMS_PER_PAGE = 5;
 
   const headers = { Authorization: `Bearer ${token}` };
 
