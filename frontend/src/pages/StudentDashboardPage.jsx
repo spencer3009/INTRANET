@@ -593,7 +593,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
               </div>
             </div>
 
-            {/* Right column - Profile Card, Calendar & Quick Links */}
+            {/* Right column - Profile Card & Calendar */}
             <div className="lg:col-span-4 space-y-6">
               {/* Student Profile Card */}
               <StudentProfileCard 
@@ -604,51 +604,6 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
 
               {/* Calendar - Same data as Owner's Portal */}
               <MiniCalendar events={calendarEvents} />
-
-              {/* My Courses Quick Access */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-                    <BookOpen className="w-5 h-5 text-cyan-500" />
-                    Mis Cursos
-                  </h2>
-                  <button 
-                    onClick={() => navigateTo("/student/courses")}
-                    className="text-sm text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1"
-                  >
-                    Ver todos <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <div className="divide-y divide-slate-100 max-h-[250px] overflow-y-auto">
-                  {courses.length > 0 ? (
-                    courses.slice(0, 5).map((course) => (
-                      <div 
-                        key={course.id}
-                        onClick={() => navigateTo(`/student/courses/${course.id}`)}
-                        className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
-                      >
-                        <div 
-                          className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                          style={{ backgroundColor: course.color || "#6366f1" }}
-                        >
-                          <BookOpen className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-800 truncate text-sm">{course.name}</p>
-                          <p className="text-xs text-slate-500 truncate">
-                            {course.teacher?.name || "Sin profesor"}
-                          </p>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-5 py-6 text-center text-slate-500">
-                      <p className="text-sm">No tienes cursos asignados</p>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
         </main>
