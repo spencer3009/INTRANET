@@ -41,6 +41,22 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## What's Been Implemented
 
+### Session: 2026-02-21 (Continued)
+- **FEATURE: Sistema de Mensajería Interno para Estudiantes** ✅
+  - Problema: El menú "Mensajes" del sidebar del estudiante no llevaba a ninguna página funcional
+  - Solución: Creada nueva página `StudentMessagesPage.jsx` con interfaz tipo correo electrónico
+  - Características implementadas:
+    1. Sidebar con carpetas: Bandeja de entrada, Enviados, Archivados, Papelera
+    2. Lista de mensajes con avatar, remitente, asunto, preview y hora
+    3. Vista de detalle del mensaje con información completa
+    4. Modal de redacción con editor de texto enriquecido (TipTap)
+    5. Funciones: Responder, Archivar, Eliminar, Marcar como leído/no leído
+    6. Búsqueda de mensajes y contactos
+    7. Indicadores de mensajes no leídos (badge y punto azul)
+  - Archivos creados: `/app/frontend/src/pages/StudentMessagesPage.jsx`
+  - Archivos modificados: `/app/frontend/src/App.js` (importación y rutas)
+  - También corregido el strip de HTML en preview de mensajes en InternalMailPage.jsx
+
 ### Session: 2026-02-21
 - **BUG FIX: Sincronización de asistencia QR** ✅
   - Problema: El escáner QR guardaba en `student_attendance` pero la pestaña "Estudiantes" leía de `attendances`
