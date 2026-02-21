@@ -23,6 +23,7 @@ const ATTENDANCE_TABS = [
 
 // Status configurations
 const STUDENT_STATUSES = [
+  { id: "pending", label: "Pendiente", icon: Circle, color: "slate", bgColor: "bg-slate-100", textColor: "text-slate-500", borderColor: "border-slate-300" },
   { id: "present", label: "Presente", icon: CheckCircle2, color: "emerald", bgColor: "bg-emerald-100", textColor: "text-emerald-700", borderColor: "border-emerald-500" },
   { id: "late", label: "Tardanza", icon: Clock, color: "amber", bgColor: "bg-amber-100", textColor: "text-amber-700", borderColor: "border-amber-500" },
   { id: "absent", label: "Ausente", icon: XCircle, color: "red", bgColor: "bg-red-100", textColor: "text-red-700", borderColor: "border-red-500" }
