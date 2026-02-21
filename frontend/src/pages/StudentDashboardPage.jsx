@@ -437,57 +437,109 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                 schoolName={schoolName} 
               />
 
-              {/* Upcoming Tasks - With min height to align with right column */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden min-h-[420px] flex flex-col">
-                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-                    <ClipboardList className="w-5 h-5 text-amber-500" />
-                    Tareas Próximas
-                  </h2>
-                  <button 
-                    onClick={() => navigateTo("/student/tasks")}
-                    className="text-sm text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1"
-                  >
-                    Ver todas <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
-                
-                <div className="divide-y divide-slate-100 flex-1">
-                  {dashboardData?.upcoming_tasks?.length > 0 ? (
-                    dashboardData.upcoming_tasks.slice(0, 6).map((task) => {
-                      const dueDate = task.due_date || task.metadata?.due_date;
-                      return (
-                      <div 
-                        key={task.id}
-                        onClick={() => navigateTo(`/student/courses/${task.subject_id}`)}
-                        className="px-5 py-4 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-4"
-                      >
+              {/* Two Column Grid: My Courses & Upcoming Tasks */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Mis Cursos */}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+                      <BookOpen className="w-5 h-5 text-cyan-500" />
+                      Mis Cursos
+                    </h2>
+                    <button 
+                      onClick={() => navigateTo("/student/courses")}
+                      className="text-sm text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1"
+                    >
+                      Ver todos <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="divide-y divide-slate-100 flex-1 max-h-[350px] overflow-y-auto">
+                    {courses.length > 0 ? (
+                      courses.map((course) => (
                         <div 
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: task.subject_color }}
-                        />
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-slate-800 truncate">{task.title}</p>
-                          <p className="text-sm text-slate-500">{task.subject_name}</p>
+                          key={course.id}
+                          onClick={() => navigateTo(`/student/courses/${course.id}`)}
+                          className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
+                        >
+                          <div 
+                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: course.color || "#6366f1" }}
+                          >
+                            <BookOpen className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-800 truncate text-sm">{course.name}</p>
+                            <p className="text-xs text-slate-500 truncate">
+                              {course.teacher_name || course.teacher?.name || "Sin profesor asignado"}
+                            </p>
+                          </div>
+                          <ChevronRight className="w-4 h-4 text-slate-400" />
                         </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium text-slate-700">
-                            {dueDate && !isNaN(new Date(dueDate).getTime())
-                              ? new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short" })
-                              : "Sin fecha"}
-                          </p>
-                          <p className="text-xs text-slate-400">Fecha límite</p>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
+                        <BookOpen className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                        <p className="text-sm">No tienes cursos asignados</p>
                       </div>
-                      );
-                    })
-                  ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
-                      <CheckCircle className="w-16 h-16 mx-auto mb-4 text-emerald-300" />
-                      <p className="text-lg font-medium text-slate-700">¡Estás al día!</p>
-                      <p className="text-sm text-slate-400 mt-1">No tienes tareas pendientes</p>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+
+                {/* Tareas Próximas */}
+                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+                      <ClipboardList className="w-5 h-5 text-amber-500" />
+                      Tareas Próximas
+                    </h2>
+                    <button 
+                      onClick={() => navigateTo("/student/tasks")}
+                      className="text-sm text-cyan-600 hover:text-cyan-700 font-medium flex items-center gap-1"
+                    >
+                      Ver todas <ChevronRight className="w-4 h-4" />
+                    </button>
+                  </div>
+                  
+                  <div className="divide-y divide-slate-100 flex-1 max-h-[350px] overflow-y-auto">
+                    {dashboardData?.upcoming_tasks?.length > 0 ? (
+                      dashboardData.upcoming_tasks.slice(0, 8).map((task) => {
+                        const dueDate = task.due_date || task.metadata?.due_date;
+                        return (
+                        <div 
+                          key={task.id}
+                          onClick={() => navigateTo(`/student/courses/${task.subject_id}`)}
+                          className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
+                        >
+                          <div 
+                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ backgroundColor: task.subject_color || "#f59e0b" }}
+                          >
+                            <ClipboardList className="w-5 h-5 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-800 truncate text-sm">{task.title}</p>
+                            <p className="text-xs text-slate-500 truncate">{task.subject_name}</p>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-xs font-medium text-slate-600">
+                              {dueDate && !isNaN(new Date(dueDate).getTime())
+                                ? new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short" })
+                                : "Sin fecha"}
+                            </p>
+                            <p className="text-[10px] text-slate-400">Fecha límite</p>
+                          </div>
+                        </div>
+                        );
+                      })
+                    ) : (
+                      <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
+                        <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-300" />
+                        <p className="font-medium text-slate-700">¡Estás al día!</p>
+                        <p className="text-xs text-slate-400 mt-1">No tienes tareas pendientes</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
