@@ -495,6 +495,34 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
     }
   };
   
+  const handleDeletePermanently = async (messageId) => {
+    if (!window.confirm("¿Estás seguro de eliminar este mensaje permanentemente? Esta acción no se puede deshacer.")) {
+      return;
+    }
+    try {
+      await axios.delete(`${API}/api/internal-mail/${messageId}/permanent`, { headers });
+      loadMessages(activeFolder);
+      loadStats();
+      if (selectedMessage?.id === messageId) setSelectedMessage(null);
+    } catch (err) {
+      console.error("Error deleting permanently:", err);
+    }
+  };
+  
+  const handleEmptyTrash = async () => {
+    if (!window.confirm("¿Estás seguro de vaciar la papelera? Se eliminarán todos los mensajes permanentemente.")) {
+      return;
+    }
+    try {
+      await axios.delete(`${API}/api/internal-mail/trash/empty`, { headers });
+      loadMessages(activeFolder);
+      loadStats();
+      setSelectedMessage(null);
+    } catch (err) {
+      console.error("Error emptying trash:", err);
+    }
+  };
+  
   const handleRestore = async (messageId) => {
     try {
       await axios.put(`${API}/api/internal-mail/${messageId}/restore`, null, { headers });
