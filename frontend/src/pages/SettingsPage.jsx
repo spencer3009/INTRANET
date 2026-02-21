@@ -252,6 +252,22 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     setSettings(prev => ({ ...prev, [field]: value }));
   };
 
+  // Handle role settings toggle
+  const handleToggleAdminAccounting = async () => {
+    setSavingRoles(true);
+    try {
+      const newValue = !allowAdminAccounting;
+      await axios.put(`${API}/settings/roles`, { allow_admin_accounting: newValue }, { headers });
+      setAllowAdminAccounting(newValue);
+      setSuccess(newValue ? "Administradores ahora pueden acceder a Contabilidad" : "Acceso de administradores a Contabilidad deshabilitado");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar configuración de roles");
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
   const schoolName = settings.system_name || user?.name || "Mi Colegio";
   const logoUrl = settings.logo_url;
 
