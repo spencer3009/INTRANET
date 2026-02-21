@@ -4,85 +4,74 @@ The user is building EduNet, a premium, multi-tenant SaaS application for school
 **PRODUCT REQUIREMENTS:**
 -   **Core Modules:** Implement robust, professional modules for Class Schedules, Exam Schedules, and Attendance, with distinct views and permissions for admins and students.
 -   **QR Code System:** Generate a unique, persistent QR code for each student upon creation. This QR code will be used for marking attendance via a camera-based scanner and for general student identification. The QR code data should be a secure JWT containing the  and .
--   **UI/UX:** Maintain a professional, responsive, and intuitive user interface. Consolidate related features into tabs to avoid sidebar clutter. Address UI bugs like flickering to ensure a smooth user experience.
--   **Technical Debt Management:** Proactively refactor monolithic files (, ) into smaller, modular components and routers to ensure long-term maintainability and scalability.
+-   **UI/UX:** Maintain a professional, responsive, and intuitive user interface. Consolidate related features into tabs to avoid sidebar clutter. Address UI bugs to ensure a smooth user experience.
+-   **Technical Debt Management:** Proactively refactor monolithic files () into smaller, modular components and routers to ensure long-term maintainability and scalability.
+-   **Data Integrity:** Ensure that deleting users also cleans up all their associated data (attendance, grades, etc.) to prevent orphaned records.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack monolith (FastAPI + React). It features:
--   A complete **Class Schedule** and **Exam Schedule** module for both admins and students.
--   A fully refactored and student-focused **Attendance Reports** module with grade/section filters, key metrics, and PDF export functionality.
--   **Successful Refactoring:**
-    -   The massive  has been broken down into smaller components located in , reducing its size by over 70%.
--   **Completed Bug Fixes:**
-    -   The UI flickering issue on the sticky columns in  has been resolved.
-    -   Multiple bugs in the Attendance module (incorrect section filtering, date display errors) have been fixed.
--   **QR Code System (Partially Implemented):**
-    -   The backend generates a  (JWT) when a student is created and has an endpoint () to validate it and log attendance.
-    -   The frontend has a new Escanear QR tab in the Attendance module that uses the device camera.
-    -   A modal to display a student's QR code () has been created.
+The application is a full-stack monolith (FastAPI + React). It has a complete QR code-based attendance system and user management. The current session focused heavily on fixing data consistency bugs and implementing significant UI/UX improvements on the student portal based on user feedback.
+
+Key existing features:
+-   **QR Code Attendance:** The system for scanning and recording attendance via QR code is now fully functional and synchronized with the manual attendance views.
+-   **Data Consistency:** Multiple bugs related to data being stored in one collection (e.g., ) but read from another () have been resolved across several features (QR Scan, Student Dashboard, Attendance Page). Field name inconsistencies ( vs. ) for tasks have also been fixed.
+-   **Student Dashboard:** A completely revamped student dashboard that now shows live, accurate data for Courses, Tasks, Attendance, and Messages. It features a new Task Progress widget with color-coded status, and the main content area has been redesigned into a two-column, paginated layout for My Courses and Upcoming Tasks.
+-   **Attendance Module:** The Pendiente (Pending) status for students is fully functional. It's now possible to revert a student's attendance status back to Pendiente, which correctly deletes the record from all relevant database collections. The student's attendance calendar now correctly displays status colors, even on weekends.
+-   **Internal Messaging:** A bug preventing users from sending messages from the student profile pop-up within a course has been fixed.
 
 **Last working item**:
--   **Last item agent was working**: The user reported that after creating a new student, they could not find the Ver QR button. The agent determined that the button was correctly added to the table/list view of students but is missing from the card/grid view, which is what the user was seeing. The agent was in the process of locating the component responsible for the card view to add the missing button.
--   **Status**: IN PROGRESS
--   **Agent Testing Done**: N
+-   **Last item agent was working**: The user requested verification that the student's attendance calendar correctly uses different colors for various statuses. The agent created test data for a student with 'late' () and 'absent' () records and was in the process of taking screenshots to visually confirm the amber/orange and red colors appear correctly on the calendar.
+-   **Status**: USER VERIFICATION PENDING
+-   **Agent Testing Done**: Y
 -   **Which testing method agent to use?**: screenshot tool
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Ver QR button is missing from the student card view (P0)**
-    -   **Attempted fixes:** The agent successfully added the Ver QR button to the  component in , which renders students in a table. However, this did not solve the issue for the card view shown in the user's screenshot.
+-   **Issue 1: Verify Attendance Calendar Color-Coding (P0)**
+    -   **Description:** The user wants visual confirmation that the student's attendance calendar correctly displays amber/orange for 'late' () and red for 'absent' ().
+    -   **Attempted fixes:** The agent successfully created backend test data for a student with 'present', 'late', 'absent', and 'justified' statuses. A screenshot confirmed the summary cards on the page updated correctly. The final step is to verify the calendar itself.
     -   **Next debug checklist:**
-        1.  Re-examine  to identify the logic that toggles between the table view and the card view, or find the separate component that renders the student cards.
-        2.  Search the codebase for the component that renders the student card layout. A good starting point is to look for unique CSS classes visible in the user's screenshot.
-        3.  Once the correct component is found, implement the same dropdown menu logic (with the three-dot icon) and the  handler that was added to the  component.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a blocker for the QR code feature. Fixing it will allow administrators to view, download, and print the QR codes for all students, regardless of the UI view they are using.
-    -   **Status:** IN PROGRESS
+        1.  Use the  tool on the student attendance page ().
+        2.  Scroll down to the calendar view.
+        3.  Verify that the days with test data are colored correctly: amber/orange for 'late', red for 'absent', and blue for 'justified'.
+    -   **Why fix this issue and what will be achieved with the fix?** This will confirm that the UI feature is complete as per user requirements, providing clear visual cues for different attendance statuses.
+    -   **Status:** USER VERIFICATION PENDING
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** frontend
 
 **In progress Task List**:
--   **Task 1: Complete the QR Code Feature (P0)**
-    -   **Where to resume:** Begin by fixing the missing Ver QR button as described in Issue 1 above.
-    -   **What will be achieved with this?** A fully functional end-to-end QR code system where admins can generate and view codes, and the Escanear QR tab can be used to take attendance.
-    -   **Status:** IN PROGRESS
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** Resolving Issue 1.
+-   None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Modularize :** CRITICAL. The backend  file is over 17,000 lines and is a significant source of technical debt. Follow the plan in  to break it down into domain-specific  files (e.g., , , ).
+    -   **P0: Modularize :** CRITICAL. This task was the top priority from the previous fork and remains unaddressed. The backend  file is over 17,000 lines and represents a significant source of technical debt. It must be refactored into smaller, domain-specific routers as outlined in .
 -   **Future Tasks:**
-    -   **P1:** Implement a basic anti-cheating system for exams (detecting tab changes, loss of focus, etc.).
     -   **P1:** Build a Matrículas (Enrollments) module.
+    -   **P1:** Implement a basic anti-cheating system for exams.
     -   **P1:** Enhance the Exams module with a Question Bank.
-    -   **P1:** Implement automatic notifications for students (e.g., when a new exam is scheduled).
-    -   **P2:** Perform a project-wide replacement of native  and  dialogs with custom modals for a more professional look and feel.
+    -   **P1:** Implement automatic notifications for students.
+    -   **P2:** Perform a project-wide replacement of native  and  dialogs with custom modals.
+    -   **P2:** Refactor the  and  monolith components.
 
 **Completed work in this session**
--   **Feature: QR Code System (Partial)**
-    -   Implemented backend logic to generate a unique  for each student ().
-    -   Created a backend endpoint to validate the QR token and record attendance ().
-    -   Built a Scan QR tab with a camera scanner UI in the frontend (, ).
-    -   Added a button to view the QR code in the student list view ().
--   **Feature: PDF Export for Attendance Reports**
-    -   Implemented PDF export functionality for student attendance reports using  and  in .
--   **Feature: Attendance Reports Overhaul**
-    -   The  in  was completely rewritten to be student-centric, with new filters, metrics, and UI.
--   **Bugfix: Multiple Attendance Report Fixes**
-    -   Fixed a bug where the section dropdown did not filter correctly based on the selected grade.
-    -   Resolved a date-off-by-one error in the report header caused by timezone handling.
--   **Bugfix: Sticky Column Flickering**
-    -   Fixed a major UI bug in  where sticky columns would flicker during scroll. Verified with the testing agent.
--   **Refactor: **
-    -   Successfully broke down the ~2,600 line  monolith into smaller, manageable components, improving code quality and maintainability. Verified with the testing agent.
--   **Feature: Student Exam Calendar**
-    -   Completed and verified the read-only calendar view for students to see their exam schedules.
+-   **Bug Fix: QR Scan & Manual Attendance Synchronization:** Fixed a critical bug where QR scan attendance was not reflected in the main attendance view by unifying logic to use the  collection.
+-   **Bug Fix: Restore Pendiente (Pending) Status:** Fixed a regression where students without an attendance record defaulted to Present. Also implemented the ability to revert a marked student back to Pendiente.
+-   **Bug Fix: Internal Messaging from Course Page:** Resolved a JavaScript error that blocked sending messages from the student pop-up in a course detail page.
+-   **Feature: Live Student Dashboard:** Connected the student dashboard widgets (Tasks, Attendance, etc.) to live backend data, fixing numerous bugs related to incorrect database collections and field names.
+-   **Feature: Student Dashboard UI Overhaul:**
+    -   Redesigned the Mis Cursos and Tareas Próximas lists into a two-column, clickable layout.
+    -   Replaced the infinite scroll with a professional, paginated view for these lists.
+-   **Feature: Task Progress Widget:** Replaced the Promedio General widget with a more useful Progreso de Tareas widget showing completion percentage with dynamic, status-based colors (red/yellow/green).
+-   **Bug Fix: Student Task Visibility:** Resolved an issue where assigned tasks were not appearing on the student's task page or dashboard due to inconsistent  vs  field usage in the database.
+-   **Feature: Direct Navigation to Task:** Implemented navigation so that clicking a task on the dashboard or task list takes the student directly to the course page with the specific task opened.
+-   **Bug Fix: Student Attendance Page Consistency:** Fixed a bug causing the Mi Asistencia page to show 0 records while the dashboard showed the correct count.
+-   **Bug Fix: Attendance Calendar Color on Weekends:** Fixed an issue where attendance on a weekend was styled as a gray weekend day instead of green for present.
 
 **Earlier issues found/mentioned but not fixed**
--   The project-wide replacement of  and  with custom modals is still pending as a future task.
--   The large-scale refactoring of  has been planned but not yet executed.
+-   The large-scale refactoring of  has been planned but not yet executed and remains the highest priority technical debt.
+-   The project-wide replacement of  and  with custom modals is still pending.
+-   The  and  components remain large monoliths in need of refactoring.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -91,82 +80,79 @@ The application is a full-stack monolith (FastAPI + React). It features:
 
 
 **Key Technical Concepts**
--   **Component Refactoring:** Successfully broke down a mega-monolith React component () into smaller, single-responsibility components, significantly improving maintainability.
--   **CSS Sticky Positioning:** Debugged and fixed a common  flickering issue by replacing dynamic JavaScript-based position calculations with a pure, stable CSS approach.
--   **Date/Timezone Handling in JS:** Addressed a common JavaScript bug where creating a  object from a  string defaults to UTC midnight, causing timezone-related shifts. The fix involved specifying a neutral time () to ensure date consistency.
--   **Client-Side PDF Generation:** Implemented PDF creation directly in the browser using  and  to generate reports from API data without server-side processing.
--   **JWT for Identification:** Used JSON Web Tokens not for authentication, but as a secure, self-contained identifier () for the QR code system. This avoids exposing raw IDs and allows for secure validation on the backend.
+-   **Data Consistency Across Collections:** A core challenge in this session was fixing bugs caused by data being written to one collection (e.g., ) but read from another (). The agent had to consolidate logic across multiple endpoints to ensure a single source of truth.
+-   **Debugging Inconsistent Data:** The agent traced API calls and inspected database queries to resolve discrepancies between what was shown on dashboards versus detail pages, particularly fixing filters that used incorrect field names (e.g.,  vs. ).
+-   **Dynamic UI Rendering & State Management:** Implemented complex frontend logic for pagination, a new task progress widget with dynamic colors, and fixed conditional rendering in the attendance calendar to prioritize status over weekend styling.
+-   **Client-Side Navigation with URL Params:** Used URL parameters () to pass state between pages and trigger specific UI states on page load, such as automatically opening a task detail view.
 
 **key DB schema**
--   ** (Updated):** Student documents now contain a  field (string), which stores the signed JWT used for generating their QR code.
+-   **:** Now the primary, unified collection for both manual and QR-scanned attendance records. Uses .
+-   **:** A legacy collection for QR scans. Logic has been added to sync its records into .
+-   **:** Stores tasks and other course content. Was the source of a major bug due to inconsistent use of  vs , which is now resolved in key endpoints.
 
 **changes in tech stack**
--   **Frontend Dependencies Added:**
-    -   
-    -   
-    -   
-    -   
+-   None.
 
 **All files of reference**
--    (CRITICAL: Contains the bug for the current issue)
--    (Heavily modified for reports and QR scanner)
--    (Heavily modified, pending major refactor)
--    (New component for the QR feature)
--    (New component for the QR feature)
--    (New documentation for backend refactor plan)
--    (Updated)
+-    (Heavily modified across numerous endpoints)
+-    (Heavily modified with major UI/UX changes)
+-    (Endpoint and calendar color logic fixed)
+-    (API call logic fixed)
+-    (Modified for messaging and task navigation)
+-    (Modified for Pendiente status logic)
+-    (Modified for messaging fix)
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This is the highest priority for refactoring. The backend monolith is a significant source of technical debt and risk. The plan in  should be executed next.
--   ** (High):** While the sticky bug was fixed, the file remains extremely large (~4.8k lines) and should be broken down into smaller components, similar to how  was handled.
+-   ** (CRITICAL):** Remains the highest priority for refactoring to manage technical debt.
+-   ** (CRITICAL):** This file is extremely large (~4.8k lines) and complex. It needs to be broken down into smaller components to improve maintainability.
+-   ** (High):** This file has grown significantly with the addition of pagination logic and new widgets. It should be refactored into smaller, more focused components.
 
 **key api endpoints**
--   **QR Code System (New/Modified):**
-    -   : Modified to generate  when creating a student.
-    -   : New endpoint to validate a QR token and record student attendance.
--   **Attendance Reports (Modified):**
-    -   : The frontend was corrected to pass  (instead of ) to properly filter sections.
+-   **:** Heavily modified to provide accurate data for the new widgets, calculating task progress and reading attendance/tasks from the correct, unified collections.
+-   **:** Corrected to read from the unified  collection, fixing a major data inconsistency between the dashboard and the student's personal attendance page.
+-   **:** The backend logic was made more flexible to handle both  and , and the frontend was corrected to use the right parameters.
+-   **:** Modified to sync with the main  collection.
+-   : Modified to correctly handle the Pendiente status by deleting existing records from all relevant collections.
 
 **Critical Info for New Agent**
 -   **Communicate in Spanish.**
--   **Immediate Priority:** Fix the missing Ver QR button. The user is blocked on a new feature. You must find the component that renders students as **cards** (not table rows) and add the dropdown menu with the Ver QR option there. The logic should be reusable from the existing  component in .
--   **Next Major Task:** After fixing the QR bug and ensuring the feature is complete, you must begin the backend refactoring of . This is a critical P0 task to manage technical debt and improve the stability of the application. Refer to .
+-   **Immediate Priority:** Complete the last user request by verifying the attendance calendar's color-coding. Take a final screenshot showing that late () is amber/orange and absent () is red.
+-   **Next Major Task (P0):** After verifying the calendar, you **must** begin the P0 backend refactoring of . This has been postponed for too long and is critical for the project's health.
+-   **Data Model Inconsistency:** Be vigilant about historical inconsistencies between DB collections ( vs ) and fields ( vs ). While key endpoints were fixed, others might still use old formats. Always verify the data model when debugging.
+-   **Frontend Technical Debt:**  and  are now complex monoliths and should be high on the refactoring priority list after .
 
 **documents and test reports created in this job**
--   
--   
--   
--   
+-    (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Requests implementation of a QR code system for student identification and attendance. **Status: IN PROGRESS.**
-2.  **User:** After creating a student, asks where to view the QR code. **Status: IN PROGRESS.**
-3.  **User:** I only see edit and delete. This confirms the Ver QR button is missing from their view. **Status: PENDING.**
-4.  **User:** The PDF export button doesn't work. **Status: COMPLETED.**
-5.  **User:** The date range in the attendance report header is off by one day. **Status: COMPLETED.**
-6.  **User:** The sections dropdown in attendance reports isn't filtering correctly by grade. **Status: COMPLETED.**
-7.  **User:** The attendance report module should be focused on students, not teachers. **Status: COMPLETED.**
-8.  **User:** Remove the Horario de Profesores tab from the schedules page. **Status: COMPLETED.**
-9.  **User:** Asks to prioritize fixing the sticky column flickering bug. **Status: COMPLETED.**
-10. **User:** Approves the plan to refactor  and then . **Status: ADDRESSED** (Frontend part is done, backend is pending).
+1.  **User:** Test if the attendance calendar shows orange for 'late' and red for 'absent'. **Status: IN PROGRESS**
+2.  **User:** Why is the attendance for Saturday (day 21) gray instead of green? **Status: COMPLETED**
+3.  **User:** The dashboard shows 2 attendances, but the Mi Asistencia page shows 0. **Status: COMPLETED**
+4.  **User:** Clicking a task from the list should navigate to its detailed view. **Status: COMPLETED**
+5.  **User:** The student's Mis Tareas page isn't showing any tasks. **Status: COMPLETED**
+6.  **User:** Redesign the Average Grade widget to be a Task Progress widget with status colors. **Status: COMPLETED**
+7.  **User:** A task I created isn't showing on the student's dashboard. **Status: COMPLETED**
+8.  **User:** The student dashboard widgets aren't showing real data. **Status: COMPLETED**
+9.  **User:** Replace the scrollbar on the student dashboard with a premium pagination component. **Status: COMPLETED**
+10. **User:** Redesign the student dashboard to have two clickable columns for courses and tasks. **Status: COMPLETED**
 
 **Project Health Check:**
--   **Broken**: The QR Code feature is broken for users who see the card layout for students, as they have no way to access the generated QR codes. The QR scanner's end-to-end flow is also untested.
--   **Mocked**: N/A
+-   **Broken**: None. The application is stable, and the last pending item is a visual verification requested by the user.
+-   **Mocked**: None. All dashboard components and pages are now connected to live backend endpoints.
 
 **3rd Party Integrations**
 -   TipTap / Prosemirror
 -   Cloudinary
 -   Google Drive API
--   ** & **: For client-side PDF generation.
--   ****: For rendering QR code images in the UI.
--   ****: For using the device camera to scan QR codes.
+-    & 
+-   
+-   
 
 **Testing status**
--   **Testing agent used after significant changes**: YES (for  refactor and sticky column fix).
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: , 
--   **Known regressions**: None.
+-   **Test files created**: None
+-   **Known regressions**: A regression related to the Pendiente status was introduced and fixed within this session.
 
 **Credentials to test flow:**
 -   **Primary School for testing:** 
@@ -174,4 +160,4 @@ The application is a full-stack monolith (FastAPI + React). It features:
 -   **Student**:  / 
 
 **What agent forgot to execute**
--   The agent did not account for all UI variations when implementing the Ver QR button. They correctly added it to the list/table view but missed the card/grid view, resulting in an incomplete and confusing feature rollout for the user.</analysis>
+-   The P0 priority task from the previous handoff summary, refactoring the monolithic  file, was not started. The agent prioritized implementing a series of user-requested features and bug fixes instead.</analysis>
