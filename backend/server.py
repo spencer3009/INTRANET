@@ -7917,6 +7917,40 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     existing_record = existing_attendance or existing_in_attendances
     
     if existing_record:
+        # If record exists in student_attendance but NOT in attendances, sync it
+        if existing_attendance and not existing_in_attendances:
+            now = datetime.now(timezone.utc)
+            await db.attendances.update_one(
+                {
+                    "school_id": school_id,
+                    "type": "student",
+                    "user_id": student_id,
+                    "grade_id": student.get("grado_id"),
+                    "section_id": student.get("seccion_id"),
+                    "date": today
+                },
+                {
+                    "$set": {
+                        "status": existing_attendance.get("status", "present"),
+                        "recorded_by": existing_attendance.get("scanned_by", current_user["sub"]),
+                        "created_at": now.isoformat(),
+                        "method": "qr_scan",
+                        "check_in_time": existing_attendance.get("check_in_time", "")
+                    },
+                    "$setOnInsert": {
+                        "id": str(uuid.uuid4()),
+                        "school_id": school_id,
+                        "type": "student",
+                        "user_id": student_id,
+                        "grade_id": student.get("grado_id"),
+                        "section_id": student.get("seccion_id"),
+                        "date": today
+                    }
+                },
+                upsert=True
+            )
+            logger.info(f"QR Attendance synced for {student_info['full_name']} to attendances collection")
+        
         # Already marked today
         return {
             "status": "already_marked",
