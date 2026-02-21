@@ -79,6 +79,7 @@ function StudentAttendanceTab({ token, schoolId }) {
   const [hasSavedRecords, setHasSavedRecords] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPendingModal, setShowPendingModal] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
 
