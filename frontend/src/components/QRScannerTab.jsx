@@ -544,14 +544,17 @@ export default function QRScannerTab({ token }) {
                           key={cameraFacing}
                           onScan={handleScan}
                           onError={handleError}
-                          formats={["qr_code"]}
+                          formats={["qr_code", "aztec", "data_matrix"]}
                           constraints={{
-                            facingMode: cameraFacing
+                            facingMode: cameraFacing,
+                            width: { ideal: 1280 },
+                            height: { ideal: 720 }
                           }}
+                          scanDelay={100}
                           components={{
                             audio: false,
                             torch: true,
-                            finder: false // Disable default finder, we'll add our own
+                            finder: true
                           }}
                           styles={{
                             container: { width: '100%', height: '100%' },
@@ -559,40 +562,25 @@ export default function QRScannerTab({ token }) {
                           }}
                         />
                         
-                        {/* Custom centered scanning guide */}
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                          {/* Semi-transparent overlay with hole in center */}
-                          <div className="absolute inset-0 bg-black/30"></div>
-                          
-                          {/* Clear center area */}
-                          <div className="relative w-48 h-48 bg-transparent">
-                            {/* Clear the overlay in center */}
-                            <div className="absolute inset-0 bg-black/30" style={{ 
-                              boxShadow: '0 0 0 9999px rgba(0,0,0,0.3)',
-                              backgroundColor: 'transparent'
-                            }}></div>
-                            
-                            {/* Corner guides */}
-                            <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-violet-400 rounded-tl-lg"></div>
-                            <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-violet-400 rounded-tr-lg"></div>
-                            <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-violet-400 rounded-bl-lg"></div>
-                            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-violet-400 rounded-br-lg"></div>
-                            
-                            {/* Animated scan line */}
-                            <div className="absolute left-2 right-2 h-0.5 bg-violet-400 animate-pulse" 
-                                 style={{ top: '50%', boxShadow: '0 0 8px rgba(139, 92, 246, 0.8)' }}></div>
-                          </div>
-                        </div>
-                        
                         {/* Processing overlay */}
                         {loading && (
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
                             <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-xl">
                               <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
                               <span className="font-medium">Procesando QR...</span>
                             </div>
                           </div>
                         )}
+                      </div>
+                      
+                      {/* Corner guides - outside scanner to not interfere */}
+                      <div className="absolute inset-0 pointer-events-none p-1">
+                        <div className="relative w-full h-full">
+                          <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white/80 rounded-tl-xl"></div>
+                          <div className="absolute top-0 right-0 w-10 h-10 border-t-4 border-r-4 border-white/80 rounded-tr-xl"></div>
+                          <div className="absolute bottom-0 left-0 w-10 h-10 border-b-4 border-l-4 border-white/80 rounded-bl-xl"></div>
+                          <div className="absolute bottom-0 right-0 w-10 h-10 border-b-4 border-r-4 border-white/80 rounded-br-xl"></div>
+                        </div>
                       </div>
                     </div>
                   </div>
