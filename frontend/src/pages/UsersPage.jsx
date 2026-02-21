@@ -825,7 +825,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
                 // Fixed role - not editable
                 <div className="w-full px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl text-slate-700 font-medium">
                   {roleId === 'owner' ? 'Propietario' : 
-                   roleId === 'admin' ? 'Director' : 
+                   roleId === 'admin' ? 'Administrador' : 
                    roleId === 'teacher' ? 'Profesor' : 
                    roleId === 'student' ? 'Estudiante' : 
                    roleId === 'parent' ? 'Padre/Apoderado' : roleId}
@@ -839,7 +839,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
                 >
                   <option value="">Seleccionar</option>
                   <option value="owner">Propietario</option>
-                  <option value="admin">Director</option>
+                  <option value="admin">Administrador</option>
                   <option value="teacher">Profesor</option>
                   <option value="student">Estudiante</option>
                   <option value="parent">Padre/Apoderado</option>
