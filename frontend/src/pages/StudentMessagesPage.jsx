@@ -697,7 +697,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                         <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-gray-800" : "text-gray-600"}`}>
                           {msg.subject}
                         </p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{msg.body_preview}</p>
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{stripHtml(msg.body_preview)}</p>
                       </div>
                       
                       <div className="flex flex-col items-center gap-1">
