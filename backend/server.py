@@ -2663,8 +2663,8 @@ async def get_admin_tasks(
     
     school_id = user["school_id"]
     
-    # Build query
-    query = {"school_id": school_id, "type": "task"}
+    # Build query - support both "type" and "post_type" for backwards compatibility
+    query = {"school_id": school_id, "$or": [{"post_type": "task"}, {"type": "task"}]}
     if subject_id:
         query["subject_id"] = subject_id
     if teacher_id:
