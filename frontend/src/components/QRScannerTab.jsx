@@ -397,15 +397,30 @@ export default function QRScannerTab({ token }) {
                 {cameraError ? (
                   // Camera Error State
                   <div className="space-y-4">
-                    <div className={`w-20 h-20 bg-${cameraError.color}-100 rounded-full flex items-center justify-center mx-auto`}>
-                      {cameraError.icon && <cameraError.icon className={`w-10 h-10 text-${cameraError.color}-600`} />}
+                    <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto ${
+                      cameraError.color === 'amber' ? 'bg-amber-100' :
+                      cameraError.color === 'red' ? 'bg-red-100' :
+                      cameraError.color === 'blue' ? 'bg-blue-100' :
+                      'bg-slate-100'
+                    }`}>
+                      {cameraError.icon && <cameraError.icon className={`w-10 h-10 ${
+                        cameraError.color === 'amber' ? 'text-amber-600' :
+                        cameraError.color === 'red' ? 'text-red-600' :
+                        cameraError.color === 'blue' ? 'text-blue-600' :
+                        'text-slate-600'
+                      }`} />}
                     </div>
                     <div>
-                      <h4 className={`text-xl font-bold text-${cameraError.color}-700 mb-2`}>{cameraError.title}</h4>
+                      <h4 className={`text-xl font-bold mb-2 ${
+                        cameraError.color === 'amber' ? 'text-amber-700' :
+                        cameraError.color === 'red' ? 'text-red-700' :
+                        cameraError.color === 'blue' ? 'text-blue-700' :
+                        'text-slate-700'
+                      }`}>{cameraError.title}</h4>
                       <p className="text-slate-600 mb-6 max-w-sm mx-auto">{cameraError.message}</p>
                     </div>
                     
-                    {/* Instructions based on error type */}
+                    {/* Instructions for permission denied */}
                     {cameraError.action === "retry" && (
                       <div className="bg-slate-50 rounded-xl p-4 mb-4 text-left max-w-sm mx-auto">
                         <p className="text-sm font-medium text-slate-700 mb-2">Para activar la cámara:</p>
@@ -417,22 +432,41 @@ export default function QRScannerTab({ token }) {
                       </div>
                     )}
                     
+                    {/* Instructions for iframe issues */}
+                    {cameraError.action === "breakIframe" && (
+                      <div className="bg-blue-50 rounded-xl p-4 mb-4 text-left max-w-sm mx-auto">
+                        <p className="text-sm font-medium text-blue-700 mb-2">¿Por qué ocurre esto?</p>
+                        <p className="text-sm text-blue-600 mb-2">
+                          Los navegadores modernos bloquean el acceso a la cámara dentro de ciertos contextos (iframes) por seguridad.
+                        </p>
+                        <p className="text-sm text-blue-600">
+                          Al abrir en ventana completa, la cámara funcionará correctamente.
+                        </p>
+                      </div>
+                    )}
+                    
                     <div className="flex gap-3 justify-center flex-wrap">
                       <button
                         onClick={handleErrorAction}
                         disabled={checkingCamera}
-                        className={`px-6 py-3 bg-${cameraError.color}-500 text-white rounded-xl font-semibold hover:bg-${cameraError.color}-600 transition-all flex items-center gap-2`}
+                        className={`px-6 py-3 text-white rounded-xl font-semibold transition-all flex items-center gap-2 ${
+                          cameraError.color === 'amber' ? 'bg-amber-500 hover:bg-amber-600' :
+                          cameraError.color === 'red' ? 'bg-red-500 hover:bg-red-600' :
+                          cameraError.color === 'blue' ? 'bg-blue-500 hover:bg-blue-600' :
+                          'bg-slate-500 hover:bg-slate-600'
+                        }`}
                       >
                         {checkingCamera ? (
                           <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : cameraError.action === "openFullWindow" ? (
+                        ) : cameraError.action === "breakIframe" || cameraError.action === "openFullWindow" ? (
                           <ExternalLink className="w-5 h-5" />
                         ) : cameraError.action === "openSecure" ? (
                           <Shield className="w-5 h-5" />
                         ) : (
                           <RefreshCw className="w-5 h-5" />
                         )}
-                        {cameraError.action === "openFullWindow" ? "Abrir en ventana nueva" :
+                        {cameraError.action === "breakIframe" ? "Abrir en ventana completa" :
+                         cameraError.action === "openFullWindow" ? "Abrir en ventana nueva" :
                          cameraError.action === "openSecure" ? "Ir a versión segura" : 
                          "Reintentar"}
                       </button>
