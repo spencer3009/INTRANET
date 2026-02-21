@@ -639,175 +639,27 @@ function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/admin/students"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminStudentsPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/teachers"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminTeachersPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/academic-structure"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminAcademicStructurePage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/grades-management"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminGradesManagementPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/attendance"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminAttendancePage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/tasks"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminTasksPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/exams"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminExamsPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          {/* Redirect legacy exam-schedule route to horarios (exam schedule is now a tab) */}
-          <Route
-            path="/admin/exam-schedule"
-            element={<Navigate to="/horarios" replace />}
-          />
-          <Route
-            path="/admin/settings"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminSettingsPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/branding"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminBrandingPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/announcements"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminAnnouncementsPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/messages"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminMessagesPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/admin/roles"
-            element={
-              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminRolesPage user={user} token={token} onLogout={handleLogout} />
-                )}
-              </ProtectedRoute>
-            }
-          />
           
-          {/* Admin Portal - Route based for school subdomain */}
+          {/* ════════════════════════════════════════════════════════════════════
+              ADMIN PORTAL - Route based for school subdomain
+              All admin routes redirect to owner's dashboard with RBAC
+          ════════════════════════════════════════════════════════════════════ */}
           <Route
             path="/school/:subdomain/admin"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
-                ) : (
-                  <AdminDashboardPage user={user} token={token} onLogout={handleLogout} />
-                )}
+                <Navigate to={getDashboardPath()} replace />
               </ProtectedRoute>
             }
           />
           <Route
-            path="/school/:subdomain/admin/users"
+            path="/school/:subdomain/admin/*"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
-                  <Navigate to={getDashboardPath()} replace />
+                <Navigate to={getDashboardPath()} replace />
+              </ProtectedRoute>
+            }
+          />
                 ) : (
                   <AdminUsersPage user={user} token={token} onLogout={handleLogout} />
                 )}
