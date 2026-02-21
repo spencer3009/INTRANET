@@ -707,6 +707,9 @@ async def login(creds: UserLogin):
         user["id"], user["email"], user["name"], user["role"],
         school_id, subdomain, user.get("email_verified", False)
     )
+    
+    # Get RBAC permissions for the user
+    permissions = await get_user_permissions(user, school_id)
 
     return {
         "token": token,
@@ -724,7 +727,8 @@ async def login(creds: UserLogin):
             "is_super_admin": user.get("is_super_admin", False),
             "is_protected": user.get("is_protected", False),
             "photo_url": user.get("photo_url"),
-            "phone": user.get("phone")
+            "phone": user.get("phone"),
+            "permissions": permissions
         },
         # SHOPIFY RULE: If user has subdomain, tell frontend to redirect
         "redirect_to_subdomain": subdomain is not None,
