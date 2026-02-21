@@ -522,7 +522,7 @@ function App() {
                 ) : isAdminOnly(user) ? (
                   <Navigate to="/admin" replace />
                 ) : (
-                  <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                  <StudentMessagesPage user={user} token={token} onLogout={handleLogout} />
                 )}
               </ProtectedRoute>
             }
