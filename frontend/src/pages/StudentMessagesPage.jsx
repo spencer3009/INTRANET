@@ -780,13 +780,22 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                     <h2 className="text-xl font-bold text-gray-900">{selectedMessage.subject}</h2>
                     <div className="flex items-center gap-2">
                       {activeFolder === "trash" ? (
-                        <button
-                          onClick={() => handleRestore(selectedMessage.id)}
-                          className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
-                          title="Restaurar"
-                        >
-                          <ArchiveRestore className="w-5 h-5" />
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleRestore(selectedMessage.id)}
+                            className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
+                            title="Restaurar"
+                          >
+                            <ArchiveRestore className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDeletePermanently(selectedMessage.id)}
+                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                            title="Eliminar permanentemente"
+                          >
+                            <AlertTriangle className="w-5 h-5" />
+                          </button>
+                        </>
                       ) : (
                         <>
                           <button
