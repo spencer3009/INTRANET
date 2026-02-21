@@ -4427,9 +4427,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
     
     // Handle task parameter - navigate to tasks tab and open the task
     if (taskId) {
-      setActiveTab("tasks");
-      // Set a flag to open the task modal after loading
-      setSelectedTaskId(taskId);
+      setActiveTab("tareas");
+      setHighlightedPostId(taskId);
       // Clean up URL params
       const url = new URL(window.location.href);
       url.searchParams.delete('task');
