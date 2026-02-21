@@ -707,7 +707,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
               {/* Empty Trash Button */}
               {activeFolder === "trash" && stats.trash > 0 && (
                 <button
-                  onClick={handleEmptyTrash}
+                  onClick={showEmptyTrashConfirm}
                   className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all border border-red-200"
                   data-testid="empty-trash-btn"
                 >
