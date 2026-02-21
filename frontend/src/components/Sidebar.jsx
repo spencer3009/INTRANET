@@ -112,8 +112,6 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         isExpanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
       data-testid="sidebar"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
     >
       {/* Top: Logo + Toggle */}
       <div className="flex items-center justify-center h-16 border-b border-white/10 px-3">
