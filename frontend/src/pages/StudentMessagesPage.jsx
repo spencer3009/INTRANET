@@ -502,7 +502,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   // Load school settings
   const loadSettings = async () => {
     try {
-      const res = await axios.get(`${API}/api/school/settings`, { headers });
+      const res = await axios.get(`${API}/api/settings`, { headers });
       setSettings(res.data);
     } catch (err) {
       console.error("Error loading settings:", err);
