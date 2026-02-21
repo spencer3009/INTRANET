@@ -914,8 +914,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
   };
 
   useEffect(() => {
-    loadThreads();
-    loadContacts();
+    loadData();
   }, [token]);
   
   // Handle directChatUser - open chat directly with this user
