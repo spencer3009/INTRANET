@@ -2177,7 +2177,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             
             {/* Subtitle */}
             <p className="text-slate-500 text-sm mb-5">
-              Estás a punto de eliminar a <span className="font-medium">{userToDelete.name} {userToDelete.last_name || ''}</span>
+              Estás a punto de eliminar a <span className="font-bold text-slate-700">{userToDelete.name} {userToDelete.last_name || ''}</span>
             </p>
             
             {/* Data to delete box */}
@@ -2266,6 +2266,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
               )}
             </div>
+            
+            {/* Warning text */}
+            <p className="text-sm text-slate-400 mt-4">
+              Esta acción es permanente y no se puede deshacer
+            </p>
           </div>
         ) : ""}
         confirmText="Eliminar"
