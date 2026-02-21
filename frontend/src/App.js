@@ -59,6 +59,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 import ExamAttemptPage from "@/pages/ExamAttemptPage";
 import ExamResultPage from "@/pages/ExamResultPage";
 import StudentExamSchedulePage from "@/pages/StudentExamSchedulePage";
+import StudentMessagesPage from "@/pages/StudentMessagesPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
