@@ -4008,15 +4008,16 @@ async def get_signed_download_url(
 # ══════════════════════════════════════════════════════════════════════════════
 
 @api_router.get("/settings")
-async def get_tenant_settings(current_user = Depends(get_current_user)):
+async def get_tenant_settings(current_user = Depends(require_section_access("settings"))):
     """
     Get settings for the current user's tenant.
+    RBAC: Only owner can access this section.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    user = current_user  # Already validated by require_section_access
+    school_id = user.get("school_id")
     
-    school_id = user["school_id"]
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     # Get school info
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
@@ -4044,26 +4045,25 @@ async def get_tenant_settings(current_user = Depends(get_current_user)):
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
     
+    # Include school-level role settings
+    settings["allow_admin_accounting"] = school.get("allow_admin_accounting", False)
+    
     return settings
 
 @api_router.put("/settings")
 async def update_tenant_settings(
     data: TenantSettingsUpdate,
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_section_access("settings"))
 ):
     """
     Update settings for the current user's tenant.
-    Only admins/owners can update settings.
+    RBAC: Only owner can access this section.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
+    user = current_user  # Already validated by require_section_access
+    school_id = user.get("school_id")
+    
+    if not school_id:
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    # Check role - only owner or admin can update settings
-    if not is_admin_user(user):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden modificar ajustes")
-    
-    school_id = user["school_id"]
     
     # Build update document (only include non-None values)
     update_data = {k: v for k, v in data.model_dump().items() if v is not None}
@@ -4100,6 +4100,45 @@ async def update_tenant_settings(
     return {
         "message": "Ajustes guardados correctamente",
         "settings": settings
+    }
+
+@api_router.put("/settings/roles")
+async def update_role_settings(
+    data: dict = Body(...),
+    current_user = Depends(require_section_access("settings"))
+):
+    """
+    Update role-specific settings (feature flags).
+    RBAC: Only owner can access this section.
+    """
+    user = current_user
+    school_id = user.get("school_id")
+    
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Update allowed fields only
+    allowed_fields = ["allow_admin_accounting"]
+    update_data = {}
+    for field in allowed_fields:
+        if field in data:
+            update_data[field] = bool(data[field])
+    
+    if update_data:
+        update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await db.schools.update_one(
+            {"id": school_id},
+            {"$set": update_data}
+        )
+    
+    # Get updated school
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1})
+    
+    logger.info(f"Role settings updated for school {school_id}: {update_data}")
+    
+    return {
+        "message": "Configuración de roles actualizada",
+        "allow_admin_accounting": school.get("allow_admin_accounting", False)
     }
 
 @api_router.get("/settings/public/{subdomain}")
