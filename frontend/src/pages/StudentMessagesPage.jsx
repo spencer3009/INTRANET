@@ -561,31 +561,34 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
     }
   };
   
-  const handleDeletePermanently = async (messageId) => {
-    if (!window.confirm("¿Estás seguro de eliminar este mensaje permanentemente? Esta acción no se puede deshacer.")) {
-      return;
-    }
-    try {
-      await axios.delete(`${API}/api/internal-mail/${messageId}/permanent`, { headers });
-      loadMessages(activeFolder);
-      loadStats();
-      if (selectedMessage?.id === messageId) setSelectedMessage(null);
-    } catch (err) {
-      console.error("Error deleting permanently:", err);
-    }
+  // Show confirm modal for permanent deletion
+  const showDeletePermanentlyConfirm = (messageId) => {
+    setConfirmModal({ isOpen: true, type: "deletePermanently", messageId });
   };
   
-  const handleEmptyTrash = async () => {
-    if (!window.confirm("¿Estás seguro de vaciar la papelera? Se eliminarán todos los mensajes permanentemente.")) {
-      return;
-    }
+  // Show confirm modal for empty trash
+  const showEmptyTrashConfirm = () => {
+    setConfirmModal({ isOpen: true, type: "emptyTrash", messageId: null });
+  };
+  
+  // Handle confirm action
+  const handleConfirmAction = async () => {
+    setConfirmLoading(true);
     try {
-      await axios.delete(`${API}/api/internal-mail/trash/empty`, { headers });
+      if (confirmModal.type === "deletePermanently" && confirmModal.messageId) {
+        await axios.delete(`${API}/api/internal-mail/${confirmModal.messageId}/permanent`, { headers });
+        if (selectedMessage?.id === confirmModal.messageId) setSelectedMessage(null);
+      } else if (confirmModal.type === "emptyTrash") {
+        await axios.delete(`${API}/api/internal-mail/trash/empty`, { headers });
+        setSelectedMessage(null);
+      }
       loadMessages(activeFolder);
       loadStats();
-      setSelectedMessage(null);
+      setConfirmModal({ isOpen: false, type: null, messageId: null });
     } catch (err) {
-      console.error("Error emptying trash:", err);
+      console.error("Error in confirm action:", err);
+    } finally {
+      setConfirmLoading(false);
     }
   };
   
