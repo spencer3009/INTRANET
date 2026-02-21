@@ -669,8 +669,8 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
         expanded={sidebarExpanded}
         onToggle={() => setSidebarExpanded(!sidebarExpanded)}
         onLogout={onLogout}
-        schoolName="Portal Alumno"
-        subdomain={user?.subdomain}
+        schoolName={schoolName}
+        subdomain={subdomain}
         user={user}
       />
       
@@ -679,6 +679,11 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
           user={user}
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
           onLogout={onLogout}
+          logoUrl={logoUrl}
+          schoolName={schoolName}
+          subdomain={subdomain}
+          token={token}
+        />
         />
         
         {/* Main Content */}
