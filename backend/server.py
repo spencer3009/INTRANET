@@ -1598,8 +1598,28 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
             "due_date": {"$gte": now.isoformat(), "$lte": week_later.isoformat()}
         }, {"_id": 0}).sort("due_date", 1).to_list(50)
         
+        # Get all task IDs to check submissions in task_submissions collection
+        task_ids = [t.get("id") for t in tasks if t.get("id")]
+        submitted_task_ids = set()
+        
+        # Check task_submissions collection (primary)
+        if task_ids:
+            submitted_tasks = await db.task_submissions.find({
+                "school_id": school_id,
+                "student_id": user["id"],
+                "task_id": {"$in": task_ids}
+            }, {"_id": 0, "task_id": 1}).to_list(100)
+            submitted_task_ids = set(s["task_id"] for s in submitted_tasks)
+        
         for task in tasks:
+            task_id = task.get("id")
+            
             # Check if student has already submitted this task
+            # First check task_submissions collection
+            if task_id in submitted_task_ids:
+                continue
+                
+            # Also check embedded submissions array for backwards compatibility
             submissions = task.get("submissions", [])
             student_submitted = any(s.get("student_id") == user["id"] for s in submissions)
             
