@@ -306,7 +306,7 @@ export function ComposeModal({ isOpen, onClose, token, onSent, replyTo, preselec
         }, { headers });
       }
       
-      onSent();
+      onSent?.();
       onClose();
     } catch (err) {
       setError(err.response?.data?.detail || "Error al enviar el mensaje");
