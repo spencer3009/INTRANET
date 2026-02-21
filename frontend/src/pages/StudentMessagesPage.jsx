@@ -523,6 +523,12 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
     }
   };
   
+  // Helper to strip HTML tags from preview text
+  const stripHtml = (html) => {
+    if (!html) return "";
+    return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  };
+  
   const formatDate = (dateStr) => {
     const date = new Date(dateStr);
     const today = new Date();
