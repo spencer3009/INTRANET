@@ -50,46 +50,16 @@ export default function StudentTasksPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      // Get courses and settings first
-      const [coursesRes, settingsRes] = await Promise.all([
-        axios.get(`${API}/api/student/courses`, { headers }),
+      // Single API call to get all tasks with stats
+      const [tasksRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/student/tasks`, { headers }),
         axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
       ]);
       
-      const studentCourses = coursesRes.data.courses || [];
-      setCourses(studentCourses);
+      setTasks(tasksRes.data.tasks || []);
       if (settingsRes.data) {
         setSettings(settingsRes.data);
       }
-      
-      // Get tasks from ALL courses in parallel (much faster)
-      const taskPromises = studentCourses.map(course =>
-        axios.get(`${API}/api/course/${course.id}/posts?post_type=task`, { headers })
-          .then(res => {
-            const postsData = res.data?.posts || res.data || [];
-            return postsData.map(task => ({
-              ...task,
-              course_name: course.name,
-              course_color: course.color,
-              course_id: course.id
-            }));
-          })
-          .catch(err => {
-            console.error(`Error loading tasks for course ${course.id}:`, err);
-            return [];
-          })
-      );
-      
-      const taskResults = await Promise.all(taskPromises);
-      const allTasks = taskResults.flat();
-      
-      // Sort by due date (check both root and metadata)
-      allTasks.sort((a, b) => {
-        const dateA = a.due_date || a.metadata?.due_date || 0;
-        const dateB = b.due_date || b.metadata?.due_date || 0;
-        return new Date(dateA) - new Date(dateB);
-      });
-      setTasks(allTasks);
     } catch (err) {
       console.error("Error loading tasks:", err);
     } finally {
