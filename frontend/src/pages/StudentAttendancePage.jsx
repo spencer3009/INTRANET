@@ -277,10 +277,10 @@ export default function StudentAttendancePage({ user, token, onLogout }) {
                       className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm ${
                         cell.day === null
                           ? ""
-                          : cell.isWeekend
-                            ? "bg-slate-50 text-slate-400"
-                            : cell.status
-                              ? STATUS_CONFIG[cell.status]?.color || "bg-slate-100"
+                          : cell.status
+                            ? STATUS_CONFIG[cell.status]?.color || "bg-slate-100"
+                            : cell.isWeekend
+                              ? "bg-slate-50 text-slate-400"
                               : "bg-slate-50 text-slate-600"
                       }`}
                       title={cell.status ? STATUS_CONFIG[cell.status]?.label : ""}
