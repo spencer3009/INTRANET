@@ -445,12 +445,13 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
 
               {/* Two Column Grid: My Courses & Upcoming Tasks */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Mis Cursos */}
+                {/* Mis Cursos - With Pagination */}
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
                   <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                     <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                       <BookOpen className="w-5 h-5 text-cyan-500" />
                       Mis Cursos
+                      <span className="text-xs font-normal text-slate-400 ml-1">({courses.length})</span>
                     </h2>
                     <button 
                       onClick={() => navigateTo("/student/courses")}
@@ -460,9 +461,11 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                     </button>
                   </div>
                   
-                  <div className="divide-y divide-slate-100 flex-1 max-h-[350px] overflow-y-auto">
+                  <div className="divide-y divide-slate-100 flex-1">
                     {courses.length > 0 ? (
-                      courses.map((course) => (
+                      courses
+                        .slice((coursesPage - 1) * ITEMS_PER_PAGE, coursesPage * ITEMS_PER_PAGE)
+                        .map((course) => (
                         <div 
                           key={course.id}
                           onClick={() => navigateTo(`/student/courses/${course.id}`)}
@@ -490,14 +493,55 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Pagination Footer for Courses */}
+                  {courses.length > ITEMS_PER_PAGE && (
+                    <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+                      <span className="text-xs text-slate-500">
+                        {(coursesPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(coursesPage * ITEMS_PER_PAGE, courses.length)} de {courses.length}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setCoursesPage(p => Math.max(1, p - 1))}
+                          disabled={coursesPage === 1}
+                          className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-slate-600" />
+                        </button>
+                        <div className="flex items-center gap-1 px-2">
+                          {Array.from({ length: Math.ceil(courses.length / ITEMS_PER_PAGE) }, (_, i) => (
+                            <button
+                              key={i + 1}
+                              onClick={() => setCoursesPage(i + 1)}
+                              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
+                                coursesPage === i + 1
+                                  ? "bg-cyan-500 text-white"
+                                  : "text-slate-600 hover:bg-slate-200"
+                              }`}
+                            >
+                              {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setCoursesPage(p => Math.min(Math.ceil(courses.length / ITEMS_PER_PAGE), p + 1))}
+                          disabled={coursesPage === Math.ceil(courses.length / ITEMS_PER_PAGE)}
+                          className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronRight className="w-4 h-4 text-slate-600" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Tareas Próximas */}
+                {/* Tareas Próximas - With Pagination */}
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden flex flex-col">
                   <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
                     <h2 className="font-semibold text-slate-800 flex items-center gap-2">
                       <ClipboardList className="w-5 h-5 text-amber-500" />
                       Tareas Próximas
+                      <span className="text-xs font-normal text-slate-400 ml-1">({dashboardData?.upcoming_tasks?.length || 0})</span>
                     </h2>
                     <button 
                       onClick={() => navigateTo("/student/tasks")}
@@ -507,37 +551,39 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                     </button>
                   </div>
                   
-                  <div className="divide-y divide-slate-100 flex-1 max-h-[350px] overflow-y-auto">
+                  <div className="divide-y divide-slate-100 flex-1">
                     {dashboardData?.upcoming_tasks?.length > 0 ? (
-                      dashboardData.upcoming_tasks.slice(0, 8).map((task) => {
-                        const dueDate = task.due_date || task.metadata?.due_date;
-                        return (
-                        <div 
-                          key={task.id}
-                          onClick={() => navigateTo(`/student/courses/${task.subject_id}`)}
-                          className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
-                        >
+                      dashboardData.upcoming_tasks
+                        .slice((tasksPage - 1) * ITEMS_PER_PAGE, tasksPage * ITEMS_PER_PAGE)
+                        .map((task) => {
+                          const dueDate = task.due_date || task.metadata?.due_date;
+                          return (
                           <div 
-                            className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                            style={{ backgroundColor: task.subject_color || "#f59e0b" }}
+                            key={task.id}
+                            onClick={() => navigateTo(`/student/courses/${task.subject_id}`)}
+                            className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
                           >
-                            <ClipboardList className="w-5 h-5 text-white" />
+                            <div 
+                              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                              style={{ backgroundColor: task.subject_color || "#f59e0b" }}
+                            >
+                              <ClipboardList className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-slate-800 truncate text-sm">{task.title}</p>
+                              <p className="text-xs text-slate-500 truncate">{task.subject_name}</p>
+                            </div>
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-xs font-medium text-slate-600">
+                                {dueDate && !isNaN(new Date(dueDate).getTime())
+                                  ? new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short" })
+                                  : "Sin fecha"}
+                              </p>
+                              <p className="text-[10px] text-slate-400">Fecha límite</p>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-slate-800 truncate text-sm">{task.title}</p>
-                            <p className="text-xs text-slate-500 truncate">{task.subject_name}</p>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <p className="text-xs font-medium text-slate-600">
-                              {dueDate && !isNaN(new Date(dueDate).getTime())
-                                ? new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short" })
-                                : "Sin fecha"}
-                            </p>
-                            <p className="text-[10px] text-slate-400">Fecha límite</p>
-                          </div>
-                        </div>
-                        );
-                      })
+                          );
+                        })
                     ) : (
                       <div className="flex-1 flex flex-col items-center justify-center text-slate-500 py-12">
                         <CheckCircle className="w-12 h-12 mx-auto mb-3 text-emerald-300" />
@@ -546,6 +592,46 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Pagination Footer for Tasks */}
+                  {(dashboardData?.upcoming_tasks?.length || 0) > ITEMS_PER_PAGE && (
+                    <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between bg-slate-50/50">
+                      <span className="text-xs text-slate-500">
+                        {(tasksPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(tasksPage * ITEMS_PER_PAGE, dashboardData.upcoming_tasks.length)} de {dashboardData.upcoming_tasks.length}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setTasksPage(p => Math.max(1, p - 1))}
+                          disabled={tasksPage === 1}
+                          className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronLeft className="w-4 h-4 text-slate-600" />
+                        </button>
+                        <div className="flex items-center gap-1 px-2">
+                          {Array.from({ length: Math.ceil(dashboardData.upcoming_tasks.length / ITEMS_PER_PAGE) }, (_, i) => (
+                            <button
+                              key={i + 1}
+                              onClick={() => setTasksPage(i + 1)}
+                              className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
+                                tasksPage === i + 1
+                                  ? "bg-amber-500 text-white"
+                                  : "text-slate-600 hover:bg-slate-200"
+                              }`}
+                            >
+                              {i + 1}
+                            </button>
+                          ))}
+                        </div>
+                        <button
+                          onClick={() => setTasksPage(p => Math.min(Math.ceil(dashboardData.upcoming_tasks.length / ITEMS_PER_PAGE), p + 1))}
+                          disabled={tasksPage === Math.ceil(dashboardData.upcoming_tasks.length / ITEMS_PER_PAGE)}
+                          className="p-1.5 rounded-lg hover:bg-slate-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                        >
+                          <ChevronRight className="w-4 h-4 text-slate-600" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
