@@ -883,21 +883,44 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                 
                 {/* Action Buttons */}
                 <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center gap-3">
-                  <button
-                    onClick={handleReply}
-                    className="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
-                    data-testid="reply-btn"
-                  >
-                    <Reply className="w-5 h-5" />
-                    Responder
-                  </button>
-                  <button
-                    onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
-                    className="py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
-                  >
-                    {selectedMessage.is_read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
-                    {selectedMessage.is_read ? "No leído" : "Leído"}
-                  </button>
+                  {activeFolder === "trash" ? (
+                    <>
+                      <button
+                        onClick={() => handleRestore(selectedMessage.id)}
+                        className="flex-1 py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+                        data-testid="restore-btn"
+                      >
+                        <ArchiveRestore className="w-5 h-5" />
+                        Restaurar
+                      </button>
+                      <button
+                        onClick={() => handleDeletePermanently(selectedMessage.id)}
+                        className="py-3 px-4 bg-red-100 hover:bg-red-200 text-red-600 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
+                        data-testid="delete-permanent-btn"
+                      >
+                        <AlertTriangle className="w-5 h-5" />
+                        Eliminar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleReply}
+                        className="flex-1 py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+                        data-testid="reply-btn"
+                      >
+                        <Reply className="w-5 h-5" />
+                        Responder
+                      </button>
+                      <button
+                        onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
+                        className="py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
+                      >
+                        {selectedMessage.is_read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
+                        {selectedMessage.is_read ? "No leído" : "Leído"}
+                      </button>
+                    </>
+                  )}
                 </div>
               </>
             ) : (
