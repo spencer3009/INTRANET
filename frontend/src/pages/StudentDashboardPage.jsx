@@ -363,27 +363,42 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
             </div>
           </div>
 
-          {/* Progress Bars - Promedio y Asistencia */}
+          {/* Progress Bars - Progreso de Tareas y Asistencia */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {/* Promedio General */}
-            <div className="bg-white rounded-2xl p-5 border border-slate-200" data-testid="progress-average">
+            {/* Progreso de Tareas */}
+            <div className="bg-white rounded-2xl p-5 border border-slate-200" data-testid="progress-tasks">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-indigo-500" />
-                  <span className="font-semibold text-slate-800">Promedio General</span>
+                  <ClipboardList className="w-5 h-5 text-amber-500" />
+                  <span className="font-semibold text-slate-800">Progreso de Tareas</span>
                 </div>
-                <span className="text-2xl font-bold text-indigo-600">
-                  {dashboardData?.average_grade?.toFixed(1) || "N/A"}
+                <span className={`text-2xl font-bold ${
+                  !dashboardData?.task_progress?.total_tasks ? "text-slate-400" :
+                  dashboardData?.task_progress?.percentage >= 80 ? "text-emerald-600" :
+                  dashboardData?.task_progress?.percentage >= 50 ? "text-amber-600" : "text-red-600"
+                }`}>
+                  {dashboardData?.task_progress?.total_tasks 
+                    ? `${dashboardData.task_progress.percentage}%`
+                    : "—"
+                  }
                 </span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
                 <div 
-                  className="h-full bg-gradient-to-r from-indigo-500 to-indigo-600 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min((dashboardData?.average_grade || 0) / 20 * 100, 100)}%` }}
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    !dashboardData?.task_progress?.total_tasks ? "bg-slate-200" :
+                    dashboardData?.task_progress?.percentage >= 80 ? "bg-gradient-to-r from-emerald-500 to-emerald-600" :
+                    dashboardData?.task_progress?.percentage >= 50 ? "bg-gradient-to-r from-amber-500 to-amber-600" : 
+                    "bg-gradient-to-r from-red-500 to-red-600"
+                  }`}
+                  style={{ width: `${dashboardData?.task_progress?.percentage || 0}%` }}
                 />
               </div>
               <p className="text-xs text-slate-500 mt-2">
-                Escala de 0 a 20
+                {dashboardData?.task_progress?.total_tasks 
+                  ? `${dashboardData.task_progress.tasks_submitted} de ${dashboardData.task_progress.total_tasks} tareas entregadas`
+                  : "Sin tareas asignadas aún"
+                }
               </p>
             </div>
 
