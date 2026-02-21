@@ -44,13 +44,21 @@ const allNavItems = [
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken, user }) {
   const navigate = useNavigate();
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
   
   // Get token from props or localStorage
   const token = propToken || localStorage.getItem("token");
   
-  // Sidebar is ALWAYS expanded on desktop (lg:), manual toggle for mobile
-  // Removed hover behavior for cleaner UX
-  const isExpanded = expanded || window.innerWidth >= 1024;
+  // Detect desktop screen size reactively
+  useEffect(() => {
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
+    checkDesktop();
+    window.addEventListener('resize', checkDesktop);
+    return () => window.removeEventListener('resize', checkDesktop);
+  }, []);
+  
+  // Sidebar is ALWAYS expanded on desktop, manual toggle for mobile
+  const isExpanded = isDesktop || expanded;
   
   // Owner sees everything - Admin sees filtered items based on RBAC
   const navItems = isOwner(user) 
