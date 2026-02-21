@@ -684,7 +684,6 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
           subdomain={subdomain}
           token={token}
         />
-        />
         
         {/* Main Content */}
         <main className="flex-1 flex flex-col lg:flex-row">
