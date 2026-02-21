@@ -1392,6 +1392,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
   const [levels, setLevels] = useState([]);
+  const [shifts, setShifts] = useState([]);
   
   // Filter parents based on search query
   const filteredParents = users.filter(u => 
