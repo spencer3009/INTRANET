@@ -292,73 +292,128 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
 
         {/* Dashboard Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          {/* Quick Stats - Solid Color Cards */}
+          {/* Quick Stats - Premium Glass Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {/* Mis Cursos - Azul Oscuro */}
+            {/* Mis Cursos - Premium Dark Gradient */}
             <div 
               onClick={() => navigateTo("/student/courses")}
-              className="bg-[#0f172a] rounded-2xl p-5 hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
+              className="relative overflow-hidden rounded-2xl p-5 cursor-pointer group transform transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1"
+              style={{
+                background: 'linear-gradient(135deg, #1e293b 0%, #0f172a 50%, #020617 100%)',
+                boxShadow: '0 10px 40px -10px rgba(15, 23, 42, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05)'
+              }}
               data-testid="stat-card-courses"
             >
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <BookOpen className="w-4 h-4 text-white/80" />
+              {/* Decorative gradient orb */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-cyan-500/20 to-blue-600/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 opacity-80" />
+              
+              <div className="relative flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-cyan-500/30 to-blue-600/20 backdrop-blur-sm flex items-center justify-center border border-white/10 shadow-lg">
+                    <BookOpen className="w-5 h-5 text-cyan-400" />
                   </div>
-                  <span className="text-sm font-medium text-white/80">Mis Cursos</span>
+                  <span className="text-sm font-semibold text-slate-300 tracking-wide">Mis Cursos</span>
                 </div>
-                <p className="text-3xl font-bold text-white">{dashboardData?.courses_count || 0}</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-4xl font-black text-white tracking-tight" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    {dashboardData?.courses_count || 0}
+                  </p>
+                  <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-cyan-400 group-hover:translate-x-1 transition-all" />
+                </div>
               </div>
             </div>
 
-            {/* Tareas Pendientes - Azul Claro */}
+            {/* Tareas Pendientes - Premium Blue Gradient */}
             <div 
               onClick={() => navigateTo("/student/tasks")}
-              className="bg-[#5b8dee] rounded-2xl p-5 hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
+              className="relative overflow-hidden rounded-2xl p-5 cursor-pointer group transform transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1"
+              style={{
+                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 50%, #1d4ed8 100%)',
+                boxShadow: '0 10px 40px -10px rgba(37, 99, 235, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+              }}
               data-testid="stat-card-tasks"
             >
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <ClipboardList className="w-4 h-4 text-white/80" />
+              {/* Decorative elements */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-bl from-white/20 to-transparent rounded-bl-[100px]" />
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-sky-300 via-blue-200 to-indigo-300 opacity-60" />
+              
+              <div className="relative flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                    <ClipboardList className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-white/80">Tareas Pendientes</span>
+                  <span className="text-sm font-semibold text-blue-100 tracking-wide">Tareas Pendientes</span>
                 </div>
-                <p className="text-3xl font-bold text-white">{dashboardData?.upcoming_tasks?.length || 0}</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-4xl font-black text-white tracking-tight drop-shadow-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    {dashboardData?.upcoming_tasks?.length || 0}
+                  </p>
+                  <ChevronRight className="w-5 h-5 text-blue-200 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </div>
               </div>
             </div>
 
-            {/* Asistencias - Verde */}
+            {/* Asistencias - Premium Emerald Gradient */}
             <div 
               onClick={() => navigateTo("/student/attendance")}
-              className="bg-[#22c55e] rounded-2xl p-5 hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
+              className="relative overflow-hidden rounded-2xl p-5 cursor-pointer group transform transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1"
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 50%, #047857 100%)',
+                boxShadow: '0 10px 40px -10px rgba(5, 150, 105, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+              }}
               data-testid="stat-card-attendance"
             >
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <CalendarCheck className="w-4 h-4 text-white/80" />
+              {/* Decorative elements */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute bottom-4 right-4 w-16 h-16 border-4 border-white/10 rounded-full" />
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 opacity-60" />
+              
+              <div className="relative flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                    <CalendarCheck className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-white/80">Asistencias</span>
+                  <span className="text-sm font-semibold text-emerald-100 tracking-wide">Asistencias</span>
                 </div>
-                <p className="text-3xl font-bold text-white">{dashboardData?.attendance_summary?.present || 0}</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-4xl font-black text-white tracking-tight drop-shadow-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    {dashboardData?.attendance_summary?.present || 0}
+                  </p>
+                  <ChevronRight className="w-5 h-5 text-emerald-200 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </div>
               </div>
             </div>
 
-            {/* Mensajes - Amarillo */}
+            {/* Mensajes - Premium Amber/Gold Gradient */}
             <div 
               onClick={() => navigateTo("/student/messages")}
-              className="bg-[#d4a912] rounded-2xl p-5 hover:shadow-lg hover:scale-[1.02] transition-all cursor-pointer group"
+              className="relative overflow-hidden rounded-2xl p-5 cursor-pointer group transform transition-all duration-300 hover:scale-[1.03] hover:-translate-y-1"
+              style={{
+                background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 50%, #b45309 100%)',
+                boxShadow: '0 10px 40px -10px rgba(217, 119, 6, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15)'
+              }}
               data-testid="stat-card-messages"
             >
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center">
-                    <Bell className="w-4 h-4 text-white/80" />
+              {/* Decorative elements */}
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-white/10 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-500" />
+              <div className="absolute top-4 right-4 w-3 h-3 bg-white/40 rounded-full animate-pulse" />
+              <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-300 opacity-60" />
+              
+              <div className="relative flex flex-col">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                    <Bell className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-sm font-medium text-white/80">Mensajes</span>
+                  <span className="text-sm font-semibold text-amber-100 tracking-wide">Mensajes</span>
                 </div>
-                <p className="text-3xl font-bold text-white">{studentProfile?.unread_messages || 0}</p>
+                <div className="flex items-end justify-between">
+                  <p className="text-4xl font-black text-white tracking-tight drop-shadow-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                    {studentProfile?.unread_messages || 0}
+                  </p>
+                  <ChevronRight className="w-5 h-5 text-amber-200 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                </div>
               </div>
             </div>
           </div>
