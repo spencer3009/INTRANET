@@ -11642,9 +11642,13 @@ async def get_course_posts(
         "deleted_at": {"$exists": False}
     }
     
-    # Filter by type if specified
+    # Filter by type if specified (support both post_type and type fields for backwards compatibility)
     if post_type and post_type in ["announcement", "task", "material", "forum"]:
-        query_filter["post_type"] = post_type
+        # Include posts where post_type matches OR type matches (for backwards compatibility)
+        query_filter["$or"] = [
+            {"post_type": post_type},
+            {"type": post_type}
+        ]
     
     # Get posts
     posts = await db.course_posts.find(
