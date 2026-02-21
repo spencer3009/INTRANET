@@ -38,7 +38,6 @@ export default function StudentTasksPage({ user, token, onLogout }) {
   const [tasks, setTasks] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [courses, setCourses] = useState([]);
   const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
