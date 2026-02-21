@@ -404,7 +404,7 @@ function StudentAttendanceTab({ token, schoolId }) {
           {/* Save button */}
           <div className="p-6 bg-slate-50 border-t border-slate-200">
             <button
-              onClick={saveAttendance}
+              onClick={handleSaveClick}
               disabled={saving || !hasChanges}
               className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-3 transition-all ${
                 hasChanges
