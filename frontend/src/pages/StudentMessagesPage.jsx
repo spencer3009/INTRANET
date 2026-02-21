@@ -479,6 +479,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   const [replyTo, setReplyTo] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileView, setMobileView] = useState("list");
+  const [settings, setSettings] = useState(null);
   
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, messageId: null });
@@ -486,12 +487,27 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   
   const headers = { Authorization: `Bearer ${token}` };
   
+  // Get display values from settings
+  const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
+  const logoUrl = settings?.logo_url;
+  const subdomain = user?.subdomain;
+  
   const folders = [
     { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread },
     { id: "sent", label: "Enviados", icon: Send, count: stats.sent },
     { id: "archived", label: "Archivados", icon: Archive, count: stats.archived },
     { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash },
   ];
+  
+  // Load school settings
+  const loadSettings = async () => {
+    try {
+      const res = await axios.get(`${API}/api/school/settings`, { headers });
+      setSettings(res.data);
+    } catch (err) {
+      console.error("Error loading settings:", err);
+    }
+  };
   
   const loadStats = async () => {
     try {
