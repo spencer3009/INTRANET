@@ -320,6 +320,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         onLogout={onLogout}
         schoolName={schoolName}
         subdomain={subdomain}
+        user={user}
       />
 
       {/* Mobile overlay */}
