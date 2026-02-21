@@ -40,6 +40,10 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   
+  // Role settings state
+  const [allowAdminAccounting, setAllowAdminAccounting] = useState(false);
+  const [savingRoles, setSavingRoles] = useState(false);
+  
   // Google Drive states
   const [driveStatus, setDriveStatus] = useState({
     server_configured: false,
@@ -58,6 +62,8 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     const fetchSettings = async () => {
       try {
         const res = await axios.get(`${API}/settings`, { headers });
+        // Load role settings from response
+        setAllowAdminAccounting(res.data.allow_admin_accounting || false);
         setSettings({
           logo_url: res.data.logo_url || "",
           system_name: res.data.system_name || "",
