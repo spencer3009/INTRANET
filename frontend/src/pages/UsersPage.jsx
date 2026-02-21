@@ -1454,18 +1454,20 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [usersRes, settingsRes, gradesRes, sectionsRes, levelsRes] = await Promise.all([
+        const [usersRes, settingsRes, gradesRes, sectionsRes, levelsRes, shiftsRes] = await Promise.all([
           axios.get(`${API}/users`, { headers }),
           axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
           axios.get(`${API}/academic/grades`, { headers }).catch(() => ({ data: [] })),
           axios.get(`${API}/academic/sections`, { headers }).catch(() => ({ data: [] })),
-          axios.get(`${API}/academic/levels`, { headers }).catch(() => ({ data: [] }))
+          axios.get(`${API}/academic/levels`, { headers }).catch(() => ({ data: [] })),
+          axios.get(`${API}/academic/shifts`, { headers }).catch(() => ({ data: [] }))
         ]);
         setUsers(usersRes.data);
         if (settingsRes.data) setSettings(settingsRes.data);
         setGrades(gradesRes.data || []);
         setSections(sectionsRes.data || []);
         setLevels(levelsRes.data || []);
+        setShifts(shiftsRes.data || []);
       } catch (err) {
         setError(err.response?.data?.detail || "Error al cargar usuarios");
       } finally {
