@@ -733,7 +733,7 @@ async def login(creds: UserLogin):
 
 @api_router.get("/auth/me")
 async def get_me(current_user=Depends(get_current_user)):
-    """Get current user with school info"""
+    """Get current user with school info and RBAC permissions"""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0, "verification_code": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -750,11 +750,25 @@ async def get_me(current_user=Depends(get_current_user)):
             # Legacy user - treat as not onboarded
             school_id = None
     
+    # Get RBAC permissions
+    permissions = await get_user_permissions(user, school_id)
+    
     return {
         **user,
         "school_id": school_id,
-        "subdomain": subdomain
+        "subdomain": subdomain,
+        "permissions": permissions
     }
+
+@api_router.get("/auth/permissions")
+async def get_permissions(current_user=Depends(get_current_user)):
+    """Get RBAC permissions for the current user"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    permissions = await get_user_permissions(user)
+    return permissions
 
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
