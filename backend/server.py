@@ -7882,10 +7882,19 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     # Check if attendance already marked today
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
+    # Check in both collections for existing attendance
     existing_attendance = await db.student_attendance.find_one({
         "student_id": student_id,
         "date": today,
         "school_id": school_id
+    })
+    
+    # Also check the main attendances collection
+    existing_in_attendances = await db.attendances.find_one({
+        "user_id": student_id,
+        "date": today,
+        "school_id": school_id,
+        "type": "student"
     })
     
     # Get grade and section names
@@ -7904,15 +7913,18 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         "seccion_id": student.get("seccion_id")
     }
     
-    if existing_attendance:
+    # Use whichever record exists
+    existing_record = existing_attendance or existing_in_attendances
+    
+    if existing_record:
         # Already marked today
         return {
             "status": "already_marked",
             "message": f"Ya se registró asistencia hoy para {student_info['full_name']}",
             "student": student_info,
             "attendance": {
-                "status": existing_attendance.get("status"),
-                "time": existing_attendance.get("check_in_time"),
+                "status": existing_record.get("status"),
+                "time": existing_record.get("check_in_time", ""),
                 "date": today
             }
         }
