@@ -175,6 +175,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
         schoolName={schoolName}
         subdomain={subdomain}
         token={token}
+        user={user}
       />
 
       {/* Mobile overlay */}
