@@ -189,18 +189,34 @@ function StudentAttendanceTab({ token, schoolId }) {
     setHasChanges(true);
   };
 
+  const handleSaveClick = () => {
+    if (students.length === 0) return;
+    
+    // Check for pending students
+    const pendingCount = students.filter(s => s.status === "pending").length;
+    if (pendingCount > 0) {
+      setShowPendingModal(true);
+    } else {
+      saveAttendance();
+    }
+  };
+
   const saveAttendance = async () => {
     if (students.length === 0) return;
     
     setSaving(true);
     setError("");
     setSuccess("");
+    setShowPendingModal(false);
     
     try {
-      const records = students.map(s => ({
-        user_id: s.id,
-        status: s.status
-      }));
+      // Filter out pending students - only save those with actual status
+      const records = students
+        .filter(s => s.status !== "pending")
+        .map(s => ({
+          user_id: s.id,
+          status: s.status
+        }));
       
       await axios.post(`${API}/attendance/students/save`, {
         date: selectedDate,
