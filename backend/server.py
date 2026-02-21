@@ -7555,7 +7555,7 @@ async def get_teachers_for_attendance(
             "full_name": f"{t.get('name', '')} {t.get('last_name', '')}".strip(),
             "photo_url": t.get("photo_url"),
             "email": t.get("email"),
-            "status": attendance["status"] if attendance else "present",
+            "status": attendance["status"] if attendance else "pending",  # Default to PENDING
             "has_record": attendance is not None
         })
     
