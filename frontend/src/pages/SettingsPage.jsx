@@ -4,6 +4,8 @@ import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import CarouselManager from "@/components/CarouselManager";
+import AccessDenied from "@/components/AccessDenied";
+import { canAccessSection } from "@/lib/permissions";
 import { 
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
@@ -18,6 +20,9 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [searchParams] = useSearchParams();
   const fileInputRef = useRef(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // RBAC: Check if user can access settings
+  const hasAccess = canAccessSection(user, 'settings');
   
   const [settings, setSettings] = useState({
     logo_url: "",
