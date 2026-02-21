@@ -65,7 +65,7 @@
     "email": "pepito@gmail.com",
     "password": "1234abc8",
     "school_subdomain": "elroble",
-    "login_url": "https://escuela-qr.preview.emergentagent.com/school/elroble/login"
+    "login_url": "https://edunet-school.preview.emergentagent.com/school/elroble/login"
   },
 
   "seed_data_creation": "No seed data created - used existing student Pepito with course 'Histortia' (ID: a1eb013c-1682-4411-b525-334a55f588d5)",
