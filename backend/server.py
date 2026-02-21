@@ -1466,7 +1466,7 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         }, {"_id": 0}).to_list(100)
         subject_ids = list(set([a.get("subject_id") for a in assignments if a.get("subject_id")]))
     
-    # Upcoming tasks (next 7 days)
+    # Upcoming tasks (next 7 days) - only tasks the student has NOT submitted yet
     upcoming_tasks = []
     if subject_ids:
         now = datetime.now(timezone.utc)
@@ -1476,18 +1476,27 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
             "subject_id": {"$in": subject_ids},
             "type": "task",
             "due_date": {"$gte": now.isoformat(), "$lte": week_later.isoformat()}
-        }, {"_id": 0}).sort("due_date", 1).to_list(10)
+        }, {"_id": 0}).sort("due_date", 1).to_list(50)
         
         for task in tasks:
-            subject = await db.subjects.find_one({"id": task["subject_id"]}, {"_id": 0})
-            upcoming_tasks.append({
-                "id": task["id"],
-                "title": task.get("title"),
-                "subject_name": subject.get("name") if subject else "Sin asignatura",
-                "subject_color": subject.get("color") if subject else "#6366f1",
-                "due_date": task.get("due_date"),
-                "subject_id": task["subject_id"]
-            })
+            # Check if student has already submitted this task
+            submissions = task.get("submissions", [])
+            student_submitted = any(s.get("student_id") == user["id"] for s in submissions)
+            
+            # Only show tasks that haven't been submitted
+            if not student_submitted:
+                subject = await db.subjects.find_one({"id": task["subject_id"]}, {"_id": 0})
+                upcoming_tasks.append({
+                    "id": task["id"],
+                    "title": task.get("title"),
+                    "subject_name": subject.get("name") if subject else "Sin asignatura",
+                    "subject_color": subject.get("color") if subject else "#6366f1",
+                    "due_date": task.get("due_date"),
+                    "subject_id": task["subject_id"]
+                })
+        
+        # Limit to 10 most urgent
+        upcoming_tasks = upcoming_tasks[:10]
     
     # Recent announcements (institutional messages)
     announcements = await db.institutional_messages.find({
