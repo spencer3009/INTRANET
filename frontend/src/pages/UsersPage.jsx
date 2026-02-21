@@ -2405,7 +2405,89 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 {editingUser.role === 'student' && (
                   <>
                     {/* ═══════════════════════════════════════════════════════════════ */}
-                    {/* SECCIÓN 1: GESTIÓN DE CREDENCIALES */}
+                    {/* SECCIÓN: INFORMACIÓN ACADÉMICA */}
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    <div className="md:col-span-2 mt-6 pt-4 border-t border-slate-200">
+                      <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2 mb-4">
+                        <GraduationCap className="w-4 h-4 text-violet-500" /> Información Académica
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {/* Nivel */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-600 mb-2">Nivel</label>
+                          <select
+                            value={editForm.nivel_id}
+                            onChange={(e) => {
+                              setEditForm({ 
+                                ...editForm, 
+                                nivel_id: e.target.value,
+                                grado_id: "",
+                                seccion_id: ""
+                              });
+                            }}
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none bg-white"
+                          >
+                            <option value="">Seleccionar nivel...</option>
+                            {levels.filter(l => l.activo !== false).map(l => (
+                              <option key={l.id} value={l.id}>{l.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Grado */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-600 mb-2">Grado</label>
+                          <select
+                            value={editForm.grado_id}
+                            onChange={(e) => {
+                              setEditForm({ 
+                                ...editForm, 
+                                grado_id: e.target.value,
+                                seccion_id: ""
+                              });
+                            }}
+                            disabled={!editForm.nivel_id}
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400"
+                          >
+                            <option value="">{editForm.nivel_id ? "Seleccionar grado..." : "Primero selecciona nivel"}</option>
+                            {grades.filter(g => g.nivel_id === editForm.nivel_id && g.activo !== false).map(g => (
+                              <option key={g.id} value={g.id}>{g.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Sección */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-600 mb-2">Sección</label>
+                          <select
+                            value={editForm.seccion_id}
+                            onChange={(e) => setEditForm({ ...editForm, seccion_id: e.target.value })}
+                            disabled={!editForm.grado_id}
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400"
+                          >
+                            <option value="">{editForm.grado_id ? "Seleccionar sección..." : "Primero selecciona grado"}</option>
+                            {sections.filter(s => s.grado_id === editForm.grado_id && s.activo !== false).map(s => (
+                              <option key={s.id} value={s.id}>{s.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+                        {/* Turno */}
+                        <div>
+                          <label className="block text-sm font-medium text-slate-600 mb-2">Turno</label>
+                          <select
+                            value={editForm.turno_id}
+                            onChange={(e) => setEditForm({ ...editForm, turno_id: e.target.value })}
+                            className="w-full px-4 py-2.5 border border-slate-200 rounded-xl focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none bg-white"
+                          >
+                            <option value="">Seleccionar turno...</option>
+                            {shifts.filter(s => s.activo !== false).map(s => (
+                              <option key={s.id} value={s.id}>{s.nombre}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* ═══════════════════════════════════════════════════════════════ */}
+                    {/* SECCIÓN: GESTIÓN DE CREDENCIALES */}
                     {/* ═══════════════════════════════════════════════════════════════ */}
                     <div className="md:col-span-2 mt-6 pt-4 border-t border-slate-200">
                       <div className="flex items-center justify-between mb-4">
