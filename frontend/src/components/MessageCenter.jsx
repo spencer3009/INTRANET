@@ -1285,20 +1285,35 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
                 onClick={() => handleSelectContact(contact)}
                 className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
               >
-                {contact.photo_url ? (
-                  <img src={contact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                    <User className="w-5 h-5 text-amber-500" />
-                  </div>
-                )}
+                {/* Avatar with unread indicator */}
+                <div className="relative">
+                  {contact.photo_url ? (
+                    <img src={contact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                      <User className="w-5 h-5 text-amber-500" />
+                    </div>
+                  )}
+                  {/* Unread message indicator badge */}
+                  {contact.unread_count > 0 && (
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      {contact.unread_count > 9 ? "9+" : contact.unread_count}
+                    </span>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-slate-800">{contact.name}</p>
+                  <p className={`font-medium text-slate-800 ${contact.unread_count > 0 ? "font-bold" : ""}`}>
+                    {contact.name}
+                  </p>
                   <p className="text-xs text-slate-400">
                     {getRoleLabel(contact.role)}
                     {contact.subject_name && ` • ${contact.subject_name}`}
                   </p>
                 </div>
+                {/* Arrow indicator for unread */}
+                {contact.unread_count > 0 && (
+                  <ChevronRight className="w-4 h-4 text-amber-500" />
+                )}
               </div>
             ))}
           </div>
