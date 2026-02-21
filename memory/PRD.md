@@ -27,104 +27,97 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 - Horario de clases por sección
 - Horario de exámenes
 
+### 5. Sistema de Mensajería Interna
+- Correo interno para estudiantes, profesores y administradores
+- Bandeja de entrada, Enviados, Archivados, Papelera
+- Indicadores de mensajes no leídos
+
 ## Technical Architecture
 
 ### Backend (FastAPI)
-- `/app/backend/server.py` - Archivo principal (~17k líneas - DEUDA TÉCNICA CRÍTICA)
+- `/app/backend/server.py` - Archivo principal (~18k líneas - DEUDA TÉCNICA)
 - MongoDB como base de datos
 - JWT para autenticación
+- RBAC (Role-Based Access Control) implementado
 
 ### Frontend (React)
 - `/app/frontend/src/` - Código fuente
 - Shadcn UI components
 - React Router para navegación
+- React Query para caching de datos
 
 ## What's Been Implemented
 
-### Session: 2026-02-21 (Performance Optimization)
-- **ARQUITECTURA: Optimización de Rendimiento - Portal Alumno (Tareas)** ✅
-  - **Problema**: Frontend hacía N+1 requests (uno por curso) para cargar tareas
-  - **Solución**: Arquitectura escalable y profesional implementada:
-  
-  1. **Endpoint Unificado** `/api/student/tasks`:
-     - Una sola llamada obtiene todas las tareas del estudiante
-     - 3 queries batch optimizadas (assignments, tasks, submissions)
-     - Evita patrón N+1
-     - Retorna tareas + estadísticas consolidadas
-  
-  2. **Cache en Backend (TTLCache)**:
-     - Cache por estudiante con TTL de 60s
-     - `STUDENT_TASKS_CACHE` soporta ~5000 estudiantes concurrentes
-     - Headers: `Cache-Control: private, max-age=60`, `X-Cache: HIT/MISS`
-     - Funciones de invalidación para cuando cambian datos
-  
-  3. **Cache en Frontend (React Query)**:
-     - `@tanstack/react-query` instalado
-     - `staleTime: 60000` (60s)
-     - `cacheTime: 300000` (5 min)
-     - `refetchOnWindowFocus: false`
-  
-  4. **Índices MongoDB**:
-     - `course_posts`: (school_id, subject_id, type/post_type)
-     - `task_submissions`: (school_id, student_id, task_id)
-     - `academic_assignments`: (school_id, section_id, status)
-     - `attendances`: (school_id, user_id, date)
-  
-  - **Resultados**:
-     - Backend response: ~600ms (MISS) → ~100ms (HIT)
-     - Una sola request al backend
-     - Escalable para SaaS multi-colegio
+### Session: 2026-02-21 (RBAC Implementation) ✅
+- **ARQUITECTURA: Sistema RBAC Completo**
+  - Admin role ahora usa el mismo portal del Owner (no portal separado)
+  - Restricciones implementadas:
+    1. Admin NO tiene acceso a Settings (403 en API, oculto en sidebar)
+    2. Admin acceso a Contabilidad controlado por flag `allow_admin_accounting`
+  - Componentes modificados:
+    - Backend: `require_section_access()` protege endpoints
+    - Frontend: `permissions.js` helpers, `Sidebar.jsx` filtrado, `SettingsPage.jsx`, `AccountingPage.jsx`
+  - Owner puede habilitar/deshabilitar acceso de Admin desde Settings > Configuración de Roles
+  - **Resultados de pruebas**: 100% backend (15/15), 100% frontend (11/11)
 
-### Session: 2026-02-21 (Continued)
-- **FEATURE: Sistema de Mensajería Interno para Estudiantes** ✅
-  - Problema: El menú "Mensajes" del sidebar del estudiante no llevaba a ninguna página funcional
-  - Solución: Creada nueva página `StudentMessagesPage.jsx` con interfaz tipo correo electrónico
-  - Características implementadas:
-    1. Sidebar con carpetas: Bandeja de entrada, Enviados, Archivados, Papelera
-    2. Lista de mensajes con avatar, remitente, asunto, preview y hora
-    3. Vista de detalle del mensaje con información completa
-    4. Modal de redacción con editor de texto enriquecido (TipTap)
-    5. Funciones: Responder, Archivar, Eliminar, Marcar como leído/no leído
-    6. Búsqueda de mensajes y contactos
-    7. Indicadores de mensajes no leídos (badge y punto azul)
-    8. **Papelera completa**: Restaurar mensaje, Eliminar permanentemente, Vaciar papelera
-  - Archivos creados: `/app/frontend/src/pages/StudentMessagesPage.jsx`
-  - Archivos modificados: `/app/frontend/src/App.js` (importación y rutas)
-  - También corregido el strip de HTML en preview de mensajes en InternalMailPage.jsx
+### Session: 2026-02-21 (Performance Optimization) ✅
+- **ARQUITECTURA: Optimización de Rendimiento - Portal Alumno (Tareas)**
+  - Endpoint unificado `/api/student/tasks`
+  - Cache en backend con TTLCache (60s)
+  - Cache en frontend con React Query
+  - Índices MongoDB optimizados
 
-### Session: 2026-02-21
-- **BUG FIX: Sincronización de asistencia QR** ✅
-  - Problema: El escáner QR guardaba en `student_attendance` pero la pestaña "Estudiantes" leía de `attendances`
-  - Solución: Modificado `/app/backend/server.py` endpoint `/api/attendance/qr/scan` para:
-    1. Guardar en AMBAS colecciones cuando se escanea un nuevo QR
-    2. Sincronizar registros existentes de `student_attendance` a `attendances` cuando se detecta ya marcado
-  - Archivos modificados: `/app/backend/server.py` (líneas 7886-7998)
-  - Testing: Verificado con curl y screenshot que ambos estudiantes aparecen con "Presente" ✓
+### Session: 2026-02-21 (Messaging System) ✅
+- **FEATURE: Sistema de Mensajería Interno para Estudiantes**
+  - Página `StudentMessagesPage.jsx` con interfaz tipo correo
+  - Funciones: Responder, Archivar, Eliminar, Marcar como leído/no leído
+  - Papelera completa con restauración y eliminación permanente
 
-- **BUG FIX: Estado por defecto "Pendiente"** ✅
-  - Problema: Estudiantes sin registro aparecían como "Presente" por defecto (no tenía sentido usar QR)
-  - Solución: Cambiado el valor por defecto de "present" a "pending" en:
-    1. `/api/attendance/students` (línea 7394)
-    2. `/api/attendance/teachers` (línea 7558)
-  - Ahora: Sin registro → "Pendiente" | Con registro (QR/manual) → Estado real
+## RBAC System Architecture
 
-### Previous Sessions
-- Cascade delete implementado para usuarios
-- UI/UX mejorado en modales de eliminación y edición de usuarios
-- Estado "Pendiente" por defecto en asistencia
-- Manejo de errores en escáner QR (permisos, HTTPS, iframe)
-- Botón "Ver QR" en tarjetas de estudiantes
+### Backend
+```python
+# Secciones y permisos
+SECTION_PERMISSIONS = {
+    "settings": {"allowed_roles": ["owner"], "feature_flag": None},
+    "accounting": {"allowed_roles": ["owner", "admin"], "feature_flag": "allow_admin_accounting"},
+    "users": {"allowed_roles": ["owner", "admin", "director"]},
+    # ... más secciones
+}
+
+# Protección de endpoints
+@api_router.get("/settings")
+async def get_settings(current_user = Depends(require_section_access("settings"))):
+    # Solo owner puede acceder
+```
+
+### Frontend
+```javascript
+// lib/permissions.js
+export function canAccessSection(user, section) {
+  if (user.permissions?.sections) {
+    return user.permissions.sections[section] === true;
+  }
+  // Fallback logic
+}
+
+// Sidebar.jsx
+const navItems = isOwner(user) 
+  ? allNavItems 
+  : allNavItems.filter(item => canAccessSection(user, item.section));
+```
 
 ## Pending Issues (P0)
-- Ninguno crítico actualmente
+- Ninguno crítico
 
 ## Upcoming Tasks
 
 ### P0 - Critical Technical Debt
-- **Modularizar server.py**: El archivo tiene >17,000 líneas. Seguir plan en `/app/backend/MODULARIZATION.md`
+- **Modularizar server.py**: El archivo tiene >18,000 líneas
   - Separar en routers por dominio: users, attendance, exams, grades, etc.
 
 ### P1 - Features
+- **Cache Invalidation**: Implementar invalidación de cache cuando se crean/editan tareas
 - Módulo de Matrículas (Enrollments)
 - Sistema anti-trampas para exámenes
 - Banco de preguntas para exámenes
@@ -137,28 +130,29 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## Test Credentials
 - **School**: elroble
-- **Admin**: admin@elroble.edu / 1234abc8
+- **Owner**: admin@elroble.edu / 1234abc8
+- **Admin**: admin.prueba@elroble.edu / 1234abc8
 - **Student**: pepito@gmail.com / 1234abc8
 
 ## Key Endpoints
-- `POST /api/attendance/qr/scan` - Escanear QR y registrar asistencia
-- `GET /api/attendance/students` - Obtener estudiantes con estado de asistencia
-- `POST /api/attendance/students/save` - Guardar asistencia en batch
-- `GET /api/attendance/qr/history` - Historial de escaneos del día
-- `GET /api/internal-mail/inbox` - Bandeja de entrada de mensajes
-- `GET /api/internal-mail/sent` - Mensajes enviados
-- `POST /api/internal-mail/send` - Enviar nuevo mensaje
-- `POST /api/internal-mail/{id}/reply` - Responder mensaje
-- `GET /api/internal-mail/contacts/search` - Buscar contactos
+- `POST /api/auth/login` - Login con permisos RBAC incluidos
+- `GET /api/auth/me` - Usuario actual con permisos
+- `GET /api/settings` - Settings (solo owner)
+- `PUT /api/settings/roles` - Toggle de flags de roles (solo owner)
+- `GET /api/accounting/payments` - Pagos (owner + admin si flag habilitado)
+- `GET /api/student/tasks` - Tareas del estudiante (cached)
 
 ## Database Collections
-- `student_attendance` - Registros de escaneo QR (legacy)
-- `attendances` - Registros de asistencia principal (usada por UI)
-- `users` - Usuarios con campo `qr_token`
-- `internal_messages` - Mensajes internos del sistema de correo
+- `schools`: Incluye campo `allow_admin_accounting` (boolean)
+- `users`: Usuarios con campo `qr_token`
+- `tenant_settings`: Configuraciones por colegio
+- `task_submissions`: Entregas de tareas
 
 ## Third-Party Integrations
 - Cloudinary (imágenes)
 - qrcode.react (generación QR)
 - @yudiel/react-qr-scanner (escaneo QR)
 - jspdf & jspdf-autotable (PDFs)
+- @tanstack/react-query (caching)
+- cachetools (backend caching)
+- TipTap / Prosemirror (editor de texto)
