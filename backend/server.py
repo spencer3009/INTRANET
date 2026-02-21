@@ -10345,16 +10345,10 @@ async def get_payments(
     date_to: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_section_access("accounting"))
 ):
-    """Get all payments (ingresos) for the school"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para ver la contabilidad")
-    
+    """Get all payments (ingresos) for the school. RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     query = {"school_id": school_id}
@@ -10420,15 +10414,9 @@ async def get_payments(
     }
 
 @api_router.post("/accounting/payments")
-async def create_payment(data: PaymentCreate, current_user = Depends(get_current_user)):
-    """Create a new payment (ingreso)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para registrar pagos")
-    
+async def create_payment(data: PaymentCreate, current_user = Depends(require_section_access("accounting"))):
+    """Create a new payment (ingreso). RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     # Verify student exists
@@ -10479,15 +10467,9 @@ async def create_payment(data: PaymentCreate, current_user = Depends(get_current
     return {"message": "Pago registrado correctamente", "payment": payment}
 
 @api_router.put("/accounting/payments/{payment_id}")
-async def update_payment(payment_id: str, data: PaymentUpdate, current_user = Depends(get_current_user)):
-    """Update a payment"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para editar pagos")
-    
+async def update_payment(payment_id: str, data: PaymentUpdate, current_user = Depends(require_section_access("accounting"))):
+    """Update a payment. RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
@@ -10541,15 +10523,9 @@ async def update_payment(payment_id: str, data: PaymentUpdate, current_user = De
     return {"message": "Pago actualizado correctamente", "payment": updated_payment}
 
 @api_router.put("/accounting/payments/{payment_id}/confirm")
-async def confirm_payment(payment_id: str, current_user = Depends(get_current_user)):
-    """Confirm a pending payment"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para confirmar pagos")
-    
+async def confirm_payment(payment_id: str, current_user = Depends(require_section_access("accounting"))):
+    """Confirm a pending payment. RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
@@ -10575,15 +10551,9 @@ async def confirm_payment(payment_id: str, current_user = Depends(get_current_us
     return {"message": "Pago confirmado correctamente"}
 
 @api_router.put("/accounting/payments/{payment_id}/cancel")
-async def cancel_payment(payment_id: str, current_user = Depends(get_current_user)):
-    """Cancel a payment"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para anular pagos")
-    
+async def cancel_payment(payment_id: str, current_user = Depends(require_section_access("accounting"))):
+    """Cancel a payment. RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     payment = await db.payments.find_one({"id": payment_id, "school_id": school_id})
@@ -10616,16 +10586,10 @@ async def get_expenses(
     date_to: Optional[str] = None,
     page: int = 1,
     limit: int = 50,
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_section_access("accounting"))
 ):
-    """Get all expenses (egresos) for the school"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para ver la contabilidad")
-    
+    """Get all expenses (egresos) for the school. RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     query = {"school_id": school_id}
@@ -10658,15 +10622,9 @@ async def get_expenses(
     }
 
 @api_router.post("/accounting/expenses")
-async def create_expense(data: ExpenseCreate, current_user = Depends(get_current_user)):
-    """Create a new expense (egreso)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para registrar egresos")
-    
+async def create_expense(data: ExpenseCreate, current_user = Depends(require_section_access("accounting"))):
+    """Create a new expense (egreso). RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     # Calculate IGV
@@ -10705,15 +10663,9 @@ async def create_expense(data: ExpenseCreate, current_user = Depends(get_current
     return {"message": "Egreso registrado correctamente", "expense": expense}
 
 @api_router.put("/accounting/expenses/{expense_id}")
-async def update_expense(expense_id: str, data: ExpenseUpdate, current_user = Depends(get_current_user)):
-    """Update an expense"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para editar egresos")
-    
+async def update_expense(expense_id: str, data: ExpenseUpdate, current_user = Depends(require_section_access("accounting"))):
+    """Update an expense. RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     expense = await db.expenses.find_one({"id": expense_id, "school_id": school_id})
@@ -10763,15 +10715,9 @@ async def update_expense(expense_id: str, data: ExpenseUpdate, current_user = De
     return {"message": "Egreso actualizado correctamente", "expense": updated_expense}
 
 @api_router.delete("/accounting/expenses/{expense_id}")
-async def delete_expense(expense_id: str, current_user = Depends(get_current_user)):
-    """Delete an expense"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if not is_admin_user(user):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden eliminar egresos")
-    
+async def delete_expense(expense_id: str, current_user = Depends(require_section_access("accounting"))):
+    """Delete an expense. RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     result = await db.expenses.delete_one({"id": expense_id, "school_id": school_id})
@@ -10791,16 +10737,10 @@ async def delete_expense(expense_id: str, current_user = Depends(get_current_use
 async def get_accounting_summary(
     year: Optional[int] = None,
     month: Optional[int] = None,
-    current_user = Depends(get_current_user)
+    current_user = Depends(require_section_access("accounting"))
 ):
-    """Get accounting summary for dashboard"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para ver la contabilidad")
-    
+    """Get accounting summary for dashboard. RBAC protected."""
+    user = current_user  # Already validated by require_section_access
     school_id = user["school_id"]
     
     # Default to current year/month
