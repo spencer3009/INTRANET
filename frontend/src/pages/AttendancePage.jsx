@@ -1200,12 +1200,14 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="attendance-page">
       <Sidebar 
-        user={user} 
-        settings={settings} 
-        isOpen={sidebarOpen} 
-        setIsOpen={setSidebarOpen}
-        subdomain={subdomain}
+        active="asistencias"
+        onNavigate={() => {}}
+        expanded={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
         onLogout={onLogout}
+        schoolName={settings?.system_name}
+        subdomain={subdomain}
+        user={user}
       />
       
       <div className="flex-1 flex flex-col min-w-0">
