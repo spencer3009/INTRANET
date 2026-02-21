@@ -141,31 +141,69 @@ export default function QRScannerTab({ token }) {
         video: { facingMode: cameraFacing } 
       });
       
-      // Stop the stream immediately - we just wanted to check permission
+      // SUCCESS! Stop the stream immediately - we just wanted to check permission
       stream.getTracks().forEach(track => track.stop());
       
       // Enumerate cameras again after permission granted
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const videoDevices = devices.filter(device => device.kind === 'videoinput');
-      setAvailableCameras(videoDevices);
+      await enumerateCameras();
       
       return true;
     } catch (err) {
-      console.error("Camera permission error:", err);
+      console.error("Camera permission error:", err.name, err.message);
       
+      // Determine the type of error
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        setCameraError(CAMERA_ERROR_TYPES.PERMISSION_DENIED);
+        // Check if it might be an iframe issue (permission denied immediately)
+        if (isInIframe) {
+          setCameraError({
+            title: "Permiso bloqueado por iframe",
+            message: "El navegador bloquea la cámara en este contexto. Abre en ventana completa.",
+            icon: ExternalLink,
+            color: "blue",
+            action: "breakIframe"
+          });
+        } else {
+          setCameraError(CAMERA_ERROR_TYPES.PERMISSION_DENIED);
+        }
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         setCameraError(CAMERA_ERROR_TYPES.NOT_FOUND);
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
         setCameraError({
           ...CAMERA_ERROR_TYPES.GENERIC,
-          message: "La cámara está siendo usada por otra aplicación"
+          title: "Cámara ocupada",
+          message: "La cámara está siendo usada por otra aplicación. Ciérrala e intenta de nuevo."
         });
-      } else if (err.name === 'SecurityError') {
-        setCameraError(CAMERA_ERROR_TYPES.NOT_SECURE);
+      } else if (err.name === 'SecurityError' || err.name === 'AbortError') {
+        // SecurityError often means iframe restrictions
+        if (isInIframe) {
+          setCameraError({
+            title: "Restricción de seguridad",
+            message: "La cámara no puede usarse dentro de un iframe. Abre en ventana completa.",
+            icon: ExternalLink,
+            color: "blue",
+            action: "breakIframe"
+          });
+        } else {
+          setCameraError(CAMERA_ERROR_TYPES.NOT_SECURE);
+        }
+      } else if (err.name === 'OverconstrainedError') {
+        setCameraError({
+          ...CAMERA_ERROR_TYPES.NOT_FOUND,
+          message: "No se encontró una cámara compatible con los requisitos"
+        });
       } else {
-        setCameraError(CAMERA_ERROR_TYPES.GENERIC);
+        // Generic error - check if in iframe
+        if (isInIframe) {
+          setCameraError({
+            title: "Error de acceso a cámara",
+            message: "Puede ser una restricción del iframe. Intenta abrir en ventana completa.",
+            icon: Camera,
+            color: "amber",
+            action: "breakIframe"
+          });
+        } else {
+          setCameraError(CAMERA_ERROR_TYPES.GENERIC);
+        }
       }
       
       return false;
