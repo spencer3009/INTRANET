@@ -53,8 +53,8 @@ export default function StudentGradesPage({ user, token, onLogout }) {
       const allGrades = [];
       for (const course of studentCourses) {
         try {
-          const tasksRes = await axios.get(`${API}/api/courses/${course.id}/posts?type=task`, { headers });
-          const courseTasks = tasksRes.data || [];
+          const tasksRes = await axios.get(`${API}/api/course/${course.id}/posts?post_type=task`, { headers });
+          const courseTasks = tasksRes.data?.posts || tasksRes.data || [];
           
           // Find submissions with grades for this student
           for (const task of courseTasks) {
