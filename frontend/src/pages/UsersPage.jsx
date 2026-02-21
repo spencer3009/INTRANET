@@ -2185,7 +2185,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <p className="text-sm text-slate-600 mb-3 font-medium">Se eliminarán los siguientes datos:</p>
               
               {userToDelete.role === 'student' ? (
-                <div className="grid grid-cols-2 gap-x-6 gap-y-2">
+                <div className="grid grid-cols-2 gap-x-8 gap-y-2">
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                     <span>Cuenta y foto de perfil</span>
@@ -2212,7 +2212,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                    <span>Respuestas a encuestas</span>
+                    <span>Encuestas respondidas</span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600">
                     <Check className="w-4 h-4 text-emerald-500 flex-shrink-0" />
