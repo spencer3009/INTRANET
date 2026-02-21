@@ -1571,6 +1571,38 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         if all_grades:
             average_grade = sum(all_grades) / len(all_grades)
     
+    # Calculate task progress (total, submitted, pending)
+    task_progress = {
+        "total_tasks": 0,
+        "tasks_submitted": 0,
+        "tasks_pending": 0,
+        "percentage": 0
+    }
+    
+    if subject_ids:
+        # Get ALL tasks assigned to the student (any due date)
+        all_tasks = await db.course_posts.find({
+            "school_id": school_id,
+            "subject_id": {"$in": subject_ids},
+            "$or": [{"post_type": "task"}, {"type": "task"}]
+        }, {"_id": 0, "id": 1, "submissions": 1}).to_list(500)
+        
+        total = len(all_tasks)
+        submitted = 0
+        
+        for task in all_tasks:
+            submissions = task.get("submissions", [])
+            # Check if this student submitted
+            if any(s.get("student_id") == user["id"] for s in submissions):
+                submitted += 1
+        
+        task_progress = {
+            "total_tasks": total,
+            "tasks_submitted": submitted,
+            "tasks_pending": total - submitted,
+            "percentage": round((submitted / total) * 100) if total > 0 else 0
+        }
+    
     # Get number of classmates in the same section
     section_students_count = 0
     if seccion_id:
@@ -1587,6 +1619,7 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
         "attendance_summary": attendance_summary,
         "courses_count": len(subject_ids),
         "average_grade": average_grade,
+        "task_progress": task_progress,
         "section_students_count": section_students_count
     }
 
