@@ -9206,6 +9206,9 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           }}
           token={token}
           preselectedRecipient={directMailUser}
+          onSent={() => {
+            // Optional callback after message is sent
+          }}
         />
       )}
     </div>
