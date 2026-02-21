@@ -407,7 +407,7 @@ function App() {
                 {isTeacher(user) ? (
                   <Navigate to="/teacher" replace />
                 ) : isAdminOnly(user) ? (
-                  <Navigate to="/admin" replace />
+                  <Navigate to="/dashboard" replace />
                 ) : (
                   <StudentDashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
