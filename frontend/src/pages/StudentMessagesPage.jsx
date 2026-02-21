@@ -543,6 +543,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   
   useEffect(() => {
     loadStats();
+    loadSettings();
   }, [token]);
   
   useEffect(() => {
