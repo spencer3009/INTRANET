@@ -404,6 +404,68 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// CONFIRM MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText, confirmStyle, icon: Icon, loading }) {
+  if (!isOpen) return null;
+  
+  const styleClasses = {
+    danger: "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700",
+    warning: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
+    primary: "bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700",
+  };
+  
+  const iconBgClasses = {
+    danger: "bg-red-100 text-red-600",
+    warning: "bg-amber-100 text-amber-600",
+    primary: "bg-indigo-100 text-indigo-600",
+  };
+  
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Content */}
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            {/* Icon */}
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBgClasses[confirmStyle] || iconBgClasses.danger}`}>
+              {Icon && <Icon className="w-6 h-6" />}
+            </div>
+            
+            {/* Text */}
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+              <p className="mt-2 text-sm text-gray-600 leading-relaxed">{message}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="px-5 py-2.5 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`px-5 py-2.5 text-white font-semibold rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 ${styleClasses[confirmStyle] || styleClasses.danger}`}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN STUDENT MESSAGES PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function StudentMessagesPage({ user, token, onLogout }) {
@@ -417,6 +479,10 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   const [replyTo, setReplyTo] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileView, setMobileView] = useState("list");
+  
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, messageId: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
   
