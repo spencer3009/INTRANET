@@ -245,6 +245,175 @@ def require_staff():
     return require_role(STAFF_ROLES)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# RBAC - ROLE-BASED ACCESS CONTROL SYSTEM
+# ══════════════════════════════════════════════════════════════════════════════
+# Enterprise-grade permission system for multi-tenant SaaS
+
+# Section definitions with base permissions
+SECTION_PERMISSIONS = {
+    "settings": {
+        "allowed_roles": ["owner"],  # Only owner can access settings
+        "feature_flag": None,  # No feature flag, always restricted
+    },
+    "accounting": {
+        "allowed_roles": ["owner", "admin"],  # Admin access is conditional
+        "feature_flag": "allow_admin_accounting",  # Feature flag in school settings
+    },
+    "users": {
+        "allowed_roles": ["owner", "admin", "director"],
+        "feature_flag": None,
+    },
+    "grades": {
+        "allowed_roles": ["owner", "admin", "director", "coordinator"],
+        "feature_flag": None,
+    },
+    "courses": {
+        "allowed_roles": ["owner", "admin", "director", "coordinator", "teacher"],
+        "feature_flag": None,
+    },
+    "attendance": {
+        "allowed_roles": ["owner", "admin", "director", "coordinator", "teacher", "auxiliar"],
+        "feature_flag": None,
+    },
+    "reports": {
+        "allowed_roles": ["owner", "admin", "director", "coordinator"],
+        "feature_flag": None,
+    },
+    "schedule": {
+        "allowed_roles": ["owner", "admin", "director", "coordinator"],
+        "feature_flag": None,
+    },
+    "exams": {
+        "allowed_roles": ["owner", "admin", "director", "coordinator", "teacher"],
+        "feature_flag": None,
+    },
+    "internal_mail": {
+        "allowed_roles": ["owner", "admin", "director", "coordinator", "teacher", "auxiliar", "student", "parent"],
+        "feature_flag": None,
+    },
+}
+
+async def can_access_section(user: dict, section: str, school_id: str = None) -> bool:
+    """
+    Check if user can access a specific section based on RBAC rules.
+    
+    Args:
+        user: User dict with 'role' field
+        section: Section name (e.g., 'settings', 'accounting')
+        school_id: School ID to check feature flags
+    
+    Returns:
+        bool: True if user can access, False otherwise
+    """
+    if not user or not section:
+        return False
+    
+    role = user.get("role")
+    section_config = SECTION_PERMISSIONS.get(section)
+    
+    if not section_config:
+        return False  # Unknown section
+    
+    allowed_roles = section_config.get("allowed_roles", [])
+    feature_flag = section_config.get("feature_flag")
+    
+    # Owner always has access to everything
+    if role == "owner":
+        return True
+    
+    # Check if role is in allowed list
+    if role not in allowed_roles:
+        return False
+    
+    # Check feature flag if applicable
+    if feature_flag and role == "admin":
+        if not school_id:
+            school_id = user.get("school_id")
+        if school_id:
+            school = await db.schools.find_one({"id": school_id}, {"_id": 0, feature_flag: 1})
+            if school and not school.get(feature_flag, False):
+                return False
+    
+    return True
+
+async def get_user_permissions(user: dict, school_id: str = None) -> dict:
+    """
+    Get all permissions for a user in a structured format.
+    Used by frontend to conditionally render sections.
+    
+    Returns:
+        dict: {
+            "role": "admin",
+            "sections": {
+                "settings": false,
+                "accounting": true,
+                ...
+            }
+        }
+    """
+    if not user:
+        return {"role": None, "sections": {}}
+    
+    role = user.get("role")
+    if not school_id:
+        school_id = user.get("school_id")
+    
+    # Get school settings for feature flags
+    school = None
+    if school_id:
+        school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+    
+    sections = {}
+    for section_name, config in SECTION_PERMISSIONS.items():
+        allowed_roles = config.get("allowed_roles", [])
+        feature_flag = config.get("feature_flag")
+        
+        # Owner always has access
+        if role == "owner":
+            sections[section_name] = True
+            continue
+        
+        # Check role
+        if role not in allowed_roles:
+            sections[section_name] = False
+            continue
+        
+        # Check feature flag for admin
+        if feature_flag and role == "admin":
+            if school:
+                sections[section_name] = school.get(feature_flag, False)
+            else:
+                sections[section_name] = False
+        else:
+            sections[section_name] = True
+    
+    return {
+        "role": role,
+        "is_owner": role == "owner",
+        "is_admin": role == "admin",
+        "sections": sections
+    }
+
+def require_section_access(section: str):
+    """
+    Dependency that checks if user can access a specific section.
+    Usage: current_user = Depends(require_section_access("accounting"))
+    """
+    async def check_access(current_user = Depends(get_current_user)):
+        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=403, detail="Usuario no encontrado")
+        
+        has_access = await can_access_section(user, section, user.get("school_id"))
+        if not has_access:
+            raise HTTPException(
+                status_code=403, 
+                detail=f"No tienes permisos para acceder a esta sección. Contacta al propietario del colegio."
+            )
+        return user
+    return check_access
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MULTI-TENANT HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
