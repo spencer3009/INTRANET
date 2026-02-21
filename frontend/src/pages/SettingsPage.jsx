@@ -10,7 +10,7 @@ import {
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
-  Unlink, RefreshCw, CheckCircle2, XCircle, Clock
+  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
