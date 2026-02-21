@@ -1153,7 +1153,7 @@ async def get_student_profile(current_user = Depends(get_current_user)):
         pending_tasks = await db.course_posts.count_documents({
             "school_id": school_id,
             "subject_id": {"$in": subject_ids},
-            "type": "task",
+            "$or": [{"post_type": "task"}, {"type": "task"}],
             "due_date": {"$gte": datetime.now(timezone.utc).isoformat()}
         })
     
