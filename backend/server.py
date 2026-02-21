@@ -1333,6 +1333,126 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
         ]
     }
 
+@api_router.get("/student/tasks")
+async def get_student_tasks(current_user = Depends(get_current_user)):
+    """
+    Get ALL tasks assigned to a student across all their courses.
+    Returns tasks with course info, submission status, and due dates.
+    Single endpoint - no multiple requests needed from frontend.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "student":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para estudiantes")
+    
+    school_id = user.get("school_id")
+    seccion_id = user.get("seccion_id")
+    student_id = user.get("id")
+    
+    if not seccion_id:
+        return {"tasks": [], "stats": {"total": 0, "pending": 0, "submitted": 0, "graded": 0, "late": 0}}
+    
+    # Get academic assignments for this section
+    assignments = await db.academic_assignments.find({
+        "school_id": school_id,
+        "section_id": seccion_id,
+        "status": "activo"
+    }, {"_id": 0, "subject_id": 1, "teacher_id": 1}).to_list(100)
+    
+    subject_ids = list(set(a.get("subject_id") for a in assignments if a.get("subject_id")))
+    
+    if not subject_ids:
+        return {"tasks": [], "stats": {"total": 0, "pending": 0, "submitted": 0, "graded": 0, "late": 0}}
+    
+    # Get subjects info in batch
+    subjects = await db.subjects.find(
+        {"id": {"$in": subject_ids}, "school_id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "color": 1}
+    ).to_list(100)
+    subjects_map = {s["id"]: s for s in subjects}
+    
+    # Get ALL tasks for these subjects in ONE query
+    tasks_cursor = db.course_posts.find({
+        "school_id": school_id,
+        "subject_id": {"$in": subject_ids},
+        "$or": [{"type": "task"}, {"post_type": "task"}]
+    }, {"_id": 0})
+    raw_tasks = await tasks_cursor.to_list(500)
+    
+    # Get student's submissions for these tasks in ONE query
+    task_ids = [t.get("id") for t in raw_tasks if t.get("id")]
+    submissions = await db.task_submissions.find({
+        "school_id": school_id,
+        "student_id": student_id,
+        "task_id": {"$in": task_ids}
+    }, {"_id": 0}).to_list(500)
+    submissions_map = {s["task_id"]: s for s in submissions}
+    
+    # Process tasks with status
+    now = datetime.now(timezone.utc)
+    tasks = []
+    stats = {"total": 0, "pending": 0, "submitted": 0, "graded": 0, "late": 0}
+    
+    for task in raw_tasks:
+        task_id = task.get("id")
+        subject_id = task.get("subject_id")
+        subject = subjects_map.get(subject_id, {})
+        submission = submissions_map.get(task_id)
+        
+        # Determine due date
+        due_date = task.get("due_date") or task.get("metadata", {}).get("due_date")
+        is_past_due = False
+        if due_date:
+            try:
+                due_dt = datetime.fromisoformat(due_date.replace("Z", "+00:00")) if isinstance(due_date, str) else due_date
+                is_past_due = due_dt < now
+            except:
+                pass
+        
+        # Determine status
+        if submission:
+            if submission.get("grade") is not None:
+                status = "graded"
+            else:
+                status = "submitted"
+        elif is_past_due:
+            status = "late"
+        else:
+            status = "pending"
+        
+        stats["total"] += 1
+        stats[status] += 1
+        
+        tasks.append({
+            "id": task_id,
+            "title": task.get("title"),
+            "description": task.get("content") or task.get("description"),
+            "due_date": due_date,
+            "created_at": task.get("created_at"),
+            "course_id": subject_id,
+            "course_name": subject.get("name", "Sin curso"),
+            "course_color": subject.get("color", "#f59e0b"),
+            "status": status,
+            "submission": {
+                "id": submission.get("id"),
+                "submitted_at": submission.get("submitted_at"),
+                "grade": submission.get("grade"),
+                "feedback": submission.get("feedback")
+            } if submission else None
+        })
+    
+    # Sort by due date (pending first, then by date)
+    def sort_key(t):
+        status_order = {"pending": 0, "late": 1, "submitted": 2, "graded": 3}
+        due = t.get("due_date") or "9999"
+        return (status_order.get(t.get("status"), 4), due)
+    
+    tasks.sort(key=sort_key)
+    
+    return {"tasks": tasks, "stats": stats}
+
 @api_router.get("/student/schedule")
 async def get_student_schedule(current_user = Depends(get_current_user)):
     """
