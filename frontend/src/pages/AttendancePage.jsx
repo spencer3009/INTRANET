@@ -238,6 +238,7 @@ function StudentAttendanceTab({ token, schoolId }) {
 
   // Calculate summary
   const summary = {
+    pending: students.filter(s => s.status === "pending").length,
     present: students.filter(s => s.status === "present").length,
     late: students.filter(s => s.status === "late").length,
     absent: students.filter(s => s.status === "absent").length,
