@@ -34,19 +34,25 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [studentDetail, setStudentDetail] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    loadStudents();
+    loadData();
   }, [token]);
 
-  const loadStudents = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/teacher/students`, { headers });
-      setStudents(res.data.students || []);
-      setSections(res.data.sections || []);
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      const [studentsRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/teacher/students`, { headers }),
+        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
+      ]);
+      setStudents(studentsRes.data.students || []);
+      setSections(studentsRes.data.sections || []);
+      setSettings(settingsRes.data);
     } catch (err) {
       console.error("Error loading students:", err);
       setStudents([]);
@@ -54,6 +60,8 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
       setLoading(false);
     }
   };
+
+  const schoolName = settings?.system_name || "Mi Colegio";
 
   const loadStudentDetail = async (studentId) => {
     setLoadingDetail(true);
