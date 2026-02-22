@@ -505,6 +505,7 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
             </div>
           )}
         </main>
+        <TeacherFooter />
       </div>
 
       {/* Message Center */}
