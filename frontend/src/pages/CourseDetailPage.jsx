@@ -7116,6 +7116,17 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
     fetchTasks();
   }, [subjectId, token]);
   
+  // Auto-select task if highlightedTaskId is provided
+  useEffect(() => {
+    if (highlightedTaskId && tasks.length > 0) {
+      const taskToSelect = tasks.find(t => t.id === highlightedTaskId);
+      if (taskToSelect) {
+        setSelectedTask(taskToSelect);
+        onClearHighlight?.();
+      }
+    }
+  }, [highlightedTaskId, tasks, onClearHighlight]);
+  
   // Fetch archived tasks
   const fetchArchivedTasks = async () => {
     setLoadingArchived(true);
