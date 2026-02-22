@@ -4,7 +4,6 @@ import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
 import MessageCenter from "../components/MessageCenter";
 import StudentHeader from "../components/StudentHeader";
-import TeacherFooter from "../components/TeacherFooter";
 import {
   User,
   Mail,
