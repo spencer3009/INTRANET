@@ -136,13 +136,13 @@ function StudentAttendanceTab({ token, user }) {
       const studentsRes = await axios.get(`${API}/teacher/students?section_id=${selectedSection}`, { headers });
       const sectionStudents = studentsRes.data.students || [];
       
-      // Get existing attendance for this date
+      // Get existing attendance for this date using teacher endpoint
       const attendanceRes = await axios.get(
-        `${API}/attendance/section/${selectedSection}?date=${selectedDate}`, 
+        `${API}/teacher/attendance?section_id=${selectedSection}&date=${selectedDate}`, 
         { headers }
-      ).catch(() => ({ data: [] }));
+      ).catch(() => ({ data: { records: [] } }));
       
-      const existingAttendance = attendanceRes.data || [];
+      const existingAttendance = attendanceRes.data?.records || [];
       setHasSavedRecords(existingAttendance.length > 0);
       
       // Map students with their attendance status
