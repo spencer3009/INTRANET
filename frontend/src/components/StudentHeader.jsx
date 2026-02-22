@@ -89,7 +89,7 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
   };
 
   return (
-    <header className="glass-header sticky top-0 z-30 px-4 md:px-6 lg:px-8" data-testid="student-header">
+    <header className="glass-header sticky top-0 px-4 md:px-6 lg:px-8" style={{ zIndex: 100 }} data-testid="student-header">
       <div className="flex items-center justify-between h-24">
         {/* Left: Hamburger + Logo + Welcome */}
         <div className="flex items-center gap-4">
