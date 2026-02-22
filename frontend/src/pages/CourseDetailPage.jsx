@@ -9049,16 +9049,27 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 flex">
-        <Sidebar
-          active="asignaturas"
-          onNavigate={() => {}}
-          expanded={sidebarOpen}
-          onToggle={() => setSidebarOpen(!sidebarOpen)}
-          onLogout={onLogout}
-          schoolName={settings?.system_name}
-          subdomain={subdomain}
-          user={user}
-        />
+        {user?.role === "teacher" ? (
+          <TeacherSidebar
+            active="courses"
+            onNavigate={() => {}}
+            expanded={sidebarOpen}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
+            onLogout={onLogout}
+            user={user}
+          />
+        ) : (
+          <Sidebar
+            active="asignaturas"
+            onNavigate={() => {}}
+            expanded={sidebarOpen}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
+            onLogout={onLogout}
+            schoolName={settings?.system_name}
+            subdomain={subdomain}
+            user={user}
+          />
+        )}
         <div className="flex-1 p-6 lg:p-8">
           <HeaderSkeleton />
           <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -9080,6 +9091,58 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 flex">
+        {user?.role === "teacher" ? (
+          <TeacherSidebar
+            active="courses"
+            onNavigate={() => {}}
+            expanded={sidebarOpen}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
+            onLogout={onLogout}
+            user={user}
+          />
+        ) : (
+          <Sidebar
+            active="asignaturas"
+            onNavigate={() => {}}
+            expanded={sidebarOpen}
+            onToggle={() => setSidebarOpen(!sidebarOpen)}
+            onLogout={onLogout}
+            schoolName={settings?.system_name}
+            subdomain={subdomain}
+            user={user}
+          />
+        )}
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">{error}</h2>
+            <button
+              onClick={handleBack}
+              className="mt-4 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2 mx-auto"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              {user?.role === "teacher" ? "Volver a Mis Cursos" : "Volver a asignaturas"}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const schoolName = settings?.system_name || "Mi Colegio";
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 flex">
+      {user?.role === "teacher" ? (
+        <TeacherSidebar
+          active="courses"
+          onNavigate={() => {}}
+          expanded={sidebarOpen}
+          onToggle={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          user={user}
+        />
+      ) : (
         <Sidebar
           active="asignaturas"
           onNavigate={() => {}}
@@ -9090,38 +9153,23 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           subdomain={subdomain}
           user={user}
         />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">{error}</h2>
-            <button
-              onClick={handleBack}
-              className="mt-4 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2 mx-auto"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              Volver a asignaturas
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 flex">
-      <Sidebar
-        active="asignaturas"
-        onNavigate={() => {}}
-        expanded={sidebarOpen}
-        onToggle={() => setSidebarOpen(!sidebarOpen)}
-        onLogout={onLogout}
-        schoolName={settings?.system_name}
-        subdomain={subdomain}
-        user={user}
-      />
+      )}
       
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header - Sticky at top */}
+        {user?.role === "teacher" ? (
+          <StudentHeader
+            user={user}
+            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+            onLogout={onLogout}
+            logoUrl={settings?.logo_url}
+            schoolName={schoolName}
+            subdomain={subdomain || user?.subdomain}
+            token={token}
+            roleLabel="Docente"
+            profilePath="/teacher/profile"
+          />
+        ) : (
         <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm">
           <DashboardHeader
             user={user}
