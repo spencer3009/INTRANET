@@ -213,3 +213,9 @@
   background: white;
   border: 1px solid #e2e8f0;
 }
+
+/* ── Modal z-index fix ── */
+.fixed.inset-0[class*="bg-black"] {
+  z-index: 9999 !important;
+}
+
