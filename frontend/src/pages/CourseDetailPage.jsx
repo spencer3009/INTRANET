@@ -344,8 +344,10 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
         {colorfulTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
-          const showMessageBadge = tab.id === "mensajes" && unreadMessages > 0;
-          const showReminderBadge = tab.id === "recordatorios" && unreadReminders > 0;
+          // Don't show message badge if we're on the messages tab
+          const showMessageBadge = tab.id === "mensajes" && unreadMessages > 0 && activeTab !== "mensajes";
+          // Don't show reminder badge if we're on the reminders tab
+          const showReminderBadge = tab.id === "recordatorios" && unreadReminders > 0 && activeTab !== "recordatorios";
           const showTaskBadge = tab.id === "tareas";
           
           return (
