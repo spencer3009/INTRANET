@@ -9144,8 +9144,8 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       try {
         const res = await axios.get(`${API}/course/${subjectId}/reminders`, { headers });
         const reminders = res.data || [];
-        // Count reminders that are not completed and not past due
-        const unread = reminders.filter(r => !r.is_completed && new Date(r.due_date) >= new Date()).length;
+        // Count reminders that are not completed
+        const unread = reminders.filter(r => !r.is_completed).length;
         setUnreadReminders(unread);
       } catch (err) {
         console.log("Could not load reminders:", err);
