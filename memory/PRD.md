@@ -153,6 +153,10 @@ const navItems = isOwner(user)
 - `PUT /api/settings/roles` - Toggle de flags de roles (solo owner)
 - `GET /api/accounting/payments` - Pagos (owner + admin si flag habilitado)
 - `GET /api/student/tasks` - Tareas del estudiante (cached)
+- `GET /api/teacher/courses` - Cursos asignados al profesor (con level_name)
+- `GET /api/teacher/students` - Estudiantes de secciones del profesor
+- `GET /api/teacher/attendance` - Asistencia por sección/fecha (profesor)
+- `POST /api/teacher/attendance` - Guardar asistencia (profesor)
 
 ## Database Collections
 - `schools`: Incluye campo `allow_admin_accounting` (boolean)
