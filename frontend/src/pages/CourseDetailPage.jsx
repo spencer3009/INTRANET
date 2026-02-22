@@ -9181,6 +9181,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             token={token}
           />
         </div>
+        )}
 
         {/* Main Content */}
         <main className="flex-1 px-6 lg:px-8 py-6">
