@@ -2693,14 +2693,21 @@ async def get_teacher_attendance(
     if not assignment:
         raise HTTPException(status_code=403, detail="No tienes acceso a esta sección")
     
-    # Get attendance records
-    records = await db.attendance.find({
+    # Get attendance records from attendances collection (compatible with reports)
+    records = await db.attendances.find({
         "school_id": school_id,
         "section_id": section_id,
-        "date": date
+        "date": date,
+        "type": "student"
     }, {"_id": 0}).to_list(500)
     
-    return {"records": records}
+    # Map user_id to student_id for frontend compatibility
+    formatted_records = [{
+        **r,
+        "student_id": r.get("user_id", r.get("student_id"))
+    } for r in records]
+    
+    return {"records": formatted_records}
 
 class AttendanceRecord(BaseModel):
     student_id: str
