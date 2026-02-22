@@ -38,6 +38,7 @@ export default function TeacherAssignmentsViewPage({ user, token, onLogout }) {
   const [filterCourse, setFilterCourse] = useState(searchParams.get("course") || "");
   const [filterStatus, setFilterStatus] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -48,12 +49,15 @@ export default function TeacherAssignmentsViewPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [tasksRes, coursesRes] = await Promise.all([
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      const [tasksRes, coursesRes, settingsRes] = await Promise.all([
         axios.get(`${API}/api/teacher/tasks`, { headers }),
-        axios.get(`${API}/api/teacher/courses`, { headers })
+        axios.get(`${API}/api/teacher/courses`, { headers }),
+        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
       ]);
       setTasks(tasksRes.data.tasks || []);
       setCourses(coursesRes.data.courses || []);
+      setSettings(settingsRes.data);
     } catch (err) {
       console.error("Error loading data:", err);
       setTasks([]);
@@ -62,6 +66,8 @@ export default function TeacherAssignmentsViewPage({ user, token, onLogout }) {
       setLoading(false);
     }
   };
+
+  const schoolName = settings?.system_name || "Mi Colegio";
 
   const navigateTo = (path) => {
     if (subdomain) {
