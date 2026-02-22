@@ -2530,11 +2530,11 @@ async def get_teacher_tasks(current_user = Depends(get_current_user)):
     if not subject_ids:
         return {"tasks": []}
     
-    # Get tasks from teacher's courses
+    # Get tasks from teacher's courses (match both type and post_type for compatibility)
     tasks = await db.course_posts.find({
         "school_id": school_id,
         "subject_id": {"$in": subject_ids},
-        "type": "task"
+        "$or": [{"type": "task"}, {"post_type": "task"}]
     }, {"_id": 0}).sort("created_at", -1).to_list(200)
     
     # Enrich with subject/section info
