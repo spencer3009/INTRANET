@@ -37,6 +37,7 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
   });
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
+  const [settings, setSettings] = useState(null);
   
   // Password change
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -55,25 +56,32 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    loadProfile();
+    loadInitialData();
   }, [token]);
 
-  const loadProfile = async () => {
+  const loadInitialData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/teacher/profile`, { headers });
-      setProfile(res.data);
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      const [profileRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/teacher/profile`, { headers }),
+        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
+      ]);
+      setProfile(profileRes.data);
       setFormData({
-        name: res.data.user?.name || "",
-        last_name: res.data.user?.last_name || "",
-        phone: res.data.user?.phone || ""
+        name: profileRes.data.user?.name || "",
+        last_name: profileRes.data.user?.last_name || "",
+        phone: profileRes.data.user?.phone || ""
       });
+      setSettings(settingsRes.data);
     } catch (err) {
       console.error("Error loading profile:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  const schoolName = settings?.system_name || "Mi Colegio";
 
   const handleSaveProfile = async () => {
     setSaving(true);
