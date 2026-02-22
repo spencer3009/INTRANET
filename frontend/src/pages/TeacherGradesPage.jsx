@@ -3,12 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
 import MessageCenter from "../components/MessageCenter";
+import StudentHeader from "../components/StudentHeader";
+import TeacherFooter from "../components/TeacherFooter";
 import {
   BarChart3,
   Search,
   Filter,
   Loader2,
-  Menu,
   Users,
   BookOpen,
   Save,
