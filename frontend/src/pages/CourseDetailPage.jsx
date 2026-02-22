@@ -326,7 +326,7 @@ function TeacherCourseHeroHeader({ subject, teacherName, onBack }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // TEACHER COLORFUL TABS COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
-function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
+function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unreadReminders = 0 }) {
   const colorfulTabs = [
     { id: "tablero", label: "TABLERO", icon: LayoutDashboard, gradient: "from-slate-800 to-slate-700", borderColor: "border-cyan-400", iconBg: "bg-slate-700" },
     { id: "tareas", label: "TAREAS", icon: FileText, gradient: "from-blue-600 to-blue-500", borderColor: "border-blue-300", iconBg: "bg-blue-500" },
@@ -344,7 +344,8 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
         {colorfulTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
-          const showBadge = tab.id === "mensajes" && unreadMessages > 0;
+          const showMessageBadge = tab.id === "mensajes" && unreadMessages > 0;
+          const showReminderBadge = tab.id === "recordatorios" && unreadReminders > 0;
           const showTaskBadge = tab.id === "tareas";
           
           return (
@@ -368,9 +369,16 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
                 <Icon className="w-7 h-7 text-white" strokeWidth={1.5} />
                 
                 {/* Badge for messages */}
-                {showBadge && (
+                {showMessageBadge && (
                   <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white">
                     {unreadMessages > 99 ? "99+" : unreadMessages}
+                  </span>
+                )}
+                
+                {/* Badge for reminders */}
+                {showReminderBadge && (
+                  <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                    {unreadReminders > 99 ? "99+" : unreadReminders}
                   </span>
                 )}
                 
