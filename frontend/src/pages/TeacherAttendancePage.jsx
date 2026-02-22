@@ -180,13 +180,16 @@ function StudentAttendanceTab({ token, user }) {
     setSuccess("");
     
     try {
-      // Prepare attendance records
-      const records = students.map(s => ({
-        student_id: s.id,
-        status: s.status
-      }));
+      // Prepare attendance records - filter out pending
+      const records = students
+        .filter(s => s.status !== "pending")
+        .map(s => ({
+          student_id: s.id,
+          status: s.status
+        }));
       
-      await axios.post(`${API}/attendance/section/${selectedSection}`, {
+      await axios.post(`${API}/teacher/attendance`, {
+        section_id: selectedSection,
         date: selectedDate,
         records
       }, { headers });
@@ -200,7 +203,7 @@ function StudentAttendanceTab({ token, user }) {
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error saving attendance:", err);
-      setError("Error al guardar la asistencia");
+      setError(err.response?.data?.detail || "Error al guardar la asistencia");
     } finally {
       setSaving(false);
     }
