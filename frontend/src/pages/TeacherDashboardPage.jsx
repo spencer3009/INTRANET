@@ -531,6 +531,55 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
                 </div>
               </div>
 
+              {/* Recent Announcements */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100">
+                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
+                    <Megaphone className="w-5 h-5 text-indigo-500" />
+                    Anuncios Recientes
+                  </h2>
+                </div>
+                
+                <div className="divide-y divide-slate-100">
+                  {dashboardData?.recent_announcements?.length > 0 ? (
+                    dashboardData.recent_announcements.map((ann) => (
+                      <div 
+                        key={ann.id}
+                        className="px-5 py-4 hover:bg-slate-50 transition-colors"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
+                            ann.priority === "urgent" ? "bg-red-500" :
+                            ann.priority === "important" ? "bg-amber-500" : "bg-blue-500"
+                          }`} />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-medium text-slate-800">{ann.title}</p>
+                              {!ann.is_read && (
+                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-cyan-100 text-cyan-700 rounded">NUEVO</span>
+                              )}
+                            </div>
+                            <p className="text-xs text-slate-500">
+                              {new Date(ann.created_at).toLocaleDateString("es-PE", { 
+                                day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" 
+                              })}
+                            </p>
+                          </div>
+                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ann.priority] || PRIORITY_COLORS.normal}`}>
+                            {ann.priority === "urgent" ? "Urgente" : ann.priority === "important" ? "Importante" : "Normal"}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="px-5 py-8 text-center text-slate-500">
+                      <Megaphone className="w-10 h-10 mx-auto mb-2 text-slate-300" />
+                      <p>No hay anuncios recientes</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Today's Attendance Alert */}
               {dashboardData?.today_attendance_pending?.length > 0 && (
                 <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl p-5 text-white">
