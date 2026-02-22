@@ -8880,9 +8880,29 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
     setLoading(true);
     setError(null);
     try {
-      // Load settings
-      const settingsRes = await axios.get(`${API}/settings`, { headers });
-      setSettings(settingsRes.data);
+      // Load settings - use public endpoint for non-owner users
+      let settingsData = null;
+      try {
+        if (user?.role === "teacher") {
+          // Teachers use public settings endpoint
+          const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+          const settingsRes = await axios.get(`${API}/settings/public/${currentSubdomain}`);
+          settingsData = settingsRes.data;
+        } else {
+          const settingsRes = await axios.get(`${API}/settings`, { headers });
+          settingsData = settingsRes.data;
+        }
+      } catch (e) {
+        // Fallback to public settings if main fails
+        try {
+          const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+          const settingsRes = await axios.get(`${API}/settings/public/${currentSubdomain}`);
+          settingsData = settingsRes.data;
+        } catch (e2) {
+          console.log("Could not load settings");
+        }
+      }
+      setSettings(settingsData);
       
       // Load subject details
       const subjectsRes = await axios.get(`${API}/academic/subjects`, { headers });
