@@ -2382,19 +2382,39 @@ async def get_teacher_students(
         if section:
             sections_map[sid] = section
     
+    # Get grades and levels info
+    grades_map = {}
+    levels_map = {}
+    grades = await db.grades.find({"school_id": school_id}, {"_id": 0}).to_list(200)
+    levels = await db.academic_levels.find({"school_id": school_id}, {"_id": 0}).to_list(50)
+    
+    for grade in grades:
+        grades_map[grade["id"]] = grade
+    for level in levels:
+        levels_map[level["id"]] = level
+    
     # Enrich student data
     enriched_students = []
     for student in students:
         section = sections_map.get(student.get("seccion_id"), {})
+        grade = grades_map.get(student.get("grado_id"), {})
+        level = levels_map.get(grade.get("nivel_id"), {})
+        
         enriched_students.append({
             "id": student["id"],
             "name": student.get("name", ""),
             "last_name": student.get("last_name", ""),
             "photo_url": student.get("photo_url"),
             "email": student.get("email"),
+            "phone": student.get("phone"),
             "section_id": student.get("seccion_id"),
             "section_name": section.get("nombre"),
-            "grade_id": student.get("grado_id")
+            "grade_id": student.get("grado_id"),
+            "grade_name": grade.get("nombre"),
+            "level_id": grade.get("nivel_id"),
+            "level_name": level.get("nombre"),
+            "qr_code": student.get("qr_code"),
+            "created_at": student.get("created_at")
         })
     
     # Get sections for filter dropdown
