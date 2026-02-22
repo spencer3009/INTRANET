@@ -367,7 +367,8 @@ export default function NotificationBell({ token }) {
       {/* Dropdown */}
       {isOpen && (
         <div
-          className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50"
+          className="absolute right-0 top-full mt-2 w-96 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden"
+          style={{ zIndex: 9999 }}
           data-testid="notification-dropdown"
         >
           {/* Header */}
