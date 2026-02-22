@@ -1475,7 +1475,7 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
   const Icon = config.icon;
   
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4">
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header with type indicator */}
@@ -3757,7 +3757,7 @@ function DeleteConfirmModal({ isOpen, onClose, onConfirm, loading, title = "Elim
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 flex items-center justify-center p-4">
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-200">
         {/* Header with warning icon */}
@@ -7473,7 +7473,7 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
       <div className="space-y-4 pt-6 pb-48">
         {/* Premium Notification Modal */}
         {notification.show && (
-          <div className="fixed inset-0 flex items-center justify-center p-4">
+          <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
             {/* Backdrop */}
             <div 
               className="absolute inset-0 bg-black/50 backdrop-blur-sm"
