@@ -8864,6 +8864,14 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
 
   const headers = { Authorization: `Bearer ${token}` };
 
+  // Determine the back navigation route based on user role
+  const getBackRoute = () => {
+    if (user?.role === "teacher") {
+      return subdomain ? `/school/${subdomain}/teacher/courses` : "/teacher/courses";
+    }
+    return subdomain ? `/school/${subdomain}/asignaturas` : "/asignaturas";
+  };
+
   useEffect(() => {
     loadData();
   }, [subjectId]);
