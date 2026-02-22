@@ -31,19 +31,21 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sending, setSending] = useState(false);
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    loadContacts();
+    loadInitialData();
   }, [token]);
 
-  const loadContacts = async () => {
+  const loadInitialData = async () => {
     setLoading(true);
     try {
-      // Load students and coordinators as contacts
-      const [studentsRes] = await Promise.all([
-        axios.get(`${API}/api/teacher/students`, { headers })
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      const [studentsRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/teacher/students`, { headers }),
+        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
       ]);
       
       // Format contacts
@@ -56,6 +58,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
       }));
       
       setContacts(studentContacts);
+      setSettings(settingsRes.data);
     } catch (err) {
       console.error("Error loading contacts:", err);
       setContacts([]);
@@ -63,6 +66,8 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
       setLoading(false);
     }
   };
+
+  const schoolName = settings?.system_name || "Mi Colegio";
 
   const loadConversation = async (contact) => {
     setSelectedContact(contact);
