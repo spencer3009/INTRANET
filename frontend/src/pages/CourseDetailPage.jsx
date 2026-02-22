@@ -8928,6 +8928,7 @@ function RemindersTabContent({ subjectId, token, userRole }) {
 export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   const { subjectId } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
@@ -8942,6 +8943,9 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   const [academicPeriodName, setAcademicPeriodName] = useState("");
   
   const [activeTab, setActiveTab] = useState("tablero");
+  
+  // State for highlighted task from URL parameter
+  const [highlightedTaskId, setHighlightedTaskId] = useState(null);
   
   // State for unread messages count
   const [unreadMessages, setUnreadMessages] = useState(0);
