@@ -7064,7 +7064,7 @@ function ForumContent({ subjectId, token, user, students }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // TASKS TABLE CONTENT (New design similar to Forum)
 // ══════════════════════════════════════════════════════════════════════════════
-function TasksTableContent({ subjectId, token, user, students, subject, levelName, gradeName }) {
+function TasksTableContent({ subjectId, token, user, students, subject, levelName, gradeName, highlightedTaskId, onClearHighlight }) {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedTask, setSelectedTask] = useState(null);
