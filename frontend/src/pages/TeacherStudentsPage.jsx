@@ -296,13 +296,6 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                     <div className="flex items-start justify-between">
                       {/* Info */}
                       <div className="space-y-2 text-sm">
-                        {student.phone && (
-                          <div className="flex items-center gap-2 text-slate-600">
-                            <Phone className="w-4 h-4 text-amber-500" />
-                            <span>{student.phone}</span>
-                          </div>
-                        )}
-                        
                         <div className="flex items-center gap-2 text-slate-600">
                           <MapPin className="w-4 h-4 text-amber-500" />
                           <span>{student.level_name || "N/A"} - {student.grade_name || "N/A"} - {student.section_name || "N/A"}</span>
