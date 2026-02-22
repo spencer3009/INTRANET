@@ -2733,34 +2733,43 @@ async def save_teacher_student_attendance(data: SaveAttendanceRequest, current_u
     if not assignment:
         raise HTTPException(status_code=403, detail="No tienes acceso a esta sección")
     
+    # Get section info to obtain grade_id
+    section = await db.academic_sections.find_one({"id": data.section_id}, {"_id": 0})
+    grade_id = section.get("grado_id") if section else None
+    
     # Validate date format
     try:
         datetime.strptime(data.date, "%Y-%m-%d")
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de fecha inválido (YYYY-MM-DD)")
     
-    # Save each attendance record
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Save each attendance record to attendances collection (compatible with reports)
     for record in data.records:
-        await db.attendance.update_one(
+        await db.attendances.update_one(
             {
                 "school_id": school_id,
                 "section_id": data.section_id,
                 "date": data.date,
-                "student_id": record.student_id
+                "user_id": record.student_id,
+                "type": "student"
             },
             {
                 "$set": {
                     "status": record.status,
                     "recorded_by": user["id"],
-                    "updated_at": datetime.now(timezone.utc).isoformat()
+                    "updated_at": now
                 },
                 "$setOnInsert": {
                     "id": str(uuid.uuid4()),
                     "school_id": school_id,
                     "section_id": data.section_id,
+                    "grade_id": grade_id,
                     "date": data.date,
-                    "student_id": record.student_id,
-                    "created_at": datetime.now(timezone.utc).isoformat()
+                    "user_id": record.student_id,
+                    "type": "student",
+                    "created_at": now
                 }
             },
             upsert=True
