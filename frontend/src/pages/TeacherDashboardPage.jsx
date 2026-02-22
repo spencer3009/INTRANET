@@ -225,6 +225,8 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
           schoolName={schoolName}
           subdomain={subdomain || user?.subdomain}
           token={token}
+          roleLabel="Docente"
+          profilePath="/teacher/profile"
         />
 
         {/* Dashboard Content */}
