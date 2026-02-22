@@ -46,19 +46,25 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
   const [existingRecord, setExistingRecord] = useState(false);
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    loadSections();
+    loadInitialData();
   }, [token]);
 
-  const loadSections = async () => {
+  const loadInitialData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/teacher/courses`, { headers });
-      const coursesData = res.data.courses || [];
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      const [coursesRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/teacher/courses`, { headers }),
+        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
+      ]);
+      const coursesData = coursesRes.data.courses || [];
       setCourses(coursesData);
+      setSettings(settingsRes.data);
       
       // Extract unique sections
       const uniqueSections = [];
