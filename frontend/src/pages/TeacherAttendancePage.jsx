@@ -89,6 +89,8 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
     }
   };
 
+  const schoolName = settings?.system_name || "Mi Colegio";
+
   const loadSectionData = async (section, date = selectedDate) => {
     setSelectedSection(section);
     setLoading(true);
