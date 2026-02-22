@@ -9312,6 +9312,16 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             if (!isFullWidth) {
+              // Use different header for teacher vs owner
+              if (user?.role === "teacher") {
+                return (
+                  <TeacherCourseHeroHeader
+                    subject={subject}
+                    teacherName={`${user?.name || ''} ${user?.last_name || ''}`.trim()}
+                    onBack={() => navigate(getBackRoute())}
+                  />
+                );
+              }
               return (
                 <CourseHeroHeader
                   subject={subject}
@@ -9341,9 +9351,13 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             );
           })()}
           
-          {/* Tabs */}
+          {/* Tabs - Use colorful tabs for teachers */}
           <div className={`${activeTab === "tablero" ? "mt-6" : "mt-0"} sticky top-[72px] z-30 -mx-6 lg:-mx-8 px-6 lg:px-8 py-3 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm border-b border-gray-200/50`}>
-            <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} unreadMessages={unreadMessages} />
+            {user?.role === "teacher" ? (
+              <TeacherColorfulTabs activeTab={activeTab} onTabChange={setActiveTab} unreadMessages={unreadMessages} />
+            ) : (
+              <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} unreadMessages={unreadMessages} />
+            )}
           </div>
           
           {/* 3-Column Layout - Hide sidebars for full-width tabs */}
