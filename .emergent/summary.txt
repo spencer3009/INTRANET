@@ -2,76 +2,85 @@
 The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project involves creating several core modules, including a professional Horario de Clases (Class Schedule), a Horario de Exámenes (Exam Schedule), a student-focused Reportes de Asistencia (Attendance Reports), and a QR code-based system for student identification and attendance tracking. The project also involves significant refactoring to manage technical debt and fixing various UI/UX bugs.
 
 **PRODUCT REQUIREMENTS:**
--   **Core Modules:** Implement robust, professional modules for Class Schedules, Exam Schedules, and Attendance, with distinct views and permissions for admins and students.
--   **QR Code System:** Generate a unique, persistent QR code for each student upon creation. This QR code will be used for marking attendance via a camera-based scanner and for general student identification. The QR code data should be a secure JWT containing the  and .
--   **UI/UX:** Maintain a professional, responsive, and intuitive user interface. Consolidate related features into tabs to avoid sidebar clutter. Address UI bugs to ensure a smooth user experience.
--   **Technical Debt Management:** Proactively refactor monolithic files () into smaller, modular components and routers to ensure long-term maintainability and scalability.
--   **Data Integrity:** Ensure that deleting users also cleans up all their associated data (attendance, grades, etc.) to prevent orphaned records.
+-   **Core Modules:** Implement robust, professional modules for Class Schedules, Exam Schedules, and Attendance, with distinct views and permissions for admins and students. Implement a full-featured internal messaging system.
+-   **QR Code System:** Generate a unique, persistent QR code for each student upon creation.
+-   **UI/UX:** Maintain a professional, responsive, and intuitive user interface. Consolidate related features into tabs to avoid sidebar clutter. Address UI bugs to ensure a smooth user experience. Redesign key dashboard elements with a premium look.
+-   **Performance & Scalability:** Optimize slow pages and refactor the architecture to handle load efficiently, including creating dedicated endpoints and implementing caching.
+-   **Technical Debt Management:** Proactively refactor monolithic files () into smaller, modular components and implement a robust Role-Based Access Control (RBAC) system to avoid code duplication.
+-   **Data Integrity:** Ensure that deleting users also cleans up all their associated data.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack monolith (FastAPI + React). It has a complete QR code-based attendance system and user management. The current session focused heavily on fixing data consistency bugs and implementing significant UI/UX improvements on the student portal based on user feedback.
+The application is a full-stack monolith (FastAPI + React) with an established RBAC system. This session focused heavily on enhancing the Teacher Portal. The agent standardized the header across all teacher pages and confined the footer to the main dashboard. A major effort was made to make the existing  (originally for owners) role-aware, so it now dynamically displays the correct sidebar (green for teachers, blue/yellow for owners), header, and navigation paths based on the user's role.
 
-Key existing features:
--   **QR Code Attendance:** The system for scanning and recording attendance via QR code is now fully functional and synchronized with the manual attendance views.
--   **Data Consistency:** Multiple bugs related to data being stored in one collection (e.g., ) but read from another () have been resolved across several features (QR Scan, Student Dashboard, Attendance Page). Field name inconsistencies ( vs. ) for tasks have also been fixed.
--   **Student Dashboard:** A completely revamped student dashboard that now shows live, accurate data for Courses, Tasks, Attendance, and Messages. It features a new Task Progress widget with color-coded status, and the main content area has been redesigned into a two-column, paginated layout for My Courses and Upcoming Tasks.
--   **Attendance Module:** The Pendiente (Pending) status for students is fully functional. It's now possible to revert a student's attendance status back to Pendiente, which correctly deletes the record from all relevant database collections. The student's attendance calendar now correctly displays status colors, even on weekends.
--   **Internal Messaging:** A bug preventing users from sending messages from the student profile pop-up within a course has been fixed.
+Following iterative user feedback, several pages were redesigned:
+-    for teachers now features a colorful, icon-based tab system and a custom hero banner.
+-    (Mis Alumnos) was completely overhauled with a premium card-based layout, including QR codes and a detailed student profile modal.
+
+Several bugs and data issues were fixed, including loading the correct student list for teachers in the course detail view and resolving z-index conflicts with headers, notification dropdowns, and modals. A dynamic notification badge for unread reminders was also implemented.
 
 **Last working item**:
--   **Last item agent was working**: The user requested verification that the student's attendance calendar correctly uses different colors for various statuses. The agent created test data for a student with 'late' () and 'absent' () records and was in the process of taking screenshots to visually confirm the amber/orange and red colors appear correctly on the calendar.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y
--   **Which testing method agent to use?**: screenshot tool
+-   **Last item agent was working**: The user requested a redesign of the teacher's attendance page () to match the design of the owner's existing attendance page. The agent has just overwritten the teacher's attendance file with the code from the owner's .
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: frontend testing agent
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Verify Attendance Calendar Color-Coding (P0)**
-    -   **Description:** The user wants visual confirmation that the student's attendance calendar correctly displays amber/orange for 'late' () and red for 'absent' ().
-    -   **Attempted fixes:** The agent successfully created backend test data for a student with 'present', 'late', 'absent', and 'justified' statuses. A screenshot confirmed the summary cards on the page updated correctly. The final step is to verify the calendar itself.
+-   **Issue 1: Message Center Unread Count Discrepancy (P1)**
+    -   **Description:** The dashboard's Message Center widget shows an unread count, but the corresponding unread message isn't always visible in the message list, especially if it's from a user outside the default contact list (e.g., an admin).
+    -   **Attempted fixes:** This was partially addressed in a previous session, but the underlying issue of synchronizing the global unread count with the thread list persists.
     -   **Next debug checklist:**
-        1.  Use the  tool on the student attendance page ().
-        2.  Scroll down to the calendar view.
-        3.  Verify that the days with test data are colored correctly: amber/orange for 'late', red for 'absent', and blue for 'justified'.
-    -   **Why fix this issue and what will be achieved with the fix?** This will confirm that the UI feature is complete as per user requirements, providing clear visual cues for different attendance statuses.
-    -   **Status:** USER VERIFICATION PENDING
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
+        1.  Verify the backend logic for  and  to ensure they are consistent.
+        2.  Refactor the backend to provide a single, unified endpoint for the message center that returns contacts and active threads together, simplifying frontend logic.
+        3.  In , ensure there are no race conditions between fetching stats and thread lists.
+    -   **Why fix this issue and what will be achieved with the fix?** To provide a reliable and non-confusing messaging experience for users.
+    -   **Status:** IN PROGRESS
+    -   **Is recurring issue?** Y
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on other issue:** None.
 
 **In progress Task List**:
--   None.
+-   **Task 1: Adapt Teacher Attendance Page (P0)**
+    -   **Description:** The file  was just overwritten with code from the owner's . It must be adapted to work for the teacher role.
+    -   **Where to resume:**
+        1.  In , replace data-fetching logic (e.g., for courses, students) with teacher-specific endpoints (e.g., ).
+        2.  Remove or adapt any UI elements or functionality exclusive to the owner role.
+        3.  Ensure the header and sidebar are the correct ones for the teacher portal.
+        4.  Test the complete flow: selecting a course/section, displaying students, and using the QR scanner to mark attendance.
+    -   **What will be achieved with this?** A modern, functional attendance page for teachers, consistent with the rest of the application.
+    -   **Status:** IN PROGRESS
+    -   **Should Test frontend/backend/both after fix?** both
+    -   **Blocked on something:** None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Modularize :** CRITICAL. This task was the top priority from the previous fork and remains unaddressed. The backend  file is over 17,000 lines and represents a significant source of technical debt. It must be refactored into smaller, domain-specific routers as outlined in .
+    -   **P0: Modularize :** CRITICAL. This is a long-standing technical debt item. The file is over 18,000 lines and must be refactored into smaller, domain-specific routers (e.g., , , ).
+    -   **P1: Implement Cache Invalidation for Tasks:** The backend cache for  needs an invalidation strategy. The cache must be cleared when a new task is created, submitted, or graded to prevent stale data.
 -   **Future Tasks:**
     -   **P1:** Build a Matrículas (Enrollments) module.
     -   **P1:** Implement a basic anti-cheating system for exams.
     -   **P1:** Enhance the Exams module with a Question Bank.
     -   **P1:** Implement automatic notifications for students.
-    -   **P2:** Perform a project-wide replacement of native  and  dialogs with custom modals.
+    -   **P2:** Perform a project-wide replacement of  and  dialogs with a global custom modal.
     -   **P2:** Refactor the  and  monolith components.
 
 **Completed work in this session**
--   **Bug Fix: QR Scan & Manual Attendance Synchronization:** Fixed a critical bug where QR scan attendance was not reflected in the main attendance view by unifying logic to use the  collection.
--   **Bug Fix: Restore Pendiente (Pending) Status:** Fixed a regression where students without an attendance record defaulted to Present. Also implemented the ability to revert a marked student back to Pendiente.
--   **Bug Fix: Internal Messaging from Course Page:** Resolved a JavaScript error that blocked sending messages from the student pop-up in a course detail page.
--   **Feature: Live Student Dashboard:** Connected the student dashboard widgets (Tasks, Attendance, etc.) to live backend data, fixing numerous bugs related to incorrect database collections and field names.
--   **Feature: Student Dashboard UI Overhaul:**
-    -   Redesigned the Mis Cursos and Tareas Próximas lists into a two-column, clickable layout.
-    -   Replaced the infinite scroll with a professional, paginated view for these lists.
--   **Feature: Task Progress Widget:** Replaced the Promedio General widget with a more useful Progreso de Tareas widget showing completion percentage with dynamic, status-based colors (red/yellow/green).
--   **Bug Fix: Student Task Visibility:** Resolved an issue where assigned tasks were not appearing on the student's task page or dashboard due to inconsistent  vs  field usage in the database.
--   **Feature: Direct Navigation to Task:** Implemented navigation so that clicking a task on the dashboard or task list takes the student directly to the course page with the specific task opened.
--   **Bug Fix: Student Attendance Page Consistency:** Fixed a bug causing the Mi Asistencia page to show 0 records while the dashboard showed the correct count.
--   **Bug Fix: Attendance Calendar Color on Weekends:** Fixed an issue where attendance on a weekend was styled as a gray weekend day instead of green for present.
+-   **Feature: Role-Aware Course Detail Page:** Modified  to dynamically render the correct sidebar, header, and navigation paths for both teachers and owners.
+-   **Feature: Teacher Portal UI Redesign:**
+    -   Completely redesigned  (Mis Alumnos) with a premium card layout, QR codes, and a detailed profile modal.
+    -   Redesigned the  banner and tabs for the teacher view with a colorful, icon-based style.
+-   **Feature: Dynamic UI Elements:** Implemented a notification badge on the Reminders tab that correctly shows a count of new items and clears upon viewing.
+-   **UI Standardization:** Ensured a consistent header component is used across all teacher portal pages (, , etc.).
+-   **Bug Fix: Z-Index Stacking Issues:** Fixed layering problems where notification dropdowns and profile modals were appearing behind other page elements.
+-   **Bug Fix: Data Loading for Teachers:** Corrected the data fetching logic in  to load the correct list of students for the logged-in teacher.
+-   **User Management:** Updated the password for the teacher user .
 
 **Earlier issues found/mentioned but not fixed**
--   The large-scale refactoring of  has been planned but not yet executed and remains the highest priority technical debt.
--   The project-wide replacement of  and  with custom modals is still pending.
--   The  and  components remain large monoliths in need of refactoring.
+-   The large-scale refactoring of  is the most critical piece of technical debt.
+-   The project-wide replacement of  and  with a global custom modal is still pending.
+-    and  remain large monoliths in need of refactoring.
 
 **Known issue recurrence from previous fork**
 -   None.
@@ -80,65 +89,56 @@ Key existing features:
 
 
 **Key Technical Concepts**
--   **Data Consistency Across Collections:** A core challenge in this session was fixing bugs caused by data being written to one collection (e.g., ) but read from another (). The agent had to consolidate logic across multiple endpoints to ensure a single source of truth.
--   **Debugging Inconsistent Data:** The agent traced API calls and inspected database queries to resolve discrepancies between what was shown on dashboards versus detail pages, particularly fixing filters that used incorrect field names (e.g.,  vs. ).
--   **Dynamic UI Rendering & State Management:** Implemented complex frontend logic for pagination, a new task progress widget with dynamic colors, and fixed conditional rendering in the attendance calendar to prioritize status over weekend styling.
--   **Client-Side Navigation with URL Params:** Used URL parameters () to pass state between pages and trigger specific UI states on page load, such as automatically opening a task detail view.
+-   **Role-Aware Components:** Adapting existing components () to work for multiple user roles by adding conditional logic based on  to render different sub-components (sidebars, headers) and determine functionality (navigation paths).
+-   **Iterative UI Design:** The agent and user engaged in multiple feedback cycles with visual aids to refine the UI for the teacher's Mis Alumnos and Course Detail pages, adjusting colors, layout, and information display.
+-   **Z-Index Management:** Resolved UI stacking context issues by systematically increasing the  of headers, dropdowns, and modals to ensure they layer correctly.
+-   **Local Storage for UI State:** Used  to track viewed reminders, preventing the notification badge from reappearing unnecessarily and improving user experience.
 
 **key DB schema**
--   **:** Now the primary, unified collection for both manual and QR-scanned attendance records. Uses .
--   **:** A legacy collection for QR scans. Logic has been added to sync its records into .
--   **:** Stores tasks and other course content. Was the source of a major bug due to inconsistent use of  vs , which is now resolved in key endpoints.
-
-**changes in tech stack**
--   None.
+-   No changes were made to the database schema in this session.
 
 **All files of reference**
--    (Heavily modified across numerous endpoints)
--    (Heavily modified with major UI/UX changes)
--    (Endpoint and calendar color logic fixed)
--    (API call logic fixed)
--    (Modified for messaging and task navigation)
--    (Modified for Pendiente status logic)
--    (Modified for messaging fix)
+-   
+-   
+-   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** Remains the highest priority for refactoring to manage technical debt.
--   ** (CRITICAL):** This file is extremely large (~4.8k lines) and complex. It needs to be broken down into smaller components to improve maintainability.
--   ** (High):** This file has grown significantly with the addition of pagination logic and new widgets. It should be refactored into smaller, more focused components.
+-   ** (CRITICAL):** This remains the highest priority for refactoring. The file's size and complexity are a significant source of risk and technical debt.
+-   ** (High):** This file has become a large monolith. It now contains the definitions for multiple distinct components (, , etc.) and complex role-based conditional rendering logic. These components should be extracted into their own files in the  directory.
+-   **Global State Management:** Prop drilling of the  object and other global state is still prevalent. A global state solution (like React Context or Zustand) is needed to avoid bugs and improve maintainability.
 
 **key api endpoints**
--   **:** Heavily modified to provide accurate data for the new widgets, calculating task progress and reading attendance/tasks from the correct, unified collections.
--   **:** Corrected to read from the unified  collection, fixing a major data inconsistency between the dashboard and the student's personal attendance page.
--   **:** The backend logic was made more flexible to handle both  and , and the frontend was corrected to use the right parameters.
--   **:** Modified to sync with the main  collection.
--   : Modified to correctly handle the Pendiente status by deleting existing records from all relevant collections.
+-   : Modified to return additional fields: , , , and .
+-   : Used to fetch course-specific reminders and power the notification badge count.
 
 **Critical Info for New Agent**
 -   **Communicate in Spanish.**
--   **Immediate Priority:** Complete the last user request by verifying the attendance calendar's color-coding. Take a final screenshot showing that late () is amber/orange and absent () is red.
--   **Next Major Task (P0):** After verifying the calendar, you **must** begin the P0 backend refactoring of . This has been postponed for too long and is critical for the project's health.
--   **Data Model Inconsistency:** Be vigilant about historical inconsistencies between DB collections ( vs ) and fields ( vs ). While key endpoints were fixed, others might still use old formats. Always verify the data model when debugging.
--   **Frontend Technical Debt:**  and  are now complex monoliths and should be high on the refactoring priority list after .
+-   **Highest Priority (P0):** The immediate task is to adapt the newly overwritten . It currently contains code from the owner's portal and will not work for a teacher without significant modifications to its data-fetching logic and UI components.
+-   **Component Refactoring:** The  file is now overly complex and a prime candidate for refactoring. Propose breaking down its internal components into separate files after completing the current high-priority task.
+-   **User-Driven Design:** The user provides very specific, visual feedback. Expect to work iteratively on UI/UX changes.
+-   **Technical Debt:** Do not forget the P0 priority of refactoring  once the current user requests are completed.
 
 **documents and test reports created in this job**
--    (Updated)
+-   None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** Test if the attendance calendar shows orange for 'late' and red for 'absent'. **Status: IN PROGRESS**
-2.  **User:** Why is the attendance for Saturday (day 21) gray instead of green? **Status: COMPLETED**
-3.  **User:** The dashboard shows 2 attendances, but the Mi Asistencia page shows 0. **Status: COMPLETED**
-4.  **User:** Clicking a task from the list should navigate to its detailed view. **Status: COMPLETED**
-5.  **User:** The student's Mis Tareas page isn't showing any tasks. **Status: COMPLETED**
-6.  **User:** Redesign the Average Grade widget to be a Task Progress widget with status colors. **Status: COMPLETED**
-7.  **User:** A task I created isn't showing on the student's dashboard. **Status: COMPLETED**
-8.  **User:** The student dashboard widgets aren't showing real data. **Status: COMPLETED**
-9.  **User:** Replace the scrollbar on the student dashboard with a premium pagination component. **Status: COMPLETED**
-10. **User:** Redesign the student dashboard to have two clickable columns for courses and tasks. **Status: COMPLETED**
+1.  **User:** The attendance page for the professor should look like the provided image. Replicate the owner's version. **Status: IN PROGRESS**
+2.  **User:** The popup modals are appearing behind the header. Fix this. **Status: COMPLETED**
+3.  **User:** The notification dropdown is appearing behind other page elements. Fix it. **Status: COMPLETED**
+4.  **User:** When I view reminders, the count should disappear. **Status: COMPLETED**
+5.  **User:** The reminder icon in the course detail tabs should show a number for unread reminders. **Status: COMPLETED**
+6.  **User:** The teacher should not see the student's phone number in the detail modal. **Status: COMPLETED**
+7.  **User:** A student's course has no students associated with it on the detail page. This should show real data. **Status: COMPLETED**
+8.  **User:** The purple line on the student card should be at the top, not on the side. **Status: COMPLETED**
+9.  **User:** Change the orange color scheme on the Mis Alumnos page to something else. **Status: COMPLETED**
+10. **User:** The student's phone number should not be visible on their card. **Status: COMPLETED**
 
 **Project Health Check:**
--   **Broken**: None. The application is stable, and the last pending item is a visual verification requested by the user.
--   **Mocked**: None. All dashboard components and pages are now connected to live backend endpoints.
+-   **Broken**:  is non-functional for teachers. It was just overwritten with the owner's attendance page code and needs to be adapted.
+-   **Mocked**: None
 
 **3rd Party Integrations**
 -   TipTap / Prosemirror
@@ -147,17 +147,22 @@ Key existing features:
 -    & 
 -   
 -   
+-   
+-   
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None
--   **Known regressions**: A regression related to the Pendiente status was introduced and fixed within this session.
+-   **Known regressions**: None
 
 **Credentials to test flow:**
--   **Primary School for testing:** 
--   **Owner/Admin**:  / 
--   **Student**:  / 
+-   **School Subdomain:** 
+-   **Owner:**  / 
+-   **Admin (for testing RBAC):**  / 
+-   **Teacher:**  /  (Note: the agent changed the email to  during the session, but the user originally provided . Use ).
+-   **Student:**  / 
 
 **What agent forgot to execute**
--   The P0 priority task from the previous handoff summary, refactoring the monolithic  file, was not started. The agent prioritized implementing a series of user-requested features and bug fixes instead.</analysis>
+-   The P0 priority task from the previous handoff, refactoring the monolithic  file, was not started as the agent prioritized user-requested features and bug fixes.
+-   The P1 task to implement cache invalidation for the student tasks endpoint was also not addressed.</analysis>
