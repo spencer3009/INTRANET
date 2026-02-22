@@ -9052,15 +9052,31 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         });
       }
       
-      // Load students for this grade
+      // Load students for this course/grade
       try {
-        const usersRes = await axios.get(`${API}/users`, { headers });
-        const gradeStudents = usersRes.data.filter(
-          u => u.role === "student" && u.grado_id === foundSubject.grade_id
-        );
-        setStudents(gradeStudents);
+        if (user?.role === "teacher") {
+          // For teachers, load students from their assigned sections
+          const studentsRes = await axios.get(`${API}/teacher/students`, { headers });
+          const courseStudents = studentsRes.data.students || [];
+          // Filter by section if the subject has a specific section
+          const subjectAssignments = await axios.get(`${API}/academic/assignments`, { headers }).catch(() => ({ data: [] }));
+          const thisAssignment = subjectAssignments.data?.find(a => a.subject_id === subjectId);
+          if (thisAssignment?.section_id) {
+            const filteredStudents = courseStudents.filter(s => s.section_id === thisAssignment.section_id);
+            setStudents(filteredStudents);
+          } else {
+            setStudents(courseStudents);
+          }
+        } else {
+          // For owners/admins, load all students
+          const usersRes = await axios.get(`${API}/users`, { headers });
+          const gradeStudents = usersRes.data.filter(
+            u => u.role === "student" && u.grado_id === foundSubject.grade_id
+          );
+          setStudents(gradeStudents);
+        }
       } catch (e) {
-        console.log("Could not load students");
+        console.log("Could not load students:", e);
       }
       
       // Get the academic period from assignments for this subject
