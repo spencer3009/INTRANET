@@ -340,7 +340,7 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
 
   return (
     <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
-      <div className="flex items-center justify-center flex-wrap gap-3">
+      <div className="flex items-center justify-between gap-8 px-4">
         {colorfulTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -351,7 +351,7 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className="flex flex-col items-center gap-2 group"
+              className="flex flex-col items-center gap-2 group flex-1"
               data-testid={`tab-${tab.id}`}
             >
               {/* Colorful circular icon */}
