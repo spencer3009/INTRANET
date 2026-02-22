@@ -119,7 +119,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 flex" data-testid="teacher-students-page">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-purple-50/30 flex" data-testid="teacher-students-page">
       {/* Teacher Sidebar */}
       <TeacherSidebar
         active="alumnos"
@@ -160,7 +160,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
           <div 
             className="relative rounded-3xl overflow-hidden shadow-xl mb-6"
             style={{ 
-              background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)'
+              background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #a855f7 100%)'
             }}
           >
             {/* Decorative elements */}
@@ -181,7 +181,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                     Estudiantes
                   </h1>
                   <div className="flex items-center gap-3 mt-2">
-                    <span className="px-3 py-1 bg-amber-500 text-white text-sm font-semibold rounded-full shadow-lg">
+                    <span className="px-3 py-1 bg-violet-400 text-white text-sm font-semibold rounded-full shadow-lg">
                       {filteredStudents.length} estudiantes
                     </span>
                     <span className="text-white/80 text-sm flex items-center gap-1">
@@ -204,7 +204,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                   placeholder="Buscar por nombre o correo..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500"
                   data-testid="student-search-input"
                 />
               </div>
@@ -215,7 +215,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                   <select
                     value={filterSection}
                     onChange={(e) => setFilterSection(e.target.value)}
-                    className="pl-10 pr-8 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 bg-white appearance-none cursor-pointer"
+                    className="pl-10 pr-8 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 bg-white appearance-none cursor-pointer"
                     data-testid="student-filter-section"
                   >
                     <option value="">Todas las secciones</option>
@@ -234,7 +234,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
               {filteredStudents.map((student) => (
                 <div
                   key={student.id}
-                  className="bg-white rounded-2xl border-l-4 border-l-amber-400 border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 group"
+                  className="bg-white rounded-2xl border-l-4 border-l-indigo-500 border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 group"
                   data-testid={`student-card-${student.id}`}
                 >
                   {/* Card Header with Menu */}
@@ -254,15 +254,15 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                           <img 
                             src={student.photo_url} 
                             alt="" 
-                            className="w-24 h-24 rounded-2xl object-cover ring-4 ring-amber-100 shadow-lg"
+                            className="w-24 h-24 rounded-2xl object-cover ring-4 ring-indigo-100 shadow-lg"
                           />
                         ) : (
-                          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center ring-4 ring-amber-50 shadow-lg">
-                            <User className="w-12 h-12 text-amber-400" />
+                          <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center ring-4 ring-indigo-50 shadow-lg">
+                            <User className="w-12 h-12 text-indigo-400" />
                           </div>
                         )}
                         {/* Verified Badge */}
-                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-amber-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                        <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
                           <CheckCircle className="w-5 h-5 text-white" />
                         </div>
                       </div>
@@ -280,7 +280,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                     
                     {/* Role Badge */}
                     <div className="flex justify-center mb-4">
-                      <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-sm font-semibold rounded-full shadow-md">
+                      <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-sm font-semibold rounded-full shadow-md">
                         <span className="w-2 h-2 bg-white rounded-full" />
                         Estudiante
                       </span>
@@ -296,12 +296,12 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                       {/* Info */}
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2 text-slate-600">
-                          <MapPin className="w-4 h-4 text-amber-500" />
+                          <MapPin className="w-4 h-4 text-indigo-500" />
                           <span>{student.level_name || "N/A"} - {student.grade_name || "N/A"} - {student.section_name || "N/A"}</span>
                         </div>
                         
                         <div className="flex items-center gap-2 text-slate-600">
-                          <Calendar className="w-4 h-4 text-amber-500" />
+                          <Calendar className="w-4 h-4 text-indigo-500" />
                           <span>Registrado: {formatDate(student.created_at)}</span>
                         </div>
                       </div>
@@ -323,7 +323,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                     {/* View Profile Button */}
                     <button
                       onClick={() => handleStudentClick(student)}
-                      className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg"
+                      className="mt-4 w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg"
                     >
                       <Eye className="w-4 h-4" />
                       Ver Perfil Completo
@@ -334,8 +334,8 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
             </div>
           ) : (
             <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center shadow-sm">
-              <div className="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="w-10 h-10 text-amber-400" />
+              <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Users className="w-10 h-10 text-indigo-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-800 mb-2">
                 {searchTerm || filterSection ? "Sin resultados" : "Sin alumnos asignados"}
@@ -359,7 +359,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
             <div 
               className="px-6 py-5 flex items-center justify-between"
               style={{ 
-                background: 'linear-gradient(135deg, #f97316 0%, #ea580c 100%)'
+                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
               }}
             >
               <h3 className="text-xl font-bold text-white">Perfil Académico</h3>
@@ -379,7 +379,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
               {loadingDetail ? (
                 <div className="py-12 text-center">
-                  <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto mb-3" />
+                  <Loader2 className="w-8 h-8 text-indigo-500 animate-spin mx-auto mb-3" />
                   <p className="text-slate-500">Cargando información...</p>
                 </div>
               ) : (
@@ -391,14 +391,14 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                         <img 
                           src={selectedStudent.photo_url} 
                           alt="" 
-                          className="w-20 h-20 rounded-2xl object-cover ring-4 ring-amber-100 shadow-lg"
+                          className="w-20 h-20 rounded-2xl object-cover ring-4 ring-indigo-100 shadow-lg"
                         />
                       ) : (
-                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center ring-4 ring-amber-50">
-                          <User className="w-10 h-10 text-amber-400" />
+                        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center ring-4 ring-indigo-50">
+                          <User className="w-10 h-10 text-indigo-400" />
                         </div>
                       )}
-                      <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-amber-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                      <div className="absolute -bottom-2 -right-2 w-7 h-7 bg-indigo-500 rounded-full flex items-center justify-center shadow-lg border-2 border-white">
                         <CheckCircle className="w-4 h-4 text-white" />
                       </div>
                     </div>
@@ -406,7 +406,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                       <h4 className="text-xl font-bold text-slate-800">
                         {selectedStudent.name} {selectedStudent.last_name}
                       </h4>
-                      <p className="text-amber-600 font-medium">{selectedStudent.section_name}</p>
+                      <p className="text-indigo-600 font-medium">{selectedStudent.section_name}</p>
                       {selectedStudent.email && (
                         <p className="text-sm text-slate-400 flex items-center gap-1 mt-1">
                           <Mail className="w-3.5 h-3.5" />
@@ -439,12 +439,12 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
                       <p className="text-xs text-blue-600 font-medium">Asistencias</p>
                     </div>
                     
-                    <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-2xl p-4 text-center">
-                      <BarChart3 className="w-7 h-7 text-amber-500 mx-auto mb-2" />
-                      <p className="text-2xl font-bold text-amber-700">
+                    <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-2xl p-4 text-center">
+                      <BarChart3 className="w-7 h-7 text-indigo-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-indigo-700">
                         {studentDetail?.grades_summary?.average?.toFixed(1) || "-"}
                       </p>
-                      <p className="text-xs text-amber-600 font-medium">Promedio</p>
+                      <p className="text-xs text-indigo-600 font-medium">Promedio</p>
                     </div>
                     
                     <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4 text-center">
