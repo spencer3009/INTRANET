@@ -5,6 +5,7 @@ import TeacherSidebar from "../components/TeacherSidebar";
 import MessageCenter from "../components/MessageCenter";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
+import StudentHeader from "../components/StudentHeader";
 import {
   BookOpen,
   ClipboardList,
