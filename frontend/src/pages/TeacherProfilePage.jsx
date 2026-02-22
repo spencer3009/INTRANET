@@ -503,6 +503,7 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
             </div>
           </div>
         </main>
+        <TeacherFooter />
       </div>
 
       {/* Message Center */}
