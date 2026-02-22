@@ -154,40 +154,47 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
       )}
 
       {/* Main Content - Chat Layout */}
-      <div className="flex-1 flex min-w-0">
-        {/* Contacts List */}
-        <div className={`${selectedContact ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-96 border-r border-slate-200 bg-white`}>
-          {/* Header */}
-          <div className="px-4 py-4 border-b border-slate-200">
-            <div className="flex items-center gap-3 mb-4">
-              <button
-                onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-              <h1 className="text-xl font-bold text-slate-800">Mensajes</h1>
+      <div className="flex-1 flex flex-col min-w-0">
+        <StudentHeader
+          user={user}
+          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={schoolName}
+          subdomain={subdomain || user?.subdomain}
+          token={token}
+          roleLabel="Docente"
+          profilePath="/teacher/profile"
+        />
+        
+        <div className="flex-1 flex min-w-0">
+          {/* Contacts List */}
+          <div className={`${selectedContact ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-96 border-r border-slate-200 bg-white`}>
+            {/* Header */}
+            <div className="px-4 py-4 border-b border-slate-200">
+              <div className="flex items-center gap-3 mb-4">
+                <h1 className="text-xl font-bold text-slate-800">Mensajes</h1>
+              </div>
+              
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Buscar contacto..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                  data-testid="contact-search-input"
+                />
+              </div>
             </div>
             
-            {/* Search */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Buscar contacto..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                data-testid="contact-search-input"
-              />
-            </div>
-          </div>
-          
-          {/* Contacts */}
-          <div className="flex-1 overflow-y-auto">
-            {Object.keys(contactsBySection).length > 0 ? (
-              Object.entries(contactsBySection).map(([section, sectionContacts]) => (
-                <div key={section}>
+            {/* Contacts */}
+            <div className="flex-1 overflow-y-auto">
+              {Object.keys(contactsBySection).length > 0 ? (
+                Object.entries(contactsBySection).map(([section, sectionContacts]) => (
+                  <div key={section}>
                   <div className="px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wide">
                     {section}
                   </div>
