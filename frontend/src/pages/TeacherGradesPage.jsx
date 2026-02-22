@@ -250,7 +250,7 @@ export default function TeacherGradesPage({ user, token, onLogout }) {
               {saveMessage.text}
             </div>
           )}
-        </header>
+        </div>
 
         {/* Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
