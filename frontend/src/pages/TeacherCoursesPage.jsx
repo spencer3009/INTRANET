@@ -133,7 +133,7 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
               {filteredCourses.map((course) => (
                 <div
                   key={`${course.id}-${course.section_id}`}
-                  onClick={() => navigateTo(`/course/${course.id}`)}
+                  onClick={() => navigateTo(`/curso/${course.id}`)}
                   className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-emerald-300 hover:shadow-lg transition-all cursor-pointer group"
                 >
                   {course.image_url ? (
