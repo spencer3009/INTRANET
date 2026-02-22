@@ -350,7 +350,6 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
           )}
         </div>
         </div>
-        <TeacherFooter />
       </div>
 
       {/* Message Center (Floating) */}
