@@ -234,7 +234,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
               {filteredStudents.map((student) => (
                 <div
                   key={student.id}
-                  className="bg-white rounded-2xl border-l-4 border-l-indigo-500 border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 group"
+                  className="bg-white rounded-2xl border-t-4 border-t-indigo-500 border border-slate-200 overflow-hidden hover:shadow-xl transition-all duration-300 group"
                   data-testid={`student-card-${student.id}`}
                 >
                   {/* Card Header with Menu */}
