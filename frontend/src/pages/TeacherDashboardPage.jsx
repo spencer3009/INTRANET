@@ -216,42 +216,16 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
       />
 
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-200 px-4 lg:px-6 py-4 sticky top-0 z-30">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                className="lg:hidden p-2 hover:bg-slate-100 rounded-xl"
-              >
-                <Menu className="w-5 h-5 text-slate-600" />
-              </button>
-              <div>
-                <h1 className="text-xl font-bold text-slate-800">Panel del Docente</h1>
-                <p className="text-sm text-slate-500">{schoolName}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button 
-                onClick={() => navigateTo("/teacher/messages")}
-                className="relative p-2 hover:bg-slate-100 rounded-xl transition-colors"
-              >
-                <Bell className="w-5 h-5 text-slate-600" />
-                {dashboardData?.unread_messages > 0 && (
-                  <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center">
-                    {dashboardData.unread_messages}
-                  </span>
-                )}
-              </button>
-              <div className="flex items-center gap-2 bg-slate-100 px-3 py-2 rounded-xl">
-                <User className="w-5 h-5 text-emerald-600" />
-                <span className="text-sm font-medium text-slate-700 hidden sm:inline">
-                  {user?.name || "Profesor"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </header>
+        {/* Header - Same as Student/Owner Portal */}
+        <StudentHeader
+          user={user}
+          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={schoolName}
+          subdomain={subdomain || user?.subdomain}
+          token={token}
+        />
 
         {/* Dashboard Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
