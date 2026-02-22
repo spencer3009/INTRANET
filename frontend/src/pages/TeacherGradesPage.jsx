@@ -33,18 +33,24 @@ export default function TeacherGradesPage({ user, token, onLogout }) {
   const [editedGrades, setEditedGrades] = useState({});
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState(null);
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    loadCourses();
+    loadInitialData();
   }, [token]);
 
-  const loadCourses = async () => {
+  const loadInitialData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/teacher/courses`, { headers });
-      setCourses(res.data.courses || []);
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      const [coursesRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/teacher/courses`, { headers }),
+        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
+      ]);
+      setCourses(coursesRes.data.courses || []);
+      setSettings(settingsRes.data);
     } catch (err) {
       console.error("Error loading courses:", err);
       setCourses([]);
@@ -52,6 +58,8 @@ export default function TeacherGradesPage({ user, token, onLogout }) {
       setLoading(false);
     }
   };
+
+  const schoolName = settings?.system_name || "Mi Colegio";
 
   const loadCourseData = async (course) => {
     setSelectedCourse(course);
