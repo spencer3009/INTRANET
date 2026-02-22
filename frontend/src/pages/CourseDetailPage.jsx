@@ -9170,17 +9170,17 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
             profilePath="/teacher/profile"
           />
         ) : (
-        <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm">
-          <DashboardHeader
-            user={user}
-            onMenuClick={() => setSidebarOpen(!sidebarOpen)}
-            onLogout={onLogout}
-            logoUrl={settings?.logo_url}
-            schoolName={settings?.system_name}
-            subdomain={subdomain}
-            token={token}
-          />
-        </div>
+          <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm">
+            <DashboardHeader
+              user={user}
+              onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+              onLogout={onLogout}
+              logoUrl={settings?.logo_url}
+              schoolName={settings?.system_name}
+              subdomain={subdomain}
+              token={token}
+            />
+          </div>
         )}
 
         {/* Main Content */}
