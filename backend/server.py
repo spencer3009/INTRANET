@@ -2247,13 +2247,32 @@ async def get_teacher_dashboard(current_user = Depends(get_current_user)):
         "read_by": {"$ne": user["id"]}
     })
     
+    # Recent announcements (from announcements collection)
+    announcements_cursor = db.announcements.find({
+        "school_id": school_id,
+        "active": True
+    }, {"_id": 0}).sort("created_at", -1).limit(5)
+    announcements_list = await announcements_cursor.to_list(5)
+    
+    recent_announcements = []
+    for ann in announcements_list:
+        recent_announcements.append({
+            "id": ann.get("id"),
+            "title": ann.get("title"),
+            "content": ann.get("content"),
+            "priority": ann.get("priority", "normal"),
+            "created_at": ann.get("created_at"),
+            "is_read": user["id"] in ann.get("read_by", [])
+        })
+    
     return {
         "courses": courses,
         "total_students": total_students,
         "pending_reviews": pending_reviews,
         "recent_submissions": recent_submissions,
         "today_attendance_pending": today_attendance_pending,
-        "unread_messages": unread_messages
+        "unread_messages": unread_messages,
+        "recent_announcements": recent_announcements
     }
 
 @api_router.get("/teacher/courses")
