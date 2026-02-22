@@ -799,18 +799,6 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole, onO
             </div>
           )}
           
-          {selectedStudent.phone && (
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Phone className="w-5 h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-xs text-gray-500">Teléfono</p>
-                <p className="text-sm font-medium text-gray-800">{selectedStudent.phone}</p>
-              </div>
-            </div>
-          )}
-          
           {selectedStudent.grade_name && (
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
               <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
