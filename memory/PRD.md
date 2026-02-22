@@ -48,6 +48,17 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## What's Been Implemented
 
+### Session: 2026-02-22 (Teacher Tasks Page) ✅
+- **FEATURE: Página de Tareas del Profesor con diseño del portal del estudiante**
+  - Reescritura completa de `TeacherAssignmentsViewPage.jsx`
+  - 4 cards de estadísticas: Por revisar, Calificadas, Activas, Todas
+  - Los cards funcionan como filtros al hacer clic
+  - Buscador de tareas por título o curso
+  - Estado vacío con mensaje "Sin tareas" y botón "Crear Primera Tarea"
+  - Modal de nueva tarea redirige a la página de cursos
+  - Al hacer clic en una tarea, navega a `/teacher/courses/{subject_id}?tab=tareas&task={task_id}`
+  - **Resultados de pruebas**: 100% frontend (24/24 tests pasados)
+
 ### Session: 2026-02-22 (Teacher Messages Page) ✅
 - **FEATURE: Sistema de Mensajes del Profesor tipo Correo**
   - Reescritura completa de `TeacherMessagesPage.jsx` para usar sistema de correo interno
