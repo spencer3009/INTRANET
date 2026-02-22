@@ -186,6 +186,7 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
             </div>
           )}
         </main>
+        <TeacherFooter />
       </div>
 
       <MessageCenter token={token} user={user} />
