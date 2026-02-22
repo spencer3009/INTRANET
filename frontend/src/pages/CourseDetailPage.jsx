@@ -273,6 +273,128 @@ function PremiumTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// TEACHER COURSE HERO HEADER - SIMPLIFIED DESIGN
+// ══════════════════════════════════════════════════════════════════════════════
+function TeacherCourseHeroHeader({ subject, teacherName, onBack }) {
+  return (
+    <div 
+      className="relative rounded-3xl overflow-hidden shadow-xl"
+      style={{ 
+        background: 'linear-gradient(135deg, #f59e0b 0%, #f97316 50%, #ea580c 100%)'
+      }}
+    >
+      {/* Decorative elements */}
+      <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-3xl" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/4 blur-2xl" />
+      
+      {/* Content */}
+      <div className="relative z-10 p-8 lg:p-10">
+        <div className="flex items-center gap-5">
+          {/* Back button */}
+          <button
+            onClick={onBack}
+            className="w-12 h-12 bg-white/20 backdrop-blur-sm hover:bg-white/30 rounded-xl flex items-center justify-center transition-all duration-200 border border-white/30 shadow-lg"
+            data-testid="back-to-courses-btn"
+            title="Volver a mis cursos"
+          >
+            <ArrowLeft className="w-6 h-6 text-white" />
+          </button>
+          
+          {/* Subject icon */}
+          <div className="w-20 h-20 lg:w-24 lg:h-24 bg-white/20 backdrop-blur-sm rounded-3xl flex items-center justify-center shadow-2xl border border-white/30">
+            <BookOpen className="w-10 h-10 lg:w-12 lg:h-12 text-white" />
+          </div>
+          
+          {/* Title and Teacher */}
+          <div>
+            <h1 className="text-3xl lg:text-4xl font-black text-white mb-1 tracking-tight">
+              {subject?.name || "Curso"}
+            </h1>
+            {teacherName && (
+              <div className="flex items-center gap-2 text-white/90">
+                <User className="w-4 h-4" />
+                <span className="text-sm font-medium">{teacherName}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEACHER COLORFUL TABS COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
+function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0 }) {
+  const colorfulTabs = [
+    { id: "tablero", label: "TABLERO", icon: LayoutDashboard, gradient: "from-slate-800 to-slate-700", borderColor: "border-cyan-400", iconBg: "bg-slate-700" },
+    { id: "tareas", label: "TAREAS", icon: FileText, gradient: "from-blue-600 to-blue-500", borderColor: "border-blue-300", iconBg: "bg-blue-500" },
+    { id: "material", label: "MATERIAL", icon: FolderOpen, gradient: "from-teal-500 to-emerald-500", borderColor: "border-teal-300", iconBg: "bg-teal-500" },
+    { id: "examenes", label: "EXÁMENES", icon: FlaskConical, gradient: "from-rose-500 to-pink-500", borderColor: "border-rose-300", iconBg: "bg-rose-500" },
+    { id: "foro", label: "FORO", icon: MessageCircle, gradient: "from-green-500 to-emerald-400", borderColor: "border-green-300", iconBg: "bg-green-500" },
+    { id: "mensajes", label: "MENSAJES", icon: Mail, gradient: "from-purple-600 to-violet-500", borderColor: "border-purple-300", iconBg: "bg-purple-500" },
+    { id: "recordatorios", label: "RECORDATORIOS", icon: Bell, gradient: "from-orange-500 to-amber-500", borderColor: "border-orange-300", iconBg: "bg-orange-500" },
+    { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, gradient: "from-amber-500 to-yellow-500", borderColor: "border-amber-300", iconBg: "bg-amber-500" },
+  ];
+
+  return (
+    <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
+      <div className="flex items-center justify-center flex-wrap gap-3">
+        {colorfulTabs.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          const showBadge = tab.id === "mensajes" && unreadMessages > 0;
+          const showTaskBadge = tab.id === "tareas";
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange(tab.id)}
+              className="flex flex-col items-center gap-2 group"
+              data-testid={`tab-${tab.id}`}
+            >
+              {/* Colorful circular icon */}
+              <div 
+                className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 transform ${
+                  isActive 
+                    ? `bg-gradient-to-br ${tab.gradient} shadow-xl scale-110 border-4 ${tab.borderColor}` 
+                    : `bg-gradient-to-br ${tab.gradient} shadow-md hover:scale-105 border-2 border-transparent`
+                }`}
+                style={{
+                  boxShadow: isActive ? `0 8px 25px -5px rgba(0,0,0,0.3)` : `0 4px 15px -3px rgba(0,0,0,0.2)`
+                }}
+              >
+                <Icon className="w-7 h-7 text-white" strokeWidth={1.5} />
+                
+                {/* Badge for messages */}
+                {showBadge && (
+                  <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                    {unreadMessages > 99 ? "99+" : unreadMessages}
+                  </span>
+                )}
+                
+                {/* Badge indicator for tasks */}
+                {showTaskBadge && (
+                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-blue-400 rounded-full border-2 border-white shadow-md" />
+                )}
+              </div>
+              
+              {/* Label */}
+              <span className={`text-[10px] font-bold tracking-wider transition-colors ${
+                isActive ? "text-slate-800" : "text-slate-500 group-hover:text-slate-700"
+              }`}>
+                {tab.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // LEFT SIDEBAR - COURSE INFO
 // ══════════════════════════════════════════════════════════════════════════════
 function CourseInfoSidebar({ subject, subjectId, token, onActivityClick }) {
