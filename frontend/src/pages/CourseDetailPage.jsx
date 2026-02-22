@@ -9390,7 +9390,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           {/* Tabs - Use colorful tabs for teachers */}
           <div className={`${activeTab === "tablero" ? "mt-6" : "mt-0"} sticky top-[72px] z-30 -mx-6 lg:-mx-8 px-6 lg:px-8 py-3 bg-gradient-to-br from-slate-100/95 via-gray-50/95 to-zinc-100/95 backdrop-blur-sm border-b border-gray-200/50`}>
             {user?.role === "teacher" ? (
-              <TeacherColorfulTabs activeTab={activeTab} onTabChange={setActiveTab} unreadMessages={unreadMessages} />
+              <TeacherColorfulTabs activeTab={activeTab} onTabChange={setActiveTab} unreadMessages={unreadMessages} unreadReminders={unreadReminders} />
             ) : (
               <PremiumTabs activeTab={activeTab} onTabChange={setActiveTab} unreadMessages={unreadMessages} />
             )}
