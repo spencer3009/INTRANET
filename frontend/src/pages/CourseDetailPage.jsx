@@ -9146,9 +9146,18 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       try {
         const res = await axios.get(`${API}/course/${subjectId}/reminders`, { headers });
         const reminders = res.data || [];
-        // Count reminders that are not completed
-        const unread = reminders.filter(r => !r.is_completed).length;
-        setUnreadReminders(unread);
+        
+        // Get the last seen reminder count from localStorage
+        const lastSeenKey = `reminders_seen_${subjectId}`;
+        const lastSeenCount = parseInt(localStorage.getItem(lastSeenKey) || '0');
+        
+        // Count all non-completed reminders
+        const totalReminders = reminders.filter(r => !r.is_completed).length;
+        
+        // New reminders = total - last seen (if positive)
+        const newReminders = Math.max(0, totalReminders - lastSeenCount);
+        setUnreadReminders(newReminders > 0 ? totalReminders : 0);
+        
       } catch (err) {
         console.log("Could not load reminders:", err);
       }
@@ -9159,6 +9168,29 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
     const interval = setInterval(loadUnreadReminders, 60000);
     return () => clearInterval(interval);
   }, [token, subjectId]);
+
+  // Mark reminders as seen when entering the reminders tab
+  useEffect(() => {
+    if (activeTab === "recordatorios" && subjectId) {
+      const markRemindersSeen = async () => {
+        try {
+          const res = await axios.get(`${API}/course/${subjectId}/reminders`, { headers });
+          const reminders = res.data || [];
+          const totalReminders = reminders.filter(r => !r.is_completed).length;
+          
+          // Save the current count as "seen"
+          const lastSeenKey = `reminders_seen_${subjectId}`;
+          localStorage.setItem(lastSeenKey, totalReminders.toString());
+          
+          // Clear the badge
+          setUnreadReminders(0);
+        } catch (err) {
+          console.log("Could not mark reminders as seen:", err);
+        }
+      };
+      markRemindersSeen();
+    }
+  }, [activeTab, subjectId]);
 
   // Handle clicking on an activity to navigate to its content
   const handleActivityClick = (activity) => {
