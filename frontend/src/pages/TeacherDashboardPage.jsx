@@ -22,10 +22,18 @@ import {
   FileText,
   AlertCircle,
   Briefcase,
-  GraduationCap
+  GraduationCap,
+  Megaphone
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
+
+// Priority colors for announcements
+const PRIORITY_COLORS = {
+  urgent: "bg-red-100 text-red-700",
+  important: "bg-amber-100 text-amber-700",
+  normal: "bg-blue-100 text-blue-700"
+};
 
 // Teacher Profile Card Component
 function TeacherProfileCard({ user, dashboardData }) {
