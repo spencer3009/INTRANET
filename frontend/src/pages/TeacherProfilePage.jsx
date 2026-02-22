@@ -172,39 +172,33 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 lg:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-xl font-bold text-slate-800">Mi Perfil</h1>
-                <p className="text-sm text-slate-500">Gestiona tu información personal</p>
-              </div>
-            </div>
-          </div>
+        <StudentHeader
+          user={user}
+          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={schoolName}
+          subdomain={subdomain || user?.subdomain}
+          token={token}
+          roleLabel="Docente"
+          profilePath="/teacher/profile"
+        />
           
-          {/* Save message */}
-          {saveMessage && (
-            <div className={`mt-3 flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${
-              saveMessage.type === "success" 
-                ? "bg-emerald-50 text-emerald-700" 
-                : "bg-red-50 text-red-700"
-            }`}>
-              {saveMessage.type === "success" ? (
-                <CheckCircle className="w-4 h-4" />
-              ) : (
-                <AlertCircle className="w-4 h-4" />
-              )}
-              {saveMessage.text}
-            </div>
-          )}
-        </header>
+        {/* Save message */}
+        {saveMessage && (
+          <div className={`mx-4 mt-3 flex items-center gap-2 px-4 py-2 rounded-xl text-sm ${
+            saveMessage.type === "success" 
+              ? "bg-emerald-50 text-emerald-700" 
+              : "bg-red-50 text-red-700"
+          }`}>
+            {saveMessage.type === "success" ? (
+              <CheckCircle className="w-4 h-4" />
+            ) : (
+              <AlertCircle className="w-4 h-4" />
+            )}
+            {saveMessage.text}
+          </div>
+        )}
 
         {/* Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
