@@ -48,6 +48,18 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## What's Been Implemented
 
+### Session: 2026-02-22 (Teacher Messages Page) ✅
+- **FEATURE: Sistema de Mensajes del Profesor tipo Correo**
+  - Reescritura completa de `TeacherMessagesPage.jsx` para usar sistema de correo interno
+  - 4 carpetas: Bandeja de entrada, Enviados, Archivados, Papelera
+  - Modal de composición con editor de texto enriquecido (TipTap)
+  - Búsqueda de destinatarios con autocompletado
+  - Vista de detalle del mensaje con info del remitente
+  - Acciones: Responder, Archivar, Eliminar, Marcar leído/no leído
+  - Acciones de papelera: Restaurar, Eliminar permanentemente, Vaciar papelera
+  - Colores verde/teal consistentes con el portal del profesor
+  - **Resultados de pruebas**: 100% frontend (18/18 features verificadas)
+
 ### Session: 2026-02-22 (Teacher Attendance Page) ✅
 - **FEATURE: Página de Asistencia del Profesor (TeacherAttendancePage)**
   - Adaptado `TeacherAttendancePage.jsx` para usar endpoints del profesor
