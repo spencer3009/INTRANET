@@ -21,7 +21,7 @@ function DefaultAvatar({ name, size = "w-10 h-10", textSize = "text-sm" }) {
   );
 }
 
-export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain, token }) {
+export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, schoolName, subdomain, token, roleLabel = "Alumno", profilePath = "/student/profile" }) {
   const navigate = useNavigate();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -80,7 +80,7 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
   const handleProfileClick = () => {
     setProfileMenuOpen(false);
     const basePath = subdomain ? `/school/${subdomain}` : "";
-    navigate(`${basePath}/student/profile`);
+    navigate(`${basePath}${profilePath}`);
   };
 
   const handleLogoutClick = () => {
