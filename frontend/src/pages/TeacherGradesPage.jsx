@@ -404,6 +404,7 @@ export default function TeacherGradesPage({ user, token, onLogout }) {
             </div>
           )}
         </main>
+        <TeacherFooter />
       </div>
 
       {/* Message Center */}
