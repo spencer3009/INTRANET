@@ -2299,6 +2299,12 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
         section = await db.sections.find_one({"id": assignment.get("section_id"), "school_id": school_id}, {"_id": 0})
         grade = await db.grades.find_one({"id": assignment.get("grade_id"), "school_id": school_id}, {"_id": 0})
         
+        # Get level name from grade
+        level_name = None
+        if grade and grade.get("nivel_id"):
+            level = await db.academic_levels.find_one({"id": grade["nivel_id"], "school_id": school_id}, {"_id": 0})
+            level_name = level.get("nombre") if level else None
+        
         if subject:
             # Count students
             students_count = await db.users.count_documents({
@@ -2329,6 +2335,7 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
                 "section_name": section.get("nombre") if section else None,
                 "grade_id": assignment.get("grade_id"),
                 "grade_name": grade.get("nombre") if grade else None,
+                "level_name": level_name,
                 "students_count": students_count,
                 "materials_count": materials_count,
                 "tasks_count": tasks_count
