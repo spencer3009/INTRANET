@@ -305,7 +305,7 @@ export default function TeacherAssignmentsViewPage({ user, token, onLogout }) {
                   return (
                     <div
                       key={task.id}
-                      onClick={() => navigateTo(`/teacher/courses/${task.subject_id}?tab=tareas&task=${task.id}`)}
+                      onClick={() => navigateTo(`/curso/${task.subject_id}?task=${task.id}`)}
                       className="p-4 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-4"
                       data-testid={`task-item-${task.id}`}
                     >
