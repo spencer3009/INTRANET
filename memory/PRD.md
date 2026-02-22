@@ -143,6 +143,7 @@ const navItems = isOwner(user)
 - **School**: elroble
 - **Owner**: admin@elroble.edu / 1234abc8
 - **Admin**: admin.prueba@elroble.edu / 1234abc8
+- **Teacher**: sonia3009@gmail.com / 1234abc8
 - **Student**: pepito@gmail.com / 1234abc8
 
 ## Key Endpoints
