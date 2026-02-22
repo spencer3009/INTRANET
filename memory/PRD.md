@@ -48,6 +48,17 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## What's Been Implemented
 
+### Session: 2026-02-22 (Teacher Attendance Page) ✅
+- **FEATURE: Página de Asistencia del Profesor (TeacherAttendancePage)**
+  - Adaptado `TeacherAttendancePage.jsx` para usar endpoints del profesor
+  - 3 pestañas: Estudiantes, Escanear QR, Reportes (sin pestaña "Profesores")
+  - Endpoints actualizados:
+    - `GET /api/teacher/attendance` - Lee de colección `attendances` para consistencia
+    - `POST /api/teacher/attendance` - Guarda en colección `attendances` con `type: "student"`
+  - Integración con reportes: los registros guardados aparecen en `/api/attendance/reports/students`
+  - **Resultados de pruebas**: 100% backend (12/12), 100% frontend (11/11)
+  - **Bug fix**: Añadido `level_name` al endpoint `/api/teacher/courses` para mostrar "INICIAL - 3 años - ÚNICA"
+
 ### Session: 2026-02-21 (RBAC Implementation) ✅
 - **ARQUITECTURA: Sistema RBAC Completo**
   - Admin role ahora usa el mismo portal del Owner (no portal separado)
