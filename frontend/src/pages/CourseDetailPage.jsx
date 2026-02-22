@@ -9254,7 +9254,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
       case "tablero":
         return <DashboardContent subjectId={subjectId} token={token} user={user} />;
       case "tareas":
-        return <TasksTableContent subjectId={subjectId} token={token} user={user} students={students} subject={subject} levelName={levelName} gradeName={gradeName} />;
+        return <TasksTableContent subjectId={subjectId} token={token} user={user} students={students} subject={subject} levelName={levelName} gradeName={gradeName} highlightedTaskId={highlightedTaskId} onClearHighlight={() => setHighlightedTaskId(null)} />;
       case "material":
         return <MaterialTableContent subjectId={subjectId} token={token} user={user} />;
       case "examenes":
