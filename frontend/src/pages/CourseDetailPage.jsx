@@ -9137,6 +9137,27 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
     return () => clearInterval(interval);
   }, [token]);
 
+  // Load unread reminders count
+  useEffect(() => {
+    const loadUnreadReminders = async () => {
+      if (!token || !subjectId) return;
+      try {
+        const res = await axios.get(`${API}/course/${subjectId}/reminders`, { headers });
+        const reminders = res.data || [];
+        // Count reminders that are not completed and not past due
+        const unread = reminders.filter(r => !r.is_completed && new Date(r.due_date) >= new Date()).length;
+        setUnreadReminders(unread);
+      } catch (err) {
+        console.log("Could not load reminders:", err);
+      }
+    };
+    
+    loadUnreadReminders();
+    // Refresh every 60 seconds
+    const interval = setInterval(loadUnreadReminders, 60000);
+    return () => clearInterval(interval);
+  }, [token, subjectId]);
+
   // Handle clicking on an activity to navigate to its content
   const handleActivityClick = (activity) => {
     const { reference_type, activity_type } = activity;
