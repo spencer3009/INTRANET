@@ -1,149 +1,682 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import { useEditor, EditorContent } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Underline from "@tiptap/extension-underline";
+import TextAlign from "@tiptap/extension-text-align";
+import Highlight from "@tiptap/extension-highlight";
+import Link from "@tiptap/extension-link";
+import Placeholder from "@tiptap/extension-placeholder";
 import TeacherSidebar from "../components/TeacherSidebar";
-import MessageCenter from "../components/MessageCenter";
 import StudentHeader from "../components/StudentHeader";
 import {
-  MessageSquare,
-  Loader2,
-  Menu,
-  Send,
-  Search,
-  Users,
-  User,
-  ChevronLeft,
-  MoreVertical,
-  Paperclip,
-  Image as ImageIcon
+  Mail, Inbox, Send, Archive, Trash2, Search, Plus,
+  ChevronLeft, Paperclip, X, Clock, Loader2, Circle,
+  Edit3, Reply, MailOpen, AlertCircle, AlertTriangle,
+  Bold, Italic, Underline as UnderlineIcon, Strikethrough,
+  List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
+  Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function TeacherMessagesPage({ user, token, onLogout }) {
-  const { subdomain } = useParams();
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [contacts, setContacts] = useState([]);
-  const [selectedContact, setSelectedContact] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+const ROLE_LABELS = {
+  owner: "Director",
+  admin: "Administrador", 
+  teacher: "Profesor",
+  auxiliar: "Auxiliar",
+  student: "Estudiante",
+  parent: "Padre/Apoderado"
+};
+
+// ══════════════════════════════════════════════════════════════════════════════
+// RICH TEXT EDITOR TOOLBAR
+// ══════════════════════════════════════════════════════════════════════════════
+function EditorToolbar({ editor }) {
+  if (!editor) return null;
+  
+  const ToolButton = ({ onClick, isActive, children, title }) => (
+    <button
+      type="button"
+      onClick={onClick}
+      title={title}
+      className={`p-2 rounded-lg transition-all ${
+        isActive 
+          ? "bg-emerald-100 text-emerald-700" 
+          : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+      }`}
+    >
+      {children}
+    </button>
+  );
+  
+  const Divider = () => <div className="w-px h-6 bg-gray-200 mx-1" />;
+  
+  return (
+    <div className="flex items-center flex-wrap gap-0.5 p-2 border-b border-gray-200 bg-gray-50 rounded-t-xl">
+      <ToolButton onClick={() => editor.chain().focus().undo().run()} title="Deshacer">
+        <Undo className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton onClick={() => editor.chain().focus().redo().run()} title="Rehacer">
+        <Redo className="w-4 h-4" />
+      </ToolButton>
+      
+      <Divider />
+      
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleBold().run()}
+        isActive={editor.isActive("bold")}
+        title="Negrita"
+      >
+        <Bold className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleItalic().run()}
+        isActive={editor.isActive("italic")}
+        title="Cursiva"
+      >
+        <Italic className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleUnderline().run()}
+        isActive={editor.isActive("underline")}
+        title="Subrayado"
+      >
+        <UnderlineIcon className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleStrike().run()}
+        isActive={editor.isActive("strike")}
+        title="Tachado"
+      >
+        <Strikethrough className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleHighlight().run()}
+        isActive={editor.isActive("highlight")}
+        title="Resaltar"
+      >
+        <Highlighter className="w-4 h-4" />
+      </ToolButton>
+      
+      <Divider />
+      
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleBulletList().run()}
+        isActive={editor.isActive("bulletList")}
+        title="Lista"
+      >
+        <List className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().toggleOrderedList().run()}
+        isActive={editor.isActive("orderedList")}
+        title="Lista numerada"
+      >
+        <ListOrdered className="w-4 h-4" />
+      </ToolButton>
+      
+      <Divider />
+      
+      <ToolButton 
+        onClick={() => editor.chain().focus().setTextAlign("left").run()}
+        isActive={editor.isActive({ textAlign: "left" })}
+        title="Alinear izquierda"
+      >
+        <AlignLeft className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().setTextAlign("center").run()}
+        isActive={editor.isActive({ textAlign: "center" })}
+        title="Centrar"
+      >
+        <AlignCenter className="w-4 h-4" />
+      </ToolButton>
+      <ToolButton 
+        onClick={() => editor.chain().focus().setTextAlign("right").run()}
+        isActive={editor.isActive({ textAlign: "right" })}
+        title="Alinear derecha"
+      >
+        <AlignRight className="w-4 h-4" />
+      </ToolButton>
+      
+      <Divider />
+      
+      <ToolButton 
+        onClick={() => {
+          const url = window.prompt("URL del enlace:");
+          if (url) editor.chain().focus().setLink({ href: url }).run();
+        }}
+        isActive={editor.isActive("link")}
+        title="Enlace"
+      >
+        <LinkIcon className="w-4 h-4" />
+      </ToolButton>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// COMPOSE MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
+  const [recipients, setRecipients] = useState([]);
+  const [subject, setSubject] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
   const [sending, setSending] = useState(false);
-  const [settings, setSettings] = useState(null);
-
+  const [error, setError] = useState("");
+  const [showRecipientDropdown, setShowRecipientDropdown] = useState(false);
+  
   const headers = { Authorization: `Bearer ${token}` };
-
+  
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ heading: { levels: [1, 2, 3] } }),
+      Underline,
+      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      Highlight,
+      Link.configure({ openOnClick: false }),
+      Placeholder.configure({ placeholder: "Escribe tu mensaje aquí..." }),
+    ],
+    content: "",
+    editorProps: {
+      attributes: {
+        class: "prose prose-sm max-w-none focus:outline-none min-h-[200px] p-4",
+      },
+    },
+  });
+  
   useEffect(() => {
-    loadInitialData();
-  }, [token]);
-
-  const loadInitialData = async () => {
-    setLoading(true);
+    if (replyTo) {
+      setSubject(replyTo.subject.startsWith("Re:") ? replyTo.subject : `Re: ${replyTo.subject}`);
+      setRecipients([replyTo.sender]);
+    } else {
+      setSubject("");
+      setRecipients([]);
+    }
+    if (editor) editor.commands.setContent("");
+    setError("");
+  }, [replyTo, isOpen, editor]);
+  
+  const searchContacts = async (query) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    setSearching(true);
     try {
-      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
-      const [studentsRes, settingsRes] = await Promise.all([
-        axios.get(`${API}/api/teacher/students`, { headers }),
-        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
-      ]);
-      
-      // Format contacts
-      const studentContacts = (studentsRes.data.students || []).map(s => ({
-        id: s.id,
-        name: `${s.name} ${s.last_name}`,
-        photo_url: s.photo_url,
-        type: "student",
-        section: s.section_name
-      }));
-      
-      setContacts(studentContacts);
-      setSettings(settingsRes.data);
+      const res = await axios.get(`${API}/api/internal-mail/contacts/search?q=${encodeURIComponent(query)}`, { headers });
+      setSearchResults(res.data.contacts || []);
     } catch (err) {
-      console.error("Error loading contacts:", err);
-      setContacts([]);
+      console.error("Search error:", err);
     } finally {
-      setLoading(false);
+      setSearching(false);
     }
   };
-
-  const schoolName = settings?.system_name || "Mi Colegio";
-
-  const loadConversation = async (contact) => {
-    setSelectedContact(contact);
-    try {
-      const res = await axios.get(`${API}/api/messaging/academic?participant=${contact.id}`, { headers });
-      setMessages(res.data.messages || []);
-    } catch (err) {
-      console.error("Error loading conversation:", err);
-      setMessages([]);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => searchContacts(searchQuery), 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+  
+  const addRecipient = (contact) => {
+    if (!recipients.find(r => r.id === contact.id)) {
+      const fullName = contact.last_name 
+        ? `${contact.name || contact.first_name || ''} ${contact.last_name}`.trim()
+        : contact.name || contact.first_name || '';
+      setRecipients([...recipients, { ...contact, name: fullName }]);
     }
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowRecipientDropdown(false);
   };
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedContact) return;
+  
+  const removeRecipient = (id) => setRecipients(recipients.filter(r => r.id !== id));
+  
+  const handleSend = async () => {
+    if (recipients.length === 0) return setError("Selecciona al menos un destinatario");
+    if (!subject.trim()) return setError("El asunto es requerido");
+    const bodyContent = editor?.getHTML() || "";
+    const bodyText = editor?.getText() || "";
+    if (!bodyText.trim()) return setError("El mensaje no puede estar vacío");
     
     setSending(true);
+    setError("");
+    
     try {
-      await axios.post(`${API}/api/messaging/academic`, {
-        recipient_id: selectedContact.id,
-        content: newMessage.trim()
-      }, { headers });
-      
-      // Add message locally
-      setMessages(prev => [...prev, {
-        id: Date.now().toString(),
-        sender_id: user.id,
-        content: newMessage.trim(),
-        created_at: new Date().toISOString()
-      }]);
-      setNewMessage("");
+      if (replyTo) {
+        await axios.post(`${API}/api/internal-mail/${replyTo.id}/reply`, { body: bodyContent }, { headers });
+      } else {
+        await axios.post(`${API}/api/internal-mail/send`, {
+          subject: subject.trim(),
+          body: bodyContent,
+          recipient_ids: recipients.map(r => r.id)
+        }, { headers });
+      }
+      onSent?.();
+      onClose();
     } catch (err) {
-      console.error("Error sending message:", err);
+      setError(err.response?.data?.detail || "Error al enviar el mensaje");
     } finally {
       setSending(false);
     }
   };
-
-  // Filter contacts
-  const filteredContacts = contacts.filter(contact => 
-    contact.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Group contacts by section
-  const contactsBySection = filteredContacts.reduce((acc, contact) => {
-    const section = contact.section || "Otros";
-    if (!acc[section]) {
-      acc[section] = [];
-    }
-    acc[section].push(contact);
-    return acc;
-  }, {});
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 text-emerald-500 animate-spin mx-auto mb-4" />
-          <p className="text-slate-600">Cargando mensajes...</p>
+  
+  if (!isOpen) return null;
+  
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <Edit3 className="w-5 h-5 text-white" />
+            </div>
+            <h2 className="text-lg font-semibold text-white">
+              {replyTo ? "Responder mensaje" : "Nuevo mensaje"}
+            </h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+            <X className="w-5 h-5 text-white" />
+          </button>
+        </div>
+        
+        {/* Form */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+          )}
+          
+          {/* Recipients */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Para:</label>
+            <div className="relative">
+              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[48px]">
+                {recipients.map(r => (
+                  <span key={r.id} className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm">
+                    {r.name}
+                    <button onClick={() => removeRecipient(r.id)} className="hover:text-emerald-900">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => { setSearchQuery(e.target.value); setShowRecipientDropdown(true); }}
+                  onFocus={() => setShowRecipientDropdown(true)}
+                  placeholder={recipients.length === 0 ? "Buscar destinatarios..." : ""}
+                  className="flex-1 min-w-[150px] bg-transparent focus:outline-none text-sm"
+                />
+              </div>
+              
+              {showRecipientDropdown && (searchResults.length > 0 || searching) && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                  {searching ? (
+                    <div className="p-3 text-center text-gray-500">
+                      <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                    </div>
+                  ) : (
+                    searchResults.map(contact => {
+                      const fullName = contact.last_name 
+                        ? `${contact.name || contact.first_name || ''} ${contact.last_name}`.trim()
+                        : contact.name || contact.first_name || '';
+                      return (
+                        <button
+                          key={contact.id}
+                          onClick={() => addRecipient(contact)}
+                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
+                        >
+                          {contact.photo_url ? (
+                            <img src={contact.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold">
+                              {fullName?.charAt(0)}
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-800 truncate">{fullName}</p>
+                            <p className="text-xs text-gray-500">{ROLE_LABELS[contact.role] || contact.role}</p>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {/* Subject */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Asunto:</label>
+            <input
+              type="text"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Escribe el asunto..."
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            />
+          </div>
+          
+          {/* Body */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje:</label>
+            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-emerald-500">
+              <EditorToolbar editor={editor} />
+              <EditorContent editor={editor} className="min-h-[200px] max-h-[300px] overflow-y-auto" />
+            </div>
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between flex-shrink-0">
+          <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+            <Paperclip className="w-4 h-4" />
+            Adjuntar
+          </button>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+              Cancelar
+            </button>
+            <button
+              onClick={handleSend}
+              disabled={sending}
+              className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
+            >
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              Enviar
+            </button>
+          </div>
         </div>
       </div>
-    );
-  }
+    </div>,
+    document.body
+  );
+}
 
+// ══════════════════════════════════════════════════════════════════════════════
+// CONFIRM MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText, confirmStyle, icon: Icon, loading }) {
+  if (!isOpen) return null;
+  
+  const styleClasses = {
+    danger: "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700",
+    warning: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
+    primary: "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700",
+  };
+  
+  const iconBgClasses = {
+    danger: "bg-red-100 text-red-600",
+    warning: "bg-amber-100 text-amber-600",
+    primary: "bg-emerald-100 text-emerald-600",
+  };
+  
+  return createPortal(
+    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        {/* Content */}
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            {/* Icon */}
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBgClasses[confirmStyle] || iconBgClasses.danger}`}>
+              {Icon && <Icon className="w-6 h-6" />}
+            </div>
+            
+            {/* Text */}
+            <div className="flex-1">
+              <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+              <p className="mt-2 text-sm text-gray-600 leading-relaxed">{message}</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Footer */}
+        <div className="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3">
+          <button
+            onClick={onClose}
+            disabled={loading}
+            className="px-5 py-2.5 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`px-5 py-2.5 text-white font-semibold rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 ${styleClasses[confirmStyle] || styleClasses.danger}`}
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN TEACHER MESSAGES PAGE
+// ══════════════════════════════════════════════════════════════════════════════
+export default function TeacherMessagesPage({ user, token, onLogout }) {
+  const { subdomain } = useParams();
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [activeFolder, setActiveFolder] = useState("inbox");
+  const [messages, setMessages] = useState([]);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ unread: 0, inbox: 0, sent: 0, archived: 0, trash: 0 });
+  const [showCompose, setShowCompose] = useState(false);
+  const [replyTo, setReplyTo] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileView, setMobileView] = useState("list");
+  const [settings, setSettings] = useState(null);
+  
+  // Confirm modal state
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, messageId: null });
+  const [confirmLoading, setConfirmLoading] = useState(false);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+  
+  // Get display values from settings
+  const schoolName = settings?.system_name || user?.school_name || "Portal Docente";
+  const logoUrl = settings?.logo_url;
+  const currentSubdomain = subdomain || user?.subdomain;
+  
+  const folders = [
+    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread },
+    { id: "sent", label: "Enviados", icon: Send, count: stats.sent },
+    { id: "archived", label: "Archivados", icon: Archive, count: stats.archived },
+    { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash },
+  ];
+  
+  // Load school settings
+  const loadSettings = async () => {
+    try {
+      const settingsSubdomain = subdomain || user?.subdomain || 'elroble';
+      const res = await axios.get(`${API}/api/settings/public/${settingsSubdomain}`);
+      setSettings(res.data);
+    } catch (err) {
+      console.error("Error loading settings:", err);
+    }
+  };
+  
+  const loadStats = async () => {
+    try {
+      const res = await axios.get(`${API}/api/internal-mail/stats`, { headers });
+      setStats(res.data);
+    } catch (err) {
+      console.error("Error loading stats:", err);
+    }
+  };
+  
+  const loadMessages = async (folder) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/api/internal-mail/${folder}`, { headers });
+      setMessages(res.data.messages || []);
+    } catch (err) {
+      console.error("Error loading messages:", err);
+      setMessages([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const loadMessage = async (messageId) => {
+    try {
+      const res = await axios.get(`${API}/api/internal-mail/${messageId}`, { headers });
+      setSelectedMessage(res.data);
+      loadStats();
+    } catch (err) {
+      console.error("Error loading message:", err);
+    }
+  };
+  
+  useEffect(() => {
+    loadStats();
+    loadSettings();
+  }, [token]);
+  
+  useEffect(() => {
+    loadMessages(activeFolder);
+    setSelectedMessage(null);
+  }, [activeFolder]);
+  
+  const handleSelectMessage = (msg) => {
+    loadMessage(msg.id);
+    setMobileView("message");
+  };
+  
+  const handleArchive = async (messageId) => {
+    try {
+      await axios.put(`${API}/api/internal-mail/${messageId}/archive`, null, { headers });
+      loadMessages(activeFolder);
+      loadStats();
+      if (selectedMessage?.id === messageId) setSelectedMessage(null);
+    } catch (err) {
+      console.error("Error archiving:", err);
+    }
+  };
+  
+  const handleDelete = async (messageId) => {
+    try {
+      await axios.delete(`${API}/api/internal-mail/${messageId}`, { headers });
+      loadMessages(activeFolder);
+      loadStats();
+      if (selectedMessage?.id === messageId) setSelectedMessage(null);
+    } catch (err) {
+      console.error("Error deleting:", err);
+    }
+  };
+  
+  // Show confirm modal for permanent deletion
+  const showDeletePermanentlyConfirm = (messageId) => {
+    setConfirmModal({ isOpen: true, type: "deletePermanently", messageId });
+  };
+  
+  // Show confirm modal for empty trash
+  const showEmptyTrashConfirm = () => {
+    setConfirmModal({ isOpen: true, type: "emptyTrash", messageId: null });
+  };
+  
+  // Handle confirm action
+  const handleConfirmAction = async () => {
+    setConfirmLoading(true);
+    try {
+      if (confirmModal.type === "deletePermanently" && confirmModal.messageId) {
+        await axios.delete(`${API}/api/internal-mail/${confirmModal.messageId}/permanent`, { headers });
+        if (selectedMessage?.id === confirmModal.messageId) setSelectedMessage(null);
+      } else if (confirmModal.type === "emptyTrash") {
+        await axios.delete(`${API}/api/internal-mail/trash/empty`, { headers });
+        setSelectedMessage(null);
+      }
+      loadMessages(activeFolder);
+      loadStats();
+      setConfirmModal({ isOpen: false, type: null, messageId: null });
+    } catch (err) {
+      console.error("Error in confirm action:", err);
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+  
+  const handleRestore = async (messageId) => {
+    try {
+      await axios.put(`${API}/api/internal-mail/${messageId}/restore`, null, { headers });
+      loadMessages(activeFolder);
+      loadStats();
+      if (selectedMessage?.id === messageId) setSelectedMessage(null);
+    } catch (err) {
+      console.error("Error restoring:", err);
+    }
+  };
+  
+  const handleToggleRead = async (messageId, isRead) => {
+    try {
+      await axios.put(`${API}/api/internal-mail/${messageId}/read?is_read=${isRead}`, null, { headers });
+      loadMessages(activeFolder);
+      loadStats();
+    } catch (err) {
+      console.error("Error toggling read:", err);
+    }
+  };
+  
+  const handleReply = () => {
+    if (selectedMessage) {
+      setReplyTo(selectedMessage);
+      setShowCompose(true);
+    }
+  };
+  
+  // Helper to strip HTML tags from preview text
+  const stripHtml = (html) => {
+    if (!html) return "";
+    return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+  };
+  
+  const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    if (isToday) return date.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" });
+    return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
+  };
+  
+  const filteredMessages = messages.filter(msg => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      msg.subject?.toLowerCase().includes(query) ||
+      msg.sender?.name?.toLowerCase().includes(query) ||
+      msg.body_preview?.toLowerCase().includes(query)
+    );
+  });
+  
   return (
-    <div className="min-h-screen bg-slate-50 flex" data-testid="teacher-messages-page">
-      {/* Teacher Sidebar */}
+    <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="teacher-messages-page">
       <TeacherSidebar
         active="mensajes"
         onNavigate={() => {}}
         expanded={sidebarExpanded}
         onToggle={() => setSidebarExpanded(!sidebarExpanded)}
         onLogout={onLogout}
-        schoolName={user?.school_name}
-        subdomain={subdomain || user?.subdomain}
+        schoolName={schoolName}
+        subdomain={currentSubdomain}
         user={user}
       />
-
+      
       {/* Mobile overlay */}
       {sidebarExpanded && (
         <div 
@@ -151,208 +684,384 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
           onClick={() => setSidebarExpanded(false)}
         />
       )}
-
-      {/* Main Content - Chat Layout */}
+      
       <div className="flex-1 flex flex-col min-w-0">
         <StudentHeader
           user={user}
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
           onLogout={onLogout}
-          logoUrl={settings?.logo_url}
+          logoUrl={logoUrl}
           schoolName={schoolName}
-          subdomain={subdomain || user?.subdomain}
+          subdomain={currentSubdomain}
           token={token}
           roleLabel="Docente"
           profilePath="/teacher/profile"
         />
         
-        <div className="flex-1 flex min-w-0">
-          {/* Contacts List */}
-          <div className={`${selectedContact ? "hidden md:flex" : "flex"} flex-col w-full md:w-80 lg:w-96 border-r border-slate-200 bg-white`}>
-            {/* Header */}
-            <div className="px-4 py-4 border-b border-slate-200">
-              <div className="flex items-center gap-3 mb-4">
-                <h1 className="text-xl font-bold text-slate-800">Mensajes</h1>
-              </div>
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col lg:flex-row">
+          {/* Folders Sidebar */}
+          <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 flex-shrink-0">
+            <div className="p-4">
+              <button
+                onClick={() => { setReplyTo(null); setShowCompose(true); }}
+                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
+                data-testid="compose-btn"
+              >
+                <Plus className="w-5 h-5" />
+                Redactar
+              </button>
+            </div>
+            
+            <nav className="flex-1 px-3 py-2 space-y-1">
+              {folders.map(folder => (
+                <button
+                  key={folder.id}
+                  onClick={() => setActiveFolder(folder.id)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                    activeFolder === folder.id
+                      ? "bg-emerald-50 text-emerald-700"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                  data-testid={`folder-${folder.id}`}
+                >
+                  <folder.icon className="w-5 h-5" />
+                  <span className="flex-1 text-left font-medium">{folder.label}</span>
+                  {folder.badge > 0 && (
+                    <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
+                      {folder.badge}
+                    </span>
+                  )}
+                  {folder.count > 0 && !folder.badge && (
+                    <span className="text-sm text-gray-400">{folder.count}</span>
+                  )}
+                </button>
+              ))}
               
-              {/* Search */}
+              {/* Empty Trash Button */}
+              {activeFolder === "trash" && stats.trash > 0 && (
+                <button
+                  onClick={showEmptyTrashConfirm}
+                  className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all border border-red-200"
+                  data-testid="empty-trash-btn"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  <span className="font-medium text-sm">Vaciar papelera</span>
+                </button>
+              )}
+            </nav>
+          </aside>
+          
+          {/* Message List */}
+          <div className={`flex-1 flex flex-col lg:max-w-md border-r border-gray-200 bg-white ${mobileView === "message" ? "hidden lg:flex" : "flex"}`}>
+            {/* Search Header */}
+            <div className="p-4 border-b border-gray-100">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
                   type="text"
-                  placeholder="Buscar contacto..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                  data-testid="contact-search-input"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar mensajes..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
+                  data-testid="search-messages"
                 />
+              </div>
+              
+              {/* Mobile folder selector */}
+              <div className="lg:hidden mt-3 flex gap-2 overflow-x-auto pb-2">
+                {folders.map(folder => (
+                  <button
+                    key={folder.id}
+                    onClick={() => setActiveFolder(folder.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap text-sm transition-all ${
+                      activeFolder === folder.id
+                        ? "bg-emerald-100 text-emerald-700"
+                        : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    <folder.icon className="w-4 h-4" />
+                    {folder.label}
+                    {folder.badge > 0 && (
+                      <span className="px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                        {folder.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
             
-            {/* Contacts */}
+            {/* Message List */}
             <div className="flex-1 overflow-y-auto">
-              {Object.keys(contactsBySection).length > 0 ? (
-                Object.entries(contactsBySection).map(([section, sectionContacts]) => (
-                  <div key={section}>
-                  <div className="px-4 py-2 bg-slate-50 text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    {section}
-                  </div>
-                  {sectionContacts.map((contact) => (
-                    <button
-                      key={contact.id}
-                      onClick={() => loadConversation(contact)}
-                      className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors ${
-                        selectedContact?.id === contact.id ? "bg-emerald-50" : ""
-                      }`}
-                      data-testid={`contact-${contact.id}`}
-                    >
-                      {contact.photo_url ? (
-                        <img 
-                          src={contact.photo_url} 
-                          alt="" 
-                          className="w-10 h-10 rounded-full object-cover"
-                        />
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+                </div>
+              ) : filteredMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8">
+                  <Mail className="w-16 h-16 mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No hay mensajes</p>
+                  <p className="text-sm">Esta carpeta está vacía</p>
+                </div>
+              ) : (
+                filteredMessages.map(msg => (
+                  <button
+                    key={msg.id}
+                    onClick={() => handleSelectMessage(msg)}
+                    className={`w-full p-4 border-b border-gray-100 text-left transition-all hover:bg-gray-50 ${
+                      selectedMessage?.id === msg.id ? "bg-emerald-50" : ""
+                    } ${!msg.is_read ? "bg-blue-50/50" : ""}`}
+                    data-testid={`message-${msg.id}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      {activeFolder === "sent" ? (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          {msg.recipients?.[0]?.name?.charAt(0) || "?"}
+                        </div>
+                      ) : msg.sender?.photo_url ? (
+                        <img src={msg.sender.photo_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                          <User className="w-5 h-5 text-slate-500" />
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                          {msg.sender?.name?.charAt(0) || "?"}
                         </div>
                       )}
-                      <div className="flex-1 min-w-0 text-left">
-                        <p className="font-medium text-slate-800 truncate">{contact.name}</p>
-                        <p className="text-xs text-slate-500">{contact.type === "student" ? "Estudiante" : contact.type}</p>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
+                            {activeFolder === "sent" 
+                              ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
+                              : msg.sender?.name || "Remitente desconocido"
+                            }
+                          </p>
+                          <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(msg.created_at)}</span>
+                        </div>
+                        <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-gray-800" : "text-gray-600"}`}>
+                          {msg.subject}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate mt-0.5">{stripHtml(msg.body_preview)}</p>
                       </div>
-                    </button>
-                  ))}
+                      
+                      <div className="flex flex-col items-center gap-1">
+                        {!msg.is_read && <Circle className="w-2 h-2 fill-blue-500 text-blue-500" />}
+                        {msg.has_attachments && <Paperclip className="w-3 h-3 text-gray-400" />}
+                      </div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+            
+            {/* Mobile Compose Button */}
+            <div className="lg:hidden p-4 border-t bg-white">
+              <button
+                onClick={() => { setReplyTo(null); setShowCompose(true); }}
+                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2"
+              >
+                <Plus className="w-5 h-5" />
+                Redactar
+              </button>
+            </div>
+          </div>
+          
+          {/* Message Detail */}
+          <div className={`flex-1 flex flex-col bg-white ${mobileView === "list" ? "hidden lg:flex" : "flex"}`}>
+            {selectedMessage ? (
+              <>
+                {/* Message Header */}
+                <div className="p-6 border-b border-gray-100">
+                  <button
+                    onClick={() => { setSelectedMessage(null); setMobileView("list"); }}
+                    className="lg:hidden flex items-center gap-2 text-gray-600 mb-4"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                    Volver
+                  </button>
+                  
+                  <div className="flex items-start justify-between gap-4">
+                    <h2 className="text-xl font-bold text-gray-900">{selectedMessage.subject}</h2>
+                    <div className="flex items-center gap-2">
+                      {activeFolder === "trash" ? (
+                        <>
+                          <button
+                            onClick={() => handleRestore(selectedMessage.id)}
+                            className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
+                            title="Restaurar"
+                          >
+                            <ArchiveRestore className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
+                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                            title="Eliminar permanentemente"
+                          >
+                            <AlertTriangle className="w-5 h-5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleArchive(selectedMessage.id)}
+                            className="p-2 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors"
+                            title="Archivar"
+                          >
+                            <Archive className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(selectedMessage.id)}
+                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Sender info */}
+                  <div className="flex items-center gap-4 mt-4">
+                    {selectedMessage.sender?.photo_url ? (
+                      <img src={selectedMessage.sender.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-lg font-bold">
+                        {selectedMessage.sender?.name?.charAt(0) || "?"}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{selectedMessage.sender?.name}</p>
+                      <p className="text-sm text-gray-500">{selectedMessage.sender?.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">
+                        {new Date(selectedMessage.created_at).toLocaleDateString("es-PE", {
+                          weekday: "long",
+                          day: "numeric",
+                          month: "long",
+                          hour: "2-digit",
+                          minute: "2-digit"
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {selectedMessage.recipients?.length > 0 && (
+                    <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
+                      <span>Para:</span>
+                      <span>{selectedMessage.recipients.map(r => r.name).join(", ")}</span>
+                    </div>
+                  )}
                 </div>
-              ))
+                
+                {/* Message Body */}
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div 
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: selectedMessage.body }}
+                  />
+                  
+                  {selectedMessage.attachments?.length > 0 && (
+                    <div className="mt-6 pt-6 border-t border-gray-100">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
+                        Archivos adjuntos ({selectedMessage.attachments.length})
+                      </h4>
+                      <div className="space-y-2">
+                        {selectedMessage.attachments.map((att, idx) => (
+                          <a
+                            key={idx}
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                          >
+                            <Paperclip className="w-5 h-5 text-gray-400" />
+                            <span className="text-sm text-gray-700">{att.name || "Archivo"}</span>
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center gap-3">
+                  {activeFolder === "trash" ? (
+                    <>
+                      <button
+                        onClick={() => handleRestore(selectedMessage.id)}
+                        className="flex-1 py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+                        data-testid="restore-btn"
+                      >
+                        <ArchiveRestore className="w-5 h-5" />
+                        Restaurar
+                      </button>
+                      <button
+                        onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
+                        className="py-3 px-4 bg-red-100 hover:bg-red-200 text-red-600 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
+                        data-testid="delete-permanent-btn"
+                      >
+                        <AlertTriangle className="w-5 h-5" />
+                        Eliminar
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={handleReply}
+                        className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
+                        data-testid="reply-btn"
+                      >
+                        <Reply className="w-5 h-5" />
+                        Responder
+                      </button>
+                      <button
+                        onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
+                        className="py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
+                      >
+                        {selectedMessage.is_read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
+                        {selectedMessage.is_read ? "No leído" : "Leído"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </>
             ) : (
-              <div className="p-8 text-center">
-                <Users className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                <p className="text-slate-500">No hay contactos disponibles</p>
+              <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8">
+                <Mail className="w-20 h-20 mb-4 opacity-30" />
+                <p className="text-xl font-medium">Selecciona un mensaje</p>
+                <p className="text-sm mt-1">Haz clic en un mensaje para ver su contenido</p>
               </div>
             )}
           </div>
-        </div>
-
-        {/* Chat Area */}
-        <div className={`${selectedContact ? "flex" : "hidden md:flex"} flex-col flex-1 bg-slate-50`}>
-          {selectedContact ? (
-            <>
-              {/* Chat Header */}
-              <div className="px-4 py-3 border-b border-slate-200 bg-white flex items-center gap-3">
-                <button
-                  onClick={() => setSelectedContact(null)}
-                  className="md:hidden w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                </button>
-                
-                {selectedContact.photo_url ? (
-                  <img 
-                    src={selectedContact.photo_url} 
-                    alt="" 
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center">
-                    <User className="w-5 h-5 text-slate-500" />
-                  </div>
-                )}
-                
-                <div className="flex-1">
-                  <p className="font-semibold text-slate-800">{selectedContact.name}</p>
-                  <p className="text-xs text-slate-500">{selectedContact.section}</p>
-                </div>
-                
-                <button className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-colors">
-                  <MoreVertical className="w-5 h-5" />
-                </button>
-              </div>
-              
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                {messages.length > 0 ? (
-                  messages.map((msg) => {
-                    const isOwn = msg.sender_id === user.id;
-                    return (
-                      <div key={msg.id} className={`flex ${isOwn ? "justify-end" : "justify-start"}`}>
-                        <div className={`max-w-[70%] px-4 py-2.5 rounded-2xl ${
-                          isOwn 
-                            ? "bg-emerald-500 text-white rounded-br-md" 
-                            : "bg-white text-slate-800 rounded-bl-md border border-slate-200"
-                        }`}>
-                          <p className="text-sm">{msg.content}</p>
-                          <p className={`text-xs mt-1 ${isOwn ? "text-emerald-100" : "text-slate-400"}`}>
-                            {new Date(msg.created_at).toLocaleTimeString("es-PE", {
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })
-                ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <MessageSquare className="w-12 h-12 text-slate-200 mx-auto mb-3" />
-                      <p className="text-slate-500">No hay mensajes aún</p>
-                      <p className="text-sm text-slate-400">Envía el primer mensaje</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* Message Input */}
-              <div className="p-4 border-t border-slate-200 bg-white">
-                <div className="flex items-center gap-2">
-                  <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
-                    <Paperclip className="w-5 h-5" />
-                  </button>
-                  <button className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition-colors">
-                    <ImageIcon className="w-5 h-5" />
-                  </button>
-                  
-                  <input
-                    type="text"
-                    placeholder="Escribe un mensaje..."
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
-                    data-testid="message-input"
-                  />
-                  
-                  <button
-                    onClick={sendMessage}
-                    disabled={!newMessage.trim() || sending}
-                    className="w-10 h-10 rounded-xl bg-emerald-500 hover:bg-emerald-600 flex items-center justify-center text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    data-testid="send-message-btn"
-                  >
-                    {sending ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Send className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="text-center">
-                <MessageSquare className="w-16 h-16 text-slate-200 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-slate-800 mb-2">Tus mensajes</h3>
-                <p className="text-slate-500">Selecciona un contacto para iniciar una conversación</p>
-              </div>
-            </div>
-          )}
-        </div>
-        </div>
+        </main>
       </div>
-
-      {/* Message Center (Floating) */}
-      <MessageCenter token={token} user={user} />
+      
+      {/* Compose Modal */}
+      <ComposeModal
+        isOpen={showCompose}
+        onClose={() => { setShowCompose(false); setReplyTo(null); }}
+        token={token}
+        onSent={() => { loadMessages(activeFolder); loadStats(); }}
+        replyTo={replyTo}
+      />
+      
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null, messageId: null })}
+        onConfirm={handleConfirmAction}
+        title={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar mensaje"}
+        message={
+          confirmModal.type === "emptyTrash"
+            ? "¿Estás seguro de vaciar la papelera? Se eliminarán todos los mensajes de forma permanente y esta acción no se puede deshacer."
+            : "¿Estás seguro de eliminar este mensaje permanentemente? Esta acción no se puede deshacer."
+        }
+        confirmText={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar"}
+        confirmStyle="danger"
+        icon={AlertTriangle}
+        loading={confirmLoading}
+      />
     </div>
   );
 }
