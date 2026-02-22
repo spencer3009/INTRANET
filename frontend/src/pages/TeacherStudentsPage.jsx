@@ -265,6 +265,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
             </div>
           )}
         </main>
+        <TeacherFooter />
       </div>
 
       {/* Student Detail Modal */}
