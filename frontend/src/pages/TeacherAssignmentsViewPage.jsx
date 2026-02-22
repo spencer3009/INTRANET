@@ -335,6 +335,7 @@ export default function TeacherAssignmentsViewPage({ user, token, onLogout }) {
             </div>
           )}
         </main>
+        <TeacherFooter />
       </div>
 
       {/* Create Task Modal - Placeholder */}
