@@ -171,7 +171,7 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
             >
               <div className="hidden sm:block text-right">
                 <p className="text-sm font-semibold text-slate-800">{userName}</p>
-                <p className="text-[11px] text-slate-500">Alumno</p>
+                <p className="text-[11px] text-slate-500">{roleLabel}</p>
               </div>
               <div className="relative">
                 <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#e1b82c]/30" data-testid="student-header-avatar">
