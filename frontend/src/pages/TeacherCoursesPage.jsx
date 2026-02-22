@@ -3,16 +3,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
 import MessageCenter from "../components/MessageCenter";
+import StudentHeader from "../components/StudentHeader";
+import TeacherFooter from "../components/TeacherFooter";
 import {
   BookOpen,
-  Menu,
   Loader2,
   Search,
   Users,
-  FileText,
   ClipboardList,
-  ChevronRight,
-  Plus
+  ChevronRight
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -24,24 +23,32 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [settings, setSettings] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
-    loadCourses();
+    loadData();
   }, [token]);
 
-  const loadCourses = async () => {
+  const loadData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/teacher/courses`, { headers });
-      setCourses(res.data.courses || []);
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      const [coursesRes, settingsRes] = await Promise.all([
+        axios.get(`${API}/api/teacher/courses`, { headers }),
+        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
+      ]);
+      setCourses(coursesRes.data.courses || []);
+      setSettings(settingsRes.data);
     } catch (err) {
       console.error("Error loading courses:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  const schoolName = settings?.system_name || "Mi Colegio";
 
   const navigateTo = (path) => {
     if (subdomain) {
@@ -77,27 +84,17 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="sticky top-0 z-20 bg-white border-b border-slate-200 px-4 lg:px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setSidebarExpanded(!sidebarExpanded)}
-                className="lg:hidden w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-600 hover:bg-slate-200 transition-colors"
-              >
-                <Menu className="w-5 h-5" />
-              </button>
-              <div>
-                <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                  <BookOpen className="w-6 h-6 text-emerald-500" />
-                  Mis Cursos
-                </h1>
-                <p className="text-sm text-slate-500">
-                  {courses.length} {courses.length === 1 ? "curso asignado" : "cursos asignados"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </header>
+        <StudentHeader
+          user={user}
+          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={schoolName}
+          subdomain={subdomain || user?.subdomain}
+          token={token}
+          roleLabel="Docente"
+          profilePath="/teacher/profile"
+        />
 
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           <div className="mb-6">
