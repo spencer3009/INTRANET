@@ -159,9 +159,13 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
   const loadData = async () => {
     setLoading(true);
     try {
+      // Get subdomain for public settings
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      
       const [dashRes, settingsRes, bannersRes, eventsRes] = await Promise.all([
         axios.get(`${API}/api/teacher/dashboard`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null })),
+        // Use public settings endpoint (doesn't require owner permissions)
+        axios.get(`${API}/api/settings/public/${currentSubdomain}`).catch(() => ({ data: null })),
         axios.get(`${API}/api/carousel/banners`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/api/calendar/events`, { headers }).catch(() => ({ data: [] }))
       ]);
