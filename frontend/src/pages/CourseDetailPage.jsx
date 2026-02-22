@@ -9001,6 +9001,25 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
     return subdomain ? `/school/${subdomain}/asignaturas` : "/asignaturas";
   };
 
+  // Handle URL parameters for task navigation
+  useEffect(() => {
+    const taskId = searchParams.get('task');
+    const tabParam = searchParams.get('tab');
+    
+    if (taskId) {
+      setActiveTab('tareas');
+      setHighlightedTaskId(taskId);
+      // Clean up URL params
+      searchParams.delete('task');
+      searchParams.delete('tab');
+      setSearchParams(searchParams, { replace: true });
+    } else if (tabParam) {
+      setActiveTab(tabParam);
+      searchParams.delete('tab');
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   useEffect(() => {
     loadData();
   }, [subjectId]);
