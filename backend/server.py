@@ -14275,18 +14275,182 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
                 unread_by_contact[other_participant_id] = unread_by_contact.get(other_participant_id, 0) + 1
     
     if user_role == "teacher":
+        # Build categorized contact list for teachers
+        added_ids = set()
+        categorized_contacts = {
+            "mis_alumnos": [],
+            "padres_apoderados": [],
+            "personal_administrativo": [],
+            "otros_profesores": []
+        }
+        
+        # 1. MIS ALUMNOS - Get students from subjects taught by this teacher
+        # First, get subjects from subjects collection
         subjects = await db.subjects.find({"school_id": user["school_id"], "teacher_id": user["id"]}, {"_id": 0}).to_list(100)
+        grade_ids_taught = set()
+        seccion_ids_taught = set()
+        
         for subject in subjects:
-            students = await db.users.find({"school_id": user["school_id"], "grade_id": subject.get("grade_id"), "role": "student"}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1}).to_list(100)
-            for s in students:
-                contacts.append({
-                    "id": s["id"], 
-                    "name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(), 
-                    "photo_url": s.get("photo_url"), 
-                    "role": "student", 
-                    "subject_name": subject.get("name", ""),
-                    "unread_count": unread_by_contact.get(s["id"], 0)
+            grade_id = subject.get("grade_id")
+            if grade_id:
+                grade_ids_taught.add(grade_id)
+                # Get sections for this subject
+                seccion_id = subject.get("seccion_id")
+                if seccion_id:
+                    seccion_ids_taught.add(seccion_id)
+        
+        # Also check academic_assignments for more complete coverage
+        assignments = await db.academic_assignments.find({
+            "school_id": user["school_id"],
+            "teacher_id": user["id"],
+            "status": "activo"
+        }, {"_id": 0}).to_list(100)
+        
+        for assignment in assignments:
+            grade_id = assignment.get("grade_id")
+            seccion_id = assignment.get("seccion_id")
+            if grade_id:
+                grade_ids_taught.add(grade_id)
+            if seccion_id:
+                seccion_ids_taught.add(seccion_id)
+        
+        # Fetch students in taught grades/sections
+        student_query = {
+            "school_id": user["school_id"],
+            "role": "student",
+            "is_active": {"$ne": False}
+        }
+        
+        if seccion_ids_taught:
+            # If we have specific sections, prefer those
+            student_query["seccion_id"] = {"$in": list(seccion_ids_taught)}
+        elif grade_ids_taught:
+            # Otherwise use grades
+            student_query["$or"] = [
+                {"grade_id": {"$in": list(grade_ids_taught)}},
+                {"grado_id": {"$in": list(grade_ids_taught)}}
+            ]
+        
+        if grade_ids_taught or seccion_ids_taught:
+            students = await db.users.find(student_query, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1, "grade_id": 1, "grado_id": 1, "seccion_id": 1}).to_list(500)
+            
+            for student in students:
+                if student["id"] not in added_ids:
+                    added_ids.add(student["id"])
+                    categorized_contacts["mis_alumnos"].append({
+                        "id": student["id"],
+                        "name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+                        "photo_url": student.get("photo_url"),
+                        "email": student.get("email"),
+                        "role": "student",
+                        "category": "mis_alumnos",
+                        "unread_count": unread_by_contact.get(student["id"], 0)
+                    })
+        
+        # 2. PADRES/APODERADOS - Get parents of the students we just found
+        student_ids = [s["id"] for s in categorized_contacts["mis_alumnos"]]
+        if student_ids:
+            parents = await db.users.find({
+                "school_id": user["school_id"],
+                "role": "parent",
+                "is_active": {"$ne": False},
+                "$or": [
+                    {"student_ids": {"$in": student_ids}},
+                    {"children_ids": {"$in": student_ids}}
+                ]
+            }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1, "student_ids": 1, "children_ids": 1}).to_list(500)
+            
+            for parent in parents:
+                if parent["id"] not in added_ids:
+                    added_ids.add(parent["id"])
+                    # Find linked student names for context
+                    linked_student_ids = parent.get("student_ids") or parent.get("children_ids") or []
+                    linked_students = [s for s in categorized_contacts["mis_alumnos"] if s["id"] in linked_student_ids]
+                    linked_names = ", ".join([s["name"] for s in linked_students[:2]])
+                    if len(linked_students) > 2:
+                        linked_names += f" (+{len(linked_students) - 2})"
+                    
+                    categorized_contacts["padres_apoderados"].append({
+                        "id": parent["id"],
+                        "name": f"{parent.get('name', '')} {parent.get('last_name', '')}".strip(),
+                        "photo_url": parent.get("photo_url"),
+                        "email": parent.get("email"),
+                        "role": "parent",
+                        "category": "padres_apoderados",
+                        "linked_students": linked_names,
+                        "unread_count": unread_by_contact.get(parent["id"], 0)
+                    })
+        
+        # 3. PERSONAL ADMINISTRATIVO - Admins, directors, coordinators, owner
+        admin_roles = ["admin", "owner", "director", "coordinator"]
+        admin_users = await db.users.find({
+            "school_id": user["school_id"],
+            "role": {"$in": admin_roles},
+            "id": {"$ne": user["id"]},
+            "is_active": {"$ne": False}
+        }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1, "role": 1}).to_list(50)
+        
+        for admin in admin_users:
+            if admin["id"] not in added_ids:
+                added_ids.add(admin["id"])
+                role_display = {
+                    "owner": "Propietario",
+                    "admin": "Administrador",
+                    "director": "Director",
+                    "coordinator": "Coordinador"
+                }.get(admin.get("role"), admin.get("role", ""))
+                
+                categorized_contacts["personal_administrativo"].append({
+                    "id": admin["id"],
+                    "name": f"{admin.get('name', '')} {admin.get('last_name', '')}".strip(),
+                    "photo_url": admin.get("photo_url"),
+                    "email": admin.get("email"),
+                    "role": admin.get("role"),
+                    "role_display": role_display,
+                    "category": "personal_administrativo",
+                    "unread_count": unread_by_contact.get(admin["id"], 0)
                 })
+        
+        # 4. OTROS PROFESORES - Other teachers in the same school
+        other_teachers = await db.users.find({
+            "school_id": user["school_id"],
+            "role": "teacher",
+            "id": {"$ne": user["id"]},
+            "is_active": {"$ne": False}
+        }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1}).to_list(100)
+        
+        for teacher in other_teachers:
+            if teacher["id"] not in added_ids:
+                added_ids.add(teacher["id"])
+                categorized_contacts["otros_profesores"].append({
+                    "id": teacher["id"],
+                    "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
+                    "photo_url": teacher.get("photo_url"),
+                    "email": teacher.get("email"),
+                    "role": "teacher",
+                    "category": "otros_profesores",
+                    "unread_count": unread_by_contact.get(teacher["id"], 0)
+                })
+        
+        # Sort each category by unread count, then by name
+        for category in categorized_contacts:
+            categorized_contacts[category].sort(key=lambda x: (-x.get("unread_count", 0), x.get("name", "")))
+        
+        # Build flat contacts list with category info for backward compatibility
+        for category_name in ["mis_alumnos", "padres_apoderados", "personal_administrativo", "otros_profesores"]:
+            contacts.extend(categorized_contacts[category_name])
+        
+        # Return both flat list and categorized for flexible frontend use
+        return {
+            "contacts": contacts,
+            "categorized": categorized_contacts,
+            "categories": [
+                {"key": "mis_alumnos", "label": "Mis Alumnos", "icon": "users", "count": len(categorized_contacts["mis_alumnos"])},
+                {"key": "padres_apoderados", "label": "Padres/Apoderados", "icon": "user-friends", "count": len(categorized_contacts["padres_apoderados"])},
+                {"key": "personal_administrativo", "label": "Personal Administrativo", "icon": "user-tie", "count": len(categorized_contacts["personal_administrativo"])},
+                {"key": "otros_profesores", "label": "Otros Profesores", "icon": "chalkboard-teacher", "count": len(categorized_contacts["otros_profesores"])}
+            ]
+        }
     elif user_role == "student":
         # Get grade_id and seccion_id from user
         grade_id = user.get("grade_id") or user.get("grado_id")
