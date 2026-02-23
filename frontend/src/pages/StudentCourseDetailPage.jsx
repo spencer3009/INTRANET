@@ -4445,7 +4445,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout }) {
     try {
       // Load settings and subject info
       const [settingsRes, coursesRes] = await Promise.all([
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null })),
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
         axios.get(`${API}/api/student/courses`, { headers })
       ]);
       
