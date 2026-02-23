@@ -48,6 +48,22 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## What's Been Implemented
 
+### Session: 2026-02-23 (Teacher Chat Contacts Categorization) ✅
+- **FEATURE: Lista de Contactos Inteligente para Profesores**
+  - Endpoint `/api/messaging/academic/contacts` ahora devuelve contactos categorizados para profesores
+  - 4 categorías:
+    1. **Mis Alumnos**: Estudiantes de las materias que enseña el profesor
+    2. **Padres/Apoderados**: Padres de los alumnos (con nombres de hijos vinculados)
+    3. **Personal Administrativo**: Admins, Directors, Coordinadores, Propietario (con rol traducido)
+    4. **Otros Profesores**: Otros docentes de la escuela
+  - Frontend `MessageCenter.jsx` actualizado con:
+    - Vista categorizada expandible/colapsable para profesores
+    - Vista plana para estudiantes y admins (sin cambios)
+    - Búsqueda que filtra a través de todas las categorías
+    - Conteo de contactos por categoría
+    - Indicadores de mensajes no leídos por categoría
+  - **Resultados de pruebas**: 100% backend (18/18 tests), 100% frontend
+
 ### Session: 2026-02-22 (Teacher Tasks Page) ✅
 - **FEATURE: Página de Tareas del Profesor con diseño del portal del estudiante**
   - Reescritura completa de `TeacherAssignmentsViewPage.jsx`
