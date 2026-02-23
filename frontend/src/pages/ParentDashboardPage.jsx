@@ -247,11 +247,10 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const [tasks, setTasks] = useState([]);
   const [settings, setSettings] = useState(null);
 
-  const headers = { Authorization: `Bearer ${token}` };
-
   // Initial load
   useEffect(() => {
     const init = async () => {
+      const headers = { Authorization: `Bearer ${token}` };
       setLoading(true);
       try {
         const [profileRes, settingsRes] = await Promise.all([
