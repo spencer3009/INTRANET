@@ -196,6 +196,7 @@ const navItems = isOwner(user)
 - `GET /api/teacher/students` - Estudiantes de secciones del profesor
 - `GET /api/teacher/attendance` - Asistencia por sección/fecha (profesor)
 - `POST /api/teacher/attendance` - Guardar asistencia (profesor)
+- `GET /api/messaging/academic/contacts` - Contactos para chat (categorizados para profesores)
 
 ## Database Collections
 - `schools`: Incluye campo `allow_admin_accounting` (boolean)
