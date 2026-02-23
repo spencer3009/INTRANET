@@ -31,6 +31,17 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 - Correo interno para estudiantes, profesores y administradores
 - Bandeja de entrada, Enviados, Archivados, Papelera
 - Indicadores de mensajes no leídos
+- Chat widget con contactos categorizados para profesores
+
+### 6. Portal de Padres (Parent Portal) ✅ NEW
+- Réplica 1:1 del Portal del Alumno para padres/apoderados
+- Dashboard con información del hijo seleccionado
+- Página de Tareas con filtros (Todas, Pendientes, Entregadas, Calificadas)
+- Página de Calificaciones con promedios por materia
+- Página de Asistencia con navegación por mes
+- Selector de hijos (multi-hijo) en sidebar
+- Control de acceso RBAC - padres solo ven datos de hijos vinculados
+- Vinculación padre-hijo mediante campo `padre_id` en el estudiante
 
 ## Technical Architecture
 
