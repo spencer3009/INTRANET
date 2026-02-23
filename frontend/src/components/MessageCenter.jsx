@@ -102,7 +102,7 @@ export default function MessageCenter({ token, user, openWithUser, onClose }) {
 
       {/* Drawer */}
       {isOpen && createPortal(
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-[200]">
           {/* Backdrop */}
           <div 
             className="absolute inset-0 bg-black/30 backdrop-blur-sm"
