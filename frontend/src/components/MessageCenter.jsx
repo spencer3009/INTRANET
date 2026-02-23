@@ -1298,6 +1298,50 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
   }
 
   // Main view: Contact list (shown directly as requested)
+  // Use categorized view for teachers, flat view for others
+  const filteredCategorized = getFilteredCategorizedContacts();
+  const useCategorizedView = categorizedContacts && categories.length > 0;
+
+  // Helper to render a single contact item
+  const renderContactItem = (contact) => (
+    <div
+      key={contact.id}
+      onClick={() => handleSelectContact(contact)}
+      className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
+    >
+      {/* Avatar with unread indicator */}
+      <div className="relative">
+        {contact.photo_url ? (
+          <img src={contact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+            <User className="w-5 h-5 text-amber-500" />
+          </div>
+        )}
+        {/* Unread message indicator badge */}
+        {contact.unread_count > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+            {contact.unread_count > 9 ? "9+" : contact.unread_count}
+          </span>
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className={`font-medium text-slate-800 ${contact.unread_count > 0 ? "font-bold" : ""}`}>
+          {contact.name}
+        </p>
+        <p className="text-xs text-slate-400">
+          {contact.role_display || getRoleLabel(contact.role)}
+          {contact.linked_students && ` • ${contact.linked_students}`}
+          {contact.subject_name && ` • ${contact.subject_name}`}
+        </p>
+      </div>
+      {/* Arrow indicator for unread */}
+      {contact.unread_count > 0 && (
+        <ChevronRight className="w-4 h-4 text-amber-500" />
+      )}
+    </div>
+  );
+
   return (
     <div className="h-full flex flex-col">
       {/* Search bar */}
@@ -1332,7 +1376,96 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
               {searchQuery ? "Intenta con otro término de búsqueda" : "No hay contactos disponibles"}
             </p>
           </div>
+        ) : useCategorizedView ? (
+          // Categorized view for teachers
+          <div className="divide-y divide-slate-100">
+            {/* Show unread threads first */}
+            {unreadThreads.map((thread) => {
+              const other = thread.other_participant;
+              const lastMessage = thread.messages?.[thread.messages.length - 1];
+              const isInContacts = filteredContacts.some(c => c.id === other?.id);
+              if (isInContacts) return null;
+              
+              return (
+                <div
+                  key={thread.id}
+                  onClick={() => loadThread(thread.id)}
+                  className="px-4 py-3 hover:bg-amber-50 cursor-pointer transition-colors flex items-center gap-3 bg-amber-50/50"
+                >
+                  <div className="relative">
+                    {other?.photo_url ? (
+                      <img src={other.photo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center ring-2 ring-amber-400">
+                        <User className="w-5 h-5 text-amber-500" />
+                      </div>
+                    )}
+                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                      !
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-slate-800">{other?.name}</p>
+                    <p className="text-xs text-amber-600 truncate">
+                      {lastMessage?.deleted ? "Mensaje eliminado" : lastMessage?.content?.substring(0, 40)}
+                      {lastMessage?.content?.length > 40 ? "..." : ""}
+                    </p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-amber-500" />
+                </div>
+              );
+            })}
+
+            {/* Categorized contacts */}
+            {categories.map((category) => {
+              const categoryContacts = filteredCategorized?.[category.key] || [];
+              const CategoryIcon = CATEGORY_ICONS[category.key] || Users;
+              const isExpanded = expandedCategories[category.key];
+              const unreadCount = categoryContacts.reduce((sum, c) => sum + (c.unread_count || 0), 0);
+
+              return (
+                <div key={category.key} className="border-b border-slate-100 last:border-b-0">
+                  {/* Category header */}
+                  <button
+                    onClick={() => toggleCategory(category.key)}
+                    className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center">
+                      <CategoryIcon className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-slate-800">{category.label}</span>
+                        <span className="text-xs text-slate-400">({categoryContacts.length})</span>
+                        {unreadCount > 0 && (
+                          <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                            {unreadCount > 9 ? "9+" : unreadCount}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                  </button>
+
+                  {/* Category contacts */}
+                  {isExpanded && categoryContacts.length > 0 && (
+                    <div className="bg-slate-50/50 border-t border-slate-100">
+                      {categoryContacts.map(contact => renderContactItem(contact))}
+                    </div>
+                  )}
+
+                  {/* Empty state for expanded category */}
+                  {isExpanded && categoryContacts.length === 0 && (
+                    <div className="px-4 py-4 bg-slate-50/50 border-t border-slate-100">
+                      <p className="text-xs text-slate-400 text-center">Sin contactos en esta categoría</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         ) : (
+          // Flat view for students, admins, etc.
           <div className="divide-y divide-slate-100">
             {/* Show unread threads first (conversations with unread messages) */}
             {unreadThreads.map((thread) => {
@@ -1375,43 +1508,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
             })}
             
             {/* Regular contacts */}
-            {filteredContacts.map((contact) => (
-              <div
-                key={contact.id}
-                onClick={() => handleSelectContact(contact)}
-                className="px-4 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3"
-              >
-                {/* Avatar with unread indicator */}
-                <div className="relative">
-                  {contact.photo_url ? (
-                    <img src={contact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-                      <User className="w-5 h-5 text-amber-500" />
-                    </div>
-                  )}
-                  {/* Unread message indicator badge */}
-                  {contact.unread_count > 0 && (
-                    <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                      {contact.unread_count > 9 ? "9+" : contact.unread_count}
-                    </span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className={`font-medium text-slate-800 ${contact.unread_count > 0 ? "font-bold" : ""}`}>
-                    {contact.name}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {getRoleLabel(contact.role)}
-                    {contact.subject_name && ` • ${contact.subject_name}`}
-                  </p>
-                </div>
-                {/* Arrow indicator for unread */}
-                {contact.unread_count > 0 && (
-                  <ChevronRight className="w-4 h-4 text-amber-500" />
-                )}
-              </div>
-            ))}
+            {filteredContacts.map((contact) => renderContactItem(contact))}
           </div>
         )}
       </div>
