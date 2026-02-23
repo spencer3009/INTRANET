@@ -249,63 +249,70 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load parent profile and children list
+  // Initial load
   useEffect(() => {
-    loadParentProfile();
-  }, [token]);
-
-  // Load child data when selected child changes
-  useEffect(() => {
-    if (selectedChild) {
-      loadChildData(selectedChild.id);
-      // Save selection
-      localStorage.setItem('selected_child_id', selectedChild.id);
-    }
-  }, [selectedChild]);
-
-  const loadParentProfile = async () => {
-    setLoading(true);
-    try {
-      const [profileRes, settingsRes] = await Promise.all([
-        axios.get(`${API}/api/parent/me`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
-      ]);
-      
-      setParentProfile(profileRes.data);
-      setChildren(profileRes.data.children || []);
-      
-      if (settingsRes.data) {
-        setSettings(settingsRes.data);
-      }
-      
-      // Auto-select first child or restore from localStorage
-      const savedChildId = localStorage.getItem('selected_child_id');
-      const childrenList = profileRes.data.children || [];
-      
-      if (childrenList.length > 0) {
-        const savedChild = childrenList.find(c => c.id === savedChildId);
-        setSelectedChild(savedChild || childrenList[0]);
-      } else {
+    const init = async () => {
+      setLoading(true);
+      try {
+        const [profileRes, settingsRes] = await Promise.all([
+          axios.get(`${API}/api/parent/me`, { headers }),
+          axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+        ]);
+        
+        setParentProfile(profileRes.data);
+        const childrenList = profileRes.data.children || [];
+        setChildren(childrenList);
+        
+        if (settingsRes.data) {
+          setSettings(settingsRes.data);
+        }
+        
+        // Auto-select first child or restore from localStorage
+        if (childrenList.length > 0) {
+          const savedChildId = localStorage.getItem('selected_child_id');
+          const childToSelect = childrenList.find(c => c.id === savedChildId) || childrenList[0];
+          setSelectedChild(childToSelect);
+          
+          // Load child data immediately
+          const [dashboardRes, coursesRes, tasksRes] = await Promise.all([
+            axios.get(`${API}/api/parent/dashboard?student_id=${childToSelect.id}`, { headers }),
+            axios.get(`${API}/api/parent/courses?student_id=${childToSelect.id}`, { headers }),
+            axios.get(`${API}/api/parent/tasks?student_id=${childToSelect.id}`, { headers })
+          ]);
+          
+          setDashboardData(dashboardRes.data);
+          setCourses(coursesRes.data.courses || []);
+          setTasks(tasksRes.data.tasks || []);
+          localStorage.setItem('selected_child_id', childToSelect.id);
+        }
+      } catch (err) {
+        console.error("Error loading parent data:", err);
+      } finally {
         setLoading(false);
       }
-    } catch (err) {
-      console.error("Error loading parent profile:", err);
-      setLoading(false);
-    }
-  };
+    };
+    
+    init();
+  }, [token]);
 
-  const loadChildData = async (studentId) => {
+  // Handle child selection change (after initial load)
+  const handleChildChange = async (newChild) => {
+    if (!newChild || newChild.id === selectedChild?.id) return;
+    
+    setSelectedChild(newChild);
     setLoading(true);
+    
     try {
       const [dashboardRes, coursesRes, tasksRes] = await Promise.all([
-        axios.get(`${API}/api/parent/dashboard?student_id=${studentId}`, { headers }),
-        axios.get(`${API}/api/parent/courses?student_id=${studentId}`, { headers }),
-        axios.get(`${API}/api/parent/tasks?student_id=${studentId}`, { headers })
+        axios.get(`${API}/api/parent/dashboard?student_id=${newChild.id}`, { headers }),
+        axios.get(`${API}/api/parent/courses?student_id=${newChild.id}`, { headers }),
+        axios.get(`${API}/api/parent/tasks?student_id=${newChild.id}`, { headers })
       ]);
       
       setDashboardData(dashboardRes.data);
       setCourses(coursesRes.data.courses || []);
       setTasks(tasksRes.data.tasks || []);
+      localStorage.setItem('selected_child_id', newChild.id);
     } catch (err) {
       console.error("Error loading child data:", err);
     } finally {
