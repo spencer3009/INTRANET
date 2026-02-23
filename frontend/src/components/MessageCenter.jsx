@@ -5,7 +5,7 @@ import {
   MessageSquare, X, Send, Megaphone, HeadphonesIcon, GraduationCap,
   ChevronRight, ChevronDown, AlertCircle, Clock, CheckCircle, Loader2, Plus,
   User, Search, ArrowLeft, Paperclip, MoreVertical, Filter,
-  Bell, AlertTriangle, Info, Trash2, Pencil, Check
+  Bell, AlertTriangle, Info, Trash2, Pencil, Check, Users, UserCheck, Shield
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
