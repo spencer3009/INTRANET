@@ -59,6 +59,20 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## What's Been Implemented
 
+### Session: 2026-02-23 (Company Logo in Headers) ✅
+- **FEATURE: Logo de empresa en todos los headers**
+  - Modificadas 18 páginas para usar `/api/settings/public/{subdomain}` en lugar de `/api/settings` (protegido)
+  - Portales afectados: Estudiante, Padre, Profesor (Admin ya funcionaba)
+  - El logo del colegio ahora se muestra correctamente en el header de todas las páginas
+  - Páginas actualizadas:
+    - `StudentDashboardPage.jsx`, `StudentCoursesPage.jsx`, `StudentExamSchedulePage.jsx`
+    - `StudentSchedulePage.jsx`, `StudentMessagesPage.jsx`, `StudentProfilePage.jsx`
+    - `StudentGradesPage.jsx`, `StudentAttendancePage.jsx`, `StudentCourseDetailPage.jsx`
+    - `StudentTasksPage.jsx`
+    - `ParentDashboardPage.jsx`, `ParentTasksPage.jsx`, `ParentGradesPage.jsx`
+    - `ParentCoursesPage.jsx`, `ParentSchedulePage.jsx`, `ParentMessagesPage.jsx`
+    - `ParentExamsPage.jsx`, `ParentAttendancePage.jsx`
+
 ### Session: 2026-02-23 (Parent Portal) ✅
 - **FEATURE: Portal de Padres Completo (Réplica 1:1 del Portal del Alumno)**
   - Backend endpoints: `/api/parent/me`, `/api/parent/students`, `/api/parent/dashboard`, `/api/parent/tasks`, `/api/parent/grades`, `/api/parent/attendance`, `/api/parent/schedule`, `/api/parent/exam-schedule`, `/api/parent/messages/*`
