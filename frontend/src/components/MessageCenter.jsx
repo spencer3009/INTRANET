@@ -840,9 +840,20 @@ const ROLE_LABELS = {
   parent: "Padre de familia"
 };
 
+// Category icons mapping
+const CATEGORY_ICONS = {
+  mis_alumnos: Users,
+  padres_apoderados: UserCheck,
+  personal_administrativo: Shield,
+  otros_profesores: GraduationCap
+};
+
 function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirectChat }) {
   const [threads, setThreads] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [categorizedContacts, setCategorizedContacts] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [expandedCategories, setExpandedCategories] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedThread, setSelectedThread] = useState(null);
   const [selectedContact, setSelectedContact] = useState(null);
@@ -873,6 +884,21 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
     try {
       const res = await axios.get(`${API}/messaging/academic/contacts`, { headers });
       setContacts(res.data.contacts || []);
+      // Handle categorized response for teachers
+      if (res.data.categorized) {
+        setCategorizedContacts(res.data.categorized);
+        setCategories(res.data.categories || []);
+        // Expand categories with unread messages by default
+        const expanded = {};
+        Object.keys(res.data.categorized).forEach(key => {
+          const hasUnread = res.data.categorized[key].some(c => c.unread_count > 0);
+          expanded[key] = hasUnread || key === 'mis_alumnos'; // Expand "mis_alumnos" by default
+        });
+        setExpandedCategories(expanded);
+      } else {
+        setCategorizedContacts(null);
+        setCategories([]);
+      }
     } catch (err) {
       console.error("Error:", err);
     }
