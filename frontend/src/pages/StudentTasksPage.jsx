@@ -37,8 +37,8 @@ const fetchStudentTasks = async (token) => {
   return response.data;
 };
 
-const fetchSettings = async (token) => {
-  const response = await axios.get(`${API}/api/settings`, {
+const fetchSettings = async (token, subdomain) => {
+  const response = await axios.get(`${API}/api/settings/public/${subdomain}`, {
     headers: { Authorization: `Bearer ${token}` }
   });
   return response.data;
