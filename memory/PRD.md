@@ -217,6 +217,12 @@ const navItems = isOwner(user)
 - `GET /api/teacher/attendance` - Asistencia por sección/fecha (profesor)
 - `POST /api/teacher/attendance` - Guardar asistencia (profesor)
 - `GET /api/messaging/academic/contacts` - Contactos para chat (categorizados para profesores)
+- `GET /api/parent/me` - Perfil del padre con hijos vinculados ✅ NEW
+- `GET /api/parent/students` - Lista de hijos del padre ✅ NEW
+- `GET /api/parent/dashboard?student_id=X` - Dashboard del hijo ✅ NEW
+- `GET /api/parent/tasks?student_id=X` - Tareas del hijo ✅ NEW
+- `GET /api/parent/grades?student_id=X` - Calificaciones del hijo ✅ NEW
+- `GET /api/parent/attendance?student_id=X&month=YYYY-MM` - Asistencia del hijo ✅ NEW
 
 ## Database Collections
 - `schools`: Incluye campo `allow_admin_accounting` (boolean)
