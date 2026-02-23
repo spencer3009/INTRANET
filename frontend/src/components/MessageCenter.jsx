@@ -1048,6 +1048,29 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
     contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     getRoleLabel(contact.role)?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Filter categorized contacts by search query
+  const getFilteredCategorizedContacts = () => {
+    if (!categorizedContacts) return null;
+    
+    if (!searchQuery) return categorizedContacts;
+    
+    const filtered = {};
+    Object.keys(categorizedContacts).forEach(key => {
+      filtered[key] = categorizedContacts[key].filter(contact =>
+        contact.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getRoleLabel(contact.role)?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+    return filtered;
+  };
+
+  const toggleCategory = (categoryKey) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryKey]: !prev[categoryKey]
+    }));
+  };
   
   // Get threads with unread messages (to show at the top)
   const unreadThreads = threads.filter(t => t.has_unread);
