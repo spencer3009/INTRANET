@@ -18787,8 +18787,891 @@ async def get_student_exam_schedule(
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# APP SETUP
+# PARENT PORTAL ENDPOINTS
+# Portal de Padres - Réplica del Portal del Alumno para apoderados
 # ══════════════════════════════════════════════════════════════════════════════
+
+async def verify_parent_student_access(parent_user: dict, student_id: str) -> dict:
+    """
+    Verify that a parent has access to a specific student.
+    Returns the student if access is granted, raises HTTPException otherwise.
+    """
+    if not parent_user or parent_user.get("role") != "parent":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para padres/apoderados")
+    
+    # Find the student
+    student = await db.users.find_one({
+        "id": student_id,
+        "role": "student",
+        "school_id": parent_user.get("school_id"),
+        "is_active": {"$ne": False}
+    }, {"_id": 0})
+    
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    # Check if student is linked to this parent
+    # Method 1: student.padre_id == parent.id
+    # Method 2: student.parent_id == parent.id  
+    # Method 3: parent.student_ids includes student.id
+    # Method 4: parent.children_ids includes student.id
+    parent_id = parent_user.get("id")
+    
+    is_linked = (
+        student.get("padre_id") == parent_id or
+        student.get("parent_id") == parent_id or
+        parent_id in (parent_user.get("student_ids") or []) or
+        parent_id in (parent_user.get("children_ids") or []) or
+        student_id in (parent_user.get("student_ids") or []) or
+        student_id in (parent_user.get("children_ids") or [])
+    )
+    
+    if not is_linked:
+        raise HTTPException(status_code=403, detail="No tienes acceso a este estudiante")
+    
+    return student
+
+@api_router.get("/parent/me")
+async def get_parent_profile(current_user = Depends(get_current_user)):
+    """Get parent profile with linked children."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "parent":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para padres/apoderados")
+    
+    school_id = user.get("school_id")
+    
+    # Get linked children
+    children = []
+    
+    # Method 1: Find students where padre_id/parent_id = parent's id
+    linked_by_padre = await db.users.find({
+        "school_id": school_id,
+        "role": "student",
+        "is_active": {"$ne": False},
+        "$or": [
+            {"padre_id": user["id"]},
+            {"parent_id": user["id"]}
+        ]
+    }, {"_id": 0}).to_list(20)
+    
+    for student in linked_by_padre:
+        # Get academic info
+        grado = None
+        seccion = None
+        if student.get("grado_id"):
+            grado = await db.grades.find_one({"id": student["grado_id"]}, {"_id": 0, "name": 1})
+        if student.get("seccion_id"):
+            seccion = await db.sections.find_one({"id": student["seccion_id"]}, {"_id": 0, "name": 1})
+        
+        children.append({
+            "id": student["id"],
+            "name": student.get("name", ""),
+            "last_name": student.get("last_name", ""),
+            "photo_url": student.get("photo_url"),
+            "grado_id": student.get("grado_id"),
+            "seccion_id": student.get("seccion_id"),
+            "grado_name": grado.get("name") if grado else None,
+            "seccion_name": seccion.get("name") if seccion else None
+        })
+    
+    # Method 2: Check parent's student_ids/children_ids arrays
+    student_ids = user.get("student_ids") or user.get("children_ids") or []
+    if student_ids:
+        for sid in student_ids:
+            if not any(c["id"] == sid for c in children):
+                student = await db.users.find_one({
+                    "id": sid,
+                    "role": "student",
+                    "school_id": school_id,
+                    "is_active": {"$ne": False}
+                }, {"_id": 0})
+                if student:
+                    grado = None
+                    seccion = None
+                    if student.get("grado_id"):
+                        grado = await db.grades.find_one({"id": student["grado_id"]}, {"_id": 0, "name": 1})
+                    if student.get("seccion_id"):
+                        seccion = await db.sections.find_one({"id": student["seccion_id"]}, {"_id": 0, "name": 1})
+                    children.append({
+                        "id": student["id"],
+                        "name": student.get("name", ""),
+                        "last_name": student.get("last_name", ""),
+                        "photo_url": student.get("photo_url"),
+                        "grado_id": student.get("grado_id"),
+                        "seccion_id": student.get("seccion_id"),
+                        "grado_name": grado.get("name") if grado else None,
+                        "seccion_name": seccion.get("name") if seccion else None
+                    })
+    
+    return {
+        "user": {
+            "id": user["id"],
+            "name": user.get("name", ""),
+            "last_name": user.get("last_name", ""),
+            "email": user.get("email"),
+            "photo_url": user.get("photo_url"),
+            "phone": user.get("phone"),
+            "role": "parent"
+        },
+        "children": children,
+        "children_count": len(children),
+        "school_id": school_id
+    }
+
+@api_router.get("/parent/students")
+async def get_parent_students(current_user = Depends(get_current_user)):
+    """Get list of children linked to this parent."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if user.get("role") != "parent":
+        raise HTTPException(status_code=403, detail="Este endpoint es solo para padres/apoderados")
+    
+    school_id = user.get("school_id")
+    children = []
+    
+    # Find students linked to this parent
+    linked_students = await db.users.find({
+        "school_id": school_id,
+        "role": "student",
+        "is_active": {"$ne": False},
+        "$or": [
+            {"padre_id": user["id"]},
+            {"parent_id": user["id"]}
+        ]
+    }, {"_id": 0}).to_list(20)
+    
+    for student in linked_students:
+        grado = None
+        seccion = None
+        nivel = None
+        
+        if student.get("grado_id"):
+            grado = await db.grades.find_one({"id": student["grado_id"]}, {"_id": 0, "name": 1})
+        if student.get("seccion_id"):
+            seccion = await db.sections.find_one({"id": student["seccion_id"]}, {"_id": 0, "name": 1})
+        if student.get("nivel_id"):
+            nivel = await db.academic_levels.find_one({"id": student["nivel_id"]}, {"_id": 0, "name": 1})
+        
+        # Get pending tasks count
+        pending_tasks = 0
+        if student.get("seccion_id"):
+            assignments = await db.academic_assignments.find({
+                "school_id": school_id,
+                "seccion_id": student["seccion_id"],
+                "status": "activo"
+            }, {"_id": 0, "subject_id": 1}).to_list(50)
+            subject_ids = list(set([a["subject_id"] for a in assignments]))
+            
+            if subject_ids:
+                pending_tasks = await db.course_posts.count_documents({
+                    "school_id": school_id,
+                    "subject_id": {"$in": subject_ids},
+                    "$or": [{"post_type": "task"}, {"type": "task"}],
+                    "due_date": {"$gte": datetime.now(timezone.utc).isoformat()}
+                })
+        
+        children.append({
+            "id": student["id"],
+            "name": student.get("name", ""),
+            "last_name": student.get("last_name", ""),
+            "full_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+            "photo_url": student.get("photo_url"),
+            "email": student.get("email"),
+            "nivel_id": student.get("nivel_id"),
+            "grado_id": student.get("grado_id"),
+            "seccion_id": student.get("seccion_id"),
+            "nivel_name": nivel.get("name") if nivel else None,
+            "grado_name": grado.get("name") if grado else None,
+            "seccion_name": seccion.get("name") if seccion else None,
+            "pending_tasks": pending_tasks
+        })
+    
+    # Also check parent's student_ids/children_ids
+    extra_ids = (user.get("student_ids") or []) + (user.get("children_ids") or [])
+    existing_ids = [c["id"] for c in children]
+    
+    for sid in extra_ids:
+        if sid not in existing_ids:
+            student = await db.users.find_one({
+                "id": sid,
+                "role": "student",
+                "school_id": school_id,
+                "is_active": {"$ne": False}
+            }, {"_id": 0})
+            if student:
+                grado = None
+                seccion = None
+                nivel = None
+                if student.get("grado_id"):
+                    grado = await db.grades.find_one({"id": student["grado_id"]}, {"_id": 0, "name": 1})
+                if student.get("seccion_id"):
+                    seccion = await db.sections.find_one({"id": student["seccion_id"]}, {"_id": 0, "name": 1})
+                if student.get("nivel_id"):
+                    nivel = await db.academic_levels.find_one({"id": student["nivel_id"]}, {"_id": 0, "name": 1})
+                
+                children.append({
+                    "id": student["id"],
+                    "name": student.get("name", ""),
+                    "last_name": student.get("last_name", ""),
+                    "full_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+                    "photo_url": student.get("photo_url"),
+                    "email": student.get("email"),
+                    "nivel_id": student.get("nivel_id"),
+                    "grado_id": student.get("grado_id"),
+                    "seccion_id": student.get("seccion_id"),
+                    "nivel_name": nivel.get("name") if nivel else None,
+                    "grado_name": grado.get("name") if grado else None,
+                    "seccion_name": seccion.get("name") if seccion else None,
+                    "pending_tasks": 0
+                })
+    
+    return {"students": children}
+
+@api_router.get("/parent/dashboard")
+async def get_parent_dashboard(
+    student_id: str = Query(..., description="ID del estudiante"),
+    current_user = Depends(get_current_user)
+):
+    """Get dashboard data for a specific child. Same as student dashboard but for parents."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    # Get academic context
+    nivel = None
+    grado = None
+    seccion = None
+    
+    if student.get("nivel_id"):
+        nivel = await db.academic_levels.find_one({"id": student["nivel_id"], "school_id": school_id}, {"_id": 0})
+    if student.get("grado_id"):
+        grado = await db.grades.find_one({"id": student["grado_id"], "school_id": school_id}, {"_id": 0})
+    if student.get("seccion_id"):
+        seccion = await db.sections.find_one({"id": student["seccion_id"], "school_id": school_id}, {"_id": 0})
+    
+    # Get courses
+    courses = []
+    if student.get("seccion_id"):
+        assignments = await db.academic_assignments.find({
+            "school_id": school_id,
+            "seccion_id": student["seccion_id"],
+            "status": "activo"
+        }, {"_id": 0}).to_list(50)
+        
+        subject_ids = list(set([a["subject_id"] for a in assignments]))
+        if subject_ids:
+            courses = await db.subjects.find({
+                "id": {"$in": subject_ids},
+                "school_id": school_id
+            }, {"_id": 0}).to_list(50)
+    
+    # Get pending tasks
+    pending_tasks = []
+    if courses:
+        subject_ids = [c["id"] for c in courses]
+        tasks = await db.course_posts.find({
+            "school_id": school_id,
+            "subject_id": {"$in": subject_ids},
+            "$or": [{"post_type": "task"}, {"type": "task"}],
+            "due_date": {"$gte": datetime.now(timezone.utc).isoformat()}
+        }, {"_id": 0}).sort("due_date", 1).to_list(10)
+        
+        for task in tasks:
+            subject = next((c for c in courses if c["id"] == task.get("subject_id")), None)
+            # Check submission status
+            submission = await db.task_submissions.find_one({
+                "task_id": task["id"],
+                "student_id": student_id
+            }, {"_id": 0})
+            
+            pending_tasks.append({
+                "id": task["id"],
+                "title": task.get("title"),
+                "due_date": task.get("due_date"),
+                "subject_name": subject.get("name") if subject else "",
+                "subject_id": task.get("subject_id"),
+                "status": "submitted" if submission else "pending",
+                "grade": submission.get("grade") if submission else None
+            })
+    
+    # Get attendance summary
+    attendance_summary = {"present": 0, "absent": 0, "late": 0, "total": 0}
+    attendance_records = await db.attendances.find({
+        "school_id": school_id,
+        "user_id": student_id,
+        "type": "student"
+    }, {"_id": 0, "status": 1}).to_list(100)
+    
+    for record in attendance_records:
+        attendance_summary["total"] += 1
+        status = record.get("status", "").lower()
+        if status in ["presente", "present", "p"]:
+            attendance_summary["present"] += 1
+        elif status in ["ausente", "absent", "a"]:
+            attendance_summary["absent"] += 1
+        elif status in ["tardanza", "late", "t"]:
+            attendance_summary["late"] += 1
+    
+    # Get recent grades
+    recent_grades = []
+    if courses:
+        subject_ids = [c["id"] for c in courses]
+        grades = await db.grades_records.find({
+            "school_id": school_id,
+            "student_id": student_id,
+            "subject_id": {"$in": subject_ids}
+        }, {"_id": 0}).sort("created_at", -1).to_list(5)
+        
+        for grade in grades:
+            subject = next((c for c in courses if c["id"] == grade.get("subject_id")), None)
+            recent_grades.append({
+                "id": grade.get("id"),
+                "subject_name": subject.get("name") if subject else "",
+                "grade": grade.get("grade"),
+                "evaluation_name": grade.get("evaluation_name", ""),
+                "date": grade.get("created_at")
+            })
+    
+    # Get unread messages count
+    unread_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": student_id,
+                    "is_read": False,
+                    "is_deleted": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    unread_result = await db.internal_mail.aggregate(unread_pipeline).to_list(1)
+    unread_messages = unread_result[0]["count"] if unread_result else 0
+    
+    return {
+        "student": {
+            "id": student["id"],
+            "name": student.get("name", ""),
+            "last_name": student.get("last_name", ""),
+            "photo_url": student.get("photo_url"),
+            "email": student.get("email")
+        },
+        "academic": {
+            "nivel": nivel,
+            "grado": grado,
+            "seccion": seccion,
+            "nivel_id": student.get("nivel_id"),
+            "grado_id": student.get("grado_id"),
+            "seccion_id": student.get("seccion_id")
+        },
+        "stats": {
+            "courses_count": len(courses),
+            "pending_tasks": len(pending_tasks),
+            "unread_messages": unread_messages,
+            "attendance_rate": round((attendance_summary["present"] / attendance_summary["total"] * 100) if attendance_summary["total"] > 0 else 0, 1)
+        },
+        "pending_tasks": pending_tasks[:5],
+        "recent_grades": recent_grades,
+        "attendance_summary": attendance_summary
+    }
+
+@api_router.get("/parent/courses")
+async def get_parent_student_courses(
+    student_id: str = Query(..., description="ID del estudiante"),
+    current_user = Depends(get_current_user)
+):
+    """Get courses for a specific child."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    courses = []
+    if student.get("seccion_id"):
+        # Get assignments for this section
+        assignments = await db.academic_assignments.find({
+            "school_id": school_id,
+            "seccion_id": student["seccion_id"],
+            "status": "activo"
+        }, {"_id": 0}).to_list(50)
+        
+        # Group by subject
+        subject_map = {}
+        for assign in assignments:
+            sid = assign.get("subject_id")
+            if sid not in subject_map:
+                subject_map[sid] = assign
+        
+        # Get subject details
+        for sid, assign in subject_map.items():
+            subject = await db.subjects.find_one({"id": sid, "school_id": school_id}, {"_id": 0})
+            if not subject:
+                continue
+            
+            # Get teacher
+            teacher = None
+            if assign.get("teacher_id"):
+                teacher = await db.users.find_one({"id": assign["teacher_id"]}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1})
+            
+            # Get pending tasks count
+            pending = await db.course_posts.count_documents({
+                "school_id": school_id,
+                "subject_id": sid,
+                "$or": [{"post_type": "task"}, {"type": "task"}],
+                "due_date": {"$gte": datetime.now(timezone.utc).isoformat()}
+            })
+            
+            courses.append({
+                "id": subject["id"],
+                "name": subject.get("name"),
+                "description": subject.get("description"),
+                "color": subject.get("color", "#3B82F6"),
+                "icon": subject.get("icon"),
+                "teacher": {
+                    "id": teacher["id"],
+                    "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
+                    "photo_url": teacher.get("photo_url")
+                } if teacher else None,
+                "pending_tasks": pending
+            })
+    
+    return {"courses": courses}
+
+@api_router.get("/parent/tasks")
+async def get_parent_student_tasks(
+    student_id: str = Query(..., description="ID del estudiante"),
+    status: Optional[str] = Query(None, description="Filter by status: pending, submitted, graded"),
+    current_user = Depends(get_current_user)
+):
+    """Get tasks for a specific child."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    # Get student's subjects
+    subject_ids = []
+    if student.get("seccion_id"):
+        assignments = await db.academic_assignments.find({
+            "school_id": school_id,
+            "seccion_id": student["seccion_id"],
+            "status": "activo"
+        }, {"_id": 0, "subject_id": 1}).to_list(50)
+        subject_ids = list(set([a["subject_id"] for a in assignments]))
+    
+    if not subject_ids:
+        return {"tasks": [], "stats": {"total": 0, "pending": 0, "submitted": 0, "graded": 0}}
+    
+    # Get subjects map
+    subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0}).to_list(50)
+    subjects_map = {s["id"]: s for s in subjects}
+    
+    # Get all tasks
+    tasks_cursor = db.course_posts.find({
+        "school_id": school_id,
+        "subject_id": {"$in": subject_ids},
+        "$or": [{"post_type": "task"}, {"type": "task"}]
+    }, {"_id": 0}).sort("due_date", -1)
+    
+    tasks = await tasks_cursor.to_list(200)
+    
+    # Get submissions for this student
+    task_ids = [t["id"] for t in tasks]
+    submissions = await db.task_submissions.find({
+        "task_id": {"$in": task_ids},
+        "student_id": student_id
+    }, {"_id": 0}).to_list(200)
+    submissions_map = {s["task_id"]: s for s in submissions}
+    
+    # Build response
+    result = []
+    stats = {"total": 0, "pending": 0, "submitted": 0, "graded": 0}
+    
+    for task in tasks:
+        submission = submissions_map.get(task["id"])
+        subject = subjects_map.get(task.get("subject_id"), {})
+        
+        # Determine task status
+        task_status = "pending"
+        if submission:
+            if submission.get("grade") is not None:
+                task_status = "graded"
+            else:
+                task_status = "submitted"
+        
+        stats["total"] += 1
+        stats[task_status] += 1
+        
+        # Filter by status if provided
+        if status and task_status != status:
+            continue
+        
+        result.append({
+            "id": task["id"],
+            "title": task.get("title"),
+            "description": task.get("content", "")[:200],
+            "due_date": task.get("due_date"),
+            "created_at": task.get("created_at"),
+            "subject_id": task.get("subject_id"),
+            "subject_name": subject.get("name", ""),
+            "subject_color": subject.get("color", "#3B82F6"),
+            "status": task_status,
+            "submission": {
+                "id": submission.get("id"),
+                "submitted_at": submission.get("submitted_at"),
+                "grade": submission.get("grade"),
+                "feedback": submission.get("feedback")
+            } if submission else None
+        })
+    
+    return {"tasks": result, "stats": stats}
+
+@api_router.get("/parent/grades")
+async def get_parent_student_grades(
+    student_id: str = Query(..., description="ID del estudiante"),
+    subject_id: Optional[str] = Query(None, description="Filter by subject"),
+    current_user = Depends(get_current_user)
+):
+    """Get grades for a specific child."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    # Get student's subjects
+    subject_ids = []
+    if student.get("seccion_id"):
+        assignments = await db.academic_assignments.find({
+            "school_id": school_id,
+            "seccion_id": student["seccion_id"],
+            "status": "activo"
+        }, {"_id": 0, "subject_id": 1}).to_list(50)
+        subject_ids = list(set([a["subject_id"] for a in assignments]))
+    
+    if subject_id and subject_id in subject_ids:
+        subject_ids = [subject_id]
+    
+    if not subject_ids:
+        return {"grades": [], "subjects": [], "average": None}
+    
+    # Get subjects
+    subjects = await db.subjects.find({"id": {"$in": subject_ids}}, {"_id": 0}).to_list(50)
+    subjects_map = {s["id"]: s for s in subjects}
+    
+    # Get grades
+    grades_query = {
+        "school_id": school_id,
+        "student_id": student_id
+    }
+    if subject_ids:
+        grades_query["subject_id"] = {"$in": subject_ids}
+    
+    grades = await db.grades_records.find(grades_query, {"_id": 0}).sort("created_at", -1).to_list(200)
+    
+    # Calculate averages by subject
+    subject_grades = {}
+    for grade in grades:
+        sid = grade.get("subject_id")
+        if sid not in subject_grades:
+            subject_grades[sid] = []
+        if grade.get("grade") is not None:
+            try:
+                subject_grades[sid].append(float(grade["grade"]))
+            except:
+                pass
+    
+    subjects_with_avg = []
+    for s in subjects:
+        grades_list = subject_grades.get(s["id"], [])
+        avg = round(sum(grades_list) / len(grades_list), 2) if grades_list else None
+        subjects_with_avg.append({
+            "id": s["id"],
+            "name": s.get("name"),
+            "color": s.get("color", "#3B82F6"),
+            "average": avg,
+            "grades_count": len(grades_list)
+        })
+    
+    # Overall average
+    all_grades = [g for grades_list in subject_grades.values() for g in grades_list]
+    overall_avg = round(sum(all_grades) / len(all_grades), 2) if all_grades else None
+    
+    # Build grades response
+    grades_response = []
+    for grade in grades:
+        subject = subjects_map.get(grade.get("subject_id"), {})
+        grades_response.append({
+            "id": grade.get("id"),
+            "subject_id": grade.get("subject_id"),
+            "subject_name": subject.get("name", ""),
+            "subject_color": subject.get("color", "#3B82F6"),
+            "grade": grade.get("grade"),
+            "evaluation_name": grade.get("evaluation_name", ""),
+            "evaluation_type": grade.get("evaluation_type", ""),
+            "feedback": grade.get("feedback"),
+            "date": grade.get("created_at")
+        })
+    
+    return {
+        "grades": grades_response,
+        "subjects": subjects_with_avg,
+        "average": overall_avg
+    }
+
+@api_router.get("/parent/attendance")
+async def get_parent_student_attendance(
+    student_id: str = Query(..., description="ID del estudiante"),
+    month: Optional[str] = Query(None, description="Filter by month (YYYY-MM)"),
+    current_user = Depends(get_current_user)
+):
+    """Get attendance for a specific child."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    # Build query
+    query = {
+        "school_id": school_id,
+        "user_id": student_id,
+        "type": "student"
+    }
+    
+    if month:
+        query["date"] = {"$regex": f"^{month}"}
+    
+    records = await db.attendances.find(query, {"_id": 0}).sort("date", -1).to_list(100)
+    
+    # Calculate stats
+    stats = {"present": 0, "absent": 0, "late": 0, "justified": 0, "total": 0}
+    
+    for record in records:
+        stats["total"] += 1
+        status = record.get("status", "").lower()
+        if status in ["presente", "present", "p"]:
+            stats["present"] += 1
+        elif status in ["ausente", "absent", "a"]:
+            stats["absent"] += 1
+        elif status in ["tardanza", "late", "t"]:
+            stats["late"] += 1
+        elif status in ["justificado", "justified", "j"]:
+            stats["justified"] += 1
+    
+    attendance_rate = round((stats["present"] / stats["total"] * 100) if stats["total"] > 0 else 0, 1)
+    
+    return {
+        "records": records,
+        "stats": stats,
+        "attendance_rate": attendance_rate
+    }
+
+@api_router.get("/parent/schedule")
+async def get_parent_student_schedule(
+    student_id: str = Query(..., description="ID del estudiante"),
+    current_user = Depends(get_current_user)
+):
+    """Get class schedule for a specific child."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    if not student.get("seccion_id"):
+        return {"schedule": [], "settings": None}
+    
+    # Get schedule settings
+    settings = await db.schedule_settings.find_one({"school_id": school_id}, {"_id": 0})
+    
+    # Get schedule entries for this section
+    schedule = await db.schedules.find({
+        "school_id": school_id,
+        "seccion_id": student["seccion_id"]
+    }, {"_id": 0}).to_list(100)
+    
+    # Enrich with subject and teacher info
+    for entry in schedule:
+        if entry.get("subject_id"):
+            subject = await db.subjects.find_one({"id": entry["subject_id"]}, {"_id": 0, "name": 1, "color": 1})
+            if subject:
+                entry["subject_name"] = subject.get("name")
+                entry["subject_color"] = subject.get("color", "#3B82F6")
+        
+        if entry.get("teacher_id"):
+            teacher = await db.users.find_one({"id": entry["teacher_id"]}, {"_id": 0, "name": 1, "last_name": 1})
+            if teacher:
+                entry["teacher_name"] = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+    
+    return {"schedule": schedule, "settings": settings}
+
+@api_router.get("/parent/exam-schedule")
+async def get_parent_student_exam_schedule(
+    student_id: str = Query(..., description="ID del estudiante"),
+    current_user = Depends(get_current_user)
+):
+    """Get exam schedule for a specific child."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    # Get exams for student's section/grade
+    query = {
+        "school_id": school_id,
+        "$or": []
+    }
+    
+    if student.get("seccion_id"):
+        query["$or"].append({"seccion_id": student["seccion_id"]})
+    if student.get("grado_id"):
+        query["$or"].append({"grado_id": student["grado_id"]})
+    
+    if not query["$or"]:
+        return {"exams": []}
+    
+    exams = await db.exam_schedules.find(query, {"_id": 0}).sort("date", 1).to_list(50)
+    
+    # Enrich with subject info
+    for exam in exams:
+        if exam.get("subject_id"):
+            subject = await db.subjects.find_one({"id": exam["subject_id"]}, {"_id": 0, "name": 1, "color": 1})
+            if subject:
+                exam["subject_name"] = subject.get("name")
+                exam["subject_color"] = subject.get("color", "#3B82F6")
+    
+    # Separate into upcoming and past
+    now = datetime.now(timezone.utc).isoformat()[:10]
+    upcoming = [e for e in exams if (e.get("date") or "") >= now]
+    past = [e for e in exams if (e.get("date") or "") < now]
+    
+    return {
+        "exams": exams,
+        "upcoming": upcoming,
+        "past": past
+    }
+
+@api_router.get("/parent/messages/inbox")
+async def get_parent_student_inbox(
+    student_id: str = Query(..., description="ID del estudiante"),
+    current_user = Depends(get_current_user)
+):
+    """Get inbox messages for parent viewing child's messages."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    # Get messages where student is recipient
+    pipeline = [
+        {"$match": {
+            "school_id": school_id,
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": student_id,
+                    "is_deleted": {"$ne": True},
+                    "is_archived": {"$ne": True}
+                }
+            }
+        }},
+        {"$sort": {"created_at": -1}},
+        {"$limit": 50}
+    ]
+    
+    messages = await db.internal_mail.aggregate(pipeline).to_list(50)
+    
+    # Enrich with sender info
+    result = []
+    for msg in messages:
+        sender = await db.users.find_one({"id": msg.get("sender_id")}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1})
+        
+        # Find recipient status for this student
+        recipient_status = next((r for r in msg.get("recipients", []) if r.get("user_id") == student_id), {})
+        
+        result.append({
+            "id": msg.get("id"),
+            "subject": msg.get("subject"),
+            "content": msg.get("content", "")[:100],
+            "created_at": msg.get("created_at"),
+            "is_read": recipient_status.get("is_read", False),
+            "sender": {
+                "id": sender["id"],
+                "name": f"{sender.get('name', '')} {sender.get('last_name', '')}".strip(),
+                "photo_url": sender.get("photo_url"),
+                "role": sender.get("role")
+            } if sender else None
+        })
+    
+    return {"messages": result}
+
+@api_router.get("/parent/messages/stats")
+async def get_parent_student_message_stats(
+    student_id: str = Query(..., description="ID del estudiante"),
+    current_user = Depends(get_current_user)
+):
+    """Get message stats for parent viewing child's messages."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    # Count unread messages
+    unread_pipeline = [
+        {"$match": {
+            "school_id": school_id,
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": student_id,
+                    "is_read": False,
+                    "is_deleted": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    unread_result = await db.internal_mail.aggregate(unread_pipeline).to_list(1)
+    unread_count = unread_result[0]["count"] if unread_result else 0
+    
+    # Count total inbox
+    inbox_count = await db.internal_mail.count_documents({
+        "school_id": school_id,
+        "recipients": {
+            "$elemMatch": {
+                "user_id": student_id,
+                "is_deleted": {"$ne": True},
+                "is_archived": {"$ne": True}
+            }
+        }
+    })
+    
+    return {
+        "unread": unread_count,
+        "inbox": inbox_count
+    }
+
+
 
 
 # CORS middleware - MUST be added before routers for proper handling
