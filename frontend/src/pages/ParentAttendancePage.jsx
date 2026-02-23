@@ -127,7 +127,7 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex">
       <ParentSidebar
         active={activeSection}
         onNavigate={setActiveSection}
@@ -142,7 +142,15 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
         onSelectChild={setSelectedChild}
       />
 
-      <div className="flex-1 flex flex-col lg:ml-16">
+      {/* Mobile overlay */}
+      {sidebarExpanded && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+          onClick={() => setSidebarExpanded(false)}
+        />
+      )}
+
+      <div className="flex-1 flex flex-col min-w-0">
         <StudentHeader
           user={user}
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
