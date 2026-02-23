@@ -102,7 +102,7 @@ export default function ParentGradesPage({ user, token, onLogout }) {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex">
       <ParentSidebar
         active={activeSection}
         onNavigate={setActiveSection}
