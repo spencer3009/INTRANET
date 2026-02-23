@@ -67,9 +67,9 @@ export default function StudentTasksPage({ user, token, onLogout }) {
 
   // React Query for settings
   const { data: settings } = useQuery({
-    queryKey: ['settings'],
-    queryFn: () => fetchSettings(token),
-    enabled: !!token,
+    queryKey: ['settings', subdomain],
+    queryFn: () => fetchSettings(token, subdomain),
+    enabled: !!token && !!subdomain,
     staleTime: 300000,    // 5 minutes for settings
     cacheTime: 600000,    // 10 minutes
     refetchOnWindowFocus: false,
