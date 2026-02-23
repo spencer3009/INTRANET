@@ -210,7 +210,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
         axios.get(`${API}/api/student/profile`, { headers }),
         axios.get(`${API}/api/student/dashboard`, { headers }),
         axios.get(`${API}/api/student/courses`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null })),
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
         axios.get(`${API}/api/dashboard/banners/active`, { headers }).catch(() => ({ data: [] })),
         axios.get(`${API}/api/calendar/events?start_date=${startDate}&end_date=${endDate}`, { headers }).catch(() => ({ data: [] }))
       ]);

@@ -38,7 +38,7 @@ export default function StudentCoursesPage({ user, token, onLogout }) {
     try {
       const [coursesRes, settingsRes] = await Promise.all([
         axios.get(`${API}/api/student/courses`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
       ]);
       setCourses(coursesRes.data.courses || []);
       if (settingsRes.data) {
