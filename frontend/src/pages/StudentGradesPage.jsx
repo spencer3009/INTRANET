@@ -39,7 +39,7 @@ export default function StudentGradesPage({ user, token, onLogout }) {
       // Get student's courses and settings
       const [coursesRes, settingsRes] = await Promise.all([
         axios.get(`${API}/api/student/courses`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
       ]);
       
       const studentCourses = coursesRes.data.courses || [];

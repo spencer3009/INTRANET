@@ -47,7 +47,7 @@ export default function StudentAttendancePage({ user, token, onLogout }) {
 
   const loadSettings = async () => {
     try {
-      const res = await axios.get(`${API}/api/settings`, { headers });
+      const res = await axios.get(`${API}/api/settings/public/${subdomain}`, { headers });
       if (res.data) {
         setSettings(res.data);
       }

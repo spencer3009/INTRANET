@@ -55,7 +55,7 @@ export default function StudentProfilePage({ user, token, onLogout }) {
     try {
       const [profileRes, settingsRes] = await Promise.all([
         axios.get(`${API}/api/student/profile`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
       ]);
       setProfile(profileRes.data);
       if (settingsRes.data) {
