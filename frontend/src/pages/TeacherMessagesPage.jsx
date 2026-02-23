@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -13,11 +13,12 @@ import TeacherSidebar from "../components/TeacherSidebar";
 import StudentHeader from "../components/StudentHeader";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
-  ChevronLeft, Paperclip, X, Clock, Loader2, Circle,
+  ChevronLeft, Paperclip, X, Loader2, Circle,
   Edit3, Reply, MailOpen, AlertCircle, AlertTriangle,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
-  Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore
+  Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore,
+  MessageSquare, Star, Sparkles
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -44,7 +45,7 @@ function EditorToolbar({ editor }) {
       title={title}
       className={`p-2 rounded-lg transition-all ${
         isActive 
-          ? "bg-emerald-100 text-emerald-700" 
+          ? "bg-rose-100 text-rose-700" 
           : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
       }`}
     >
@@ -271,18 +272,21 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <div className="bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-500 px-6 py-5 flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <Edit3 className="w-5 h-5 text-white" />
+            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+              <Edit3 className="w-6 h-6 text-white" />
             </div>
-            <h2 className="text-lg font-semibold text-white">
-              {replyTo ? "Responder mensaje" : "Nuevo mensaje"}
-            </h2>
+            <div>
+              <h2 className="text-lg font-bold text-white">
+                {replyTo ? "Responder mensaje" : "Nuevo mensaje"}
+              </h2>
+              <p className="text-white/80 text-sm">Redacta tu comunicación</p>
+            </div>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
             <X className="w-5 h-5 text-white" />
           </button>
         </div>
@@ -290,8 +294,10 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
         {/* Form */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
-              <AlertCircle className="w-4 h-4" />
+            <div className="p-4 bg-red-50 border border-red-200 rounded-2xl text-red-600 text-sm flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <AlertCircle className="w-5 h-5" />
+              </div>
               {error}
             </div>
           )}
@@ -300,12 +306,12 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Para:</label>
             <div className="relative">
-              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[48px]">
+              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-2xl min-h-[52px]">
                 {recipients.map(r => (
-                  <span key={r.id} className="inline-flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm">
+                  <span key={r.id} className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-rose-100 to-pink-100 text-rose-700 rounded-full text-sm font-medium">
                     {r.name}
-                    <button onClick={() => removeRecipient(r.id)} className="hover:text-emerald-900">
-                      <X className="w-3 h-3" />
+                    <button onClick={() => removeRecipient(r.id)} className="hover:text-rose-900">
+                      <X className="w-3.5 h-3.5" />
                     </button>
                   </span>
                 ))}
@@ -320,10 +326,10 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
               </div>
               
               {showRecipientDropdown && (searchResults.length > 0 || searching) && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-xl z-10 max-h-48 overflow-y-auto">
                   {searching ? (
-                    <div className="p-3 text-center text-gray-500">
-                      <Loader2 className="w-4 h-4 animate-spin mx-auto" />
+                    <div className="p-4 text-center text-gray-500">
+                      <Loader2 className="w-5 h-5 animate-spin mx-auto" />
                     </div>
                   ) : (
                     searchResults.map(contact => {
@@ -337,9 +343,9 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
                           className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
                         >
                           {contact.photo_url ? (
-                            <img src={contact.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            <img src={contact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold">
                               {fullName?.charAt(0)}
                             </div>
                           )}
@@ -364,14 +370,14 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
               placeholder="Escribe el asunto..."
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all"
             />
           </div>
           
           {/* Body */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Mensaje:</label>
-            <div className="border border-gray-200 rounded-xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-emerald-500">
+            <div className="border border-gray-200 rounded-2xl overflow-hidden bg-white focus-within:ring-2 focus-within:ring-rose-500/20 focus-within:border-rose-500 transition-all">
               <EditorToolbar editor={editor} />
               <EditorContent editor={editor} className="min-h-[200px] max-h-[300px] overflow-y-auto" />
             </div>
@@ -380,18 +386,18 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
         
         {/* Footer */}
         <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between flex-shrink-0">
-          <button className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+          <button className="flex items-center gap-2 px-4 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors">
             <Paperclip className="w-4 h-4" />
             Adjuntar
           </button>
           <div className="flex gap-3">
-            <button onClick={onClose} className="px-4 py-2 text-gray-600 hover:bg-gray-200 rounded-lg transition-colors">
+            <button onClick={onClose} className="px-5 py-2.5 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors font-medium">
               Cancelar
             </button>
             <button
               onClick={handleSend}
               disabled={sending}
-              className="px-6 py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
+              className="px-6 py-2.5 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-rose-500/30"
             >
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               Enviar
@@ -413,36 +419,30 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText,
   const styleClasses = {
     danger: "bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700",
     warning: "bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600",
-    primary: "bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700",
+    primary: "bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600",
   };
   
   const iconBgClasses = {
     danger: "bg-red-100 text-red-600",
     warning: "bg-amber-100 text-amber-600",
-    primary: "bg-emerald-100 text-emerald-600",
+    primary: "bg-rose-100 text-rose-600",
   };
   
   return createPortal(
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-        {/* Content */}
+      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className="p-6">
           <div className="flex items-start gap-4">
-            {/* Icon */}
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBgClasses[confirmStyle] || iconBgClasses.danger}`}>
-              {Icon && <Icon className="w-6 h-6" />}
+            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${iconBgClasses[confirmStyle] || iconBgClasses.danger}`}>
+              {Icon && <Icon className="w-7 h-7" />}
             </div>
-            
-            {/* Text */}
             <div className="flex-1">
-              <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+              <h3 className="text-xl font-bold text-gray-900">{title}</h3>
               <p className="mt-2 text-sm text-gray-600 leading-relaxed">{message}</p>
             </div>
           </div>
         </div>
-        
-        {/* Footer */}
         <div className="px-6 py-4 bg-gray-50 flex items-center justify-end gap-3">
           <button
             onClick={onClose}
@@ -454,7 +454,7 @@ function ConfirmModal({ isOpen, onClose, onConfirm, title, message, confirmText,
           <button
             onClick={onConfirm}
             disabled={loading}
-            className={`px-5 py-2.5 text-white font-semibold rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 ${styleClasses[confirmStyle] || styleClasses.danger}`}
+            className={`px-5 py-2.5 text-white font-semibold rounded-xl flex items-center gap-2 transition-all disabled:opacity-50 shadow-lg ${styleClasses[confirmStyle] || styleClasses.danger}`}
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {confirmText}
@@ -482,26 +482,22 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [mobileView, setMobileView] = useState("list");
   const [settings, setSettings] = useState(null);
-  
-  // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, messageId: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
   
-  // Get display values from settings
   const schoolName = settings?.system_name || user?.school_name || "Portal Docente";
   const logoUrl = settings?.logo_url;
   const currentSubdomain = subdomain || user?.subdomain;
   
   const folders = [
-    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread },
-    { id: "sent", label: "Enviados", icon: Send, count: stats.sent },
-    { id: "archived", label: "Archivados", icon: Archive, count: stats.archived },
-    { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash },
+    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread, gradient: "from-blue-500 to-cyan-500" },
+    { id: "sent", label: "Enviados", icon: Send, count: stats.sent, gradient: "from-violet-500 to-purple-500" },
+    { id: "archived", label: "Archivados", icon: Archive, count: stats.archived, gradient: "from-amber-500 to-orange-500" },
+    { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash, gradient: "from-slate-500 to-gray-600" },
   ];
   
-  // Load school settings
   const loadSettings = async () => {
     try {
       const settingsSubdomain = subdomain || user?.subdomain || 'elroble';
@@ -581,17 +577,14 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
     }
   };
   
-  // Show confirm modal for permanent deletion
   const showDeletePermanentlyConfirm = (messageId) => {
     setConfirmModal({ isOpen: true, type: "deletePermanently", messageId });
   };
   
-  // Show confirm modal for empty trash
   const showEmptyTrashConfirm = () => {
     setConfirmModal({ isOpen: true, type: "emptyTrash", messageId: null });
   };
   
-  // Handle confirm action
   const handleConfirmAction = async () => {
     setConfirmLoading(true);
     try {
@@ -640,7 +633,6 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
     }
   };
   
-  // Helper to strip HTML tags from preview text
   const stripHtml = (html) => {
     if (!html) return "";
     return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
@@ -663,9 +655,11 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
       msg.body_preview?.toLowerCase().includes(query)
     );
   });
+
+  const totalMessages = stats.inbox + stats.sent + stats.archived;
   
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="teacher-messages-page">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-rose-50/30 flex" data-testid="teacher-messages-page">
       <TeacherSidebar
         active="mensajes"
         onNavigate={() => {}}
@@ -677,7 +671,6 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
         user={user}
       />
       
-      {/* Mobile overlay */}
       {sidebarExpanded && (
         <div 
           className="fixed inset-0 bg-black/50 z-30 lg:hidden"
@@ -698,341 +691,389 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
           profilePath="/teacher/profile"
         />
         
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col lg:flex-row">
-          {/* Folders Sidebar */}
-          <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 flex-shrink-0">
-            <div className="p-4">
-              <button
-                onClick={() => { setReplyTo(null); setShowCompose(true); }}
-                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all"
-                data-testid="compose-btn"
-              >
-                <Plus className="w-5 h-5" />
-                Redactar
-              </button>
+        <main className="flex-1 p-6 lg:p-8 overflow-hidden flex flex-col">
+          {/* Hero Section */}
+          <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-r from-rose-500 via-pink-500 to-fuchsia-500 p-6 lg:p-8 text-white shadow-2xl flex-shrink-0">
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
             </div>
             
-            <nav className="flex-1 px-3 py-2 space-y-1">
-              {folders.map(folder => (
-                <button
-                  key={folder.id}
-                  onClick={() => setActiveFolder(folder.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    activeFolder === folder.id
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
-                  data-testid={`folder-${folder.id}`}
-                >
-                  <folder.icon className="w-5 h-5" />
-                  <span className="flex-1 text-left font-medium">{folder.label}</span>
-                  {folder.badge > 0 && (
-                    <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
-                      {folder.badge}
-                    </span>
-                  )}
-                  {folder.count > 0 && !folder.badge && (
-                    <span className="text-sm text-gray-400">{folder.count}</span>
-                  )}
-                </button>
-              ))}
-              
-              {/* Empty Trash Button */}
-              {activeFolder === "trash" && stats.trash > 0 && (
-                <button
-                  onClick={showEmptyTrashConfirm}
-                  className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl transition-all border border-red-200"
-                  data-testid="empty-trash-btn"
-                >
-                  <AlertTriangle className="w-4 h-4" />
-                  <span className="font-medium text-sm">Vaciar papelera</span>
-                </button>
-              )}
-            </nav>
-          </aside>
-          
-          {/* Message List */}
-          <div className={`flex-1 flex flex-col lg:max-w-md border-r border-gray-200 bg-white ${mobileView === "message" ? "hidden lg:flex" : "flex"}`}>
-            {/* Search Header */}
-            <div className="p-4 border-b border-gray-100">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Buscar mensajes..."
-                  className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all"
-                  data-testid="search-messages"
-                />
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                  <MessageSquare className="w-8 h-8" />
+                </div>
+                <div>
+                  <h1 className="text-2xl lg:text-3xl font-bold">Centro de Mensajes</h1>
+                  <p className="text-white/80">Comunicación institucional</p>
+                </div>
               </div>
               
-              {/* Mobile folder selector */}
-              <div className="lg:hidden mt-3 flex gap-2 overflow-x-auto pb-2">
+              <div className="flex flex-wrap gap-3">
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-3 text-center border border-white/20">
+                  <p className="text-2xl font-bold">{totalMessages}</p>
+                  <p className="text-white/80 text-xs">Total</p>
+                </div>
+                <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-3 text-center border border-white/20">
+                  <p className="text-2xl font-bold">{stats.unread}</p>
+                  <p className="text-white/80 text-xs">Sin leer</p>
+                </div>
+                <button
+                  onClick={() => { setReplyTo(null); setShowCompose(true); }}
+                  className="bg-white text-rose-600 hover:bg-white/90 rounded-2xl px-6 py-3 font-semibold flex items-center gap-2 shadow-lg transition-all hover:scale-105"
+                  data-testid="compose-btn-hero"
+                >
+                  <Plus className="w-5 h-5" />
+                  Redactar
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {/* Main Content Area */}
+          <div className="flex-1 flex gap-6 overflow-hidden min-h-0">
+            {/* Folders Sidebar */}
+            <aside className="hidden lg:flex flex-col w-72 bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden flex-shrink-0">
+              <div className="p-5 border-b border-slate-100">
+                <h3 className="font-bold text-slate-800 text-lg">Carpetas</h3>
+              </div>
+              
+              <nav className="flex-1 p-3 space-y-2 overflow-y-auto">
                 {folders.map(folder => (
                   <button
                     key={folder.id}
                     onClick={() => setActiveFolder(folder.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg whitespace-nowrap text-sm transition-all ${
+                    className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl transition-all duration-300 ${
                       activeFolder === folder.id
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-gray-100 text-gray-600"
+                        ? `bg-gradient-to-r ${folder.gradient} text-white shadow-lg`
+                        : "text-slate-600 hover:bg-slate-100"
                     }`}
+                    data-testid={`folder-${folder.id}`}
                   >
-                    <folder.icon className="w-4 h-4" />
-                    {folder.label}
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      activeFolder === folder.id ? "bg-white/20" : "bg-slate-100"
+                    }`}>
+                      <folder.icon className={`w-5 h-5 ${activeFolder === folder.id ? "text-white" : "text-slate-500"}`} />
+                    </div>
+                    <span className="flex-1 text-left font-medium">{folder.label}</span>
                     {folder.badge > 0 && (
-                      <span className="px-1.5 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                      <span className="px-2.5 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">
                         {folder.badge}
+                      </span>
+                    )}
+                    {folder.count > 0 && !folder.badge && (
+                      <span className={`text-sm ${activeFolder === folder.id ? "text-white/80" : "text-slate-400"}`}>
+                        {folder.count}
                       </span>
                     )}
                   </button>
                 ))}
-              </div>
-            </div>
+                
+                {activeFolder === "trash" && stats.trash > 0 && (
+                  <button
+                    onClick={showEmptyTrashConfirm}
+                    className="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-2xl transition-all border border-red-200"
+                    data-testid="empty-trash-btn"
+                  >
+                    <AlertTriangle className="w-5 h-5" />
+                    <span className="font-semibold">Vaciar papelera</span>
+                  </button>
+                )}
+              </nav>
+            </aside>
             
             {/* Message List */}
-            <div className="flex-1 overflow-y-auto">
-              {loading ? (
-                <div className="flex items-center justify-center h-full">
-                  <Loader2 className="w-8 h-8 text-emerald-600 animate-spin" />
+            <div className={`flex-1 flex flex-col bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden min-w-0 lg:max-w-md ${mobileView === "message" ? "hidden lg:flex" : "flex"}`}>
+              {/* Search Header */}
+              <div className="p-5 border-b border-slate-100 flex-shrink-0">
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Buscar mensajes..."
+                    className="w-full pl-12 pr-4 py-3 bg-slate-50 border-0 rounded-2xl focus:outline-none focus:ring-2 focus:ring-rose-500/20 focus:bg-white transition-all"
+                    data-testid="search-messages"
+                  />
                 </div>
-              ) : filteredMessages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8">
-                  <Mail className="w-16 h-16 mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No hay mensajes</p>
-                  <p className="text-sm">Esta carpeta está vacía</p>
-                </div>
-              ) : (
-                filteredMessages.map(msg => (
-                  <button
-                    key={msg.id}
-                    onClick={() => handleSelectMessage(msg)}
-                    className={`w-full p-4 border-b border-gray-100 text-left transition-all hover:bg-gray-50 ${
-                      selectedMessage?.id === msg.id ? "bg-emerald-50" : ""
-                    } ${!msg.is_read ? "bg-blue-50/50" : ""}`}
-                    data-testid={`message-${msg.id}`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {activeFolder === "sent" ? (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                          {msg.recipients?.[0]?.name?.charAt(0) || "?"}
-                        </div>
-                      ) : msg.sender?.photo_url ? (
-                        <img src={msg.sender.photo_url} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-                          {msg.sender?.name?.charAt(0) || "?"}
-                        </div>
+                
+                {/* Mobile folder selector */}
+                <div className="lg:hidden mt-4 flex gap-2 overflow-x-auto pb-2">
+                  {folders.map(folder => (
+                    <button
+                      key={folder.id}
+                      onClick={() => setActiveFolder(folder.id)}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap text-sm transition-all ${
+                        activeFolder === folder.id
+                          ? `bg-gradient-to-r ${folder.gradient} text-white shadow-lg`
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      <folder.icon className="w-4 h-4" />
+                      {folder.label}
+                      {folder.badge > 0 && (
+                        <span className="px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">
+                          {folder.badge}
+                        </span>
                       )}
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
-                            {activeFolder === "sent" 
-                              ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
-                              : msg.sender?.name || "Remitente desconocido"
-                            }
-                          </p>
-                          <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(msg.created_at)}</span>
-                        </div>
-                        <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-gray-800" : "text-gray-600"}`}>
-                          {msg.subject}
-                        </p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{stripHtml(msg.body_preview)}</p>
-                      </div>
-                      
-                      <div className="flex flex-col items-center gap-1">
-                        {!msg.is_read && <Circle className="w-2 h-2 fill-blue-500 text-blue-500" />}
-                        {msg.has_attachments && <Paperclip className="w-3 h-3 text-gray-400" />}
-                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              {/* Message List */}
+              <div className="flex-1 overflow-y-auto">
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center h-full py-20">
+                    <div className="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center mb-4">
+                      <Loader2 className="w-7 h-7 text-rose-500 animate-spin" />
                     </div>
-                  </button>
-                ))
-              )}
+                    <p className="text-slate-500">Cargando mensajes...</p>
+                  </div>
+                ) : filteredMessages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-slate-400 p-8">
+                    <div className="w-20 h-20 bg-gradient-to-br from-rose-100 to-pink-100 rounded-3xl flex items-center justify-center mb-4">
+                      <Mail className="w-10 h-10 text-rose-400" />
+                    </div>
+                    <p className="text-lg font-semibold text-slate-600">No hay mensajes</p>
+                    <p className="text-sm text-slate-400">Esta carpeta está vacía</p>
+                  </div>
+                ) : (
+                  filteredMessages.map((msg, index) => (
+                    <button
+                      key={msg.id}
+                      onClick={() => handleSelectMessage(msg)}
+                      className={`w-full p-4 border-b border-slate-100 text-left transition-all hover:bg-slate-50 ${
+                        selectedMessage?.id === msg.id ? "bg-rose-50 border-l-4 border-l-rose-500" : ""
+                      } ${!msg.is_read ? "bg-blue-50/50" : ""}`}
+                      style={{ animationDelay: `${index * 30}ms` }}
+                      data-testid={`message-${msg.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {activeFolder === "sent" ? (
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-lg shadow-rose-500/20">
+                            {msg.recipients?.[0]?.name?.charAt(0) || "?"}
+                          </div>
+                        ) : msg.sender?.photo_url ? (
+                          <img src={msg.sender.photo_url} alt="" className="w-12 h-12 rounded-2xl object-cover flex-shrink-0 shadow-lg" />
+                        ) : (
+                          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0 shadow-lg shadow-rose-500/20">
+                            {msg.sender?.name?.charAt(0) || "?"}
+                          </div>
+                        )}
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2 mb-1">
+                            <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
+                              {activeFolder === "sent" 
+                                ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
+                                : msg.sender?.name || "Remitente desconocido"
+                              }
+                            </p>
+                            <span className="text-xs text-slate-400 whitespace-nowrap font-medium">{formatDate(msg.created_at)}</span>
+                          </div>
+                          <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-slate-800" : "text-slate-600"}`}>
+                            {msg.subject}
+                          </p>
+                          <p className="text-xs text-slate-400 truncate mt-1">{stripHtml(msg.body_preview)}</p>
+                        </div>
+                        
+                        <div className="flex flex-col items-center gap-1.5">
+                          {!msg.is_read && <Circle className="w-2.5 h-2.5 fill-blue-500 text-blue-500" />}
+                          {msg.has_attachments && <Paperclip className="w-3.5 h-3.5 text-slate-400" />}
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+              
+              {/* Mobile Compose Button */}
+              <div className="lg:hidden p-4 border-t bg-white flex-shrink-0">
+                <button
+                  onClick={() => { setReplyTo(null); setShowCompose(true); }}
+                  className="w-full py-3.5 px-4 bg-gradient-to-r from-rose-500 to-pink-500 text-white font-semibold rounded-2xl flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <Plus className="w-5 h-5" />
+                  Redactar
+                </button>
+              </div>
             </div>
             
-            {/* Mobile Compose Button */}
-            <div className="lg:hidden p-4 border-t bg-white">
-              <button
-                onClick={() => { setReplyTo(null); setShowCompose(true); }}
-                className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2"
-              >
-                <Plus className="w-5 h-5" />
-                Redactar
-              </button>
-            </div>
-          </div>
-          
-          {/* Message Detail */}
-          <div className={`flex-1 flex flex-col bg-white ${mobileView === "list" ? "hidden lg:flex" : "flex"}`}>
-            {selectedMessage ? (
-              <>
-                {/* Message Header */}
-                <div className="p-6 border-b border-gray-100">
-                  <button
-                    onClick={() => { setSelectedMessage(null); setMobileView("list"); }}
-                    className="lg:hidden flex items-center gap-2 text-gray-600 mb-4"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                    Volver
-                  </button>
-                  
-                  <div className="flex items-start justify-between gap-4">
-                    <h2 className="text-xl font-bold text-gray-900">{selectedMessage.subject}</h2>
-                    <div className="flex items-center gap-2">
-                      {activeFolder === "trash" ? (
-                        <>
-                          <button
-                            onClick={() => handleRestore(selectedMessage.id)}
-                            className="p-2 hover:bg-green-50 text-green-600 rounded-lg transition-colors"
-                            title="Restaurar"
-                          >
-                            <ArchiveRestore className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
-                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                            title="Eliminar permanentemente"
-                          >
-                            <AlertTriangle className="w-5 h-5" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => handleArchive(selectedMessage.id)}
-                            className="p-2 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors"
-                            title="Archivar"
-                          >
-                            <Archive className="w-5 h-5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(selectedMessage.id)}
-                            className="p-2 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
-                            title="Eliminar"
-                          >
-                            <Trash2 className="w-5 h-5" />
-                          </button>
-                        </>
-                      )}
+            {/* Message Detail */}
+            <div className={`flex-1 flex flex-col bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden ${mobileView === "list" ? "hidden lg:flex" : "flex"}`}>
+              {selectedMessage ? (
+                <>
+                  {/* Message Header */}
+                  <div className="p-6 border-b border-slate-100 flex-shrink-0">
+                    <button
+                      onClick={() => { setSelectedMessage(null); setMobileView("list"); }}
+                      className="lg:hidden flex items-center gap-2 text-slate-600 mb-4 hover:text-slate-800"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                      <span className="font-medium">Volver</span>
+                    </button>
+                    
+                    <div className="flex items-start justify-between gap-4">
+                      <h2 className="text-xl font-bold text-slate-900">{selectedMessage.subject}</h2>
+                      <div className="flex items-center gap-2">
+                        {activeFolder === "trash" ? (
+                          <>
+                            <button
+                              onClick={() => handleRestore(selectedMessage.id)}
+                              className="p-2.5 hover:bg-emerald-50 text-emerald-600 rounded-xl transition-colors"
+                              title="Restaurar"
+                            >
+                              <ArchiveRestore className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
+                              className="p-2.5 hover:bg-red-50 text-red-600 rounded-xl transition-colors"
+                              title="Eliminar permanentemente"
+                            >
+                              <AlertTriangle className="w-5 h-5" />
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => handleArchive(selectedMessage.id)}
+                              className="p-2.5 hover:bg-amber-50 text-amber-600 rounded-xl transition-colors"
+                              title="Archivar"
+                            >
+                              <Archive className="w-5 h-5" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(selectedMessage.id)}
+                              className="p-2.5 hover:bg-red-50 text-red-600 rounded-xl transition-colors"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-5 h-5" />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  
-                  {/* Sender info */}
-                  <div className="flex items-center gap-4 mt-4">
-                    {selectedMessage.sender?.photo_url ? (
-                      <img src={selectedMessage.sender.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-lg font-bold">
-                        {selectedMessage.sender?.name?.charAt(0) || "?"}
+                    
+                    {/* Sender info */}
+                    <div className="flex items-center gap-4 mt-5">
+                      {selectedMessage.sender?.photo_url ? (
+                        <img src={selectedMessage.sender.photo_url} alt="" className="w-14 h-14 rounded-2xl object-cover shadow-lg" />
+                      ) : (
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-500 flex items-center justify-center text-white text-xl font-bold shadow-lg shadow-rose-500/20">
+                          {selectedMessage.sender?.name?.charAt(0) || "?"}
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-900 text-lg">{selectedMessage.sender?.name}</p>
+                        <p className="text-sm text-slate-500">{selectedMessage.sender?.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-slate-500">
+                          {new Date(selectedMessage.created_at).toLocaleDateString("es-PE", {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "long",
+                            hour: "2-digit",
+                            minute: "2-digit"
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {selectedMessage.recipients?.length > 0 && (
+                      <div className="mt-3 flex items-center gap-2 text-sm text-slate-500 bg-slate-50 px-4 py-2 rounded-xl">
+                        <span className="font-medium">Para:</span>
+                        <span>{selectedMessage.recipients.map(r => r.name).join(", ")}</span>
                       </div>
                     )}
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900">{selectedMessage.sender?.name}</p>
-                      <p className="text-sm text-gray-500">{selectedMessage.sender?.email}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">
-                        {new Date(selectedMessage.created_at).toLocaleDateString("es-PE", {
-                          weekday: "long",
-                          day: "numeric",
-                          month: "long",
-                          hour: "2-digit",
-                          minute: "2-digit"
-                        })}
-                      </p>
-                    </div>
                   </div>
                   
-                  {selectedMessage.recipients?.length > 0 && (
-                    <div className="mt-3 flex items-center gap-2 text-sm text-gray-500">
-                      <span>Para:</span>
-                      <span>{selectedMessage.recipients.map(r => r.name).join(", ")}</span>
-                    </div>
-                  )}
-                </div>
-                
-                {/* Message Body */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  <div 
-                    className="prose prose-sm max-w-none text-gray-700"
-                    dangerouslySetInnerHTML={{ __html: selectedMessage.body }}
-                  />
-                  
-                  {selectedMessage.attachments?.length > 0 && (
-                    <div className="mt-6 pt-6 border-t border-gray-100">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">
-                        Archivos adjuntos ({selectedMessage.attachments.length})
-                      </h4>
-                      <div className="space-y-2">
-                        {selectedMessage.attachments.map((att, idx) => (
-                          <a
-                            key={idx}
-                            href={att.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                          >
-                            <Paperclip className="w-5 h-5 text-gray-400" />
-                            <span className="text-sm text-gray-700">{att.name || "Archivo"}</span>
-                          </a>
-                        ))}
+                  {/* Message Body */}
+                  <div className="flex-1 overflow-y-auto p-6">
+                    <div 
+                      className="prose prose-sm max-w-none text-slate-700"
+                      dangerouslySetInnerHTML={{ __html: selectedMessage.body }}
+                    />
+                    
+                    {selectedMessage.attachments?.length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-slate-100">
+                        <h4 className="text-sm font-bold text-slate-700 mb-3 flex items-center gap-2">
+                          <Paperclip className="w-4 h-4" />
+                          Archivos adjuntos ({selectedMessage.attachments.length})
+                        </h4>
+                        <div className="space-y-2">
+                          {selectedMessage.attachments.map((att, idx) => (
+                            <a
+                              key={idx}
+                              href={att.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl hover:bg-slate-100 transition-colors"
+                            >
+                              <Paperclip className="w-5 h-5 text-slate-400" />
+                              <span className="text-sm text-slate-700 font-medium">{att.name || "Archivo"}</span>
+                            </a>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                  
+                  {/* Action Buttons */}
+                  <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center gap-3 flex-shrink-0">
+                    {activeFolder === "trash" ? (
+                      <>
+                        <button
+                          onClick={() => handleRestore(selectedMessage.id)}
+                          className="flex-1 py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg"
+                          data-testid="restore-btn"
+                        >
+                          <ArchiveRestore className="w-5 h-5" />
+                          Restaurar
+                        </button>
+                        <button
+                          onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
+                          className="py-3.5 px-6 bg-red-100 hover:bg-red-200 text-red-600 font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all"
+                          data-testid="delete-permanent-btn"
+                        >
+                          <AlertTriangle className="w-5 h-5" />
+                          Eliminar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleReply}
+                          className="flex-1 py-3.5 px-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-rose-500/30"
+                          data-testid="reply-btn"
+                        >
+                          <Reply className="w-5 h-5" />
+                          Responder
+                        </button>
+                        <button
+                          onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
+                          className="py-3.5 px-6 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all"
+                        >
+                          {selectedMessage.is_read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
+                          {selectedMessage.is_read ? "No leído" : "Leído"}
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
+                  <div className="w-24 h-24 bg-gradient-to-br from-rose-100 to-pink-100 rounded-3xl flex items-center justify-center mb-6 shadow-lg shadow-rose-500/10">
+                    <Sparkles className="w-12 h-12 text-rose-400" />
+                  </div>
+                  <p className="text-xl font-bold text-slate-600">Selecciona un mensaje</p>
+                  <p className="text-sm mt-2 text-slate-400">Haz clic en un mensaje para ver su contenido</p>
                 </div>
-                
-                {/* Action Buttons */}
-                <div className="p-4 border-t border-gray-100 bg-gray-50 flex items-center gap-3">
-                  {activeFolder === "trash" ? (
-                    <>
-                      <button
-                        onClick={() => handleRestore(selectedMessage.id)}
-                        className="flex-1 py-3 px-4 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
-                        data-testid="restore-btn"
-                      >
-                        <ArchiveRestore className="w-5 h-5" />
-                        Restaurar
-                      </button>
-                      <button
-                        onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
-                        className="py-3 px-4 bg-red-100 hover:bg-red-200 text-red-600 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
-                        data-testid="delete-permanent-btn"
-                      >
-                        <AlertTriangle className="w-5 h-5" />
-                        Eliminar
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={handleReply}
-                        className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold rounded-xl flex items-center justify-center gap-2 transition-all"
-                        data-testid="reply-btn"
-                      >
-                        <Reply className="w-5 h-5" />
-                        Responder
-                      </button>
-                      <button
-                        onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
-                        className="py-3 px-4 bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium rounded-xl flex items-center justify-center gap-2 transition-all"
-                      >
-                        {selectedMessage.is_read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
-                        {selectedMessage.is_read ? "No leído" : "Leído"}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex flex-col items-center justify-center text-gray-400 p-8">
-                <Mail className="w-20 h-20 mb-4 opacity-30" />
-                <p className="text-xl font-medium">Selecciona un mensaje</p>
-                <p className="text-sm mt-1">Haz clic en un mensaje para ver su contenido</p>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </main>
       </div>
