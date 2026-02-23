@@ -59,6 +59,15 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## What's Been Implemented
 
+### Session: 2026-02-23 (Parent Portal) ✅
+- **FEATURE: Portal de Padres Completo (Réplica 1:1 del Portal del Alumno)**
+  - Backend endpoints: `/api/parent/me`, `/api/parent/students`, `/api/parent/dashboard`, `/api/parent/tasks`, `/api/parent/grades`, `/api/parent/attendance`, `/api/parent/schedule`, `/api/parent/exam-schedule`, `/api/parent/messages/*`
+  - Frontend pages: `ParentDashboardPage`, `ParentTasksPage`, `ParentGradesPage`, `ParentAttendancePage`
+  - Frontend components: `ParentSidebar` (verde/emerald para diferenciarse del alumno)
+  - Selector de hijos con soporte multi-hijo
+  - Control de acceso RBAC: `verify_parent_student_access()`
+  - **Resultados de pruebas**: 100% backend (18/18 tests), 100% frontend
+
 ### Session: 2026-02-23 (Teacher Chat Contacts Categorization) ✅
 - **FEATURE: Lista de Contactos Inteligente para Profesores**
   - Endpoint `/api/messaging/academic/contacts` ahora devuelve contactos categorizados para profesores
