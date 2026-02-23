@@ -35,7 +35,7 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
       try {
         const [profileRes, settingsRes] = await Promise.all([
           axios.get(`${API}/api/parent/me`, { headers }),
-          axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+          axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
         ]);
         
         const childrenList = profileRes.data.children || [];
