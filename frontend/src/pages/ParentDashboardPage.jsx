@@ -298,6 +298,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const handleChildChange = async (newChild) => {
     if (!newChild || newChild.id === selectedChild?.id) return;
     
+    const headers = { Authorization: `Bearer ${token}` };
     setSelectedChild(newChild);
     setLoading(true);
     
