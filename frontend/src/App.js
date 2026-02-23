@@ -623,6 +623,42 @@ function App() {
           />
           
           {/* ════════════════════════════════════════════════════════════════════
+              PARENT PORTAL - Direct path (for subdomain mode)
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/parent"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/tasks"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentTasksPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/grades"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentGradesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/parent/attendance"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentAttendancePage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* ════════════════════════════════════════════════════════════════════
               ADMIN PORTAL REDIRECT - Admin uses Owner's dashboard with RBAC
               All /admin routes redirect to /dashboard for unified experience
           ════════════════════════════════════════════════════════════════════ */}
