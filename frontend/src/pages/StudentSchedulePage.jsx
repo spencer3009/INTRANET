@@ -369,7 +369,7 @@ export default function StudentSchedulePage({ user, token, onLogout }) {
     try {
       const [scheduleRes, settingsRes] = await Promise.all([
         axios.get(`${API}/api/student/schedule`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
       ]);
       
       // Extract data from response

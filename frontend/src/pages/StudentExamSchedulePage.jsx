@@ -261,7 +261,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
       
       const [examsRes, settingsRes] = await Promise.all([
         axios.get(`${API}/api/student/exam-schedule?from_date=${fromDate}&to_date=${toDate}`, { headers }),
-        axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null }))
+        axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
       ]);
       
       setExams(examsRes.data.exams || []);
