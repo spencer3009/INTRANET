@@ -60,6 +60,11 @@ import ExamAttemptPage from "@/pages/ExamAttemptPage";
 import ExamResultPage from "@/pages/ExamResultPage";
 import StudentExamSchedulePage from "@/pages/StudentExamSchedulePage";
 import StudentMessagesPage from "@/pages/StudentMessagesPage";
+// Parent Portal imports
+import ParentDashboardPage from "@/pages/ParentDashboardPage";
+import ParentTasksPage from "@/pages/ParentTasksPage";
+import ParentGradesPage from "@/pages/ParentGradesPage";
+import ParentAttendancePage from "@/pages/ParentAttendancePage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
