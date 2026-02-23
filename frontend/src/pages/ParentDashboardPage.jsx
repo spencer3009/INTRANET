@@ -415,7 +415,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
         user={user}
         children={children}
         selectedChild={selectedChild}
-        onSelectChild={setSelectedChild}
+        onSelectChild={handleChildChange}
       />
 
       {/* Main Content */}
