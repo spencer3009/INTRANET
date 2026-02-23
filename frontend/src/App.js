@@ -673,7 +673,7 @@ function App() {
             path="/parent/courses"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                <ParentCoursesPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -681,7 +681,7 @@ function App() {
             path="/parent/schedule"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                <ParentSchedulePage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -689,7 +689,7 @@ function App() {
             path="/parent/exams"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                <ParentExamsPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -697,7 +697,7 @@ function App() {
             path="/parent/messages"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                <ParentMessagesPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
