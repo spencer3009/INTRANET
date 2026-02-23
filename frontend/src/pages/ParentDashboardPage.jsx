@@ -402,7 +402,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const upcomingExams = dashboardData?.upcoming_exams || [];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex">
       {/* Sidebar */}
       <ParentSidebar
         active={activeSection}
@@ -419,7 +419,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:ml-16">
+      <div className="flex-1 flex flex-col min-h-screen">
         {/* Header */}
         <StudentHeader
           user={user}
