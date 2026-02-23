@@ -273,6 +273,14 @@ function App() {
       return user?.subdomain ? `/school/${user.subdomain}/student` : '/student';
     }
     
+    // Parents get redirected to parent portal
+    if (isParent(user)) {
+      if (environment.mode === 'subdomain' || environment.supportsWildcard) {
+        return '/parent';
+      }
+      return user?.subdomain ? `/school/${user.subdomain}/parent` : '/parent';
+    }
+    
     // Teachers get redirected to teacher portal
     if (isTeacher(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
