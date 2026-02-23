@@ -1090,6 +1090,40 @@ function App() {
             }
           />
           
+          {/* Parent Portal - Route based */}
+          <Route
+            path="/school/:subdomain/parent"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/school/:subdomain/parent/tasks"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentTasksPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/school/:subdomain/parent/grades"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentGradesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/school/:subdomain/parent/attendance"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentAttendancePage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          
           {/* Settings Page - Route based */}
           <Route
             path="/school/:subdomain/settings"
