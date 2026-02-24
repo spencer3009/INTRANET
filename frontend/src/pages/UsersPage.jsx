@@ -1827,6 +1827,32 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   const handleUserCreated = (newUser) => {
     setUsers(prev => [...prev, newUser]);
+    
+    // Si es un estudiante, aplicar automáticamente los filtros para mostrarlo
+    if (newUser.role === 'student' && newUser.nivel_id) {
+      // Aplicar filtros automáticamente basados en el estudiante creado
+      setStudentFilterLevel(newUser.nivel_id);
+      
+      if (newUser.grado_id) {
+        setStudentFilterGrade(newUser.grado_id);
+      }
+      
+      if (newUser.seccion_id) {
+        setStudentFilterSection(newUser.seccion_id);
+      }
+      
+      // Asegurar que los acordeones estén expandidos para ver al nuevo estudiante
+      setExpandedLevels(prev => ({ ...prev, [newUser.nivel_id]: true }));
+      if (newUser.grado_id) {
+        setExpandedGrades(prev => ({ ...prev, [`${newUser.nivel_id}_${newUser.grado_id}`]: true }));
+      }
+      if (newUser.seccion_id) {
+        setExpandedSections(prev => ({ 
+          ...prev, 
+          [`${newUser.nivel_id}_${newUser.grado_id}_${newUser.seccion_id}`]: true 
+        }));
+      }
+    }
   };
 
   const schoolName = settings?.system_name || user?.name || "Mi Colegio";
