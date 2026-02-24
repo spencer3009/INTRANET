@@ -1661,6 +1661,45 @@ async def get_monthly_attendance(current_user=Depends(require_school)):
     return result
 
 
+@api_router.get("/dashboard/monthly-payments")
+async def get_monthly_payments(current_user=Depends(require_school)):
+    """Ingresos mensuales (pagos cobrados) para gráfica del dashboard propietario"""
+    user = await resolve_user_from_token(current_user)
+    school_id = (user or {}).get("school_id") or current_user.get("school_id")
+    
+    year = datetime.now(timezone.utc).year
+    months_es = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+    current_month = datetime.now(timezone.utc).month
+    
+    result = []
+    for month_idx in range(12):
+        month_num = month_idx + 1
+        if month_num > current_month:
+            break
+        
+        first_day = f"{year}-{month_num:02d}-01"
+        if month_num == 12:
+            last_day = f"{year + 1}-01-01"
+        else:
+            last_day = f"{year}-{month_num + 1:02d}-01"
+        
+        pipeline = [
+            {"$match": {
+                "school_id": school_id,
+                "payment_status": "paid",
+                "payment_date": {"$gte": first_day, "$lt": last_day}
+            }},
+            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+        ]
+        agg = await db.payments.aggregate(pipeline).to_list(1)
+        amount = round(agg[0]["total"], 2) if agg and agg[0].get("total") else 0
+        
+        result.append({"month": months_es[month_idx], "amount": amount})
+    
+    return result
+
+
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # STUDENT PORTAL ENDPOINTS
