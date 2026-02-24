@@ -2219,15 +2219,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       className={`group relative overflow-hidden bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-2 ${levelColor?.border || roleConfig.borderColor}`}
       data-testid={`student-card-${student.id}`}
     >
-                      <MoreVertical className="w-5 h-5" />
-                    </button>
-                    
-                    {/* Dropdown menu */}
-                    {openMenuId === u.id && (
-                      <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 min-w-[160px] z-10">
-                        <button
-                          onClick={() => handleEditUser(u.id)}
-                          className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+      <div className={`h-1.5 bg-gradient-to-r ${levelColor?.gradient || roleConfig.gradientBg}`}></div>
                           data-testid={`edit-user-${u.id}`}
                         >
                           <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
