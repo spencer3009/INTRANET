@@ -2213,15 +2213,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   // Helper function to render student card for grouped view
-  const renderStudentCard = (student, roleConfig, levelColor, gradeName, sectionName) => (
-    <div 
-      key={student.id}
-      className={`group relative overflow-hidden bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-2 ${levelColor?.border || roleConfig.borderColor}`}
-      data-testid={`student-card-${student.id}`}
-    >
-      <div className={`h-1.5 bg-gradient-to-r ${levelColor?.gradient || roleConfig.gradientBg}`}></div>
-      
-      <div className="p-4">
                         {selectedRole === 'student' && (
                           <button
                             onClick={() => {
