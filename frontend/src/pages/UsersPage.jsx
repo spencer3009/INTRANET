@@ -1836,6 +1836,9 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const renderUsersList = () => {
     const roleConfig = ROLE_CARDS.find(r => r.id === selectedRole);
     
+    // Check if any student filter is active
+    const hasActiveStudentFilters = studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch;
+    
     // For students, use the filtered list; for others, use normal filter
     const usersToDisplay = selectedRole === 'student'
       ? filteredStudents
