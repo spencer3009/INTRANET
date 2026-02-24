@@ -178,6 +178,29 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(r
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Token inválido")
 
+async def resolve_user_from_token(current_user: dict):
+    """
+    Resolve the actual user from DB, handling support_switch sessions.
+    For support sessions, returns a virtual owner user with the school context.
+    """
+    if current_user.get("scope") == "support_switch":
+        school_id = current_user.get("active_school_id") or current_user.get("school_id")
+        return {
+            "id": current_user["sub"],
+            "email": current_user.get("email"),
+            "name": current_user.get("name"),
+            "last_name": "",
+            "role": "owner",
+            "school_id": school_id,
+            "is_owner": True,
+            "is_protected": True,
+            "is_support_session": True,
+            "original_role": current_user.get("original_role", "system_admin_global"),
+            "email_verified": True
+        }
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0})
+    return user
+
 def is_admin_user(user: dict) -> bool:
     """
     Check if user has admin privileges.
