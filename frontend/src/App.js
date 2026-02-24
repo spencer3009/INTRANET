@@ -764,6 +764,18 @@ function App() {
             }
           />
           <Route
+            path="/school/:subdomain/admin/students"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                {!isAdminOnly(user) ? (
+                  <Navigate to={getDashboardPath()} replace />
+                ) : (
+                  <AdminStudentsPage user={user} token={token} onLogout={handleLogout} />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/school/:subdomain/admin/academic-structure"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
