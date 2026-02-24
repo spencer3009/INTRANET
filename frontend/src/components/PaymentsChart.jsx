@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 const COLORS = {
   paid: "#10b981",
@@ -8,16 +8,18 @@ const COLORS = {
 
 const LABELS = {
   paid: "Cobrado",
-  pending: "Pendiente",
+  pending: "Por Cobrar",
   overdue: "Vencido",
 };
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload) return null;
+  const items = payload.filter(e => e.value > 0);
+  if (items.length === 0) return null;
   return (
     <div className="bg-[#0a1628] text-white px-4 py-3 rounded-xl text-xs shadow-xl border border-white/10">
-      <p className="font-bold mb-1.5 text-slate-300">{label}</p>
-      {payload.map((entry) => (
+      <p className="font-bold mb-2 text-slate-300">{label}</p>
+      {items.map((entry) => (
         <div key={entry.dataKey} className="flex items-center justify-between gap-6 py-0.5">
           <span className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-sm" style={{ background: entry.color }} />
@@ -29,17 +31,6 @@ const CustomTooltip = ({ active, payload, label }) => {
     </div>
   );
 };
-
-const CustomLegend = ({ payload }) => (
-  <div className="flex items-center justify-center gap-5 mt-2">
-    {payload?.map((entry) => (
-      <span key={entry.dataKey} className="flex items-center gap-1.5 text-xs text-slate-600">
-        <span className="w-3 h-3 rounded" style={{ background: entry.color }} />
-        <span className="font-medium">{LABELS[entry.dataKey] || entry.value}</span>
-      </span>
-    ))}
-  </div>
-);
 
 export default function PaymentsChart({ data }) {
   if (!data || data.length === 0) {
@@ -53,7 +44,6 @@ export default function PaymentsChart({ data }) {
     );
   }
 
-  // Totales para el resumen
   const totalPaid = data.reduce((s, d) => s + (d.paid || 0), 0);
   const totalPending = data.reduce((s, d) => s + (d.pending || 0), 0);
   const totalOverdue = data.reduce((s, d) => s + (d.overdue || 0), 0);
@@ -67,28 +57,28 @@ export default function PaymentsChart({ data }) {
           </h3>
           <p className="text-xs text-slate-500 mt-1">Cobros registrados durante el ano academico</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap">
           <div className="text-right">
-            <p className="text-xs text-slate-400">Cobrado</p>
+            <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Cobrado</p>
             <p className="text-sm font-bold text-emerald-600">S/ {totalPaid.toLocaleString("es-PE")}</p>
           </div>
-          {totalOverdue > 0 && (
-            <div className="text-right border-l border-slate-200 pl-3">
-              <p className="text-xs text-slate-400">Vencido</p>
-              <p className="text-sm font-bold text-red-500">S/ {totalOverdue.toLocaleString("es-PE")}</p>
-            </div>
-          )}
           {totalPending > 0 && (
             <div className="text-right border-l border-slate-200 pl-3">
-              <p className="text-xs text-slate-400">Pendiente</p>
+              <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Por Cobrar</p>
               <p className="text-sm font-bold text-amber-500">S/ {totalPending.toLocaleString("es-PE")}</p>
+            </div>
+          )}
+          {totalOverdue > 0 && (
+            <div className="text-right border-l border-slate-200 pl-3">
+              <p className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Vencido</p>
+              <p className="text-sm font-bold text-red-500">S/ {totalOverdue.toLocaleString("es-PE")}</p>
             </div>
           )}
         </div>
       </div>
 
       <ResponsiveContainer width="100%" height={220} minWidth={0}>
-        <BarChart data={data} barCategoryGap="20%">
+        <BarChart data={data} barGap={3} barCategoryGap="30%">
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
           <XAxis
             dataKey="month"
@@ -101,15 +91,24 @@ export default function PaymentsChart({ data }) {
             axisLine={false}
             tickLine={false}
             width={55}
-            tickFormatter={(v) => v >= 1000 ? `S/${(v / 1000).toFixed(0)}k` : `S/${v}`}
+            tickFormatter={(v) => v >= 1000 ? `S/${(v / 1000).toFixed(1)}k` : `S/${v}`}
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(0,31,75,0.03)" }} />
-          <Legend content={<CustomLegend />} />
-          <Bar dataKey="paid" name="Cobrado" stackId="stack" fill={COLORS.paid} radius={[0, 0, 0, 0]} maxBarSize={28} />
-          <Bar dataKey="pending" name="Pendiente" stackId="stack" fill={COLORS.pending} radius={[0, 0, 0, 0]} maxBarSize={28} />
-          <Bar dataKey="overdue" name="Vencido" stackId="stack" fill={COLORS.overdue} radius={[4, 4, 0, 0]} maxBarSize={28} />
+          <Bar dataKey="paid" name="Cobrado" fill={COLORS.paid} radius={[4, 4, 0, 0]} maxBarSize={24} />
+          <Bar dataKey="pending" name="Por Cobrar" fill={COLORS.pending} radius={[4, 4, 0, 0]} maxBarSize={24} />
+          <Bar dataKey="overdue" name="Vencido" fill={COLORS.overdue} radius={[4, 4, 0, 0]} maxBarSize={24} />
         </BarChart>
       </ResponsiveContainer>
+
+      {/* Leyenda */}
+      <div className="flex items-center justify-center gap-5 mt-3 pt-3 border-t border-slate-100">
+        {Object.entries(LABELS).map(([key, label]) => (
+          <span key={key} className="flex items-center gap-1.5 text-xs text-slate-600">
+            <span className="w-3 h-3 rounded" style={{ background: COLORS[key] }} />
+            <span className="font-medium">{label}</span>
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
