@@ -40,7 +40,8 @@ export default function SchedulePage({ user, token, onLogout }) {
   const [allSchedules, setAllSchedules] = useState([]);
   const [schoolSettings, setSchoolSettings] = useState(null);
 
-  // Filters
+  // Filters - Cascade: Level → Grade → Section
+  const [selectedLevel, setSelectedLevel] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
 
