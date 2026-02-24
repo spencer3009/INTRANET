@@ -1,6 +1,5 @@
-import { Crown, Shield, User } from "lucide-react";
+import { Crown, Shield, Users, UserCheck } from "lucide-react";
 
-// Default avatar component with initials
 function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
   const getInitials = (name) => {
     if (!name) return "U";
@@ -18,7 +17,6 @@ function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
   );
 }
 
-// Get display role in Spanish - CENTRALIZED ROLE MAP
 const ROLE_DISPLAY_MAP = {
   owner: { label: "PROPIETARIO", colors: "bg-amber-100 text-amber-700 border-amber-200" },
   super_admin: { label: "SUPER ADMIN", colors: "bg-purple-100 text-purple-700 border-purple-200" },
@@ -32,26 +30,24 @@ const ROLE_DISPLAY_MAP = {
 };
 
 function getRoleDisplay(role, isOwner, isSuperAdmin) {
-  // Priority: is_owner flag > is_super_admin flag > role string
   if (isOwner || role === "owner") return ROLE_DISPLAY_MAP.owner.label;
   if (isSuperAdmin || role === "super_admin") return ROLE_DISPLAY_MAP.super_admin.label;
   return ROLE_DISPLAY_MAP[role]?.label || role?.toUpperCase() || "USUARIO";
 }
 
-// Get role badge colors
 function getRoleBadgeColors(role, isOwner, isSuperAdmin) {
-  // Priority: is_owner flag > is_super_admin flag > role string
   if (isOwner || role === "owner") return ROLE_DISPLAY_MAP.owner.colors;
   if (isSuperAdmin || role === "super_admin") return ROLE_DISPLAY_MAP.super_admin.colors;
   return ROLE_DISPLAY_MAP[role]?.colors || "bg-slate-100 text-slate-600 border-slate-200";
 }
 
-export default function ProfileCard({ user, stats }) {
+export default function ProfileCard({ user, stats, ownerStats, schoolName }) {
   const userPhoto = user?.photo_url;
   const userName = user?.name || "Usuario";
   const userEmail = user?.email || "";
   const roleDisplay = getRoleDisplay(user?.role, user?.is_owner, user?.is_super_admin);
   const badgeColors = getRoleBadgeColors(user?.role, user?.is_owner, user?.is_super_admin);
+  const isOwner = user?.is_owner || user?.role === "owner" || user?.is_support_session;
   
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center" data-testid="profile-card">
@@ -74,7 +70,7 @@ export default function ProfileCard({ user, stats }) {
         ) : (
           <DefaultAvatar name={userName} />
         )}
-        <div className="absolute bottom-0 right-0 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full" title="En línea" />
+        <div className="absolute bottom-0 right-0 w-5 h-5 bg-emerald-500 border-2 border-white rounded-full" title="En linea" />
       </div>
 
       {/* Role Badge */}
@@ -94,16 +90,41 @@ export default function ProfileCard({ user, stats }) {
         <p className="text-[10px] text-slate-400 mt-0.5">@{user.username}</p>
       )}
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
-        <div className="bg-slate-50 rounded-lg p-3">
-          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{stats?.subjects || 0}</p>
-          <p className="text-[11px] text-slate-500">Cursos</p>
+      {/* Nombre del colegio - solo propietario */}
+      {isOwner && schoolName && (
+        <p className="text-xs text-slate-400 mt-1.5">{schoolName}</p>
+      )}
+
+      {/* Indicadores - condicional por rol */}
+      {isOwner && ownerStats ? (
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="bg-slate-50 rounded-lg p-3">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <Users className="w-3.5 h-3.5 text-blue-500" />
+            </div>
+            <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{ownerStats.students ?? 0}</p>
+            <p className="text-[10px] text-slate-500">Alumnos Activos</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-3">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
+            </div>
+            <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{ownerStats.teachers ?? 0}</p>
+            <p className="text-[10px] text-slate-500">Docentes Activos</p>
+          </div>
         </div>
-        <div className="bg-slate-50 rounded-lg p-3">
-          <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{stats?.students || 0}</p>
-          <p className="text-[11px] text-slate-500">Alumnos</p>
+      ) : (
+        <div className="mt-5 grid grid-cols-2 gap-3">
+          <div className="bg-slate-50 rounded-lg p-3">
+            <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{stats?.subjects || 0}</p>
+            <p className="text-[11px] text-slate-500">Cursos</p>
+          </div>
+          <div className="bg-slate-50 rounded-lg p-3">
+            <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{stats?.students || 0}</p>
+            <p className="text-[11px] text-slate-500">Alumnos</p>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
