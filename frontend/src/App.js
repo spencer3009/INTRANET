@@ -767,7 +767,7 @@ function App() {
             path="/school/:subdomain/admin/students"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                {!isAdminOnly(user) ? (
+                {!isAdmin(user) ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : (
                   <AdminStudentsPage user={user} token={token} onLogout={handleLogout} />
