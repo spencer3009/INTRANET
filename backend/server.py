@@ -1539,10 +1539,23 @@ async def get_owner_stats(current_user=Depends(require_school)):
         "school_id": school_id, "role": "teacher"
     })
     
-    unread_messages = await db.messages.count_documents({
-        "recipient_id": current_user.get("sub"),
-        "read": False
-    })
+    # Mensajes sin leer - usa internal_mail (misma fuente que la campanita)
+    user_id = current_user.get("sub")
+    unread_pipeline = [
+        {"$match": {
+            "recipients": {
+                "$elemMatch": {
+                    "user_id": user_id,
+                    "is_read": False,
+                    "is_deleted": {"$ne": True},
+                    "is_archived": {"$ne": True}
+                }
+            }
+        }},
+        {"$count": "count"}
+    ]
+    unread_result = await db.internal_mail.aggregate(unread_pipeline).to_list(1)
+    unread_messages = unread_result[0]["count"] if unread_result else 0
     
     # Ingresos del mes actual - datos reales del módulo de contabilidad
     now = datetime.now(timezone.utc)
