@@ -12,6 +12,7 @@ import {
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Users,
   Filter, Download, Mail, ChevronDown, ChevronRight, QrCode, LayoutGrid, List
 } from "lucide-react";
+import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
 
 // LocalStorage keys for filter persistence
 const STORAGE_KEYS = {
