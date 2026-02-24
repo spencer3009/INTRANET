@@ -2211,13 +2211,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       </div>
     );
   };
-                {/* Top gradient bar */}
-                <div className={`h-2 bg-gradient-to-r ${roleConfig.gradientBg}`}></div>
-                
-                {/* Decorative background */}
-                <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${roleConfig.gradientBg} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2`}></div>
-                
-                <div className="p-6 relative">
+
+  // Helper function to render student card for grouped view
                   {/* 3 dots menu */}
                   <div className="absolute top-2 right-2">
                     <button
