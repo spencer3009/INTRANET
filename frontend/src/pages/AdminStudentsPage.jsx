@@ -168,6 +168,313 @@ function StudentRow({ student, levels, grades, sections, onEdit, onDelete, onVie
   );
 }
 
+// Student Card Component (for grouped view)
+function StudentCard({ student, levelColor, onEdit, onDelete, onShowQR }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setMenuOpen(false);
+      }
+    };
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuOpen]);
+  
+  return (
+    <div 
+      className={`bg-white rounded-xl border-2 ${levelColor?.border || 'border-slate-200'} shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden`}
+      data-testid={`student-card-${student.id}`}
+    >
+      {/* Card Header - Orange accent bar */}
+      <div className="h-1.5 bg-gradient-to-r from-amber-400 to-orange-500" />
+      
+      <div className="p-4">
+        {/* Top section with avatar and menu */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center overflow-hidden border-2 border-amber-200">
+                {student.photo_url ? (
+                  <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <GraduationCap className="w-7 h-7 text-amber-500" />
+                )}
+              </div>
+              {student.status === 'activo' && (
+                <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white" />
+              )}
+            </div>
+            <div>
+              <p className="font-bold text-slate-800 text-sm">{student.name} {student.last_name}</p>
+              <p className="text-xs text-slate-500">@{student.username}</p>
+            </div>
+          </div>
+          
+          {/* Action Menu */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen(!menuOpen);
+              }}
+              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <MoreVertical className="w-4 h-4 text-slate-400" />
+            </button>
+            
+            {menuOpen && (
+              <div className="absolute right-0 top-full mt-1 w-40 bg-white rounded-xl shadow-lg border border-slate-200 py-1 z-30">
+                <button
+                  onClick={() => {
+                    onShowQR(student);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-violet-50 text-violet-600 flex items-center gap-2"
+                  data-testid={`card-qr-btn-${student.id}`}
+                >
+                  <QrCode className="w-4 h-4" />
+                  Ver QR
+                </button>
+                <button
+                  onClick={() => {
+                    onEdit(student);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <Pencil className="w-4 h-4" />
+                  Editar
+                </button>
+                <button
+                  onClick={() => {
+                    onDelete(student);
+                    setMenuOpen(false);
+                  }}
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-red-50 text-red-600 flex items-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Status Badge */}
+        <div className="mb-3">
+          <StatusBadge status={student.status || 'activo'} />
+        </div>
+        
+        {/* Contact Info */}
+        <div className="space-y-1.5 text-xs">
+          {student.phone && (
+            <div className="flex items-center gap-2 text-slate-600">
+              <Phone className="w-3.5 h-3.5 text-slate-400" />
+              <span>{student.phone}</span>
+            </div>
+          )}
+          {student.email && (
+            <div className="flex items-center gap-2 text-slate-600">
+              <Mail className="w-3.5 h-3.5 text-slate-400" />
+              <span className="truncate">{student.email}</span>
+            </div>
+          )}
+          {student.created_at && (
+            <div className="flex items-center gap-2 text-slate-400">
+              <FileText className="w-3.5 h-3.5" />
+              <span>Registrado: {new Date(student.created_at).toLocaleDateString('es-PE')}</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Grouped View Accordion Components
+function SectionAccordion({ sectionName, students, levelColor, isOpen, onToggle, onEdit, onDelete, onShowQR, grades }) {
+  return (
+    <div className="ml-8 mb-2">
+      <button
+        onClick={onToggle}
+        className={`w-full flex items-center justify-between p-3 rounded-lg ${levelColor?.light || 'bg-slate-50'} hover:opacity-90 transition-all`}
+      >
+        <div className="flex items-center gap-2">
+          {isOpen ? (
+            <ChevronDown className={`w-4 h-4 ${levelColor?.text || 'text-slate-600'}`} />
+          ) : (
+            <ChevronRight className={`w-4 h-4 ${levelColor?.text || 'text-slate-600'}`} />
+          )}
+          <span className={`font-medium text-sm ${levelColor?.text || 'text-slate-700'}`}>
+            Sección {sectionName}
+          </span>
+        </div>
+        <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${levelColor?.bg || 'bg-slate-500'} text-white`}>
+          {students.length} {students.length === 1 ? 'estudiante' : 'estudiantes'}
+        </span>
+      </button>
+      
+      {isOpen && (
+        <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 pl-6">
+          {students.map(student => (
+            <StudentCard
+              key={student.id}
+              student={student}
+              levelColor={levelColor}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onShowQR={(s) => {
+                const gradeName = grades.find(g => g.id === s.grado_id)?.nombre || "";
+                onShowQR({ ...s, grade_name: gradeName, section_name: sectionName });
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function GradeAccordion({ gradeName, gradeId, sections, students, levelColor, isOpen, onToggle, sectionsData, onEdit, onDelete, onShowQR, grades }) {
+  const [openSections, setOpenSections] = useState({});
+  
+  // Group students by section
+  const studentsBySection = useMemo(() => {
+    const grouped = {};
+    students.forEach(s => {
+      const secId = s.seccion_id || 'sin_seccion';
+      if (!grouped[secId]) grouped[secId] = [];
+      grouped[secId].push(s);
+    });
+    return grouped;
+  }, [students]);
+  
+  const toggleSection = (sectionId) => {
+    setOpenSections(prev => ({ ...prev, [sectionId]: !prev[sectionId] }));
+  };
+  
+  return (
+    <div className="ml-4 mb-2">
+      <button
+        onClick={onToggle}
+        className={`w-full flex items-center justify-between p-3 rounded-xl ${levelColor?.light || 'bg-slate-50'} border ${levelColor?.border || 'border-slate-200'} hover:shadow-sm transition-all`}
+      >
+        <div className="flex items-center gap-2">
+          {isOpen ? (
+            <ChevronDown className={`w-5 h-5 ${levelColor?.text || 'text-slate-600'}`} />
+          ) : (
+            <ChevronRight className={`w-5 h-5 ${levelColor?.text || 'text-slate-600'}`} />
+          )}
+          <span className={`font-semibold ${levelColor?.text || 'text-slate-700'}`}>
+            {gradeName}
+          </span>
+        </div>
+        <span className={`px-3 py-1 rounded-full text-xs font-bold ${levelColor?.bg || 'bg-slate-500'} text-white`}>
+          {students.length} {students.length === 1 ? 'estudiante' : 'estudiantes'}
+        </span>
+      </button>
+      
+      {isOpen && (
+        <div className="mt-2 space-y-2">
+          {Object.entries(studentsBySection).map(([secId, secStudents]) => {
+            const section = sectionsData.find(s => s.id === secId);
+            const sectionName = section?.nombre || 'Sin Sección';
+            
+            return (
+              <SectionAccordion
+                key={secId}
+                sectionName={sectionName}
+                students={secStudents}
+                levelColor={levelColor}
+                isOpen={openSections[secId] ?? true}
+                onToggle={() => toggleSection(secId)}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onShowQR={onShowQR}
+                grades={grades}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LevelAccordion({ levelName, levelId, students, grades, sections, isOpen, onToggle, onEdit, onDelete, onShowQR }) {
+  const [openGrades, setOpenGrades] = useState({});
+  const levelColor = getLevelColor(levelName);
+  
+  // Group students by grade
+  const studentsByGrade = useMemo(() => {
+    const grouped = {};
+    students.forEach(s => {
+      const gradeId = s.grado_id || 'sin_grado';
+      if (!grouped[gradeId]) grouped[gradeId] = [];
+      grouped[gradeId].push(s);
+    });
+    return grouped;
+  }, [students]);
+  
+  const toggleGrade = (gradeId) => {
+    setOpenGrades(prev => ({ ...prev, [gradeId]: !prev[gradeId] }));
+  };
+  
+  return (
+    <div className="mb-4" data-testid={`level-accordion-${levelId}`}>
+      <button
+        onClick={onToggle}
+        className={`w-full flex items-center justify-between p-4 rounded-2xl ${levelColor.bg} text-white hover:opacity-95 transition-all shadow-md`}
+      >
+        <div className="flex items-center gap-3">
+          {isOpen ? (
+            <ChevronDown className="w-6 h-6" />
+          ) : (
+            <ChevronRight className="w-6 h-6" />
+          )}
+          <GraduationCap className="w-6 h-6" />
+          <span className="font-bold text-lg">{levelName}</span>
+        </div>
+        <span className="px-4 py-1.5 rounded-full text-sm font-bold bg-white/20 backdrop-blur-sm">
+          {students.length} {students.length === 1 ? 'estudiante' : 'estudiantes'}
+        </span>
+      </button>
+      
+      {isOpen && (
+        <div className="mt-3 space-y-2">
+          {Object.entries(studentsByGrade).map(([gradeId, gradeStudents]) => {
+            const grade = grades.find(g => g.id === gradeId);
+            const gradeName = grade?.nombre || 'Sin Grado';
+            
+            return (
+              <GradeAccordion
+                key={gradeId}
+                gradeName={gradeName}
+                gradeId={gradeId}
+                students={gradeStudents}
+                levelColor={levelColor}
+                isOpen={openGrades[gradeId] ?? true}
+                onToggle={() => toggleGrade(gradeId)}
+                sectionsData={sections}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                onShowQR={onShowQR}
+                grades={grades}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Add/Edit Student Modal
 function StudentModal({ isOpen, onClose, token, student, onSave, levels, grades, sections, shifts, parents }) {
   const fileInputRef = useRef(null);
