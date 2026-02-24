@@ -1479,12 +1479,14 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
 
 export default function UsersPage({ user, token, subdomain, onLogout }) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialRole = searchParams.get("role");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [users, setUsers] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedRole, setSelectedRole] = useState(null);
+  const [selectedRole, setSelectedRole] = useState(initialRole || null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [addModalRole, setAddModalRole] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
