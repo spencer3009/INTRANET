@@ -136,7 +136,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
       <div
         key={schedule.id}
         data-testid={`schedule-block-${schedule.id}`}
-        className={`rounded-xl shadow-sm overflow-hidden cursor-pointer group transition-all hover:shadow-lg ${isHorizontal ? '' : 'absolute left-1 right-1 hover:scale-[1.02] z-20'}`}
+        className={`rounded-xl shadow-sm overflow-hidden cursor-pointer group transition-all hover:shadow-lg relative ${isHorizontal ? '' : 'absolute left-1 right-1 hover:scale-[1.02] z-20'}`}
         style={{
           ...getColorStyle(schedule.color),
           ...(isHorizontal ? { minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : '70px' } : getBlockStyle(schedule))
