@@ -1436,6 +1436,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   });
   const [expandedGrades, setExpandedGrades] = useState({});
   const [expandedSections, setExpandedSections] = useState({});
+  const [generatingQR, setGeneratingQR] = useState(false);
   
   // Academic data for QR card (grade/section/level names)
   const [grades, setGrades] = useState([]);
