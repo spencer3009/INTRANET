@@ -232,7 +232,21 @@ export default function SchedulePage({ user, token, onLogout }) {
     loadAllSchedules();
   }, [token]);
 
-  const filteredSections = sections.filter(s => s.grado_id === selectedGrade);
+  // Filtered grades based on selected level
+  const filteredGrades = selectedLevel 
+    ? grades.filter(g => g.nivel_id === selectedLevel)
+    : grades;
+
+  // Filtered sections based on selected grade
+  const filteredSections = selectedGrade
+    ? sections.filter(s => s.grado_id === selectedGrade)
+    : [];
+
+  const handleLevelChange = (levelId) => {
+    setSelectedLevel(levelId);
+    setSelectedGrade("");
+    setSelectedSection("");
+  };
 
   const handleGradeChange = (gradeId) => {
     setSelectedGrade(gradeId);
