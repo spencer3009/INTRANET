@@ -3937,6 +3937,58 @@ async def delete_announcement(
     return {"message": "Comunicado eliminado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
+# SYSTEM USER MANAGEMENT
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.post("/system/create-support-user")
+async def create_support_user_for_school(current_user = Depends(get_current_user)):
+    """
+    Create the system support user (Admin Técnico) for the current school.
+    Only the owner can execute this. Used for existing schools that don't have a support user.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Only owner can create support user
+    if not (user.get("is_owner") == True or user.get("is_super_admin") == True):
+        raise HTTPException(status_code=403, detail="Solo el propietario puede crear el usuario de soporte")
+    
+    school_id = user["school_id"]
+    
+    # Check if support user already exists
+    existing_support = await db.users.find_one({
+        "school_id": school_id,
+        "is_system_user": True
+    })
+    
+    if existing_support:
+        return {
+            "message": "El usuario de soporte ya existe",
+            "user": {
+                "id": existing_support["id"],
+                "name": existing_support.get("name"),
+                "email": existing_support.get("email"),
+                "role": existing_support.get("role"),
+                "is_system_user": True
+            }
+        }
+    
+    # Create the support user
+    support_user = await create_system_support_user(db, school_id)
+    
+    return {
+        "message": "Usuario de soporte creado correctamente",
+        "user": {
+            "id": support_user["id"],
+            "name": support_user.get("name"),
+            "email": support_user.get("email"),
+            "role": support_user.get("role"),
+            "is_system_user": True
+        }
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
 # DEMO DATA MANAGEMENT
 # ══════════════════════════════════════════════════════════════════════════════
 
