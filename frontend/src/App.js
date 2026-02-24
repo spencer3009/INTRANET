@@ -312,8 +312,9 @@ function App() {
 
   return (
     <TenantContext.Provider value={tenantValue}>
-      <BrowserRouter>
-        <ShopifyRedirect user={user} environment={environment} />
+      <DemoModeProvider user={user}>
+        <BrowserRouter>
+          <ShopifyRedirect user={user} environment={environment} />
         
         <Routes>
           {/* ════════════════════════════════════════════════════════════════════
