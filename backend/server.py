@@ -35,6 +35,9 @@ import hashlib
 # Import demo seeder
 from demo_seeder import seed_demo_data_for_school, delete_demo_data_for_school
 
+# Import support router
+from routes.support import router as support_router, ensure_global_support_user
+
 # ══════════════════════════════════════════════════════════════════════════════
 # CACHE CONFIGURATION - In-memory TTL cache for scalable performance
 # ══════════════════════════════════════════════════════════════════════════════
