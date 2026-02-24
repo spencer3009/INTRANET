@@ -77,6 +77,13 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
 - Ineditable e ineliminable por otros roles
 - Tarjeta especial con candado y tooltip
 
+### 11. Dashboard Propietario - Tarjetas KPI (IMPLEMENTADO - 24 Feb 2026)
+- Tarjetas exclusivas para rol propietario: Alumnos Activos, Docentes Activos, Ingresos del Mes (S/ 0, preparado para módulo contable), Mensajes Sin Leer
+- Endpoint: `GET /api/dashboard/owner-stats` (solo propietario)
+- Endpoint: `GET /api/dashboard/monthly-income` (preparado para futuro)
+- Los demás roles (docente, alumno, padre, admin) mantienen sus tarjetas originales
+- Componente: `OwnerMetricCards.jsx`
+
 ## Database Collections
 - `schools`: Colegios registrados
 - `users`: Usuarios con campos `qr_token`, `is_demo_user`, `is_system_user`, `role`
