@@ -3,6 +3,7 @@ import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import MetricCards from "@/components/MetricCards";
+import OwnerMetricCards from "@/components/OwnerMetricCards";
 import HeroCarousel from "@/components/HeroCarousel";
 import QuickAccess from "@/components/QuickAccess";
 import EventsList from "@/components/EventsList";
