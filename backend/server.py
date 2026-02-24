@@ -20008,6 +20008,7 @@ async def demo_user_middleware(request: Request, call_next):
     return response
 
 app.include_router(api_router)
+app.include_router(support_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DATABASE INDEXES - Create on startup for optimized queries
