@@ -43,19 +43,6 @@ const getLevelColor = (levelName) => {
 // Role configurations with colors and icons
 const ROLE_CARDS = [
   { 
-    id: "owner", 
-    label: "Propietarios", 
-    labelSingular: "Propietario",
-    color: "from-blue-500 to-blue-600",
-    bgColor: "bg-blue-50",
-    iconBg: "bg-blue-100",
-    textColor: "text-blue-600",
-    borderColor: "border-blue-200",
-    gradientBg: "from-blue-500 to-indigo-600",
-    lightGradient: "from-blue-50 to-indigo-50",
-    image: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
-  },
-  { 
     id: "system_admin", 
     label: "Admin Sistema", 
     labelSingular: "Admin Sistema",
@@ -67,8 +54,22 @@ const ROLE_CARDS = [
     gradientBg: "from-cyan-500 to-teal-600",
     lightGradient: "from-cyan-50 to-teal-50",
     image: "https://cdn-icons-png.flaticon.com/512/3953/3953226.png",
+    profileImage: "https://cdn-icons-png.flaticon.com/512/4807/4807695.png", // Support person with headset
     isSystemRole: true,  // Flag to identify system roles
     hideAddButton: true  // Don't show "Agregar" button - only 1 per school
+  },
+  { 
+    id: "owner", 
+    label: "Propietarios", 
+    labelSingular: "Propietario",
+    color: "from-blue-500 to-blue-600",
+    bgColor: "bg-blue-50",
+    iconBg: "bg-blue-100",
+    textColor: "text-blue-600",
+    borderColor: "border-blue-200",
+    gradientBg: "from-blue-500 to-indigo-600",
+    lightGradient: "from-blue-50 to-indigo-50",
+    image: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
   },
   { 
     id: "admin", 
