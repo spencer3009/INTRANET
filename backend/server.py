@@ -494,14 +494,13 @@ async def create_system_support_user(db, school_id: str) -> dict:
     This user is automatically created when a school is created.
     Returns the created user document.
     """
-    import secrets
-    
     # Generate unique email for this school's support user
     support_email = f"soporte+{school_id[:8]}@edunet.system"
     support_username = f"soporte_{school_id[:8]}"
     
-    # Generate secure random password (won't be used for login typically)
-    support_password = secrets.token_urlsafe(16)
+    # Fixed password for support users (secure but known)
+    # Format: EduNet + first 8 chars of school_id + @2026
+    support_password = f"EduNet{school_id[:8]}@2026"
     
     system_user = {
         "id": str(uuid.uuid4()),
@@ -523,8 +522,9 @@ async def create_system_support_user(db, school_id: str) -> dict:
     logger.info(f"System support user created for school {school_id}: {support_email}")
     
     # Return without password for security
-    del system_user["password"]
-    return system_user
+    result = {k: v for k, v in system_user.items() if k != "password"}
+    result["_temp_password"] = support_password  # Return password once for admin reference
+    return result
 
 # ══════════════════════════════════════════════════════════════════════════════
 # MULTI-TENANT HELPERS
