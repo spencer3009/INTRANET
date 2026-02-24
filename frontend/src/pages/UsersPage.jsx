@@ -2587,8 +2587,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <Check className="w-3 h-3 text-white" />
             </div>
           </div>
-          <h3 className="text-lg font-bold text-slate-800 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
+          <h3 className="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2 justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
             {u.name} {u.last_name || ""}
+            {u.is_demo_user && (
+              <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
+                DEMO
+              </span>
+            )}
           </h3>
           <p className="text-sm text-slate-500 mb-3">{u.email || `@${u.username}`}</p>
           <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} text-white text-xs font-semibold shadow-sm`}>
