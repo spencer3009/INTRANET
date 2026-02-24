@@ -4745,7 +4745,11 @@ async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # PROTECTED USERS CANNOT BE DELETED
+    # SYSTEM USERS CANNOT BE DELETED
+    if target.get("is_system_user"):
+        raise HTTPException(status_code=403, detail=SYSTEM_USER_BLOCKED_MESSAGE)
+    
+    # PROTECTED USERS CANNOT BE DELETED (owner, super_admin)
     if target.get("is_protected") or target.get("is_owner") or target.get("is_super_admin"):
         raise HTTPException(status_code=400, detail="Este usuario es el propietario de la intranet y no puede ser eliminado")
     
