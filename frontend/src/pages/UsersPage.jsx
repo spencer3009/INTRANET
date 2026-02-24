@@ -2578,15 +2578,25 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           </button>
           {openMenuId === u.id && (
             <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 min-w-[160px] z-10">
+              {/* Edit button - disabled for system users */}
               <button
-                onClick={() => handleEditUser(u.id)}
-                className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                onClick={() => !u.is_system_user && handleEditUser(u.id)}
+                disabled={u.is_system_user}
+                className={`w-full px-4 py-3 text-left text-sm flex items-center gap-3 transition-colors ${
+                  u.is_system_user 
+                    ? 'text-slate-300 cursor-not-allowed' 
+                    : 'text-slate-700 hover:bg-slate-50'
+                }`}
                 data-testid={`edit-user-${u.id}`}
+                title={u.is_system_user ? "Usuario protegido del sistema. No se puede editar." : "Editar usuario"}
               >
-                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Pencil className="w-4 h-4 text-blue-600" />
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  u.is_system_user ? 'bg-slate-100' : 'bg-blue-100'
+                }`}>
+                  <Pencil className={`w-4 h-4 ${u.is_system_user ? 'text-slate-300' : 'text-blue-600'}`} />
                 </div>
                 Editar
+                {u.is_system_user && <span className="ml-auto text-slate-300">🔒</span>}
               </button>
               {selectedRole === 'student' && (
                 <button
@@ -2612,15 +2622,31 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   Ver QR
                 </button>
               )}
+              {/* Delete button - disabled for system users and protected users */}
               <button
-                onClick={() => handleDeleteClick(u)}
-                className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                onClick={() => !(u.is_system_user || u.is_protected || u.is_owner) && handleDeleteClick(u)}
+                disabled={u.is_system_user || u.is_protected || u.is_owner}
+                className={`w-full px-4 py-3 text-left text-sm flex items-center gap-3 transition-colors ${
+                  (u.is_system_user || u.is_protected || u.is_owner)
+                    ? 'text-slate-300 cursor-not-allowed' 
+                    : 'text-red-600 hover:bg-red-50'
+                }`}
                 data-testid={`delete-user-${u.id}`}
+                title={
+                  u.is_system_user 
+                    ? "Usuario protegido del sistema. No se puede eliminar." 
+                    : (u.is_protected || u.is_owner) 
+                      ? "Este usuario es el propietario y no se puede eliminar."
+                      : "Eliminar usuario"
+                }
               >
-                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
-                  <Trash2 className="w-4 h-4 text-red-600" />
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                  (u.is_system_user || u.is_protected || u.is_owner) ? 'bg-slate-100' : 'bg-red-100'
+                }`}>
+                  <Trash2 className={`w-4 h-4 ${(u.is_system_user || u.is_protected || u.is_owner) ? 'text-slate-300' : 'text-red-600'}`} />
                 </div>
                 Eliminar
+                {(u.is_system_user || u.is_protected || u.is_owner) && <span className="ml-auto text-slate-300">🔒</span>}
               </button>
             </div>
           )}
