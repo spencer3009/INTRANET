@@ -1411,6 +1411,31 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrStudent, setQRStudent] = useState(null);
   
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // STUDENT FILTERS & GROUPED VIEW STATES (Premium Feature)
+  // ═══════════════════════════════════════════════════════════════════════════════
+  const [studentSearch, setStudentSearch] = useState("");
+  const [studentFilterLevel, setStudentFilterLevel] = useState(() => 
+    localStorage.getItem(STUDENT_FILTER_KEYS.LEVEL) || ""
+  );
+  const [studentFilterGrade, setStudentFilterGrade] = useState(() => 
+    localStorage.getItem(STUDENT_FILTER_KEYS.GRADE) || ""
+  );
+  const [studentFilterSection, setStudentFilterSection] = useState(() => 
+    localStorage.getItem(STUDENT_FILTER_KEYS.SECTION) || ""
+  );
+  const [studentViewMode, setStudentViewMode] = useState(() => 
+    localStorage.getItem(STUDENT_FILTER_KEYS.VIEW_MODE) || 'grouped'
+  );
+  const [expandedLevels, setExpandedLevels] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STUDENT_FILTER_KEYS.EXPANDED_LEVELS);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+  const [expandedGrades, setExpandedGrades] = useState({});
+  const [expandedSections, setExpandedSections] = useState({});
+  
   // Academic data for QR card (grade/section/level names)
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
