@@ -459,6 +459,74 @@ def is_real_owner(user: dict) -> bool:
     return user.get("is_owner") == True or user.get("role") == "owner"
 
 # ══════════════════════════════════════════════════════════════════════════════
+# SYSTEM USER PROTECTION - Technical Support Users
+# ══════════════════════════════════════════════════════════════════════════════
+# System users are automatically created for each school for technical support.
+# They cannot be deleted, edited, or deactivated by anyone.
+
+SYSTEM_USER_BLOCKED_MESSAGE = "Este usuario pertenece al sistema y no puede modificarse."
+
+def is_system_user(user: dict) -> bool:
+    """Check if user is a system/technical support user"""
+    return user.get("is_system_user", False) == True
+
+def check_system_user_block(user: dict):
+    """
+    Check if user is a system user and block modification actions.
+    Raises HTTPException if trying to modify a system user.
+    """
+    if is_system_user(user):
+        raise HTTPException(
+            status_code=403,
+            detail=SYSTEM_USER_BLOCKED_MESSAGE
+        )
+
+def is_protected_user(user: dict) -> bool:
+    """
+    Check if user is protected (owner or system user).
+    Protected users cannot be deleted.
+    """
+    return user.get("is_protected", False) == True or is_system_user(user)
+
+async def create_system_support_user(db, school_id: str) -> dict:
+    """
+    Create the technical support user (Admin Técnico) for a school.
+    This user is automatically created when a school is created.
+    Returns the created user document.
+    """
+    import secrets
+    
+    # Generate unique email for this school's support user
+    support_email = f"soporte+{school_id[:8]}@edunet.system"
+    support_username = f"soporte_{school_id[:8]}"
+    
+    # Generate secure random password (won't be used for login typically)
+    support_password = secrets.token_urlsafe(16)
+    
+    system_user = {
+        "id": str(uuid.uuid4()),
+        "username": support_username,
+        "password": hash_password(support_password),
+        "name": "Soporte EduNet",
+        "last_name": "Sistema",
+        "email": support_email,
+        "role": "system_admin",
+        "school_id": school_id,
+        "is_system_user": True,  # Protected system user
+        "is_protected": True,    # Cannot be deleted
+        "email_verified": True,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    
+    await db.users.insert_one(system_user)
+    logger.info(f"System support user created for school {school_id}: {support_email}")
+    
+    # Return without password for security
+    del system_user["password"]
+    return system_user
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MULTI-TENANT HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
