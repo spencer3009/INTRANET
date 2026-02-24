@@ -2027,7 +2027,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         )}
 
         {/* Users Grid */}
-        {filteredUsers.length === 0 ? (
+        {usersToDisplay.length === 0 ? (
           <div className={`relative overflow-hidden bg-gradient-to-br ${roleConfig.lightGradient} rounded-3xl p-16 text-center border-2 ${roleConfig.borderColor}`}>
             {/* Decorative circles */}
             <div className={`absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gradient-to-br ${roleConfig.gradientBg} opacity-10`}></div>
@@ -2038,18 +2038,26 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <img src={roleConfig.image} alt="" className="w-full h-full object-contain opacity-50" />
               </div>
               <h3 className={`text-2xl font-bold ${roleConfig.textColor} mb-2`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                Sin {roleConfig.label.toLowerCase()}
+                {selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)
+                  ? "Sin resultados"
+                  : `Sin ${roleConfig.label.toLowerCase()}`
+                }
               </h3>
               <p className="text-slate-500 mb-6 max-w-md mx-auto">
-                Aún no tienes {roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!
+                {selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)
+                  ? "No se encontraron estudiantes con los filtros aplicados. Intenta ajustar los filtros."
+                  : `Aún no tienes ${roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!`
+                }
               </p>
-              <button
-                onClick={() => handleAddUser(selectedRole)}
-                className={`inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r ${roleConfig.gradientBg} text-white rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5`}
-              >
-                <UserPlus className="w-5 h-5" />
-                Agregar {roleConfig.labelSingular}
-              </button>
+              {!(selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)) && (
+                <button
+                  onClick={() => handleAddUser(selectedRole)}
+                  className={`inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r ${roleConfig.gradientBg} text-white rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5`}
+                >
+                  <UserPlus className="w-5 h-5" />
+                  Agregar {roleConfig.labelSingular}
+                </button>
+              )}
             </div>
           </div>
         ) : (
