@@ -7150,12 +7150,15 @@ async def check_schedule_conflicts(
         })
         return conflicts  # Return immediately, can't create class in blocked time
     
-    # Base time overlap query
+    # Base time overlap query using STRICT comparison
+    # This ensures consecutive schedules don't conflict:
+    # - 07:00-08:00 and 08:00-09:00 -> NO conflict (08:00 is NOT < 08:00)
+    # - 07:00-08:30 and 08:00-09:00 -> CONFLICT (08:00 < 08:30 AND 09:00 > 08:00)
     time_overlap = {
         "school_id": school_id,
         "dia": dia,
-        "hora_inicio": {"$lt": hora_fin},
-        "hora_fin": {"$gt": hora_inicio}
+        "hora_inicio": {"$lt": hora_fin},   # existing starts before new ends
+        "hora_fin": {"$gt": hora_inicio}     # existing ends after new starts
     }
     
     if exclude_id:
