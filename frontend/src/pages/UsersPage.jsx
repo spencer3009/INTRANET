@@ -2214,15 +2214,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   // Helper function to render student card for grouped view
   const renderStudentCard = (student, roleConfig, levelColor, gradeName, sectionName) => (
-                  <div className="absolute top-2 right-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setOpenMenuId(openMenuId === u.id ? null : u.id);
-                      }}
-                      className={`w-10 h-10 rounded-full hover:bg-gradient-to-r hover:${roleConfig.gradientBg} hover:text-white flex items-center justify-center text-slate-400 transition-all`}
-                      data-testid={`user-menu-btn-${u.id}`}
-                    >
+    <div 
+      key={student.id}
+      className={`group relative overflow-hidden bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-2 ${levelColor?.border || roleConfig.borderColor}`}
+      data-testid={`student-card-${student.id}`}
+    >
                       <MoreVertical className="w-5 h-5" />
                     </button>
                     
