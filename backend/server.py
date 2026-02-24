@@ -20031,6 +20031,15 @@ async def create_indexes():
         await db.academic_threads.create_index([("school_id", 1), ("participant_ids", 1)])
         await db.internal_messages.create_index([("school_id", 1), ("recipient_id", 1), ("is_deleted", 1)])
         
+        # Index for user_school_roles
+        await db.user_school_roles.create_index(
+            [("user_id", 1), ("school_id", 1)],
+            unique=True
+        )
+        
+        # Ensure global support user exists
+        await ensure_global_support_user()
+        
         logging.info("MongoDB indexes created successfully")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
