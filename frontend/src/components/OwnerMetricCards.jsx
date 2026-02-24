@@ -1,5 +1,8 @@
 import { Users, UserCheck, DollarSign, Mail, ChevronRight } from "lucide-react";
 
+const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const currentMonth = MONTHS_ES[new Date().getMonth()];
+
 const ownerCards = [
   {
     id: "students",
