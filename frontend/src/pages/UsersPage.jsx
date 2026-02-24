@@ -1835,9 +1835,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Content for when a role is selected
   const renderUsersList = () => {
     const roleConfig = ROLE_CARDS.find(r => r.id === selectedRole);
-    const filteredUsers = selectedRole === 'pending' 
-      ? users.filter(u => !u.email_verified)
-      : users.filter(u => u.role === selectedRole && u.email_verified);
+    
+    // For students, use the filtered list; for others, use normal filter
+    const usersToDisplay = selectedRole === 'student'
+      ? filteredStudents
+      : selectedRole === 'pending' 
+        ? users.filter(u => !u.email_verified)
+        : users.filter(u => u.role === selectedRole && u.email_verified);
+    
+    // Get total students count (unfiltered)
+    const totalStudents = users.filter(u => u.role === 'student' && u.email_verified).length;
 
     return (
       <div className="p-6 lg:p-8" data-testid="users-list-content">
