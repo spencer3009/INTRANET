@@ -240,7 +240,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
               <HeroCarousel banners={banners} user={user} schoolName={schoolName} />
               {(user?.is_owner || user?.role === "owner" || user?.is_support_session) ? (
                 <>
-                  <OwnerQuickAccess />
+                  <OwnerQuickAccess subdomain={subdomain} />
                   <AttendanceChart data={monthlyAttendance} />
                 </>
               ) : (
