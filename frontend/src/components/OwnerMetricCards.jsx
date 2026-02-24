@@ -38,9 +38,9 @@ const ownerCards = [
   },
   {
     id: "income",
-    label: "Ingresos del Mes",
+    label: `Ingresos de ${currentMonth}`,
     key: "monthly_income",
-    subtitle: "Cobrado este mes",
+    subtitle: `Cobrado en ${currentMonth}`,
     icon: DollarSign,
     prefix: "S/ ",
     gradient: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 50%, #5b21b6 100%)",
