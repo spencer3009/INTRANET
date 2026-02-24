@@ -103,6 +103,7 @@ function PermissionsFixer({ token, onFixed }) {
 export default function DashboardPage({ user, token, onLogout, routeSubdomain }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [metrics, setMetrics] = useState(null);
+  const [ownerStats, setOwnerStats] = useState(null);
   const [events, setEvents] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
   const [news, setNews] = useState([]);
