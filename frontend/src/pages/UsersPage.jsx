@@ -124,7 +124,7 @@ const ROLE_CARDS = [
 ];
 
 // Add User Modal Component
-function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
+function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUser }) {
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -134,6 +134,9 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
+  
+  // Check if current user is the real owner (can create demo users)
+  const isRealOwner = currentUser?.is_owner === true || currentUser?.role === 'owner';
   
   // Academic data for students
   const [levels, setLevels] = useState([]);
