@@ -2223,13 +2223,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               });
                               setShowQRModal(true);
                               setOpenMenuId(null);
-                            // Leftover code removed
-                            className="w-full px-4 py-3 text-left text-sm text-violet-600 hover:bg-violet-50 flex items-center gap-3 transition-colors"
-                            data-testid={`show-qr-${u.id}`}
-                          >
-                            <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center">
-                              <QrCode className="w-4 h-4 text-violet-600" />
-                            </div>
+                            // Leftover code removed - helper functions are defined below
                             Ver QR
                           </button>
                         )}
