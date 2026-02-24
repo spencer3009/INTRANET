@@ -4,6 +4,8 @@ import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import MetricCards from "@/components/MetricCards";
 import OwnerMetricCards from "@/components/OwnerMetricCards";
+import OwnerQuickAccess from "@/components/OwnerQuickAccess";
+import AttendanceChart from "@/components/AttendanceChart";
 import HeroCarousel from "@/components/HeroCarousel";
 import QuickAccess from "@/components/QuickAccess";
 import EventsList from "@/components/EventsList";
