@@ -56,6 +56,20 @@ const ROLE_CARDS = [
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135715.png"
   },
   { 
+    id: "system_admin", 
+    label: "Admin Sistema", 
+    labelSingular: "Admin Sistema",
+    color: "from-slate-700 to-slate-800",
+    bgColor: "bg-slate-100",
+    iconBg: "bg-slate-200",
+    textColor: "text-slate-700",
+    borderColor: "border-slate-300",
+    gradientBg: "from-slate-700 to-slate-900",
+    lightGradient: "from-slate-50 to-slate-100",
+    image: "https://cdn-icons-png.flaticon.com/512/2830/2830305.png",
+    isSystemRole: true  // Flag to identify system roles
+  },
+  { 
     id: "admin", 
     label: "Administradores", 
     labelSingular: "Administrador",
