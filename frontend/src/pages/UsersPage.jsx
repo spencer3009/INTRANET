@@ -2220,14 +2220,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       data-testid={`student-card-${student.id}`}
     >
       <div className={`h-1.5 bg-gradient-to-r ${levelColor?.gradient || roleConfig.gradientBg}`}></div>
-                          data-testid={`edit-user-${u.id}`}
-                        >
-                          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
-                            <Pencil className="w-4 h-4 text-blue-600" />
-                          </div>
-                          Editar
-                        </button>
-                        {/* Ver QR option - only for students */}
+      
+      <div className="p-4">
                         {selectedRole === 'student' && (
                           <button
                             onClick={() => {
