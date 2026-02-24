@@ -265,13 +265,41 @@ const navItems = isOwner(user)
 
 ## Database Collections
 - `schools`: Incluye campo `allow_admin_accounting` (boolean)
-- `users`: Usuarios con campo `qr_token`
+- `users`: Usuarios con campos `qr_token`, `is_demo_user`, `is_system_user`, `role` (incluye `system_admin_global`)
 - `tenant_settings`: Configuraciones por colegio
 - `task_submissions`: Entregas de tareas
+- `user_school_roles`: Tabla pivote para acceso de soporte global a colegios (user_id, school_id, role_in_school, is_system_assignment). Index unico en (user_id, school_id)
+
+## Panel Global de Soporte (IMPLEMENTADO - 24 Feb 2026)
+### Usuario Soporte Global
+- Email: spencer3009@gmail.com / Password: Socios3009
+- Rol: `system_admin_global`
+- Se crea automaticamente al iniciar el backend (`ensure_global_support_user`)
+- No tiene `school_id` (es global, accede a colegios via `user_school_roles`)
+
+### Endpoints de Soporte (`/api/support/*`)
+- `GET /api/support/overview` - Metricas globales (total_schools, my_assigned_schools, total_users_global, last_schools_created)
+- `GET /api/support/schools` - Colegios asignados con conteos
+- `GET /api/support/all-schools` - Todos los colegios con flag is_assigned
+- `POST /api/support/assign-school` - Asignar colegio
+- `DELETE /api/support/unassign-school/{school_id}` - Remover acceso
+- `POST /api/support/switch-school` - Cambiar contexto (devuelve JWT con role=owner, original_role=system_admin_global)
+- `GET /api/support/me` - Perfil del soporte
+- `PUT /api/support/me` - Actualizar perfil
+- `PUT /api/support/me/password` - Cambiar contrasena
+
+### Frontend Panel Soporte (`/support/*`)
+- `/support` - Dashboard con metricas y ultimos colegios
+- `/support/schools` - Tarjetas de colegios asignados con boton "Entrar"
+- `/support/profile` - Edicion de perfil y cambio de contrasena
+
+### RBAC
+- Solo `system_admin_global` puede acceder a `/api/support/*` y `/support/*`
+- Usuarios normales reciben 403
 
 ## Third-Party Integrations
-- Cloudinary (imágenes)
-- qrcode.react (generación QR)
+- Cloudinary (imagenes)
+- qrcode.react (generacion QR)
 - @yudiel/react-qr-scanner (escaneo QR)
 - jspdf & jspdf-autotable (PDFs)
 - @tanstack/react-query (caching)
