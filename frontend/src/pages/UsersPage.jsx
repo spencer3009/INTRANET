@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
@@ -9,12 +9,35 @@ import {
   GraduationCap, Building2, Check, AlertCircle, Plus, Eye, EyeOff,
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles, Search, UserCheck,
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Key, RefreshCw, 
-  ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode
+  ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode,
+  ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
 import { QRCodeSVG } from "qrcode.react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+// LocalStorage keys for student filter persistence
+const STUDENT_FILTER_KEYS = {
+  LEVEL: 'edunet_students_filter_level',
+  GRADE: 'edunet_students_filter_grade',
+  SECTION: 'edunet_students_filter_section',
+  VIEW_MODE: 'edunet_students_view_mode',
+  EXPANDED_LEVELS: 'edunet_students_expanded_levels'
+};
+
+// Level color configuration for grouped view
+const LEVEL_COLORS = {
+  'INICIAL': { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', gradient: 'from-emerald-500 to-teal-600' },
+  'PRIMARIA': { bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', gradient: 'from-blue-500 to-indigo-600' },
+  'SECUNDARIA': { bg: 'bg-violet-500', light: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200', gradient: 'from-violet-500 to-purple-600' },
+  'default': { bg: 'bg-slate-500', light: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200', gradient: 'from-slate-500 to-gray-600' }
+};
+
+const getLevelColor = (levelName) => {
+  const upperName = levelName?.toUpperCase() || '';
+  return LEVEL_COLORS[upperName] || LEVEL_COLORS.default;
+};
 
 // Role configurations with colors and icons
 const ROLE_CARDS = [
