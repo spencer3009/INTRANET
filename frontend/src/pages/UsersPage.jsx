@@ -1535,6 +1535,114 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     }
   }, [openMenuId]);
 
+  // ═══════════════════════════════════════════════════════════════════════════════
+  // STUDENT FILTER PERSISTENCE & COMPUTED VALUES
+  // ═══════════════════════════════════════════════════════════════════════════════
+  
+  // Persist student filters to localStorage
+  useEffect(() => {
+    localStorage.setItem(STUDENT_FILTER_KEYS.LEVEL, studentFilterLevel);
+  }, [studentFilterLevel]);
+  
+  useEffect(() => {
+    localStorage.setItem(STUDENT_FILTER_KEYS.GRADE, studentFilterGrade);
+  }, [studentFilterGrade]);
+  
+  useEffect(() => {
+    localStorage.setItem(STUDENT_FILTER_KEYS.SECTION, studentFilterSection);
+  }, [studentFilterSection]);
+  
+  useEffect(() => {
+    localStorage.setItem(STUDENT_FILTER_KEYS.VIEW_MODE, studentViewMode);
+  }, [studentViewMode]);
+  
+  useEffect(() => {
+    localStorage.setItem(STUDENT_FILTER_KEYS.EXPANDED_LEVELS, JSON.stringify(expandedLevels));
+  }, [expandedLevels]);
+
+  // Filtered grades based on level (dependent dropdown)
+  const filteredGradesForStudentFilter = useMemo(() => {
+    return studentFilterLevel ? grades.filter(g => g.nivel_id === studentFilterLevel) : grades;
+  }, [studentFilterLevel, grades]);
+  
+  // Filtered sections based on grade (dependent dropdown)
+  const filteredSectionsForStudentFilter = useMemo(() => {
+    return studentFilterGrade ? sections.filter(s => s.grado_id === studentFilterGrade) : sections;
+  }, [studentFilterGrade, sections]);
+  
+  // Get all students with applied filters
+  const filteredStudents = useMemo(() => {
+    return users.filter(u => {
+      if (u.role !== 'student' || !u.email_verified) return false;
+      
+      const matchesSearch = !studentSearch || 
+        `${u.name} ${u.last_name}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
+        u.username?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+        u.email?.toLowerCase().includes(studentSearch.toLowerCase()) ||
+        u.phone?.includes(studentSearch);
+      const matchesLevel = !studentFilterLevel || u.nivel_id === studentFilterLevel;
+      const matchesGrade = !studentFilterGrade || u.grado_id === studentFilterGrade;
+      const matchesSection = !studentFilterSection || u.seccion_id === studentFilterSection;
+      
+      return matchesSearch && matchesLevel && matchesGrade && matchesSection;
+    });
+  }, [users, studentSearch, studentFilterLevel, studentFilterGrade, studentFilterSection]);
+  
+  // Group students by level for hierarchical view
+  const studentsByLevel = useMemo(() => {
+    const grouped = {};
+    filteredStudents.forEach(s => {
+      const levelId = s.nivel_id || 'sin_nivel';
+      if (!grouped[levelId]) grouped[levelId] = [];
+      grouped[levelId].push(s);
+    });
+    return grouped;
+  }, [filteredStudents]);
+  
+  // Generate filter description text
+  const studentFilterDescription = useMemo(() => {
+    const parts = [];
+    if (studentFilterLevel) {
+      const level = levels.find(l => l.id === studentFilterLevel);
+      if (level) parts.push(level.nombre);
+    }
+    if (studentFilterGrade) {
+      const grade = grades.find(g => g.id === studentFilterGrade);
+      if (grade) parts.push(grade.nombre);
+    }
+    if (studentFilterSection) {
+      const section = sections.find(s => s.id === studentFilterSection);
+      if (section) parts.push(`Sección ${section.nombre}`);
+    }
+    if (studentSearch) {
+      parts.push(`"${studentSearch}"`);
+    }
+    return parts.length > 0 ? parts.join(' – ') : null;
+  }, [studentFilterLevel, studentFilterGrade, studentFilterSection, studentSearch, levels, grades, sections]);
+  
+  // Toggle accordion functions
+  const toggleLevelAccordion = useCallback((levelId) => {
+    setExpandedLevels(prev => ({ ...prev, [levelId]: !prev[levelId] }));
+  }, []);
+  
+  const toggleGradeAccordion = useCallback((levelId, gradeId) => {
+    const key = `${levelId}_${gradeId}`;
+    setExpandedGrades(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+  
+  const toggleSectionAccordion = useCallback((levelId, gradeId, sectionId) => {
+    const key = `${levelId}_${gradeId}_${sectionId}`;
+    setExpandedSections(prev => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+  
+  // Clear all student filters
+  const clearStudentFilters = useCallback(() => {
+    setStudentFilterLevel("");
+    setStudentFilterGrade("");
+    setStudentFilterSection("");
+    setStudentSearch("");
+  }, []);
+
   // Count users by role
   const getUserCount = (roleId) => {
     if (roleId === 'pending') {
