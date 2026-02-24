@@ -116,17 +116,27 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
   const checkConflicts = useCallback(() => {
     if (!form.dia || !form.hora_inicio || !form.hora_fin) return [];
     
-    const newStart = form.hora_inicio;
-    const newEnd = form.hora_fin;
+    // Convert time string "HH:MM" to minutes for accurate comparison
+    const timeToMinutes = (timeStr) => {
+      if (!timeStr) return 0;
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      return hours * 60 + (minutes || 0);
+    };
+    
+    const newStartMins = timeToMinutes(form.hora_inicio);
+    const newEndMins = timeToMinutes(form.hora_fin);
     const foundConflicts = [];
     
     existingSchedules?.forEach(schedule => {
       if (isEdit && schedule.id === entry?.id) return;
       if (schedule.dia !== form.dia) return;
       
-      const existStart = schedule.hora_inicio;
-      const existEnd = schedule.hora_fin;
-      const hasOverlap = (newStart < existEnd && newEnd > existStart);
+      const existStartMins = timeToMinutes(schedule.hora_inicio);
+      const existEndMins = timeToMinutes(schedule.hora_fin);
+      
+      // Overlap exists only if: newStart < existEnd AND newEnd > existStart
+      // Consecutive schedules (e.g., 07:00-08:00 and 08:00-09:00) should NOT conflict
+      const hasOverlap = (newStartMins < existEndMins && newEndMins > existStartMins);
       
       if (hasOverlap) {
         if (form.profesor_id && schedule.profesor_id === form.profesor_id) {
