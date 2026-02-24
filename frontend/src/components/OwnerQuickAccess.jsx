@@ -7,7 +7,7 @@ const items = [
     label: "Alumnos",
     desc: "Gestion de estudiantes",
     icon: Users,
-    path: "users",
+    path: "users?role=student",
     variant: "primary",
   },
   {
@@ -15,7 +15,7 @@ const items = [
     label: "Docentes",
     desc: "Equipo academico",
     icon: UserCheck,
-    path: "users",
+    path: "users?role=teacher",
     variant: "outline",
   },
   {
