@@ -134,9 +134,11 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showDemoBlockedModal, setShowDemoBlockedModal] = useState(false);
   
   // Check if current user is the real owner (can create demo users)
   const isRealOwner = currentUser?.is_owner === true || currentUser?.role === 'owner';
+  const isDemoUser = currentUser?.is_demo_user === true;
   
   // Academic data for students
   const [levels, setLevels] = useState([]);
