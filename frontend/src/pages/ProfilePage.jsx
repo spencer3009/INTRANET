@@ -135,20 +135,25 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (file.size > 5 * 1024 * 1024) {
-      setMessage({ type: "error", text: "La imagen no debe superar los 5MB" });
+    // Validate file
+    const validation = validateImageFile(file, { maxSizeMB: 5 });
+    if (!validation.valid) {
+      setMessage({ type: "error", text: validation.error });
       return;
     }
     
     setUploading(true);
     setMessage(null);
     try {
+      // Process image: compress to 200px width and convert to WebP
+      const processedFile = await processProfilePhoto(file, { maxWidth: 200, quality: 0.8 });
+      
       // Get Cloudinary signature (GET request with query params)
       const sigRes = await axios.get(`${API}/cloudinary/signature?folder=edunet/users&resource_type=image`, { headers });
       
       // Upload to Cloudinary
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", processedFile);
       formData.append("api_key", sigRes.data.api_key);
       formData.append("timestamp", sigRes.data.timestamp);
       formData.append("signature", sigRes.data.signature);
