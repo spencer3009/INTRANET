@@ -4349,6 +4349,8 @@ class CreateUserRequest(BaseModel):
     address: Optional[str] = None
     role: str = "teacher"
     photo_url: Optional[str] = None
+    # Demo user flag - only owner can create demo users
+    is_demo_user: Optional[bool] = False
     # Academic fields for students
     nivel_id: Optional[str] = None
     grado_id: Optional[str] = None
