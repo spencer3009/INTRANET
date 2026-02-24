@@ -47,7 +47,7 @@
     "email": "admin@elroble.edu",
     "password": "1234abc8",
     "school_subdomain": "elroble",
-    "login_url": "https://escuela-digital-13.preview.emergentagent.com/school/elroble/login"
+    "login_url": "https://multi-tenant-edu-4.preview.emergentagent.com/school/elroble/login"
   },
 
   "seed_data_creation": "No seed data created - used existing course 'Histortia' (ID: a1eb013c-1682-4411-b525-334a55f588d5) with students Pepito P. and Juan L.",
