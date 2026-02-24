@@ -1602,6 +1602,66 @@ async def get_monthly_income(current_user=Depends(require_school)):
     return {"amount": amount}
 
 
+@api_router.get("/dashboard/monthly-attendance")
+async def get_monthly_attendance(current_user=Depends(require_school)):
+    """Asistencia promedio mensual para la gráfica del dashboard propietario"""
+    user = await resolve_user_from_token(current_user)
+    school_id = (user or {}).get("school_id") or current_user.get("school_id")
+    
+    now = datetime.now(timezone.utc)
+    year = now.year
+    months_es = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
+    
+    # Periodo escolar: Marzo a Diciembre (Perú)
+    # Incluimos meses pasados hasta el mes actual
+    result = []
+    
+    total_students = await db.users.count_documents({"school_id": school_id, "role": "student"})
+    if total_students == 0:
+        total_students = 1  # Evitar division por cero
+    
+    for month_idx in range(12):
+        month_num = month_idx + 1
+        # Solo incluir meses hasta el actual
+        if year == now.year and month_num > now.month:
+            break
+        
+        first_day = f"{year}-{month_num:02d}-01"
+        if month_num == 12:
+            last_day = f"{year + 1}-01-01"
+        else:
+            last_day = f"{year}-{month_num + 1:02d}-01"
+        
+        # Contar registros de asistencia del mes
+        total_records = await db.attendances.count_documents({
+            "school_id": school_id,
+            "type": "student",
+            "date": {"$gte": first_day, "$lt": last_day}
+        })
+        
+        present_records = await db.attendances.count_documents({
+            "school_id": school_id,
+            "type": "student",
+            "date": {"$gte": first_day, "$lt": last_day},
+            "status": {"$in": ["present", "late", "justified"]}
+        })
+        
+        if total_records > 0:
+            attendance_pct = round((present_records / total_records) * 100, 1)
+        else:
+            attendance_pct = 0
+        
+        result.append({
+            "month": months_es[month_idx],
+            "attendance": attendance_pct,
+            "total_records": total_records,
+            "present_records": present_records
+        })
+    
+    return result
+
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # STUDENT PORTAL ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
