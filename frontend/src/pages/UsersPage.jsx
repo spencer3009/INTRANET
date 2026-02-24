@@ -2410,6 +2410,297 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       </div>
     );
   };
+  // Helper function to render student card for grouped view
+  const renderStudentCard = (student, roleConfig, levelColor, gradeName, sectionName) => (
+    <div 
+      key={student.id}
+      className={`group relative overflow-hidden bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-2 ${levelColor?.border || roleConfig.borderColor}`}
+      data-testid={`student-card-${student.id}`}
+    >
+      <div className={`h-1.5 bg-gradient-to-r ${levelColor?.gradient || roleConfig.gradientBg}`}></div>
+      <div className="p-4">
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-slate-100">
+                {student.photo_url ? (
+                  <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className={`w-full h-full ${levelColor?.light || 'bg-amber-50'} flex items-center justify-center`}>
+                    <span className={`text-lg font-bold ${levelColor?.text || 'text-amber-600'}`}>
+                      {student.name?.charAt(0)?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 ${levelColor?.bg || 'bg-emerald-500'} rounded-full border-2 border-white flex items-center justify-center`}>
+                <Check className="w-2 h-2 text-white" />
+              </div>
+            </div>
+            <div>
+              <p className="font-bold text-slate-800 text-sm leading-tight">{student.name} {student.last_name}</p>
+              <p className="text-xs text-slate-400">@{student.username}</p>
+            </div>
+          </div>
+          <div className="relative">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpenMenuId(openMenuId === student.id ? null : student.id);
+              }}
+              className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <MoreVertical className="w-4 h-4 text-slate-400" />
+            </button>
+            {openMenuId === student.id && (
+              <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30">
+                <button
+                  onClick={() => {
+                    setQRStudent({ 
+                      ...student, 
+                      grade_name: gradeName, 
+                      section_name: sectionName,
+                      level_name: levelColor?.text?.includes('emerald') ? 'INICIAL' : levelColor?.text?.includes('blue') ? 'PRIMARIA' : 'SECUNDARIA'
+                    });
+                    setShowQRModal(true);
+                    setOpenMenuId(null);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs hover:bg-violet-50 text-violet-600 flex items-center gap-2"
+                >
+                  <QrCode className="w-3.5 h-3.5" />
+                  Ver QR
+                </button>
+                <button
+                  onClick={() => {
+                    handleEditUser(student.id);
+                    setOpenMenuId(null);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs hover:bg-slate-50 flex items-center gap-2"
+                >
+                  <Pencil className="w-3.5 h-3.5" />
+                  Editar
+                </button>
+                <button
+                  onClick={() => {
+                    handleDeleteClick(student);
+                    setOpenMenuId(null);
+                  }}
+                  className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Eliminar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="space-y-1.5 text-xs">
+          {student.email && (
+            <div className="flex items-center gap-2 text-slate-500">
+              <Mail className="w-3 h-3 text-slate-400" />
+              <span className="truncate">{student.email}</span>
+            </div>
+          )}
+          {student.phone && (
+            <div className="flex items-center gap-2 text-slate-500">
+              <Phone className="w-3 h-3 text-slate-400" />
+              <span>{student.phone}</span>
+            </div>
+          )}
+        </div>
+        {student.qr_token && (
+          <div className="mt-3 pt-3 border-t border-slate-100 flex justify-center">
+            <button
+              onClick={() => {
+                setQRStudent({ 
+                  ...student, 
+                  grade_name: gradeName, 
+                  section_name: sectionName 
+                });
+                setShowQRModal(true);
+              }}
+              className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-slate-50 transition-colors"
+            >
+              <div className="bg-white p-1 rounded border border-slate-200">
+                <QRCodeSVG value={student.qr_token} size={40} level="L" />
+              </div>
+              <span className="text-[9px] font-medium text-slate-400 uppercase">QR Code</span>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Helper function to render user card for cards view
+  const renderUserCard = (u, roleConfig) => (
+    <div 
+      key={u.id}
+      className={`group relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${roleConfig.borderColor} hover:-translate-y-1`}
+      data-testid={`user-card-${u.id}`}
+    >
+      <div className={`h-2 bg-gradient-to-r ${roleConfig.gradientBg}`}></div>
+      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${roleConfig.gradientBg} opacity-5 rounded-full -translate-y-1/2 translate-x-1/2`}></div>
+      <div className="p-6 relative">
+        <div className="absolute top-2 right-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setOpenMenuId(openMenuId === u.id ? null : u.id);
+            }}
+            className={`w-10 h-10 rounded-full hover:bg-gradient-to-r hover:${roleConfig.gradientBg} hover:text-white flex items-center justify-center text-slate-400 transition-all`}
+            data-testid={`user-menu-btn-${u.id}`}
+          >
+            <MoreVertical className="w-5 h-5" />
+          </button>
+          {openMenuId === u.id && (
+            <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 min-w-[160px] z-10">
+              <button
+                onClick={() => handleEditUser(u.id)}
+                className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3 transition-colors"
+                data-testid={`edit-user-${u.id}`}
+              >
+                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                  <Pencil className="w-4 h-4 text-blue-600" />
+                </div>
+                Editar
+              </button>
+              {selectedRole === 'student' && (
+                <button
+                  onClick={() => {
+                    const grade = grades.find(g => g.id === u.grado_id);
+                    const sectionName = sections.find(s => s.id === u.seccion_id)?.nombre || "";
+                    const levelName = grade ? levels.find(l => l.id === grade.nivel_id)?.nombre || "" : "";
+                    setQRStudent({ 
+                      ...u, 
+                      grade_name: grade?.nombre || "", 
+                      section_name: sectionName,
+                      level_name: levelName
+                    });
+                    setShowQRModal(true);
+                    setOpenMenuId(null);
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm text-violet-600 hover:bg-violet-50 flex items-center gap-3 transition-colors"
+                  data-testid={`show-qr-${u.id}`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center">
+                    <QrCode className="w-4 h-4 text-violet-600" />
+                  </div>
+                  Ver QR
+                </button>
+              )}
+              <button
+                onClick={() => handleDeleteClick(u)}
+                className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors"
+                data-testid={`delete-user-${u.id}`}
+              >
+                <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                  <Trash2 className="w-4 h-4 text-red-600" />
+                </div>
+                Eliminar
+              </button>
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col items-center text-center mb-4">
+          <div className={`relative mb-4`}>
+            <div className={`w-20 h-20 rounded-2xl overflow-hidden border-3 ${roleConfig.borderColor} shadow-lg`}>
+              {u.photo_url ? (
+                <img 
+                  src={u.photo_url} 
+                  alt={u.name} 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className={`w-full h-full bg-gradient-to-br ${roleConfig.lightGradient} flex items-center justify-center`}>
+                  <span className={`text-2xl font-bold ${roleConfig.textColor}`}>
+                    {u.name?.charAt(0)?.toUpperCase() || "U"}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className={`absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r ${roleConfig.gradientBg} rounded-full border-3 border-white flex items-center justify-center`}>
+              <Check className="w-3 h-3 text-white" />
+            </div>
+          </div>
+          <h3 className="text-lg font-bold text-slate-800 mb-1" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            {u.name} {u.last_name || ""}
+          </h3>
+          <p className="text-sm text-slate-500 mb-3">{u.email || `@${u.username}`}</p>
+          <span className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} text-white text-xs font-semibold shadow-sm`}>
+            <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+            {roleConfig.labelSingular}
+          </span>
+        </div>
+        <div className={`pt-3 border-t ${roleConfig.borderColor}`}>
+          <div className="flex justify-between items-start gap-2">
+            <div className="space-y-1 flex-1 min-w-0">
+              {u.phone && (
+                <div className="flex items-center gap-2 text-sm text-slate-600">
+                  <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center flex-shrink-0`}>
+                    <Phone className={`w-3 h-3 ${roleConfig.textColor}`} />
+                  </div>
+                  <span className="truncate">{u.phone}</span>
+                </div>
+              )}
+              {selectedRole === 'student' && (u.grado_id || u.seccion_id) && (() => {
+                const grade = grades.find(g => g.id === u.grado_id);
+                const section = sections.find(s => s.id === u.seccion_id);
+                const level = grade ? levels.find(l => l.id === grade.nivel_id) : null;
+                return (
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center flex-shrink-0`}>
+                      <GraduationCap className={`w-3 h-3 ${roleConfig.textColor}`} />
+                    </div>
+                    <span className="truncate">
+                      {level?.nombre || ""}{level ? " - " : ""}
+                      {grade?.nombre || "Sin grado"}{" - "}
+                      {section?.nombre || "Sin sección"}
+                    </span>
+                  </div>
+                );
+              })()}
+              <div className="flex items-center gap-2 text-sm text-slate-500">
+                <div className={`w-5 h-5 rounded-full ${roleConfig.bgColor} flex items-center justify-center flex-shrink-0`}>
+                  <FileText className={`w-3 h-3 ${roleConfig.textColor}`} />
+                </div>
+                <span>Registrado: {u.created_at ? new Date(u.created_at).toLocaleDateString('es-PE') : '-'}</span>
+              </div>
+            </div>
+            {selectedRole === 'student' && u.qr_token && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  const grade = grades.find(g => g.id === u.grado_id);
+                  const sectionName = sections.find(s => s.id === u.seccion_id)?.nombre || "";
+                  const levelName = grade ? levels.find(l => l.id === grade.nivel_id)?.nombre || "" : "";
+                  setQRStudent({ 
+                    ...u, 
+                    grade_name: grade?.nombre || "", 
+                    section_name: sectionName,
+                    level_name: levelName
+                  });
+                  setShowQRModal(true);
+                }}
+                className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-slate-50 transition-colors group flex-shrink-0"
+                title="Ver código QR completo"
+                data-testid={`mini-qr-${u.id}`}
+              >
+                <div className="bg-white p-1 rounded-lg shadow-sm border border-slate-200 group-hover:shadow-md transition-shadow">
+                  <QRCodeSVG 
+                    value={u.qr_token} 
+                    size={50}
+                    level="L"
+                  />
+                </div>
+                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">QR</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   // Main content with role cards
   const renderRoleCards = () => (
