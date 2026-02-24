@@ -2213,11 +2213,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   // Helper function to render student card for grouped view
-                        {selectedRole === 'student' && (
-                          <button
-                            onClick={() => {
-                              // Add grade, section and level names for QR card
-                              const grade = grades.find(g => g.id === u.grado_id);
                               const sectionName = sections.find(s => s.id === u.seccion_id)?.nombre || "";
                               const levelName = grade ? levels.find(l => l.id === grade.nivel_id)?.nombre || "" : "";
                               setQRStudent({ 
