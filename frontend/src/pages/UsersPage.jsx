@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
 import { QRCodeSVG } from "qrcode.react";
+import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
