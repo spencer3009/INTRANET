@@ -1569,6 +1569,26 @@ function App() {
           />
           
           {/* ════════════════════════════════════════════════════════════════════
+              SUPPORT PANEL - Global support admin only
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/support"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={false} requireEmailVerified={false}>
+                {isSupportGlobal(user) ? (
+                  <SupportLayout user={user} token={token} onLogout={handleLogout} />
+                ) : (
+                  <Navigate to="/login" replace />
+                )}
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<SupportDashboardPage token={token} />} />
+            <Route path="schools" element={<SupportSchoolsPage token={token} onLogin={handleLogin} />} />
+            <Route path="profile" element={<SupportProfilePage token={token} user={user} onUserUpdate={handleUserUpdate} />} />
+          </Route>
+          
+          {/* ════════════════════════════════════════════════════════════════════
               404
           ════════════════════════════════════════════════════════════════════ */}
           <Route path="*" element={<NotFoundPage />} />
