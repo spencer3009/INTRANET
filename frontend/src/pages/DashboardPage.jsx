@@ -147,8 +147,12 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
       const isOwnerRole = user?.is_owner || user?.role === "owner" || user?.is_support_session;
       if (isOwnerRole) {
         try {
-          const ownerRes = await axios.get(`${API}/dashboard/owner-stats`, { headers });
+          const [ownerRes, attendanceRes] = await Promise.all([
+            axios.get(`${API}/dashboard/owner-stats`, { headers }),
+            axios.get(`${API}/dashboard/monthly-attendance`, { headers })
+          ]);
           setOwnerStats(ownerRes.data);
+          setMonthlyAttendance(attendanceRes.data);
         } catch (e) {
           console.error("Error fetching owner stats:", e);
         }
