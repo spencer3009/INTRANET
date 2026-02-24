@@ -1288,18 +1288,36 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
             {sortedLevelEntries.map(([nivelId, data]) => (
               <div key={nivelId}>
                 <h3 className="text-lg font-bold text-slate-700 mb-4 flex items-center gap-2"><GraduationCap className="w-5 h-5 text-blue-500" />{data.nivel_nombre}</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                   {data.grades.map(g => (
                     <div key={g.id} className={`group relative bg-white rounded-xl shadow-sm hover:shadow-lg transition-all border-2 ${cat.borderColor} hover:-translate-y-1 overflow-hidden`}>
                       <div className={`h-1.5 bg-gradient-to-r ${cat.color}`}></div>
                       <div className="p-4 relative">
-                        <button onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === g.id ? null : g.id); }} className="absolute top-1 right-1 w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 opacity-0 group-hover:opacity-100"><MoreVertical className="w-4 h-4" /></button>
-                        {menuOpen === g.id && <div className="absolute right-0 top-10 bg-white rounded-xl shadow-2xl border py-2 min-w-[140px] z-10"><button onClick={() => { setEditingGrade(g); setShowGradeModal(true); setMenuOpen(null); }} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"><Pencil className="w-4 h-4 text-blue-500" />Editar</button><button onClick={() => openDelete("grade", g)} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" />Eliminar</button></div>}
-                        <div className="text-center pt-2"><div className={`w-12 h-12 mx-auto mb-2 rounded-xl bg-gradient-to-br ${cat.lightColor} border-2 ${cat.borderColor} flex items-center justify-center`}><span className={`text-lg font-bold ${cat.textColor}`}>{g.nombre}</span></div><span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${g.activo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}><span className={`w-1 h-1 rounded-full ${g.activo ? "bg-emerald-500" : "bg-slate-400"}`}></span>{g.activo ? "Activo" : "Inactivo"}</span></div>
+                        <button onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === g.id ? null : g.id); }} className="absolute top-1 right-1 w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 opacity-0 group-hover:opacity-100 z-10"><MoreVertical className="w-4 h-4" /></button>
+                        {menuOpen === g.id && <div className="absolute right-0 top-10 bg-white rounded-xl shadow-2xl border py-2 min-w-[140px] z-20"><button onClick={() => { setEditingGrade(g); setShowGradeModal(true); setMenuOpen(null); }} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"><Pencil className="w-4 h-4 text-blue-500" />Editar</button><button onClick={() => openDelete("grade", g)} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" />Eliminar</button></div>}
+                        <div className="text-center pt-2">
+                          {/* Icon container - fixed size */}
+                          <div className={`w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br ${cat.lightColor} border-2 ${cat.borderColor} flex items-center justify-center`}>
+                            <GraduationCap className={`w-7 h-7 ${cat.textColor}`} />
+                          </div>
+                          {/* Grade name - truncated if too long */}
+                          <h4 className="text-base font-bold text-slate-800 truncate px-1 mb-1" title={g.nombre}>{g.nombre}</h4>
+                          {/* Level badge - pill style */}
+                          <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100 text-blue-700 truncate max-w-full" title={data.nivel_nombre}>
+                            {data.nivel_nombre}
+                          </span>
+                          {/* Status badge */}
+                          <div className="mt-2">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${g.activo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}>
+                              <span className={`w-1 h-1 rounded-full ${g.activo ? "bg-emerald-500" : "bg-slate-400"}`}></span>
+                              {g.activo ? "Activo" : "Inactivo"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ))}
-                  <button onClick={() => { setEditingGrade(null); setShowGradeModal(true); }} className={`rounded-xl border-2 border-dashed ${cat.borderColor} hover:border-emerald-400 hover:bg-emerald-50 p-4 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-600 min-h-[100px]`}><Plus className="w-6 h-6 mb-1" /><span className="text-xs font-medium">Agregar</span></button>
+                  <button onClick={() => { setEditingGrade(null); setShowGradeModal(true); }} className={`rounded-xl border-2 border-dashed ${cat.borderColor} hover:border-emerald-400 hover:bg-emerald-50 p-4 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-600 min-h-[160px]`}><Plus className="w-6 h-6 mb-1" /><span className="text-xs font-medium">Agregar</span></button>
                 </div>
               </div>
             ))}
