@@ -771,6 +771,7 @@ async def login(creds: UserLogin):
             "is_owner": user.get("is_owner", False),
             "is_super_admin": user.get("is_super_admin", False),
             "is_protected": user.get("is_protected", False),
+            "is_demo_user": user.get("is_demo_user", False),
             "photo_url": user.get("photo_url"),
             "phone": user.get("phone"),
             "permissions": permissions
