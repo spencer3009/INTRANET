@@ -140,8 +140,20 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
           </div>
         </div>
 
-        {/* Right: Search + Notifications + Avatar with Dropdown */}
+        {/* Right: Demo Mode Indicator + Search + Notifications + Avatar with Dropdown */}
         <div className="flex items-center gap-3">
+          {/* Demo Mode Indicator */}
+          {user?.is_demo_user && (
+            <div 
+              className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 border border-blue-200 rounded-xl cursor-help"
+              title="Estás usando una versión demostrativa. Las funciones de creación y edición están deshabilitadas."
+              data-testid="demo-mode-indicator"
+            >
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+              <span className="text-xs font-semibold text-blue-700 whitespace-nowrap">MODO DEMO</span>
+            </div>
+          )}
+          
           {/* Search bar */}
           <div className="relative flex items-center" data-testid="header-search-container">
             {searchOpen ? (
