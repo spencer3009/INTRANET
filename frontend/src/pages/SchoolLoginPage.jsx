@@ -47,7 +47,14 @@ export default function SchoolLoginPage({ onLogin }) {
     
     try {
       const res = await axios.post(`${API}/auth/login`, { email, password });
-      const { token, user } = res.data;
+      const { token, user, redirect_to_support } = res.data;
+      
+      // Global support user -> redirect to /support
+      if (redirect_to_support || user.role === "system_admin_global" || user.is_support_global) {
+        onLogin(token, user);
+        navigate("/support");
+        return;
+      }
       
       // Verify user belongs to this school
       if (user.subdomain && user.subdomain !== subdomain) {
