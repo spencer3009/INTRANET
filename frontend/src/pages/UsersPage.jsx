@@ -2062,17 +2062,19 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
               </div>
               
-              {/* Add button */}
-              <button
-                onClick={() => handleAddUser(selectedRole)}
-                className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
-                data-testid="add-user-circle-btn"
-              >
-                <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
-                  <Plus className="w-5 h-5 text-white" />
-                </div>
-                <span>Agregar {roleConfig.labelSingular}</span>
-              </button>
+              {/* Add button - Hidden for system roles */}
+              {!roleConfig.hideAddButton && (
+                <button
+                  onClick={() => handleAddUser(selectedRole)}
+                  className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                  data-testid="add-user-circle-btn"
+                >
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                    <Plus className="w-5 h-5 text-white" />
+                  </div>
+                  <span>Agregar {roleConfig.labelSingular}</span>
+                </button>
+              )}
             </div>
           </div>
         </div>
