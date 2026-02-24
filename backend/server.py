@@ -7127,15 +7127,20 @@ async def check_schedule_conflicts(
     2. Room conflict: same room at same time
     3. Section conflict: same section already has class at this time
     
+    IMPORTANT: Overlap detection uses STRICT comparison (< and >) NOT (<= and >=)
+    This allows consecutive schedules like 07:00-08:00 and 08:00-09:00 without conflict.
+    Overlap exists when: new_start < existing_end AND new_end > existing_start
+    
     Returns list of conflict descriptions
     """
     conflicts = []
     
     # 0. Check for break/block conflicts (recreo, almuerzo, evento)
+    # Use $lt and $gt for strict comparison (consecutive times don't overlap)
     break_conflict = await db.schedule_breaks.find_one({
         "school_id": school_id,
-        "start_time": {"$lt": hora_fin},
-        "end_time": {"$gt": hora_inicio}
+        "start_time": {"$lt": hora_fin},   # existing starts before new ends
+        "end_time": {"$gt": hora_inicio}    # existing ends after new starts
     }, {"_id": 0})
     
     if break_conflict:
