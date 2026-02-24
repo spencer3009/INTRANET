@@ -2213,7 +2213,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   // Helper function to render student card for grouped view
-                  {/* 3 dots menu */}
+  const renderStudentCard = (student, roleConfig, levelColor, gradeName, sectionName) => (
                   <div className="absolute top-2 right-2">
                     <button
                       onClick={(e) => {
