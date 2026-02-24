@@ -4375,6 +4375,7 @@ async def get_tenant_users(current_user = Depends(get_current_user)):
     """
     Get all users for the current tenant.
     Only admins/directors/owners/super_admins can view users.
+    System users (Admin Técnico) are only visible to owners and system_admins.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
@@ -4386,9 +4387,22 @@ async def get_tenant_users(current_user = Depends(get_current_user)):
     
     school_id = user["school_id"]
     
+    # Build query - system users only visible to owners and system_admins
+    query = {"school_id": school_id}
+    
+    # Only owners and system_admins can see system users
+    can_see_system_users = (
+        user.get("is_owner") == True or 
+        user.get("role") == "system_admin" or
+        user.get("is_super_admin") == True
+    )
+    
+    if not can_see_system_users:
+        query["is_system_user"] = {"$ne": True}
+    
     # Get all users for this school
     users_cursor = db.users.find(
-        {"school_id": school_id},
+        query,
         {"_id": 0, "password": 0, "verification_code": 0}
     )
     users = await users_cursor.to_list(length=1000)
