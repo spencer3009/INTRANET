@@ -254,6 +254,11 @@ def require_role(allowed_roles: list):
     Usage: current_user = Depends(require_role(["admin", "director"]))
     """
     async def check_role(current_user = Depends(get_current_user)):
+        # Support switch sessions act as owner
+        if current_user.get("scope") == "support_switch":
+            if "owner" in allowed_roles:
+                return await resolve_user_from_token(current_user)
+            raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta función")
         user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
         if not user:
             raise HTTPException(status_code=403, detail="Usuario no encontrado")
