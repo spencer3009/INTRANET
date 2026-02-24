@@ -154,6 +154,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     gender: "",
     address: "",
     role: roleId || "",
+    is_demo_user: false, // Demo user flag - only owner can create
     // Student-specific fields
     nivel_id: "",
     grado_id: "",
