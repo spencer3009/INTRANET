@@ -787,16 +787,62 @@ async def login(creds: UserLogin):
     Login user and return:
       - If has school_id AND school has subdomain: include subdomain for redirect
       - If no school_id OR school has no subdomain: indicate onboarding needed
+      - If system_admin_global: return is_support_global flag for redirect to /support
     Accepts email OR username for login.
     """
     identifier = creds.email.lower().strip()
     
-    # Try to find user by email or username
+    # First, check for global support user (priority over school-specific users)
+    global_support = await db.users.find_one({
+        "email": identifier,
+        "role": "system_admin_global"
+    })
+    
+    if global_support and verify_password(creds.password, global_support["password"]):
+        # Global support user login
+        token = create_token(
+            global_support["id"], global_support["email"], global_support["name"],
+            global_support["role"], None, None, True
+        )
+        return {
+            "token": token,
+            "user": {
+                "id": global_support["id"],
+                "email": global_support["email"],
+                "username": global_support.get("username"),
+                "name": global_support["name"],
+                "last_name": global_support.get("last_name", ""),
+                "role": global_support["role"],
+                "school_id": None,
+                "subdomain": None,
+                "email_verified": True,
+                "is_owner": False,
+                "is_super_admin": False,
+                "is_protected": True,
+                "is_demo_user": False,
+                "is_support_global": True,
+                "photo_url": global_support.get("photo_url"),
+                "phone": global_support.get("phone"),
+                "permissions": {
+                    "role": "system_admin_global",
+                    "is_owner": False,
+                    "is_admin": False,
+                    "is_support_global": True,
+                    "sections": {}
+                }
+            },
+            "redirect_to_subdomain": False,
+            "redirect_url": None,
+            "redirect_to_support": True
+        }
+    
+    # Standard user login (exclude global support user from results)
     user = await db.users.find_one({
         "$or": [
             {"email": identifier},
             {"username": identifier}
-        ]
+        ],
+        "role": {"$ne": "system_admin_global"}
     })
     
     if not user or not verify_password(creds.password, user["password"]):
