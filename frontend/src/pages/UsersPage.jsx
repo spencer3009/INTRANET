@@ -2648,6 +2648,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           </div>
           <h3 className="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2 justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
             {u.name} {u.last_name || ""}
+            {u.is_system_user && (
+              <span 
+                className="px-2 py-0.5 text-[10px] font-bold bg-slate-800 text-white rounded-full flex items-center gap-1"
+                title="Usuario protegido del sistema. Se utiliza para soporte técnico."
+              >
+                🔒 SISTEMA
+              </span>
+            )}
             {u.is_demo_user && (
               <span className="px-2 py-0.5 text-[10px] font-bold bg-blue-100 text-blue-700 rounded-full border border-blue-200">
                 DEMO
