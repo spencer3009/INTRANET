@@ -2680,6 +2680,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   alt={u.name} 
                   className="w-full h-full object-cover"
                 />
+              ) : u.is_system_user && roleConfig.profileImage ? (
+                <img 
+                  src={roleConfig.profileImage} 
+                  alt={u.name} 
+                  className="w-full h-full object-cover p-2 bg-gradient-to-br from-cyan-50 to-teal-50"
+                />
               ) : (
                 <div className={`w-full h-full bg-gradient-to-br ${roleConfig.lightGradient} flex items-center justify-center`}>
                   <span className={`text-2xl font-bold ${roleConfig.textColor}`}>
