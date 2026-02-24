@@ -2213,7 +2213,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   // Helper function to render student card for grouped view
-  // Helper function to render student card for grouped view
   const renderStudentCard = (student, roleConfig, levelColor, gradeName, sectionName) => (
     <div 
       key={student.id}
