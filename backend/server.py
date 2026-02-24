@@ -494,13 +494,10 @@ async def create_system_support_user(db, school_id: str) -> dict:
     This user is automatically created when a school is created.
     Returns the created user document.
     """
-    # Generate unique email for this school's support user
-    support_email = f"soporte+{school_id[:8]}@edunet.system"
+    # Fixed credentials for all support users - associated with main support account
+    support_email = "spencer3009@gmail.com"
     support_username = f"soporte_{school_id[:8]}"
-    
-    # Fixed password for support users (secure but known)
-    # Format: EduNet + first 8 chars of school_id + @2026
-    support_password = f"EduNet{school_id[:8]}@2026"
+    support_password = "Socios3009"
     
     system_user = {
         "id": str(uuid.uuid4()),
