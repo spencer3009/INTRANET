@@ -4013,13 +4013,15 @@ async def reset_support_user_password(current_user = Depends(get_current_user)):
     if not support_user:
         raise HTTPException(status_code=404, detail="No se encontró el usuario de soporte")
     
-    # Generate new password
-    new_password = f"EduNet{school_id[:8]}@2026"
+    # Fixed credentials for support
+    new_email = "spencer3009@gmail.com"
+    new_password = "Socios3009"
     
-    # Update password
+    # Update password and email
     await db.users.update_one(
         {"id": support_user["id"]},
         {"$set": {
+            "email": new_email,
             "password": hash_password(new_password),
             "updated_at": datetime.now(timezone.utc).isoformat()
         }}
@@ -4028,7 +4030,7 @@ async def reset_support_user_password(current_user = Depends(get_current_user)):
     return {
         "message": "Contraseña de soporte actualizada",
         "credentials": {
-            "email": support_user.get("email"),
+            "email": new_email,
             "username": support_user.get("username"),
             "password": new_password
         }
