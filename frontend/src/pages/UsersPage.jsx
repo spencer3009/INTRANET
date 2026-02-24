@@ -2029,8 +2029,43 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           </div>
         )}
 
-        {/* Users Grid */}
-        {usersToDisplay.length === 0 ? (
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            CONTENT AREA - Initial state, Empty state, Grouped view or Cards grid
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {selectedRole === 'student' && !hasActiveStudentFilters ? (
+          /* Initial state - No filters applied yet */
+          <div className="relative overflow-hidden bg-gradient-to-br from-amber-50 to-orange-50 rounded-3xl p-12 text-center border-2 border-amber-200">
+            <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 opacity-10"></div>
+            <div className="absolute -bottom-10 -left-10 w-32 h-32 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 opacity-10"></div>
+            
+            <div className="relative z-10">
+              <div className="w-24 h-24 mx-auto mb-6 bg-white rounded-2xl shadow-lg p-5 border-2 border-amber-200">
+                <Filter className="w-full h-full text-amber-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-amber-700 mb-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                Selecciona filtros para ver estudiantes
+              </h3>
+              <p className="text-slate-600 mb-6 max-w-lg mx-auto">
+                Tienes <span className="font-bold text-amber-600">{totalStudents} estudiantes</span> registrados. 
+                Para optimizar la carga, selecciona al menos un <span className="font-semibold">nivel</span>, <span className="font-semibold">grado</span> o usa el <span className="font-semibold">buscador</span> para mostrar los resultados.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-amber-200 text-sm text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  INICIAL
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-amber-200 text-sm text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                  PRIMARIA
+                </div>
+                <div className="flex items-center gap-2 px-4 py-2 bg-white rounded-xl border border-amber-200 text-sm text-slate-600">
+                  <span className="w-2 h-2 rounded-full bg-violet-500"></span>
+                  SECUNDARIA
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : usersToDisplay.length === 0 ? (
           <div className={`relative overflow-hidden bg-gradient-to-br ${roleConfig.lightGradient} rounded-3xl p-16 text-center border-2 ${roleConfig.borderColor}`}>
             {/* Decorative circles */}
             <div className={`absolute -top-10 -right-10 w-40 h-40 rounded-full bg-gradient-to-br ${roleConfig.gradientBg} opacity-10`}></div>
