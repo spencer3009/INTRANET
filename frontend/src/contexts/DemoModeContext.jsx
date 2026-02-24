@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback } from 'react';
-import { Eye, X } from 'lucide-react';
+import DemoBlockedModal from '@/components/DemoBlockedModal';
 
 const DemoModeContext = createContext(null);
 
@@ -39,6 +39,26 @@ export function DemoModeProvider({ children, user }) {
     };
   }, [isDemoUser]);
   
+  /**
+   * Handle API errors - shows demo modal if it's a demo blocked error
+   * Returns true if it was a demo error (handled), false otherwise
+   * Usage: if (handleDemoError(err)) return; else setError(err.message);
+   */
+  const handleDemoError = useCallback((err) => {
+    const errorMessage = err?.response?.data?.detail || "";
+    const statusCode = err?.response?.status;
+    
+    if (
+      errorMessage.toLowerCase().includes("modo visitante") ||
+      errorMessage.toLowerCase().includes("demo") ||
+      (statusCode === 403 && isDemoUser)
+    ) {
+      setShowDemoModal(true);
+      return true;
+    }
+    return false;
+  }, [isDemoUser]);
+  
   const closeDemoModal = useCallback(() => {
     setShowDemoModal(false);
   }, []);
@@ -48,72 +68,21 @@ export function DemoModeProvider({ children, user }) {
       isDemoUser, 
       checkDemoAccess, 
       wrapDemoCheck,
+      handleDemoError,
       showDemoModal,
       closeDemoModal 
     }}>
       {children}
       
-      {/* Demo Mode Modal */}
-      {showDemoModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] p-4" data-testid="demo-mode-modal">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-fade-in-up">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 px-6 py-5 text-white">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center">
-                    <Eye className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold">Modo Visitante</h2>
-                    <p className="text-blue-100 text-sm">Versión demostrativa</p>
-                  </div>
-                </div>
-                <button 
-                  onClick={closeDemoModal}
-                  className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors"
-                  data-testid="demo-modal-close"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-            
-            {/* Content */}
-            <div className="px-6 py-6">
-              <p className="text-slate-700 text-base leading-relaxed">
-                Estás explorando <span className="font-semibold text-blue-600">EduNet</span> en modo demostración.
-              </p>
-              <p className="text-slate-600 mt-3">
-                Las funciones de creación y edición están deshabilitadas en esta versión.
-              </p>
-              <div className="mt-4 p-4 bg-blue-50 rounded-xl border border-blue-100">
-                <p className="text-sm text-blue-700">
-                  <span className="font-semibold">💡 Cuando contrates el servicio</span> tendrás acceso completo a todas las funcionalidades del sistema.
-                </p>
-              </div>
-            </div>
-            
-            {/* Footer */}
-            <div className="px-6 pb-6">
-              <button
-                onClick={closeDemoModal}
-                className="w-full py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg shadow-blue-500/30"
-                data-testid="demo-modal-confirm"
-              >
-                Entendido
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Global Demo Mode Modal */}
+      <DemoBlockedModal isOpen={showDemoModal} onClose={closeDemoModal} />
     </DemoModeContext.Provider>
   );
 }
 
 /**
  * Hook to access demo mode functionality
- * @returns {{ isDemoUser: boolean, checkDemoAccess: () => boolean, wrapDemoCheck: (fn) => fn }}
+ * @returns {{ isDemoUser: boolean, checkDemoAccess: () => boolean, wrapDemoCheck: (fn) => fn, handleDemoError: (err) => boolean }}
  */
 export function useDemoMode() {
   const context = useContext(DemoModeContext);
@@ -123,6 +92,7 @@ export function useDemoMode() {
       isDemoUser: false,
       checkDemoAccess: () => true,
       wrapDemoCheck: (fn) => fn,
+      handleDemoError: () => false,
       showDemoModal: false,
       closeDemoModal: () => {}
     };
