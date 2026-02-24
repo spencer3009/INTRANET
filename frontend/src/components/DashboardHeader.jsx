@@ -104,9 +104,43 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
     onLogout();
   };
 
+  const isSupportSession = user?.is_support_session || user?.original_role === "system_admin_global";
+
+  const handleBackToSupport = () => {
+    // Restaurar token y usuario de soporte desde localStorage backup
+    const supportToken = localStorage.getItem("support_token");
+    const supportUser = localStorage.getItem("support_user");
+    if (supportToken && supportUser) {
+      localStorage.setItem("token", supportToken);
+      localStorage.setItem("user", supportUser);
+      window.location.href = "/support";
+    } else {
+      // Fallback: ir al login
+      onLogout();
+    }
+  };
+
   return (
-    <header className="glass-header sticky top-0 z-30 px-4 md:px-6 lg:px-8" data-testid="dashboard-header">
-      <div className="flex items-center justify-between h-24">
+    <header className="glass-header sticky top-0 z-30" data-testid="dashboard-header">
+      {/* Support session banner */}
+      {isSupportSession && (
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-4 md:px-6 lg:px-8 py-2 flex items-center justify-between" data-testid="support-session-banner">
+          <div className="flex items-center gap-2">
+            <Headset className="w-4 h-4 text-white" />
+            <span className="text-xs font-semibold text-white">SESION DE SOPORTE</span>
+            <span className="text-xs text-emerald-100">Estas navegando como soporte tecnico</span>
+          </div>
+          <button
+            onClick={handleBackToSupport}
+            className="flex items-center gap-1.5 px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold text-white transition-colors"
+            data-testid="back-to-support-btn"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Volver al Panel de Soporte
+          </button>
+        </div>
+      )}
+      <div className="flex items-center justify-between h-24 px-4 md:px-6 lg:px-8">
         {/* Left: Hamburger + Logo + Welcome */}
         <div className="flex items-center gap-4">
           <button
