@@ -241,7 +241,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
               {(user?.is_owner || user?.role === "owner" || user?.is_support_session) ? (
                 <>
                   <OwnerQuickAccess subdomain={subdomain} />
-                  <AttendanceChart data={monthlyAttendance} />
+                  <PaymentsChart data={monthlyPayments} />
                 </>
               ) : (
                 <>
