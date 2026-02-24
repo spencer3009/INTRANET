@@ -4635,7 +4635,11 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
     if not target:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
-    # Cannot change role of protected users
+    # SYSTEM USERS CANNOT BE EDITED AT ALL
+    if target.get("is_system_user"):
+        raise HTTPException(status_code=403, detail=SYSTEM_USER_BLOCKED_MESSAGE)
+    
+    # Cannot change role of protected users (owner)
     if (target.get("is_protected") or target.get("is_owner")) and data.role and data.role != target.get("role"):
         raise HTTPException(status_code=400, detail="No se puede cambiar el rol del propietario de la intranet")
     
