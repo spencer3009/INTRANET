@@ -473,7 +473,7 @@ export default function SchedulePage({ user, token, onLogout }) {
               </div>
               <h3 className="text-xl font-bold text-slate-800 mb-2">Selecciona los filtros</h3>
               <p className="text-slate-500">
-                {activeTab === "clases" ? "Elige un grado y sección para ver el horario" :
+                {activeTab === "clases" ? "Elige un nivel, grado y sección para ver el horario" :
                  "Elige un grado y sección para ver los exámenes programados"}
               </p>
             </div>
