@@ -2084,16 +2084,35 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   </span>
                 )}
               </div>
-              {(studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch) && (
-                <button
-                  onClick={clearStudentFilters}
-                  className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition-colors"
-                  data-testid="clear-filters"
-                >
-                  <X className="w-4 h-4" />
-                  Limpiar filtros
-                </button>
-              )}
+              <div className="flex items-center gap-2">
+                {/* Generate QR Button - Shows only if there are students without QR */}
+                {studentsWithoutQR > 0 && (
+                  <button
+                    onClick={handleGenerateQRCodes}
+                    disabled={generatingQR}
+                    className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors border border-emerald-200 disabled:opacity-50"
+                    data-testid="generate-qr-btn"
+                    title={`${studentsWithoutQR} estudiante(s) sin QR`}
+                  >
+                    {generatingQR ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <QrCode className="w-4 h-4" />
+                    )}
+                    Generar QR ({studentsWithoutQR})
+                  </button>
+                )}
+                {(studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch) && (
+                  <button
+                    onClick={clearStudentFilters}
+                    className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition-colors"
+                    data-testid="clear-filters"
+                  >
+                    <X className="w-4 h-4" />
+                    Limpiar filtros
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}
