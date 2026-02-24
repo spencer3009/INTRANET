@@ -59,6 +59,31 @@ EduNet es una plataforma SaaS multi-tenant para colegios en Perú. Incluye módu
 
 ## What's Been Implemented
 
+### Session: 2026-02-24 (Premium Student Filters & Grouped View) ✅
+- **FEATURE: Filtros Inteligentes + Vista Agrupada para Estudiantes**
+  - Implementado en `UsersPage.jsx` (Portal Propietario → Usuarios → Estudiantes)
+  - **Barra de Filtros Inteligentes**:
+    - Buscador por nombre, usuario, correo o teléfono
+    - Filtro por Nivel con dropdown
+    - Filtro por Grado (dependiente del nivel)
+    - Filtro por Sección (dependiente del grado)
+    - Toggle de vista: "Agrupado" | "Tarjetas"
+    - Indicador: "Mostrando X de Y estudiantes — [descripción filtros]"
+    - Botón "Limpiar filtros"
+  - **Vista Agrupada Jerárquica** (por defecto):
+    - Nivel (acordeón verde/azul/violeta según INICIAL/PRIMARIA/SECUNDARIA)
+    - Grado (sub-acordeón)
+    - Sección (sub-sub-acordeón)
+    - Tarjetas compactas de estudiantes con mini QR
+  - **Vista Tarjetas** (original):
+    - Grid responsive con tarjetas grandes originales
+    - Información completa + QR
+  - **Persistencia en localStorage**:
+    - Filtros se guardan y restauran al volver
+    - Modo de vista persistente
+    - Estados de acordeones expandidos/colapsados
+  - **Optimizado para escalabilidad**: Funciona con 10, 200 o 1000+ estudiantes
+
 ### Session: 2026-02-23 (Company Logo in Headers) ✅
 - **FEATURE: Logo de empresa en todos los headers**
   - Modificadas 18 páginas para usar `/api/settings/public/{subdomain}` en lugar de `/api/settings` (protegido)
