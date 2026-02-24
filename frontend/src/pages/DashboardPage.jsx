@@ -139,6 +139,18 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
       setNews(newsRes.data?.news || []);
       setBanners(bannersRes.data || []);
       setHasPermissionError(false);
+      
+      // Cargar estadísticas de propietario si aplica
+      const isOwnerRole = user?.is_owner || user?.role === "owner" || user?.is_support_session;
+      if (isOwnerRole) {
+        try {
+          const ownerRes = await axios.get(`${API}/dashboard/owner-stats`, { headers });
+          setOwnerStats(ownerRes.data);
+        } catch (e) {
+          console.error("Error fetching owner stats:", e);
+        }
+      }
+      setHasPermissionError(false);
       if (settingsRes.data) {
         setSettings(settingsRes.data);
         // Update browser title
