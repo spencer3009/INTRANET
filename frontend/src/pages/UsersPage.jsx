@@ -2860,6 +2860,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         token={token}
         roleId={addModalRole}
         onUserCreated={handleUserCreated}
+        currentUser={user}
       />
 
       {/* Delete Confirmation Modal */}
