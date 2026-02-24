@@ -69,6 +69,7 @@ import ParentCoursesPage from "@/pages/ParentCoursesPage";
 import ParentSchedulePage from "@/pages/ParentSchedulePage";
 import ParentExamsPage from "@/pages/ParentExamsPage";
 import ParentMessagesPage from "@/pages/ParentMessagesPage";
+import { DemoModeProvider } from "@/contexts/DemoModeContext";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
