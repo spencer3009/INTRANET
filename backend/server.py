@@ -1184,6 +1184,9 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
         )
         logger.info(f"School created: {subdomain}.{BASE_DOMAIN} for user {user['email']} (Super Admin)")
         
+        # Create system support user (Admin Técnico) for the new school
+        await create_system_support_user(db, school_id)
+        
         # Seed demo data for the new school
         await seed_demo_data_for_school(db, school_id, user["id"])
 
