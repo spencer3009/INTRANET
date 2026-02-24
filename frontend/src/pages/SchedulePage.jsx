@@ -34,6 +34,7 @@ export default function SchedulePage({ user, token, onLogout }) {
 
   // Data
   const [grades, setGrades] = useState([]);
+  const [levels, setLevels] = useState([]);
   const [sections, setSections] = useState([]);
   const [teachers, setTeachers] = useState([]);
   const [schedules, setSchedules] = useState([]);
