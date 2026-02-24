@@ -2402,7 +2402,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               </div>
             </div>
             <div>
-              <p className="font-bold text-slate-800 text-sm leading-tight">{student.name} {student.last_name}</p>
+              <p className="font-bold text-slate-800 text-sm leading-tight flex items-center gap-1.5">
+                {student.name} {student.last_name}
+                {student.is_demo_user && (
+                  <span className="px-1.5 py-0.5 text-[8px] font-bold bg-blue-100 text-blue-700 rounded-full">DEMO</span>
+                )}
+              </p>
               <p className="text-xs text-slate-400">@{student.username}</p>
             </div>
           </div>
