@@ -66,8 +66,9 @@ const ROLE_CARDS = [
     borderColor: "border-cyan-200",
     gradientBg: "from-cyan-500 to-teal-600",
     lightGradient: "from-cyan-50 to-teal-50",
-    image: "https://cdn-icons-png.flaticon.com/512/2092/2092663.png",
-    isSystemRole: true  // Flag to identify system roles
+    image: "https://cdn-icons-png.flaticon.com/512/3953/3953226.png",
+    isSystemRole: true,  // Flag to identify system roles
+    hideAddButton: true  // Don't show "Agregar" button - only 1 per school
   },
   { 
     id: "admin", 
