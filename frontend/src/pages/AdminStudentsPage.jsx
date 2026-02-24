@@ -1396,9 +1396,21 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
   const [students, setStudents] = useState([]);
   const [settings, setSettings] = useState(null);
   const [search, setSearch] = useState("");
-  const [filterLevel, setFilterLevel] = useState("");
-  const [filterGrade, setFilterGrade] = useState("");
+  
+  // Filter states with localStorage persistence
+  const [filterLevel, setFilterLevel] = useState(() => localStorage.getItem(STORAGE_KEYS.LEVEL) || "");
+  const [filterGrade, setFilterGrade] = useState(() => localStorage.getItem(STORAGE_KEYS.GRADE) || "");
+  const [filterSection, setFilterSection] = useState(() => localStorage.getItem(STORAGE_KEYS.SECTION) || "");
   const [filterStatus, setFilterStatus] = useState("");
+  
+  // View mode: 'grouped' or 'table'
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem(STORAGE_KEYS.VIEW_MODE) || 'grouped');
+  
+  // Accordion expanded states
+  const [expandedLevels, setExpandedLevels] = useState(() => {
+    const saved = localStorage.getItem(STORAGE_KEYS.EXPANDED_LEVELS);
+    return saved ? JSON.parse(saved) : {};
+  });
   
   // Academic data
   const [levels, setLevels] = useState([]);
@@ -1418,6 +1430,27 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
   
   const headers = { Authorization: `Bearer ${token}` };
   const subdomain = user?.subdomain;
+
+  // Persist filters to localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.LEVEL, filterLevel);
+  }, [filterLevel]);
+  
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.GRADE, filterGrade);
+  }, [filterGrade]);
+  
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.SECTION, filterSection);
+  }, [filterSection]);
+  
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.VIEW_MODE, viewMode);
+  }, [viewMode]);
+  
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.EXPANDED_LEVELS, JSON.stringify(expandedLevels));
+  }, [expandedLevels]);
 
   // Check for action param on mount
   useEffect(() => {
@@ -1460,14 +1493,31 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
   }, [token]);
 
   // Filtered students
-  const filteredStudents = students.filter(s => {
-    const matchesSearch = !search || 
-      `${s.name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
-      s.username?.toLowerCase().includes(search.toLowerCase()) ||
-      s.email?.toLowerCase().includes(search.toLowerCase());
-    const matchesLevel = !filterLevel || s.nivel_id === filterLevel;
-    const matchesGrade = !filterGrade || s.grado_id === filterGrade;
-    const matchesStatus = !filterStatus || s.status === filterStatus;
+  const filteredStudents = useMemo(() => {
+    return students.filter(s => {
+      const matchesSearch = !search || 
+        `${s.name} ${s.last_name}`.toLowerCase().includes(search.toLowerCase()) ||
+        s.username?.toLowerCase().includes(search.toLowerCase()) ||
+        s.email?.toLowerCase().includes(search.toLowerCase()) ||
+        s.phone?.includes(search);
+      const matchesLevel = !filterLevel || s.nivel_id === filterLevel;
+      const matchesGrade = !filterGrade || s.grado_id === filterGrade;
+      const matchesSection = !filterSection || s.seccion_id === filterSection;
+      const matchesStatus = !filterStatus || s.status === filterStatus;
+      return matchesSearch && matchesLevel && matchesGrade && matchesSection && matchesStatus;
+    });
+  }, [students, search, filterLevel, filterGrade, filterSection, filterStatus]);
+  
+  // Group students by level for grouped view
+  const studentsByLevel = useMemo(() => {
+    const grouped = {};
+    filteredStudents.forEach(s => {
+      const levelId = s.nivel_id || 'sin_nivel';
+      if (!grouped[levelId]) grouped[levelId] = [];
+      grouped[levelId].push(s);
+    });
+    return grouped;
+  }, [filteredStudents]);
     return matchesSearch && matchesLevel && matchesGrade && matchesStatus;
   });
 
