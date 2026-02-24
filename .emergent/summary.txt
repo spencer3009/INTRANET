@@ -1,123 +1,116 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The project's main goal is to achieve full feature and UI/UX parity between the existing Student Portal and a new Parent Portal. The project also addresses numerous bug fixes, UI/UX improvements, and significant technical debt, such as modularizing a monolithic backend file.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. While the initial goal was full feature parity between Student and Parent Portals, the focus has shifted to implementing a series of high-priority features and bug fixes. The most recent requests involve creating a secure Demo User mode for sales demonstrations and a protected System Admin user for technical support.
 
 **PRODUCT REQUIREMENTS:**
--   **Parent Portal Replication:** Build a 1:1 replica of the Student Portal for Parents/Guardians.
--   **RBAC & Data Security:** Parents must only access information related to their own linked children.
--   **Multi-Child Support:** The UI must support a parent linked to multiple children.
--   **UI Consistency & Branding:** All headers across the application must display the school/company logo.
--   **Intelligent Student Filtering:** Implement a premium, scalable solution for viewing students on the , including hierarchical grouping (Level -> Grade -> Section), dependent filters, search, and a toggle between grouped and card views.
--   **Optimized Loading:** The student list should not load all students by default; it should require the user to apply a filter first to improve performance with large datasets.
--   **Auto-Filtering on Creation:** After creating a new student, the view should automatically filter to display that newly created student in their correct group.
--   **Teacher Assignment Logic:** The dropdown for assigning a subject to a teacher should only show subjects that are not already assigned for that specific Level, Grade, and Section.
--   **Schedule Conflict Logic:** The system must correctly differentiate between consecutive (valid) and overlapping (invalid) class schedules.
--   **UI/UX Fixes:** Address various aesthetic issues, such as overflowing text in UI components and adding dependent filters to the class schedule page.
+-   **Demo User Mode:**
+    -   Create a visitor user type () that can be created only by the school's Owner.
+    -   Demo users can log in and navigate the entire application but are blocked from all write operations (Create, Update, Delete).
+    -   This block must be enforced via backend middleware, returning a 403 status.
+    -   The frontend must display a permanent MODO DEMO badge in the header for these users.
+    -   When a demo user attempts a write action, instead of an error, a friendly, non-alarming popup must appear explaining the limitations of the demo mode.
+-   **Protected System Admin User:**
+    -   Automatically create a protected technical support user () for each school upon creation.
+    -   This user must be undeletable and uneditable by the school's Owner or any other role.
+    -   The user should have a distinct role card on the , a unique icon (man with a support headset/cap), and its action buttons (Edit/Delete) must be disabled with a lock icon and an explanatory tooltip.
+    -   The credentials for this user must be fixed: **email:** , **password:** .
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack monolith (FastAPI + React). In this session, several major features and fixes were implemented:
-1.  **Logo in All Headers (Completed):** A bug was fixed where non-admin roles couldn't access the protected  endpoint. All portals (Admin, Teacher, Student, Parent) were updated to use the public  endpoint, and the school logo now displays correctly across the entire application.
-2.  **Intelligent Student Filtering (Completed):** The  (for the Owner/Admin role) was completely overhauled. It now features an on-demand loading mechanism where students are only displayed after a filter is applied. It includes a sophisticated filter bar with dependent dropdowns (Level -> Grade -> Section), a search input, and a toggle to switch between a hierarchical Grouped View (using accordions) and a Card View. Filter settings are persisted in LocalStorage.
-3.  **Critical Bug Fixes (Completed):**
-    *   **Teacher Assignments:** The assignment modal now correctly filters the subject dropdown to show only unassigned subjects for the selected Level/Grade/Section.
-    *   **Schedule Conflicts:** The frontend validation logic in  was made more robust by converting time strings to numerical minutes, ensuring correct detection of overlapping vs. consecutive schedules. A conflicting test entry was removed from the database.
-4.  **UI/UX Improvements (Completed):**
-    *   The  now has dependent filters (Level -> Grade -> Section).
-    *   The grade cards on  were redesigned to prevent text overflow and improve clarity.
+The application is a full-stack monolith (FastAPI + React). During this session, several key features were implemented:
+1.  **Demo User System (Completed):** A complete demo mode has been implemented.
+    -   **Backend:** A middleware blocks , , , and  requests for users with the  flag. The user creation endpoint was updated to handle this new flag.
+    -   **Frontend:** A MODO DEMO badge is shown in the header. User cards have a DEMO badge. The user creation modal has a switch (visible only to the Owner) to create a user as a demo. A global context () and a reusable modal () were created to show a friendly popup instead of an error toast when a write action is blocked.
+2.  **System Admin User (Mostly Completed):** A protected user for technical support has been implemented.
+    -   **Backend:** An  flag was added. Logic to auto-create this user when a new school is registered. API endpoints for user deletion and updates are protected to prevent modification of system users.
+    -   **Frontend:** The  was updated to display a new role card for Admin Sistema with a unique icon and color scheme. The user card for the system user has a 🔒 SISTEMA badge, and its Edit/Delete buttons are disabled with a lock icon and tooltip. The button to add new system admins is hidden.
+3.  **Bug Fixes & UX Improvements (Completed):**
+    -   Fixed missing hover buttons (edit/delete) on the schedule grid by adding a  CSS class to the parent container.
+    -   The end time in the schedule creation modal is now automatically pre-filled.
+    -   A utility function () was created to resize and convert all user profile picture uploads to 200px wide WebP format before uploading to Cloudinary.
+    -   A button was added to the UI to allow admins to generate QR codes for existing students who don't have one.
 
 **Last working item**:
--   **Last item agent was working**: The user asked for confirmation that deleting a schedule entry permanently removes it from the database. The agent investigated the  endpoint in  and confirmed it uses , which performs a hard delete.
--   **Status**: USER VERIFICATION PENDING
--   **Agent Testing Done**: Y (Code review and manual test data deletion)
+-   **Last item agent was working**: The agent was trying to fix a critical login issue. The user requested that the System Admin user always use the credentials  and . The agent updated the backend to reflect this and reset the existing system user's password. However, all subsequent login attempts with these new, correct credentials are failing with an Invalid credentials error.
+-   **Status**: BLOCKED
+-   **Agent Testing Done**: N (Login is failing)
 -   **Which testing method agent to use?**: manual testing by curl/ python -c
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Auto-filter after new student creation needs verification (P1)**
-    -   **Description:** The logic to automatically apply filters after a new student is created was implemented in  in . However, the full end-to-end flow was not tested.
+-   **Issue 1: System Admin Login Fails with Correct Credentials (P0)**
+    -   **Description:** After setting the System Admin's credentials to the static email  and password , login attempts fail. The backend correctly updated the user in the database, but the  endpoint rejects the credentials.
+    -   **Attempted fixes:** The agent confirmed the user exists with the correct email via an API call, verified no duplicate emails exist, and restarted the backend. Debugging was hampered by confusion over which database was being used (local vs. remote).
     -   **Next debug checklist:**
-        1.  Navigate to the , select the student role.
-        2.  Click Nuevo Estudiante and fill out the form completely, including Level, Grade, and Section.
-        3.  Save the new student.
-        4.  Verify that the view automatically updates and filters to show only the newly created student in their correct group.
-    -   **Why fix this issue and what will be achieved with the fix?** To confirm the user's request for a seamless workflow after creating a user is fully functional.
-    -   **Status:** USER VERIFICATION PENDING
+        1.  Examine the  logic in .
+        2.  The query  likely needs to be adjusted. The login flow may implicitly depend on a subdomain from the request  header, which wouldn't apply when a system-level user tries to log in. The query may need to be less restrictive for system admins.
+        3.  Temporarily add logging inside the login endpoint to print the found user (or lack thereof) and compare the hashed password from the DB with the hash generated from the provided password during the login attempt.
+    -   **Why fix this issue and what will be achieved with the fix?** This is a critical blocker. The system admin user is unusable until they can log in, which defeats the purpose of the feature for providing technical support.
+    -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Should Test frontend/backend/both after fix?** backend
     -   **Blocked on other issue:** None
 
 -   **Issue 2: Message Center Unread Count Discrepancy (P1)**
-    -   **Description:** The dashboard's Message Center widget shows an unread count, but the corresponding unread message isn't always visible in the message list.
-    -   **Why fix this issue and what will be achieved with the fix?** To provide a reliable and non-confusing messaging experience.
+    -   **Description:** The dashboard widget shows an unread message count, but the corresponding message isn't always visible in the message list.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
 
 -   **Issue 3: Parent Portal - Horario page shows empty table (P2)**
-    -   **Description:** On the Parent Horario page, the banner may indicate classes exist, but the weekly schedule table is empty.
-    -   **Why fix this issue and what will be achieved with the fix?** To correctly display the class schedule for the selected child.
+    -   **Description:** On the Parent Horario page, a banner may indicate classes exist, but the weekly schedule table remains empty.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
 
 **In progress Task List**:
 -   **Task 1: Complete Parent Portal Feature Parity (P0)**
-    -   **Description:** While the core pages exist, full 1:1 parity with the student portal is not yet complete. The  and  are missing. The  is a basic placeholder and needs the full email-style functionality ported over.
-    -   **Where to resume:**
-        1.  Create  and  by adapting their student counterparts.
-        2.  Flesh out  with the full messaging UI and logic.
-        3.  Ensure routing for these new pages is correctly implemented in .
-    -   **What will be achieved with this?** The Parent Portal will be a true 1:1 replica of the Student Portal as requested.
+    -   **Where to resume:** Create  and  by adapting their student counterparts. Implement the full functionality of the .
+    -   **What will be achieved with this?** Fulfills a core project requirement of having a fully functional Parent Portal.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** None
+    -   **Blocked on something:** Blocked by higher-priority bug fixes and feature requests.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Modularize :** CRITICAL. This is a long-standing technical debt item. The file is over 18,000 lines and must be refactored into smaller, domain-specific routers.
-    -   **P1: Apply Intelligent Filters to Parents View:** The user was asked if the new filtering/grouping system from the Students view should be applied to the Parents view on . This is a logical next step.
+    -   **P0: Modularize :** CRITICAL technical debt. The file is over 19,000 lines and must be refactored into domain-specific routers.
+    -   **P1: Apply Intelligent Filters to Parents View:** The advanced filtering system built for the Students view on  should be implemented for the Parents view as well.
 -   **Future Tasks:**
     -   **P1:** Implement Cache Invalidation for .
     -   **P1:** Build a Matrículas (Enrollments) module.
     -   **P1:** Implement a basic anti-cheating system for exams.
     -   **P1:** Enhance the Exams module with a Question Bank.
     -   **P1:** Implement automatic notifications for students.
-    -   **P2:** Perform a project-wide replacement of  and  dialogs with a global custom modal.
+    -   **P2:** Perform a project-wide replacement of  and  with a global custom modal.
     -   **P2:** Refactor the  monolith component.
 
 **Completed work in this session**
--   **Feature: Logo in all Headers (DONE):** Fixed auth issue by updating all portals to use the public settings endpoint. Verified logo displays correctly for Admin, Teacher, Student, and Parent roles.
--   **Feature: Intelligent Student Filtering & Grouped View (DONE):** Reworked  to include on-demand loading, dependent filters (Level -> Grade -> Section), view toggling (Grouped/Card), and LocalStorage persistence.
--   **Feature: Improved Schedule Page Filtering (DONE):** Added dependent Level -> Grade -> Section filters to .
--   **Bugfix: Teacher Assignment Logic (DONE):** The subject dropdown in the assignment modal now correctly excludes already-assigned subjects for the given context.
--   **Bugfix: Schedule Conflict Logic (DONE):** Investigated and corrected frontend validation for schedule conflicts, ensuring consecutive slots are not flagged as errors.
--   **UI Fix: Overflowing Text on Grade Cards (DONE):** Redesigned grade cards in  to be more robust and aesthetically pleasing.
--   **Bugfix: Correct Deletion of Schedules (DONE):** Verified that the backend uses a hard delete () for schedules, ensuring they are permanently removed from the database.
+-   **Feature: Demo User / Visitor Mode (DONE):** Implemented backend middleware and frontend UI (badges, conditional forms, friendly modals) for a read-only demo user experience.
+-   **Feature: Protected System Admin User (DONE):** Implemented backend logic and frontend UI for an undeletable, uneditable system support user, including a custom role card, icon, and disabled action buttons.
+-   **Feature: Image Optimization on Upload (DONE):** Created a utility to convert user-uploaded images to 200px WebP format, reducing file size.
+-   **Feature: Generate QR for Existing Students (DONE):** Added a UI button for admins to generate missing QR codes for students.
+-   **Bugfix: Schedule Hover Buttons (DONE):** Fixed an issue where edit/delete buttons were not appearing on schedule entries.
+-   **UX: Auto-fill Schedule End Time (DONE):** The schedule creation modal now intelligently pre-fills the end time.
 
 **Earlier issues found/mentioned but not fixed**
--   The large-scale refactoring of .
--   The project-wide replacement of  and .
--    remains a large monolith in need of refactoring.
--   The P1 task to implement cache invalidation for the student tasks endpoint was also not addressed.
+-   The critical refactoring of  into smaller, manageable modules.
+-   The project-wide replacement of native browser dialogs (, ).
+-   Refactoring of the large  component.
 
 **Known issue recurrence from previous fork**
--   **Message Center Unread Count Discrepancy:** This is a recurring issue that was noted in the previous handoff and remains unfixed.
+-   **Message Center Unread Count Discrepancy:** This is a recurring issue from a previous session that remains unresolved.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Complex Frontend State Management:** Heavy use of React hooks (, , ) to manage dependent filters, view toggles, and on-demand content loading in .
--   **LocalStorage for UX Persistence:** Used to remember the user's filter and view mode preferences on the , providing a better user experience across sessions.
--   **API Endpoint Authorization:** Debugged and fixed an issue where roles with insufficient permissions (student, parent) were calling a protected API endpoint () instead of the correct public one ().
--   **Robust Frontend Validation:** Improved schedule conflict validation logic by converting time strings to numerical minutes for comparison, avoiding potential issues with lexicographical string comparison.
--   **Modular Refactoring:** Successfully refactored a large, complex component () by adding new logic and state incrementally rather than attempting a risky bulk replacement.
+-   **FastAPI Middleware:** Implemented a custom middleware to intercept all incoming requests and block write operations (, , ) if the authenticated user is a demo user.
+-   **React Context API:** Used to create a global state manager () for showing a blocked action modal from any component without prop drilling.
+-   **Client-Side Image Processing:** Utilized the browser's Canvas API within a React utility () to resize and convert images to the  format before uploading.
+-   **Conditional Rendering & UI State:** Extensive use of React hooks to conditionally render UI elements (badges, buttons, form fields) based on user roles and flags like  and .
 
 **key DB schema**
--   No schema changes were made in this session.
+-   **users**:
+    -   : (Boolean) Flags the user as a read-only demo account.
+    -   : (Boolean) Flags the user as a protected system account for support.
 
 **changes in tech stack**
 -   None.
@@ -130,52 +123,45 @@ The application is a full-stack monolith (FastAPI + React). In this session, sev
 -   
 -   
 -   
--   All student, parent, and teacher portal pages were modified to use the public settings endpoint.
--   
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This remains the highest priority technical debt.
--   ** (HIGH):** This file has grown significantly and is now overly complex. The logic for student filtering and display should be extracted into separate, reusable components (e.g., , , ).
--   **Parent Portal Pages:** The layout code (Flexbox container, Header, Sidebar) is duplicated across all  files and should be abstracted into a single  component.
+-   ** (CRITICAL):** This file has grown even larger and is now a significant liability. It must be broken down into smaller routers (e.g., , , ).
+-   ** (CRITICAL):** This file is now over 3,000 lines and handles logic for multiple roles, views, filters, and modals. It must be refactored into smaller, specialized components (e.g., , , , ).
 
 **key api endpoints**
--   : Now the standard endpoint for all portals to fetch public school settings like .
--   : Confirmed to perform a permanent hard delete from the database.
+-   : The endpoint that is currently failing for the System Admin user.
+-   : Modified to automatically create a protected System Admin user.
+-   : Protected to prevent deletion of system users.
+-   : Protected to prevent modification of system users.
+-   : A new temporary endpoint created to update the system user's password.
 
 **Critical Info for New Agent**
--   **Communicate in Spanish.**
--   The user is highly focused on UI/UX and provides detailed, screenshot-backed feedback. Pay close attention to visual details and workflows.
--   The immediate pending task is to **verify the auto-filter functionality after creating a new student**. This was implemented but not tested end-to-end.
--   After verification, a good next step would be to propose applying the new intelligent filters to the **Parents** section on the , as it's a logical extension of the work just completed.
+-   **¡Habla en español!** The user's preferred language is Spanish. All communication must be in Spanish.
+-   The absolute highest priority is to **fix the login for the System Admin user**. This is a hard blocker. Investigate the  endpoint, paying close attention to how it handles users that might not be associated with the request's subdomain. The credentials are correct; the logic is flawed.
+-   After fixing the login, the Demo User popup logic needs to be globally applied. The context is set up, but the  blocks that trigger the modal need to be implemented in all components that make write API calls (e.g., Profile, Schedule, etc.).
 
 **documents and test reports created in this job**
--    (updated with new features and completion statuses)
+-    (Updated, but agent failed to write the last update).
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** When deleting a schedule, ensure it's completely removed from the database. **Status: COMPLETED (Verified backend logic).**
-2.  **User:** A test schedule is blocking me from creating a new one. **Status: COMPLETED (Agent found and removed the test data).**
-3.  **User:** Correct the schedule conflict logic; it's incorrectly flagging consecutive slots. **Status: COMPLETED.**
-4.  **User:** Add dependent filters (Level -> Grade -> Section) to the class schedule page. **Status: COMPLETED.**
-5.  **User:** Fix overflowing text on grade cards. **Status: COMPLETED.**
-6.  **User:** In teacher assignments, the subject dropdown should only show unassigned subjects. **Status: COMPLETED.**
-7.  **User:** After adding a new student, automatically filter the view to show them. **Status: IN PROGRESS (Implemented but needs verification).**
-8.  **User:** Optimize student list: don't load all students at once, only show them after filtering. **Status: COMPLETED.**
-9.  **User:** I need advanced filters and a grouped view for students. **Status: COMPLETED.**
-10. **User:** Why do your screenshots look different from my UI? **Status: RESOLVED (Agent corrected the file they were working on).**
+1.  **User:** The technical support user must always be  with password . **Status: IN PROGRESS (Login is failing).**
+2.  **User:** The support user icon is the same as the teacher icon. **Status: COMPLETED.**
+3.  **User:** Provided a specific image for the support icon (man with cap). **Status: COMPLETED.**
+4.  **User:** Change the support profile picture to a man with a support headset. **Status: COMPLETED.**
+5.  **User:** The Admin Sistema card should be first, and the profile picture should be a support person icon. **Status: COMPLETED.**
+6.  **User:** Change the system admin icon to a wrench/nut, hide the add user button for this role, and provide the credentials. **Status: COMPLETED.**
+7.  **User:** The system admin card icon is unprofessional (delivery bike); change it to a tool icon and use a more vivid color. **Status: COMPLETED.**
+8.  **User:** The error toast for demo users is alarming. It should be a friendly popup explaining the demo mode. **Status: COMPLETED.**
+9.  **User:** Provided detailed requirements for the Demo User (Visitor Mode) feature. **Status: COMPLETED.**
+10. **User:** Provided detailed requirements for the Protected System Admin (Technical Support) feature. **Status: COMPLETED.**
 
 **Project Health Check:**
--   **Broken**: None
--   **Mocked**: None
+-   **Broken**: System Admin login.
+-   **Mocked**: None.
 
 **3rd Party Integrations**
--   TipTap / Prosemirror
--   Cloudinary
--   Google Drive API
--    & 
--   
--   
--   
--   
+-   Cloudinary (Image Storage)
+-   *No new integrations were added in this session.*
 
 **Testing status**
 -   **Testing agent used after significant changes**: NO
@@ -186,9 +172,8 @@ The application is a full-stack monolith (FastAPI + React). In this session, sev
 **Credentials to test flow:**
 -   **School Subdomain:** 
 -   **Owner:**  / 
--   **Teacher:**  / 
--   **Student:**  / 
--   **Parent:**  / 
+-   **System Admin (Login Failing):**  / 
 
 **What agent forgot to execute**
--   The agent did not perform an end-to-end visual test for the auto-filter after new student creation feature. The code was written and compiled, but the actual user workflow of creating a student and verifying the automatic filtering was not completed.</analysis>
+-   The agent failed to update  on its last few  calls.
+-   The agent did not propagate the friendly Demo Mode popup to all other forms in the application; it was only fully implemented for the  modal. The context was created but not consumed globally.</analysis>

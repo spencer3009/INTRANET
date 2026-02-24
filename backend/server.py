@@ -19949,7 +19949,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://multi-tenant-edu-4.preview.emergentagent.com",
+        "https://parent-portal-dev-1.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
