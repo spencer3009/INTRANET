@@ -3983,8 +3983,57 @@ async def create_support_user_for_school(current_user = Depends(get_current_user
             "id": support_user["id"],
             "name": support_user.get("name"),
             "email": support_user.get("email"),
+            "username": support_user.get("username"),
             "role": support_user.get("role"),
-            "is_system_user": True
+            "is_system_user": True,
+            "password": support_user.get("_temp_password")  # Show password only on creation
+        }
+    }
+
+@api_router.post("/system/reset-support-password")
+async def reset_support_user_password(current_user = Depends(get_current_user)):
+    """
+    Reset the password for the system support user.
+    Only the owner can execute this.
+    Returns the new password.
+    """
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    # Only owner can reset support password
+    if not (user.get("is_owner") == True or user.get("is_super_admin") == True):
+        raise HTTPException(status_code=403, detail="Solo el propietario puede resetear la contraseña de soporte")
+    
+    school_id = user["school_id"]
+    
+    # Find support user
+    support_user = await db.users.find_one({
+        "school_id": school_id,
+        "is_system_user": True
+    })
+    
+    if not support_user:
+        raise HTTPException(status_code=404, detail="No se encontró el usuario de soporte")
+    
+    # Generate new password
+    new_password = f"EduNet{school_id[:8]}@2026"
+    
+    # Update password
+    await db.users.update_one(
+        {"id": support_user["id"]},
+        {"$set": {
+            "password": hash_password(new_password),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {
+        "message": "Contraseña de soporte actualizada",
+        "credentials": {
+            "email": support_user.get("email"),
+            "username": support_user.get("username"),
+            "password": new_password
         }
     }
 
