@@ -990,6 +990,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         assignment={editingAssignment}
         onSuccess={fetchData}
         academicData={academicData}
+        existingAssignments={assignments}
       />
       
       <ConfirmModal 
