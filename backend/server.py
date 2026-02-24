@@ -19756,6 +19756,52 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# ══════════════════════════════════════════════════════════════════════════════
+# DEMO USER MIDDLEWARE - Block modifications for demo users
+# ══════════════════════════════════════════════════════════════════════════════
+@app.middleware("http")
+async def demo_user_middleware(request: Request, call_next):
+    """
+    Global middleware to block POST/PUT/PATCH/DELETE requests for demo users.
+    Only applies to /api/ routes and excludes safe endpoints.
+    """
+    # Only check for modification methods
+    if request.method in ["POST", "PUT", "PATCH", "DELETE"]:
+        path = request.url.path
+        
+        # Only apply to /api/ routes
+        if path.startswith("/api/"):
+            # Safe endpoints that demo users CAN access (read-only operations labeled as POST)
+            safe_endpoints = [
+                "/api/auth/login",
+                "/api/auth/logout", 
+                "/api/auth/verify-token",
+                "/api/auth/refresh",
+            ]
+            
+            # Check if this is a safe endpoint
+            if not any(path.startswith(safe) for safe in safe_endpoints):
+                # Try to get user from token
+                auth_header = request.headers.get("authorization", "")
+                if auth_header.startswith("Bearer "):
+                    token = auth_header[7:]
+                    try:
+                        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                        user_id = payload.get("sub")
+                        if user_id:
+                            # Check if user is demo
+                            user = await db.users.find_one({"id": user_id}, {"_id": 0, "is_demo_user": 1})
+                            if user and user.get("is_demo_user"):
+                                return JSONResponse(
+                                    status_code=403,
+                                    content={"detail": DEMO_USER_BLOCKED_MESSAGE}
+                                )
+                    except:
+                        pass  # Let other auth handlers deal with invalid tokens
+    
+    response = await call_next(request)
+    return response
+
 app.include_router(api_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
