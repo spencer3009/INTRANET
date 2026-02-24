@@ -2060,9 +2060,153 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               )}
             </div>
           </div>
+        ) : selectedRole === 'student' && studentViewMode === 'grouped' ? (
+          <div className="space-y-4" data-testid="grouped-view">
+            {Object.entries(studentsByLevel)
+              .sort(([a], [b]) => {
+                const levelA = levels.find(l => l.id === a);
+                const levelB = levels.find(l => l.id === b);
+                return (levelA?.orden || 0) - (levelB?.orden || 0);
+              })
+              .map(([levelId, levelStudents]) => {
+                const level = levels.find(l => l.id === levelId);
+                const levelName = level?.nombre || 'Sin Nivel';
+                const levelColor = getLevelColor(levelName);
+                const isLevelOpen = expandedLevels[levelId] ?? true;
+                
+                // Group by grade within level
+                const studentsByGrade = {};
+                levelStudents.forEach(s => {
+                  const gradeId = s.grado_id || 'sin_grado';
+                  if (!studentsByGrade[gradeId]) studentsByGrade[gradeId] = [];
+                  studentsByGrade[gradeId].push(s);
+                });
+                
+                return (
+                  <div key={levelId} className="overflow-hidden" data-testid={`level-accordion-${levelId}`}>
+                    {/* Level Header */}
+                    <button
+                      onClick={() => toggleLevelAccordion(levelId)}
+                      className={`w-full flex items-center justify-between p-5 rounded-2xl bg-gradient-to-r ${levelColor.gradient} text-white hover:opacity-95 transition-all shadow-lg`}
+                    >
+                      <div className="flex items-center gap-4">
+                        {isLevelOpen ? (
+                          <ChevronDown className="w-6 h-6" />
+                        ) : (
+                          <ChevronRight className="w-6 h-6" />
+                        )}
+                        <GraduationCap className="w-7 h-7" />
+                        <span className="font-bold text-xl" style={{ fontFamily: 'Manrope, sans-serif' }}>{levelName}</span>
+                      </div>
+                      <span className="px-5 py-2 rounded-full text-sm font-bold bg-white/20 backdrop-blur-sm">
+                        {levelStudents.length} {levelStudents.length === 1 ? 'estudiante' : 'estudiantes'}
+                      </span>
+                    </button>
+                    
+                    {/* Level Content - Grades */}
+                    {isLevelOpen && (
+                      <div className="mt-3 space-y-3 pl-4">
+                        {Object.entries(studentsByGrade)
+                          .sort(([a], [b]) => {
+                            const gradeA = grades.find(g => g.id === a);
+                            const gradeB = grades.find(g => g.id === b);
+                            return (gradeA?.orden || 0) - (gradeB?.orden || 0);
+                          })
+                          .map(([gradeId, gradeStudents]) => {
+                            const grade = grades.find(g => g.id === gradeId);
+                            const gradeName = grade?.nombre || 'Sin Grado';
+                            const gradeKey = `${levelId}_${gradeId}`;
+                            const isGradeOpen = expandedGrades[gradeKey] ?? true;
+                            
+                            // Group by section within grade
+                            const studentsBySection = {};
+                            gradeStudents.forEach(s => {
+                              const sectionId = s.seccion_id || 'sin_seccion';
+                              if (!studentsBySection[sectionId]) studentsBySection[sectionId] = [];
+                              studentsBySection[sectionId].push(s);
+                            });
+                            
+                            return (
+                              <div key={gradeId} className="overflow-hidden" data-testid={`grade-accordion-${gradeId}`}>
+                                {/* Grade Header */}
+                                <button
+                                  onClick={() => toggleGradeAccordion(levelId, gradeId)}
+                                  className={`w-full flex items-center justify-between p-4 rounded-xl ${levelColor.light} border-2 ${levelColor.border} hover:shadow-sm transition-all`}
+                                >
+                                  <div className="flex items-center gap-3">
+                                    {isGradeOpen ? (
+                                      <ChevronDown className={`w-5 h-5 ${levelColor.text}`} />
+                                    ) : (
+                                      <ChevronRight className={`w-5 h-5 ${levelColor.text}`} />
+                                    )}
+                                    <span className={`font-semibold ${levelColor.text}`}>{gradeName}</span>
+                                  </div>
+                                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${levelColor.bg} text-white`}>
+                                    {gradeStudents.length} {gradeStudents.length === 1 ? 'estudiante' : 'estudiantes'}
+                                  </span>
+                                </button>
+                                
+                                {/* Grade Content - Sections */}
+                                {isGradeOpen && (
+                                  <div className="mt-2 space-y-2 pl-4">
+                                    {Object.entries(studentsBySection)
+                                      .sort(([a], [b]) => {
+                                        const sectionA = sections.find(s => s.id === a);
+                                        const sectionB = sections.find(s => s.id === b);
+                                        return (sectionA?.nombre || '').localeCompare(sectionB?.nombre || '');
+                                      })
+                                      .map(([sectionId, sectionStudents]) => {
+                                        const section = sections.find(s => s.id === sectionId);
+                                        const sectionName = section?.nombre || 'Sin Sección';
+                                        const sectionKey = `${levelId}_${gradeId}_${sectionId}`;
+                                        const isSectionOpen = expandedSections[sectionKey] ?? true;
+                                        
+                                        return (
+                                          <div key={sectionId} data-testid={`section-accordion-${sectionId}`}>
+                                            {/* Section Header */}
+                                            <button
+                                              onClick={() => toggleSectionAccordion(levelId, gradeId, sectionId)}
+                                              className={`w-full flex items-center justify-between p-3 rounded-lg ${levelColor.light} hover:opacity-90 transition-all`}
+                                            >
+                                              <div className="flex items-center gap-2">
+                                                {isSectionOpen ? (
+                                                  <ChevronDown className={`w-4 h-4 ${levelColor.text}`} />
+                                                ) : (
+                                                  <ChevronRight className={`w-4 h-4 ${levelColor.text}`} />
+                                                )}
+                                                <span className={`font-medium text-sm ${levelColor.text}`}>
+                                                  Sección {sectionName}
+                                                </span>
+                                              </div>
+                                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${levelColor.bg} text-white`}>
+                                                {sectionStudents.length}
+                                              </span>
+                                            </button>
+                                            
+                                            {/* Section Content - Student Cards */}
+                                            {isSectionOpen && (
+                                              <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pl-6 pb-2">
+                                                {sectionStudents.map(student => renderStudentCard(student, roleConfig, levelColor, gradeName, sectionName))}
+                                              </div>
+                                            )}
+                                          </div>
+                                        );
+                                      })}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredUsers.map((u) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="cards-view">
+            {usersToDisplay.map((u) => renderUserCard(u, roleConfig))}
+          </div>
               <div 
                 key={u.id}
                 className={`group relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${roleConfig.borderColor} hover:-translate-y-1`}
