@@ -1518,13 +1518,51 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
     });
     return grouped;
   }, [filteredStudents]);
-    return matchesSearch && matchesLevel && matchesGrade && matchesStatus;
-  });
 
-  // Filtered grades based on level filter
-  const filteredGradesForFilter = filterLevel 
-    ? grades.filter(g => g.nivel_id === filterLevel)
-    : grades;
+  // Filtered grades based on level filter (dependent dropdown)
+  const filteredGradesForFilter = useMemo(() => {
+    return filterLevel ? grades.filter(g => g.nivel_id === filterLevel) : grades;
+  }, [filterLevel, grades]);
+  
+  // Filtered sections based on grade filter (dependent dropdown)
+  const filteredSectionsForFilter = useMemo(() => {
+    return filterGrade ? sections.filter(s => s.grado_id === filterGrade) : sections;
+  }, [filterGrade, sections]);
+  
+  // Generate filter description
+  const filterDescription = useMemo(() => {
+    const parts = [];
+    if (filterLevel) {
+      const level = levels.find(l => l.id === filterLevel);
+      if (level) parts.push(level.nombre);
+    }
+    if (filterGrade) {
+      const grade = grades.find(g => g.id === filterGrade);
+      if (grade) parts.push(grade.nombre);
+    }
+    if (filterSection) {
+      const section = sections.find(s => s.id === filterSection);
+      if (section) parts.push(`Sección ${section.nombre}`);
+    }
+    if (search) {
+      parts.push(`búsqueda: "${search}"`);
+    }
+    return parts.length > 0 ? parts.join(' – ') : null;
+  }, [filterLevel, filterGrade, filterSection, search, levels, grades, sections]);
+
+  // Toggle level accordion
+  const toggleLevel = useCallback((levelId) => {
+    setExpandedLevels(prev => ({ ...prev, [levelId]: !prev[levelId] }));
+  }, []);
+  
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setFilterLevel("");
+    setFilterGrade("");
+    setFilterSection("");
+    setSearch("");
+    setFilterStatus("");
+  }, []);
 
   // Handlers
   const handleEdit = (student) => {
