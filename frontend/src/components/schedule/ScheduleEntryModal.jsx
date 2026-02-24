@@ -92,6 +92,17 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
           color: entry.color || SUBJECT_COLORS[0].value
         });
       } else {
+        // Calculate end time based on start time and block duration
+        let calculatedEndTime = "";
+        if (preselectedData?.hora_inicio) {
+          const blockDuration = settings?.block_duration || 60; // Default 60 minutes
+          const [startH, startM] = preselectedData.hora_inicio.split(':').map(Number);
+          const totalMinutes = startH * 60 + (startM || 0) + blockDuration;
+          const endH = Math.floor(totalMinutes / 60);
+          const endM = totalMinutes % 60;
+          calculatedEndTime = `${endH.toString().padStart(2, '0')}:${endM.toString().padStart(2, '0')}`;
+        }
+        
         setForm({
           grado_id: preselectedData?.grado_id || "",
           seccion_id: preselectedData?.seccion_id || "",
@@ -100,7 +111,7 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
           subject_id: "",
           dia: preselectedData?.dia || "",
           hora_inicio: preselectedData?.hora_inicio || "",
-          hora_fin: "",
+          hora_fin: calculatedEndTime,
           aula: "",
           color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value
         });
