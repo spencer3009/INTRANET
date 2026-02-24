@@ -1900,6 +1900,132 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           </div>
         </div>
 
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            STUDENT FILTERS BAR - Only for student role
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {selectedRole === 'student' && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6 shadow-sm" data-testid="student-filters-bar">
+            {/* Top row: Search + View toggle */}
+            <div className="flex flex-col lg:flex-row gap-4 mb-4">
+              {/* Search */}
+              <div className="flex-1 relative">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <input
+                  type="text"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:border-amber-500 text-sm"
+                  placeholder="Buscar por nombre, usuario, correo o teléfono..."
+                  data-testid="student-search-input"
+                />
+              </div>
+              
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-1 p-1.5 bg-slate-100 rounded-xl self-start lg:self-auto">
+                <button
+                  onClick={() => setStudentViewMode('grouped')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    studentViewMode === 'grouped' 
+                      ? 'bg-white text-amber-600 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                  data-testid="view-mode-grouped"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span>Agrupado</span>
+                </button>
+                <button
+                  onClick={() => setStudentViewMode('cards')}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                    studentViewMode === 'cards' 
+                      ? 'bg-white text-amber-600 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                  data-testid="view-mode-cards"
+                >
+                  <List className="w-4 h-4" />
+                  <span>Tarjetas</span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Filters row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {/* Level filter */}
+              <select
+                value={studentFilterLevel}
+                onChange={(e) => {
+                  setStudentFilterLevel(e.target.value);
+                  setStudentFilterGrade("");
+                  setStudentFilterSection("");
+                }}
+                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 text-sm font-medium"
+                data-testid="filter-level"
+              >
+                <option value="">📚 Todos los niveles</option>
+                {levels.filter(l => l.activo).map(l => (
+                  <option key={l.id} value={l.id}>{l.nombre}</option>
+                ))}
+              </select>
+              
+              {/* Grade filter */}
+              <select
+                value={studentFilterGrade}
+                onChange={(e) => {
+                  setStudentFilterGrade(e.target.value);
+                  setStudentFilterSection("");
+                }}
+                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 text-sm font-medium disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                disabled={!studentFilterLevel}
+                data-testid="filter-grade"
+              >
+                <option value="">{studentFilterLevel ? "📖 Todos los grados" : "Primero selecciona nivel"}</option>
+                {filteredGradesForStudentFilter.filter(g => g.activo).map(g => (
+                  <option key={g.id} value={g.id}>{g.nombre}</option>
+                ))}
+              </select>
+              
+              {/* Section filter */}
+              <select
+                value={studentFilterSection}
+                onChange={(e) => setStudentFilterSection(e.target.value)}
+                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 text-sm font-medium disabled:bg-slate-100 disabled:cursor-not-allowed disabled:text-slate-400"
+                disabled={!studentFilterGrade}
+                data-testid="filter-section"
+              >
+                <option value="">{studentFilterGrade ? "🏷️ Todas las secciones" : "Primero selecciona grado"}</option>
+                {filteredSectionsForStudentFilter.filter(s => s.activo).map(s => (
+                  <option key={s.id} value={s.id}>Sección {s.nombre}</option>
+                ))}
+              </select>
+            </div>
+            
+            {/* Results indicator + Clear filters */}
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-sm text-slate-600">
+                  Mostrando <span className="font-bold text-amber-600">{filteredStudents.length}</span> de <span className="font-bold">{totalStudents}</span> estudiantes
+                </span>
+                {studentFilterDescription && (
+                  <span className="text-sm text-slate-500 hidden sm:inline">
+                    — {studentFilterDescription}
+                  </span>
+                )}
+              </div>
+              {(studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch) && (
+                <button
+                  onClick={clearStudentFilters}
+                  className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-amber-50 transition-colors"
+                  data-testid="clear-filters"
+                >
+                  <X className="w-4 h-4" />
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Users Grid */}
         {filteredUsers.length === 0 ? (
           <div className={`relative overflow-hidden bg-gradient-to-br ${roleConfig.lightGradient} rounded-3xl p-16 text-center border-2 ${roleConfig.borderColor}`}>
