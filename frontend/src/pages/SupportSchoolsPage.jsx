@@ -47,8 +47,20 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       );
       const { token: newToken, user, school } = res.data;
       
-      // Save new token & user context, then navigate to school dashboard
-      onLogin(newToken, user);
+      // Guardar credenciales de soporte antes de cambiar contexto
+      localStorage.setItem("support_token", token);
+      localStorage.setItem("support_user", JSON.stringify({ 
+        role: "system_admin_global", 
+        is_support_global: true,
+        email: "spencer3009@gmail.com",
+        name: "Soporte",
+        last_name: "EduNet",
+        email_verified: true
+      }));
+      
+      // Marcar usuario como sesión de soporte
+      const supportUser = { ...user, is_support_session: true, original_role: "system_admin_global" };
+      onLogin(newToken, supportUser);
       
       toast.success(`Acceso activado: ${school.name}`);
       
