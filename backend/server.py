@@ -1515,6 +1515,51 @@ async def get_metrics(current_user=Depends(require_school)):
         "avg_students": students_count,  # Use real count
     }
 
+
+@api_router.get("/dashboard/owner-stats")
+async def get_owner_stats(current_user=Depends(require_school)):
+    """KPI stats for school owner/propietario dashboard only"""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    role = user.get("role", "")
+    is_owner = user.get("is_owner") or role == "owner"
+    is_support = user.get("is_support_session") or current_user.get("scope") == "support_switch"
+    
+    if not is_owner and not is_support:
+        raise HTTPException(status_code=403, detail="Solo el propietario puede acceder a estas estadisticas")
+    
+    school_id = user.get("school_id") or current_user.get("school_id")
+    
+    students = await db.users.count_documents({
+        "school_id": school_id, "role": "student"
+    })
+    teachers = await db.users.count_documents({
+        "school_id": school_id, "role": "teacher"
+    })
+    
+    unread_messages = await db.messages.count_documents({
+        "recipient_id": current_user.get("sub"),
+        "read": False
+    })
+    
+    # Ingresos del mes - preparado para módulo contable futuro
+    monthly_income = 0
+    
+    return {
+        "students": students,
+        "teachers": teachers,
+        "monthly_income": monthly_income,
+        "unread_messages": unread_messages
+    }
+
+@api_router.get("/dashboard/monthly-income")
+async def get_monthly_income(current_user=Depends(require_school)):
+    """Endpoint preparado para módulo contable futuro"""
+    return {"amount": 0}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # STUDENT PORTAL ENDPOINTS
 # ══════════════════════════════════════════════════════════════════════════════
