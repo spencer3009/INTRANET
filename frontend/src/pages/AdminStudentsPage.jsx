@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import AdminSidebar from "@/components/AdminSidebar";
@@ -10,8 +10,32 @@ import {
   Check, AlertCircle, Plus, Eye, EyeOff, Search, UserCheck,
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles,
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Users,
-  Filter, Download, Mail, ChevronDown, QrCode
+  Filter, Download, Mail, ChevronDown, ChevronRight, QrCode, LayoutGrid, List
 } from "lucide-react";
+
+// LocalStorage keys for filter persistence
+const STORAGE_KEYS = {
+  LEVEL: 'edunet_students_filter_level',
+  GRADE: 'edunet_students_filter_grade',
+  SECTION: 'edunet_students_filter_section',
+  VIEW_MODE: 'edunet_students_view_mode',
+  EXPANDED_LEVELS: 'edunet_students_expanded_levels',
+  EXPANDED_GRADES: 'edunet_students_expanded_grades'
+};
+
+// Level color configuration
+const LEVEL_COLORS = {
+  'INICIAL': { bg: 'bg-emerald-500', light: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200' },
+  'PRIMARIA': { bg: 'bg-blue-500', light: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200' },
+  'SECUNDARIA': { bg: 'bg-violet-500', light: 'bg-violet-50', text: 'text-violet-700', border: 'border-violet-200' },
+  'default': { bg: 'bg-slate-500', light: 'bg-slate-50', text: 'text-slate-700', border: 'border-slate-200' }
+};
+
+// Get level color config
+const getLevelColor = (levelName) => {
+  const upperName = levelName?.toUpperCase() || '';
+  return LEVEL_COLORS[upperName] || LEVEL_COLORS.default;
+};
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
