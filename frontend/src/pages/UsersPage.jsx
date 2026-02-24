@@ -514,7 +514,13 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
       onUserCreated(res.data.user);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al crear usuario");
+      const errorMessage = err.response?.data?.detail || "";
+      // Check if this is a demo user blocked message
+      if (errorMessage.includes("Modo visitante") || errorMessage.includes("demo") || err.response?.status === 403 && isDemoUser) {
+        setShowDemoBlockedModal(true);
+      } else {
+        setError(errorMessage || "Error al crear usuario");
+      }
     } finally {
       setLoading(false);
     }
