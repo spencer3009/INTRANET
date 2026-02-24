@@ -1544,8 +1544,23 @@ async def get_owner_stats(current_user=Depends(require_school)):
         "read": False
     })
     
-    # Ingresos del mes - preparado para módulo contable futuro
-    monthly_income = 0
+    # Ingresos del mes actual - datos reales del módulo de contabilidad
+    now = datetime.now(timezone.utc)
+    first_day = now.replace(day=1).strftime("%Y-%m-%d")
+    # Sumar total_amount de pagos pagados este mes
+    pipeline = [
+        {"$match": {
+            "school_id": school_id,
+            "payment_status": "paid",
+            "payment_date": {"$gte": first_day}
+        }},
+        {"$group": {
+            "_id": None,
+            "total": {"$sum": "$total_amount"}
+        }}
+    ]
+    result = await db.payments.aggregate(pipeline).to_list(1)
+    monthly_income = round(result[0]["total"], 2) if result and result[0].get("total") else 0
     
     return {
         "students": students,
@@ -1556,8 +1571,22 @@ async def get_owner_stats(current_user=Depends(require_school)):
 
 @api_router.get("/dashboard/monthly-income")
 async def get_monthly_income(current_user=Depends(require_school)):
-    """Endpoint preparado para módulo contable futuro"""
-    return {"amount": 0}
+    """Ingresos del mes actual desde el módulo de contabilidad"""
+    user = await resolve_user_from_token(current_user)
+    school_id = (user or {}).get("school_id") or current_user.get("school_id")
+    now = datetime.now(timezone.utc)
+    first_day = now.replace(day=1).strftime("%Y-%m-%d")
+    pipeline = [
+        {"$match": {
+            "school_id": school_id,
+            "payment_status": "paid",
+            "payment_date": {"$gte": first_day}
+        }},
+        {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+    ]
+    result = await db.payments.aggregate(pipeline).to_list(1)
+    amount = round(result[0]["total"], 2) if result and result[0].get("total") else 0
+    return {"amount": amount}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
