@@ -1645,6 +1645,47 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     setStudentSearch("");
   }, []);
 
+  // Generate QR codes for students without one
+  const handleGenerateQRCodes = async () => {
+    setGeneratingQR(true);
+    try {
+      const res = await axios.post(`${API}/attendance/qr/generate`, {}, { headers });
+      
+      if (res.data.updated_count > 0) {
+        // Reload users to get updated QR tokens
+        const usersRes = await axios.get(`${API}/users`, { headers });
+        setUsers(usersRes.data || []);
+        
+        setInfoModalContent({
+          title: "QR Generados",
+          message: `Se generaron códigos QR para ${res.data.updated_count} estudiante(s) que no tenían.`,
+          type: "success"
+        });
+      } else {
+        setInfoModalContent({
+          title: "Sin cambios",
+          message: "Todos los estudiantes ya tienen su código QR generado.",
+          type: "info"
+        });
+      }
+      setShowInfoModal(true);
+    } catch (err) {
+      setInfoModalContent({
+        title: "Error",
+        message: err.response?.data?.detail || "No se pudieron generar los códigos QR.",
+        type: "danger"
+      });
+      setShowInfoModal(true);
+    } finally {
+      setGeneratingQR(false);
+    }
+  };
+
+  // Count students without QR
+  const studentsWithoutQR = useMemo(() => {
+    return users.filter(u => u.role === 'student' && u.email_verified && !u.qr_token).length;
+  }, [users]);
+
   // Count users by role
   const getUserCount = (roleId) => {
     if (roleId === 'pending') {
