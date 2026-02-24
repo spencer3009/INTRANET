@@ -20,13 +20,15 @@ export default function LoginPage({ onLogin }) {
     setLoading(true);
     try {
       const res = await axios.post(`${API}/auth/login`, { email, password });
-      const { token, user, redirect_to_subdomain, redirect_url } = res.data;
+      const { token, user, redirect_to_subdomain, redirect_url, redirect_to_support } = res.data;
       
       // Save to state and localStorage
       onLogin(token, user);
       
-      // SHOPIFY RULE: If user has subdomain, redirect to it
-      if (redirect_to_subdomain && redirect_url) {
+      // Global support user -> redirect to /support
+      if (redirect_to_support || user.role === "system_admin_global" || user.is_support_global) {
+        navigate("/support");
+      } else if (redirect_to_subdomain && redirect_url) {
         // In production, this would redirect to the actual subdomain
         // window.location.href = redirect_url;
         
