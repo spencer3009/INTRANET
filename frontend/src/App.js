@@ -70,6 +70,11 @@ import ParentSchedulePage from "@/pages/ParentSchedulePage";
 import ParentExamsPage from "@/pages/ParentExamsPage";
 import ParentMessagesPage from "@/pages/ParentMessagesPage";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
+// Support Panel imports
+import SupportLayout from "@/components/SupportLayout";
+import SupportDashboardPage from "@/pages/SupportDashboardPage";
+import SupportSchoolsPage from "@/pages/SupportSchoolsPage";
+import SupportProfilePage from "@/pages/SupportProfilePage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
