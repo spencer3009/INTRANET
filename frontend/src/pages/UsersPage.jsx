@@ -54,7 +54,7 @@ const ROLE_CARDS = [
     gradientBg: "from-cyan-500 to-teal-600",
     lightGradient: "from-cyan-50 to-teal-50",
     image: "https://cdn-icons-png.flaticon.com/512/3953/3953226.png",
-    profileImage: "https://cdn-icons-png.flaticon.com/512/4646/4646070.png", // Male technician with cap
+    profileImage: "https://cdn-icons-png.flaticon.com/512/921/921071.png", // Male support agent with headset
     isSystemRole: true,  // Flag to identify system roles
     hideAddButton: true  // Don't show "Agregar" button - only 1 per school
   },
