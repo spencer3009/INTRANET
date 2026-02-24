@@ -238,8 +238,17 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
             {/* Left column */}
             <div className="lg:col-span-8 space-y-6">
               <HeroCarousel banners={banners} user={user} schoolName={schoolName} />
-              <QuickAccess />
-              <StudentChart data={enrollment} />
+              {(user?.is_owner || user?.role === "owner" || user?.is_support_session) ? (
+                <>
+                  <OwnerQuickAccess />
+                  <AttendanceChart data={monthlyAttendance} />
+                </>
+              ) : (
+                <>
+                  <QuickAccess />
+                  <StudentChart data={enrollment} />
+                </>
+              )}
               <AttendanceAndNews news={news} />
             </div>
 
