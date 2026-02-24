@@ -311,7 +311,7 @@ function TeachersSummary({ teachers, onSelect, selectedTeacherId }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // CREATE/EDIT ASSIGNMENT MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academicData }) {
+function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academicData, existingAssignments = [] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -339,11 +339,27 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
     ? academicData.sections.filter(s => s.grado_id === form.grade_id)
     : [];
   
-  // Subjects filtered by Level + Grade
+  // Subjects filtered by Level + Grade AND excluding already assigned subjects in this section
   const filteredSubjects = (form.level_id && form.grade_id)
-    ? academicData.subjects.filter(s => 
-        s.level_id === form.level_id && s.grade_id === form.grade_id
-      )
+    ? academicData.subjects.filter(s => {
+        // Must match level and grade
+        if (s.level_id !== form.level_id || s.grade_id !== form.grade_id) return false;
+        
+        // If section is selected, check if this subject is already assigned in this section
+        if (form.section_id) {
+          const alreadyAssigned = existingAssignments.some(a => 
+            a.level_id === form.level_id &&
+            a.grade_id === form.grade_id &&
+            a.section_id === form.section_id &&
+            a.subject_id === s.id &&
+            // If editing, don't exclude the current assignment's subject
+            (!isEdit || a.id !== assignment?.id)
+          );
+          if (alreadyAssigned) return false;
+        }
+        
+        return true;
+      })
     : [];
   
   // Sort academic years (active first, then by year descending)
