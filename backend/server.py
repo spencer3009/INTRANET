@@ -4447,6 +4447,7 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         "photo_url": data.photo_url,
         "school_id": school_id,
         "email_verified": True,  # Created by admin, no verification needed
+        "is_demo_user": data.is_demo_user or False,  # Demo user flag
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
