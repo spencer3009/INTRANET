@@ -2223,7 +2223,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               });
                               setShowQRModal(true);
                               setOpenMenuId(null);
-                            }}
+                            // Leftover code removed
                             className="w-full px-4 py-3 text-left text-sm text-violet-600 hover:bg-violet-50 flex items-center gap-3 transition-colors"
                             data-testid={`show-qr-${u.id}`}
                           >
