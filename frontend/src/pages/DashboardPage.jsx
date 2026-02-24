@@ -219,7 +219,13 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
           {hasPermissionError && <PermissionsFixer token={token} onFixed={fetchData} />}
           
           <DemoBanner token={token} onDemoDeleted={fetchData} />
-          <MetricCards metrics={metrics} />
+          
+          {/* Tarjetas KPI: Propietario vs Otros roles */}
+          {(user?.is_owner || user?.role === "owner" || user?.is_support_session) && ownerStats ? (
+            <OwnerMetricCards stats={ownerStats} />
+          ) : (
+            <MetricCards metrics={metrics} />
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
             {/* Left column */}
