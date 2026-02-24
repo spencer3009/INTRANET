@@ -403,6 +403,20 @@ def require_section_access(section: str):
     Usage: current_user = Depends(require_section_access("accounting"))
     """
     async def check_access(current_user = Depends(get_current_user)):
+        # Support switch sessions get full owner access
+        if current_user.get("scope") == "support_switch":
+            school_id = current_user.get("active_school_id") or current_user.get("school_id")
+            return {
+                "id": current_user["sub"],
+                "email": current_user.get("email"),
+                "name": current_user.get("name"),
+                "role": "owner",
+                "school_id": school_id,
+                "is_owner": True,
+                "is_support_session": True,
+                "original_role": current_user.get("original_role", "system_admin_global")
+            }
+        
         user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
         if not user:
             raise HTTPException(status_code=403, detail="Usuario no encontrado")
