@@ -395,19 +395,35 @@ export default function SchedulePage({ user, token, onLogout }) {
             <div className="flex flex-wrap items-center gap-4">
               {(activeTab === "clases" || activeTab === "examenes") && (
                 <>
-                  <div className="flex-1 min-w-[200px]">
+                  {/* Level filter */}
+                  <div className="flex-1 min-w-[180px]">
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Nivel</label>
+                    <select
+                      data-testid="schedule-level-select"
+                      value={selectedLevel}
+                      onChange={(e) => handleLevelChange(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">Todos los niveles</option>
+                      {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                    </select>
+                  </div>
+                  {/* Grade filter */}
+                  <div className="flex-1 min-w-[180px]">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Grado</label>
                     <select
                       data-testid="schedule-grade-select"
                       value={selectedGrade}
                       onChange={(e) => handleGradeChange(e.target.value)}
-                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                      disabled={!selectedLevel}
                     >
-                      <option value="">Seleccionar grado...</option>
-                      {grades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                      <option value="">{selectedLevel ? "Seleccionar grado..." : "Primero selecciona nivel"}</option>
+                      {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
                     </select>
                   </div>
-                  <div className="flex-1 min-w-[200px]">
+                  {/* Section filter */}
+                  <div className="flex-1 min-w-[180px]">
                     <label className="block text-xs font-medium text-slate-500 mb-1">Sección</label>
                     <select
                       data-testid="schedule-section-select"
@@ -416,7 +432,7 @@ export default function SchedulePage({ user, token, onLogout }) {
                       className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                       disabled={!selectedGrade}
                     >
-                      <option value="">Seleccionar sección...</option>
+                      <option value="">{selectedGrade ? "Seleccionar sección..." : "Primero selecciona grado"}</option>
                       {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
                     </select>
                   </div>
