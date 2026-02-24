@@ -92,6 +92,8 @@ const isStaff = (user) => STAFF_ROLES.includes(user?.role);
 const isAdmin = (user) => ADMIN_ROLES.includes(user?.role);
 // Specific check for role="admin" only (for Admin Portal)
 const isAdminOnly = (user) => user?.role === "admin";
+// Global support user check
+const isSupportGlobal = (user) => user?.role === "system_admin_global" || user?.is_support_global;
 
 // ══════════════════════════════════════════════════════════════════════════════
 // TENANT CONTEXT - Provides tenant info throughout the app
