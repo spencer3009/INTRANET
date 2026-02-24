@@ -206,8 +206,11 @@ function ProtectedRoute({ children, token, user, requireSchool = false, requireE
 function SchoolDashboardRoute({ user, token, onLogout }) {
   const { subdomain } = useParams();
   
+  // Support users with switched context can access any school
+  const isSupportSession = user?.is_support_session || user?.original_role === "system_admin_global";
+  
   // Verify user has access to this school
-  if (user?.subdomain !== subdomain) {
+  if (!isSupportSession && user?.subdomain !== subdomain) {
     return <NotFoundPage message={`No tienes acceso a ${subdomain}.${BASE_DOMAIN}`} />;
   }
   
