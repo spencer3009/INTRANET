@@ -1693,16 +1693,38 @@ async def get_monthly_payments(current_user=Depends(require_school)):
         ]).to_list(1)
         paid = round(paid_agg[0]["total"], 2) if paid_agg and paid_agg[0].get("total") else 0
         
-        # Pendientes (fecha aun no vencida)
-        pending_agg = await db.payments.aggregate([
-            {"$match": {**base_match, "payment_status": "pending", "payment_date": {"$gte": today}}},
-            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
-        ]).to_list(1)
-        pending = round(pending_agg[0]["total"], 2) if pending_agg and pending_agg[0].get("total") else 0
+        # Pendientes (fecha aun no vencida) - solo meses actuales/futuros
+        pending_match = {
+            "school_id": school_id,
+            "payment_date": {"$gte": first_day, "$lt": last_day},
+            "payment_status": "pending"
+        }
+        if month_num == current_month:
+            # Solo pendientes cuya fecha aun no paso
+            pending_match["payment_date"] = {"$gte": today, "$lt": last_day}
+        elif month_num < current_month:
+            # Meses pasados: no hay pendientes, todo es vencido
+            pending = 0
+            pending_agg = None
         
-        # Vencidos/morosos (pendiente con fecha pasada)
+        if pending_match.get("payment_status"):
+            pending_agg = await db.payments.aggregate([
+                {"$match": pending_match},
+                {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+            ]).to_list(1)
+            pending = round(pending_agg[0]["total"], 2) if pending_agg and pending_agg[0].get("total") else 0
+        
+        # Vencidos/morosos (pendiente con fecha ya pasada, dentro del rango del mes)
+        overdue_match = {
+            "school_id": school_id,
+            "payment_date": {"$gte": first_day, "$lt": last_day},
+            "payment_status": {"$in": ["pending", "overdue"]}
+        }
+        if month_num == current_month:
+            overdue_match["payment_date"] = {"$gte": first_day, "$lt": today}
+        
         overdue_agg = await db.payments.aggregate([
-            {"$match": {**base_match, "payment_status": {"$in": ["pending", "overdue"]}, "payment_date": {"$lt": today}}},
+            {"$match": overdue_match},
             {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
         ]).to_list(1)
         overdue = round(overdue_agg[0]["total"], 2) if overdue_agg and overdue_agg[0].get("total") else 0
