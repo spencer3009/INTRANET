@@ -4393,14 +4393,23 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
     """
     Create a new user for the current tenant.
     Only admins/owners can create users.
+    Demo users can only be created by the real owner.
     """
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
+    # Block demo users from creating users
+    check_demo_user_block(user)
+    
     # Check role - only owner or admin can create users
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden crear usuarios")
+    
+    # Only real owner can create demo users
+    if data.is_demo_user:
+        if not is_real_owner(user):
+            raise HTTPException(status_code=403, detail="Solo el propietario puede crear usuarios demo")
     
     school_id = user["school_id"]
     
