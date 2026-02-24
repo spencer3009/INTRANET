@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Bell, Menu, X, GraduationCap, User, ChevronDown, LogOut, Settings } from "lucide-react";
+import { Search, Bell, Menu, X, GraduationCap, User, ChevronDown, LogOut, Settings, ArrowLeft, Headset } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 
 // Default avatar component with initials
