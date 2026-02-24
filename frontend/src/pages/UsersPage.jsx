@@ -2279,10 +2279,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <p className="text-slate-500 mb-6 max-w-md mx-auto">
                 {selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)
                   ? "No se encontraron estudiantes con los filtros aplicados. Intenta ajustar los filtros."
-                  : `Aún no tienes ${roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!`
+                  : roleConfig.hideAddButton
+                    ? `Usuario de ${roleConfig.labelSingular} del sistema.`
+                    : `Aún no tienes ${roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!`
                 }
               </p>
-              {!(selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)) && (
+              {!(selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)) && !roleConfig.hideAddButton && (
                 <button
                   onClick={() => handleAddUser(selectedRole)}
                   className={`inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r ${roleConfig.gradientBg} text-white rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5`}
