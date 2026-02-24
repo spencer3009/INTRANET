@@ -1678,29 +1678,64 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
             </div>
           )}
 
-          {/* Filters */}
+          {/* Filters Bar */}
           <div className="bg-white rounded-xl border border-slate-200 p-4 mb-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Top row: Search + View toggle */}
+            <div className="flex flex-col lg:flex-row gap-3 mb-3">
               {/* Search */}
-              <div className="lg:col-span-2 relative">
+              <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
-                  placeholder="Buscar por nombre, usuario o correo..."
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+                  placeholder="Buscar por nombre, usuario, correo o teléfono..."
+                  data-testid="students-search-input"
                 />
               </div>
               
+              {/* View Mode Toggle */}
+              <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+                <button
+                  onClick={() => setViewMode('grouped')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    viewMode === 'grouped' 
+                      ? 'bg-white text-amber-600 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                  data-testid="view-mode-grouped"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  <span className="hidden sm:inline">Agrupado</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('table')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    viewMode === 'table' 
+                      ? 'bg-white text-amber-600 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                  data-testid="view-mode-table"
+                >
+                  <List className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tabla</span>
+                </button>
+              </div>
+            </div>
+            
+            {/* Filters row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Level filter */}
               <select
                 value={filterLevel}
                 onChange={(e) => {
                   setFilterLevel(e.target.value);
                   setFilterGrade("");
+                  setFilterSection("");
                 }}
-                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                data-testid="filter-level"
               >
                 <option value="">Todos los niveles</option>
                 {levels.map(l => (
@@ -1711,13 +1746,31 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
               {/* Grade filter */}
               <select
                 value={filterGrade}
-                onChange={(e) => setFilterGrade(e.target.value)}
-                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20 disabled:bg-slate-100"
+                onChange={(e) => {
+                  setFilterGrade(e.target.value);
+                  setFilterSection("");
+                }}
+                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
                 disabled={!filterLevel}
+                data-testid="filter-grade"
               >
-                <option value="">Todos los grados</option>
+                <option value="">{filterLevel ? "Todos los grados" : "Primero selecciona nivel"}</option>
                 {filteredGradesForFilter.map(g => (
                   <option key={g.id} value={g.id}>{g.nombre}</option>
+                ))}
+              </select>
+              
+              {/* Section filter */}
+              <select
+                value={filterSection}
+                onChange={(e) => setFilterSection(e.target.value)}
+                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20 disabled:bg-slate-100 disabled:cursor-not-allowed"
+                disabled={!filterGrade}
+                data-testid="filter-section"
+              >
+                <option value="">{filterGrade ? "Todas las secciones" : "Primero selecciona grado"}</option>
+                {filteredSectionsForFilter.map(s => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
                 ))}
               </select>
               
@@ -1725,7 +1778,8 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                className="px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                data-testid="filter-status"
               >
                 <option value="">Todos los estados</option>
                 <option value="activo">Activo</option>
@@ -1735,19 +1789,42 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
                 <option value="retirado">Retirado</option>
               </select>
             </div>
+            
+            {/* Results indicator + Clear filters */}
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-slate-600">
+                  Mostrando <span className="font-bold text-amber-600">{filteredStudents.length}</span> de {students.length} estudiantes
+                </span>
+                {filterDescription && (
+                  <span className="text-sm text-slate-500">
+                    — {filterDescription}
+                  </span>
+                )}
+              </div>
+              {(filterLevel || filterGrade || filterSection || search || filterStatus) && (
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1"
+                  data-testid="clear-filters"
+                >
+                  <X className="w-4 h-4" />
+                  Limpiar filtros
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Table */}
-          <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-            {loading ? (
-              <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
-              </div>
-            ) : filteredStudents.length === 0 ? (
-              <div className="text-center py-20">
-                <GraduationCap className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                <p className="text-slate-500">
-                  {search || filterLevel || filterGrade || filterStatus 
+          {/* Content Area */}
+          {loading ? (
+            <div className="bg-white rounded-xl border border-slate-200 flex items-center justify-center py-20">
+              <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+            </div>
+          ) : filteredStudents.length === 0 ? (
+            <div className="bg-white rounded-xl border border-slate-200 text-center py-20">
+              <GraduationCap className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+              <p className="text-slate-500">
+                {search || filterLevel || filterGrade || filterSection || filterStatus 
                     ? "No se encontraron estudiantes con los filtros aplicados"
                     : "No hay estudiantes registrados"
                   }
