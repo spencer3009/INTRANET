@@ -317,6 +317,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
         gender: "",
         address: "",
         role: roleId || "",
+        is_demo_user: false,
         nivel_id: "",
         grado_id: "",
         seccion_id: "",
