@@ -585,8 +585,14 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               {!form.grade_id && (
                 <p className="text-xs text-gray-400 mt-1">Primero selecciona un grado</p>
               )}
-              {form.grade_id && filteredSubjects.length === 0 && (
+              {form.grade_id && !form.section_id && filteredSubjects.length === 0 && (
                 <p className="text-xs text-amber-600 mt-1">No hay asignaturas registradas para este nivel/grado</p>
+              )}
+              {form.grade_id && form.section_id && filteredSubjects.length === 0 && (
+                <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
+                  <Check className="w-3 h-3" />
+                  Todas las asignaturas de esta sección ya tienen docente asignado
+                </p>
               )}
             </div>
             
