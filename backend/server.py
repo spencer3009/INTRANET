@@ -414,6 +414,51 @@ def require_section_access(section: str):
     return check_access
 
 # ══════════════════════════════════════════════════════════════════════════════
+# DEMO USER SYSTEM - Visitor Mode for Commercial Demonstrations
+# ══════════════════════════════════════════════════════════════════════════════
+# Demo users can view everything but cannot modify anything.
+# Only the real Owner can create demo users.
+
+DEMO_USER_BLOCKED_MESSAGE = "Modo visitante: Esta acción está deshabilitada en la demo. Al contratar el servicio tendrá acceso completo."
+
+def is_demo_user(user: dict) -> bool:
+    """Check if user is a demo user (visitor mode)"""
+    return user.get("is_demo_user", False) == True
+
+def check_demo_user_block(user: dict):
+    """
+    Check if user is a demo user and block modification actions.
+    Raises HTTPException if user is demo and tries to modify.
+    """
+    if is_demo_user(user):
+        raise HTTPException(
+            status_code=403,
+            detail=DEMO_USER_BLOCKED_MESSAGE
+        )
+
+def require_not_demo():
+    """
+    Dependency that blocks demo users from modifying endpoints.
+    Usage: Depends(require_not_demo())
+    """
+    async def check_not_demo(current_user = Depends(get_current_user)):
+        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+        if not user:
+            raise HTTPException(status_code=403, detail="Usuario no encontrado")
+        check_demo_user_block(user)
+        return user
+    return check_not_demo
+
+def is_real_owner(user: dict) -> bool:
+    """
+    Check if user is a REAL owner (not a demo user).
+    Only real owners can create demo users.
+    """
+    if is_demo_user(user):
+        return False
+    return user.get("is_owner") == True or user.get("role") == "owner"
+
+# ══════════════════════════════════════════════════════════════════════════════
 # MULTI-TENANT HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
