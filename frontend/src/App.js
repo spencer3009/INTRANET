@@ -277,6 +277,11 @@ function App() {
 
   // Determine dashboard redirect path based on environment and role
   const getDashboardPath = () => {
+    // Global support users always go to /support
+    if (isSupportGlobal(user)) {
+      return '/support';
+    }
+    
     // Students get redirected to student portal
     if (isStudent(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
