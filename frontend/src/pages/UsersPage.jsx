@@ -2207,11 +2207,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="cards-view">
             {usersToDisplay.map((u) => renderUserCard(u, roleConfig))}
           </div>
-              <div 
-                key={u.id}
-                className={`group relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${roleConfig.borderColor} hover:-translate-y-1`}
-                data-testid={`user-card-${u.id}`}
-              >
+        )}
+      </div>
+    );
+  };
                 {/* Top gradient bar */}
                 <div className={`h-2 bg-gradient-to-r ${roleConfig.gradientBg}`}></div>
                 
