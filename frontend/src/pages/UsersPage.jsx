@@ -1867,7 +1867,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <span className="font-medium">Volver a categorías</span>
             </button>
             
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-6">
                 {/* Icon container */}
                 <div className="w-24 h-24 bg-white rounded-2xl shadow-lg p-4 flex items-center justify-center">
@@ -1875,9 +1875,9 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
                 <div>
                   <h1 className="text-4xl font-bold mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>{roleConfig.label}</h1>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <span className="px-4 py-1.5 bg-white/20 rounded-full text-sm font-medium backdrop-blur-sm">
-                      {filteredUsers.length} {filteredUsers.length === 1 ? roleConfig.labelSingular : roleConfig.label.toLowerCase()}
+                      {usersToDisplay.length} {usersToDisplay.length === 1 ? roleConfig.labelSingular : roleConfig.label.toLowerCase()}
                     </span>
                     <span className="w-2 h-2 rounded-full bg-white/50"></span>
                     <span className="text-white/80 text-sm">Gestión de personal</span>
