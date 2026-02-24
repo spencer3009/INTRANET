@@ -878,37 +878,6 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
               />
             </div>
 
-            {/* Demo User Switch - Only visible for real owner */}
-            {isRealOwner && (
-              <div className="md:col-span-2">
-                <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                      <Eye className="w-5 h-5 text-blue-600" />
-                    </div>
-                    <div>
-                      <span className="text-sm font-semibold text-slate-700">Crear como Usuario Demo</span>
-                      <p className="text-xs text-slate-500 mt-0.5">El usuario podrá explorar pero no modificar datos</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setForm(prev => ({ ...prev, is_demo_user: !prev.is_demo_user }))}
-                    className={`relative w-12 h-7 rounded-full transition-colors ${form.is_demo_user ? 'bg-blue-500' : 'bg-slate-300'}`}
-                    data-testid="demo-user-toggle"
-                  >
-                    <div className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.is_demo_user ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
-                </div>
-                {form.is_demo_user && (
-                  <p className="text-xs text-blue-600 mt-2 flex items-center gap-1">
-                    <AlertCircle className="w-3 h-3" />
-                    Este usuario tendrá acceso visual completo pero no podrá crear, editar ni eliminar datos.
-                  </p>
-                )}
-              </div>
-            )}
-
             {/* Role */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de cuenta</label>
