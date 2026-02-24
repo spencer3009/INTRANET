@@ -501,7 +501,7 @@ export default function SchedulePage({ user, token, onLogout }) {
                 <div className="mt-4 p-3 bg-indigo-50 rounded-lg flex items-center gap-2">
                   <GraduationCap className="w-5 h-5 text-indigo-600" />
                   <span className="text-sm font-medium text-indigo-700">
-                    {grades.find(g => g.id === selectedGrade)?.nombre} - Sección {filteredSections.find(s => s.id === selectedSection)?.nombre}
+                    {levels.find(l => l.id === selectedLevel)?.nombre} - {grades.find(g => g.id === selectedGrade)?.nombre} - Sección {filteredSections.find(s => s.id === selectedSection)?.nombre}
                   </span>
                   <span className="ml-auto text-sm text-indigo-600">{exams.length} exámenes este mes</span>
                 </div>
