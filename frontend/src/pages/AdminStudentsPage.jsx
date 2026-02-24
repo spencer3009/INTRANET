@@ -1827,18 +1827,58 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
                 {search || filterLevel || filterGrade || filterSection || filterStatus 
                     ? "No se encontraron estudiantes con los filtros aplicados"
                     : "No hay estudiantes registrados"
-                  }
-                </p>
-                {!search && !filterLevel && (
-                  <button
-                    onClick={() => setShowModal(true)}
-                    className="mt-4 text-amber-600 font-medium hover:text-amber-700"
-                  >
-                    + Agregar primer estudiante
-                  </button>
-                )}
-              </div>
-            ) : (
+                }
+              </p>
+              {!search && !filterLevel && (
+                <button
+                  onClick={() => setShowModal(true)}
+                  className="mt-4 text-amber-600 font-medium hover:text-amber-700"
+                >
+                  + Agregar primer estudiante
+                </button>
+              )}
+            </div>
+          ) : viewMode === 'grouped' ? (
+            /* ═══════════════════════════════════════════════════════════════════════
+               GROUPED VIEW - Hierarchical accordion structure
+               ═══════════════════════════════════════════════════════════════════════ */
+            <div className="space-y-4" data-testid="grouped-view">
+              {Object.entries(studentsByLevel)
+                .sort(([a], [b]) => {
+                  // Sort levels by their order or name
+                  const levelA = levels.find(l => l.id === a);
+                  const levelB = levels.find(l => l.id === b);
+                  return (levelA?.orden || 0) - (levelB?.orden || 0);
+                })
+                .map(([levelId, levelStudents]) => {
+                  const level = levels.find(l => l.id === levelId);
+                  const levelName = level?.nombre || 'Sin Nivel';
+                  
+                  return (
+                    <LevelAccordion
+                      key={levelId}
+                      levelId={levelId}
+                      levelName={levelName}
+                      students={levelStudents}
+                      grades={grades}
+                      sections={sections}
+                      isOpen={expandedLevels[levelId] ?? true}
+                      onToggle={() => toggleLevel(levelId)}
+                      onEdit={handleEdit}
+                      onDelete={handleDelete}
+                      onShowQR={(s) => {
+                        setQRStudent(s);
+                        setShowQRModal(true);
+                      }}
+                    />
+                  );
+                })}
+            </div>
+          ) : (
+            /* ═══════════════════════════════════════════════════════════════════════
+               TABLE VIEW - Traditional list view
+               ═══════════════════════════════════════════════════════════════════════ */
+            <div className="bg-white rounded-xl border border-slate-200 overflow-hidden" data-testid="table-view">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-slate-50 border-b border-slate-200">
@@ -1863,7 +1903,6 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
                         onDelete={handleDelete}
                         onViewDetails={(s) => console.log('View details:', s)}
                         onShowQR={(s) => {
-                          // Add grade and section names for QR card
                           const gradeName = grades.find(g => g.id === s.grado_id)?.nombre || "";
                           const sectionName = sections.find(sec => sec.id === s.seccion_id)?.nombre || "";
                           setQRStudent({ ...s, grade_name: gradeName, section_name: sectionName });
@@ -1874,8 +1913,8 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </main>
 
