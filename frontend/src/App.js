@@ -348,7 +348,9 @@ function App() {
             path="/login"
             element={
               isLoggedIn ? (
-                hasSubdomain ? (
+                isSupportGlobal(user) ? (
+                  <Navigate to="/support" replace />
+                ) : hasSubdomain ? (
                   <Navigate to={getDashboardPath()} replace />
                 ) : emailVerified ? (
                   <Navigate to="/onboarding" replace />
