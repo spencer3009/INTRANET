@@ -378,13 +378,10 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    if (!file.type.startsWith('image/')) {
-      setError("Solo se permiten archivos de imagen");
-      return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-      setError("El archivo no debe superar 5MB");
+    // Validate file
+    const validation = validateImageFile(file, { maxSizeMB: 5 });
+    if (!validation.valid) {
+      setError(validation.error);
       return;
     }
     
@@ -392,6 +389,9 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
     setError("");
     
     try {
+      // Process image: compress to 200px width and convert to WebP
+      const processedFile = await processProfilePhoto(file, { maxWidth: 200, quality: 0.8 });
+      
       const sigRes = await axios.get(
         `${API}/cloudinary/signature?resource_type=image&folder=edunet/users`,
         { headers }
@@ -399,7 +399,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated }) {
       const sig = sigRes.data;
       
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", processedFile);
       formData.append("api_key", sig.api_key);
       formData.append("timestamp", sig.timestamp);
       formData.append("signature", sig.signature);
