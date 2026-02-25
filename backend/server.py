@@ -15495,12 +15495,22 @@ async def get_academic_threads(limit: int = 50, current_user = Depends(get_curre
     
     threads = await db.academic_threads.find({"school_id": user["school_id"], "participant_ids": user["id"]}, {"_id": 0}).sort("updated_at", -1).limit(limit).to_list(limit)
     
+    # Get demo user IDs to filter them out
+    demo_users = await db.users.find({"is_demo": True}, {"_id": 0, "id": 1}).to_list(500)
+    demo_ids = {u["id"] for u in demo_users}
+    
+    filtered_threads = []
     for thread in threads:
         thread["has_unread"] = user["id"] in thread.get("unread_by", [])
-        thread["other_participant"] = next((p for p in thread.get("participants", []) if p["id"] != user["id"]), None)
+        other = next((p for p in thread.get("participants", []) if p["id"] != user["id"]), None)
+        thread["other_participant"] = other
+        # Skip threads where the other participant is a demo user
+        if other and other.get("id") in demo_ids:
+            continue
+        filtered_threads.append(thread)
     
-    unread_count = sum(1 for t in threads if t["has_unread"])
-    return {"threads": threads, "unread_count": unread_count, "total_count": len(threads)}
+    unread_count = sum(1 for t in filtered_threads if t["has_unread"])
+    return {"threads": filtered_threads, "unread_count": unread_count, "total_count": len(filtered_threads)}
 
 @api_router.get("/messaging/academic/{thread_id}")
 async def get_academic_thread(thread_id: str, current_user = Depends(get_current_user)):
