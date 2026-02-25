@@ -2,11 +2,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "sonner";
 import {
   Bell, X, Calendar, FileText, BookOpen, AlertCircle,
   Clock, ChevronRight, Eye, Loader2, Sparkles, PenTool,
-  FolderOpen, MessageSquare, CheckCircle, CheckCheck, ExternalLink
+  FolderOpen, MessageSquare, CheckCircle, CheckCheck, ExternalLink, Wifi, WifiOff
 } from "lucide-react";
+import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
