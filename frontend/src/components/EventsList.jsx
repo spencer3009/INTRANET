@@ -55,7 +55,7 @@ export default function EventsList({ events }) {
     const dateA = new Date(a.start_date || a.date);
     const dateB = new Date(b.start_date || b.date);
     return dateA - dateB;
-  }).slice(0, 5);
+  }).slice(0, 4);
 
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6" data-testid="events-list">
@@ -122,7 +122,7 @@ export default function EventsList({ events }) {
         })}
       </div>
       
-      {events.length > 5 && (
+      {events.length > 4 && (
         <button className="w-full mt-4 py-2 text-sm font-medium text-[#5c85d6] hover:text-[#001f4b] hover:bg-slate-50 rounded-lg transition-colors">
           Ver todos los eventos →
         </button>
