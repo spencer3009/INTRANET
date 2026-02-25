@@ -14528,6 +14528,50 @@ async def create_notification_for_subject(
     }
     
     await db.notifications.insert_one(notification)
+    
+    # Broadcast via WebSocket to relevant users
+    try:
+        notif_for_ws = {k: v for k, v in notification.items() if k not in ("_id", "read_by")}
+        notif_for_ws["is_read"] = False
+        
+        # Find target users based on subject access
+        target_user_ids = []
+        if subject_id:
+            # Students enrolled via grade
+            subject_doc = await db.subjects.find_one({"id": subject_id}, {"_id": 0, "grade_id": 1})
+            if subject_doc and subject_doc.get("grade_id"):
+                students = await db.users.find(
+                    {"school_id": school_id, "role": "student", "is_active": {"$ne": False}, "is_demo": {"$ne": True},
+                     "$or": [{"grade_id": subject_doc["grade_id"]}, {"grado_id": subject_doc["grade_id"]}]},
+                    {"_id": 0, "id": 1}
+                ).to_list(500)
+                target_user_ids.extend([s["id"] for s in students])
+        
+        # Admin/owner/director/coordinator of the school always get notifications
+        admins = await db.users.find(
+            {"school_id": school_id, "role": {"$in": ["admin", "owner", "director", "coordinator"]}, "is_active": {"$ne": False}, "is_demo": {"$ne": True}},
+            {"_id": 0, "id": 1}
+        ).to_list(50)
+        target_user_ids.extend([a["id"] for a in admins])
+        
+        # Teachers of this subject
+        if subject_id:
+            teachers = await db.users.find(
+                {"school_id": school_id, "role": "teacher", "is_active": {"$ne": False}, "is_demo": {"$ne": True}},
+                {"_id": 0, "id": 1}
+            ).to_list(100)
+            target_user_ids.extend([t["id"] for t in teachers])
+        
+        # Remove duplicates and the author
+        target_user_ids = list(set(uid for uid in target_user_ids if uid != author_id))
+        
+        await ws_manager.broadcast_to_users(target_user_ids, {
+            "type": "new_notification",
+            "notification": notif_for_ws
+        })
+    except Exception as e:
+        logger.warning(f"WebSocket broadcast error: {e}")
+    
     return notification
 
 @api_router.get("/notifications/all")
