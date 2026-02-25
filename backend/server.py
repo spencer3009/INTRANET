@@ -9343,11 +9343,16 @@ async def get_calendar_events(
     Get calendar events filtered by date range and type.
     Events are filtered based on user's role and visibility settings.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
-    if not user or not user.get("school_id"):
+    user = await resolve_user_from_token(current_user)
+    if not user:
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
-    school_id = user["school_id"]
+    school_id = user.get("school_id")
+    if not school_id:
+        school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
     user_role = user.get("role", "")
     user_grade = user.get("grado_id")
     user_section = user.get("seccion_id")
