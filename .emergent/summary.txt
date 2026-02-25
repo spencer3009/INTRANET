@@ -1,78 +1,70 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. While the initial goal was full feature parity between Student and Parent Portals, the focus has shifted to implementing a series of high-priority features and bug fixes. The most recent requests involve creating a secure Demo User mode for sales demonstrations and a protected System Admin user for technical support.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The initial project involved bug fixes and implementing Demo User and System Admin roles.
 
-**PRODUCT REQUIREMENTS:**
--   **Demo User Mode:**
-    -   Create a visitor user type () that can be created only by the school's Owner.
-    -   Demo users can log in and navigate the entire application but are blocked from all write operations (Create, Update, Delete).
-    -   This block must be enforced via backend middleware, returning a 403 status.
-    -   The frontend must display a permanent MODO DEMO badge in the header for these users.
-    -   When a demo user attempts a write action, instead of an error, a friendly, non-alarming popup must appear explaining the limitations of the demo mode.
--   **Protected System Admin User:**
-    -   Automatically create a protected technical support user () for each school upon creation.
-    -   This user must be undeletable and uneditable by the school's Owner or any other role.
-    -   The user should have a distinct role card on the , a unique icon (man with a support headset/cap), and its action buttons (Edit/Delete) must be disabled with a lock icon and an explanatory tooltip.
-    -   The credentials for this user must be fixed: **email:** , **password:** .
+The scope expanded significantly during this session to include:
+1.  **Global Support Panel:** A new, separate interface for a global support user () who is not tied to a single school. This user can view system-wide metrics, see a list of schools they are assigned to, and securely switch context to enter and manage a specific school's dashboard as if they were the owner.
+2.  **Executive Dashboard Redesign (Owner Role Only):** A complete overhaul of the Owner's dashboard to display strategic, institution-level information instead of operational data.
+    *   **KPI Cards:** Replace default cards with Alumnos Activos, Docentes Activos, Ingresos del Mes, and Mensajes Sin Leer, all connected to real-time database figures.
+    *   **Quick Access:** Replace student-centric links with an Acceso Ejecutivo section linking to , , , and  settings. These links must navigate to the correct, pre-filtered views.
+    *   **Main Chart:** Replace the Alumnos Inscritos chart with a financial chart of Ingresos Mensuales, showing a stacked bar graph of Cobrado (paid), Por Cobrar (pending), and Vencido (overdue) payments for each month.
+    *   **Profile Card:** Redesign the owner's profile card to show school name, active student count, and active teacher count.
+    *   **Data Integrity:** A strict requirement that **no data** on the Owner's dashboard should be hardcoded. All numbers and lists must reflect the live state of the database (, , , ).
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack monolith (FastAPI + React). During this session, several key features were implemented:
-1.  **Demo User System (Completed):** A complete demo mode has been implemented.
-    -   **Backend:** A middleware blocks , , , and  requests for users with the  flag. The user creation endpoint was updated to handle this new flag.
-    -   **Frontend:** A MODO DEMO badge is shown in the header. User cards have a DEMO badge. The user creation modal has a switch (visible only to the Owner) to create a user as a demo. A global context () and a reusable modal () were created to show a friendly popup instead of an error toast when a write action is blocked.
-2.  **System Admin User (Mostly Completed):** A protected user for technical support has been implemented.
-    -   **Backend:** An  flag was added. Logic to auto-create this user when a new school is registered. API endpoints for user deletion and updates are protected to prevent modification of system users.
-    -   **Frontend:** The  was updated to display a new role card for Admin Sistema with a unique icon and color scheme. The user card for the system user has a 🔒 SISTEMA badge, and its Edit/Delete buttons are disabled with a lock icon and tooltip. The button to add new system admins is hidden.
-3.  **Bug Fixes & UX Improvements (Completed):**
-    -   Fixed missing hover buttons (edit/delete) on the schedule grid by adding a  CSS class to the parent container.
-    -   The end time in the schedule creation modal is now automatically pre-filled.
-    -   A utility function () was created to resize and convert all user profile picture uploads to 200px wide WebP format before uploading to Cloudinary.
-    -   A button was added to the UI to allow admins to generate QR codes for existing students who don't have one.
+The application is a full-stack FastAPI (backend) and React (frontend) monolith.
+- A multi-tenant architecture where each school operates under its own subdomain.
+- A new **Global Support Panel** has been fully implemented at the  route. It allows a  user to log in, view system metrics, and switch context into any school they are assigned to.
+- The **Owner's Dashboard has been completely redesigned** with new executive KPIs, a new financial chart, and a new quick access section. Most of these components are now connected to live backend data.
+- The backend has been partially modularized with the creation of a new router for support endpoints ().
+- Several backend endpoints were created or modified to provide real-time statistics for the new dashboard components (e.g., , ).
+- Seed data (payments, events) was created to demonstrate the new dashboard features with realistic data.
 
 **Last working item**:
--   **Last item agent was working**: The agent was trying to fix a critical login issue. The user requested that the System Admin user always use the credentials  and . The agent updated the backend to reflect this and reset the existing system user's password. However, all subsequent login attempts with these new, correct credentials are failing with an Invalid credentials error.
--   **Status**: BLOCKED
--   **Agent Testing Done**: N (Login is failing)
--   **Which testing method agent to use?**: manual testing by curl/ python -c
--   **User Testing Done**: N
+- **Last item agent was working**: The user identified that two components on the Owner's Dashboard, Asistencia del Mes (monthly attendance donut chart) and Noticias y Avisos (News and Announcements), were still displaying hardcoded placeholder data. The agent investigated and confirmed this was the case, identifying the hardcoded data within  and the fallback logic in .
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: both
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: System Admin Login Fails with Correct Credentials (P0)**
-    -   **Description:** After setting the System Admin's credentials to the static email  and password , login attempts fail. The backend correctly updated the user in the database, but the  endpoint rejects the credentials.
-    -   **Attempted fixes:** The agent confirmed the user exists with the correct email via an API call, verified no duplicate emails exist, and restarted the backend. Debugging was hampered by confusion over which database was being used (local vs. remote).
+-   **Issue 1: Remove Hardcoded Data from Owner Dashboard (P0)**
+    -   **Description:** The Asistencia del Mes and Noticias y Avisos components on the Owner's Dashboard are still using hardcoded fallback data. This violates the user's explicit requirement for a fully data-driven dashboard.
+    -   **Attempted fixes:** The agent located the hardcoded data in  (for the frontend display) and in  (for the fallback API response). The next step is to replace this with real data.
     -   **Next debug checklist:**
-        1.  Examine the  logic in .
-        2.  The query  likely needs to be adjusted. The login flow may implicitly depend on a subdomain from the request  header, which wouldn't apply when a system-level user tries to log in. The query may need to be less restrictive for system admins.
-        3.  Temporarily add logging inside the login endpoint to print the found user (or lack thereof) and compare the hashed password from the DB with the hash generated from the provided password during the login attempt.
-    -   **Why fix this issue and what will be achieved with the fix?** This is a critical blocker. The system admin user is unusable until they can log in, which defeats the purpose of the feature for providing technical support.
+        1.  Create a new backend endpoint (e.g., ) to calculate the real attendance stats (present, late, absent) for the current month from the  collection.
+        2.  Create a real backend endpoint for  that fetches records from a  collection (which may need to be created).
+        3.  Update  to fetch data from these new endpoints.
+        4.  Remove the hardcoded fallback data from both  and the corresponding endpoints in .
+    -   **Why fix this issue and what will be achieved with the fix?** To fulfill the user's core requirement that the Owner's Dashboard is 100% driven by real, live data and contains no placeholder information.
     -   **Status:** IN PROGRESS
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** backend
+    -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
 -   **Issue 2: Message Center Unread Count Discrepancy (P1)**
-    -   **Description:** The dashboard widget shows an unread message count, but the corresponding message isn't always visible in the message list.
+    -   **Description:** The dashboard widget shows an unread message count, but the corresponding message isn't always visible in the message list. (Inherited from previous fork).
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
 
 -   **Issue 3: Parent Portal - Horario page shows empty table (P2)**
-    -   **Description:** On the Parent Horario page, a banner may indicate classes exist, but the weekly schedule table remains empty.
+    -   **Description:** On the Parent Horario page, a banner may indicate classes exist, but the weekly schedule table remains empty. (Inherited from previous fork).
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
 
 **In progress Task List**:
--   **Task 1: Complete Parent Portal Feature Parity (P0)**
+-   **Task 1: Complete Parent Portal Feature Parity (P1)**
     -   **Where to resume:** Create  and  by adapting their student counterparts. Implement the full functionality of the .
     -   **What will be achieved with this?** Fulfills a core project requirement of having a fully functional Parent Portal.
     -   **Status:** IN PROGRESS
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** Blocked by higher-priority bug fixes and feature requests.
+    -   **Blocked on something:** Blocked by higher-priority feature requests and fixes on the Owner dashboard.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Modularize :** CRITICAL technical debt. The file is over 19,000 lines and must be refactored into domain-specific routers.
-    -   **P1: Apply Intelligent Filters to Parents View:** The advanced filtering system built for the Students view on  should be implemented for the Parents view as well.
+    -   **P0: Modularize :** CRITICAL technical debt. The file is over 19,000 lines. The new  router is a good start, but all other domains (auth, users, dashboard, etc.) must be moved out of .
+    -   **P1: Apply Intelligent Filters to Parents View:** The advanced filtering system built for the Students view on  should be implemented for the Parents view.
 -   **Future Tasks:**
     -   **P1:** Implement Cache Invalidation for .
     -   **P1:** Build a Matrículas (Enrollments) module.
@@ -80,20 +72,20 @@ The application is a full-stack monolith (FastAPI + React). During this session,
     -   **P1:** Enhance the Exams module with a Question Bank.
     -   **P1:** Implement automatic notifications for students.
     -   **P2:** Perform a project-wide replacement of  and  with a global custom modal.
-    -   **P2:** Refactor the  monolith component.
 
 **Completed work in this session**
--   **Feature: Demo User / Visitor Mode (DONE):** Implemented backend middleware and frontend UI (badges, conditional forms, friendly modals) for a read-only demo user experience.
--   **Feature: Protected System Admin User (DONE):** Implemented backend logic and frontend UI for an undeletable, uneditable system support user, including a custom role card, icon, and disabled action buttons.
--   **Feature: Image Optimization on Upload (DONE):** Created a utility to convert user-uploaded images to 200px WebP format, reducing file size.
--   **Feature: Generate QR for Existing Students (DONE):** Added a UI button for admins to generate missing QR codes for students.
--   **Bugfix: Schedule Hover Buttons (DONE):** Fixed an issue where edit/delete buttons were not appearing on schedule entries.
--   **UX: Auto-fill Schedule End Time (DONE):** The schedule creation modal now intelligently pre-fills the end time.
+-   **Feature: Global Support Panel (DONE):** Implemented a full-featured panel for a global support user, including a dedicated dashboard, a list of assigned schools, and a secure context-switching mechanism to impersonate a school owner.
+-   **Feature: Complete Owner Dashboard Redesign (DONE):**
+    -   **Executive KPIs:** Implemented and connected to live DB data.
+    -   **Executive Quick Access:** Implemented with premium styling and functional links that navigate to pre-filtered views.
+    -   **Financial Chart:** Replaced attendance chart with a multi-bar Ingresos Mensuales chart showing , , and  amounts from real payment data.
+    -   **Profile Card:** Redesigned with live student/teacher counts and school name.
+-   **Bugfix: System Admin Login & Impersonation Flow (DONE):** Resolved a critical, recurring login issue for the support user and fixed the UI/UX for the impersonation session, adding a persistent banner with a Return to Panel button and ensuring school-specific branding (logo, name) was displayed correctly.
+-   **Data Integrity: Removed Hardcoded Dashboard Data (Partially DONE):** Replaced hardcoded data for KPIs, the main chart, and the Próximos Eventos list with live data from MongoDB. Created seed data to ensure features are testable.
 
 **Earlier issues found/mentioned but not fixed**
 -   The critical refactoring of  into smaller, manageable modules.
 -   The project-wide replacement of native browser dialogs (, ).
--   Refactoring of the large  component.
 
 **Known issue recurrence from previous fork**
 -   **Message Center Unread Count Discrepancy:** This is a recurring issue from a previous session that remains unresolved.
@@ -102,15 +94,22 @@ The application is a full-stack monolith (FastAPI + React). During this session,
 
 
 **Key Technical Concepts**
--   **FastAPI Middleware:** Implemented a custom middleware to intercept all incoming requests and block write operations (, , ) if the authenticated user is a demo user.
--   **React Context API:** Used to create a global state manager () for showing a blocked action modal from any component without prop drilling.
--   **Client-Side Image Processing:** Utilized the browser's Canvas API within a React utility () to resize and convert images to the  format before uploading.
--   **Conditional Rendering & UI State:** Extensive use of React hooks to conditionally render UI elements (badges, buttons, form fields) based on user roles and flags like  and .
+-   **Modular FastAPI Routers**: Started refactoring  by creating a dedicated  in .
+-   **JWT for Context Switching**: A new JWT is issued on  with a  scope and  claim, allowing secure impersonation. The backend authorization logic was updated to handle this special token.
+-   **MongoDB Aggregation Pipelines**: Used extensively in new dashboard endpoints (, ) to perform complex groupings and calculations (e.g., summing payments by status and month).
+-   **Conditional Rendering by Role**:  now heavily uses the user's role ( vs. others) to render entirely different sets of components (, , ).
+-   **Dynamic Routing with Query Params**: Implemented in  to pre-select a role view via a URL query parameter (e.g., ), enabling direct navigation from the Acceso Ejecutivo widget.
 
 **key DB schema**
 -   **users**:
-    -   : (Boolean) Flags the user as a read-only demo account.
-    -   : (Boolean) Flags the user as a protected system account for support.
+    -   : (String) New role  was added for the global support user. This user has no .
+-   **user_school_roles**: (New Collection)
+    -   : (ObjectId)
+    -   : (ObjectId)
+    -   : (String, e.g., 'owner')
+-   **payments**: Used to calculate . Key fields: ,  ('paid', 'pending'), , .
+-   **calendar_events**: Used for Próximos Eventos. Key fields: , , .
+-   **attendances**: Will be used for Asistencia del Mes. Key fields: Wed Feb 25 14:19:22 UTC 2026,  ('present', 'late', 'absent'), .
 
 **changes in tech stack**
 -   None.
@@ -123,57 +122,64 @@ The application is a full-stack monolith (FastAPI + React). During this session,
 -   
 -   
 -   
+-   
+-   
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This file has grown even larger and is now a significant liability. It must be broken down into smaller routers (e.g., , , ).
--   ** (CRITICAL):** This file is now over 3,000 lines and handles logic for multiple roles, views, filters, and modals. It must be refactored into smaller, specialized components (e.g., , , , ).
+-   ** (CRITICAL):** This file is extremely large and a major source of technical debt. It must be broken down into domain-specific routers (e.g., , , ).
+-   ** (High):** This component now has significant conditional logic. It could be beneficial to create separate, role-specific dashboard pages (e.g., , ) to simplify the logic.
 
 **key api endpoints**
--   : The endpoint that is currently failing for the System Admin user.
--   : Modified to automatically create a protected System Admin user.
--   : Protected to prevent deletion of system users.
--   : Protected to prevent modification of system users.
--   : A new temporary endpoint created to update the system user's password.
+-   : Issues a new JWT for context switching.
+-   : Provides metrics for the global support dashboard.
+-   : Provides KPI figures for the Owner dashboard.
+-   : Provides aggregated payment data for the Owner's financial chart.
+-   : Provides upcoming events for the Owner's dashboard.
 
 **Critical Info for New Agent**
 -   **¡Habla en español!** The user's preferred language is Spanish. All communication must be in Spanish.
--   The absolute highest priority is to **fix the login for the System Admin user**. This is a hard blocker. Investigate the  endpoint, paying close attention to how it handles users that might not be associated with the request's subdomain. The credentials are correct; the logic is flawed.
--   After fixing the login, the Demo User popup logic needs to be globally applied. The context is set up, but the  blocks that trigger the modal need to be implemented in all components that make write API calls (e.g., Profile, Schedule, etc.).
+-   The absolute highest priority is **Issue 1: Remove Hardcoded Data from Owner Dashboard**. The user is very focused on ensuring the dashboard is 100% driven by live data. You need to connect the Asistencia del Mes and Noticias y Avisos components to real backend endpoints.
+-   After fixing the hardcoded data, the next most important task is the **CRITICAL refactoring of **. Propose this to the user as a necessary step for maintainability.
+-   The global support user () is a new, important concept. It has no  itself but gains one temporarily in the JWT when using the context-switch feature.
 
 **documents and test reports created in this job**
--    (Updated, but agent failed to write the last update).
+-    (Updated)
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** The technical support user must always be  with password . **Status: IN PROGRESS (Login is failing).**
-2.  **User:** The support user icon is the same as the teacher icon. **Status: COMPLETED.**
-3.  **User:** Provided a specific image for the support icon (man with cap). **Status: COMPLETED.**
-4.  **User:** Change the support profile picture to a man with a support headset. **Status: COMPLETED.**
-5.  **User:** The Admin Sistema card should be first, and the profile picture should be a support person icon. **Status: COMPLETED.**
-6.  **User:** Change the system admin icon to a wrench/nut, hide the add user button for this role, and provide the credentials. **Status: COMPLETED.**
-7.  **User:** The system admin card icon is unprofessional (delivery bike); change it to a tool icon and use a more vivid color. **Status: COMPLETED.**
-8.  **User:** The error toast for demo users is alarming. It should be a friendly popup explaining the demo mode. **Status: COMPLETED.**
-9.  **User:** Provided detailed requirements for the Demo User (Visitor Mode) feature. **Status: COMPLETED.**
-10. **User:** Provided detailed requirements for the Protected System Admin (Technical Support) feature. **Status: COMPLETED.**
+1.  **User:** The News section is hardcoded. **Status: PENDING.**
+2.  **User:** The Asistencia del Mes (Monthly Attendance) is hardcoded. **Status: IN PROGRESS.**
+3.  **User:** Redesign the owner's profile card to be more executive. **Status: COMPLETED.**
+4.  **User:** The payments chart should show pending payments in orange and have bars side-by-side. Also, create more varied payment data. **Status: COMPLETED.**
+5.  **User:** The payments chart needs to show overdue/delinquent payments (morosos) in a different color. **Status: COMPLETED.**
+6.  **User:** Replace the Asistencia chart with a new Ingresos Mensuales (Monthly Income) chart. **Status: COMPLETED.**
+7.  **User:** The Docentes and Colegio quick access buttons are not working, and restore the previous colors. **Status: COMPLETED.**
+8.  **User:** The quick access buttons need to navigate directly to the filtered lists of students/teachers, not the generic user page. **Status: COMPLETED.**
+9.  **User:** The quick access buttons are not working and the style needs to be more premium. **Status: COMPLETED.**
+10. **User:** Redesign the Acceso Rápido section to be an Acceso Ejecutivo and replace the main chart with an Asistencia Promedio Mensual graph. **Status: COMPLETED.**
 
 **Project Health Check:**
--   **Broken**: System Admin login.
--   **Mocked**: None.
+-   **Broken**: None.
+-   **Mocked**: Asistencia del Mes and Noticias y Avisos components on the Owner's dashboard are still using hardcoded data.
 
 **3rd Party Integrations**
 -   Cloudinary (Image Storage)
--   *No new integrations were added in this session.*
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
+-   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: None
+-   **Test files created**:
+    - 
 -   **Known regressions**: None
 
 **Credentials to test flow:**
--   **School Subdomain:** 
--   **Owner:**  / 
--   **System Admin (Login Failing):**  / 
+-   **Global Support User:**
+    -   **Email:** 
+    -   **Password:** 
+-   **School Owner:**
+    -   **Subdomain:** 
+    -   **Email:** 
+    -   **Password:** 
 
 **What agent forgot to execute**
--   The agent failed to update  on its last few  calls.
--   The agent did not propagate the friendly Demo Mode popup to all other forms in the application; it was only fully implemented for the  modal. The context was created but not consumed globally.</analysis>
+-   The agent identified the remaining hardcoded components (Asistencia del Mes and Noticias y Avisos) but did not complete the implementation to connect them to a live backend before the session ended.</analysis>
