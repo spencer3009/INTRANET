@@ -14834,6 +14834,9 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
     contacts = []
     user_role = user.get("role", "student")
     
+    # Base filter to exclude demo/test users from contacts
+    demo_filter = {"is_demo": {"$ne": True}}
+    
     # Get all threads where user is participant to count unread messages
     user_threads = await db.academic_threads.find({
         "school_id": user["school_id"],
