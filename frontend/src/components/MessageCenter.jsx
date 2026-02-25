@@ -845,7 +845,13 @@ const CATEGORY_ICONS = {
   mis_alumnos: Users,
   padres_apoderados: UserCheck,
   personal_administrativo: Shield,
-  otros_profesores: GraduationCap
+  otros_profesores: GraduationCap,
+  profesores: GraduationCap,
+  alumnos: Users,
+  mis_profesores: GraduationCap,
+  companeros: Users,
+  profesores_hijos: GraduationCap,
+  otros_padres: UserCheck
 };
 
 function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirectChat }) {
