@@ -1601,6 +1601,7 @@ function App() {
         </Routes>
       </BrowserRouter>
       </DemoModeProvider>
+      <Toaster position="top-right" richColors closeButton />
     </TenantContext.Provider>
   );
 }
