@@ -20649,6 +20649,39 @@ app.include_router(api_router)
 app.include_router(support_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# WEBSOCKET ENDPOINT - Real-time Notifications
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.websocket("/api/ws/notifications")
+async def websocket_notifications(websocket: WebSocket, token: str = Query(None)):
+    """WebSocket endpoint for real-time push notifications"""
+    if not token:
+        await websocket.close(code=4001, reason="Token required")
+        return
+    
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        user_id = payload.get("sub")
+        if not user_id:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+    except Exception:
+        await websocket.close(code=4001, reason="Invalid token")
+        return
+    
+    await ws_manager.connect(websocket, user_id)
+    try:
+        while True:
+            # Keep connection alive, handle client pings
+            data = await websocket.receive_text()
+            if data == "ping":
+                await websocket.send_text("pong")
+    except WebSocketDisconnect:
+        ws_manager.disconnect(websocket, user_id)
+    except Exception:
+        ws_manager.disconnect(websocket, user_id)
+
+# ══════════════════════════════════════════════════════════════════════════════
 # DATABASE INDEXES - Create on startup for optimized queries
 # ══════════════════════════════════════════════════════════════════════════════
 @app.on_event("startup")
