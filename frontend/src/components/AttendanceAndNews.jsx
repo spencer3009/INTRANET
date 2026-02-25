@@ -72,7 +72,7 @@ const defaultAnnouncements = [
     content: "Se informa a toda la comunidad educativa que las inscripciones para los talleres extracurriculares del año escolar 2026 ya están abiertas. Los interesados pueden acercarse a secretaría para más información.",
     time: "Hace 2 horas",
     tag: "Nuevo",
-    tagColor: "bg-[#001f4b] text-white",
+    tagColor: "bg-[#5c85d6] text-white",
   },
   {
     id: 2,
