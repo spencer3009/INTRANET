@@ -1,11 +1,11 @@
-import { CalendarDays, Clock, MapPin } from "lucide-react";
+import { useState } from "react";
+import { CalendarDays, Clock, MapPin, X } from "lucide-react";
 
 const categoryIcons = {
   reunion: "bg-[#001f4b]",
   examen: "bg-[#e1b82c]",
   evento: "bg-[#5c85d6]",
   academico: "bg-[#10b981]",
-  // Calendar event types
   academic: "bg-[#3B82F6]",
   meeting: "bg-[#8B5CF6]",
   exam: "bg-[#EF4444]",
@@ -21,20 +21,108 @@ function formatDate(dateStr) {
   return d.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
 }
 
+function formatFullDate(dateStr) {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + (dateStr.includes('T') ? '' : 'T00:00:00'));
+  const formatted = d.toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  return formatted.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function formatTime(timeStr, startDate) {
-  // If timeStr is provided (old format), use it
   if (timeStr) return timeStr;
-  
-  // If we have a start_date with time, extract the time
   if (startDate && startDate.includes('T')) {
     const date = new Date(startDate);
     return date.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
   }
-  
   return "";
 }
 
+function EventDetailModal({ event, onClose }) {
+  if (!event) return null;
+
+  const eventDate = event.start_date || event.date;
+  const eventTime = formatTime(event.time, event.start_date);
+  const eventCategory = event.type || event.category;
+  const eventColor = event.color || categoryIcons[eventCategory] || "#001f4b";
+  const bgColor = eventColor.startsWith('bg-') ? undefined : eventColor;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      onClick={onClose}
+      data-testid="event-detail-modal-overlay"
+    >
+      <div
+        className="w-[90%] max-w-sm rounded-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+        data-testid="event-detail-modal"
+      >
+        {/* Header */}
+        <div
+          className="px-5 py-4 flex items-center justify-between"
+          style={{ background: "linear-gradient(135deg, #7c3aed, #a855f7)" }}
+        >
+          <h3 className="text-white font-bold text-base" style={{ fontFamily: "Manrope, sans-serif" }}>
+            {formatFullDate(eventDate)}
+          </h3>
+          <button
+            onClick={onClose}
+            className="text-white/80 hover:text-white transition-colors"
+            data-testid="event-detail-modal-close"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="bg-white p-5">
+          <div className="border border-slate-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <div
+                className={`w-3 h-3 rounded-full mt-1.5 flex-shrink-0 ${bgColor ? '' : eventColor}`}
+                style={bgColor ? { backgroundColor: bgColor } : {}}
+              />
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-[#001f4b] text-base" style={{ fontFamily: "Manrope, sans-serif" }}>
+                  {event.title}
+                </p>
+                <div className="flex items-center gap-2 mt-1 text-sm text-slate-500">
+                  <span>{eventCategory}</span>
+                  {eventTime && (
+                    <>
+                      <span>•</span>
+                      <span>{eventTime}</span>
+                    </>
+                  )}
+                </div>
+                {event.location && (
+                  <div className="flex items-center gap-1.5 mt-2 text-sm text-slate-500">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>{event.location}</span>
+                  </div>
+                )}
+                {event.description && (
+                  <p className="mt-3 text-sm text-slate-600 leading-relaxed">
+                    {event.description}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function EventsList({ events }) {
+  const [selectedEvent, setSelectedEvent] = useState(null);
+
   if (!events || events.length === 0) {
     return (
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6" data-testid="events-list">
@@ -50,7 +138,6 @@ export default function EventsList({ events }) {
     );
   }
 
-  // Sort events by date and take only the first 5
   const sortedEvents = [...events].sort((a, b) => {
     const dateA = new Date(a.start_date || a.date);
     const dateB = new Date(b.start_date || b.date);
@@ -69,16 +156,16 @@ export default function EventsList({ events }) {
       </div>
       <div className="space-y-3">
         {sortedEvents.map((event) => {
-          // Handle both old format (date, time, category) and new format (start_date, type, color)
           const eventDate = event.start_date || event.date;
           const eventTime = formatTime(event.time, event.start_date);
           const eventCategory = event.type || event.category;
           const eventColor = event.color || categoryIcons[eventCategory] || "bg-[#001f4b]";
-          
+
           return (
             <div
               key={event.id}
               className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer group"
+              onClick={() => setSelectedEvent(event)}
               data-testid={`event-item-${event.id}`}
             >
               <div
@@ -109,7 +196,7 @@ export default function EventsList({ events }) {
                   )}
                 </div>
                 {event.type_label && (
-                  <span 
+                  <span
                     className="inline-block mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
                     style={{ backgroundColor: event.color || '#64748B' }}
                   >
@@ -121,11 +208,15 @@ export default function EventsList({ events }) {
           );
         })}
       </div>
-      
+
       {events.length > 4 && (
         <button className="w-full mt-4 py-2 text-sm font-medium text-[#5c85d6] hover:text-[#001f4b] hover:bg-slate-50 rounded-lg transition-colors">
           Ver todos los eventos →
         </button>
+      )}
+
+      {selectedEvent && (
+        <EventDetailModal event={selectedEvent} onClose={() => setSelectedEvent(null)} />
       )}
     </div>
   );
