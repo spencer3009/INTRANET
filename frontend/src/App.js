@@ -69,7 +69,7 @@ import ParentCoursesPage from "@/pages/ParentCoursesPage";
 import ParentSchedulePage from "@/pages/ParentSchedulePage";
 import ParentExamsPage from "@/pages/ParentExamsPage";
 import ParentMessagesPage from "@/pages/ParentMessagesPage";
-import { DemoModeProvider } from "@/contexts/DemoModeContext";
+import { Toaster } from "sonner";
 // Support Panel imports
 import SupportLayout from "@/components/SupportLayout";
 import SupportDashboardPage from "@/pages/SupportDashboardPage";
