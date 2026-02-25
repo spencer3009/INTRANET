@@ -25,6 +25,12 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
 
 ### 5. Sistema de Mensajería Interna
 - Mensajes entre usuarios del colegio
+- **Contactos categorizados por carpetas** para todos los roles (IMPLEMENTADO - 25 Feb 2026):
+  - Owner/Admin: Alumnos → Profesores → Padres/Apoderados → Personal Administrativo
+  - Teacher: Mis Alumnos → Profesores → Padres/Apoderados → Personal Administrativo
+  - Student: Mis Profesores → Compañeros de Clase → Personal Administrativo
+  - Parent: Profesores de mis Hijos → Personal Administrativo → Otros Padres
+- Filtro `is_demo: true` para excluir usuarios de prueba de contactos y conversaciones
 
 ### 6. Portal de Estudiantes
 - Dashboard, cursos, tareas, calificaciones, horario, mensajes, perfil
@@ -37,116 +43,105 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
 #### Usuario Soporte Global
 - Email: spencer3009@gmail.com / Password: Socios3009
 - Rol: `system_admin_global`
-- Se crea automáticamente al iniciar el backend (`ensure_global_support_user`)
-- No tiene `school_id` (es global, accede a colegios via `user_school_roles`)
+- Se crea automáticamente al iniciar el backend
+- No tiene `school_id` (accede a colegios via `user_school_roles`)
 
 #### Endpoints de Soporte (`/api/support/*`)
 - `GET /api/support/overview` - Métricas globales
-- `GET /api/support/schools` - Colegios asignados con conteos
-- `GET /api/support/all-schools` - Todos los colegios con flag is_assigned
-- `POST /api/support/assign-school` - Asignar colegio
-- `DELETE /api/support/unassign-school/{school_id}` - Remover acceso
+- `GET /api/support/schools` - Colegios asignados
 - `POST /api/support/switch-school` - Cambiar contexto (JWT con role=owner)
-- `GET /api/support/me` - Perfil del soporte
-- `PUT /api/support/me` - Actualizar perfil
-- `PUT /api/support/me/password` - Cambiar contraseña
-
-#### Frontend Panel Soporte (`/support/*`)
-- `/support` - Dashboard con métricas y últimos colegios
-- `/support/schools` - Tarjetas de colegios con botón "Entrar"
-- `/support/profile` - Edición de perfil y cambio de contraseña
-
-#### Switch de Contexto
-- Al entrar a un colegio, se genera JWT especial con `scope: support_switch`
-- El soporte actúa como `owner` dentro del colegio
-- Banner verde "SESION DE SOPORTE" con botón "Volver al Panel de Soporte"
-- Las credenciales de soporte se guardan en localStorage para restaurar
-
-#### RBAC
-- Solo `system_admin_global` accede a `/api/support/*` y `/support/*`
-- `require_section_access` y `require_role` reconocen `support_switch` tokens
 
 ### 9. Modo Demo (Implementado)
 - Usuarios con `is_demo_user: true` (solo creados por Owner)
-- Backend middleware bloquea operaciones de escritura (POST, PUT, DELETE)
-- Badge "MODO DEMO" en el header
-- Popup amigable cuando intentan escribir
+- Backend middleware bloquea escritura
+- Badge "MODO DEMO" en header
 
 ### 10. Admin Sistema por Colegio (Implementado)
 - Usuarios con `is_system_user: true` por colegio
-- Ineditable e ineliminable por otros roles
-- Tarjeta especial con candado y tooltip
+- Ineditable e ineliminable
 
-### 11. Dashboard Propietario - Tarjetas KPI (IMPLEMENTADO - 24 Feb 2026)
-- Tarjetas exclusivas para rol propietario: Alumnos Activos, Docentes Activos, Ingresos del Mes (S/ 0, preparado para módulo contable), Mensajes Sin Leer
-- Endpoint: `GET /api/dashboard/owner-stats` (solo propietario)
-- Endpoint: `GET /api/dashboard/monthly-income` (preparado para futuro)
-- Los demás roles (docente, alumno, padre, admin) mantienen sus tarjetas originales
-- Componente: `OwnerMetricCards.jsx`
+### 11. Dashboard Propietario (IMPLEMENTADO - 24-25 Feb 2026)
+- KPIs: Alumnos Activos, Docentes Activos, Ingresos del Mes, Mensajes Sin Leer
+- Gráfico Ingresos Mensuales (Cobrado/Por Cobrar/Vencido)
+- Acceso Ejecutivo (Alumnos, Docentes, Reportes, Colegio)
+- Próximos Eventos con popup detalle al hacer clic
+- Noticias y Avisos con popup premium
+- Mini Calendario con popup de eventos posicionado arriba
+
+### 12. Sistema de Notificaciones Navegables Premium (IMPLEMENTADO - 25 Feb 2026)
+- Notificaciones clickeables que navegan al contenido relacionado
+- Marcado automático como leída al hacer clic
+- Contador de campana se actualiza en tiempo real sin recargar
+- Diferenciación visual leída/no leída (fondo coloreado vs blanco, texto bold vs normal)
+- Botón "Marcar todo leído"
+- Tabs: Actividad (notificaciones generales) y Recordatorios
+- Tipos: task, exam, material, forum, announcement, reminder
+- Cada notificación tiene `link_destino` auto-generado según tipo
+- **Endpoints:**
+  - `GET /api/notifications/all` - Lista con is_read y link_destino
+  - `GET /api/notifications/unread-count` - Contador para badge
+  - `POST /api/notifications/{id}/read` - Marca leída, retorna unread_count
+  - `POST /api/notifications/read-all` - Marca todas leídas
 
 ## Database Collections
-- `schools`: Colegios registrados
-- `users`: Usuarios con campos `qr_token`, `is_demo_user`, `is_system_user`, `role`
-- `user_school_roles`: Tabla pivote soporte-colegios (user_id, school_id, role_in_school). Index único (user_id, school_id)
-- `tenant_settings`: Configuraciones por colegio
-- `task_submissions`: Entregas de tareas
+- `schools`, `users`, `user_school_roles`, `tenant_settings`, `task_submissions`
+- `notifications`: id, school_id, subject_id, title, message, notification_type, reference_id, link_destino, read_by[], created_at
+- `academic_threads`: Conversaciones de mensajería
+- `payments`: Pagos con payment_status, total_amount
+- `calendar_events`: Eventos del calendario
+- `attendances`: Registros de asistencia
 
 ## Architecture
 ```
 /app
 ├── backend/
 │   ├── server.py              # Servidor principal (~20k líneas)
-│   └── routes/
-│       ├── core.py            # Dependencias compartidas
-│       └── support.py         # Router de soporte global
+│   ├── routes/
+│   │   └── support.py         # Router de soporte global
+│   └── tests/
+│       └── test_notifications_messaging.py
 └── frontend/
-    ├── src/
-    │   ├── App.js             # Rutas principales incluyendo /support/*
-    │   ├── components/
-    │   │   ├── SupportLayout.jsx      # Layout del panel de soporte
-    │   │   ├── DashboardHeader.jsx    # Header con banner de soporte
-    │   │   ├── DemoBlockedModal.jsx   # Modal modo demo
-    │   │   └── schedule/
-    │   ├── contexts/
-    │   │   └── DemoModeContext.jsx
-    │   ├── pages/
-    │   │   ├── SupportDashboardPage.jsx
-    │   │   ├── SupportSchoolsPage.jsx
-    │   │   ├── SupportProfilePage.jsx
-    │   │   ├── DashboardPage.jsx
-    │   │   ├── UsersPage.jsx
-    │   │   └── ...
-    │   └── utils/
-    │       └── imageUtils.js
-    └── ...
+    └── src/
+        ├── App.js
+        ├── components/
+        │   ├── NotificationBell.jsx     # Sistema notificaciones navegables
+        │   ├── MessageCenter.jsx        # Mensajería con contactos categorizados
+        │   ├── EventsList.jsx           # Widget eventos con popup detalle
+        │   ├── AttendanceAndNews.jsx    # Widget noticias con popup premium
+        │   ├── MiniCalendar.jsx         # Calendario con popup arriba
+        │   └── dashboard/
+        │       ├── OwnerMetricCards.jsx
+        │       ├── OwnerQuickAccess.jsx
+        │       ├── PaymentsChart.jsx
+        │       └── ProfileCard.jsx
+        └── pages/
+            ├── DashboardPage.jsx
+            └── support/
 ```
 
 ## Third-Party Integrations
 - Cloudinary (imágenes)
-- qrcode.react (generación QR)
-- @yudiel/react-qr-scanner (escaneo QR)
+- qrcode.react, @yudiel/react-qr-scanner (QR)
 - jspdf & jspdf-autotable (PDFs)
 - @tanstack/react-query (caching)
-- TipTap / Prosemirror (editor de texto)
 
 ## Pending Tasks (Prioritized)
 ### P0
-- Propagar popup "MODO DEMO" a todos los formularios
-- Modularizar server.py en routers por dominio
+- Modularizar server.py en routers por dominio (CRÍTICO - >20k líneas)
 
 ### P1
-- Discrepancia mensajes no leídos
+- Discrepancia mensajes no leídos (recurrente)
 - Parent Portal: Horario vacío
 - Completar Parent Portal (Profile, CourseDetail, Messages)
 - Filtros inteligentes para Padres en UsersPage
+- Conectar "Asistencia del Mes" a datos reales (actualmente hardcodeado)
+- Conectar "Noticias y Avisos" a colección real (actualmente hardcodeado)
 
 ### P2
 - Módulo de Matrículas
 - Sistema anti-trampas para exámenes
 - Banco de preguntas
-- Notificaciones automáticas
-- Reemplazar window.confirm/alert con modales
-- Refactorizar StudentCourseDetailPage.jsx
+- Reemplazar window.confirm/alert con modales custom
 - Cache invalidation para /api/student/tasks
 
 ## Credentials
