@@ -100,70 +100,101 @@ const defaultAnnouncements = [
   },
 ];
 
+// Category color accents for the modal
+const categoryAccents = {
+  announcement: { gradient: "from-[#001f4b] to-[#1a3a6b]", iconBg: "bg-[#001f4b]" },
+  academic: { gradient: "from-[#3b5998] to-[#5c85d6]", iconBg: "bg-[#5c85d6]" },
+  event: { gradient: "from-[#047857] to-[#10b981]", iconBg: "bg-emerald-500" },
+  achievement: { gradient: "from-[#b45309] to-[#e1b82c]", iconBg: "bg-amber-500" },
+  sports: { gradient: "from-[#c2410c] to-[#f97316]", iconBg: "bg-orange-500" },
+  cultural: { gradient: "from-[#7e22ce] to-[#a855f7]", iconBg: "bg-purple-500" },
+  administrative: { gradient: "from-[#475569] to-[#64748b]", iconBg: "bg-slate-500" },
+};
+
 // News Detail Modal
 function NewsDetailModal({ news, onClose }) {
   if (!news) return null;
   
   const { tag, tagColor } = news.tag ? { tag: news.tag, tagColor: news.tagColor } : getTagInfo(news);
+  const accent = categoryAccents[news.category] || categoryAccents.announcement;
   
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="news-modal">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-hidden">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div 
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Colored accent bar */}
+        <div className={`h-1.5 bg-gradient-to-r ${accent.gradient}`} />
+        
         {/* Header */}
-        <div className="relative bg-gradient-to-r from-[#001f4b] to-[#003366] p-6">
-          <button 
-            onClick={onClose}
-            className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-xl transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-          
-          <div className="flex items-center gap-3 mb-3">
-            {news.pinned && <Pin className="w-5 h-5 text-[#e1b82c]" />}
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${tagColor}`}>
-              {tag}
-            </span>
+        <div className="px-6 pt-5 pb-4">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-3 flex-1 min-w-0">
+              <div className={`w-10 h-10 rounded-xl ${accent.iconBg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                <Newspaper className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  {news.pinned && <Pin className="w-3.5 h-3.5 text-[#e1b82c]" />}
+                  <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full ${tagColor}`}>
+                    {tag}
+                  </span>
+                </div>
+                <h2 className="text-lg font-bold text-[#001f4b] leading-snug" style={{ fontFamily: "Manrope, sans-serif" }}>
+                  {news.title}
+                </h2>
+              </div>
+            </div>
+            <button 
+              onClick={onClose}
+              className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"
+              data-testid="news-modal-close"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
           
-          <h2 className="text-xl font-bold text-white pr-10">{news.title}</h2>
-          
-          <div className="flex items-center gap-4 mt-4 text-white/70 text-sm">
-            <span className="flex items-center gap-1.5">
-              <Calendar className="w-4 h-4" />
+          {/* Meta info */}
+          <div className="flex items-center gap-3 mt-3 ml-[52px] text-xs text-slate-400">
+            <span className="flex items-center gap-1">
+              <Calendar className="w-3.5 h-3.5" />
               {news.published_at ? formatFullDate(news.published_at) : news.time}
             </span>
             {news.author_name && (
-              <span className="flex items-center gap-1.5">
-                <User className="w-4 h-4" />
+              <span className="flex items-center gap-1">
+                <User className="w-3.5 h-3.5" />
                 {news.author_name}
               </span>
             )}
           </div>
         </div>
         
+        {/* Divider */}
+        <div className="mx-6 border-t border-slate-100" />
+        
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[50vh]">
+        <div className="px-6 py-5 overflow-y-auto max-h-[50vh]">
           {news.image_url && (
             <img 
               src={news.image_url} 
               alt={news.title}
-              className="w-full h-48 object-cover rounded-xl mb-6"
+              className="w-full h-44 object-cover rounded-xl mb-5 border border-slate-100"
             />
           )}
           
-          <div className="prose prose-slate max-w-none">
-            <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-              {news.content || news.excerpt || "No hay contenido adicional disponible."}
-            </p>
-          </div>
+          <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">
+            {news.content || news.excerpt || "No hay contenido adicional disponible."}
+          </p>
         </div>
         
         {/* Footer */}
-        <div className="px-6 py-4 bg-slate-50 border-t border-slate-100">
+        <div className="px-6 py-4 bg-slate-50/70 border-t border-slate-100">
           <button
             onClick={onClose}
-            className="w-full py-2.5 bg-[#001f4b] hover:bg-[#002a5c] text-white rounded-xl font-semibold transition-colors"
+            className={`w-full py-2.5 bg-gradient-to-r ${accent.gradient} hover:opacity-90 text-white rounded-xl text-sm font-semibold transition-opacity`}
+            data-testid="news-modal-close-btn"
           >
             Cerrar
           </button>
