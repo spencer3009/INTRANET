@@ -131,6 +131,55 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# WEBSOCKET CONNECTION MANAGER - Real-time Notifications
+# ══════════════════════════════════════════════════════════════════════════════
+
+class ConnectionManager:
+    """Manages WebSocket connections per user for real-time push notifications"""
+    
+    def __init__(self):
+        # Map of user_id -> list of WebSocket connections (supports multiple tabs)
+        self.active_connections: dict[str, list[WebSocket]] = {}
+    
+    async def connect(self, websocket: WebSocket, user_id: str):
+        await websocket.accept()
+        if user_id not in self.active_connections:
+            self.active_connections[user_id] = []
+        self.active_connections[user_id].append(websocket)
+    
+    def disconnect(self, websocket: WebSocket, user_id: str):
+        if user_id in self.active_connections:
+            self.active_connections[user_id] = [
+                ws for ws in self.active_connections[user_id] if ws != websocket
+            ]
+            if not self.active_connections[user_id]:
+                del self.active_connections[user_id]
+    
+    async def send_to_user(self, user_id: str, data: dict):
+        """Send a message to all connections of a specific user"""
+        if user_id in self.active_connections:
+            dead = []
+            for ws in self.active_connections[user_id]:
+                try:
+                    await ws.send_json(data)
+                except Exception:
+                    dead.append(ws)
+            for ws in dead:
+                self.active_connections[user_id].remove(ws)
+            if not self.active_connections.get(user_id):
+                self.active_connections.pop(user_id, None)
+    
+    async def broadcast_to_users(self, user_ids: list[str], data: dict):
+        """Broadcast a message to multiple users"""
+        for uid in user_ids:
+            await self.send_to_user(uid, data)
+    
+    def get_online_count(self) -> int:
+        return len(self.active_connections)
+
+ws_manager = ConnectionManager()
+
+# ══════════════════════════════════════════════════════════════════════════════
 # RESERVED SUBDOMAINS
 # ══════════════════════════════════════════════════════════════════════════════
 
