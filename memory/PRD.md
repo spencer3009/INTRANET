@@ -77,11 +77,22 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
 - Tabs: Actividad (notificaciones generales) y Recordatorios
 - Tipos: task, exam, material, forum, announcement, reminder
 - Cada notificación tiene `link_destino` auto-generado según tipo
+- **WebSocket Push en Tiempo Real (IMPLEMENTADO - 25 Feb 2026):**
+  - Conexión WebSocket persistente `/api/ws/notifications?token=JWT`
+  - Indicador verde pulsante cuando está conectado en tiempo real
+  - Push instantáneo cuando se crea tarea, examen, material, foro, etc.
+  - Push instantáneo cuando se recibe un mensaje académico
+  - Toast notification (sonner) con título, descripción y botón "Ver"
+  - Reconexión automática cada 5 segundos si se pierde la conexión
+  - Keepalive ping/pong cada 30 segundos
+  - Soporte multi-tab (múltiples conexiones por usuario)
 - **Endpoints:**
   - `GET /api/notifications/all` - Lista con is_read y link_destino
   - `GET /api/notifications/unread-count` - Contador para badge
   - `POST /api/notifications/{id}/read` - Marca leída, retorna unread_count
   - `POST /api/notifications/read-all` - Marca todas leídas
+  - `POST /api/notifications/test-push` - Endpoint de prueba para push
+  - `WS /api/ws/notifications?token=JWT` - WebSocket para push en tiempo real
 
 ## Database Collections
 - `schools`, `users`, `user_school_roles`, `tenant_settings`, `task_submissions`
