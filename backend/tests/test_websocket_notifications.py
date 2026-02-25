@@ -225,10 +225,7 @@ class TestWebSocketConnection:
         
         try:
             async with websockets.connect(ws_url, close_timeout=5) as ws:
-                # Connection successful
-                assert ws.open, "WebSocket should be open"
-                
-                # Test ping/pong keepalive
+                # Connection successful - test ping/pong keepalive
                 await ws.send("ping")
                 response = await asyncio.wait_for(ws.recv(), timeout=5)
                 assert response == "pong", f"Expected 'pong', got '{response}'"
