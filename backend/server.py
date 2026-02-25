@@ -14537,9 +14537,10 @@ async def get_all_notifications(
         {"_id": 0}
     ).sort("created_at", -1).limit(limit).to_list(limit)
     
-    # Mark which ones are read
+    # Mark which ones are read and clean response
     for notif in notifications:
         notif["is_read"] = user_id in notif.get("read_by", [])
+        notif.pop("read_by", None)  # Don't send full list to frontend
     
     # Count unread
     unread_count = sum(1 for n in notifications if not n["is_read"])
