@@ -15564,6 +15564,19 @@ async def send_academic_message(data: AcademicMessageCreate, current_user = Depe
         {"id": thread["id"]},
         {"$push": {"messages": message}, "$set": {"updated_at": datetime.now(timezone.utc).isoformat()}, "$addToSet": {"unread_by": data.receiver_id}}
     )
+    
+    # Push real-time notification to receiver via WebSocket
+    try:
+        await ws_manager.send_to_user(data.receiver_id, {
+            "type": "new_message",
+            "thread_id": thread["id"],
+            "sender_name": message["sender_name"],
+            "content": data.content[:100],
+            "created_at": message["created_at"]
+        })
+    except Exception as e:
+        logger.warning(f"WebSocket message push error: {e}")
+    
     return {"message": "Mensaje enviado", "data": message, "thread_id": thread["id"]}
 
 # Edit academic message
