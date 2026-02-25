@@ -14587,18 +14587,9 @@ async def mark_all_notifications_read(
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
-    # Get user's subjects
     school_id = user["school_id"]
     user_id = user["id"]
-    
-    if user.get("role") in ["admin", "owner", "director", "coordinator"]:
-        subjects = await db.subjects.find({"school_id": school_id}, {"_id": 0, "id": 1}).to_list(500)
-    elif user.get("role") == "teacher":
-        subjects = await db.subjects.find({"school_id": school_id, "teacher_id": user_id}, {"_id": 0, "id": 1}).to_list(100)
-    else:
-        subjects = []
-    
-    subject_ids = [s["id"] for s in subjects]
+    subject_ids = await _get_user_subject_ids(user)
     
     await db.notifications.update_many(
         {
@@ -14611,7 +14602,51 @@ async def mark_all_notifications_read(
         {"$addToSet": {"read_by": user_id}}
     )
     
-    return {"message": "Todas las notificaciones marcadas como leídas"}
+    return {"success": True, "unread_count": 0}
+
+@api_router.get("/notifications/unread-count")
+async def get_notifications_unread_count(current_user = Depends(get_current_user)):
+    """Get unread notification count for the bell badge"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    subject_ids = await _get_user_subject_ids(user)
+    
+    unread_count = await db.notifications.count_documents({
+        "school_id": user["school_id"],
+        "$or": [{"subject_id": {"$in": subject_ids}}, {"subject_id": None}],
+        "read_by": {"$ne": user["id"]}
+    })
+    
+    return {"unread_count": unread_count}
+
+
+async def _get_user_subject_ids(user):
+    """Helper to get subject IDs a user has access to"""
+    school_id = user.get("school_id")
+    user_id = user.get("id")
+    role = user.get("role", "student")
+    
+    if role in ["admin", "owner", "director", "coordinator"]:
+        subjects = await db.subjects.find({"school_id": school_id}, {"_id": 0, "id": 1}).to_list(500)
+    elif role == "teacher":
+        subjects = await db.subjects.find({"school_id": school_id, "teacher_id": user_id}, {"_id": 0, "id": 1}).to_list(100)
+    else:
+        subject_ids = []
+        enrollments = await db.enrollments.find(
+            {"school_id": school_id, "user_id": user_id, "status": "active"},
+            {"_id": 0, "subject_ids": 1}
+        ).to_list(100)
+        for enrollment in enrollments:
+            subject_ids.extend(enrollment.get("subject_ids", []))
+        if user.get("grade_id"):
+            grade = await db.grades.find_one({"id": user["grade_id"]}, {"_id": 0})
+            if grade and grade.get("subjects"):
+                subject_ids.extend([s.get("subject_id") for s in grade["subjects"] if s.get("subject_id")])
+        return list(set(subject_ids))
+    
+    return [s["id"] for s in subjects]
 
 
 # ══════════════════════════════════════════════════════════════════════════════
