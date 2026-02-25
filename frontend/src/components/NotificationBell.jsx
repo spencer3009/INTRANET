@@ -227,6 +227,43 @@ export default function NotificationBell({ token }) {
     return match ? `/school/${match[1]}` : "";
   }, []);
 
+  // WebSocket handler for real-time push notifications
+  const handleWebSocketMessage = useCallback((data) => {
+    if (data.type === "new_notification") {
+      const notif = data.notification;
+      // Add to the top of the general notifications list
+      setGeneralNotifications(prev => ({
+        ...prev,
+        unread_count: prev.unread_count + 1,
+        notifications: [{ ...notif, is_read: false }, ...prev.notifications]
+      }));
+      // Show toast
+      const config = REMINDER_TYPE_CONFIG[notif.notification_type] || REMINDER_TYPE_CONFIG.notice;
+      toast(notif.title, {
+        description: notif.message,
+        duration: 5000,
+        icon: <Bell className="w-4 h-4" />,
+        action: notif.link_destino ? {
+          label: "Ver",
+          onClick: () => {
+            const prefix = getSchoolPrefix();
+            navigate(`${prefix}${notif.link_destino}`);
+          }
+        } : undefined
+      });
+    } else if (data.type === "new_message") {
+      setUnreadMessages(prev => prev + 1);
+      toast(`Nuevo mensaje de ${data.sender_name}`, {
+        description: data.content,
+        duration: 4000,
+        icon: <MessageSquare className="w-4 h-4" />
+      });
+    }
+  }, [getSchoolPrefix, navigate]);
+
+  // Connect WebSocket
+  const { isConnected } = useNotificationSocket(token, handleWebSocketMessage);
+
   const loadNotifications = useCallback(async () => {
     if (!token) return;
     setLoading(true);
