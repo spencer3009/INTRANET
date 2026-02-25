@@ -15019,7 +15019,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             categorized_contacts[category].sort(key=lambda x: (-x.get("unread_count", 0), x.get("name", "")))
         
         # Build flat contacts list with category info for backward compatibility
-        for category_name in ["mis_alumnos", "padres_apoderados", "personal_administrativo", "otros_profesores"]:
+        for category_name in ["mis_alumnos", "otros_profesores", "padres_apoderados", "personal_administrativo"]:
             contacts.extend(categorized_contacts[category_name])
         
         # Return both flat list and categorized for flexible frontend use
@@ -15028,9 +15028,9 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             "categorized": categorized_contacts,
             "categories": [
                 {"key": "mis_alumnos", "label": "Mis Alumnos", "icon": "users", "count": len(categorized_contacts["mis_alumnos"])},
+                {"key": "otros_profesores", "label": "Otros Profesores", "icon": "chalkboard-teacher", "count": len(categorized_contacts["otros_profesores"])},
                 {"key": "padres_apoderados", "label": "Padres/Apoderados", "icon": "user-friends", "count": len(categorized_contacts["padres_apoderados"])},
-                {"key": "personal_administrativo", "label": "Personal Administrativo", "icon": "user-tie", "count": len(categorized_contacts["personal_administrativo"])},
-                {"key": "otros_profesores", "label": "Otros Profesores", "icon": "chalkboard-teacher", "count": len(categorized_contacts["otros_profesores"])}
+                {"key": "personal_administrativo", "label": "Personal Administrativo", "icon": "user-tie", "count": len(categorized_contacts["personal_administrativo"])}
             ]
         }
     elif user_role == "student":
