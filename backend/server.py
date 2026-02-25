@@ -4469,34 +4469,8 @@ async def seed_data():
     except Exception as e:
         logger.warning(f"User index warning: {e}")
     
-    # Seed default events (global - no tenant_id)
-    await db.events.delete_many({"tenant_id": {"$exists": False}})
-    events = [
-        {"id": str(uuid.uuid4()), "title": "Reunión de Padres - 1ero Primaria", "date": "2026-02-18", "time": "09:00 AM", "category": "reunion", "color": "#001f4b"},
-        {"id": str(uuid.uuid4()), "title": "Examen Trimestral - Matemáticas", "date": "2026-02-22", "time": "10:00 AM", "category": "examen", "color": "#e1b82c"},
-        {"id": str(uuid.uuid4()), "title": "Feria de Ciencias", "date": "2026-02-25", "time": "02:00 PM", "category": "evento", "color": "#5c85d6"},
-        {"id": str(uuid.uuid4()), "title": "Entrega de Boletines", "date": "2026-03-01", "time": "08:00 AM", "category": "academico", "color": "#10b981"},
-        {"id": str(uuid.uuid4()), "title": "Día del Deporte", "date": "2026-03-05", "time": "07:30 AM", "category": "evento", "color": "#f59e0b"},
-    ]
-    await db.events.insert_many(events)
-
-    # Seed default enrollment data (global)
-    await db.enrollment.delete_many({"tenant_id": {"$exists": False}})
-    enrollment = [
-        {"month": "Ene", "students": 380},
-        {"month": "Feb", "students": 412},
-        {"month": "Mar", "students": 425},
-        {"month": "Abr", "students": 438},
-        {"month": "May", "students": 445},
-        {"month": "Jun", "students": 430},
-        {"month": "Jul", "students": 420},
-        {"month": "Ago", "students": 448},
-        {"month": "Sep", "students": 456},
-        {"month": "Oct", "students": 460},
-        {"month": "Nov", "students": 455},
-        {"month": "Dic", "students": 450},
-    ]
-    await db.enrollment.insert_many(enrollment)
+    # Note: Events and enrollment are now managed per-school via calendar_events and payments
+    # No more global seed data
 
     return {"message": "Datos iniciales creados e índices configurados"}
 
