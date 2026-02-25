@@ -899,7 +899,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
         Object.keys(res.data.categorized).forEach(key => {
           const hasUnread = res.data.categorized[key].some(c => c.unread_count > 0);
           // Expand first category or any with unread messages
-          expanded[key] = hasUnread || key === 'mis_alumnos' || key === 'profesores' || key === 'mis_profesores' || key === 'profesores_hijos';
+          expanded[key] = hasUnread || key === 'mis_alumnos' || key === 'alumnos' || key === 'mis_profesores' || key === 'profesores_hijos';
         });
         setExpandedCategories(expanded);
       } else {
