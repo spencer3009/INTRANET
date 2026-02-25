@@ -14900,7 +14900,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
         student_query = {
             "school_id": user["school_id"],
             "role": "student",
-            "is_active": {"$ne": False}
+            "is_active": {"$ne": False}, "is_demo": {"$ne": True}
         }
         
         if seccion_ids_taught:
@@ -14935,7 +14935,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             parents = await db.users.find({
                 "school_id": user["school_id"],
                 "role": "parent",
-                "is_active": {"$ne": False},
+                "is_active": {"$ne": False}, "is_demo": {"$ne": True},
                 "$or": [
                     {"student_ids": {"$in": student_ids}},
                     {"children_ids": {"$in": student_ids}}
@@ -14969,7 +14969,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             "school_id": user["school_id"],
             "role": {"$in": admin_roles},
             "id": {"$ne": user["id"]},
-            "is_active": {"$ne": False}
+            "is_active": {"$ne": False}, "is_demo": {"$ne": True}
         }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1, "role": 1}).to_list(50)
         
         for admin in admin_users:
@@ -14998,7 +14998,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             "school_id": user["school_id"],
             "role": "teacher",
             "id": {"$ne": user["id"]},
-            "is_active": {"$ne": False}
+            "is_active": {"$ne": False}, "is_demo": {"$ne": True}
         }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1}).to_list(100)
         
         for teacher in other_teachers:
@@ -15051,7 +15051,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             for subject in subjects:
                 teacher_id = subject.get("teacher_id")
                 if teacher_id and teacher_id not in added_ids:
-                    teacher = await db.users.find_one({"id": teacher_id, "is_active": {"$ne": False}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1})
+                    teacher = await db.users.find_one({"id": teacher_id, "is_active": {"$ne": False}, "is_demo": {"$ne": True}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1})
                     if teacher:
                         added_ids.add(teacher["id"])
                         categorized_contacts["mis_profesores"].append({
@@ -15077,7 +15077,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             for assignment in assignments:
                 teacher_id = assignment.get("teacher_id")
                 if teacher_id and teacher_id not in added_ids:
-                    teacher = await db.users.find_one({"id": teacher_id, "is_active": {"$ne": False}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1})
+                    teacher = await db.users.find_one({"id": teacher_id, "is_active": {"$ne": False}, "is_demo": {"$ne": True}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1})
                     if teacher:
                         subject = await db.subjects.find_one({"id": assignment.get("subject_id")}, {"_id": 0, "name": 1})
                         subject_name = subject.get("name", "") if subject else ""
@@ -15095,7 +15095,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
                         })
         
         # 2. COMPANEROS - classmates
-        classmate_query = {"school_id": school_id, "role": "student", "id": {"$ne": user["id"]}, "is_active": {"$ne": False}}
+        classmate_query = {"school_id": school_id, "role": "student", "id": {"$ne": user["id"]}, "is_active": {"$ne": False}, "is_demo": {"$ne": True}}
         if seccion_id:
             classmate_query["seccion_id"] = seccion_id
         elif grade_id:
@@ -15122,7 +15122,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
         admin_users = await db.users.find({
             "school_id": school_id,
             "role": {"$in": admin_roles},
-            "is_active": {"$ne": False}
+            "is_active": {"$ne": False}, "is_demo": {"$ne": True}
         }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1, "role": 1}).to_list(50)
         
         role_display_map = {
@@ -15172,7 +15172,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
         all_users = await db.users.find({
             "school_id": user["school_id"],
             "id": {"$ne": user["id"]},
-            "is_active": {"$ne": False}
+            "is_active": {"$ne": False}, "is_demo": {"$ne": True}
         }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1, "email": 1}).to_list(500)
         
         admin_roles = ["admin", "owner", "director", "coordinator"]
@@ -15266,7 +15266,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
                     tid = subj.get("teacher_id")
                     if tid and tid not in teacher_ids_added:
                         teacher_ids_added.add(tid)
-                        teacher = await db.users.find_one({"id": tid, "is_active": {"$ne": False}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1})
+                        teacher = await db.users.find_one({"id": tid, "is_active": {"$ne": False}, "is_demo": {"$ne": True}}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1})
                         if teacher and teacher["id"] not in added_ids:
                             added_ids.add(teacher["id"])
                             categorized_contacts["profesores_hijos"].append({
@@ -15286,7 +15286,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             "school_id": school_id,
             "role": {"$in": admin_roles},
             "id": {"$ne": user["id"]},
-            "is_active": {"$ne": False}
+            "is_active": {"$ne": False}, "is_demo": {"$ne": True}
         }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1, "role": 1}).to_list(50)
         
         role_display_map = {
@@ -15313,7 +15313,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             "school_id": school_id,
             "role": "parent",
             "id": {"$ne": user["id"]},
-            "is_active": {"$ne": False}
+            "is_active": {"$ne": False}, "is_demo": {"$ne": True}
         }, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1}).to_list(200)
         
         for p in other_parents:
