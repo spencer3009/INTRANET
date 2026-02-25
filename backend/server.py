@@ -14443,11 +14443,24 @@ async def create_notification_for_subject(
     notification_type: str,
     reference_id: str = None,
     author_id: str = None,
-    author_name: str = None
+    author_name: str = None,
+    link_destino: str = None
 ):
     """Helper function to create a notification for a subject"""
     # Get subject info
     subject = await db.subjects.find_one({"id": subject_id}, {"_id": 0, "name": 1, "grade_id": 1})
+    
+    # Auto-generate link_destino based on notification type if not provided
+    if not link_destino and reference_id:
+        link_map = {
+            "task": f"/curso/{subject_id}?tab=tasks&post={reference_id}",
+            "exam": f"/admin/exams",
+            "material": f"/curso/{subject_id}?tab=materials&post={reference_id}",
+            "forum": f"/curso/{subject_id}?tab=forum&post={reference_id}",
+            "reminder": f"/curso/{subject_id}",
+            "announcement": f"/curso/{subject_id}",
+        }
+        link_destino = link_map.get(notification_type, f"/curso/{subject_id}")
     
     notification = {
         "id": str(uuid.uuid4()),
@@ -14458,6 +14471,7 @@ async def create_notification_for_subject(
         "message": message,
         "notification_type": notification_type,
         "reference_id": reference_id,
+        "link_destino": link_destino,
         "author_id": author_id,
         "author_name": author_name,
         "created_at": datetime.now(timezone.utc).isoformat(),
