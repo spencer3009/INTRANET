@@ -102,13 +102,13 @@ const defaultAnnouncements = [
 
 // Category color accents for the modal
 const categoryAccents = {
-  announcement: { gradient: "from-[#001f4b] to-[#1a3a6b]", iconBg: "bg-[#001f4b]" },
-  academic: { gradient: "from-[#3b5998] to-[#5c85d6]", iconBg: "bg-[#5c85d6]" },
-  event: { gradient: "from-[#047857] to-[#10b981]", iconBg: "bg-emerald-500" },
-  achievement: { gradient: "from-[#b45309] to-[#e1b82c]", iconBg: "bg-amber-500" },
-  sports: { gradient: "from-[#c2410c] to-[#f97316]", iconBg: "bg-orange-500" },
-  cultural: { gradient: "from-[#7e22ce] to-[#a855f7]", iconBg: "bg-purple-500" },
-  administrative: { gradient: "from-[#475569] to-[#64748b]", iconBg: "bg-slate-500" },
+  announcement: { gradient: "from-[#5c85d6] to-[#7c9fe6]", iconBg: "bg-[#5c85d6]" },
+  academic: { gradient: "from-[#5c85d6] to-[#8baaf0]", iconBg: "bg-[#5c85d6]" },
+  event: { gradient: "from-[#10b981] to-[#34d399]", iconBg: "bg-emerald-500" },
+  achievement: { gradient: "from-[#e1b82c] to-[#fbbf24]", iconBg: "bg-amber-500" },
+  sports: { gradient: "from-[#f97316] to-[#fb923c]", iconBg: "bg-orange-500" },
+  cultural: { gradient: "from-[#a855f7] to-[#c084fc]", iconBg: "bg-purple-500" },
+  administrative: { gradient: "from-[#64748b] to-[#94a3b8]", iconBg: "bg-slate-500" },
 };
 
 // News Detail Modal
