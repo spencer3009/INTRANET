@@ -14565,7 +14565,18 @@ async def mark_notification_read(
         {"$addToSet": {"read_by": user["id"]}}
     )
     
-    return {"message": "Notificación marcada como leída"}
+    # Calculate remaining unread count
+    school_id = user["school_id"]
+    user_id = user["id"]
+    subject_ids = await _get_user_subject_ids(user)
+    
+    unread_count = await db.notifications.count_documents({
+        "school_id": school_id,
+        "$or": [{"subject_id": {"$in": subject_ids}}, {"subject_id": None}],
+        "read_by": {"$ne": user_id}
+    })
+    
+    return {"success": True, "unread_count": unread_count}
 
 @api_router.post("/notifications/read-all")
 async def mark_all_notifications_read(
