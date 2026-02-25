@@ -52,7 +52,7 @@ function getTagInfo(news) {
   }
   
   const categoryMap = {
-    announcement: { tag: "Anuncio", tagColor: "bg-[#001f4b] text-white" },
+    announcement: { tag: "Anuncio", tagColor: "bg-[#5c85d6] text-white" },
     academic: { tag: "Académico", tagColor: "bg-[#5c85d6]/15 text-[#5c85d6]" },
     event: { tag: "Evento", tagColor: "bg-emerald-100 text-emerald-700" },
     achievement: { tag: "Logro", tagColor: "bg-amber-100 text-amber-700" },
