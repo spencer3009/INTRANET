@@ -3254,7 +3254,11 @@ async def get_events(current_user=Depends(require_school)):
             "date": e.get("start_date", ""),
             "time": e.get("start_time", ""),
             "category": e.get("type", "evento"),
-            "color": e.get("color", "#001f4b")
+            "color": e.get("color", "#001f4b"),
+            "description": e.get("description", ""),
+            "location": e.get("location", ""),
+            "end_date": e.get("end_date", ""),
+            "all_day": e.get("all_day", True),
         })
     
     return result
