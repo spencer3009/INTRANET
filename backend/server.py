@@ -15028,7 +15028,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             "categorized": categorized_contacts,
             "categories": [
                 {"key": "mis_alumnos", "label": "Mis Alumnos", "icon": "users", "count": len(categorized_contacts["mis_alumnos"])},
-                {"key": "otros_profesores", "label": "Otros Profesores", "icon": "chalkboard-teacher", "count": len(categorized_contacts["otros_profesores"])},
+                {"key": "otros_profesores", "label": "Profesores", "icon": "chalkboard-teacher", "count": len(categorized_contacts["otros_profesores"])},
                 {"key": "padres_apoderados", "label": "Padres/Apoderados", "icon": "user-friends", "count": len(categorized_contacts["padres_apoderados"])},
                 {"key": "personal_administrativo", "label": "Personal Administrativo", "icon": "user-tie", "count": len(categorized_contacts["personal_administrativo"])}
             ]
