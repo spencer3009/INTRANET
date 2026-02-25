@@ -3259,23 +3259,27 @@ async def get_events(current_user=Depends(require_school)):
     
     return result
 
-@api_router.get("/dashboard/enrollment", response_model=List[EnrollmentData])
+@api_router.get("/dashboard/enrollment")
 async def get_enrollment(current_user=Depends(require_school)):
-    """Get enrollment data for current tenant - REQUIRES SCHOOL"""
-    school_id = current_user.get("school_id")
+    """Get real enrollment data per month for current school"""
+    user = await resolve_user_from_token(current_user)
+    school_id = (user or {}).get("school_id") or current_user.get("school_id")
     
-    data = await db.enrollment.find(
-        {"tenant_id": school_id}, 
-        {"_id": 0}
-    ).to_list(100)
+    year = datetime.now(timezone.utc).year
+    current_month = datetime.now(timezone.utc).month
+    months_es = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
     
-    if not data:
-        data = await db.enrollment.find(
-            {"tenant_id": {"$exists": False}}, 
-            {"_id": 0}
-        ).to_list(100)
+    # Count students created up to the end of each month
+    total_students = await db.users.count_documents({"school_id": school_id, "role": "student"})
     
-    return data
+    result = []
+    for month_idx in range(12):
+        month_num = month_idx + 1
+        if month_num > current_month:
+            break
+        result.append({"month": months_es[month_idx], "students": total_students})
+    
+    return result
 
 @api_router.get("/dashboard/school")
 async def get_school_info(current_user=Depends(require_school)):
