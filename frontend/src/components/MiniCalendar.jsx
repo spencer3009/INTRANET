@@ -107,9 +107,10 @@ export default function MiniCalendar({ events = [] }) {
     const calendarRect = calendarRef.current?.getBoundingClientRect();
     
     if (calendarRect) {
+      // Position popup right below the calendar header
       setPopupPosition({
-        top: rect.bottom - calendarRect.top + 8,
-        left: Math.min(rect.left - calendarRect.left, calendarRect.width - 280)
+        top: 60,
+        left: Math.max(0, (calendarRect.width - 288) / 2)
       });
     }
     
