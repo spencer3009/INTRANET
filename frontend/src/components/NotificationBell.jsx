@@ -1,105 +1,64 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
   Bell, X, Calendar, FileText, BookOpen, AlertCircle,
   Clock, ChevronRight, Eye, Loader2, Sparkles, PenTool,
-  FolderOpen, MessageSquare, CheckCircle
+  FolderOpen, MessageSquare, CheckCircle, CheckCheck, ExternalLink
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Reminder type icons and colors
 const REMINDER_TYPE_CONFIG = {
-  task: {
-    icon: PenTool,
-    label: "Tarea",
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
-    badgeColor: "bg-blue-500"
-  },
-  exam: {
-    icon: BookOpen,
-    label: "Examen",
-    color: "text-rose-600",
-    bgColor: "bg-rose-100",
-    badgeColor: "bg-rose-500"
-  },
-  notice: {
-    icon: Bell,
-    label: "Aviso",
-    color: "text-amber-600",
-    bgColor: "bg-amber-100",
-    badgeColor: "bg-amber-500"
-  },
-  material: {
-    icon: FolderOpen,
-    label: "Material",
-    color: "text-orange-600",
-    bgColor: "bg-orange-100",
-    badgeColor: "bg-orange-500"
-  },
-  forum: {
-    icon: MessageSquare,
-    label: "Foro",
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-100",
-    badgeColor: "bg-emerald-500"
-  },
-  reminder: {
-    icon: Bell,
-    label: "Recordatorio",
-    color: "text-violet-600",
-    bgColor: "bg-violet-100",
-    badgeColor: "bg-violet-500"
-  }
+  task: { icon: PenTool, label: "Tarea", color: "text-blue-600", bgColor: "bg-blue-100", bgColorUnread: "bg-blue-50", badgeColor: "bg-blue-500" },
+  exam: { icon: BookOpen, label: "Examen", color: "text-rose-600", bgColor: "bg-rose-100", bgColorUnread: "bg-rose-50", badgeColor: "bg-rose-500" },
+  notice: { icon: Bell, label: "Aviso", color: "text-amber-600", bgColor: "bg-amber-100", bgColorUnread: "bg-amber-50", badgeColor: "bg-amber-500" },
+  material: { icon: FolderOpen, label: "Material", color: "text-orange-600", bgColor: "bg-orange-100", bgColorUnread: "bg-orange-50", badgeColor: "bg-orange-500" },
+  forum: { icon: MessageSquare, label: "Foro", color: "text-emerald-600", bgColor: "bg-emerald-100", bgColorUnread: "bg-emerald-50", badgeColor: "bg-emerald-500" },
+  reminder: { icon: Bell, label: "Recordatorio", color: "text-violet-600", bgColor: "bg-violet-100", bgColorUnread: "bg-violet-50", badgeColor: "bg-violet-500" },
+  announcement: { icon: Bell, label: "Anuncio", color: "text-indigo-600", bgColor: "bg-indigo-100", bgColorUnread: "bg-indigo-50", badgeColor: "bg-indigo-500" },
 };
 
-// Format relative date
 function formatRelativeDate(dateString) {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = date - now;
   const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  
   if (diffDays < 0) return { text: "Vencido", isOverdue: true };
   if (diffDays === 0) return { text: "Hoy", isUrgent: true };
-  if (diffDays === 1) return { text: "Mañana", isUrgent: true };
-  if (diffDays <= 2) return { text: `En ${diffDays} días`, isUrgent: true };
-  
-  return { 
-    text: date.toLocaleDateString("es-PE", { day: "numeric", month: "short" }),
-    isNormal: true 
-  };
+  if (diffDays === 1) return { text: "Manana", isUrgent: true };
+  if (diffDays <= 2) return { text: `En ${diffDays} dias`, isUrgent: true };
+  return { text: date.toLocaleDateString("es-PE", { day: "numeric", month: "short" }), isNormal: true };
+}
+
+function formatTimeAgo(dateString) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Ahora";
+  if (diffMins < 60) return `Hace ${diffMins}m`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `Hace ${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `Hace ${diffDays}d`;
+  return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// REMINDER DETAIL MODAL - Portal-based
+// REMINDER DETAIL MODAL
 // ══════════════════════════════════════════════════════════════════════════════
 function ReminderDetailModal({ reminder, isOpen, onClose, onMarkViewed }) {
   if (!isOpen || !reminder) return null;
-
   const typeConfig = REMINDER_TYPE_CONFIG[reminder.reminder_type] || REMINDER_TYPE_CONFIG.notice;
   const TypeIcon = typeConfig.icon;
   const dateInfo = formatRelativeDate(reminder.date);
 
-  const handleMarkViewed = () => {
-    onMarkViewed(reminder.id);
-    onClose();
-  };
-
   return createPortal(
-    <div
-      className="fixed inset-0 flex items-center justify-center p-4"
-      style={{ zIndex: 10000, position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh" }}
-      data-testid="reminder-detail-modal"
-    >
+    <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 10000 }} data-testid="reminder-detail-modal">
       <div className="absolute inset-0 bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
-      <div
-        className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden"
-        style={{ zIndex: 10001 }}
-      >
-        {/* Header */}
+      <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden" style={{ zIndex: 10001 }}>
         <div className="bg-gradient-to-r from-violet-500 to-purple-500 px-6 py-5">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -107,89 +66,46 @@ function ReminderDetailModal({ reminder, isOpen, onClose, onMarkViewed }) {
                 <TypeIcon className={`w-6 h-6 ${typeConfig.color}`} />
               </div>
               <div>
-                <span className={`inline-block px-2 py-0.5 ${typeConfig.badgeColor} text-white text-[10px] font-bold rounded uppercase`}>
-                  {typeConfig.label}
-                </span>
+                <span className={`inline-block px-2 py-0.5 ${typeConfig.badgeColor} text-white text-[10px] font-bold rounded uppercase`}>{typeConfig.label}</span>
                 <h2 className="text-lg font-semibold text-white mt-1">{reminder.title}</h2>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors"
-              data-testid="reminder-detail-close"
-            >
+            <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors" data-testid="reminder-detail-close">
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
-
-        {/* Content */}
         <div className="p-6">
-          {/* Subject & Date */}
           <div className="flex items-center gap-4 mb-4">
             {reminder.subject_name && (
               <div className="flex items-center gap-2">
-                <div 
-                  className="w-3 h-3 rounded-full" 
-                  style={{ backgroundColor: reminder.subject_color || "#6366f1" }}
-                />
+                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: reminder.subject_color || "#6366f1" }} />
                 <span className="text-sm font-medium text-gray-700">{reminder.subject_name}</span>
               </div>
             )}
             <div className="flex items-center gap-2">
               <Calendar className={`w-4 h-4 ${dateInfo.isOverdue ? "text-red-500" : dateInfo.isUrgent ? "text-amber-500" : "text-gray-400"}`} />
-              <span className={`text-sm font-medium ${
-                dateInfo.isOverdue ? "text-red-600" : dateInfo.isUrgent ? "text-amber-600" : "text-gray-600"
-              }`}>
-                {dateInfo.text}
-              </span>
-              {dateInfo.isOverdue && (
-                <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded">VENCIDO</span>
-              )}
+              <span className={`text-sm font-medium ${dateInfo.isOverdue ? "text-red-600" : dateInfo.isUrgent ? "text-amber-600" : "text-gray-600"}`}>{dateInfo.text}</span>
+              {dateInfo.isOverdue && <span className="px-2 py-0.5 bg-red-100 text-red-600 text-[10px] font-bold rounded">VENCIDO</span>}
             </div>
           </div>
-
-          {/* Important badge */}
           {reminder.is_important && (
             <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-medium text-amber-700">Este recordatorio está marcado como IMPORTANTE</span>
+              <span className="text-sm font-medium text-amber-700">Este recordatorio esta marcado como IMPORTANTE</span>
             </div>
           )}
-
-          {/* Description */}
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Descripción</h4>
-            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">
-              {reminder.description || "Sin descripción adicional."}
-            </p>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Descripcion</h4>
+            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{reminder.description || "Sin descripcion adicional."}</p>
           </div>
-
-          {/* Full date */}
           <div className="text-xs text-gray-400 mb-6">
-            Fecha límite: {new Date(reminder.date).toLocaleDateString("es-PE", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric"
-            })}
+            Fecha limite: {new Date(reminder.date).toLocaleDateString("es-PE", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </div>
-
-          {/* Actions */}
           <div className="flex gap-3">
-            <button
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
-            >
-              Cerrar
-            </button>
-            <button
-              onClick={handleMarkViewed}
-              className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-500/25"
-              data-testid="reminder-mark-viewed"
-            >
-              <Eye className="w-4 h-4" />
-              Marcar como visto
+            <button onClick={onClose} className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors">Cerrar</button>
+            <button onClick={() => { onMarkViewed(reminder.id); onClose(); }} className="flex-1 px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 hover:from-violet-600 hover:to-purple-600 text-white rounded-xl text-sm font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-violet-500/25" data-testid="reminder-mark-viewed">
+              <Eye className="w-4 h-4" /> Marcar como visto
             </button>
           </div>
         </div>
@@ -200,9 +116,62 @@ function ReminderDetailModal({ reminder, isOpen, onClose, onMarkViewed }) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// NOTIFICATION ITEM
+// NOTIFICATION ITEM - General (Navigable)
 // ══════════════════════════════════════════════════════════════════════════════
-function NotificationItem({ reminder, onClick, onMarkViewed }) {
+function GeneralNotificationItem({ notif, onClick }) {
+  const config = REMINDER_TYPE_CONFIG[notif.notification_type] || REMINDER_TYPE_CONFIG.notice;
+  const Icon = config.icon;
+  const isRead = notif.is_read;
+  const hasLink = !!notif.link_destino;
+
+  return (
+    <div
+      onClick={() => onClick(notif)}
+      className={`px-4 py-3 cursor-pointer transition-all border-b border-gray-50 last:border-0 group ${
+        isRead
+          ? "bg-white hover:bg-gray-50"
+          : `${config.bgColorUnread} hover:bg-gray-100`
+      }`}
+      data-testid={`notification-item-${notif.id}`}
+    >
+      <div className="flex items-start gap-3">
+        <div className={`flex-shrink-0 w-10 h-10 rounded-xl ${config.bgColor} flex items-center justify-center relative`}>
+          <Icon className={`w-5 h-5 ${config.color}`} />
+          {!isRead && (
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-violet-500 rounded-full border-2 border-white" />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <p className={`text-sm truncate ${isRead ? "font-normal text-gray-500" : "font-semibold text-gray-800"}`}>
+              {notif.title}
+            </p>
+          </div>
+          <p className={`text-xs mt-0.5 line-clamp-2 ${isRead ? "text-gray-400" : "text-gray-500"}`}>
+            {notif.message}
+          </p>
+          <div className="flex items-center gap-2 mt-1.5">
+            <span className={`px-2 py-0.5 ${config.badgeColor} text-white text-[10px] font-medium rounded-full`}>
+              {config.label}
+            </span>
+            {notif.subject_name && (
+              <span className="text-[10px] text-gray-400">{notif.subject_name}</span>
+            )}
+            <span className="text-[10px] text-gray-400">{formatTimeAgo(notif.created_at)}</span>
+          </div>
+        </div>
+        {hasLink && (
+          <ExternalLink className={`w-4 h-4 flex-shrink-0 mt-1 transition-colors ${isRead ? "text-gray-300" : "text-violet-400 group-hover:text-violet-600"}`} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// REMINDER NOTIFICATION ITEM
+// ══════════════════════════════════════════════════════════════════════════════
+function ReminderNotificationItem({ reminder, onClick }) {
   const typeConfig = REMINDER_TYPE_CONFIG[reminder.reminder_type] || REMINDER_TYPE_CONFIG.notice;
   const TypeIcon = typeConfig.icon;
   const dateInfo = formatRelativeDate(reminder.date);
@@ -214,38 +183,20 @@ function NotificationItem({ reminder, onClick, onMarkViewed }) {
       data-testid={`notification-item-${reminder.id}`}
     >
       <div className="flex items-start gap-3">
-        {/* Type icon */}
         <div className={`flex-shrink-0 w-9 h-9 ${typeConfig.bgColor} rounded-lg flex items-center justify-center`}>
           <TypeIcon className={`w-4 h-4 ${typeConfig.color}`} />
         </div>
-
-        {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            {reminder.is_important && (
-              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
-            )}
+            {reminder.is_important && <AlertCircle className="w-3.5 h-3.5 text-amber-500" />}
             <h4 className="text-sm font-medium text-gray-800 truncate">{reminder.title}</h4>
           </div>
-
-          {reminder.subject_name && (
-            <p className="text-xs text-gray-500 truncate mb-1">{reminder.subject_name}</p>
-          )}
-
+          {reminder.subject_name && <p className="text-xs text-gray-500 truncate mb-1">{reminder.subject_name}</p>}
           <div className="flex items-center gap-2">
-            <span className={`text-xs font-medium ${
-              dateInfo.isOverdue ? "text-red-500" : 
-              dateInfo.isUrgent ? "text-amber-600" : 
-              "text-gray-400"
-            }`}>
-              {dateInfo.text}
-            </span>
-            {dateInfo.isOverdue && (
-              <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[8px] font-bold rounded">VENCIDO</span>
-            )}
+            <span className={`text-xs font-medium ${dateInfo.isOverdue ? "text-red-500" : dateInfo.isUrgent ? "text-amber-600" : "text-gray-400"}`}>{dateInfo.text}</span>
+            {dateInfo.isOverdue && <span className="px-1.5 py-0.5 bg-red-100 text-red-600 text-[8px] font-bold rounded">VENCIDO</span>}
           </div>
         </div>
-
         <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
       </div>
     </div>
@@ -262,17 +213,22 @@ export default function NotificationBell({ token }) {
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
-  const [activeTab, setActiveTab] = useState("all"); // "all", "reminders", or "messages"
+  const [activeTab, setActiveTab] = useState("all");
   const dropdownRef = useRef(null);
+  const navigate = useNavigate();
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load notifications
-  const loadNotifications = async () => {
+  // Build correct path prefix based on current URL
+  const getSchoolPrefix = useCallback(() => {
+    const match = window.location.pathname.match(/^\/school\/([^/]+)/);
+    return match ? `/school/${match[1]}` : "";
+  }, []);
+
+  const loadNotifications = useCallback(async () => {
     if (!token) return;
     setLoading(true);
     try {
-      // Load reminder notifications, general notifications, and unread messages
       const [remindersRes, generalRes, messagesRes] = await Promise.all([
         axios.get(`${API}/notifications/reminders`, { headers }),
         axios.get(`${API}/notifications/all`, { headers }).catch(() => ({ data: { notifications: [], unread_count: 0 } })),
@@ -286,25 +242,21 @@ export default function NotificationBell({ token }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Load on mount and periodically
-  useEffect(() => {
-    loadNotifications();
-    const interval = setInterval(loadNotifications, 60000); // Refresh every minute
-    return () => clearInterval(interval);
   }, [token]);
 
-  // Close dropdown on outside click
+  useEffect(() => {
+    loadNotifications();
+    const interval = setInterval(loadNotifications, 60000);
+    return () => clearInterval(interval);
+  }, [loadNotifications]);
+
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setIsOpen(false);
       }
     };
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
+    if (isOpen) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
 
@@ -312,35 +264,55 @@ export default function NotificationBell({ token }) {
   const markAsViewed = async (reminderId) => {
     try {
       await axios.post(`${API}/course/reminders/${reminderId}/mark-viewed`, {}, { headers });
-      loadNotifications(); // Refresh
+      loadNotifications();
     } catch (err) {
-      console.error("Error marking as viewed:", err);
+      console.error("Error:", err);
     }
   };
 
-  // Mark general notification as read
-  const markGeneralAsRead = async (notificationId) => {
-    try {
-      await axios.post(`${API}/notifications/${notificationId}/read`, {}, { headers });
-      loadNotifications(); // Refresh
-    } catch (err) {
-      console.error("Error marking notification as read:", err);
+  // Handle general notification click: mark read + navigate
+  const handleGeneralNotificationClick = async (notif) => {
+    // Mark as read
+    if (!notif.is_read) {
+      try {
+        const res = await axios.post(`${API}/notifications/${notif.id}/read`, {}, { headers });
+        // Update local state immediately for instant feedback
+        setGeneralNotifications(prev => ({
+          ...prev,
+          unread_count: res.data.unread_count ?? Math.max(0, prev.unread_count - 1),
+          notifications: prev.notifications.map(n =>
+            n.id === notif.id ? { ...n, is_read: true } : n
+          )
+        }));
+      } catch (err) {
+        console.error("Error marking as read:", err);
+      }
+    }
+
+    // Navigate if there's a link
+    if (notif.link_destino) {
+      const prefix = getSchoolPrefix();
+      const fullPath = `${prefix}${notif.link_destino}`;
+      setIsOpen(false);
+      navigate(fullPath);
     }
   };
 
-  // Mark all general notifications as read
+  // Mark all as read
   const markAllAsRead = async () => {
     try {
       await axios.post(`${API}/notifications/read-all`, {}, { headers });
-      loadNotifications(); // Refresh
+      setGeneralNotifications(prev => ({
+        ...prev,
+        unread_count: 0,
+        notifications: prev.notifications.map(n => ({ ...n, is_read: true }))
+      }));
     } catch (err) {
-      console.error("Error marking all as read:", err);
+      console.error("Error:", err);
     }
   };
 
-  const handleReminderClick = (reminder) => {
-    setSelectedReminder(reminder);
-  };
+  const handleReminderClick = (reminder) => setSelectedReminder(reminder);
 
   const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0) + unreadMessages;
   const hasNotifications = totalCount > 0;
@@ -355,7 +327,7 @@ export default function NotificationBell({ token }) {
       >
         <Bell className={`w-5 h-5 ${hasNotifications ? "text-[#001f4b]" : ""}`} />
         {hasNotifications && (
-          <span 
+          <span
             className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-gradient-to-r from-rose-500 to-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg shadow-red-500/30"
             data-testid="notification-badge"
           >
@@ -386,9 +358,11 @@ export default function NotificationBell({ token }) {
               {generalNotifications.unread_count > 0 && (
                 <button
                   onClick={markAllAsRead}
-                  className="text-xs text-white/80 hover:text-white underline"
+                  className="flex items-center gap-1 text-xs text-white/80 hover:text-white transition-colors"
+                  data-testid="mark-all-read-btn"
                 >
-                  Marcar todo leído
+                  <CheckCheck className="w-3 h-3" />
+                  Marcar todo leido
                 </button>
               )}
             </div>
@@ -396,9 +370,10 @@ export default function NotificationBell({ token }) {
 
           {/* Messages notification */}
           {unreadMessages > 0 && (
-            <a 
-              href={`/school/${window.location.pathname.split('/')[2]}/mensajes`}
-              className="flex items-center gap-3 px-4 py-3 bg-indigo-50 border-b border-indigo-100 hover:bg-indigo-100 transition-colors"
+            <div
+              onClick={() => { setIsOpen(false); navigate(`${getSchoolPrefix()}/mensajes`); }}
+              className="flex items-center gap-3 px-4 py-3 bg-indigo-50 border-b border-indigo-100 hover:bg-indigo-100 transition-colors cursor-pointer"
+              data-testid="unread-messages-link"
             >
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center">
                 <MessageSquare className="w-5 h-5 text-white" />
@@ -410,7 +385,7 @@ export default function NotificationBell({ token }) {
                 <p className="text-xs text-indigo-600">Haz clic para ver tu bandeja de entrada</p>
               </div>
               <ChevronRight className="w-4 h-4 text-indigo-400" />
-            </a>
+            </div>
           )}
 
           {/* Tabs */}
@@ -418,31 +393,23 @@ export default function NotificationBell({ token }) {
             <button
               onClick={() => setActiveTab("all")}
               className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
-                activeTab === "all"
-                  ? "text-violet-600 border-b-2 border-violet-500 bg-violet-50"
-                  : "text-gray-500 hover:text-gray-700"
+                activeTab === "all" ? "text-violet-600 border-b-2 border-violet-500 bg-violet-50" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Actividad
               {generalNotifications.unread_count > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 bg-violet-500 text-white text-[10px] rounded-full">
-                  {generalNotifications.unread_count}
-                </span>
+                <span className="ml-1.5 px-1.5 py-0.5 bg-violet-500 text-white text-[10px] rounded-full">{generalNotifications.unread_count}</span>
               )}
             </button>
             <button
               onClick={() => setActiveTab("reminders")}
               className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
-                activeTab === "reminders"
-                  ? "text-violet-600 border-b-2 border-violet-500 bg-violet-50"
-                  : "text-gray-500 hover:text-gray-700"
+                activeTab === "reminders" ? "text-violet-600 border-b-2 border-violet-500 bg-violet-50" : "text-gray-500 hover:text-gray-700"
               }`}
             >
               Recordatorios
               {notifications.total_count > 0 && (
-                <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] rounded-full">
-                  {notifications.total_count}
-                </span>
+                <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500 text-white text-[10px] rounded-full">{notifications.total_count}</span>
               )}
             </button>
           </div>
@@ -455,131 +422,69 @@ export default function NotificationBell({ token }) {
                 <p className="text-xs text-gray-400 mt-2">Cargando...</p>
               </div>
             ) : activeTab === "all" ? (
-              /* General Notifications Tab */
               generalNotifications.notifications.length === 0 ? (
                 <div className="py-8 text-center">
                   <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <Sparkles className="w-6 h-6 text-violet-300" />
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">¡Todo al día!</p>
+                  <p className="text-gray-500 text-sm font-medium">Todo al dia!</p>
                   <p className="text-gray-400 text-xs mt-1">No hay actividad reciente</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-100">
-                  {generalNotifications.notifications.map((notif) => {
-                    const config = REMINDER_TYPE_CONFIG[notif.notification_type] || REMINDER_TYPE_CONFIG.notice;
-                    const Icon = config.icon;
-                    return (
-                      <div
-                        key={notif.id}
-                        onClick={() => markGeneralAsRead(notif.id)}
-                        className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${
-                          !notif.is_read ? "bg-violet-50/50" : ""
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className={`w-10 h-10 rounded-xl ${config.bgColor} flex items-center justify-center flex-shrink-0`}>
-                            <Icon className={`w-5 h-5 ${config.color}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-semibold text-gray-800 truncate">{notif.title}</p>
-                              {!notif.is_read && (
-                                <span className="w-2 h-2 bg-violet-500 rounded-full flex-shrink-0"></span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{notif.message}</p>
-                            <div className="flex items-center gap-2 mt-1.5">
-                              <span className={`px-2 py-0.5 ${config.badgeColor} text-white text-[10px] font-medium rounded-full`}>
-                                {config.label}
-                              </span>
-                              {notif.subject_name && (
-                                <span className="text-[10px] text-gray-400">{notif.subject_name}</span>
-                              )}
-                              <span className="text-[10px] text-gray-400">
-                                {new Date(notif.created_at).toLocaleDateString("es-PE", {
-                                  day: "numeric",
-                                  month: "short",
-                                  hour: "2-digit",
-                                  minute: "2-digit"
-                                })}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div>
+                  {generalNotifications.notifications.map((notif) => (
+                    <GeneralNotificationItem
+                      key={notif.id}
+                      notif={notif}
+                      onClick={handleGeneralNotificationClick}
+                    />
+                  ))}
                 </div>
               )
             ) : (
-              /* Reminders Tab */
-              !hasNotifications ? (
+              !notifications.total_count ? (
                 <div className="py-8 text-center">
                   <div className="w-12 h-12 bg-violet-50 rounded-xl flex items-center justify-center mx-auto mb-3">
                     <Sparkles className="w-6 h-6 text-violet-300" />
                   </div>
-                  <p className="text-gray-500 text-sm font-medium">¡Todo al día!</p>
+                  <p className="text-gray-500 text-sm font-medium">Todo al dia!</p>
                   <p className="text-gray-400 text-xs mt-1">No tienes recordatorios pendientes</p>
                 </div>
               ) : (
                 <>
-                  {/* Important Section */}
-                  {notifications.important.length > 0 && (
+                  {notifications.important?.length > 0 && (
                     <div>
                       <div className="px-4 py-2 bg-amber-50 border-b border-amber-100">
                         <p className="text-[10px] font-bold text-amber-600 uppercase flex items-center gap-1">
-                          <AlertCircle className="w-3 h-3" />
-                          Importantes ({notifications.important.length})
+                          <AlertCircle className="w-3 h-3" /> Importantes ({notifications.important.length})
                         </p>
                       </div>
-                      {notifications.important.map((reminder) => (
-                        <NotificationItem
-                          key={reminder.id}
-                          reminder={reminder}
-                          onClick={handleReminderClick}
-                          onMarkViewed={markAsViewed}
-                        />
+                      {notifications.important.map((r) => (
+                        <ReminderNotificationItem key={r.id} reminder={r} onClick={handleReminderClick} />
                       ))}
                     </div>
                   )}
-
-                  {/* Upcoming Section */}
-                  {notifications.upcoming.length > 0 && (
+                  {notifications.upcoming?.length > 0 && (
                     <div>
                       <div className="px-4 py-2 bg-rose-50 border-b border-rose-100">
                         <p className="text-[10px] font-bold text-rose-600 uppercase flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          Próximos a vencer ({notifications.upcoming.length})
+                          <Clock className="w-3 h-3" /> Proximos a vencer ({notifications.upcoming.length})
                         </p>
                       </div>
-                      {notifications.upcoming.map((reminder) => (
-                        <NotificationItem
-                          key={reminder.id}
-                          reminder={reminder}
-                          onClick={handleReminderClick}
-                          onMarkViewed={markAsViewed}
-                        />
+                      {notifications.upcoming.map((r) => (
+                        <ReminderNotificationItem key={r.id} reminder={r} onClick={handleReminderClick} />
                       ))}
                     </div>
                   )}
-
-                  {/* New Section */}
-                  {notifications.new.length > 0 && (
+                  {notifications.new?.length > 0 && (
                     <div>
                       <div className="px-4 py-2 bg-blue-50 border-b border-blue-100">
                         <p className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1">
-                          <Sparkles className="w-3 h-3" />
-                          Nuevos ({notifications.new.length})
+                          <Sparkles className="w-3 h-3" /> Nuevos ({notifications.new.length})
                         </p>
                       </div>
-                      {notifications.new.map((reminder) => (
-                        <NotificationItem
-                          key={reminder.id}
-                          reminder={reminder}
-                          onClick={handleReminderClick}
-                          onMarkViewed={markAsViewed}
-                        />
+                      {notifications.new.map((r) => (
+                        <ReminderNotificationItem key={r.id} reminder={r} onClick={handleReminderClick} />
                       ))}
                     </div>
                   )}
