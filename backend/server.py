@@ -3231,25 +3231,33 @@ async def save_teacher_student_attendance(data: SaveAttendanceRequest, current_u
     
     return {"message": "Asistencia guardada correctamente", "count": len(data.records)}
 
-@api_router.get("/dashboard/events", response_model=List[EventResponse])
+@api_router.get("/dashboard/events")
 async def get_events(current_user=Depends(require_school)):
-    """Get events for current tenant - REQUIRES SCHOOL"""
-    school_id = current_user.get("school_id")
+    """Get upcoming events for current school from calendar_events"""
+    user = await resolve_user_from_token(current_user)
+    school_id = (user or {}).get("school_id") or current_user.get("school_id")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     
-    # Get tenant-specific events
-    events = await db.events.find(
-        {"tenant_id": school_id}, 
+    # Get upcoming events from calendar_events (real data)
+    events_cursor = db.calendar_events.find(
+        {"school_id": school_id, "start_date": {"$gte": today}},
         {"_id": 0}
-    ).sort("date", 1).to_list(20)
+    ).sort("start_date", 1).limit(10)
+    events = await events_cursor.to_list(10)
     
-    # If no tenant events, return defaults
-    if not events:
-        events = await db.events.find(
-            {"tenant_id": {"$exists": False}}, 
-            {"_id": 0}
-        ).sort("date", 1).to_list(20)
+    # Transform to the expected format
+    result = []
+    for e in events:
+        result.append({
+            "id": e.get("id", ""),
+            "title": e.get("title", ""),
+            "date": e.get("start_date", ""),
+            "time": e.get("start_time", ""),
+            "category": e.get("type", "evento"),
+            "color": e.get("color", "#001f4b")
+        })
     
-    return events
+    return result
 
 @api_router.get("/dashboard/enrollment", response_model=List[EnrollmentData])
 async def get_enrollment(current_user=Depends(require_school)):
