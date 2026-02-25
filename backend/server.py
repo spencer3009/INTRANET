@@ -14644,6 +14644,29 @@ async def get_all_notifications(
         "total_count": len(notifications)
     }
 
+@api_router.post("/notifications/test-push")
+async def test_push_notification(current_user = Depends(get_current_user)):
+    """Test endpoint: Creates a notification and broadcasts via WebSocket"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    school_id = user.get("school_id")
+    subject = await db.subjects.find_one({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1})
+    
+    notif = await create_notification_for_subject(
+        school_id=school_id,
+        subject_id=subject["id"] if subject else None,
+        title="Notificacion en tiempo real",
+        message="Esta notificacion fue enviada via WebSocket push",
+        notification_type="announcement",
+        author_id=user["id"],
+        author_name=f"{user.get('name', '')} {user.get('last_name', '')}".strip()
+    )
+    
+    return {"success": True, "notification_id": notif["id"], "online_users": ws_manager.get_online_count()}
+
+
 @api_router.post("/notifications/{notification_id}/read")
 async def mark_notification_read(
     notification_id: str,
