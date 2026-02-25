@@ -29,7 +29,7 @@ def get_auth_token(email: str, password: str, subdomain: str) -> str:
         json={"email": email, "password": password, "subdomain": subdomain}
     )
     if response.status_code == 200:
-        return response.json().get("access_token")
+        return response.json().get("token")  # API returns "token" not "access_token"
     return None
 
 
