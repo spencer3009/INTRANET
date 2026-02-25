@@ -387,6 +387,9 @@ export default function NotificationBell({ token }) {
             <h3 className="text-sm font-semibold text-white flex items-center gap-2">
               <Bell className="w-4 h-4" />
               Notificaciones
+              {isConnected && (
+                <span className="w-1.5 h-1.5 bg-emerald-300 rounded-full animate-pulse" title="Conectado en tiempo real" />
+              )}
             </h3>
             <div className="flex items-center gap-2">
               {totalCount > 0 && (
