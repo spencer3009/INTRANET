@@ -193,19 +193,19 @@ function StudentExamCalendar({ currentMonth, exams, onDayClick, selectedDate }) 
               key={day}
               onClick={() => onDayClick(dateStr)}
               className={`h-[72px] p-1.5 border-b border-r border-slate-100/80 transition-all text-left flex flex-col relative group/day ${
-                isSelected ? "bg-indigo-50 ring-2 ring-inset ring-indigo-400" : hasExams ? "hover:bg-indigo-50/50" : "hover:bg-slate-50"
+                isSelected ? "bg-indigo-50 ring-2 ring-inset ring-indigo-400" : hasExams ? "bg-teal-50 hover:bg-teal-100/70" : "hover:bg-slate-50"
               }`}
               data-testid={`student-calendar-day-${day}`}
             >
               <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm transition-colors ${
-                isToday ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30" : isSelected ? "bg-indigo-100 text-indigo-700 font-bold" : hasExams ? "text-indigo-700 font-semibold" : "text-slate-500 group-hover/day:text-slate-700"
+                isToday ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30" : isSelected ? "bg-indigo-100 text-indigo-700 font-bold" : hasExams ? "text-teal-800 font-bold" : "text-slate-500 group-hover/day:text-slate-700"
               }`}>{day}</span>
               {hasExams && (
-                <div className="mt-auto flex items-center gap-0.5">
-                  {Array.from({ length: Math.min(examCount, 3) }).map((_, i) => (
-                    <span key={i} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
-                  ))}
-                  {examCount > 3 && <span className="text-[9px] text-indigo-500 font-bold ml-0.5">+{examCount - 3}</span>}
+                <div className="mt-auto flex items-center gap-1">
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-teal-500 text-white rounded text-[9px] font-bold shadow-sm">
+                    <BookOpen className="w-2.5 h-2.5" />
+                    {examCount}
+                  </span>
                 </div>
               )}
             </button>
