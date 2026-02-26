@@ -5,167 +5,146 @@ import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import {
-  Calendar,
-  Clock,
-  User,
-  Loader2,
-  AlertCircle,
-  GraduationCap,
-  FileText,
-  Timer,
-  Archive,
-  ChevronLeft,
-  ChevronRight,
-  Play,
-  CheckCircle
+  Calendar, Clock, User, Loader2, AlertCircle, GraduationCap,
+  FileText, Timer, Archive, ChevronLeft, ChevronRight, Play,
+  CheckCircle, BookOpen, TrendingUp, Target, Sparkles, ArrowRight
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-// Exam type colors
 const EXAM_TYPES = {
-  parcial: { label: "Parcial", color: "#6366F1", icon: "📝" },
-  final: { label: "Final", color: "#DC2626", icon: "📋" },
-  práctica: { label: "Práctica", color: "#059669", icon: "✍️" },
-  quiz: { label: "Quiz", color: "#F59E0B", icon: "⚡" }
+  parcial: { label: "Parcial", color: "#6366F1", bg: "bg-indigo-500", light: "bg-indigo-50 text-indigo-700" },
+  final: { label: "Final", color: "#DC2626", bg: "bg-rose-500", light: "bg-rose-50 text-rose-700" },
+  "práctica": { label: "Practica", color: "#059669", bg: "bg-emerald-500", light: "bg-emerald-50 text-emerald-700" },
+  quiz: { label: "Quiz", color: "#F59E0B", bg: "bg-amber-500", light: "bg-amber-50 text-amber-700" }
 };
 
-// Status badge component
 function ExamStatusBadge({ status }) {
   const config = {
-    upcoming: { label: "Próximo", bg: "bg-blue-100", text: "text-blue-700", icon: Timer },
-    in_progress: { label: "En curso", bg: "bg-amber-100", text: "text-amber-700", icon: Clock },
-    ongoing: { label: "En curso", bg: "bg-amber-100", text: "text-amber-700", icon: Clock },
-    completed: { label: "Finalizado", bg: "bg-slate-100", text: "text-slate-600", icon: Archive },
-    finished: { label: "Finalizado", bg: "bg-slate-100", text: "text-slate-600", icon: Archive }
-  }[status] || { label: status, bg: "bg-slate-100", text: "text-slate-600", icon: Clock };
-  
+    upcoming: { label: "Proximo", cls: "bg-blue-100 text-blue-700 border-blue-200", icon: Timer },
+    in_progress: { label: "En curso", cls: "bg-amber-100 text-amber-700 border-amber-200 animate-pulse", icon: Clock },
+    ongoing: { label: "En curso", cls: "bg-amber-100 text-amber-700 border-amber-200 animate-pulse", icon: Clock },
+    completed: { label: "Finalizado", cls: "bg-slate-100 text-slate-500 border-slate-200", icon: Archive },
+    finished: { label: "Finalizado", cls: "bg-slate-100 text-slate-500 border-slate-200", icon: Archive }
+  }[status] || { label: status, cls: "bg-slate-100 text-slate-500 border-slate-200", icon: Clock };
   const Icon = config.icon;
-  
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
-      <Icon className="w-3 h-3" />
-      {config.label}
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${config.cls}`}>
+      <Icon className="w-3 h-3" /> {config.label}
     </span>
   );
 }
 
-// Student Exam Card - Read Only (no edit/delete buttons)
+function formatRelativeDate(dateStr) {
+  const date = new Date(dateStr + "T12:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const examDate = new Date(date);
+  examDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "Hoy";
+  if (diffDays === 1) return "Manana";
+  if (diffDays === -1) return "Ayer";
+  if (diffDays > 0 && diffDays <= 7) return `En ${diffDays} dias`;
+  if (diffDays < 0) return "Pasado";
+  return "";
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EXAM CARD - Premium
+// ═══════════════════════════════════════════════════════════════════
 function StudentExamCard({ exam }) {
   const typeConfig = EXAM_TYPES[exam.type] || EXAM_TYPES.parcial;
   const navigate = useNavigate();
   const { subdomain } = useParams();
-  
+  const isAvailable = exam.is_available && !exam.has_attempted;
+  const hasAttempted = exam.has_attempted;
   const handleTakeExam = () => {
     const prefix = subdomain ? `/school/${subdomain}` : "";
     navigate(`${prefix}/student/exam/${exam.id}`);
   };
-  
-  const isAvailable = exam.is_available && !exam.has_attempted;
-  const hasAttempted = exam.has_attempted;
-  
+
   return (
-    <div 
-      className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-md transition-shadow"
-      style={{ borderLeftWidth: '4px', borderLeftColor: exam.subject_color || typeConfig.color }}
-      data-testid={`student-exam-card-${exam.id}`}
-    >
-      <div className="flex items-start gap-3">
-        {/* Icon */}
-        <div 
-          className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-lg flex-shrink-0"
-          style={{ backgroundColor: exam.subject_color || typeConfig.color }}
-        >
-          {typeConfig.icon}
-        </div>
+    <div className="group relative" data-testid={`student-exam-card-${exam.id}`}>
+      <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden hover:shadow-lg hover:border-indigo-200 transition-all duration-300">
+        {/* Color bar */}
+        <div className="h-1" style={{ background: `linear-gradient(90deg, ${typeConfig.color}, ${typeConfig.color}88)` }} />
         
-        {/* Content */}
-        <div className="flex-1 min-w-0">
-          {/* Header */}
-          <div className="flex items-center gap-2 flex-wrap mb-1">
-            <h4 className="font-bold text-slate-800">{exam.subject_name}</h4>
-            <span 
-              className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
-              style={{ backgroundColor: typeConfig.color }}
-            >
-              {typeConfig.label}
-            </span>
-            <ExamStatusBadge status={exam.status} />
-          </div>
-          
-          {/* Title */}
-          <p className="text-sm text-slate-600 mb-2">{exam.title}</p>
-          
-          {/* Time */}
-          <div className="flex items-center gap-3 text-sm text-slate-500">
-            <span className="flex items-center gap-1">
-              <Clock className="w-4 h-4" />
-              {exam.start_time} - {exam.end_time}
-            </span>
-            <span className="text-slate-400">({exam.duration_minutes} min)</span>
-          </div>
-          
-          {/* Teacher */}
-          {exam.teacher_name && (
-            <div className="flex items-center gap-2 mt-2 text-sm text-slate-500">
-              {exam.teacher_photo ? (
-                <img 
-                  src={exam.teacher_photo} 
-                  alt={exam.teacher_name}
-                  className="w-5 h-5 rounded-full object-cover"
-                />
-              ) : (
-                <User className="w-4 h-4" />
-              )}
-              <span>{exam.teacher_name}</span>
+        <div className="p-4">
+          {/* Header row */}
+          <div className="flex items-start gap-3 mb-3">
+            <div className="w-11 h-11 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-lg" style={{ backgroundColor: typeConfig.color }}>
+              <BookOpen className="w-5 h-5" />
             </div>
-          )}
-          
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-sm font-bold text-slate-800">{exam.subject_name}</h4>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeConfig.light}`}>{typeConfig.label}</span>
+                <ExamStatusBadge status={exam.status} />
+              </div>
+              <p className="text-slate-600 text-sm font-medium mt-0.5">{exam.title}</p>
+            </div>
+          </div>
+
+          {/* Info chips */}
+          <div className="flex items-center gap-2 flex-wrap mb-3">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg text-xs text-slate-600">
+              <Clock className="w-3.5 h-3.5 text-slate-400" />
+              <span className="font-medium">{exam.start_time} - {exam.end_time}</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg text-xs text-slate-600">
+              <Timer className="w-3.5 h-3.5 text-slate-400" />
+              <span>{exam.duration_minutes} min</span>
+            </div>
+            {exam.teacher_name && (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-lg text-xs text-slate-600">
+                {exam.teacher_photo ? (
+                  <img src={exam.teacher_photo} alt="" className="w-4 h-4 rounded-full object-cover" />
+                ) : (
+                  <User className="w-3.5 h-3.5 text-slate-400" />
+                )}
+                <span>{exam.teacher_name}</span>
+              </div>
+            )}
+          </div>
+
           {/* Description */}
           {exam.description && (
-            <p className="mt-2 text-sm text-slate-500 italic bg-slate-50 p-2 rounded">
-              {exam.description}
-            </p>
+            <p className="text-xs text-slate-500 mb-3 leading-relaxed line-clamp-2">{exam.description}</p>
           )}
-          
-          {/* Action Button */}
-          <div className="mt-3">
-            {isAvailable ? (
-              <button
-                onClick={handleTakeExam}
-                className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25"
-                data-testid={`take-exam-btn-${exam.id}`}
-              >
-                <Play className="w-4 h-4" />
-                Rendir Examen
-              </button>
-            ) : hasAttempted ? (
-              <div className="w-full py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium flex items-center justify-center gap-2" data-testid={`exam-completed-${exam.id}`}>
-                <CheckCircle className="w-4 h-4" />
-                Examen rendido
-                {exam.attempt_score != null && (
-                  <span className="ml-1 px-2 py-0.5 bg-emerald-100 rounded-full text-xs font-bold">{exam.attempt_score}%</span>
-                )}
-              </div>
-            ) : exam.status === "upcoming" ? (
-              <div className="w-full py-2.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                <Timer className="w-4 h-4" />
-                Disponible pronto
-              </div>
-            ) : exam.status === "completed" ? (
-              <div className="w-full py-2.5 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
-                <Archive className="w-4 h-4" />
-                Examen finalizado
-              </div>
-            ) : null}
-          </div>
+
+          {/* Action */}
+          {isAvailable ? (
+            <button
+              onClick={handleTakeExam}
+              className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-[0.98]"
+              data-testid={`take-exam-btn-${exam.id}`}
+            >
+              <Play className="w-4 h-4" /> Rendir Examen
+            </button>
+          ) : hasAttempted ? (
+            <div className="w-full py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-semibold flex items-center justify-center gap-2" data-testid={`exam-completed-${exam.id}`}>
+              <CheckCircle className="w-4 h-4" /> Examen rendido
+              {exam.attempt_score != null && <span className="px-2 py-0.5 bg-emerald-100 rounded-full text-xs font-bold">{exam.attempt_score}%</span>}
+            </div>
+          ) : exam.status === "upcoming" ? (
+            <div className="w-full py-2.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+              <Timer className="w-4 h-4" /> Disponible pronto
+            </div>
+          ) : exam.status === "completed" ? (
+            <div className="w-full py-2.5 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+              <Archive className="w-4 h-4" /> Examen finalizado
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-// Calendar component for students (read-only)
+// ═══════════════════════════════════════════════════════════════════
+// CALENDAR
+// ═══════════════════════════════════════════════════════════════════
 function StudentExamCalendar({ currentMonth, exams, onDayClick, selectedDate }) {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -173,17 +152,15 @@ function StudentExamCalendar({ currentMonth, exams, onDayClick, selectedDate }) 
   const lastDay = new Date(year, month + 1, 0);
   const startDayOfWeek = firstDay.getDay();
   const totalDays = lastDay.getDate();
-  const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  const weekDays = ["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"];
   const adjustedStartDay = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
 
-  // Count exams per day
   const examsByDay = {};
   exams.forEach(exam => {
-    const day = parseInt(exam.date.split('-')[2]);
+    const day = parseInt(exam.date.split("-")[2]);
     examsByDay[day] = (examsByDay[day] || 0) + 1;
   });
 
-  // Generate calendar days
   const days = [];
   for (let i = 0; i < adjustedStartDay; i++) days.push(null);
   for (let day = 1; day <= totalDays; day++) days.push(day);
@@ -191,59 +168,44 @@ function StudentExamCalendar({ currentMonth, exams, onDayClick, selectedDate }) 
   const today = new Date();
   const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
   const todayDate = today.getDate();
-  const selectedDay = selectedDate ? parseInt(selectedDate.split('-')[2]) : null;
-  const selectedMonth = selectedDate ? parseInt(selectedDate.split('-')[1]) - 1 : null;
-  const selectedYear = selectedDate ? parseInt(selectedDate.split('-')[0]) : null;
+  const selectedDay = selectedDate ? parseInt(selectedDate.split("-")[2]) : null;
+  const selectedMonth = selectedDate ? parseInt(selectedDate.split("-")[1]) - 1 : null;
+  const selectedYear = selectedDate ? parseInt(selectedDate.split("-")[0]) : null;
   const isSelectedMonth = selectedYear === year && selectedMonth === month;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden" data-testid="student-exam-calendar">
-      {/* Week days header */}
-      <div className="grid grid-cols-7 bg-gradient-to-r from-indigo-500 to-purple-500">
+    <div className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden shadow-sm" data-testid="student-exam-calendar">
+      <div className="grid grid-cols-7">
         {weekDays.map(day => (
-          <div key={day} className="py-2 text-center text-xs font-medium text-white/90">{day}</div>
+          <div key={day} className="py-2.5 text-center text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-100">{day}</div>
         ))}
       </div>
-      
-      {/* Calendar grid */}
       <div className="grid grid-cols-7">
         {days.map((day, idx) => {
-          if (day === null) return <div key={`empty-${idx}`} className="h-16 bg-slate-50/50" />;
-          
+          if (day === null) return <div key={`empty-${idx}`} className="h-[72px] bg-slate-50/30 border-b border-r border-slate-50" />;
           const examCount = examsByDay[day] || 0;
           const isToday = isCurrentMonth && day === todayDate;
           const isSelected = isSelectedMonth && day === selectedDay;
-          const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const hasExams = examCount > 0;
-          
           return (
             <button
               key={day}
               onClick={() => onDayClick(dateStr)}
-              className={`h-16 p-1 border-b border-r border-slate-100 transition-colors text-left flex flex-col ${
-                isSelected 
-                  ? 'bg-indigo-100 ring-2 ring-inset ring-indigo-500' 
-                  : hasExams 
-                    ? 'hover:bg-indigo-50 bg-indigo-50/30' 
-                    : 'hover:bg-slate-50'
+              className={`h-[72px] p-1.5 border-b border-r border-slate-100/80 transition-all text-left flex flex-col relative group/day ${
+                isSelected ? "bg-indigo-50 ring-2 ring-inset ring-indigo-400" : hasExams ? "hover:bg-indigo-50/50" : "hover:bg-slate-50"
               }`}
               data-testid={`student-calendar-day-${day}`}
             >
-              <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-sm ${
-                isToday 
-                  ? 'bg-indigo-600 text-white font-bold' 
-                  : hasExams 
-                    ? 'text-indigo-700 font-semibold'
-                    : 'text-slate-600'
-              }`}>
-                {day}
-              </span>
-              {examCount > 0 && (
-                <div className="mt-auto">
-                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-indigo-100 text-indigo-700 rounded text-xs font-medium">
-                    <FileText className="w-3 h-3" />
-                    {examCount}
-                  </span>
+              <span className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm transition-colors ${
+                isToday ? "bg-indigo-600 text-white font-bold shadow-md shadow-indigo-500/30" : isSelected ? "bg-indigo-100 text-indigo-700 font-bold" : hasExams ? "text-indigo-700 font-semibold" : "text-slate-500 group-hover/day:text-slate-700"
+              }`}>{day}</span>
+              {hasExams && (
+                <div className="mt-auto flex items-center gap-0.5">
+                  {Array.from({ length: Math.min(examCount, 3) }).map((_, i) => (
+                    <span key={i} className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                  ))}
+                  {examCount > 3 && <span className="text-[9px] text-indigo-500 font-bold ml-0.5">+{examCount - 3}</span>}
                 </div>
               )}
             </button>
@@ -254,289 +216,239 @@ function StudentExamCalendar({ currentMonth, exams, onDayClick, selectedDate }) 
   );
 }
 
-// Format relative date
-function formatRelativeDate(dateStr) {
-  const date = new Date(dateStr + 'T12:00:00');
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const examDate = new Date(date);
-  examDate.setHours(0, 0, 0, 0);
-  
-  const diffDays = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
-  
-  if (diffDays === 0) return '¡Hoy!';
-  if (diffDays === 1) return 'Mañana';
-  if (diffDays === -1) return 'Ayer';
-  if (diffDays > 0 && diffDays <= 7) return `En ${diffDays} días`;
-  if (diffDays < 0) return 'Pasado';
-  return '';
+// ═══════════════════════════════════════════════════════════════════
+// UPCOMING EXAM ROW (for the list below calendar)
+// ═══════════════════════════════════════════════════════════════════
+function UpcomingExamRow({ exam, onNavigate }) {
+  const typeConfig = EXAM_TYPES[exam.type] || EXAM_TYPES.parcial;
+  const relDate = formatRelativeDate(exam.date);
+  const isAvailable = exam.is_available && !exam.has_attempted;
+  return (
+    <div className="flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors rounded-xl cursor-pointer group" onClick={onNavigate}>
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: typeConfig.color }}>
+        <BookOpen className="w-4 h-4" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-slate-800 truncate">{exam.title}</p>
+        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500">
+          <span>{exam.subject_name}</span>
+          <span className="text-slate-300">|</span>
+          <span>{exam.date.split("-").reverse().join("/")}</span>
+          <span className="text-slate-300">|</span>
+          <span>{exam.start_time}</span>
+        </div>
+      </div>
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {relDate && <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${relDate === "Hoy" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}>{relDate}</span>}
+        {isAvailable ? (
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Disponible</span>
+        ) : (
+          <ExamStatusBadge status={exam.status} />
+        )}
+        <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+      </div>
+    </div>
+  );
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// MAIN PAGE COMPONENT
-// ══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════
+// MAIN PAGE
+// ═══════════════════════════════════════════════════════════════════
 export default function StudentExamSchedulePage({ user, token, onLogout }) {
   const { subdomain } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Data
   const [exams, setExams] = useState([]);
   const [gradeName, setGradeName] = useState("");
   const [sectionName, setSectionName] = useState("");
   const [schoolSettings, setSchoolSettings] = useState(null);
-  
-  // Calendar state
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load exams for current month
   const loadExams = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Get date range for current month view (include a bit before and after)
       const year = currentMonth.getFullYear();
       const month = currentMonth.getMonth();
-      const fromDate = `${year}-${String(month + 1).padStart(2, '0')}-01`;
+      const fromDate = `${year}-${String(month + 1).padStart(2, "0")}-01`;
       const lastDay = new Date(year, month + 1, 0).getDate();
-      const toDate = `${year}-${String(month + 1).padStart(2, '0')}-${lastDay}`;
-      
+      const toDate = `${year}-${String(month + 1).padStart(2, "0")}-${lastDay}`;
       const [examsRes, settingsRes] = await Promise.all([
         axios.get(`${API}/api/student/exam-schedule?from_date=${fromDate}&to_date=${toDate}`, { headers }),
         axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null }))
       ]);
-      
       setExams(examsRes.data.exams || []);
       setGradeName(examsRes.data.grade_name || "");
       setSectionName(examsRes.data.section_name || "");
-      
-      if (settingsRes.data) {
-        setSchoolSettings(settingsRes.data);
-      }
+      if (settingsRes.data) setSchoolSettings(settingsRes.data);
     } catch (err) {
-      console.error("Error loading exams:", err);
-      setError("No se pudo cargar el calendario de exámenes.");
+      setError("No se pudo cargar el calendario de examenes.");
     } finally {
       setLoading(false);
     }
   }, [currentMonth, token]);
 
-  useEffect(() => {
-    loadExams();
-  }, [loadExams]);
+  useEffect(() => { loadExams(); }, [loadExams]);
 
-  // Month navigation
   const prevMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+  const goToday = () => {
+    setCurrentMonth(new Date());
+    const today = new Date();
+    setSelectedDate(`${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`);
+  };
 
-  // Get exams for selected date
-  const examsForSelectedDate = selectedDate 
-    ? exams.filter(e => e.date === selectedDate)
-    : [];
-
-  // Month name
-  const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const examsForSelectedDate = selectedDate ? exams.filter(e => e.date === selectedDate) : [];
+  const monthNames = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
   const currentMonthName = `${monthNames[currentMonth.getMonth()]} ${currentMonth.getFullYear()}`;
-
   const schoolName = schoolSettings?.system_name || user?.school_name || "Portal Alumno";
   const logoUrl = schoolSettings?.logo_url;
 
-  // Stats
-  const upcomingCount = exams.filter(e => e.status === 'upcoming').length;
+  const upcomingExams = exams.filter(e => e.status === "upcoming" || e.status === "in_progress").sort((a, b) => a.date.localeCompare(b.date));
+  const completedCount = exams.filter(e => e.status === "completed" || e.has_attempted).length;
+  const inProgressCount = exams.filter(e => e.status === "in_progress").length;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex" data-testid="student-exam-schedule-page">
-      {/* Student Sidebar */}
-      <StudentSidebar
-        active="examenes"
-        onNavigate={() => {}}
-        expanded={sidebarExpanded}
-        onToggle={() => setSidebarExpanded(!sidebarExpanded)}
-        onLogout={onLogout}
-        schoolName={schoolName}
-        subdomain={subdomain || user?.subdomain}
-        user={user}
-      />
+    <div className="min-h-screen bg-[#f8f9fc] flex" data-testid="student-exam-schedule-page">
+      <StudentSidebar active="examenes" onNavigate={() => {}} expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} schoolName={schoolName} subdomain={subdomain || user?.subdomain} user={user} />
+      {sidebarExpanded && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarExpanded(false)} />}
 
-      {/* Mobile overlay */}
-      {sidebarExpanded && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarExpanded(false)}
-        />
-      )}
-
-      {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* Header */}
-        <StudentHeader
-          user={user}
-          onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
-          onLogout={onLogout}
-          logoUrl={logoUrl}
-          schoolName={schoolName}
-          subdomain={subdomain || user?.subdomain}
-          token={token}
-        />
+        <StudentHeader user={user} onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain || user?.subdomain} token={token} />
 
-        {/* Main Content */}
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-3" data-testid="student-exam-title">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center shadow-lg">
-                <Calendar className="w-5 h-5 text-white" />
-              </div>
-              Mis Exámenes
-            </h1>
-            {(gradeName || sectionName) && (
-              <p className="text-slate-500 mt-2 ml-13 flex items-center gap-2" data-testid="student-exam-context">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h1 className="text-2xl font-bold text-[#1e293b] flex items-center gap-3" style={{ fontFamily: "Manrope, sans-serif" }} data-testid="student-exam-title">
+                Mis Examenes
+              </h1>
+              <p className="text-sm text-slate-500 mt-1 flex items-center gap-2">
                 <GraduationCap className="w-4 h-4" />
-                <span className="font-medium text-slate-700">{gradeName}</span>
-                {sectionName && (
-                  <>
-                    <span className="text-slate-300">•</span>
-                    <span>Sección {sectionName}</span>
-                  </>
-                )}
+                {gradeName && <span className="font-medium text-slate-600">{gradeName}</span>}
+                {sectionName && <><span className="text-slate-300">-</span><span>Seccion {sectionName}</span></>}
               </p>
-            )}
+            </div>
+            <button onClick={goToday} className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-colors shadow-sm">
+              <Calendar className="w-4 h-4 inline mr-1.5" />Hoy
+            </button>
           </div>
 
-          {/* Content */}
           {loading ? (
             <div className="flex items-center justify-center py-20" data-testid="student-exam-loading">
-              <div className="text-center">
-                <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto mb-3" />
-                <p className="text-slate-500">Cargando exámenes...</p>
-              </div>
+              <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
             </div>
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center" data-testid="student-exam-error">
               <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" />
               <p className="text-red-700 font-medium">{error}</p>
-              <button 
-                onClick={loadExams}
-                className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-              >
-                Reintentar
-              </button>
+              <button onClick={loadExams} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">Reintentar</button>
             </div>
           ) : (
             <>
-              {/* Stats Summary */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <div className="bg-white rounded-xl p-4 border border-slate-200">
-                  <p className="text-sm text-slate-500">Este mes</p>
-                  <p className="text-2xl font-bold text-slate-800">{exams.length}</p>
+              {/* KPI Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                      <FileText className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full uppercase">Este mes</span>
+                  </div>
+                  <p className="text-2xl font-extrabold text-slate-800">{exams.length}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Examenes programados</p>
                 </div>
-                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-                  <p className="text-sm text-blue-600">Próximos</p>
-                  <p className="text-2xl font-bold text-blue-700">{upcomingCount}</p>
+                <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                      <Target className="w-5 h-5 text-amber-600" />
+                    </div>
+                    {inProgressCount > 0 && <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />}
+                  </div>
+                  <p className="text-2xl font-extrabold text-slate-800">{upcomingExams.length}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Proximos / En curso</p>
                 </div>
-                <div className="bg-white rounded-xl p-4 border border-slate-200">
-                  <p className="text-sm text-slate-500">Materias</p>
-                  <p className="text-2xl font-bold text-indigo-600">
-                    {new Set(exams.map(e => e.subject_id)).size}
-                  </p>
+                <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-emerald-600" />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-extrabold text-slate-800">{completedCount}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Completados</p>
                 </div>
-                <div className="bg-white rounded-xl p-4 border border-slate-200">
-                  <p className="text-sm text-slate-500">Profesores</p>
-                  <p className="text-2xl font-bold text-violet-600">
-                    {new Set(exams.map(e => e.teacher_name).filter(Boolean)).size}
-                  </p>
+                <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-violet-600" />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-extrabold text-slate-800">{new Set(exams.map(e => e.subject_name).filter(Boolean)).size}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Materias</p>
                 </div>
               </div>
 
-              {/* Calendar View */}
-              <div className="grid lg:grid-cols-5 gap-6">
-                {/* Calendar - 3 columns */}
-                <div className="lg:col-span-3">
-                  {/* Month Navigation */}
-                  <div className="flex items-center justify-between mb-4">
-                    <button 
-                      onClick={prevMonth} 
-                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                    >
-                      <ChevronLeft className="w-5 h-5 text-slate-600" />
+              {/* Main Grid: Calendar + Detail */}
+              <div className="grid lg:grid-cols-5 gap-6 mb-6">
+                {/* Calendar */}
+                <div className="lg:col-span-3 space-y-4">
+                  {/* Month nav */}
+                  <div className="flex items-center justify-between">
+                    <button onClick={prevMonth} className="p-2 hover:bg-white hover:shadow-sm rounded-xl transition-all border border-transparent hover:border-slate-200">
+                      <ChevronLeft className="w-5 h-5 text-slate-500" />
                     </button>
-                    <h2 className="text-lg font-bold text-slate-800">{currentMonthName}</h2>
-                    <button 
-                      onClick={nextMonth} 
-                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                    >
-                      <ChevronRight className="w-5 h-5 text-slate-600" />
+                    <h2 className="text-lg font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>{currentMonthName}</h2>
+                    <button onClick={nextMonth} className="p-2 hover:bg-white hover:shadow-sm rounded-xl transition-all border border-transparent hover:border-slate-200">
+                      <ChevronRight className="w-5 h-5 text-slate-500" />
                     </button>
                   </div>
-                  
-                  {/* Calendar Grid */}
-                  <StudentExamCalendar
-                    currentMonth={currentMonth}
-                    exams={exams}
-                    onDayClick={(dateStr) => setSelectedDate(dateStr)}
-                    selectedDate={selectedDate}
-                  />
-                  
-                  {/* Info banner */}
-                  <div className="mt-4 p-3 bg-indigo-50 rounded-lg flex items-center gap-2">
-                    <GraduationCap className="w-5 h-5 text-indigo-600" />
-                    <span className="text-sm font-medium text-indigo-700">
-                      {gradeName} - Sección {sectionName}
-                    </span>
-                    <span className="ml-auto text-sm text-indigo-600">
-                      {exams.length} exámenes este mes
-                    </span>
-                  </div>
+
+                  <StudentExamCalendar currentMonth={currentMonth} exams={exams} onDayClick={(dateStr) => setSelectedDate(dateStr)} selectedDate={selectedDate} />
                 </div>
 
-                {/* Day Detail Panel - 2 columns */}
+                {/* Day Detail Panel */}
                 <div className="lg:col-span-2">
-                  <div className="bg-white rounded-xl border border-slate-200 h-full">
-                    {/* Panel Header */}
-                    <div className="px-4 py-3 border-b border-slate-200 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-t-xl">
-                      <h3 className="font-semibold text-white flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
+                  <div className="bg-white rounded-2xl border border-slate-200/80 h-full overflow-hidden shadow-sm">
+                    <div className="px-5 py-4 bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-600">
+                      <p className="text-xs font-medium text-white/60 uppercase tracking-wider mb-1">Detalle del dia</p>
+                      <h3 className="font-bold text-white flex items-center gap-2 text-lg" style={{ fontFamily: "Manrope, sans-serif" }}>
                         {selectedDate ? (
                           <>
-                            {new Date(selectedDate + 'T12:00:00').toLocaleDateString('es-PE', { 
-                              weekday: 'long', 
-                              day: 'numeric', 
-                              month: 'long' 
-                            })}
+                            {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}
                             {formatRelativeDate(selectedDate) && (
-                              <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-xs">
-                                {formatRelativeDate(selectedDate)}
-                              </span>
+                              <span className="text-xs px-2 py-0.5 bg-white/15 rounded-full font-medium">{formatRelativeDate(selectedDate)}</span>
                             )}
                           </>
-                        ) : (
-                          "Selecciona un día"
-                        )}
+                        ) : "Selecciona un dia"}
                       </h3>
+                      {selectedDate && (
+                        <p className="text-white/60 text-xs mt-1">{examsForSelectedDate.length} examen{examsForSelectedDate.length !== 1 ? "es" : ""} programado{examsForSelectedDate.length !== 1 ? "s" : ""}</p>
+                      )}
                     </div>
 
-                    {/* Panel Content */}
-                    <div className="p-4 max-h-[500px] overflow-y-auto">
+                    <div className="p-4 max-h-[440px] overflow-y-auto">
                       {!selectedDate ? (
-                        <div className="text-center py-8 text-slate-500">
-                          <Clock className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                          <p>Haz clic en un día del calendario para ver tus exámenes</p>
+                        <div className="text-center py-10">
+                          <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Calendar className="w-7 h-7 text-slate-300" />
+                          </div>
+                          <p className="text-sm text-slate-500 font-medium">Selecciona un dia en el calendario</p>
+                          <p className="text-xs text-slate-400 mt-1">Veras los examenes programados aqui</p>
                         </div>
                       ) : examsForSelectedDate.length === 0 ? (
-                        <div className="text-center py-8">
-                          <div className="w-16 h-16 mx-auto mb-4 bg-green-100 rounded-full flex items-center justify-center">
-                            <span className="text-3xl">🎉</span>
+                        <div className="text-center py-10">
+                          <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                            <Sparkles className="w-7 h-7 text-emerald-400" />
                           </div>
-                          <h4 className="font-semibold text-slate-700 mb-1">¡Sin exámenes!</h4>
-                          <p className="text-slate-500 text-sm">No tienes exámenes programados este día</p>
+                          <h4 className="font-bold text-slate-700 mb-1">Dia libre</h4>
+                          <p className="text-slate-400 text-sm">No hay examenes este dia</p>
                         </div>
                       ) : (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                           {examsForSelectedDate.map(exam => (
                             <StudentExamCard key={exam.id} exam={exam} />
                           ))}
@@ -546,12 +458,29 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                   </div>
                 </div>
               </div>
+
+              {/* Upcoming Exams List */}
+              {upcomingExams.length > 0 && (
+                <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <h3 className="font-bold text-slate-800 flex items-center gap-2" style={{ fontFamily: "Manrope, sans-serif" }}>
+                      <Target className="w-5 h-5 text-indigo-500" />
+                      Proximos Examenes
+                    </h3>
+                    <span className="text-xs font-bold px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full">{upcomingExams.length}</span>
+                  </div>
+                  <div className="divide-y divide-slate-50">
+                    {upcomingExams.map(exam => (
+                      <UpcomingExamRow key={exam.id} exam={exam} onNavigate={() => setSelectedDate(exam.date)} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </main>
       </div>
 
-      {/* Message Center */}
       <MessageCenter token={token} user={user} />
     </div>
   );
