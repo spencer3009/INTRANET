@@ -32,7 +32,9 @@ const EXAM_TYPES = {
 function ExamStatusBadge({ status }) {
   const config = {
     upcoming: { label: "Próximo", bg: "bg-blue-100", text: "text-blue-700", icon: Timer },
+    in_progress: { label: "En curso", bg: "bg-amber-100", text: "text-amber-700", icon: Clock },
     ongoing: { label: "En curso", bg: "bg-amber-100", text: "text-amber-700", icon: Clock },
+    completed: { label: "Finalizado", bg: "bg-slate-100", text: "text-slate-600", icon: Archive },
     finished: { label: "Finalizado", bg: "bg-slate-100", text: "text-slate-600", icon: Archive }
   }[status] || { label: status, bg: "bg-slate-100", text: "text-slate-600", icon: Clock };
   
