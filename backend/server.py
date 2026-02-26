@@ -11142,6 +11142,7 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
         "payment_method": data.payment_method,
         "payment_status": data.payment_status,
         "payment_date": data.payment_date or now[:10],
+        "pension_month": data.pension_month,
         "receipt_number": data.receipt_number,
         "notes": data.notes,
         "created_by": user["id"],
