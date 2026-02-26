@@ -210,7 +210,7 @@ export default function ExamAttemptPage() {
     setShowConfirmSubmit(false);
     try {
       setSubmitting(true);
-      const res = await axios.post(`${API}/api/exams/${examId}/submit`, { attempt_id: attemptId, auto_submitted: autoSubmit }, { headers });
+      const res = await axios.post(`${API}/api/exam-attempts/${attemptId}/submit`, { auto_submitted: autoSubmit }, { headers });
       setResult(res.data);
       setSubmitted(true);
       setPhase('result');
