@@ -165,3 +165,4 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
 ## Credentials
 - Owner El Roble: admin@elroble.edu / 1234abc8
 - Soporte Global: spencer3009@gmail.com / Socios3009
+- Test exam ID: 222e2266-3309-4d96-9a5f-0d3f66b5a18d
