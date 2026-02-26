@@ -512,6 +512,9 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                       <td className="px-5 py-4">
                         <span className="text-sm text-gray-600 font-medium">{payment.concept_label}</span>
                       </td>
+                      <td className="px-5 py-4">
+                        <span className="text-sm text-gray-500">{payment.pension_month_label || "-"}</span>
+                      </td>
                       <td className="px-5 py-4 text-right">
                         <span className="text-sm text-gray-600 font-medium">S/ {formatNumber(payment.amount_base)}</span>
                       </td>
