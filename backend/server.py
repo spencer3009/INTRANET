@@ -11101,6 +11101,14 @@ async def get_payments(
         payment["method_label"] = PAYMENT_METHODS.get(payment.get("payment_method", ""), payment.get("payment_method", ""))
         payment["status_label"] = PAYMENT_STATUSES.get(payment.get("payment_status", ""), {}).get("label", "")
         payment["status_color"] = PAYMENT_STATUSES.get(payment.get("payment_status", ""), {}).get("color", "#64748B")
+        # Add pension_month label
+        pm = payment.get("pension_month")
+        if pm and len(pm) >= 7:
+            month_num = pm[5:7]
+            month_labels = {"01": "Ene", "02": "Feb", "03": "Mar", "04": "Abr", "05": "May", "06": "Jun", "07": "Jul", "08": "Ago", "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dic"}
+            payment["pension_month_label"] = f"{month_labels.get(month_num, month_num)} {pm[:4]}"
+        else:
+            payment["pension_month_label"] = ""
     
     return {
         "payments": payments,
