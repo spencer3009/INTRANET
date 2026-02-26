@@ -11721,6 +11721,39 @@ async def get_accounting_summary(
     for e in recent_expenses:
         e["category_label"] = EXPENSE_CATEGORIES.get(e.get("category", ""), e.get("category", ""))
     
+    # Monthly evolution data (last 6 months of income)
+    month_labels = ["", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"]
+    evolution_data = []
+    for i in range(5, -1, -1):
+        evo_month = month - i
+        evo_year = year
+        while evo_month <= 0:
+            evo_month += 12
+            evo_year -= 1
+        evo_start = f"{evo_year}-{evo_month:02d}-01"
+        if evo_month == 12:
+            evo_end = f"{evo_year + 1}-01-01"
+        else:
+            evo_end = f"{evo_year}-{evo_month + 1:02d}-01"
+        
+        evo_pipeline = [
+            {"$match": {"school_id": school_id, "payment_date": {"$gte": evo_start, "$lt": evo_end}, "payment_status": "paid"}},
+            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}, "count": {"$sum": 1}}}
+        ]
+        evo_agg = await db.payments.aggregate(evo_pipeline).to_list(1)
+        
+        exp_pipeline = [
+            {"$match": {"school_id": school_id, "expense_date": {"$gte": evo_start, "$lt": evo_end}}},
+            {"$group": {"_id": None, "total": {"$sum": "$total_amount"}}}
+        ]
+        exp_agg = await db.expenses.aggregate(exp_pipeline).to_list(1)
+        
+        evolution_data.append({
+            "month": f"{month_labels[evo_month]} {evo_year}",
+            "ingresos": round(evo_agg[0]["total"], 2) if evo_agg else 0,
+            "egresos": round(exp_agg[0]["total"], 2) if exp_agg else 0,
+        })
+    
     return {
         "period": {
             "year": year,
@@ -11747,6 +11780,7 @@ async def get_accounting_summary(
             "count": pagos_anulados_count
         },
         "balance": balance,
+        "evolution": evolution_data,
         "recent_payments": recent_payments,
         "recent_expenses": recent_expenses
     }
