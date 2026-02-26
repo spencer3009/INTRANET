@@ -262,17 +262,18 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
           <div className="p-4" style={{ height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={[
-                { name: "Ingresos", monto: summary?.ingresos?.total || 0, fill: "#10b981" },
-                { name: "Por Cobrar", monto: summary?.pendientes?.total || 0, fill: "#f59e0b" },
-                { name: "Egresos", monto: summary?.egresos?.total || 0, fill: "#f43f5e" },
-                { name: "Balance", monto: summary?.balance || 0, fill: "#3b82f6" }
-              ]} barSize={50}>
+                { name: "Ingresos", monto: summary?.ingresos?.total || 0 },
+                { name: "Por Cobrar", monto: summary?.pendientes?.total || 0 },
+                { name: "Deuda Total", monto: debtorsSummary?.total_debt || 0 },
+                { name: "Egresos", monto: summary?.egresos?.total || 0 },
+                { name: "Balance", monto: summary?.balance || 0 }
+              ]} barSize={44}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
                 <Tooltip formatter={(v) => `S/ ${formatNumber(v)}`} contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
-                <Bar dataKey="monto" radius={[8, 8, 0, 0]} label={{ position: 'top', fontSize: 12, fontWeight: 700, fill: '#334155', formatter: (v) => `S/ ${formatNumber(v)}` }}>
-                  {[{ fill: "#10b981" }, { fill: "#f59e0b" }, { fill: "#f43f5e" }, { fill: "#3b82f6" }].map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                <Bar dataKey="monto" radius={[8, 8, 0, 0]} label={{ position: 'top', fontSize: 11, fontWeight: 700, fill: '#334155', formatter: (v) => `S/ ${formatNumber(v)}` }}>
+                  {["#10b981", "#f59e0b", "#ef4444", "#f43f5e", "#3b82f6"].map((c, i) => <Cell key={i} fill={c} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
