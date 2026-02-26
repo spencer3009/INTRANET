@@ -6342,6 +6342,24 @@ function ExamsContent({ subjectId, token, userRole }) {
                             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                           </button>
                           
+                          <button
+                            onClick={async () => {
+                              try {
+                                const res = await axios.post(`${API}/exams/${exam.id}/duplicate`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                                alert(res.data.message || "Examen duplicado exitosamente");
+                                loadExams();
+                              } catch (err) {
+                                alert(err.response?.data?.detail || "Error al duplicar examen");
+                              }
+                            }}
+                            className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg text-sm font-medium hover:bg-sky-200 transition-colors flex items-center gap-1.5"
+                            title="Duplicar examen con todas sus preguntas"
+                            data-testid={`duplicate-exam-btn-${exam.id}`}
+                          >
+                            <Copy className="w-4 h-4" />
+                            DUPLICAR
+                          </button>
+                          
                           {(exam.status === 'draft' || exam.status === 'scheduled') && (
                             <button
                               onClick={() => setConfirmAction({ type: 'publish', exam })}
