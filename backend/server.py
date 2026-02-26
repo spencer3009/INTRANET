@@ -4781,13 +4781,14 @@ async def update_role_settings(
         )
     
     # Get updated school
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1})
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1, "restrict_grades_if_debt": 1})
     
     logger.info(f"Role settings updated for school {school_id}: {update_data}")
     
     return {
         "message": "Configuración de roles actualizada",
-        "allow_admin_accounting": school.get("allow_admin_accounting", False)
+        "allow_admin_accounting": school.get("allow_admin_accounting", False),
+        "restrict_grades_if_debt": school.get("restrict_grades_if_debt", False)
     }
 
 @api_router.get("/settings/public/{subdomain}")
