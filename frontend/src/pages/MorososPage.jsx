@@ -7,7 +7,8 @@ import AccessDenied from "../components/AccessDenied";
 import { canAccessSection } from "../lib/permissions";
 import {
   UserX, BadgeDollarSign, TrendingDown, User, Eye, X, Loader2,
-  History, ArrowLeft, Search, ChevronDown, ChevronUp, ShieldBan
+  History, ArrowLeft, Search, ChevronDown, ChevronUp, ShieldBan,
+  ChevronLeft, ChevronRight
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -157,6 +158,8 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
   const [schoolSettings, setSchoolSettings] = useState(null);
   const [blockAccessIfDebt, setBlockAccessIfDebt] = useState(false);
   const [savingToggle, setSavingToggle] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const hasAccess = canAccessSection(user, 'accounting');
   const headers = { Authorization: `Bearer ${token}` };
@@ -202,6 +205,12 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
   const filtered = debtors
     .filter(d => filter === "all" ? true : d.status === filter)
     .filter(d => !search || d.student_name.toLowerCase().includes(search.toLowerCase()));
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+
+  // Reset page when filter/search changes
+  useEffect(() => { setCurrentPage(1); }, [filter, search]);
 
   const avgDebt = summary?.morosos_count > 0 ? summary.total_debt / summary.morosos_count : 0;
 
