@@ -1529,6 +1529,25 @@ function App() {
             }
           />
 
+          {/* Morosos Page */}
+          <Route
+            path="/school/:subdomain/morosos"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <MorososPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/morosos"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <MorososPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+
           {/* Course Detail Page - URL path mode */}
           <Route
             path="/school/:subdomain/curso/:subjectId"
