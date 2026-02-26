@@ -270,6 +270,21 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     }
   };
 
+  const handleToggleBlockAccess = async () => {
+    setSavingRoles(true);
+    try {
+      const newValue = !blockAccessIfDebt;
+      await axios.put(`${API}/settings/roles`, { restrict_grades_if_debt: newValue }, { headers });
+      setBlockAccessIfDebt(newValue);
+      setSuccess(newValue ? "Bloqueo por morosidad activado" : "Bloqueo por morosidad desactivado");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar configuración");
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
   const schoolName = settings.system_name || user?.name || "Mi Colegio";
   const logoUrl = settings.logo_url;
 
