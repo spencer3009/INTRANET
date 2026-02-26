@@ -231,13 +231,8 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
           </div>
         </div>
       )}
-          subtitle="Ingresos - Egresos"
-          icon={Scale}
-          variant={(summary?.balance || 0) >= 0 ? "balance" : "expense"}
-        />
-      </div>
 
-      {/* IGV Detail Cards - Premium design */}
+      {/* IGV Detail Cards */}
       <div className="grid lg:grid-cols-2 gap-5">
         {/* Income breakdown */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
