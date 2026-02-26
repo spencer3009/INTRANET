@@ -65,6 +65,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         const res = await axios.get(`${API}/settings`, { headers });
         // Load role settings from response
         setAllowAdminAccounting(res.data.allow_admin_accounting || false);
+        setBlockAccessIfDebt(res.data.restrict_grades_if_debt || false);
         setSettings({
           logo_url: res.data.logo_url || "",
           system_name: res.data.system_name || "",
