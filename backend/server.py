@@ -948,6 +948,27 @@ async def login(creds: UserLogin):
         if school and school.get("subdomain"):
             # Only set subdomain if school has one (completed onboarding)
             subdomain = school.get("subdomain")
+            
+            # Check debt-based access restriction for students and parents
+            if school.get("restrict_grades_if_debt", False) and user.get("role") in ("student", "parent"):
+                student_id = user["id"]
+                if user["role"] == "parent":
+                    # Find linked student
+                    linked = await db.users.find_one({"school_id": school_id, "role": "student", "parent_id": user["id"]}, {"_id": 0, "id": 1})
+                    if not linked:
+                        linked = await db.users.find_one({"school_id": school_id, "role": "student", "parent_email": user.get("email")}, {"_id": 0, "id": 1})
+                    student_id = linked["id"] if linked else None
+                
+                if student_id:
+                    pending_count = await db.payments.count_documents({
+                        "student_id": student_id, "school_id": school_id,
+                        "payment_status": "pending"
+                    })
+                    if pending_count > 0:
+                        raise HTTPException(
+                            status_code=403,
+                            detail="El acceso está restringido por pagos pendientes. Comuníquese con la administración."
+                        )
         else:
             # Legacy user with school but no subdomain - treat as not onboarded
             # Clear school_id from response so frontend knows to redirect to onboarding
