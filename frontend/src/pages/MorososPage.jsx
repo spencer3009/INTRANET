@@ -184,6 +184,19 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
     load();
   }, []);
 
+  const handleToggleBlockAccess = async () => {
+    setSavingToggle(true);
+    try {
+      const newValue = !blockAccessIfDebt;
+      await axios.put(`${API}/settings/roles`, { restrict_grades_if_debt: newValue }, { headers });
+      setBlockAccessIfDebt(newValue);
+    } catch (err) {
+      console.error("Error al actualizar configuración:", err);
+    } finally {
+      setSavingToggle(false);
+    }
+  };
+
   if (!hasAccess) return <AccessDenied />;
 
   const filtered = debtors
