@@ -1521,6 +1521,7 @@ function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
 
 
 export default function AccountingPage({ user, token, subdomain, onLogout }) {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
