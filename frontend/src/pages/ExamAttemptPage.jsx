@@ -79,8 +79,8 @@ function ExamRulesScreen({ examTitle, subjectName, onStart, loading }) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 pb-6 pt-2 border-t border-slate-100">
-          <label className="flex items-start gap-3 cursor-pointer mb-4 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+        <div className="px-5 pb-5 pt-2 border-t border-slate-100">
+          <label className="flex items-start gap-3 cursor-pointer mb-3 p-2.5 rounded-xl hover:bg-slate-50 transition-colors">
             <input 
               type="checkbox" 
               checked={accepted} 
@@ -96,7 +96,7 @@ function ExamRulesScreen({ examTitle, subjectName, onStart, loading }) {
           <button
             onClick={onStart}
             disabled={!accepted || loading}
-            className="w-full py-3.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 text-base"
+            className="w-full py-3 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 text-base"
             data-testid="start-exam-button"
           >
             {loading ? (
