@@ -12,7 +12,8 @@ import {
   ArrowUpRight, ArrowDownRight, Calendar, Landmark,
   CircleDollarSign, FileText, Percent, Scale, Briefcase,
   BadgeDollarSign, Coins, ChartLine, Building2, Wallet2,
-  ShieldCheck, BarChart4, LineChart
+  ShieldCheck, BarChart4, LineChart, Users, AlertOctagon, 
+  Eye, History, UserX, UserCheck
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
