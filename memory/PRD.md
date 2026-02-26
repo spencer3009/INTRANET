@@ -101,6 +101,16 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
 - Timer rediseñado: más grande (text-4xl), moderno, con etiqueta "Tiempo restante" y efectos visuales
 - **Endpoints:** `GET /api/exams/{exam_id}/info` - Info básica del examen para pantalla de reglas
 
+### 14. Módulo Contabilidad Premium (IMPLEMENTADO - 26 Feb 2026)
+- Campo `pension_month` (YYYY-MM) obligatorio para mensualidades en pagos
+- Tab "Morosos" con tabla de alumnos deudores: Estado, Alumno, Grado, Deuda, Meses Pendientes, Último Pago
+- Modal "Historial de Pagos" por alumno con secciones: Matrícula, Mensualidades, Otros
+- KPIs nuevos en Dashboard: Alumnos Morosos, Deuda Total, Alumnos al Día
+- Filtros en tab Morosos: Todos / Morosos / Al Día
+- Estructura `restrict_grades_if_debt` preparada en settings
+- Seed data: 30 alumnos demo con pagos realistas (23 morosos, 12 al día)
+- **Endpoints:** `GET /api/accounting/debtors`, `GET /api/accounting/student-history/{student_id}`
+
 ## Database Collections
 - `schools`, `users`, `user_school_roles`, `tenant_settings`, `task_submissions`
 - `notifications`: id, school_id, subject_id, title, message, notification_type, reference_id, link_destino, read_by[], created_at
