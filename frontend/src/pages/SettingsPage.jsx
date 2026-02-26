@@ -840,39 +840,6 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     </button>
                   </div>
 
-                  {/* Block Access If Debt Toggle */}
-                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-slate-200">
-                        <Shield className="w-5 h-5 text-red-500" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-slate-800">Bloquear acceso si el alumno tiene deuda</h3>
-                        <p className="text-sm text-slate-500">
-                          Los alumnos y padres con pagos pendientes no podrán acceder al sistema
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleToggleBlockAccess}
-                      disabled={savingRoles}
-                      className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
-                        blockAccessIfDebt ? 'bg-red-600' : 'bg-slate-300'
-                      } ${savingRoles ? 'opacity-50 cursor-not-allowed' : ''}`}
-                      data-testid="toggle-block-access-debt"
-                    >
-                      <span
-                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
-                          blockAccessIfDebt ? 'translate-x-8' : 'translate-x-1'
-                        }`}
-                      />
-                      {savingRoles && (
-                        <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
-                      )}
-                    </button>
-                  </div>
-
                   {/* Info text */}
                   <p className="text-xs text-slate-400 pl-2">
                     Los administradores tienen acceso a gestión de usuarios, cursos, horarios y asistencia por defecto. 
