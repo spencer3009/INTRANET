@@ -200,6 +200,9 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
     }
   };
 
+  // Reset page when filter/search changes
+  useEffect(() => { setCurrentPage(1); }, [filter, search]);
+
   if (!hasAccess) return <AccessDenied />;
 
   const filtered = debtors
@@ -208,9 +211,6 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
 
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-
-  // Reset page when filter/search changes
-  useEffect(() => { setCurrentPage(1); }, [filter, search]);
 
   const avgDebt = summary?.morosos_count > 0 ? summary.total_debt / summary.morosos_count : 0;
 
