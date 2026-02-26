@@ -465,14 +465,14 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
               {/* Upcoming Exams List */}
               {upcomingExams.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
-                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
-                    <h3 className="font-bold text-slate-800 flex items-center gap-2" style={{ fontFamily: "Manrope, sans-serif" }}>
-                      <Target className="w-5 h-5 text-indigo-500" />
+                  <div className="px-5 py-4 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between">
+                    <h3 className="font-bold text-white flex items-center gap-2 text-sm" style={{ fontFamily: "Manrope, sans-serif" }}>
+                      <Target className="w-4 h-4 text-amber-400" />
                       Proximos Examenes
                     </h3>
-                    <span className="text-xs font-bold px-2.5 py-1 bg-indigo-50 text-indigo-600 rounded-full">{upcomingExams.length}</span>
+                    <span className="text-xs font-bold px-2.5 py-1 bg-white/15 text-white rounded-full">{upcomingExams.length}</span>
                   </div>
-                  <div className="divide-y divide-slate-50">
+                  <div className="divide-y divide-slate-100">
                     {upcomingExams.map(exam => (
                       <UpcomingExamRow key={exam.id} exam={exam} onNavigate={() => setSelectedDate(exam.date)} />
                     ))}
