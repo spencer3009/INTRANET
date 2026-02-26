@@ -4767,7 +4767,7 @@ async def update_role_settings(
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     # Update allowed fields only
-    allowed_fields = ["allow_admin_accounting"]
+    allowed_fields = ["allow_admin_accounting", "restrict_grades_if_debt"]
     update_data = {}
     for field in allowed_fields:
         if field in data:
