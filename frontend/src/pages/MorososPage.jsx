@@ -7,7 +7,7 @@ import AccessDenied from "../components/AccessDenied";
 import { canAccessSection } from "../lib/permissions";
 import {
   UserX, BadgeDollarSign, TrendingDown, User, Eye, X, Loader2,
-  History, ArrowLeft, Search, ChevronDown, ChevronUp
+  History, ArrowLeft, Search, ChevronDown, ChevronUp, ShieldBan
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -155,6 +155,8 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
   const [search, setSearch] = useState("");
   const [historyModal, setHistoryModal] = useState({ open: false, studentId: null });
   const [schoolSettings, setSchoolSettings] = useState(null);
+  const [blockAccessIfDebt, setBlockAccessIfDebt] = useState(false);
+  const [savingToggle, setSavingToggle] = useState(false);
 
   const hasAccess = canAccessSection(user, 'accounting');
   const headers = { Authorization: `Bearer ${token}` };
@@ -169,7 +171,10 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
         ]);
         setDebtors(debtorsRes.data.debtors || []);
         setSummary(debtorsRes.data.summary || null);
-        if (settingsRes) setSchoolSettings(settingsRes.data);
+        if (settingsRes) {
+          setSchoolSettings(settingsRes.data);
+          setBlockAccessIfDebt(settingsRes.data.restrict_grades_if_debt || false);
+        }
       } catch (err) {
         console.error(err);
       } finally {
