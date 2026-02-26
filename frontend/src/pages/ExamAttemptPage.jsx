@@ -201,7 +201,7 @@ export default function ExamAttemptPage() {
     setAnswers(newAnswers);
     try {
       setSavingAnswer(true);
-      await axios.post(`${API}/api/exams/${examId}/save-answer`, { attempt_id: attemptId, question_id: questionId, ...(optionId ? { selected_option_id: optionId } : { text_answer: textAnswer }) }, { headers });
+      await axios.post(`${API}/api/exam-attempts/${attemptId}/save-answer`, { question_id: questionId, ...(optionId ? { selected_option_id: optionId } : { text_answer: textAnswer }) }, { headers });
     } catch (err) { console.error('Error saving:', err); } finally { setSavingAnswer(false); }
   };
 
