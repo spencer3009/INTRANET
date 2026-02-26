@@ -94,6 +94,13 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
   - `POST /api/notifications/test-push` - Endpoint de prueba para push
   - `WS /api/ws/notifications?token=JWT` - WebSocket para push en tiempo real
 
+### 13. Pantalla de Reglas Pre-Examen (IMPLEMENTADO - 26 Feb 2026)
+- Pantalla obligatoria antes de comenzar examen en línea
+- 5 reglas claras con iconos de colores: no salir del examen, permanecer en pantalla, buena conexión, no recargar, leer bien cada pregunta
+- Checkbox de aceptación obligatoria antes de habilitar botón "Comenzar Examen"
+- Timer rediseñado: más grande (text-4xl), moderno, con etiqueta "Tiempo restante" y efectos visuales
+- **Endpoints:** `GET /api/exams/{exam_id}/info` - Info básica del examen para pantalla de reglas
+
 ## Database Collections
 - `schools`, `users`, `user_school_roles`, `tenant_settings`, `task_submissions`
 - `notifications`: id, school_id, subject_id, title, message, notification_type, reference_id, link_destino, read_by[], created_at
