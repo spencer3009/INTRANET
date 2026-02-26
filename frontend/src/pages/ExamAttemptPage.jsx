@@ -61,18 +61,18 @@ function ExamRulesScreen({ examTitle, subjectName, onStart, loading }) {
 
         {/* Rules */}
         <div className="p-5 space-y-2.5">
-          <p className="text-slate-600 text-sm mb-4">
+          <p className="text-slate-600 text-xs mb-3">
             Lee con atención las siguientes reglas. Estos controles existen para garantizar 
             la transparencia y seriedad del proceso de evaluación.
           </p>
           {rules.map((rule, idx) => (
-            <div key={idx} className={`flex gap-4 p-4 rounded-xl border ${rule.color}`} data-testid={`exam-rule-${idx}`}>
+            <div key={idx} className={`flex gap-3 p-3 rounded-xl border ${rule.color}`} data-testid={`exam-rule-${idx}`}>
               <div className="flex-shrink-0 mt-0.5">
                 <rule.icon className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="font-semibold text-slate-800 text-sm">{rule.title}</h3>
-                <p className="text-slate-600 text-xs mt-1 leading-relaxed">{rule.description}</p>
+                <p className="text-slate-600 text-xs mt-0.5 leading-relaxed">{rule.description}</p>
               </div>
             </div>
           ))}
