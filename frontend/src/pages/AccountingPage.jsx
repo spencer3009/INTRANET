@@ -479,7 +479,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
             <tbody className="divide-y divide-gray-50">
               {payments.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-5 py-16 text-center">
+                  <td colSpan={10} className="px-5 py-16 text-center">
                     <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <Receipt className="w-8 h-8 text-gray-300" />
                     </div>
