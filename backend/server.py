@@ -15886,6 +15886,58 @@ async def create_exam(
     return exam
 
 
+@api_router.post("/exams/{exam_id}/duplicate")
+async def duplicate_exam(exam_id: str, current_user = Depends(get_current_user)):
+    """Duplicate an exam with all its questions"""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    
+    allowed_roles = ["teacher", "admin", "owner", "director", "coordinator"]
+    if user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos")
+    
+    original = await db.online_exams.find_one({"id": exam_id, "school_id": user["school_id"]}, {"_id": 0})
+    if not original:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    
+    new_exam_id = str(uuid.uuid4())
+    now = datetime.now(timezone.utc).isoformat()
+    
+    new_exam = {
+        "id": new_exam_id,
+        "school_id": original["school_id"],
+        "subject_id": original["subject_id"],
+        "title": f"{original['title']} (Copia)",
+        "description": original.get("description", ""),
+        "start_datetime": original.get("start_datetime"),
+        "end_datetime": original.get("end_datetime"),
+        "duration_minutes": original.get("duration_minutes", 60),
+        "min_score_percentage": original.get("min_score_percentage", 60.0),
+        "status": "draft",
+        "created_by": user["id"],
+        "created_at": now,
+        "updated_at": now
+    }
+    
+    await db.online_exams.insert_one(new_exam)
+    new_exam.pop("_id", None)
+    
+    # Duplicate questions
+    questions = await db.exam_questions.find({"exam_id": exam_id}, {"_id": 0}).to_list(200)
+    if questions:
+        new_questions = []
+        for q in questions:
+            new_q = {**q, "id": str(uuid.uuid4()), "exam_id": new_exam_id}
+            new_questions.append(new_q)
+        await db.exam_questions.insert_many(new_questions)
+        for nq in new_questions:
+            nq.pop("_id", None)
+    
+    new_exam["questions_count"] = len(questions)
+    return {"message": f"Examen duplicado con {len(questions)} preguntas", "exam": new_exam}
+
+
 @api_router.get("/exams/{exam_id}")
 async def get_exam_detail(
     exam_id: str,
