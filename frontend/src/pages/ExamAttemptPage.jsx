@@ -275,8 +275,9 @@ export default function ExamAttemptPage() {
         </div>
         <div className="p-8">
           <div className="text-center mb-6">
-            <div className="text-6xl font-black text-indigo-600 mb-1">{result.percentage.toFixed(0)}%</div>
-            <p className="text-slate-500">{result.score} / {result.max_score} puntos</p>
+            <p className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-1">Tu nota</p>
+            <div className="text-7xl font-black text-indigo-600 leading-none" data-testid="exam-nota">{result.max_score > 0 ? Math.round((result.score / result.max_score) * 20) : 0}</div>
+            <p className="text-slate-400 text-base mt-2">{result.percentage.toFixed(0)}% &middot; {result.score} / {result.max_score} puntos</p>
           </div>
           <div className="grid grid-cols-3 gap-3 mb-6">
             <div className="bg-emerald-50 rounded-xl p-4 text-center border border-emerald-200">
