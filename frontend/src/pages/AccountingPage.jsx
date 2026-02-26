@@ -960,6 +960,21 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             </div>
           </div>
 
+          {/* Pension Month - shown when concept is mensualidad */}
+          {formData.concept === "mensualidad" && (
+            <div className="mb-6">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Mes de Pensión *</label>
+              <input
+                type="month"
+                value={formData.pension_month}
+                onChange={(e) => setFormData(prev => ({ ...prev, pension_month: e.target.value }))}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                data-testid="pension-month-input"
+              />
+              <p className="text-xs text-gray-400 mt-1">Selecciona el mes al que corresponde esta pensión</p>
+            </div>
+          )}
+
           {/* Amount and IGV - Premium calculator style */}
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 mb-6 border border-gray-200">
             <div className="flex items-center gap-2 mb-4">
