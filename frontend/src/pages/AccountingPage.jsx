@@ -1687,7 +1687,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       setStudents(usersRes.data.filter(u => u.role === "student"));
       setSummary(summaryRes.data);
       
-      await Promise.all([loadPayments(), loadExpenses()]);
+      await Promise.all([loadPayments(), loadExpenses(), loadDebtors()]);
     } catch (err) {
       console.error("Error loading data:", err);
     } finally {
