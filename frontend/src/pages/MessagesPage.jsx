@@ -543,6 +543,7 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
         <DashboardHeader
           user={user}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
           logoUrl={logoUrl}
           schoolName={schoolName}
         />
