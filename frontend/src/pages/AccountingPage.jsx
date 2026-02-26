@@ -767,6 +767,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     payment_method: "efectivo",
     payment_status: "pending",
     payment_date: new Date().toISOString().split("T")[0],
+    pension_month: "",
     receipt_number: "",
     notes: ""
   });
