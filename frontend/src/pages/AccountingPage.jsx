@@ -1904,14 +1904,6 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               setFilterCategory={setFilterExpenseCategory}
             />
           )}
-          {activeTab === "morosos" && (
-            <MorososTab
-              loading={debtorsLoading}
-              debtors={debtors}
-              debtorsSummary={debtorsSummary}
-              onViewHistory={(studentId) => { setHistoryStudentId(studentId); setShowHistoryModal(true); }}
-            />
-          )}
         </main>
       </div>
 
