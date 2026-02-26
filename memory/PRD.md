@@ -150,7 +150,7 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
 
 ### P2
 - Módulo de Matrículas
-- Sistema anti-trampas para exámenes
+- Sistema anti-trampas para exámenes (parcialmente implementado con reglas pre-examen)
 - Banco de preguntas
 - Reemplazar window.confirm/alert con modales custom
 - Cache invalidation para /api/student/tasks
