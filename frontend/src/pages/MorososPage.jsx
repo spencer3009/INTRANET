@@ -165,7 +165,7 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
       try {
         const [debtorsRes, settingsRes] = await Promise.all([
           axios.get(`${API}/accounting/debtors`, { headers }),
-          axios.get(`${API}/tenant/settings`, { headers }).catch(() => null)
+          axios.get(`${API}/settings`, { headers }).catch(() => null)
         ]);
         setDebtors(debtorsRes.data.debtors || []);
         setSummary(debtorsRes.data.summary || null);
