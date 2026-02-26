@@ -191,7 +191,7 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
     <div className="min-h-screen flex bg-[#F8FAFC]">
       <Sidebar user={user} onLogout={onLogout} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader user={user} onMenuToggle={() => setSidebarOpen(!sidebarOpen)} />
+        <DashboardHeader user={user} onMenuToggle={() => setSidebarOpen(!sidebarOpen)} logoUrl={schoolSettings?.logo_url} schoolName={schoolSettings?.system_name} />
         <main className="flex-1 p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto w-full">
           {/* Header */}
           <div className="flex items-center justify-between">
