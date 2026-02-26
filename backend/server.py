@@ -11275,6 +11275,169 @@ async def cancel_payment(payment_id: str, current_user = Depends(require_section
     
     return {"message": "Pago anulado correctamente"}
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DEBTORS (MOROSOS) & STUDENT PAYMENT HISTORY
+# ─────────────────────────────────────────────────────────────────────────────
+
+PENSION_MONTHS_LABELS = {
+    "01": "Enero", "02": "Febrero", "03": "Marzo", "04": "Abril",
+    "05": "Mayo", "06": "Junio", "07": "Julio", "08": "Agosto",
+    "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre"
+}
+
+@api_router.get("/accounting/debtors")
+async def get_debtors(
+    current_user = Depends(require_section_access("accounting"))
+):
+    """Get list of students with pending payments (morosos). Shows debt per student."""
+    user = current_user
+    school_id = user["school_id"]
+    
+    # Get all non-canceled payments grouped by student
+    pipeline = [
+        {"$match": {"school_id": school_id, "payment_status": {"$ne": "canceled"}}},
+        {"$group": {
+            "_id": "$student_id",
+            "total_paid": {"$sum": {"$cond": [{"$eq": ["$payment_status", "paid"]}, "$total_amount", 0]}},
+            "total_pending": {"$sum": {"$cond": [{"$eq": ["$payment_status", "pending"]}, "$total_amount", 0]}},
+            "paid_count": {"$sum": {"$cond": [{"$eq": ["$payment_status", "paid"]}, 1, 0]}},
+            "pending_count": {"$sum": {"$cond": [{"$eq": ["$payment_status", "pending"]}, 1, 0]}},
+            "paid_months": {"$addToSet": {"$cond": [
+                {"$and": [{"$eq": ["$payment_status", "paid"]}, {"$eq": ["$concept", "mensualidad"]}]},
+                "$pension_month", "$$REMOVE"
+            ]}},
+            "pending_months": {"$addToSet": {"$cond": [
+                {"$and": [{"$eq": ["$payment_status", "pending"]}, {"$eq": ["$concept", "mensualidad"]}]},
+                "$pension_month", "$$REMOVE"
+            ]}},
+            "last_payment_date": {"$max": {"$cond": [{"$eq": ["$payment_status", "paid"]}, "$payment_date", None]}},
+            "grade_id": {"$first": "$grade_id"},
+            "section_id": {"$first": "$section_id"}
+        }},
+        {"$sort": {"total_pending": -1}}
+    ]
+    
+    results = await db.payments.aggregate(pipeline).to_list(500)
+    
+    # Enrich with student/grade/section names
+    debtors = []
+    all_students_with_payments = set()
+    students_al_dia = 0
+    total_debt = 0
+    
+    for r in results:
+        all_students_with_payments.add(r["_id"])
+        student = await db.users.find_one({"id": r["_id"]}, {"_id": 0, "name": 1, "last_name": 1})
+        grade = await db.grades.find_one({"id": r.get("grade_id")}, {"_id": 0, "nombre": 1, "nivel_nombre": 1})
+        section = await db.sections.find_one({"id": r.get("section_id")}, {"_id": 0, "nombre": 1})
+        
+        pending_months_clean = [m for m in r.get("pending_months", []) if m]
+        pending_months_labels = []
+        for pm in sorted(pending_months_clean):
+            if pm and len(pm) >= 7:
+                month_num = pm[5:7]
+                pending_months_labels.append(f"{PENSION_MONTHS_LABELS.get(month_num, month_num)} {pm[:4]}")
+        
+        is_moroso = r["pending_count"] > 0
+        if is_moroso:
+            total_debt += r["total_pending"]
+        else:
+            students_al_dia += 1
+        
+        debtors.append({
+            "student_id": r["_id"],
+            "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip() if student else "Desconocido",
+            "grade_name": f"{grade.get('nivel_nombre', '')} - {grade.get('nombre', '')}" if grade else "Sin grado",
+            "section_name": section.get("nombre") if section else "Sin sección",
+            "total_paid": round(r["total_paid"], 2),
+            "total_pending": round(r["total_pending"], 2),
+            "paid_count": r["paid_count"],
+            "pending_count": r["pending_count"],
+            "pending_months": pending_months_labels,
+            "last_payment_date": r.get("last_payment_date"),
+            "status": "moroso" if is_moroso else "al_dia"
+        })
+    
+    morosos_count = len([d for d in debtors if d["status"] == "moroso"])
+    
+    return {
+        "debtors": debtors,
+        "summary": {
+            "morosos_count": morosos_count,
+            "al_dia_count": students_al_dia,
+            "total_debt": round(total_debt, 2),
+            "total_students_with_payments": len(all_students_with_payments)
+        }
+    }
+
+@api_router.get("/accounting/student-history/{student_id}")
+async def get_student_payment_history(
+    student_id: str,
+    current_user = Depends(require_section_access("accounting"))
+):
+    """Get full payment history for a specific student."""
+    user = current_user
+    school_id = user["school_id"]
+    
+    student = await db.users.find_one({"id": student_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "last_name": 1})
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    payments = await db.payments.find(
+        {"student_id": student_id, "school_id": school_id, "payment_status": {"$ne": "canceled"}},
+        {"_id": 0}
+    ).sort("pension_month", 1).to_list(200)
+    
+    # Group by concept type
+    matriculas = []
+    mensualidades = []
+    otros = []
+    total_paid = 0
+    total_pending = 0
+    
+    for p in payments:
+        entry = {
+            "id": p["id"],
+            "concept": p["concept"],
+            "concept_label": PAYMENT_CONCEPTS.get(p.get("concept", ""), p.get("concept", "")),
+            "pension_month": p.get("pension_month"),
+            "pension_month_label": "",
+            "amount": p.get("total_amount", p.get("amount_base", 0)),
+            "status": p.get("payment_status", "pending"),
+            "payment_date": p.get("payment_date"),
+            "payment_method": PAYMENT_METHODS.get(p.get("payment_method", ""), p.get("payment_method", "")),
+        }
+        
+        if p.get("pension_month") and len(p["pension_month"]) >= 7:
+            month_num = p["pension_month"][5:7]
+            entry["pension_month_label"] = f"{PENSION_MONTHS_LABELS.get(month_num, month_num)} {p['pension_month'][:4]}"
+        
+        if p["payment_status"] == "paid":
+            total_paid += entry["amount"]
+        else:
+            total_pending += entry["amount"]
+        
+        if p["concept"] == "matricula":
+            matriculas.append(entry)
+        elif p["concept"] == "mensualidad":
+            mensualidades.append(entry)
+        else:
+            otros.append(entry)
+    
+    return {
+        "student": {"id": student["id"], "name": f"{student.get('name', '')} {student.get('last_name', '')}".strip()},
+        "matriculas": matriculas,
+        "mensualidades": mensualidades,
+        "otros": otros,
+        "totals": {
+            "total_paid": round(total_paid, 2),
+            "total_pending": round(total_pending, 2),
+            "total": round(total_paid + total_pending, 2)
+        }
+    }
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # EXPENSES (EGRESOS)
 # ─────────────────────────────────────────────────────────────────────────────
