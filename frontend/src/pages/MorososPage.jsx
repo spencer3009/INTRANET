@@ -154,6 +154,7 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
   const [filter, setFilter] = useState("moroso");
   const [search, setSearch] = useState("");
   const [historyModal, setHistoryModal] = useState({ open: false, studentId: null });
+  const [schoolSettings, setSchoolSettings] = useState(null);
 
   const hasAccess = canAccessSection(user, 'accounting');
   const headers = { Authorization: `Bearer ${token}` };
@@ -162,9 +163,13 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
     const load = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`${API}/accounting/debtors`, { headers });
-        setDebtors(res.data.debtors || []);
-        setSummary(res.data.summary || null);
+        const [debtorsRes, settingsRes] = await Promise.all([
+          axios.get(`${API}/accounting/debtors`, { headers }),
+          axios.get(`${API}/tenant/settings`, { headers }).catch(() => null)
+        ]);
+        setDebtors(debtorsRes.data.debtors || []);
+        setSummary(debtorsRes.data.summary || null);
+        if (settingsRes) setSchoolSettings(settingsRes.data);
       } catch (err) {
         console.error(err);
       } finally {
