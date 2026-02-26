@@ -404,7 +404,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
                 <div className="bg-white rounded-xl p-4 border border-slate-200">
                   <p className="text-sm text-slate-500">Profesores</p>
                   <p className="text-2xl font-bold text-violet-600">
-                    {new Set(exams.map(e => e.teacher_id).filter(Boolean)).size}
+                    {new Set(exams.map(e => e.teacher_name).filter(Boolean)).size}
                   </p>
                 </div>
               </div>
