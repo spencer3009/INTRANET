@@ -61,7 +61,7 @@ function StudentExamCard({ exam }) {
   const hasAttempted = exam.has_attempted;
   const handleTakeExam = () => {
     const prefix = subdomain ? `/school/${subdomain}` : "";
-    navigate(`${prefix}/student/exam/${exam.id}`);
+    navigate(`${prefix}/exam/${exam.id}/attempt`);
   };
 
   return (
