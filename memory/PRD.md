@@ -107,9 +107,10 @@ EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada
 - Modal "Historial de Pagos" por alumno con secciones: Matrícula, Mensualidades, Otros
 - KPIs nuevos en Dashboard: Alumnos Morosos, Deuda Total, Alumnos al Día
 - Filtros en tab Morosos: Todos / Morosos / Al Día
-- Estructura `restrict_grades_if_debt` preparada en settings
 - Seed data: 30 alumnos demo con pagos realistas (23 morosos, 12 al día)
-- **Endpoints:** `GET /api/accounting/debtors`, `GET /api/accounting/student-history/{student_id}`
+- **Página dedicada de Morosos** (`/school/{subdomain}/morosos`): KPIs, búsqueda, filtros, tabla de deudores
+- **Toggle global "Bloquear acceso si alumno tiene deuda"** ubicado en MorososPage (NO en Settings) — controla bloqueo de login para alumnos y padres morosos
+- **Endpoints:** `GET /api/accounting/debtors`, `GET /api/accounting/student-history/{student_id}`, `PUT /api/settings/roles`
 
 ## Database Collections
 - `schools`, `users`, `user_school_roles`, `tenant_settings`, `task_submissions`
