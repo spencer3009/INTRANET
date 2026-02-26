@@ -1942,6 +1942,20 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
             >
               Egresos
             </button>
+            <button
+              onClick={() => setActiveTab("morosos")}
+              className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 ${
+                activeTab === "morosos"
+                  ? "bg-gradient-to-r from-slate-700 to-slate-800 text-white shadow-md"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              }`}
+              data-testid="tab-morosos"
+            >
+              Morosos
+              {debtorsSummary?.morosos_count > 0 && (
+                <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full min-w-[20px] text-center">{debtorsSummary.morosos_count}</span>
+              )}
+            </button>
           </div>
 
           {/* Tab content */}
@@ -1949,8 +1963,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
             <DashboardTab
               summary={summary}
               loading={loading}
-              onViewPayment={(p) => { setEditingPayment(p); setShowPaymentModal(true); }}
-              onViewExpense={(e) => { setEditingExpense(e); setShowExpenseModal(true); }}
+              debtorsSummary={debtorsSummary}
             />
           )}
           {activeTab === "payments" && (
