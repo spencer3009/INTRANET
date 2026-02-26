@@ -42,7 +42,6 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   
   // Role settings state
   const [allowAdminAccounting, setAllowAdminAccounting] = useState(false);
-  const [blockAccessIfDebt, setBlockAccessIfDebt] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   
   // Google Drive states
@@ -65,7 +64,6 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         const res = await axios.get(`${API}/settings`, { headers });
         // Load role settings from response
         setAllowAdminAccounting(res.data.allow_admin_accounting || false);
-        setBlockAccessIfDebt(res.data.restrict_grades_if_debt || false);
         setSettings({
           logo_url: res.data.logo_url || "",
           system_name: res.data.system_name || "",
@@ -265,21 +263,6 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.detail || "Error al actualizar configuración de roles");
-    } finally {
-      setSavingRoles(false);
-    }
-  };
-
-  const handleToggleBlockAccess = async () => {
-    setSavingRoles(true);
-    try {
-      const newValue = !blockAccessIfDebt;
-      await axios.put(`${API}/settings/roles`, { restrict_grades_if_debt: newValue }, { headers });
-      setBlockAccessIfDebt(newValue);
-      setSuccess(newValue ? "Bloqueo por morosidad activado" : "Bloqueo por morosidad desactivado");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      setError(err.response?.data?.detail || "Error al actualizar configuración");
     } finally {
       setSavingRoles(false);
     }
