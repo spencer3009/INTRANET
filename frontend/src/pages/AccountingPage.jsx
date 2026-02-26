@@ -1359,6 +1359,257 @@ function ExpenseFormModal({ isOpen, onClose, expense, onSave }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════════════════
+// STUDENT HISTORY MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function StudentHistoryModal({ isOpen, onClose, studentId, token }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    if (isOpen && studentId) {
+      setLoading(true);
+      axios.get(`${API}/accounting/student-history/${studentId}`, { headers })
+        .then(res => setData(res.data))
+        .catch(() => setData(null))
+        .finally(() => setLoading(false));
+    }
+  }, [isOpen, studentId]);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="student-history-modal">
+      <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[85vh] overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <History className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-white">Historial de Pagos</h2>
+              <p className="text-xs text-indigo-100">{data?.student?.name || "..."}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 text-white/70 hover:text-white hover:bg-white/20 rounded-lg transition-colors"><X className="w-5 h-5" /></button>
+        </div>
+        <div className="p-5 overflow-y-auto max-h-[calc(85vh-160px)]">
+          {loading ? (
+            <div className="text-center py-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto" /></div>
+          ) : !data ? (
+            <p className="text-center text-gray-400 py-8">No se pudo cargar el historial</p>
+          ) : (
+            <>
+              {/* Totals */}
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-200">
+                  <p className="text-lg font-bold text-emerald-700">S/ {formatNumber(data.totals.total_paid)}</p>
+                  <p className="text-xs text-emerald-600">Pagado</p>
+                </div>
+                <div className="bg-amber-50 rounded-xl p-3 text-center border border-amber-200">
+                  <p className="text-lg font-bold text-amber-700">S/ {formatNumber(data.totals.total_pending)}</p>
+                  <p className="text-xs text-amber-600">Pendiente</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-3 text-center border border-slate-200">
+                  <p className="text-lg font-bold text-slate-700">S/ {formatNumber(data.totals.total)}</p>
+                  <p className="text-xs text-slate-600">Total</p>
+                </div>
+              </div>
+
+              {/* Matricula */}
+              {data.matriculas.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Matrícula</h3>
+                  {data.matriculas.map(m => (
+                    <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2.5 h-2.5 rounded-full ${m.status === 'paid' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        <span className="text-sm font-medium text-gray-700">{m.concept_label}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-bold text-gray-800">S/ {formatNumber(m.amount)}</span>
+                        <span className={`ml-2 text-xs px-2 py-0.5 rounded-full ${m.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                          {m.status === 'paid' ? 'Pagado' : 'Pendiente'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Mensualidades */}
+              {data.mensualidades.length > 0 && (
+                <div>
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Mensualidades</h3>
+                  <div className="space-y-1.5">
+                    {data.mensualidades.map(m => (
+                      <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100" data-testid={`history-item-${m.pension_month}`}>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2.5 h-2.5 rounded-full ${m.status === 'paid' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                          <span className="text-sm font-medium text-gray-700">{m.pension_month_label || m.pension_month || 'Sin mes'}</span>
+                        </div>
+                        <div className="text-right flex items-center gap-2">
+                          <span className="text-sm font-bold text-gray-800">S/ {formatNumber(m.amount)}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${m.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                            {m.status === 'paid' ? 'Pagado' : 'Pendiente'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Otros */}
+              {data.otros.length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Otros Pagos</h3>
+                  {data.otros.map(m => (
+                    <div key={m.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-100">
+                      <span className="text-sm font-medium text-gray-700">{m.concept_label}</span>
+                      <span className="text-sm font-bold text-gray-800">S/ {formatNumber(m.amount)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// MOROSOS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
+  const [filter, setFilter] = useState("all"); // all, moroso, al_dia
+  
+  const filtered = filter === "all" ? debtors : debtors.filter(d => d.status === filter);
+
+  return (
+    <div className="space-y-5">
+      {/* Summary cards */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-red-500 cursor-pointer hover:shadow-md transition-all" onClick={() => setFilter("moroso")}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center"><UserX className="w-5 h-5 text-red-600" /></div>
+            <div>
+              <p className="text-2xl font-bold text-red-600">{debtorsSummary?.morosos_count || 0}</p>
+              <p className="text-xs text-gray-500">Morosos</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-amber-500">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center"><BadgeDollarSign className="w-5 h-5 text-amber-600" /></div>
+            <div>
+              <p className="text-2xl font-bold text-amber-600">S/ {formatNumber(debtorsSummary?.total_debt)}</p>
+              <p className="text-xs text-gray-500">Deuda Total</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-emerald-500 cursor-pointer hover:shadow-md transition-all" onClick={() => setFilter("al_dia")}>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center"><UserCheck className="w-5 h-5 text-emerald-600" /></div>
+            <div>
+              <p className="text-2xl font-bold text-emerald-600">{debtorsSummary?.al_dia_count || 0}</p>
+              <p className="text-xs text-gray-500">Al Día</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-2 bg-white rounded-xl p-3 shadow-sm border border-gray-100">
+        <span className="text-sm font-medium text-gray-500 mr-2">Filtrar:</span>
+        {[{key: "all", label: "Todos"}, {key: "moroso", label: "Morosos"}, {key: "al_dia", label: "Al Día"}].map(f => (
+          <button key={f.key} onClick={() => setFilter(f.key)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${filter === f.key ? "bg-slate-800 text-white shadow-md" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+            data-testid={`filter-${f.key}`}
+          >{f.label}</button>
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full" data-testid="morosos-table">
+            <thead>
+              <tr className="bg-gray-50 border-b border-gray-100">
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Alumno</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Grado</th>
+                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Deuda</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Meses Pendientes</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Último Pago</th>
+                <th className="px-5 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {loading ? (
+                <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-gray-400 mx-auto" /></td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={7} className="px-5 py-16 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Users className="w-8 h-8 text-gray-300" /></div>
+                  <p className="text-gray-500 font-semibold">Sin resultados</p>
+                </td></tr>
+              ) : filtered.map(d => (
+                <tr key={d.student_id} className="hover:bg-gray-50/50 transition-colors" data-testid={`debtor-row-${d.student_id}`}>
+                  <td className="px-5 py-4">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                      d.status === 'moroso' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
+                    }`}>
+                      <div className={`w-2 h-2 rounded-full ${d.status === 'moroso' ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                      {d.status === 'moroso' ? 'Moroso' : 'Al Día'}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                        <User className="w-4 h-4 text-gray-500" />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800">{d.student_name}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="text-sm text-gray-600">{d.grade_name} - {d.section_name}</span>
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <span className={`text-sm font-bold ${d.total_pending > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      S/ {formatNumber(d.total_pending)}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap gap-1">
+                      {d.pending_months.length > 0 ? d.pending_months.map((m, i) => (
+                        <span key={i} className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-200">{m}</span>
+                      )) : <span className="text-xs text-emerald-600">Ninguno</span>}
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="text-sm text-gray-500">{d.last_payment_date || '-'}</span>
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <button onClick={() => onViewHistory(d.student_id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Ver historial" data-testid={`view-history-${d.student_id}`}>
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
