@@ -22,6 +22,7 @@ import SurveysPage from "@/pages/SurveysPage";
 import DisciplinePage from "@/pages/DisciplinePage";
 import NewsPage from "@/pages/NewsPage";
 import AccountingPage from "@/pages/AccountingPage";
+import MorososPage from "@/pages/MorososPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import ProfilePage from "@/pages/ProfilePage";
 import TeacherAssignmentsPage from "@/pages/TeacherAssignmentsPage";
