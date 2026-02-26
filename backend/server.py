@@ -10971,6 +10971,7 @@ class PaymentCreate(BaseModel):
     payment_method: str
     payment_status: Literal["pending", "paid"] = "pending"
     payment_date: Optional[str] = None
+    pension_month: Optional[str] = None  # YYYY-MM format
     receipt_number: Optional[str] = None
     notes: Optional[str] = None
 
@@ -10982,6 +10983,7 @@ class PaymentUpdate(BaseModel):
     igv_percentage: Optional[float] = None
     payment_method: Optional[str] = None
     payment_date: Optional[str] = None
+    pension_month: Optional[str] = None  # YYYY-MM format
     receipt_number: Optional[str] = None
     notes: Optional[str] = None
 
