@@ -12,12 +12,9 @@ const API = process.env.REACT_APP_BACKEND_URL;
 export default function ExamAttemptPage() {
   const { subdomain, examId } = useParams();
   const navigate = useNavigate();
-  
-  // Auth
   const token = localStorage.getItem('token');
   const headers = { Authorization: `Bearer ${token}` };
   
-  // State
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [attemptId, setAttemptId] = useState(null);
@@ -32,624 +29,345 @@ export default function ExamAttemptPage() {
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [tabWarning, setTabWarning] = useState(null);
   const [savingAnswer, setSavingAnswer] = useState(false);
-  
   const timerRef = useRef(null);
   const autoSubmitTriggered = useRef(false);
   
-  // Start exam attempt
   const startExam = useCallback(async () => {
     try {
       setLoading(true);
-      
-      // Start attempt
       const startRes = await axios.post(`${API}/api/exams/${examId}/start`, {}, { headers });
       const { attempt_id, remaining_seconds } = startRes.data;
-      
       setAttemptId(attempt_id);
       setRemainingSeconds(remaining_seconds);
-      
-      // Get questions
       const questionsRes = await axios.get(`${API}/api/exams/${examId}/questions-for-student`, { headers });
-      setExamData({
-        title: questionsRes.data.exam_title,
-        subjectName: questionsRes.data.subject_name,
-        subjectColor: questionsRes.data.subject_color
-      });
+      setExamData({ title: questionsRes.data.exam_title, subjectName: questionsRes.data.subject_name, subjectColor: questionsRes.data.subject_color });
       setQuestions(questionsRes.data.questions);
       setAnswers(questionsRes.data.saved_answers || {});
-      
     } catch (err) {
-      console.error('Error starting exam:', err);
-      const detail = err.response?.data?.detail || 'Error al iniciar el examen';
-      setError(detail);
+      setError(err.response?.data?.detail || 'No se pudo iniciar el examen');
     } finally {
       setLoading(false);
     }
-  }, [examId, headers]);
-  
-  // Initialize
-  useEffect(() => {
-    if (!token) {
-      navigate(`/school/${subdomain}/login`);
-      return;
-    }
-    startExam();
-  }, []);
-  
-  // Timer countdown
+  }, [examId]);
+
+  useEffect(() => { startExam(); }, [startExam]);
+
   useEffect(() => {
     if (remainingSeconds <= 0 || submitted) return;
-    
     timerRef.current = setInterval(() => {
       setRemainingSeconds(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current);
-          if (!autoSubmitTriggered.current) {
-            autoSubmitTriggered.current = true;
-            handleSubmit(true);
-          }
-          return 0;
-        }
+        if (prev <= 1) { clearInterval(timerRef.current); if (!autoSubmitTriggered.current) { autoSubmitTriggered.current = true; handleSubmit(true); } return 0; }
         return prev - 1;
       });
     }, 1000);
-    
     return () => clearInterval(timerRef.current);
-  }, [remainingSeconds, submitted]);
-  
-  // Tab visibility change detection (anti-cheat)
+  }, [remainingSeconds > 0, submitted]);
+
   useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.hidden && attemptId && !submitted) {
-        try {
-          const res = await axios.post(`${API}/api/exam-attempts/${attemptId}/report-tab-change`, {}, { headers });
-          setTabWarning(res.data.warning);
-          
-          if (res.data.force_submit) {
-            handleSubmit(true);
-          } else {
-            setTimeout(() => setTabWarning(null), 5000);
-          }
-        } catch (err) {
-          console.error('Error reporting tab change:', err);
-        }
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [attemptId, submitted]);
-  
-  // Format time
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-  
-  // Get time color based on remaining time
-  const getTimeColor = () => {
-    if (remainingSeconds <= 60) return 'from-red-600 to-red-700'; // Last minute - red
-    if (remainingSeconds <= 300) return 'from-orange-500 to-red-500'; // Last 5 minutes - orange/red
-    return 'from-emerald-500 to-teal-500'; // Normal - green
-  };
-  
-  // Save answer
-  const saveAnswer = async (questionId, optionId, textAnswer) => {
     if (!attemptId) return;
-    
-    setSavingAnswer(true);
+    const handleVisibility = () => { if (document.hidden) setTabWarning('Has cambiado de pestaña. Esto queda registrado en el sistema.'); };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [attemptId]);
+
+  const formatTime = (secs) => { const m = Math.floor(secs / 60); const s = secs % 60; return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`; };
+  const getTimerClass = () => remainingSeconds <= 60 ? 'text-red-600 bg-red-50 border-red-200' : remainingSeconds <= 300 ? 'text-amber-600 bg-amber-50 border-amber-200' : 'text-slate-700 bg-white border-slate-200';
+
+  const handleAnswerSelect = async (questionId, optionId, textAnswer = null) => {
+    const newAnswers = { ...answers, [questionId]: optionId ? { selected_option_id: optionId } : { text_answer: textAnswer } };
+    setAnswers(newAnswers);
     try {
-      await axios.post(`${API}/api/exam-attempts/${attemptId}/save-answer`, {
-        question_id: questionId,
-        selected_option_id: optionId || null,
-        text_answer: textAnswer || null
-      }, { headers });
-    } catch (err) {
-      console.error('Error saving answer:', err);
-    } finally {
-      setSavingAnswer(false);
-    }
+      setSavingAnswer(true);
+      await axios.post(`${API}/api/exams/${examId}/save-answer`, { attempt_id: attemptId, question_id: questionId, ...(optionId ? { selected_option_id: optionId } : { text_answer: textAnswer }) }, { headers });
+    } catch (err) { console.error('Error saving:', err); } finally { setSavingAnswer(false); }
   };
-  
-  // Handle answer selection
-  const handleAnswerSelect = (questionId, optionId, textAnswer = null) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questionId]: {
-        selected_option_id: optionId,
-        text_answer: textAnswer
-      }
-    }));
-    saveAnswer(questionId, optionId, textAnswer);
-  };
-  
-  // Submit exam
-  const handleSubmit = async (isAutoSubmit = false) => {
-    if (submitting || submitted) return;
-    
-    setSubmitting(true);
+
+  const handleSubmit = async (autoSubmit = false) => {
+    if (submitting) return;
     setShowConfirmSubmit(false);
-    
     try {
-      const res = await axios.post(`${API}/api/exam-attempts/${attemptId}/submit`, {}, { headers });
+      setSubmitting(true);
+      const res = await axios.post(`${API}/api/exams/${examId}/submit`, { attempt_id: attemptId, auto_submitted: autoSubmit }, { headers });
       setResult(res.data);
       setSubmitted(true);
       clearInterval(timerRef.current);
     } catch (err) {
-      console.error('Error submitting exam:', err);
       setError(err.response?.data?.detail || 'Error al enviar el examen');
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
-  
-  // View full results
-  const viewResults = () => {
-    navigate(`/school/${subdomain}/exam/${examId}/result/${attemptId}`);
-  };
-  
-  // Current question
+
+  const viewResults = () => navigate(`/school/${subdomain}/exam/${examId}/result/${attemptId}`);
   const currentQuestion = questions[currentIndex];
-  const answeredCount = Object.keys(answers).filter(qId => 
-    answers[qId]?.selected_option_id || answers[qId]?.text_answer
-  ).length;
-  
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="relative">
-            <div className="w-24 h-24 border-4 border-purple-500/30 rounded-full"></div>
-            <div className="absolute inset-0 w-24 h-24 border-4 border-transparent border-t-purple-500 rounded-full animate-spin"></div>
-          </div>
-          <p className="text-white text-xl mt-6 font-medium">Preparando tu examen...</p>
-          <p className="text-purple-300 text-sm mt-2">Por favor espera un momento</p>
-        </div>
+  const answeredCount = Object.keys(answers).filter(qId => answers[qId]?.selected_option_id || answers[qId]?.text_answer).length;
+
+  // ─── LOADING ───
+  if (loading) return (
+    <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-12 h-12 text-indigo-500 animate-spin mx-auto" />
+        <p className="text-slate-800 text-lg mt-4 font-semibold">Preparando tu examen...</p>
+        <p className="text-slate-500 text-sm mt-1">Por favor espera un momento</p>
       </div>
-    );
-  }
-  
-  // Error state
-  if (error && !submitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full p-8 text-center border border-white/20">
-          <div className="w-20 h-20 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
-            <XCircle className="w-10 h-10 text-red-400" />
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-4">No disponible</h2>
-          <p className="text-white/70 mb-6">{error}</p>
-          <button
-            onClick={() => navigate(-1)}
-            className="px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg shadow-purple-500/25"
-          >
-            Volver
-          </button>
+    </div>
+  );
+
+  // ─── ERROR ───
+  if (error && !submitted) return (
+    <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center border border-slate-200">
+        <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-5">
+          <XCircle className="w-8 h-8 text-red-500" />
         </div>
+        <h2 className="text-xl font-bold text-slate-800 mb-3">No disponible</h2>
+        <p className="text-slate-500 mb-6">{error}</p>
+        <button onClick={() => navigate(-1)} className="px-8 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors">Volver</button>
       </div>
-    );
-  }
-  
-  // Result state (after submission)
-  if (submitted && result) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-white/20">
-          {/* Animated background */}
-          <div className={`relative px-8 py-10 overflow-hidden ${result.passed ? 'bg-gradient-to-br from-emerald-600/50 to-teal-600/50' : 'bg-gradient-to-br from-red-600/50 to-rose-600/50'}`}>
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yIDItNCAyLTRzLTItMi00LTItNC0yLTQtMi0yIDItMiA0IDIgNCAyIDQgMiA0IDQgMiA0IDIgNC0yIDItMiAyLTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"></div>
-            <div className="relative text-center">
-              <div className="w-24 h-24 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
-                {result.passed ? (
-                  <Trophy className="w-12 h-12 text-yellow-300" />
-                ) : (
-                  <Target className="w-12 h-12 text-white" />
-                )}
-              </div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                {result.passed ? '¡Felicitaciones!' : 'Sigue practicando'}
-              </h1>
-              <p className="text-white/80">{examData?.title}</p>
+    </div>
+  );
+
+  // ─── RESULT ───
+  if (submitted && result) return (
+    <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full overflow-hidden border border-slate-200">
+        <div className={`px-8 py-10 text-center ${result.passed ? 'bg-gradient-to-br from-emerald-500 to-teal-500' : 'bg-gradient-to-br from-slate-700 to-slate-800'}`}>
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
+            {result.passed ? <Trophy className="w-10 h-10 text-yellow-300" /> : <Target className="w-10 h-10 text-white" />}
+          </div>
+          <h1 className="text-2xl font-bold text-white mb-1">{result.passed ? 'Felicitaciones!' : 'Sigue practicando'}</h1>
+          <p className="text-white/80 text-sm">{examData?.title}</p>
+        </div>
+        <div className="p-8">
+          <div className="text-center mb-6">
+            <div className="text-6xl font-black text-indigo-600 mb-1">{result.percentage.toFixed(0)}%</div>
+            <p className="text-slate-500">{result.score} / {result.max_score} puntos</p>
+          </div>
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="bg-emerald-50 rounded-xl p-4 text-center border border-emerald-200">
+              <div className="text-2xl font-bold text-emerald-600">{result.correct_count}</div>
+              <div className="text-xs text-emerald-600 mt-1">Correctas</div>
+            </div>
+            <div className="bg-red-50 rounded-xl p-4 text-center border border-red-200">
+              <div className="text-2xl font-bold text-red-600">{result.incorrect_count}</div>
+              <div className="text-xs text-red-600 mt-1">Incorrectas</div>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-200">
+              <div className="text-2xl font-bold text-slate-600">{result.unanswered_count}</div>
+              <div className="text-xs text-slate-600 mt-1">Sin responder</div>
             </div>
           </div>
-          
-          {/* Score */}
-          <div className="p-8">
-            <div className="text-center mb-8">
-              <div className="text-7xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
-                {result.percentage.toFixed(0)}%
-              </div>
-              <p className="text-white/60">
-                {result.score} / {result.max_score} puntos
-              </p>
-            </div>
-            
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 mb-8">
-              <div className="bg-emerald-500/20 rounded-2xl p-4 text-center border border-emerald-500/30">
-                <div className="text-3xl font-bold text-emerald-400">{result.correct_count}</div>
-                <div className="text-xs text-emerald-300 mt-1">Correctas</div>
-              </div>
-              <div className="bg-red-500/20 rounded-2xl p-4 text-center border border-red-500/30">
-                <div className="text-3xl font-bold text-red-400">{result.incorrect_count}</div>
-                <div className="text-xs text-red-300 mt-1">Incorrectas</div>
-              </div>
-              <div className="bg-slate-500/20 rounded-2xl p-4 text-center border border-slate-500/30">
-                <div className="text-3xl font-bold text-slate-400">{result.unanswered_count}</div>
-                <div className="text-xs text-slate-300 mt-1">Sin responder</div>
-              </div>
-            </div>
-            
-            {/* Actions */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => navigate(`/school/${subdomain}/student/courses`)}
-                className="flex-1 px-6 py-4 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 transition-all border border-white/20"
-              >
-                Volver a cursos
-              </button>
-              <button
-                onClick={viewResults}
-                className="flex-1 px-6 py-4 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-semibold hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg shadow-purple-500/25"
-              >
-                Ver detalle
-              </button>
-            </div>
+          <div className="flex gap-3">
+            <button onClick={() => navigate(`/school/${subdomain}/student/courses`)} className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors border border-slate-200">Volver</button>
+            <button onClick={viewResults} className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">Ver detalle</button>
           </div>
         </div>
       </div>
-    );
-  }
-  
-  // Main exam view - PREMIUM DESIGN
+    </div>
+  );
+
+  // ─── MAIN EXAM VIEW ───
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900/50 to-slate-900">
-      {/* Tab warning overlay */}
+    <div className="min-h-screen bg-[#f8f9fc]">
+      {/* Tab warning */}
       {tabWarning && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
-          <div className="bg-gradient-to-br from-amber-500/20 to-orange-500/20 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full p-8 mx-4 border border-amber-500/30">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 bg-amber-500/20 rounded-2xl flex items-center justify-center">
-                <Shield className="w-8 h-8 text-amber-400" />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold text-white">¡Advertencia!</h3>
-                <p className="text-amber-300 text-sm">Sistema de seguridad activado</p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 mx-4 border border-slate-200">
+            <div className="flex items-center gap-4 mb-5">
+              <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center"><Shield className="w-7 h-7 text-amber-600" /></div>
+              <div><h3 className="text-lg font-bold text-slate-800">Advertencia</h3><p className="text-amber-600 text-sm">Sistema de seguridad activado</p></div>
             </div>
-            <p className="text-white/80 mb-6">{tabWarning}</p>
-            <button
-              onClick={() => setTabWarning(null)}
-              className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold hover:from-amber-600 hover:to-orange-600 transition-all"
-            >
-              Entendido, continuaré aquí
-            </button>
+            <p className="text-slate-600 mb-6">{tabWarning}</p>
+            <button onClick={() => setTabWarning(null)} className="w-full py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-colors">Entendido</button>
           </div>
         </div>
       )}
-      
-      {/* Confirm submit modal */}
+
+      {/* Confirm submit */}
       {showConfirmSubmit && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md">
-          <div className="bg-gradient-to-br from-purple-500/20 to-indigo-500/20 backdrop-blur-xl rounded-3xl shadow-2xl max-w-md w-full p-8 mx-4 border border-purple-500/30">
-            <div className="text-center mb-6">
-              <div className="w-20 h-20 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Send className="w-10 h-10 text-purple-400" />
-              </div>
-              <h3 className="text-2xl font-bold text-white">¿Enviar examen?</h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 mx-4 border border-slate-200">
+            <div className="text-center mb-5">
+              <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4"><Send className="w-8 h-8 text-indigo-600" /></div>
+              <h3 className="text-xl font-bold text-slate-800">Enviar examen?</h3>
             </div>
-            <div className="bg-white/10 rounded-2xl p-4 mb-6">
-              <div className="flex items-center justify-between text-white mb-2">
-                <span>Respondidas:</span>
-                <span className="font-bold text-emerald-400">{answeredCount} / {questions.length}</span>
+            <div className="bg-slate-50 rounded-xl p-4 mb-5 border border-slate-200">
+              <div className="flex items-center justify-between text-slate-700 mb-2">
+                <span>Respondidas:</span><span className="font-bold text-emerald-600">{answeredCount} / {questions.length}</span>
               </div>
               {answeredCount < questions.length && (
-                <p className="text-amber-400 text-sm flex items-center gap-2 mt-2">
-                  <AlertCircle className="w-4 h-4" />
-                  {questions.length - answeredCount} pregunta(s) sin responder
-                </p>
+                <p className="text-amber-600 text-sm flex items-center gap-2 mt-2"><AlertCircle className="w-4 h-4" />{questions.length - answeredCount} pregunta(s) sin responder</p>
               )}
             </div>
-            <p className="text-white/60 text-sm text-center mb-6">
-              Una vez enviado, no podrás modificar tus respuestas.
-            </p>
+            <p className="text-slate-500 text-sm text-center mb-5">Una vez enviado, no podras modificar tus respuestas.</p>
             <div className="flex gap-3">
-              <button
-                onClick={() => setShowConfirmSubmit(false)}
-                className="flex-1 py-4 bg-white/10 text-white rounded-xl font-semibold hover:bg-white/20 border border-white/20"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={() => handleSubmit(false)}
-                disabled={submitting}
-                className="flex-1 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25"
-              >
-                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
-                Enviar
+              <button onClick={() => setShowConfirmSubmit(false)} className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 border border-slate-200">Cancelar</button>
+              <button onClick={() => handleSubmit(false)} disabled={submitting} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20">
+                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />} Enviar
               </button>
             </div>
           </div>
         </div>
       )}
-      
-      {/* Premium Fixed Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/80 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-6xl mx-auto px-4 py-4">
+
+      {/* Header */}
+      <header className="sticky top-0 z-40 bg-white border-b border-slate-200 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-3">
           <div className="flex items-center justify-between">
-            {/* Exam info */}
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/25">
-                <BookOpen className="w-6 h-6 text-white" />
+              <div className="w-11 h-11 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-500/25">
+                <BookOpen className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-white">{examData?.title}</h1>
-                <p className="text-purple-300 text-sm">{examData?.subjectName}</p>
+                <h1 className="text-lg font-bold text-slate-800">{examData?.title}</h1>
+                <p className="text-indigo-600 text-sm font-medium">{examData?.subjectName}</p>
               </div>
             </div>
-            
-            {/* PREMIUM TIMER */}
-            <div className={`relative bg-gradient-to-r ${getTimeColor()} rounded-2xl p-1 shadow-2xl ${remainingSeconds <= 300 ? 'animate-pulse' : ''}`}>
-              <div className="bg-slate-900 rounded-xl px-6 py-3 flex items-center gap-3">
-                <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getTimeColor()} flex items-center justify-center`}>
-                  <Timer className="w-7 h-7 text-white" />
-                </div>
-                <div>
-                  <p className="text-white/60 text-xs font-medium uppercase tracking-wider">Tiempo restante</p>
-                  <p className={`text-3xl font-black font-mono tracking-tight ${remainingSeconds <= 300 ? 'text-red-400' : 'text-white'}`}>
-                    {formatTime(remainingSeconds)}
-                  </p>
-                </div>
+            {/* Timer */}
+            <div className={`flex items-center gap-3 px-5 py-2.5 rounded-xl border-2 font-mono ${getTimerClass()} ${remainingSeconds <= 300 ? 'animate-pulse' : ''}`}>
+              <Timer className="w-5 h-5" />
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">Tiempo</p>
+                <p className="text-2xl font-black tracking-tight">{formatTime(remainingSeconds)}</p>
               </div>
             </div>
           </div>
-          
-          {/* Progress bar */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-sm mb-2">
-              <span className="text-white/60">Progreso: <span className="text-emerald-400 font-semibold">{answeredCount} / {questions.length}</span> respondidas</span>
-              <span className="text-white/60">Pregunta <span className="text-purple-400 font-semibold">{currentIndex + 1}</span> de {questions.length}</span>
+          {/* Progress */}
+          <div className="mt-3">
+            <div className="flex items-center justify-between text-sm mb-1.5">
+              <span className="text-slate-500">Progreso: <span className="text-emerald-600 font-semibold">{answeredCount}/{questions.length}</span></span>
+              <span className="text-slate-500">Pregunta <span className="text-indigo-600 font-semibold">{currentIndex + 1}</span> de {questions.length}</span>
             </div>
-            <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-purple-500 transition-all duration-500 rounded-full"
-                style={{ width: `${(answeredCount / questions.length) * 100}%` }}
-              />
+            <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all duration-500 rounded-full" style={{ width: `${(answeredCount / questions.length) * 100}%` }} />
             </div>
           </div>
         </div>
       </header>
-      
-      {/* Main content */}
-      <main className="max-w-6xl mx-auto w-full px-4 py-8">
+
+      {/* Main */}
+      <main className="max-w-6xl mx-auto w-full px-4 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Question Card - Main */}
+          {/* Question Card */}
           <div className="lg:col-span-3">
             {currentQuestion && (
-              <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden shadow-2xl">
-                {/* Question header */}
-                <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-8 py-5">
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                {/* Q header */}
+                <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold">{currentIndex + 1}</span>
-                      </div>
-                      <span className="text-white/80 font-medium">
-                        Pregunta {currentIndex + 1} de {questions.length}
-                      </span>
+                      <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center"><span className="text-white font-bold text-sm">{currentIndex + 1}</span></div>
+                      <span className="text-white/90 font-medium text-sm">Pregunta {currentIndex + 1} de {questions.length}</span>
                     </div>
-                    <div className="flex items-center gap-2 bg-white/20 px-4 py-2 rounded-xl">
-                      <Zap className="w-4 h-4 text-yellow-300" />
-                      <span className="text-white font-bold">{currentQuestion.points || 1} punto{(currentQuestion.points || 1) > 1 ? 's' : ''}</span>
+                    <div className="flex items-center gap-1.5 bg-white/20 px-3 py-1.5 rounded-lg">
+                      <Zap className="w-3.5 h-3.5 text-yellow-300" />
+                      <span className="text-white font-bold text-sm">{currentQuestion.points || 1} pt{(currentQuestion.points || 1) > 1 ? 's' : ''}</span>
                     </div>
                   </div>
                 </div>
-                
-                {/* Question content */}
-                <div className="p-8">
-                  {/* Question text */}
-                  <h2 className="text-2xl font-semibold text-white mb-8 leading-relaxed">
-                    {currentQuestion.question_text}
-                  </h2>
-                  
-                  {/* Question image */}
+                {/* Q content */}
+                <div className="p-6">
+                  <h2 className="text-xl font-semibold text-slate-800 mb-6 leading-relaxed">{currentQuestion.question_text}</h2>
                   {currentQuestion.image_url && (
-                    <div className="mb-8 flex justify-center">
-                      <img 
-                        src={currentQuestion.image_url} 
-                        alt="Pregunta"
-                        className="max-h-72 rounded-2xl shadow-2xl border border-white/10"
-                      />
-                    </div>
+                    <div className="mb-6 flex justify-center"><img src={currentQuestion.image_url} alt="Pregunta" className="max-h-64 rounded-xl shadow-md border border-slate-200" /></div>
                   )}
-                  
-                  {/* Options - Multiple Choice */}
+                  {/* Multiple choice */}
                   {currentQuestion.question_type === 'multiple_choice' && (
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {currentQuestion.options?.map((option, idx) => {
                         const isSelected = answers[currentQuestion.id]?.selected_option_id === option.id;
                         return (
-                          <button
-                            key={option.id}
-                            onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
-                            className={`w-full p-5 rounded-2xl border-2 text-left transition-all flex items-start gap-4 group ${
-                              isSelected 
-                                ? 'border-purple-500 bg-purple-500/20' 
-                                : 'border-white/10 hover:border-purple-500/50 hover:bg-white/5'
-                            }`}
-                          >
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 font-bold transition-all ${
-                              isSelected 
-                                ? 'bg-purple-500 text-white' 
-                                : 'bg-white/10 text-white/60 group-hover:bg-purple-500/30 group-hover:text-white'
+                          <button key={option.id} onClick={() => handleAnswerSelect(currentQuestion.id, option.id)}
+                            className={`w-full p-4 rounded-xl border-2 text-left transition-all flex items-start gap-3 ${
+                              isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
                             }`}>
-                              {isSelected ? <CheckCircle className="w-5 h-5" /> : String.fromCharCode(65 + idx)}
-                            </div>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 font-bold text-sm transition-all ${
+                              isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500'
+                            }`}>{isSelected ? <CheckCircle className="w-4 h-4" /> : String.fromCharCode(65 + idx)}</div>
                             <div className="flex-1 pt-1">
-                              <span className={`text-lg font-medium ${isSelected ? 'text-white' : 'text-white/80'}`}>
-                                {option.text}
-                              </span>
-                              {option.image_url && (
-                                <img 
-                                  src={option.image_url} 
-                                  alt={`Opción ${idx + 1}`}
-                                  className="mt-4 max-h-40 rounded-xl"
-                                />
-                              )}
+                              <span className={`font-medium ${isSelected ? 'text-indigo-800' : 'text-slate-700'}`}>{option.text}</span>
+                              {option.image_url && <img src={option.image_url} alt={`Opcion ${idx + 1}`} className="mt-3 max-h-36 rounded-lg" />}
                             </div>
                           </button>
                         );
                       })}
                     </div>
                   )}
-                  
-                  {/* Options - True/False */}
+                  {/* True/False */}
                   {currentQuestion.question_type === 'true_false' && (
                     <div className="grid grid-cols-2 gap-4">
                       {['true', 'false'].map((value) => {
                         const isSelected = answers[currentQuestion.id]?.selected_option_id === value;
                         return (
-                          <button
-                            key={value}
-                            onClick={() => handleAnswerSelect(currentQuestion.id, value)}
-                            className={`p-8 rounded-2xl border-2 text-center transition-all ${
-                              isSelected 
-                                ? 'border-purple-500 bg-purple-500/20' 
-                                : 'border-white/10 hover:border-purple-500/50 hover:bg-white/5'
-                            }`}
-                          >
-                            <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 ${
-                              isSelected 
-                                ? 'bg-purple-500' 
-                                : 'bg-white/10'
+                          <button key={value} onClick={() => handleAnswerSelect(currentQuestion.id, value)}
+                            className={`p-6 rounded-xl border-2 text-center transition-all ${
+                              isSelected ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50'
                             }`}>
-                              {value === 'true' ? (
-                                <CheckCircle className={`w-8 h-8 ${isSelected ? 'text-white' : 'text-emerald-400'}`} />
-                              ) : (
-                                <XCircle className={`w-8 h-8 ${isSelected ? 'text-white' : 'text-red-400'}`} />
-                              )}
+                            <div className={`w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3 ${isSelected ? 'bg-indigo-600' : 'bg-slate-100'}`}>
+                              {value === 'true' ? <CheckCircle className={`w-7 h-7 ${isSelected ? 'text-white' : 'text-emerald-500'}`} /> : <XCircle className={`w-7 h-7 ${isSelected ? 'text-white' : 'text-red-500'}`} />}
                             </div>
-                            <span className={`font-bold text-xl ${isSelected ? 'text-white' : 'text-white/80'}`}>
-                              {value === 'true' ? 'Verdadero' : 'Falso'}
-                            </span>
+                            <span className={`font-bold text-lg ${isSelected ? 'text-indigo-800' : 'text-slate-700'}`}>{value === 'true' ? 'Verdadero' : 'Falso'}</span>
                           </button>
                         );
                       })}
                     </div>
                   )}
-                  
-                  {/* Input - Fill blanks / Open */}
+                  {/* Open/Fill */}
                   {(currentQuestion.question_type === 'fill_blanks' || currentQuestion.question_type === 'open') && (
-                    <div>
-                      <textarea
-                        value={answers[currentQuestion.id]?.text_answer || ''}
-                        onChange={(e) => handleAnswerSelect(currentQuestion.id, null, e.target.value)}
-                        placeholder="Escribe tu respuesta aquí..."
-                        rows={5}
-                        className="w-full p-5 bg-white/5 border-2 border-white/10 rounded-2xl focus:border-purple-500 focus:outline-none resize-none text-white text-lg placeholder:text-white/40"
-                      />
-                    </div>
+                    <textarea value={answers[currentQuestion.id]?.text_answer || ''} onChange={(e) => handleAnswerSelect(currentQuestion.id, null, e.target.value)}
+                      placeholder="Escribe tu respuesta aqui..." rows={5}
+                      className="w-full p-4 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 focus:outline-none resize-none text-slate-800 placeholder:text-slate-400" />
                   )}
-                  
-                  {/* Saving indicator */}
-                  {savingAnswer && (
-                    <div className="mt-6 flex items-center gap-2 text-purple-400 text-sm">
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Guardando respuesta automáticamente...
-                    </div>
-                  )}
+                  {savingAnswer && <div className="mt-4 flex items-center gap-2 text-indigo-500 text-sm"><Loader2 className="w-4 h-4 animate-spin" />Guardando...</div>}
                 </div>
-                
                 {/* Navigation */}
-                <div className="px-8 py-6 bg-white/5 border-t border-white/10 flex items-center justify-between">
-                  <button
-                    onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))}
-                    disabled={currentIndex === 0}
-                    className="flex items-center gap-2 px-6 py-3 bg-white/10 text-white rounded-xl font-medium hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed transition-all border border-white/10"
-                  >
-                    <ChevronLeft className="w-5 h-5" />
-                    Anterior
+                <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+                  <button onClick={() => setCurrentIndex(prev => Math.max(0, prev - 1))} disabled={currentIndex === 0}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-white text-slate-700 rounded-xl font-medium hover:bg-slate-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all border border-slate-200">
+                    <ChevronLeft className="w-5 h-5" /> Anterior
                   </button>
-                  
                   {currentIndex < questions.length - 1 ? (
-                    <button
-                      onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
-                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-indigo-600 transition-all shadow-lg shadow-purple-500/25"
-                    >
-                      Siguiente
-                      <ChevronRight className="w-5 h-5" />
+                    <button onClick={() => setCurrentIndex(prev => Math.min(questions.length - 1, prev + 1))}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">
+                      Siguiente <ChevronRight className="w-5 h-5" />
                     </button>
                   ) : (
-                    <button
-                      onClick={() => setShowConfirmSubmit(true)}
-                      disabled={submitting}
-                      className="flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50"
-                    >
-                      <Send className="w-5 h-5" />
-                      Finalizar Examen
+                    <button onClick={() => setShowConfirmSubmit(true)} disabled={submitting}
+                      className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-colors disabled:opacity-50">
+                      <Send className="w-5 h-5" /> Finalizar Examen
                     </button>
                   )}
                 </div>
               </div>
             )}
           </div>
-          
-          {/* Sidebar - Question navigator */}
+
+          {/* Sidebar Navigator */}
           <div className="lg:col-span-1">
-            <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 p-6 sticky top-32">
-              <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-purple-400" />
-                Navegador
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 sticky top-32 shadow-sm">
+              <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-sm">
+                <BookOpen className="w-4 h-4 text-indigo-500" /> Navegador
               </h3>
               <div className="grid grid-cols-5 gap-2">
                 {questions.map((q, idx) => {
                   const isAnswered = answers[q.id]?.selected_option_id || answers[q.id]?.text_answer;
                   const isCurrent = idx === currentIndex;
-                  
                   return (
-                    <button
-                      key={q.id}
-                      onClick={() => setCurrentIndex(idx)}
-                      className={`aspect-square rounded-xl font-bold text-sm transition-all ${
-                        isCurrent 
-                          ? 'bg-gradient-to-br from-purple-500 to-indigo-500 text-white ring-2 ring-purple-400 ring-offset-2 ring-offset-slate-900' 
-                          : isAnswered 
-                            ? 'bg-emerald-500/30 text-emerald-400 border border-emerald-500/50' 
-                            : 'bg-white/10 text-white/60 hover:bg-white/20 border border-white/10'
-                      }`}
-                    >
+                    <button key={q.id} onClick={() => setCurrentIndex(idx)}
+                      className={`aspect-square rounded-lg font-bold text-xs transition-all ${
+                        isCurrent ? 'bg-indigo-600 text-white ring-2 ring-indigo-300 ring-offset-1' : isAnswered ? 'bg-emerald-100 text-emerald-700 border border-emerald-300' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200'
+                      }`}>
                       {idx + 1}
                     </button>
                   );
                 })}
               </div>
-              
-              {/* Legend */}
-              <div className="mt-6 space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-white/60">
-                  <span className="w-4 h-4 bg-emerald-500/30 rounded border border-emerald-500/50"></span>
-                  Respondida
-                </div>
-                <div className="flex items-center gap-2 text-white/60">
-                  <span className="w-4 h-4 bg-white/10 rounded border border-white/10"></span>
-                  Sin responder
-                </div>
-                <div className="flex items-center gap-2 text-white/60">
-                  <span className="w-4 h-4 bg-gradient-to-br from-purple-500 to-indigo-500 rounded"></span>
-                  Actual
-                </div>
+              <div className="mt-5 space-y-1.5 text-xs">
+                <div className="flex items-center gap-2 text-slate-500"><span className="w-3 h-3 bg-emerald-100 rounded border border-emerald-300" /> Respondida</div>
+                <div className="flex items-center gap-2 text-slate-500"><span className="w-3 h-3 bg-slate-50 rounded border border-slate-200" /> Sin responder</div>
+                <div className="flex items-center gap-2 text-slate-500"><span className="w-3 h-3 bg-indigo-600 rounded" /> Actual</div>
               </div>
-              
-              {/* Submit button */}
-              <button
-                onClick={() => setShowConfirmSubmit(true)}
-                disabled={submitting}
-                className="w-full mt-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-bold hover:from-emerald-600 hover:to-teal-600 shadow-lg shadow-emerald-500/25 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <Send className="w-5 h-5" />
-                Finalizar
+              <button onClick={() => setShowConfirmSubmit(true)} disabled={submitting}
+                className="w-full mt-5 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 text-sm">
+                <Send className="w-4 h-4" /> Finalizar
               </button>
             </div>
           </div>
