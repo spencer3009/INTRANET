@@ -353,7 +353,7 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((d, idx) => (
+                  {paginated.map((d, idx) => (
                     <tr key={d.student_id} className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${idx % 2 === 0 ? '' : 'bg-gray-50/30'}`} data-testid={`debtor-row-${d.student_id}`}>
                       <td className="px-6 py-5">
                         <div className="flex items-center gap-3">
@@ -399,6 +399,44 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
                   ))}
                 </tbody>
               </table>
+            )}
+            {/* Pagination */}
+            {!loading && filtered.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+                <p className="text-sm text-gray-500">
+                  Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, filtered.length)} de {filtered.length}
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    data-testid="pagination-prev"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setCurrentPage(p)}
+                      className={`w-9 h-9 rounded-lg text-sm font-semibold transition-colors ${
+                        p === currentPage ? 'bg-slate-800 text-white' : 'text-gray-500 hover:bg-gray-100'
+                      }`}
+                      data-testid={`pagination-page-${p}`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    data-testid="pagination-next"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         </main>
