@@ -1,118 +1,111 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The initial project involved bug fixes and implementing Demo User and System Admin roles.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The initial project scope involved bug fixes and implementing new user roles.
 
-The scope expanded significantly during this session to include:
-1.  **Global Support Panel:** A new, separate interface for a global support user () who is not tied to a single school. This user can view system-wide metrics, see a list of schools they are assigned to, and securely switch context to enter and manage a specific school's dashboard as if they were the owner.
-2.  **Executive Dashboard Redesign (Owner Role Only):** A complete overhaul of the Owner's dashboard to display strategic, institution-level information instead of operational data.
-    *   **KPI Cards:** Replace default cards with Alumnos Activos, Docentes Activos, Ingresos del Mes, and Mensajes Sin Leer, all connected to real-time database figures.
-    *   **Quick Access:** Replace student-centric links with an Acceso Ejecutivo section linking to , , , and  settings. These links must navigate to the correct, pre-filtered views.
-    *   **Main Chart:** Replace the Alumnos Inscritos chart with a financial chart of Ingresos Mensuales, showing a stacked bar graph of Cobrado (paid), Por Cobrar (pending), and Vencido (overdue) payments for each month.
-    *   **Profile Card:** Redesign the owner's profile card to show school name, active student count, and active teacher count.
-    *   **Data Integrity:** A strict requirement that **no data** on the Owner's dashboard should be hardcoded. All numbers and lists must reflect the live state of the database (, , , ).
+During this session, the user guided the development of several major features and bug fixes, including:
+1.  **Premium Navigable Notifications:** A complete overhaul of the notification system. Notifications are now clickable, navigate to the relevant content, are marked as read automatically, and update the UI count in real-time.
+2.  **Real-Time Push Notifications:** Implemented WebSockets to deliver notifications instantly, showing a toast message and updating the notification bell without a page refresh.
+3.  **Messaging Center Overhaul:** The categorized, collapsible contact list (grouping users by Alumnos, Profesores, etc.) was extended from just the Teacher role to all roles (Owner, Admin, Student, Parent). Demo/test users were also filtered out.
+4.  **Student Exam Portal Fix & Redesign:**
+    *   Fixed a critical bug where the student's exam page was empty because the backend was querying the wrong database collection.
+    *   Completely redesigned the page into a professional, modern dashboard with KPI cards, an improved calendar view, and detailed exam cards.
+    *   Added a Rendir Examen (Take Exam) button that appears for active exams and navigates to the correct page.
+5.  **Teacher Exam Management:** Implemented a Duplicar (Duplicate) feature, allowing teachers/admins to create a copy of an existing exam along with all its questions.
+6.  **UI/UX Improvements:** Addressed multiple user requests for UI tweaks, such as redesigning popups, changing colors for better readability, adjusting element positioning, and converting a page from a dark to a light theme based on user feedback.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack FastAPI (backend) and React (frontend) monolith.
-- A multi-tenant architecture where each school operates under its own subdomain.
-- A new **Global Support Panel** has been fully implemented at the  route. It allows a  user to log in, view system metrics, and switch context into any school they are assigned to.
-- The **Owner's Dashboard has been completely redesigned** with new executive KPIs, a new financial chart, and a new quick access section. Most of these components are now connected to live backend data.
-- The backend has been partially modularized with the creation of a new router for support endpoints ().
-- Several backend endpoints were created or modified to provide real-time statistics for the new dashboard components (e.g., , ).
-- Seed data (payments, events) was created to demonstrate the new dashboard features with realistic data.
+The application is a full-stack FastAPI (backend) and React (frontend) monolith with a multi-tenant architecture.
+- **Global Support Panel & Redesigned Owner Dashboard:** These exist from the previous session, but the Owner's dashboard still contains hardcoded data for some components.
+- **Premium Notification System:** A fully functional, navigable notification system is now in place, complete with real-time updates via WebSockets. A  component has been added to the root  file for app-wide use.
+- **Unified Messaging Experience:** All user roles now have a consistent, categorized contact list in the message center, which filters out test users.
+- **Functional Student Exam Portal:** A completely redesigned and functional student exam dashboard that correctly displays exams from the  collection and allows students to navigate to them.
+- **Exam Duplication Feature:** A backend endpoint and a frontend button exist to allow teachers/admins to duplicate exams.
+- **Increased Technical Debt in :** Numerous new endpoints and WebSocket logic have been added to , making the need for modularization even more critical.
 
 **Last working item**:
-- **Last item agent was working**: The user identified that two components on the Owner's Dashboard, Asistencia del Mes (monthly attendance donut chart) and Noticias y Avisos (News and Announcements), were still displaying hardcoded placeholder data. The agent investigated and confirmed this was the case, identifying the hardcoded data within  and the fallback logic in .
-- **Status**: IN PROGRESS
+- **Last item agent was working**: Responding to a user request about poor readability, the agent was changing the theme of the exam management page () from a dark theme with a purple gradient background to a light theme with a white background and dark text.
+- **Status**: USER VERIFICATION PENDING
 - **Agent Testing Done**: N
-- **Which testing method agent to use?**: both
+- **Which testing method agent to use?**: screenshot tool
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
 -   **Issue 1: Remove Hardcoded Data from Owner Dashboard (P0)**
-    -   **Description:** The Asistencia del Mes and Noticias y Avisos components on the Owner's Dashboard are still using hardcoded fallback data. This violates the user's explicit requirement for a fully data-driven dashboard.
-    -   **Attempted fixes:** The agent located the hardcoded data in  (for the frontend display) and in  (for the fallback API response). The next step is to replace this with real data.
+    -   **Description:** The Asistencia del Mes (Monthly Attendance) and Noticias y Avisos (News and Announcements) components on the Owner's Dashboard are still using hardcoded fallback data. This was the top priority from the last fork but was not addressed.
+    -   **Attempted fixes:** None in this session. The agent from the previous session located the hardcoded data in  and .
     -   **Next debug checklist:**
-        1.  Create a new backend endpoint (e.g., ) to calculate the real attendance stats (present, late, absent) for the current month from the  collection.
-        2.  Create a real backend endpoint for  that fetches records from a  collection (which may need to be created).
-        3.  Update  to fetch data from these new endpoints.
-        4.  Remove the hardcoded fallback data from both  and the corresponding endpoints in .
-    -   **Why fix this issue and what will be achieved with the fix?** To fulfill the user's core requirement that the Owner's Dashboard is 100% driven by real, live data and contains no placeholder information.
-    -   **Status:** IN PROGRESS
-    -   **Is recurring issue?** N
+        1.  Create a backend endpoint  to calculate real attendance stats from the  collection.
+        2.  Create a real backend endpoint for  to fetch records from a  collection (this collection may need to be created).
+        3.  Update  to fetch from these new endpoints.
+        4.  Remove all hardcoded fallback data from both the frontend and backend.
+    -   **Why fix this issue and what will be achieved with the fix?** To fulfill the user's core requirement that the Owner's Dashboard is 100% driven by real, live data.
+    -   **Status:** NOT STARTED
+    -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on other issue:** None
 
 -   **Issue 2: Message Center Unread Count Discrepancy (P1)**
-    -   **Description:** The dashboard widget shows an unread message count, but the corresponding message isn't always visible in the message list. (Inherited from previous fork).
+    -   **Description:** An inherited issue where the dashboard widget shows an unread message count, but the message isn't always visible in the list.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
 
 -   **Issue 3: Parent Portal - Horario page shows empty table (P2)**
-    -   **Description:** On the Parent Horario page, a banner may indicate classes exist, but the weekly schedule table remains empty. (Inherited from previous fork).
+    -   **Description:** An inherited issue where the parent's schedule page may show an empty table even if classes exist.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
 
 **In progress Task List**:
 -   **Task 1: Complete Parent Portal Feature Parity (P1)**
-    -   **Where to resume:** Create  and  by adapting their student counterparts. Implement the full functionality of the .
+    -   **Where to resume:** Create  and . Implement the full functionality of the .
     -   **What will be achieved with this?** Fulfills a core project requirement of having a fully functional Parent Portal.
-    -   **Status:** IN PROGRESS
+    -   **Status:** NOT STARTED
     -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** Blocked by higher-priority feature requests and fixes on the Owner dashboard.
+    -   **Blocked on something:** Blocked by higher-priority fixes (Issue 1) and user requests.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Modularize :** CRITICAL technical debt. The file is over 19,000 lines. The new  router is a good start, but all other domains (auth, users, dashboard, etc.) must be moved out of .
-    -   **P1: Apply Intelligent Filters to Parents View:** The advanced filtering system built for the Students view on  should be implemented for the Parents view.
+    -   **P0: Modularize :** CRITICAL. The file has grown even larger with the addition of WebSocket logic, new notification endpoints, and exam-related endpoints. This is a major source of technical debt and must be addressed to ensure maintainability.
+    -   **P1: Apply Intelligent Filters to Parents View:** Implement the advanced filtering system from the Students view to the Parents view in .
 -   **Future Tasks:**
     -   **P1:** Implement Cache Invalidation for .
     -   **P1:** Build a Matrículas (Enrollments) module.
     -   **P1:** Implement a basic anti-cheating system for exams.
     -   **P1:** Enhance the Exams module with a Question Bank.
-    -   **P1:** Implement automatic notifications for students.
+    -   **P1:** Implement automatic notifications for students (beyond the framework built).
     -   **P2:** Perform a project-wide replacement of  and  with a global custom modal.
 
 **Completed work in this session**
--   **Feature: Global Support Panel (DONE):** Implemented a full-featured panel for a global support user, including a dedicated dashboard, a list of assigned schools, and a secure context-switching mechanism to impersonate a school owner.
--   **Feature: Complete Owner Dashboard Redesign (DONE):**
-    -   **Executive KPIs:** Implemented and connected to live DB data.
-    -   **Executive Quick Access:** Implemented with premium styling and functional links that navigate to pre-filtered views.
-    -   **Financial Chart:** Replaced attendance chart with a multi-bar Ingresos Mensuales chart showing , , and  amounts from real payment data.
-    -   **Profile Card:** Redesigned with live student/teacher counts and school name.
--   **Bugfix: System Admin Login & Impersonation Flow (DONE):** Resolved a critical, recurring login issue for the support user and fixed the UI/UX for the impersonation session, adding a persistent banner with a Return to Panel button and ensuring school-specific branding (logo, name) was displayed correctly.
--   **Data Integrity: Removed Hardcoded Dashboard Data (Partially DONE):** Replaced hardcoded data for KPIs, the main chart, and the Próximos Eventos list with live data from MongoDB. Created seed data to ensure features are testable.
+-   **Feature: Premium Navigable Notifications (DONE):** Implemented a full-featured notification system where notifications are clickable, navigate to content, update their read status, and dynamically update the bell counter.
+-   **Feature: Real-Time Push Notifications (DONE):** Integrated WebSockets to deliver instant notifications via a toast message and update the UI in real-time.
+-   **Feature: Messaging Center Overhaul (DONE):** Extended the categorized and collapsible contact list to all user roles and filtered out demo/test users.
+-   **Feature: Student Exam Dashboard (DONE):** Fixed the underlying data bug and completely redesigned the student exam page into a modern, functional dashboard.
+-   **Feature: Duplicate Exam (DONE):** Added a feature for teachers to duplicate an exam and all its questions with a single click.
+-   **Bugfix & UI/UX:** Resolved numerous user-reported issues, including fixing navigation links, correcting data counts (Profesores: 0), and redesigning several components (popups, pages) for better aesthetics and readability.
 
 **Earlier issues found/mentioned but not fixed**
 -   The critical refactoring of  into smaller, manageable modules.
 -   The project-wide replacement of native browser dialogs (, ).
 
 **Known issue recurrence from previous fork**
--   **Message Center Unread Count Discrepancy:** This is a recurring issue from a previous session that remains unresolved.
+-   **Message Center Unread Count Discrepancy:** This recurring issue remains unresolved.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Modular FastAPI Routers**: Started refactoring  by creating a dedicated  in .
--   **JWT for Context Switching**: A new JWT is issued on  with a  scope and  claim, allowing secure impersonation. The backend authorization logic was updated to handle this special token.
--   **MongoDB Aggregation Pipelines**: Used extensively in new dashboard endpoints (, ) to perform complex groupings and calculations (e.g., summing payments by status and month).
--   **Conditional Rendering by Role**:  now heavily uses the user's role ( vs. others) to render entirely different sets of components (, , ).
--   **Dynamic Routing with Query Params**: Implemented in  to pre-select a role view via a URL query parameter (e.g., ), enabling direct navigation from the Acceso Ejecutivo widget.
+-   **WebSockets:** A real-time notification system was built using FastAPI's  support and a custom  class on the backend. The frontend uses a custom  hook to connect, receive messages, and display toasts using .
+-   **Complex Backend Refactoring:** The  endpoint was rewritten to query the correct  collection by first resolving the student's enrolled subjects. The  endpoint was refactored to generate categorized lists for all user roles.
+-   **Database Operations:** Implemented a document duplication feature in MongoDB for the Duplicate Exam function. Used flags like  to filter users from query results.
+-   **Dynamic UI/UX:** The student exam page was completely redesigned into a dashboard. The notification panel now has complex client-side logic to handle visual states (read/unread), update counts, and navigate users, all driven by API calls and WebSocket events.
 
 **key DB schema**
--   **users**:
-    -   : (String) New role  was added for the global support user. This user has no .
--   **user_school_roles**: (New Collection)
-    -   : (ObjectId)
-    -   : (ObjectId)
-    -   : (String, e.g., 'owner')
--   **payments**: Used to calculate . Key fields: ,  ('paid', 'pending'), , .
--   **calendar_events**: Used for Próximos Eventos. Key fields: , , .
--   **attendances**: Will be used for Asistencia del Mes. Key fields: Wed Feb 25 14:19:22 UTC 2026,  ('present', 'late', 'absent'), .
+-   **notifications**:  (String) field was added to store the navigation path.
+-   **online_exams**: Confirmed as the source of truth for student exams. New documents are created here on duplication.
+-   **users**: The  (Boolean) flag is now actively used to filter test users from production lists (e.g., in the message center).
 
 **changes in tech stack**
--   None.
+-   **Backend:** usage: websockets [--version | <uri>] and  were added to .
 
 **All files of reference**
 -   
@@ -122,45 +115,50 @@ The application is a full-stack FastAPI (backend) and React (frontend) monolith.
 -   
 -   
 -   
--   
--   
+-    (For the pending hardcoded data issue)
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This file is extremely large and a major source of technical debt. It must be broken down into domain-specific routers (e.g., , , ).
--   ** (High):** This component now has significant conditional logic. It could be beneficial to create separate, role-specific dashboard pages (e.g., , ) to simplify the logic.
+-   ** (CRITICAL):** This file is now unmanageably large and complex. It handles core auth, dashboard stats, messaging, notifications, WebSocket connections, exams, and more. It MUST be broken down into domain-specific routers (e.g., , , ).
+-   ** (High):** Still contains conditional logic and hardcoded data that needs to be replaced with API calls.
+-   ** (Medium):** While new, the main component file is quite large and orchestrates many sub-components and data states. It could be a candidate for further simplification.
 
 **key api endpoints**
--   : Issues a new JWT for context switching.
--   : Provides metrics for the global support dashboard.
--   : Provides KPI figures for the Owner dashboard.
--   : Provides aggregated payment data for the Owner's financial chart.
--   : Provides upcoming events for the Owner's dashboard.
+-   : WebSocket endpoint for real-time notifications.
+-   : Marks a single notification as read.
+-   : Marks all user notifications as read.
+-   : Returns the current count of unread notifications.
+-   : Creates a deep copy of an exam and its questions.
+-   : (Refactored) Returns a student's upcoming exams from the correct  collection.
+-   : (Refactored) Returns a categorized contact list for all user roles.
 
 **Critical Info for New Agent**
 -   **¡Habla en español!** The user's preferred language is Spanish. All communication must be in Spanish.
--   The absolute highest priority is **Issue 1: Remove Hardcoded Data from Owner Dashboard**. The user is very focused on ensuring the dashboard is 100% driven by live data. You need to connect the Asistencia del Mes and Noticias y Avisos components to real backend endpoints.
--   After fixing the hardcoded data, the next most important task is the **CRITICAL refactoring of **. Propose this to the user as a necessary step for maintainability.
--   The global support user () is a new, important concept. It has no  itself but gains one temporarily in the JWT when using the context-switch feature.
+-   **Prioritize inherited debt.** The top priority from the last fork, **Issue 1: Remove Hardcoded Data from Owner Dashboard**, was ignored. This and the **CRITICAL refactoring of ** should be the highest priorities. You should propose these to the user before starting new features.
+-   **Verify the last change.** The last action was to change the theme of . You should start by verifying this change with a screenshot and getting user confirmation.
+-   The user is very hands-on and will provide a continuous stream of feedback and new requests. It's important to balance these with fixing critical technical debt.
 
 **documents and test reports created in this job**
 -    (Updated)
 -   
+-   
+-   
+-   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** The News section is hardcoded. **Status: PENDING.**
-2.  **User:** The Asistencia del Mes (Monthly Attendance) is hardcoded. **Status: IN PROGRESS.**
-3.  **User:** Redesign the owner's profile card to be more executive. **Status: COMPLETED.**
-4.  **User:** The payments chart should show pending payments in orange and have bars side-by-side. Also, create more varied payment data. **Status: COMPLETED.**
-5.  **User:** The payments chart needs to show overdue/delinquent payments (morosos) in a different color. **Status: COMPLETED.**
-6.  **User:** Replace the Asistencia chart with a new Ingresos Mensuales (Monthly Income) chart. **Status: COMPLETED.**
-7.  **User:** The Docentes and Colegio quick access buttons are not working, and restore the previous colors. **Status: COMPLETED.**
-8.  **User:** The quick access buttons need to navigate directly to the filtered lists of students/teachers, not the generic user page. **Status: COMPLETED.**
-9.  **User:** The quick access buttons are not working and the style needs to be more premium. **Status: COMPLETED.**
-10. **User:** Redesign the Acceso Rápido section to be an Acceso Ejecutivo and replace the main chart with an Asistencia Promedio Mensual graph. **Status: COMPLETED.**
+1.  **User:** The dark purple gradient on the exam editor has poor contrast. Change it to a light theme. **Status: IN PROGRESS (Code written, verification pending).**
+2.  **User:** The Rendir Examen button navigates to a 404 page. **Status: COMPLETED.**
+3.  **User:** The calendar on the student exam page should use icons and colors to highlight exam days better. **Status: COMPLETED.**
+4.  **User:** Make the KPI cards on the student exam page more visually appealing. **Status: COMPLETED.**
+5.  **User:** Redesign the student exam page to be more professional and dashboard-like. **Status: COMPLETED.**
+6.  **User:** The exam detail card shows Profesores: 0 incorrectly and is missing a button to take the exam. **Status: COMPLETED.**
+7.  **User:** My student exam page is empty (sin exámenes), but I know there are exams scheduled. **Status: COMPLETED (Bug fixed).**
+8.  **User:** I need a feature to duplicate an exam with all its questions. **Status: COMPLETED.**
+9.  **User:** I want a premium, navigable notification system similar to Google Classroom (clickable, marks as read, updates counter). **Status: COMPLETED.**
+10. **User:** I want to implement your suggestion for real-time push notifications using WebSockets. **Status: COMPLETED.**
 
 **Project Health Check:**
 -   **Broken**: None.
--   **Mocked**: Asistencia del Mes and Noticias y Avisos components on the Owner's dashboard are still using hardcoded data.
+-   **Mocked**: Asistencia del Mes and Noticias y Avisos components on the Owner's dashboard still use hardcoded data.
 
 **3rd Party Integrations**
 -   Cloudinary (Image Storage)
@@ -169,6 +167,9 @@ The application is a full-stack FastAPI (backend) and React (frontend) monolith.
 -   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**:
+    - 
+    - 
+    - 
     - 
 -   **Known regressions**: None
 
@@ -180,6 +181,10 @@ The application is a full-stack FastAPI (backend) and React (frontend) monolith.
     -   **Subdomain:** 
     -   **Email:** 
     -   **Password:** 
+-   **Student:**
+    -   **Email:** 
+    -   **Password:** 
 
 **What agent forgot to execute**
--   The agent identified the remaining hardcoded components (Asistencia del Mes and Noticias y Avisos) but did not complete the implementation to connect them to a live backend before the session ended.</analysis>
+-   The agent completely neglected the highest priority task from the previous handoff: **Remove Hardcoded Data from Owner Dashboard** (Asistencia del Mes and Noticias y Avisos).
+-   The agent did not perform the **CRITICAL refactoring of **, instead adding significantly more code to it and increasing technical debt.</analysis>
