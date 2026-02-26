@@ -1730,6 +1730,19 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     }
   };
 
+  const loadDebtors = async () => {
+    setDebtorsLoading(true);
+    try {
+      const res = await axios.get(`${API}/accounting/debtors`, { headers });
+      setDebtors(res.data.debtors || []);
+      setDebtorsSummary(res.data.summary || null);
+    } catch (err) {
+      console.error("Error loading debtors:", err);
+    } finally {
+      setDebtorsLoading(false);
+    }
+  };
+
   const handleSavePayment = async (data) => {
     if (editingPayment?.id) {
       await axios.put(`${API}/accounting/payments/${editingPayment.id}`, data, { headers });
