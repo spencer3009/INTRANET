@@ -193,7 +193,7 @@ function StudentExamCalendar({ currentMonth, exams, onDayClick, selectedDate }) 
               key={day}
               onClick={() => onDayClick(dateStr)}
               className={`h-[72px] p-1.5 border-b border-r border-slate-100/80 transition-all text-left flex flex-col relative group/day ${
-                isSelected ? "bg-indigo-50 ring-2 ring-inset ring-indigo-400" : hasExams ? "bg-teal-50 hover:bg-teal-100/70" : "hover:bg-slate-50"
+                isSelected ? "bg-indigo-50 ring-2 ring-inset ring-indigo-400" : hasExams ? "bg-teal-100/70 hover:bg-teal-100" : "hover:bg-slate-50"
               }`}
               data-testid={`student-calendar-day-${day}`}
             >
