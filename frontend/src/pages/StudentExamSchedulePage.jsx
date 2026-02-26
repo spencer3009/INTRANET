@@ -352,43 +352,46 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
             <>
               {/* KPI Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-indigo-600" />
+                <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/20">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3">
+                      <FileText className="w-5 h-5 text-white" />
                     </div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-full uppercase">Este mes</span>
+                    <p className="text-3xl font-extrabold text-white">{exams.length}</p>
+                    <p className="text-xs text-indigo-200 mt-1 font-medium">Examenes este mes</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-slate-800">{exams.length}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Examenes programados</p>
                 </div>
-                <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                      <Target className="w-5 h-5 text-amber-600" />
+                <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3">
+                      <Target className="w-5 h-5 text-white" />
                     </div>
-                    {inProgressCount > 0 && <span className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />}
+                    <p className="text-3xl font-extrabold text-white">{upcomingExams.length}</p>
+                    <p className="text-xs text-amber-100 mt-1 font-medium">Proximos / En curso</p>
+                    {inProgressCount > 0 && <span className="absolute top-4 right-4 w-2.5 h-2.5 bg-white rounded-full animate-pulse" />}
                   </div>
-                  <p className="text-2xl font-extrabold text-slate-800">{upcomingExams.length}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Proximos / En curso</p>
                 </div>
-                <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                      <CheckCircle className="w-5 h-5 text-emerald-600" />
+                <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/20">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3">
+                      <CheckCircle className="w-5 h-5 text-white" />
                     </div>
+                    <p className="text-3xl font-extrabold text-white">{completedCount}</p>
+                    <p className="text-xs text-emerald-100 mt-1 font-medium">Completados</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-slate-800">{completedCount}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Completados</p>
                 </div>
-                <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-violet-600" />
+                <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20">
+                  <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" />
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3">
+                      <TrendingUp className="w-5 h-5 text-white" />
                     </div>
+                    <p className="text-3xl font-extrabold text-white">{new Set(exams.map(e => e.subject_name).filter(Boolean)).size}</p>
+                    <p className="text-xs text-violet-200 mt-1 font-medium">Materias</p>
                   </div>
-                  <p className="text-2xl font-extrabold text-slate-800">{new Set(exams.map(e => e.subject_name).filter(Boolean)).size}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">Materias</p>
                 </div>
               </div>
 
