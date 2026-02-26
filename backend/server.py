@@ -17397,6 +17397,33 @@ async def debug_exam_data(
     }
 
 
+@api_router.get("/exams/{exam_id}/info")
+async def get_exam_info_for_student(
+    exam_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get basic exam info (title, subject) for showing on rules screen before starting."""
+    try:
+        exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0, "title": 1, "subject_id": 1, "duration_minutes": 1, "status": 1})
+        if not exam:
+            raise HTTPException(status_code=404, detail="Examen no encontrado")
+        subject = await db.subjects.find_one({"id": exam.get("subject_id")}, {"_id": 0, "name": 1, "color": 1})
+        questions_count = await db.exam_questions.count_documents({"exam_id": exam_id})
+        return {
+            "title": exam.get("title", ""),
+            "subject_name": subject.get("name", "") if subject else "",
+            "subject_color": subject.get("color", "#6366f1") if subject else "#6366f1",
+            "duration_minutes": exam.get("duration_minutes"),
+            "questions_count": questions_count,
+            "status": exam.get("status", "draft")
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 @api_router.post("/exams/{exam_id}/start")
 async def start_exam_attempt(
     exam_id: str,
