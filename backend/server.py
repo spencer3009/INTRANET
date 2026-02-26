@@ -11211,6 +11211,8 @@ async def update_payment(payment_id: str, data: PaymentUpdate, current_user = De
         update_data["receipt_number"] = data.receipt_number
     if data.notes is not None:
         update_data["notes"] = data.notes
+    if data.pension_month is not None:
+        update_data["pension_month"] = data.pension_month
     
     await db.payments.update_one({"id": payment_id}, {"$set": update_data})
     
