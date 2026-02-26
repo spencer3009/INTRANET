@@ -53,6 +53,16 @@ function ExamStatusBadge({ status }) {
 // Student Exam Card - Read Only (no edit/delete buttons)
 function StudentExamCard({ exam }) {
   const typeConfig = EXAM_TYPES[exam.type] || EXAM_TYPES.parcial;
+  const navigate = useNavigate();
+  const { subdomain } = useParams();
+  
+  const handleTakeExam = () => {
+    const prefix = subdomain ? `/school/${subdomain}` : "";
+    navigate(`${prefix}/student/exam/${exam.id}`);
+  };
+  
+  const isAvailable = exam.is_available && !exam.has_attempted;
+  const hasAttempted = exam.has_attempted;
   
   return (
     <div 
@@ -117,6 +127,38 @@ function StudentExamCard({ exam }) {
               {exam.description}
             </p>
           )}
+          
+          {/* Action Button */}
+          <div className="mt-3">
+            {isAvailable ? (
+              <button
+                onClick={handleTakeExam}
+                className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25"
+                data-testid={`take-exam-btn-${exam.id}`}
+              >
+                <Play className="w-4 h-4" />
+                Rendir Examen
+              </button>
+            ) : hasAttempted ? (
+              <div className="w-full py-2.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium flex items-center justify-center gap-2" data-testid={`exam-completed-${exam.id}`}>
+                <CheckCircle className="w-4 h-4" />
+                Examen rendido
+                {exam.attempt_score != null && (
+                  <span className="ml-1 px-2 py-0.5 bg-emerald-100 rounded-full text-xs font-bold">{exam.attempt_score}%</span>
+                )}
+              </div>
+            ) : exam.status === "upcoming" ? (
+              <div className="w-full py-2.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                <Timer className="w-4 h-4" />
+                Disponible pronto
+              </div>
+            ) : exam.status === "completed" ? (
+              <div className="w-full py-2.5 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl text-sm font-medium flex items-center justify-center gap-2">
+                <Archive className="w-4 h-4" />
+                Examen finalizado
+              </div>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
