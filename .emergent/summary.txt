@@ -1,31 +1,37 @@
 <analysis>**original_problem_statement:**
-The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. The initial project scope involved bug fixes and implementing new user roles.
+The user is building EduNet, a premium, multi-tenant SaaS application for schools in Peru. Initially, the project focused on bug fixes and new user roles.
 
-During this session, the user guided the development of several major features and bug fixes, including:
-1.  **Premium Navigable Notifications:** A complete overhaul of the notification system. Notifications are now clickable, navigate to the relevant content, are marked as read automatically, and update the UI count in real-time.
-2.  **Real-Time Push Notifications:** Implemented WebSockets to deliver notifications instantly, showing a toast message and updating the notification bell without a page refresh.
-3.  **Messaging Center Overhaul:** The categorized, collapsible contact list (grouping users by Alumnos, Profesores, etc.) was extended from just the Teacher role to all roles (Owner, Admin, Student, Parent). Demo/test users were also filtered out.
-4.  **Student Exam Portal Fix & Redesign:**
-    *   Fixed a critical bug where the student's exam page was empty because the backend was querying the wrong database collection.
-    *   Completely redesigned the page into a professional, modern dashboard with KPI cards, an improved calendar view, and detailed exam cards.
-    *   Added a Rendir Examen (Take Exam) button that appears for active exams and navigates to the correct page.
-5.  **Teacher Exam Management:** Implemented a Duplicar (Duplicate) feature, allowing teachers/admins to create a copy of an existing exam along with all its questions.
-6.  **UI/UX Improvements:** Addressed multiple user requests for UI tweaks, such as redesigning popups, changing colors for better readability, adjusting element positioning, and converting a page from a dark to a light theme based on user feedback.
+This session's development has been exclusively driven by user requests, resulting in significant enhancements and new features:
+1.  **Exam Experience UX:** Implemented a pre-exam rules screen with clear instructions and a larger, more modern timer to improve the student experience.
+2.  **Exam Submission Bugfix:** Fixed a critical bug where submitting an exam resulted in a Not Found error due to mismatched frontend and backend API endpoints.
+3.  **Exam Results Redesign:** Redesigned the exam results page to prominently display the final score on a 0-20 scale (standard in Peru), with the percentage and point breakdown as secondary information.
+4.  **Accounting Module Functional Analysis:** Conducted a thorough investigation of the existing Contabilidad (Accounting) module to assess its capabilities against a new set of user requirements.
+5.  **Premium Accounting Module Overhaul:** Executed a massive upgrade of the accounting module, turning it into a professional financial control center. This included:
+    *   Adding a mandatory  field for tracking monthly tuition payments.
+    *   Creating a Morosos (Debtors) tab with a detailed list of students with outstanding payments.
+    *   Implementing a Student History modal to view the complete payment history for any student.
+    *   Redesigning the accounting dashboard with executive-level KPI cards and three new interactive charts (Pie, Bar, Area) for data visualization using the Recharts library.
+    *   Creating a robust seed script to populate the database with realistic demo data for 30 students with varied payment histories, crucial for testing and demonstrations.
+6.  **Dedicated Debtors Page & Access Control:**
+    *   Created a new, dedicated, premium-designed page for Morosos at  to provide a cleaner, more focused workspace.
+    *   Implemented a global, school-specific toggle switch to enable or disable system access for students and parents who have pending debts.
+    *   Added the backend logic in the login endpoint to enforce this access restriction.
+7.  **Iterative UI/UX Refinements:** Addressed numerous user requests for UI tweaks on the new accounting features, including rearranging KPI cards, adding value labels to charts, and adding/modifying chart data bars for better financial insights.
+8.  **Bugfix:** Corrected a missing school logo on the newly created Debtors page.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack FastAPI (backend) and React (frontend) monolith with a multi-tenant architecture.
-- **Global Support Panel & Redesigned Owner Dashboard:** These exist from the previous session, but the Owner's dashboard still contains hardcoded data for some components.
-- **Premium Notification System:** A fully functional, navigable notification system is now in place, complete with real-time updates via WebSockets. A  component has been added to the root  file for app-wide use.
-- **Unified Messaging Experience:** All user roles now have a consistent, categorized contact list in the message center, which filters out test users.
-- **Functional Student Exam Portal:** A completely redesigned and functional student exam dashboard that correctly displays exams from the  collection and allows students to navigate to them.
-- **Exam Duplication Feature:** A backend endpoint and a frontend button exist to allow teachers/admins to duplicate exams.
-- **Increased Technical Debt in :** Numerous new endpoints and WebSocket logic have been added to , making the need for modularization even more critical.
+The application is a full-stack FastAPI (backend) and React (frontend) monolith.
+- **Premium Accounting Module:** A heavily enhanced accounting module is now the centerpiece of the application. It includes a redesigned dashboard with interactive charts, a complete list of debtors, a payment history view per student, and realistic seed data for demonstration.
+- **Dedicated Debtors Page:** A new, professionally designed page at  provides a focused view of all students with outstanding debts, complete with KPIs and filtering.
+- **Login-Blocking for Debtors:** The backend now includes logic to block login attempts from students or parents with outstanding debts, controlled by a school-level setting. The toggle for this setting is currently located in the general .
+- **Improved Exam Flow:** Students are now presented with a clear rules screen before starting an exam, and the exam submission process is bug-free.
+- **Technical Debt:** The  file has grown even larger with the addition of all new accounting endpoints and login logic, making its modularization a critical priority. The Owner's Dashboard still contains hardcoded data.
 
 **Last working item**:
-- **Last item agent was working**: Responding to a user request about poor readability, the agent was changing the theme of the exam management page () from a dark theme with a purple gradient background to a light theme with a white background and dark text.
-- **Status**: USER VERIFICATION PENDING
+- **Last item agent was working**: The user requested to move the Bloquear acceso si el alumno tiene deuda (Block access if the student has debt) toggle switch from its current location in  (under Configuración de Roles) to the new dedicated .
+- **Status**: NOT STARTED
 - **Agent Testing Done**: N
 - **Which testing method agent to use?**: screenshot tool
 - **User Testing Done**: N
@@ -33,17 +39,8 @@ The application is a full-stack FastAPI (backend) and React (frontend) monolith 
 **All Pending/In progress Issue list**:
 -   **Issue 1: Remove Hardcoded Data from Owner Dashboard (P0)**
     -   **Description:** The Asistencia del Mes (Monthly Attendance) and Noticias y Avisos (News and Announcements) components on the Owner's Dashboard are still using hardcoded fallback data. This was the top priority from the last fork but was not addressed.
-    -   **Attempted fixes:** None in this session. The agent from the previous session located the hardcoded data in  and .
-    -   **Next debug checklist:**
-        1.  Create a backend endpoint  to calculate real attendance stats from the  collection.
-        2.  Create a real backend endpoint for  to fetch records from a  collection (this collection may need to be created).
-        3.  Update  to fetch from these new endpoints.
-        4.  Remove all hardcoded fallback data from both the frontend and backend.
-    -   **Why fix this issue and what will be achieved with the fix?** To fulfill the user's core requirement that the Owner's Dashboard is 100% driven by real, live data.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on other issue:** None
 
 -   **Issue 2: Message Center Unread Count Discrepancy (P1)**
     -   **Description:** An inherited issue where the dashboard widget shows an unread message count, but the message isn't always visible in the list.
@@ -56,56 +53,64 @@ The application is a full-stack FastAPI (backend) and React (frontend) monolith 
     -   **Is recurring issue?** N
 
 **In progress Task List**:
--   **Task 1: Complete Parent Portal Feature Parity (P1)**
-    -   **Where to resume:** Create  and . Implement the full functionality of the .
-    -   **What will be achieved with this?** Fulfills a core project requirement of having a fully functional Parent Portal.
+-   **Task 1: Relocate Debt-Blocking Toggle Switch (P0)**
+    -   **Where to resume:**
+        1.  Remove the toggle switch and its related state/logic from .
+        2.  Add the toggle switch to , likely in the header area near the KPIs.
+        3.  Ensure the state management and API call to save the setting are correctly implemented in the new location.
+    -   **What will be achieved with this?** Fulfills the user's request to place the setting in a more contextually relevant location.
     -   **Status:** NOT STARTED
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** Blocked by higher-priority fixes (Issue 1) and user requests.
+    -   **Should Test frontend/backend/both after fix?** frontend
+    -   **Blocked on something:** None
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Modularize :** CRITICAL. The file has grown even larger with the addition of WebSocket logic, new notification endpoints, and exam-related endpoints. This is a major source of technical debt and must be addressed to ensure maintainability.
+    -   **P0: Modularize :** CRITICAL. The file is now over 21,000 lines long and handles auth, dashboards, messaging, notifications, exams, and a massive new accounting module. It must be refactored into smaller, domain-specific routers.
     -   **P1: Apply Intelligent Filters to Parents View:** Implement the advanced filtering system from the Students view to the Parents view in .
 -   **Future Tasks:**
+    -   **P1:** Complete Parent Portal Feature Parity.
     -   **P1:** Implement Cache Invalidation for .
     -   **P1:** Build a Matrículas (Enrollments) module.
     -   **P1:** Implement a basic anti-cheating system for exams.
     -   **P1:** Enhance the Exams module with a Question Bank.
-    -   **P1:** Implement automatic notifications for students (beyond the framework built).
+    -   **P1:** Implement automatic notifications for students.
     -   **P2:** Perform a project-wide replacement of  and  with a global custom modal.
 
 **Completed work in this session**
--   **Feature: Premium Navigable Notifications (DONE):** Implemented a full-featured notification system where notifications are clickable, navigate to content, update their read status, and dynamically update the bell counter.
--   **Feature: Real-Time Push Notifications (DONE):** Integrated WebSockets to deliver instant notifications via a toast message and update the UI in real-time.
--   **Feature: Messaging Center Overhaul (DONE):** Extended the categorized and collapsible contact list to all user roles and filtered out demo/test users.
--   **Feature: Student Exam Dashboard (DONE):** Fixed the underlying data bug and completely redesigned the student exam page into a modern, functional dashboard.
--   **Feature: Duplicate Exam (DONE):** Added a feature for teachers to duplicate an exam and all its questions with a single click.
--   **Bugfix & UI/UX:** Resolved numerous user-reported issues, including fixing navigation links, correcting data counts (Profesores: 0), and redesigning several components (popups, pages) for better aesthetics and readability.
+-   **Feature: Premium Accounting Module (DONE):** A complete overhaul including a new  field, a debtors list, student payment history, and a redesigned dashboard with interactive charts.
+-   **Feature: Realistic Seed Data (DONE):** Created a script to generate demo data for 30 students with varied payment histories, enabling realistic testing and demos.
+-   **Feature: Dedicated Debtors Page (DONE):** Built a new, professionally designed page at  for managing debtors.
+-   **Feature: Debtor Access Control (DONE):** Implemented a global toggle and backend logic to block system access for users with outstanding debts.
+-   **Feature: Pre-Exam Rules Screen (DONE):** Added a new screen with clear instructions that students must accept before starting an exam.
+-   **UI/UX: Redesigned Exam Timer & Results (DONE):** The exam timer is now larger and more modern, and the results page prioritizes the final score (0-20 scale).
+-   **Bugfix: Exam Submission (DONE):** Fixed a critical 404 error on exam submission by correcting mismatched API endpoint URLs in the frontend.
+-   **Bugfix: Missing Logo (DONE):** Fixed the missing school logo on the new Debtors page.
 
 **Earlier issues found/mentioned but not fixed**
 -   The critical refactoring of  into smaller, manageable modules.
 -   The project-wide replacement of native browser dialogs (, ).
+-   The removal of hardcoded data from the Owner's Dashboard.
 
 **Known issue recurrence from previous fork**
 -   **Message Center Unread Count Discrepancy:** This recurring issue remains unresolved.
+-   **Hardcoded Owner Dashboard Data:** This high-priority issue from the previous fork was again not addressed.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **WebSockets:** A real-time notification system was built using FastAPI's  support and a custom  class on the backend. The frontend uses a custom  hook to connect, receive messages, and display toasts using .
--   **Complex Backend Refactoring:** The  endpoint was rewritten to query the correct  collection by first resolving the student's enrolled subjects. The  endpoint was refactored to generate categorized lists for all user roles.
--   **Database Operations:** Implemented a document duplication feature in MongoDB for the Duplicate Exam function. Used flags like  to filter users from query results.
--   **Dynamic UI/UX:** The student exam page was completely redesigned into a dashboard. The notification panel now has complex client-side logic to handle visual states (read/unread), update counts, and navigate users, all driven by API calls and WebSocket events.
+-   **Advanced Frontend Development (React):** Extensive use of the  library to build a professional, data-driven dashboard with Pie, Bar, and Area charts. Complex state management to handle multiple asynchronous data fetches, filtering, and modal displays within the accounting module.
+-   **Component & Page Architecture:** Created a new, dedicated page () with its own route, demonstrating an expansion of the application's structure beyond single-page tabs.
+-   **Backend Aggregation (MongoDB/FastAPI):** Wrote complex MongoDB aggregation pipelines in  to calculate financial summaries, including monthly revenue evolution, total debt, and debtor lists, and exposed them via new API endpoints.
+-   **Access Control Logic:** Implemented a security feature directly in the login endpoint () to check a user's debt status against a school-specific setting before granting access.
+-   **Database Seeding:** Created a standalone Python script () to programmatically generate and insert a large volume of realistic test data into the database, a crucial practice for robust development and testing.
 
 **key DB schema**
--   **notifications**:  (String) field was added to store the navigation path.
--   **online_exams**: Confirmed as the source of truth for student exams. New documents are created here on duplication.
--   **users**: The  (Boolean) flag is now actively used to filter test users from production lists (e.g., in the message center).
+-   **payments**: Added  (String, format ) to track the specific tuition month.
+-   **schools**: Added  (Boolean) to control the login-blocking feature on a per-school basis.
 
 **changes in tech stack**
--   **Backend:** usage: websockets [--version | <uri>] and  were added to .
+-   No new dependencies were added to  or , but there was heavy utilization of the existing  library on the frontend.
 
 **All files of reference**
 -   
@@ -115,46 +120,44 @@ The application is a full-stack FastAPI (backend) and React (frontend) monolith 
 -   
 -   
 -   
--    (For the pending hardcoded data issue)
+-   
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This file is now unmanageably large and complex. It handles core auth, dashboard stats, messaging, notifications, WebSocket connections, exams, and more. It MUST be broken down into domain-specific routers (e.g., , , ).
--   ** (High):** Still contains conditional logic and hardcoded data that needs to be replaced with API calls.
--   ** (Medium):** While new, the main component file is quite large and orchestrates many sub-components and data states. It could be a candidate for further simplification.
+-   ** (CRITICAL):** This file is now dangerously large and complex, containing logic for nearly every feature in the application. It MUST be broken down into domain-specific FastAPI routers (e.g., , , ).
+-   ** (High):** Even after moving the debtors list out, this file remains very large. The chart components and data fetching logic could be extracted into their own smaller, reusable components to improve maintainability.
+-   ** (High):** Still contains hardcoded data that needs to be replaced with API calls.
 
 **key api endpoints**
--   : WebSocket endpoint for real-time notifications.
--   : Marks a single notification as read.
--   : Marks all user notifications as read.
--   : Returns the current count of unread notifications.
--   : Creates a deep copy of an exam and its questions.
--   : (Refactored) Returns a student's upcoming exams from the correct  collection.
--   : (Refactored) Returns a categorized contact list for all user roles.
+-   : Executes the seed script to create demo payments and users.
+-   : Returns a detailed list of all students with outstanding debts.
+-   : Returns the complete payment history for a specific student.
+-   : (Modified) Now includes monthly revenue evolution data.
+-   : Saves the state of the debt-blocking toggle.
+-   : (Corrected) Submits a completed exam.
+-   : (Corrected) Saves a student's answer to a question.
+-   : (Modified) Now checks for outstanding debt before authenticating a user.
 
 **Critical Info for New Agent**
 -   **¡Habla en español!** The user's preferred language is Spanish. All communication must be in Spanish.
--   **Prioritize inherited debt.** The top priority from the last fork, **Issue 1: Remove Hardcoded Data from Owner Dashboard**, was ignored. This and the **CRITICAL refactoring of ** should be the highest priorities. You should propose these to the user before starting new features.
--   **Verify the last change.** The last action was to change the theme of . You should start by verifying this change with a screenshot and getting user confirmation.
--   The user is very hands-on and will provide a continuous stream of feedback and new requests. It's important to balance these with fixing critical technical debt.
+-   **Immediate Task:** Your first task is to move the Bloquear acceso si el alumno tiene deuda toggle switch from the  to the new . This is the user's latest request.
+-   **Address Technical Debt:** After completing the immediate task, you MUST propose tackling the inherited high-priority issues: **1) Remove Hardcoded Data from Owner Dashboard** and **2) Modularize **. These have been ignored for too long and are critical for the project's health.
+-   **User Interaction Style:** The user is very hands-on and provides detailed, iterative UI/UX feedback. Expect to make many small visual adjustments and provide screenshots frequently.
 
 **documents and test reports created in this job**
--    (Updated)
--   
--   
 -   
 -   
 
 **Last 10 User Messages and any pending HUMAN messages**
-1.  **User:** The dark purple gradient on the exam editor has poor contrast. Change it to a light theme. **Status: IN PROGRESS (Code written, verification pending).**
-2.  **User:** The Rendir Examen button navigates to a 404 page. **Status: COMPLETED.**
-3.  **User:** The calendar on the student exam page should use icons and colors to highlight exam days better. **Status: COMPLETED.**
-4.  **User:** Make the KPI cards on the student exam page more visually appealing. **Status: COMPLETED.**
-5.  **User:** Redesign the student exam page to be more professional and dashboard-like. **Status: COMPLETED.**
-6.  **User:** The exam detail card shows Profesores: 0 incorrectly and is missing a button to take the exam. **Status: COMPLETED.**
-7.  **User:** My student exam page is empty (sin exámenes), but I know there are exams scheduled. **Status: COMPLETED (Bug fixed).**
-8.  **User:** I need a feature to duplicate an exam with all its questions. **Status: COMPLETED.**
-9.  **User:** I want a premium, navigable notification system similar to Google Classroom (clickable, marks as read, updates counter). **Status: COMPLETED.**
-10. **User:** I want to implement your suggestion for real-time push notifications using WebSockets. **Status: COMPLETED.**
+10. **User:** The debt-blocking switch should be on the Debtors page, not in general settings. **Status: PENDING (This is the next task).**
+9.  **User:** Where is the debt-blocking toggle switch you said you implemented? **Status: COMPLETED (Agent showed screenshot).**
+8.  **User:** The school logo is missing on the new Debtors page. **Status: COMPLETED.**
+7.  **User:** Request to create a dedicated, premium-designed Debtors page and implement a global switch to block access for debtors. **Status: COMPLETED.**
+6.  **User:** The Ingresos vs Egresos chart is missing the Deuda Total bar. **Status: COMPLETED.**
+5.  **User:** Add the exact monetary values on top of each bar in the Resumen Financiero Mensual chart. **Status: COMPLETED.**
+4.  **User:** Change the Ingresos vs Egresos chart to Resumen Financiero Mensual and add Por Cobrar and Balance bars. **Status: COMPLETED.**
+3.  **User:** The dashboard is too cluttered. Redesign it to have 4 main KPIs on top and convert the remaining 3 KPIs into visual graphs below. **Status: COMPLETED.**
+2.  **User:** The 7 KPI cards in the accounting dashboard should all be in a single line. **Status: COMPLETED.**
+1.  **User:** Request for a major overhaul of the accounting module, including adding a , a list of debtors, student payment history, and realistic seed data. **Status: COMPLETED.**
 
 **Project Health Check:**
 -   **Broken**: None.
@@ -166,25 +169,23 @@ The application is a full-stack FastAPI (backend) and React (frontend) monolith 
 **Testing status**
 -   **Testing agent used after significant changes**: YES
 -   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**:
-    - 
-    - 
-    - 
-    - 
+-   **Test files created**: None
 -   **Known regressions**: None
 
 **Credentials to test flow:**
--   **Global Support User:**
-    -   **Email:** 
-    -   **Password:** 
 -   **School Owner:**
     -   **Subdomain:** 
     -   **Email:** 
     -   **Password:** 
--   **Student:**
-    -   **Email:** 
+-   **Student (with debt):**
+    -   **Email:**  (from seed data)
+    -   **Password:** 
+-   **Student (up to date):**
+    -   **Email:**  (from seed data)
     -   **Password:** 
 
 **What agent forgot to execute**
--   The agent completely neglected the highest priority task from the previous handoff: **Remove Hardcoded Data from Owner Dashboard** (Asistencia del Mes and Noticias y Avisos).
--   The agent did not perform the **CRITICAL refactoring of **, instead adding significantly more code to it and increasing technical debt.</analysis>
+-   The agent, while following user requests closely, has consistently deferred addressing the two most critical pieces of technical debt inherited from previous sessions:
+    1.  Removing the hardcoded data from the main Owner's Dashboard.
+    2.  Refactoring the monolithic  file.
+-   These items should be prioritized as soon as the current user request is completed.</analysis>
