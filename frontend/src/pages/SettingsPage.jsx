@@ -42,6 +42,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   
   // Role settings state
   const [allowAdminAccounting, setAllowAdminAccounting] = useState(false);
+  const [blockAccessIfDebt, setBlockAccessIfDebt] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   
   // Google Drive states
