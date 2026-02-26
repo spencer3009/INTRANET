@@ -211,179 +211,103 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
         <StatCard title="Ingresos" value={`S/ ${formatNumber(summary?.ingresos?.total)}`} subtitle={`${summary?.ingresos?.count || 0} pagos confirmados`} icon={TrendingUp} variant="income" />
       </div>
 
-      {/* IGV Detail Cards */}
+      {/* Charts Row 1: Pie + Bar side by side */}
       <div className="grid lg:grid-cols-2 gap-5">
-        {/* Income breakdown */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
-                <Coins className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Detalle de Ingresos</h3>
-                <p className="text-xs text-emerald-100">Desglose con IGV</p>
-              </div>
-            </div>
+        {/* Chart 1: Estado de Pagos (Pie) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-testid="chart-estado-pagos">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="font-bold text-gray-800 text-sm">Estado de Pagos de los Alumnos</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Distribución actual</p>
           </div>
-          <div className="p-5 space-y-4">
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                <span className="text-sm text-gray-600">Base Imponible</span>
-              </div>
-              <span className="text-sm font-bold text-gray-800">S/ {formatNumber(summary?.ingresos?.base)}</span>
-            </div>
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                <span className="text-sm text-gray-600">IGV (18%)</span>
-              </div>
-              <span className="text-sm font-bold text-gray-800">S/ {formatNumber(summary?.ingresos?.igv)}</span>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-sm font-bold text-gray-700">Total Ingresos</span>
-              <span className="text-xl font-bold text-emerald-600">S/ {formatNumber(summary?.ingresos?.total)}</span>
-            </div>
+          <div className="p-4 flex items-center justify-center" style={{ height: 260 }}>
+            {debtorsSummary ? (() => {
+              const pieData = [
+                { name: "Al Día", value: debtorsSummary.al_dia_count, color: "#10b981" },
+                { name: "Morosos", value: debtorsSummary.morosos_count, color: "#ef4444" }
+              ];
+              const total = debtorsSummary.al_dia_count + debtorsSummary.morosos_count;
+              return (
+                <div className="flex items-center gap-6 w-full">
+                  <ResponsiveContainer width="55%" height={220}>
+                    <PieChart>
+                      <Pie data={pieData} cx="50%" cy="50%" innerRadius={55} outerRadius={85} paddingAngle={4} dataKey="value" stroke="none">
+                        {pieData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip formatter={(v) => `${v} alumnos`} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex-1 space-y-4">
+                    {pieData.map((item, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
+                        <div>
+                          <p className="text-sm font-semibold text-gray-700">{item.name}</p>
+                          <p className="text-lg font-bold" style={{ color: item.color }}>{item.value} <span className="text-xs text-gray-400 font-normal">({total > 0 ? Math.round((item.value / total) * 100) : 0}%)</span></p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })() : <p className="text-gray-400 text-sm">Sin datos</p>}
           </div>
         </div>
 
-        {/* Expense breakdown */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-rose-500 to-pink-600 px-5 py-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-white/20 rounded-lg flex items-center justify-center">
-                <CreditCard className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-white">Detalle de Egresos</h3>
-                <p className="text-xs text-rose-100">Desglose con IGV</p>
-              </div>
-            </div>
+        {/* Chart 2: Ingresos vs Egresos (Bar) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-testid="chart-ingresos-egresos">
+          <div className="px-5 py-4 border-b border-gray-100">
+            <h3 className="font-bold text-gray-800 text-sm">Ingresos vs Egresos</h3>
+            <p className="text-xs text-gray-400 mt-0.5">{summary?.period?.month_name} {summary?.period?.year}</p>
           </div>
-          <div className="p-5 space-y-4">
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                <span className="text-sm text-gray-600">Base Imponible</span>
-              </div>
-              <span className="text-sm font-bold text-gray-800">S/ {formatNumber(summary?.egresos?.base)}</span>
-            </div>
-            <div className="flex justify-between items-center py-3 border-b border-gray-100">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                <span className="text-sm text-gray-600">IGV (18%)</span>
-              </div>
-              <span className="text-sm font-bold text-gray-800">S/ {formatNumber(summary?.egresos?.igv)}</span>
-            </div>
-            <div className="flex justify-between items-center pt-2">
-              <span className="text-sm font-bold text-gray-700">Total Egresos</span>
-              <span className="text-xl font-bold text-rose-600">S/ {formatNumber(summary?.egresos?.total)}</span>
-            </div>
+          <div className="p-4" style={{ height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={[{ name: "Ingresos", monto: summary?.ingresos?.total || 0, fill: "#10b981" }, { name: "Egresos", monto: summary?.egresos?.total || 0, fill: "#f43f5e" }]} barSize={60}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
+                <Tooltip formatter={(v) => `S/ ${formatNumber(v)}`} contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
+                <Bar dataKey="monto" radius={[8, 8, 0, 0]}>
+                  {[{ fill: "#10b981" }, { fill: "#f43f5e" }].map((entry, i) => <Cell key={i} fill={entry.fill} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
-      
-      {/* Recent transactions - Premium style */}
-      <div className="grid lg:grid-cols-2 gap-5">
-        {/* Recent payments */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <ArrowUpRight className="w-4 h-4 text-emerald-600" />
-              </div>
-              <h3 className="font-bold text-gray-800 text-sm">Últimos Ingresos</h3>
-            </div>
-            <span className="text-xs text-gray-400">Recientes</span>
+
+      {/* Chart 3: Evolución de Cobranza (Area) */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" data-testid="chart-evolucion">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div>
+            <h3 className="font-bold text-gray-800 text-sm">Evolución de Cobranza</h3>
+            <p className="text-xs text-gray-400 mt-0.5">Últimos 6 meses</p>
           </div>
-          <div className="divide-y divide-gray-50">
-            {summary?.recent_payments?.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <Receipt className="w-7 h-7 text-gray-300" />
-                </div>
-                <p className="text-sm text-gray-400 font-medium">No hay pagos registrados</p>
-              </div>
-            ) : (
-              summary?.recent_payments?.map(payment => {
-                const statusInfo = PAYMENT_STATUSES[payment.payment_status] || PAYMENT_STATUSES.pending;
-                return (
-                  <div 
-                    key={payment.id} 
-                    className="px-5 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                    onClick={() => onViewPayment(payment)}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center">
-                          <User className="w-5 h-5 text-gray-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-gray-800">{payment.student_name}</p>
-                          <p className="text-xs text-gray-400">{payment.concept_label}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold text-gray-800">S/ {formatNumber(payment.total_amount)}</p>
-                        <div className={`inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full text-xs font-medium ${statusInfo.bgClass} ${statusInfo.textClass}`}>
-                          <div className={`w-1.5 h-1.5 rounded-full ${statusInfo.dotClass}`} />
-                          {statusInfo.label}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500" /><span className="text-gray-500">Ingresos</span></div>
+            <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-500" /><span className="text-gray-500">Egresos</span></div>
           </div>
         </div>
-        
-        {/* Recent expenses */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-rose-100 rounded-lg flex items-center justify-center">
-                <ArrowDownRight className="w-4 h-4 text-rose-600" />
-              </div>
-              <h3 className="font-bold text-gray-800 text-sm">Últimos Egresos</h3>
-            </div>
-            <span className="text-xs text-gray-400">Recientes</span>
-          </div>
-          <div className="divide-y divide-gray-50">
-            {summary?.recent_expenses?.length === 0 ? (
-              <div className="p-8 text-center">
-                <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-3">
-                  <CreditCard className="w-7 h-7 text-gray-300" />
-                </div>
-                <p className="text-sm text-gray-400 font-medium">No hay egresos registrados</p>
-              </div>
-            ) : (
-              summary?.recent_expenses?.map(expense => (
-                <div 
-                  key={expense.id} 
-                  className="px-5 py-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => onViewExpense(expense)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-rose-50 to-rose-100 rounded-xl flex items-center justify-center">
-                        <Briefcase className="w-5 h-5 text-rose-500" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-800">{expense.title}</p>
-                        <p className="text-xs text-gray-400">{expense.category_label}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-rose-600">- S/ {formatNumber(expense.total_amount)}</p>
-                      <p className="text-xs text-gray-400 mt-1">{expense.expense_date}</p>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+        <div className="p-4" style={{ height: 280 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={summary?.evolution || []}>
+              <defs>
+                <linearGradient id="gradIngresos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="gradEgresos" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.2} />
+                  <stop offset="95%" stopColor="#f43f5e" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="month" tick={{ fontSize: 11, fill: "#64748b" }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} axisLine={false} tickLine={false} tickFormatter={(v) => `S/${(v/1000).toFixed(0)}k`} />
+              <Tooltip formatter={(v) => `S/ ${formatNumber(v)}`} contentStyle={{ borderRadius: 12, border: "1px solid #e2e8f0", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }} />
+              <Area type="monotone" dataKey="ingresos" stroke="#10b981" strokeWidth={2.5} fill="url(#gradIngresos)" name="Ingresos" />
+              <Area type="monotone" dataKey="egresos" stroke="#f43f5e" strokeWidth={2.5} fill="url(#gradEgresos)" name="Egresos" />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
