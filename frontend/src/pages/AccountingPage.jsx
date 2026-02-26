@@ -467,6 +467,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                 <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
                 <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estudiante</th>
                 <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Concepto</th>
+                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mes</th>
                 <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Base</th>
                 <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">IGV</th>
                 <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
