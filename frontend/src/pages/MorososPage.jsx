@@ -264,6 +264,36 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
             </div>
           </div>
 
+          {/* Global Debt Block Toggle */}
+          <div className="flex items-center justify-between bg-white rounded-2xl px-6 py-4 shadow-sm border border-gray-100" data-testid="debt-block-toggle-section">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center shadow-sm">
+                <ShieldBan className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-gray-800">Bloquear acceso si el alumno tiene deuda</h3>
+                <p className="text-xs text-gray-500">Los alumnos y padres con pagos pendientes no podrán acceder al sistema</p>
+              </div>
+            </div>
+            <button
+              onClick={handleToggleBlockAccess}
+              disabled={savingToggle}
+              className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                blockAccessIfDebt ? 'bg-red-600' : 'bg-gray-300'
+              } ${savingToggle ? 'opacity-50 cursor-not-allowed' : ''}`}
+              data-testid="toggle-block-access-debt"
+            >
+              <span
+                className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                  blockAccessIfDebt ? 'translate-x-8' : 'translate-x-1'
+                }`}
+              />
+              {savingToggle && (
+                <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+              )}
+            </button>
+          </div>
+
           {/* Filters bar */}
           <div className="flex items-center gap-3 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
             <div className="flex items-center gap-2 flex-1 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200">
