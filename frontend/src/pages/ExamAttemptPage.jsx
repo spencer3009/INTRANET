@@ -48,19 +48,19 @@ function ExamRulesScreen({ examTitle, subjectName, onStart, loading }) {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f8f9fc] flex items-center justify-center p-4" data-testid="exam-rules-screen">
+    <div className="min-h-screen bg-[#f8f9fc] py-6 px-4 flex items-start justify-center" data-testid="exam-rules-screen">
       <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden border border-slate-200">
         {/* Header */}
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-8 text-center">
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Shield className="w-8 h-8 text-white" />
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-8 py-6 text-center">
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-3">
+            <Shield className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-1">Antes de comenzar</h1>
+          <h1 className="text-xl font-bold text-white mb-1">Antes de comenzar</h1>
           <p className="text-white/80 text-sm">{examTitle || 'Examen'} &mdash; {subjectName || ''}</p>
         </div>
 
         {/* Rules */}
-        <div className="p-6 space-y-3 max-h-[50vh] overflow-y-auto">
+        <div className="p-5 space-y-2.5">
           <p className="text-slate-600 text-sm mb-4">
             Lee con atención las siguientes reglas. Estos controles existen para garantizar 
             la transparencia y seriedad del proceso de evaluación.
