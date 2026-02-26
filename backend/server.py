@@ -4695,6 +4695,7 @@ async def get_tenant_settings(current_user = Depends(require_section_access("set
     
     # Include school-level role settings
     settings["allow_admin_accounting"] = school.get("allow_admin_accounting", False)
+    settings["restrict_grades_if_debt"] = school.get("restrict_grades_if_debt", False)
     
     return settings
 
