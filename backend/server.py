@@ -19711,61 +19711,120 @@ async def get_student_exam_schedule(
         if section:
             section_name = section.get("nombre")
     
-    # If no grade/section, return empty
-    if not grade_id or not section_id:
+    # If no grade, return empty
+    if not grade_id:
         return {
             "exams": [],
             "grade_name": grade_name,
             "section_name": section_name
         }
     
-    # Build query
+    # Get all subjects for the student's grade
+    subjects = await db.subjects.find(
+        {"grade_id": grade_id, "school_id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "teacher_id": 1}
+    ).to_list(100)
+    subject_ids = [s["id"] for s in subjects]
+    subject_map = {s["id"]: s for s in subjects}
+    
+    if not subject_ids:
+        return {
+            "exams": [],
+            "grade_name": grade_name,
+            "section_name": section_name
+        }
+    
+    # Query online_exams for published exams in these subjects
     query = {
         "school_id": school_id,
-        "grade_id": grade_id,
-        "section_id": section_id
+        "subject_id": {"$in": subject_ids},
+        "status": "published"
     }
     
-    # Date range filter - default to from today
+    # Date range filter on start_datetime
     if from_date or to_date:
         date_filter = {}
         if from_date:
-            date_filter["$gte"] = from_date
+            date_filter["$gte"] = from_date + "T00:00:00Z"
         if to_date:
-            date_filter["$lte"] = to_date
+            date_filter["$lte"] = to_date + "T23:59:59Z"
         if date_filter:
-            query["date"] = date_filter
-    else:
-        # Default: show from today onwards
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        query["date"] = {"$gte": today}
+            query["start_datetime"] = date_filter
     
-    exams = await db.exam_schedules.find(query, {"_id": 0}).sort([("date", 1), ("start_time", 1)]).to_list(100)
+    exams = await db.online_exams.find(query, {"_id": 0}).sort("start_datetime", 1).to_list(100)
     
-    # Enrich exams with teacher info and status
+    # Enrich exams with teacher/subject info and status
     enriched_exams = []
+    now = datetime.now(timezone.utc)
+    
     for exam in exams:
+        subject_info = subject_map.get(exam.get("subject_id"), {})
         teacher_name = None
         teacher_photo = None
-        if exam.get("teacher_id"):
+        teacher_id = subject_info.get("teacher_id") or exam.get("created_by")
+        
+        if teacher_id:
             teacher = await db.users.find_one(
-                {"id": exam["teacher_id"]},
+                {"id": teacher_id},
                 {"_id": 0, "name": 1, "last_name": 1, "profile_image": 1, "photo_url": 1}
             )
             if teacher:
                 teacher_name = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
                 teacher_photo = teacher.get("profile_image") or teacher.get("photo_url")
         
-        # Calculate status
-        status = calculate_exam_status(exam["date"], exam["start_time"], exam["end_time"])
+        # Parse start/end datetime
+        start_dt_str = exam.get("start_datetime", "")
+        end_dt_str = exam.get("end_datetime", "")
+        
+        try:
+            start_dt = datetime.fromisoformat(start_dt_str.replace("Z", "+00:00"))
+        except Exception:
+            start_dt = now
+        try:
+            end_dt = datetime.fromisoformat(end_dt_str.replace("Z", "+00:00"))
+        except Exception:
+            end_dt = now
+        
+        # Calculate exam status
+        exam_date = start_dt.strftime("%Y-%m-%d")
+        start_time = start_dt.strftime("%H:%M")
+        end_time = end_dt.strftime("%H:%M")
+        
+        if now < start_dt:
+            status = "upcoming"
+        elif start_dt <= now <= end_dt:
+            status = "in_progress"
+        else:
+            status = "completed"
+        
+        # Check if student already attempted
+        attempt = await db.exam_attempts.find_one(
+            {"exam_id": exam["id"], "student_id": user["id"]},
+            {"_id": 0, "id": 1, "status": 1, "score": 1}
+        )
         
         enriched_exams.append({
-            **exam,
+            "id": exam["id"],
+            "title": exam.get("title", ""),
+            "description": exam.get("description", ""),
+            "subject_id": exam.get("subject_id"),
+            "subject_name": subject_info.get("name", ""),
+            "date": exam_date,
+            "start_time": start_time,
+            "end_time": end_time,
+            "start_datetime": start_dt_str,
+            "end_datetime": end_dt_str,
+            "duration_minutes": exam.get("duration_minutes", 60),
             "teacher_name": teacher_name,
             "teacher_photo": teacher_photo,
             "status": status,
-            "type_label": EXAM_TYPES.get(exam.get("type"), {}).get("label", exam.get("type")),
-            "type_color": EXAM_TYPES.get(exam.get("type"), {}).get("color", "#6366F1")
+            "is_available": start_dt <= now <= end_dt,
+            "has_attempted": attempt is not None,
+            "attempt_status": attempt.get("status") if attempt else None,
+            "attempt_score": attempt.get("score") if attempt else None,
+            "type": exam.get("type", "regular"),
+            "type_label": "Examen",
+            "type_color": "#6366F1"
         })
     
     return {
