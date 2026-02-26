@@ -1997,10 +1997,24 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               setFilterCategory={setFilterExpenseCategory}
             />
           )}
+          {activeTab === "morosos" && (
+            <MorososTab
+              loading={debtorsLoading}
+              debtors={debtors}
+              debtorsSummary={debtorsSummary}
+              onViewHistory={(studentId) => { setHistoryStudentId(studentId); setShowHistoryModal(true); }}
+            />
+          )}
         </main>
       </div>
 
       {/* Modals */}
+      <StudentHistoryModal
+        isOpen={showHistoryModal}
+        onClose={() => { setShowHistoryModal(false); setHistoryStudentId(null); }}
+        studentId={historyStudentId}
+        token={token}
+      />
       <PaymentFormModal
         isOpen={showPaymentModal}
         onClose={() => { setShowPaymentModal(false); setEditingPayment(null); }}
