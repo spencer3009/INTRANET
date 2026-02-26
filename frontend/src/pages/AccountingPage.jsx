@@ -188,40 +188,26 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
         </div>
       </div>
       
-      {/* All KPI Cards - Single Row */}
-      <div className="grid grid-cols-7 gap-4">
-        <StatCard title="Ingresos" value={`S/ ${formatNumber(summary?.ingresos?.total)}`} subtitle={`${summary?.ingresos?.count || 0} pagos confirmados`} icon={TrendingUp} variant="income" />
-        <StatCard title="Egresos" value={`S/ ${formatNumber(summary?.egresos?.total)}`} subtitle={`${summary?.egresos?.count || 0} gastos registrados`} icon={TrendingDown} variant="expense" />
+      {/* 4 Key KPI Cards - Single Row */}
+      <div className="grid grid-cols-4 gap-5">
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-amber-500">
+          <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg mb-3">
+            <BadgeDollarSign className="w-5 h-5 text-white" />
+          </div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Deuda Total</p>
+          <p className="text-2xl font-bold text-amber-600" data-testid="total-debt">S/ {formatNumber(debtorsSummary?.total_debt)}</p>
+          <p className="text-xs text-gray-400 mt-1">pendiente</p>
+        </div>
+        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 border-l-4 border-l-red-500">
+          <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg mb-3">
+            <UserX className="w-5 h-5 text-white" />
+          </div>
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Morosos</p>
+          <p className="text-2xl font-bold text-red-600" data-testid="morosos-count">{debtorsSummary?.morosos_count || 0}</p>
+          <p className="text-xs text-gray-400 mt-1">alumnos</p>
+        </div>
         <StatCard title="Por Cobrar" value={`S/ ${formatNumber(summary?.pendientes?.total)}`} subtitle={`${summary?.pendientes?.count || 0} pagos pendientes`} icon={Clock} variant="pending" />
-        <StatCard title="Balance" value={`S/ ${formatNumber(summary?.balance)}`} subtitle="Ingresos - Egresos" icon={Scale} variant="balance" />
-        {debtorsSummary && (
-          <>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-red-500">
-              <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg mb-3">
-                <UserX className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Morosos</p>
-              <p className="text-xl font-bold text-red-600" data-testid="morosos-count">{debtorsSummary.morosos_count}</p>
-              <p className="text-xs text-gray-400 mt-1">alumnos</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-amber-500">
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg mb-3">
-                <BadgeDollarSign className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Deuda Total</p>
-              <p className="text-xl font-bold text-amber-600" data-testid="total-debt">S/ {formatNumber(debtorsSummary.total_debt)}</p>
-              <p className="text-xs text-gray-400 mt-1">pendiente</p>
-            </div>
-            <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 border-l-4 border-l-emerald-500">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-lg mb-3">
-                <UserCheck className="w-5 h-5 text-white" />
-              </div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Al Día</p>
-              <p className="text-xl font-bold text-emerald-600" data-testid="al-dia-count">{debtorsSummary.al_dia_count}</p>
-              <p className="text-xs text-gray-400 mt-1">alumnos</p>
-            </div>
-          </>
-        )}
+        <StatCard title="Ingresos" value={`S/ ${formatNumber(summary?.ingresos?.total)}`} subtitle={`${summary?.ingresos?.count || 0} pagos confirmados`} icon={TrendingUp} variant="income" />
       </div>
 
       {/* IGV Detail Cards */}
