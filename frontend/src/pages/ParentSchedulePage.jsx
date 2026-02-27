@@ -103,7 +103,7 @@ function ScheduleCalendarGrid({ schedules, settings, breaks }) {
     <div className="bg-white rounded-2xl shadow-lg overflow-hidden border border-slate-200" data-testid="parent-schedule-grid">
       {tooltip && (
         <div className="fixed z-50 bg-slate-800 text-white rounded-xl shadow-xl px-4 py-3 text-sm pointer-events-none transform -translate-x-1/2 -translate-y-full" style={{ left: tooltip.x, top: tooltip.y }}>
-          <p className="font-bold text-emerald-300">{tooltip.schedule.materia}</p>
+          <p className="font-bold text-cyan-300">{tooltip.schedule.materia}</p>
           <div className="mt-1 space-y-0.5 text-slate-300">
             <p className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" />{tooltip.schedule.profesor_nombre || "Sin profesor"}</p>
             <p className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" />{formatTime(tooltip.schedule.hora_inicio)} - {formatTime(tooltip.schedule.hora_fin)}</p>
@@ -113,7 +113,7 @@ function ScheduleCalendarGrid({ schedules, settings, breaks }) {
         </div>
       )}
 
-      <div className="flex border-b border-slate-200 bg-gradient-to-r from-emerald-600 to-teal-600 sticky top-0 z-10">
+      <div className="flex border-b border-slate-200 bg-gradient-to-r from-cyan-600 to-blue-600 sticky top-0 z-10">
         <div className="w-32 md:w-36 flex-shrink-0 p-3 border-r border-white/20 flex items-center justify-center"><Clock className="w-5 h-5 text-white/80" /></div>
         {visibleDays.map(day => (
           <div key={day.id} className="flex-1 p-3 text-center border-r last:border-r-0 border-white/20 min-w-[120px]">
@@ -129,14 +129,17 @@ function ScheduleCalendarGrid({ schedules, settings, breaks }) {
           const isBlocked = isTimeBlocked(time);
 
           if (breakItem) {
-            const btc = { break: { bg: "bg-yellow-100", border: "border-yellow-300", text: "text-yellow-800", icon: "☕" }, lunch: { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-800", icon: "🍽️" }, event: { bg: "bg-blue-100", border: "border-blue-300", text: "text-blue-800", icon: "🎉" } }[breakItem.type] || { bg: "bg-slate-100", border: "border-slate-300", text: "text-slate-800", icon: "⏸️" };
+            const btc = {
+              break: { bg: "bg-yellow-100", border: "border-yellow-300", text: "text-yellow-800", icon: "break" },
+              lunch: { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-800", icon: "lunch" },
+              event: { bg: "bg-blue-100", border: "border-blue-300", text: "text-blue-800", icon: "event" }
+            }[breakItem.type] || { bg: "bg-slate-100", border: "border-slate-300", text: "text-slate-800", icon: "pause" };
             return (
               <div key={time} className={`flex border-b ${btc.border} min-h-[60px] ${btc.bg}`}>
                 <div className={`w-32 md:w-36 flex-shrink-0 px-2 py-2 border-r ${btc.border} sticky left-0 z-10 flex items-center justify-center ${btc.bg}`}>
                   <span className={`text-xs font-medium ${btc.text}`}>{formatTimeRange(time)}</span>
                 </div>
                 <div className="flex-1 flex items-center justify-center gap-3 px-4">
-                  <span className="text-2xl">{btc.icon}</span>
                   <span className={`font-bold text-lg ${btc.text}`}>{breakItem.label}</span>
                   <span className={`text-sm ${btc.text} opacity-70`}>({breakItem.start_time} - {breakItem.end_time})</span>
                 </div>
@@ -266,19 +269,19 @@ export default function ParentSchedulePage({ user, token, onLogout }) {
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           <div className="mb-6">
             <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl flex items-center justify-center shadow-lg"><Calendar className="w-5 h-5 text-white" /></div>
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg"><Calendar className="w-5 h-5 text-white" /></div>
               Horario de {selectedChild?.name || ""}
             </h1>
             {(gradeName || sectionName) && (
               <p className="text-slate-500 mt-2 ml-13 flex items-center gap-2">
                 <GraduationCap className="w-4 h-4" /><span className="font-medium text-slate-700">{gradeName}</span>
-                {sectionName && <><span className="text-slate-300">•</span><span>Seccion {sectionName}</span></>}
+                {sectionName && <><span className="text-slate-300">-</span><span>Seccion {sectionName}</span></>}
               </p>
             )}
           </div>
 
           {loading ? (
-            <div className="flex items-center justify-center py-20"><div className="text-center"><Loader2 className="w-10 h-10 text-emerald-500 animate-spin mx-auto mb-3" /><p className="text-slate-500">Cargando horario...</p></div></div>
+            <div className="flex items-center justify-center py-20"><div className="text-center"><Loader2 className="w-10 h-10 text-cyan-500 animate-spin mx-auto mb-3" /><p className="text-slate-500">Cargando horario...</p></div></div>
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center"><AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" /><p className="text-red-700 font-medium">{error}</p></div>
           ) : schedules.length === 0 && breaks.length === 0 ? (
@@ -303,8 +306,8 @@ export default function ParentSchedulePage({ user, token, onLogout }) {
               )}
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div className="bg-white rounded-xl p-4 border border-slate-200"><p className="text-sm text-slate-500">Total clases</p><p className="text-2xl font-bold text-slate-800">{schedules.length}</p></div>
-                <div className="bg-white rounded-xl p-4 border border-slate-200"><p className="text-sm text-slate-500">Horas semanales</p><p className="text-2xl font-bold text-emerald-600">{schedules.reduce((acc, s) => { const [sH, sM] = s.hora_inicio.split(':').map(Number); const [eH, eM] = s.hora_fin.split(':').map(Number); return acc + ((eH * 60 + eM) - (sH * 60 + sM)) / 60; }, 0).toFixed(1)}h</p></div>
-                <div className="bg-white rounded-xl p-4 border border-slate-200"><p className="text-sm text-slate-500">Dias con clases</p><p className="text-2xl font-bold text-emerald-600">{new Set(schedules.map(s => s.dia)).size}</p></div>
+                <div className="bg-white rounded-xl p-4 border border-slate-200"><p className="text-sm text-slate-500">Horas semanales</p><p className="text-2xl font-bold text-cyan-600">{schedules.reduce((acc, s) => { const [sH, sM] = s.hora_inicio.split(':').map(Number); const [eH, eM] = s.hora_fin.split(':').map(Number); return acc + ((eH * 60 + eM) - (sH * 60 + sM)) / 60; }, 0).toFixed(1)}h</p></div>
+                <div className="bg-white rounded-xl p-4 border border-slate-200"><p className="text-sm text-slate-500">Dias con clases</p><p className="text-2xl font-bold text-cyan-600">{new Set(schedules.map(s => s.dia)).size}</p></div>
                 <div className="bg-white rounded-xl p-4 border border-slate-200"><p className="text-sm text-slate-500">Profesores</p><p className="text-2xl font-bold text-violet-600">{new Set(schedules.map(s => s.profesor_id).filter(Boolean)).size}</p></div>
               </div>
             </>
