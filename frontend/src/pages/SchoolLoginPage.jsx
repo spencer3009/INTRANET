@@ -149,7 +149,6 @@ export default function SchoolLoginPage({ onLogin }) {
         <div className="bg-white rounded-3xl shadow-2xl p-8 xl:p-10" data-testid="school-login-card">
           {/* School Branding */}
           <div className="flex flex-col items-center mb-8">
-            {/* School Logo or Fallback */}
             {school?.logo_url ? (
               <img 
                 src={school.logo_url} 
@@ -166,7 +165,6 @@ export default function SchoolLoginPage({ onLogin }) {
               </div>
             )}
             
-            {/* School Name */}
             <h1 
               className="text-2xl font-extrabold text-center tracking-tight"
               style={{ color: primaryColor, fontFamily: 'Manrope, sans-serif' }}
@@ -175,99 +173,113 @@ export default function SchoolLoginPage({ onLogin }) {
               {school?.school_name}
             </h1>
             
-            {/* Subdomain badge */}
             <div 
               className="mt-2 px-3 py-1 rounded-full text-xs font-semibold"
-              style={{ 
-                backgroundColor: `${secondaryColor}20`,
-                color: primaryColor
-              }}
+              style={{ backgroundColor: `${secondaryColor}20`, color: primaryColor }}
             >
               {subdomain}.{BASE_DOMAIN}
             </div>
-            
-            <p className="text-sm text-slate-500 mt-3">Accede a tu intranet escolar</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-xl" data-testid="login-error">
-                {error}
-              </div>
-            )}
+          {/* Mobile: Show install screen first, with option to login */}
+          {pwaReady && !showLoginForm ? (
+            <div data-testid="mobile-install-view">
+              <PwaInstallPrompt mode="hero" />
 
-            <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-2">Email o nombre de usuario</label>
-              <div className="relative">
-                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  data-testid="login-email-input"
-                  type="text"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-11 pr-4 py-3.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all placeholder:text-slate-400"
-                  style={{ 
-                    "--tw-ring-color": `${primaryColor}30`
-                  }}
-                  placeholder="tu@email.com o tu_usuario"
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-semibold text-slate-600 mb-2">Contraseña</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  data-testid="login-password-input"
-                  type={showPass ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-11 pr-11 py-3.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all placeholder:text-slate-400"
-                  placeholder="Tu contraseña"
-                  required
-                />
+              <div className="mt-6 pt-5 border-t border-slate-100 text-center">
                 <button
-                  type="button"
-                  onClick={() => setShowPass(!showPass)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  onClick={() => setShowLoginForm(true)}
+                  className="inline-flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-700 transition-colors"
+                  data-testid="show-login-btn"
                 >
-                  {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  <LogIn className="w-4 h-4" />
+                  Ya tengo la app, iniciar sesión
                 </button>
               </div>
             </div>
+          ) : (
+            <>
+              <p className="text-sm text-slate-500 text-center mb-6">Accede a tu intranet escolar</p>
 
-            <button
-              data-testid="login-submit-button"
-              type="submit"
-              disabled={loading}
-              className="w-full py-4 text-white font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-              style={{ 
-                backgroundColor: primaryColor,
-                boxShadow: loading ? 'none' : `0 10px 30px -10px ${primaryColor}80`
-              }}
-            >
-              {loading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                "Iniciar Sesión"
-              )}
-            </button>
-          </form>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {error && (
+                  <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-xl" data-testid="login-error">
+                    {error}
+                  </div>
+                )}
 
-          <p className="text-center text-sm text-slate-500 mt-6">
-            ¿No tienes cuenta en este colegio?{" "}
-            <Link 
-              to="/register" 
-              className="font-semibold hover:underline"
-              style={{ color: primaryColor }}
-            >
-              Contacta al administrador
-            </Link>
-          </p>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">Email o nombre de usuario</label>
+                  <div className="relative">
+                    <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      data-testid="login-email-input"
+                      type="text"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full pl-11 pr-4 py-3.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all placeholder:text-slate-400"
+                      style={{ "--tw-ring-color": `${primaryColor}30` }}
+                      placeholder="tu@email.com o tu_usuario"
+                      required
+                    />
+                  </div>
+                </div>
 
-          <PwaInstallPrompt />
+                <div>
+                  <label className="block text-sm font-semibold text-slate-600 mb-2">Contraseña</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                    <input
+                      data-testid="login-password-input"
+                      type={showPass ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full pl-11 pr-11 py-3.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:border-transparent focus:bg-white transition-all placeholder:text-slate-400"
+                      placeholder="Tu contraseña"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(!showPass)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  data-testid="login-submit-button"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full py-4 text-white font-bold rounded-xl hover:shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ 
+                    backgroundColor: primaryColor,
+                    boxShadow: loading ? 'none' : `0 10px 30px -10px ${primaryColor}80`
+                  }}
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Iniciar Sesión"
+                  )}
+                </button>
+              </form>
+
+              <p className="text-center text-sm text-slate-500 mt-6">
+                ¿No tienes cuenta en este colegio?{" "}
+                <Link 
+                  to="/register" 
+                  className="font-semibold hover:underline"
+                  style={{ color: primaryColor }}
+                >
+                  Contacta al administrador
+                </Link>
+              </p>
+
+              <PwaInstallPrompt />
+            </>
+          )}
         </div>
 
         {/* Powered by */}
