@@ -24,7 +24,8 @@ export default function SchoolLoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const [showLoginForm, setShowLoginForm] = useState(false);
 
-  const pwaReady = usePwaInstallReady();
+  // Always show install screen first on mobile
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   // Fetch school info on mount
   useEffect(() => {
