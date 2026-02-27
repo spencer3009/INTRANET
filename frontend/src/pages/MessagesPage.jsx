@@ -537,6 +537,8 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
         onLogout={onLogout}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        subdomain={subdomain}
+        schoolName={schoolName}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
