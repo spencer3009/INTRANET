@@ -4654,17 +4654,33 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Student Sidebar */}
-      <StudentSidebar
-        active="cursos"
-        onNavigate={() => {}}
-        expanded={sidebarExpanded}
-        onToggle={() => setSidebarExpanded(!sidebarExpanded)}
-        onLogout={onLogout}
-        schoolName={schoolName}
-        subdomain={subdomain || user?.subdomain}
-        user={user}
-      />
+      {/* Sidebar */}
+      {isParent ? (
+        <ParentSidebar
+          active="cursos"
+          onNavigate={() => {}}
+          expanded={sidebarExpanded}
+          onToggle={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
+          schoolName={schoolName}
+          subdomain={subdomain || user?.subdomain}
+          user={user}
+          children={parentChildren}
+          selectedChild={selectedChild}
+          onSelectChild={onSelectChild}
+        />
+      ) : (
+        <StudentSidebar
+          active="cursos"
+          onNavigate={() => {}}
+          expanded={sidebarExpanded}
+          onToggle={() => setSidebarExpanded(!sidebarExpanded)}
+          onLogout={onLogout}
+          schoolName={schoolName}
+          subdomain={subdomain || user?.subdomain}
+          user={user}
+        />
+      )}
 
       {/* Mobile overlay */}
       {sidebarExpanded && (
