@@ -8,7 +8,9 @@ export default function PwaInstallPrompt() {
   const [progress, setProgress] = useState(0);
 
   const isMobile = useCallback(() => {
-    return /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const ua = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const smallScreen = window.innerWidth <= 768;
+    return ua || smallScreen;
   }, []);
 
   const isStandalone = useCallback(() => {
