@@ -669,6 +669,14 @@ function App() {
             }
           />
           <Route
+            path="/parent/student-dashboard"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentStudentDashboardPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/parent/tasks"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
