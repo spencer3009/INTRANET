@@ -627,40 +627,16 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 </div>
               </div>
 
-              {/* Monthly Detail Table */}
-              <div className="border border-slate-200 rounded-xl overflow-hidden">
-                <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-200">
-                  <h4 className="text-sm font-semibold text-slate-700 flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Detalle Mensual
-                  </h4>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {paymentData.monthly_detail.map((month, idx) => (
-                    <div key={month.id || idx} className="px-4 py-2.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2.5 h-2.5 rounded-full ${
-                          month.payment_status === 'paid' ? 'bg-emerald-500' :
-                          month.payment_status === 'overdue' ? 'bg-red-500' : 'bg-amber-500'
-                        }`} />
-                        <span className="text-sm text-slate-700 font-medium">{month.month_name}</span>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-sm font-semibold text-slate-800">S/ {month.total_amount.toFixed(2)}</span>
-                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                          month.payment_status === 'paid' 
-                            ? 'bg-emerald-100 text-emerald-700' 
-                            : month.payment_status === 'overdue' 
-                              ? 'bg-red-100 text-red-700' 
-                              : 'bg-amber-100 text-amber-700'
-                        }`}>
-                          {month.payment_status === 'paid' ? 'PAGADO' : month.payment_status === 'overdue' ? 'MOROSO' : 'PENDIENTE'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              {/* Link to full payments detail */}
+              <button 
+                onClick={() => navigateTo("/parent/payments")}
+                className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700"
+                data-testid="view-payments-detail"
+              >
+                <Receipt className="w-4 h-4" />
+                Ver detalle de pagos
+                <ChevronRight className="w-4 h-4" />
+              </button>
             </div>
           )}
 
