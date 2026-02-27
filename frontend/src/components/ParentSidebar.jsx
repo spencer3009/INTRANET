@@ -22,7 +22,6 @@ import {
 // Parent navigation items - same as student but for viewing child's info
 const parentNavItems = [
   { id: "inicio", label: "Dashboard", icon: Home, route: "/parent" },
-  { id: "dashboard-alumno", label: "Dashboard Alumno", icon: GraduationCap, route: "/parent/student-dashboard" },
   { id: "cursos", label: "Cursos", icon: BookOpen, route: "/parent/courses" },
   { id: "horarios", label: "Horario", icon: CalendarCheck, route: "/parent/schedule" },
   { id: "examenes", label: "Exámenes", icon: Calendar, route: "/parent/exams" },
