@@ -1,54 +1,47 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import {
-  BarChart3, Loader2, BookOpen, Award, Target
+  Trophy, Loader2, BookOpen, TrendingUp, ChevronDown, ChevronUp,
+  User, Star, BarChart3, Target, Award
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
+function getGradeColor(score, maxScore = 20) {
+  const pct = (score / maxScore) * 100;
+  if (pct >= 80) return "text-emerald-600 bg-emerald-50 border-emerald-200";
+  if (pct >= 60) return "text-blue-600 bg-blue-50 border-blue-200";
+  if (pct >= 40) return "text-amber-600 bg-amber-50 border-amber-200";
+  return "text-red-600 bg-red-50 border-red-200";
+}
+
 export default function ParentGradesPage({ user, token, onLogout }) {
   const { subdomain } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [courses, setCourses] = useState([]);
   const [grades, setGrades] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
   const [children, setChildren] = useState([]);
   const [selectedChild, setSelectedChild] = useState(null);
+  const [expandedCourse, setExpandedCourse] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   const loadGradesForChild = async (childId) => {
     setLoading(true);
     try {
-      const coursesRes = await axios.get(`${API}/api/parent/courses?student_id=${childId}`, { headers });
-      const studentCourses = coursesRes.data.courses || [];
-      setCourses(studentCourses);
-
-      const allGrades = [];
-      for (const course of studentCourses) {
-        try {
-          const tasksRes = await axios.get(`${API}/api/course/${course.id}/posts?post_type=task`, { headers });
-          const courseTasks = tasksRes.data?.posts || tasksRes.data || [];
-          for (const task of courseTasks) {
-            const submission = task.submissions?.find(s => s.student_id === childId);
-            if (submission && submission.grade !== null && submission.grade !== undefined) {
-              allGrades.push({
-                id: task.id, task_title: task.title, course_id: course.id,
-                course_name: course.name, course_color: course.color,
-                grade: submission.grade, max_grade: task.max_grade || 20,
-                graded_at: submission.graded_at, feedback: submission.feedback
-              });
-            }
-          }
-        } catch (err) { console.error(`Error loading grades for course ${course.id}:`, err); }
-      }
-      setGrades(allGrades);
-    } catch (err) { console.error("Error:", err); } finally { setLoading(false); }
+      const res = await axios.get(`${API}/api/parent/grades?student_id=${childId}`, { headers });
+      setGrades(res.data.grades || []);
+    } catch (err) {
+      console.error("Error loading grades:", err);
+      setGrades([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -68,7 +61,7 @@ export default function ParentGradesPage({ user, token, onLogout }) {
           setSelectedChild(child);
           localStorage.setItem('selected_child_id', child.id);
           await loadGradesForChild(child.id);
-        }
+        } else { setLoading(false); }
       } catch (err) { console.error("Error:", err); setLoading(false); }
     };
     init();
@@ -84,23 +77,27 @@ export default function ParentGradesPage({ user, token, onLogout }) {
   const schoolName = settings?.system_name || user?.school_name || "Portal Padres";
   const logoUrl = settings?.logo_url;
 
-  const courseAverages = courses.map(course => {
-    const courseGrades = grades.filter(g => g.course_id === course.id);
-    if (courseGrades.length === 0) return { ...course, average: null, grades_count: 0 };
-    const totalPercent = courseGrades.reduce((sum, g) => sum + (g.grade / g.max_grade), 0);
-    return { ...course, average: Math.round((totalPercent / courseGrades.length) * 20 * 10) / 10, grades_count: courseGrades.length };
-  });
+  // Group grades by course/subject
+  const groupedGrades = useMemo(() => {
+    const groups = {};
+    grades.forEach(g => {
+      const key = g.subject_name || g.course_name || "Sin curso";
+      if (!groups[key]) groups[key] = { name: key, color: g.color || "#3B82F6", grades: [], teacher: g.teacher_name };
+      groups[key].grades.push(g);
+    });
+    return Object.values(groups).map(group => {
+      const validGrades = group.grades.filter(g => g.score != null);
+      const avg = validGrades.length > 0
+        ? validGrades.reduce((sum, g) => sum + g.score, 0) / validGrades.length
+        : null;
+      return { ...group, average: avg, count: group.grades.length };
+    });
+  }, [grades]);
 
-  const overallAverage = grades.length > 0
-    ? Math.round((grades.reduce((sum, g) => sum + (g.grade / g.max_grade), 0) / grades.length) * 20 * 10) / 10
-    : null;
-
-  const getGradeColor = (grade, max = 20) => {
-    const percent = (grade / max) * 100;
-    if (percent >= 80) return "text-emerald-600 bg-emerald-100";
-    if (percent >= 60) return "text-amber-600 bg-amber-100";
-    return "text-red-600 bg-red-100";
-  };
+  const generalAverage = useMemo(() => {
+    const avgs = groupedGrades.filter(g => g.average != null).map(g => g.average);
+    return avgs.length > 0 ? (avgs.reduce((s, a) => s + a, 0) / avgs.length).toFixed(1) : null;
+  }, [groupedGrades]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex" data-testid="parent-grades-page">
@@ -111,75 +108,102 @@ export default function ParentGradesPage({ user, token, onLogout }) {
         <StudentHeader user={user} onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain || user?.subdomain} token={token} roleLabel="Padre/Apoderado" profilePath="/parent/profile" />
 
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <BarChart3 className="w-6 h-6 text-indigo-500" />
-            <h2 className="text-xl font-bold text-slate-800">Notas de {selectedChild?.name || ""}</h2>
-            <span className="text-sm text-slate-500">({grades.length} calificaciones)</span>
+          {/* Header */}
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Trophy className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
+                Calificaciones de {selectedChild?.name || ""}
+              </h1>
+              <p className="text-sm text-slate-500">{grades.length} evaluaciones registradas</p>
+            </div>
           </div>
 
+          {/* Summary Cards */}
+          {!loading && grades.length > 0 && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-5 text-white shadow-lg">
+                <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-3"><BarChart3 className="w-5 h-5 text-white" /></div>
+                <p className="text-3xl font-extrabold">{generalAverage || "—"}</p>
+                <p className="text-xs text-indigo-200 mt-1">Promedio General</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center mb-3"><Award className="w-5 h-5 text-amber-600" /></div>
+                <p className="text-3xl font-bold text-slate-800">{grades.length}</p>
+                <p className="text-xs text-slate-500 mt-1">Evaluaciones</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center mb-3"><Target className="w-5 h-5 text-emerald-600" /></div>
+                <p className="text-3xl font-bold text-slate-800">{groupedGrades.length}</p>
+                <p className="text-xs text-slate-500 mt-1">Materias</p>
+              </div>
+              <div className="bg-white rounded-2xl border border-slate-200 p-5">
+                <div className="w-10 h-10 bg-cyan-50 rounded-xl flex items-center justify-center mb-3"><Star className="w-5 h-5 text-cyan-600" /></div>
+                <p className="text-3xl font-bold text-slate-800">
+                  {grades.filter(g => g.score != null && g.score >= (g.max_score || 20) * 0.6).length}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Aprobados</p>
+              </div>
+            </div>
+          )}
+
           {loading ? (
-            <div className="flex items-center justify-center py-20"><Loader2 className="w-10 h-10 text-indigo-500 animate-spin" /></div>
+            <div className="flex items-center justify-center py-20"><Loader2 className="w-10 h-10 text-amber-500 animate-spin" /></div>
+          ) : grades.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+              <div className="w-20 h-20 mx-auto mb-4 bg-amber-50 rounded-full flex items-center justify-center">
+                <Trophy className="w-10 h-10 text-amber-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin calificaciones</h3>
+              <p className="text-slate-500 max-w-md mx-auto">Aun no se han registrado calificaciones.</p>
+            </div>
           ) : (
-            <>
-              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 mb-6 text-white">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-white/80 text-sm mb-1">Promedio General</p>
-                    <p className="text-4xl font-bold">{overallAverage !== null ? overallAverage.toFixed(1) : "--"}</p>
-                    <p className="text-white/60 text-sm mt-1">de {grades.length} calificaciones</p>
-                  </div>
-                  <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center"><Award className="w-8 h-8 text-white" /></div>
-                </div>
-              </div>
-
-              <h2 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><Target className="w-5 h-5 text-indigo-500" />Promedio por Curso</h2>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                {courseAverages.map((course) => (
-                  <div key={course.id} className="bg-white rounded-xl border border-slate-200 p-4">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: course.color || "#6366f1" }}><BookOpen className="w-5 h-5 text-white" /></div>
-                      <div className="flex-1 min-w-0"><p className="font-medium text-slate-800 truncate">{course.name}</p><p className="text-xs text-slate-500">{course.grades_count} notas</p></div>
+            <div className="space-y-4">
+              {groupedGrades.map((group) => (
+                <div key={group.name} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                  <button
+                    onClick={() => setExpandedCourse(expandedCourse === group.name ? null : group.name)}
+                    className="w-full flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors"
+                    data-testid={`parent-grade-group-${group.name}`}
+                  >
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: group.color }}>
+                      <BookOpen className="w-5 h-5" />
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-slate-500">Promedio</span>
-                      {course.average !== null ? <span className={`text-lg font-bold px-3 py-1 rounded-lg ${getGradeColor(course.average)}`}>{course.average.toFixed(1)}</span> : <span className="text-sm text-slate-400">Sin notas</span>}
+                    <div className="flex-1 text-left min-w-0">
+                      <h3 className="font-bold text-slate-800">{group.name}</h3>
+                      {group.teacher && <p className="text-xs text-slate-500 flex items-center gap-1"><User className="w-3 h-3" />{group.teacher}</p>}
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              <h2 className="font-semibold text-slate-800 mb-4 flex items-center gap-2"><BarChart3 className="w-5 h-5 text-indigo-500" />Historial de Calificaciones</h2>
-              {grades.length === 0 ? (
-                <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
-                  <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><BarChart3 className="w-8 h-8 text-indigo-400" /></div>
-                  <h3 className="font-semibold text-slate-700 mb-2">Sin calificaciones aun</h3>
-                  <p className="text-slate-500 text-sm max-w-sm mx-auto">Cuando se califiquen las tareas, veras las notas aqui</p>
+                    {group.average != null && (
+                      <div className={`px-3 py-1.5 rounded-xl text-sm font-bold border ${getGradeColor(group.average)}`}>
+                        {group.average.toFixed(1)}
+                      </div>
+                    )}
+                    <span className="text-sm text-slate-400">{group.count} eval.</span>
+                    {expandedCourse === group.name ? <ChevronUp className="w-5 h-5 text-slate-400" /> : <ChevronDown className="w-5 h-5 text-slate-400" />}
+                  </button>
+                  {expandedCourse === group.name && (
+                    <div className="border-t border-slate-100 divide-y divide-slate-100">
+                      {group.grades.map((grade, idx) => (
+                        <div key={idx} className="px-4 py-3 flex items-center gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-slate-800">{grade.evaluation_name || grade.title || "Evaluacion"}</p>
+                            {grade.comments && <p className="text-xs text-slate-500 mt-0.5">{grade.comments}</p>}
+                            {grade.created_at && <p className="text-xs text-slate-400 mt-0.5">{new Date(grade.created_at).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" })}</p>}
+                          </div>
+                          {grade.score != null && (
+                            <div className={`px-3 py-1.5 rounded-xl text-lg font-bold border ${getGradeColor(grade.score, grade.max_score || 20)}`}>
+                              {grade.score}<span className="text-xs font-normal opacity-70">/{grade.max_score || 20}</span>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead><tr className="border-b border-slate-100">
-                        <th className="text-left px-4 py-3 text-sm font-medium text-slate-500">Evaluacion</th>
-                        <th className="text-left px-4 py-3 text-sm font-medium text-slate-500">Curso</th>
-                        <th className="text-center px-4 py-3 text-sm font-medium text-slate-500">Nota</th>
-                        <th className="text-left px-4 py-3 text-sm font-medium text-slate-500 hidden sm:table-cell">Fecha</th>
-                      </tr></thead>
-                      <tbody className="divide-y divide-slate-100">
-                        {grades.map((grade) => (
-                          <tr key={grade.id} className="hover:bg-slate-50">
-                            <td className="px-4 py-3"><p className="font-medium text-slate-800">{grade.task_title}</p>{grade.feedback && <p className="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{grade.feedback}</p>}</td>
-                            <td className="px-4 py-3"><div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full" style={{ backgroundColor: grade.course_color || "#6366f1" }} /><span className="text-sm text-slate-600">{grade.course_name}</span></div></td>
-                            <td className="px-4 py-3 text-center"><span className={`inline-flex items-center gap-1 px-3 py-1 rounded-lg font-bold ${getGradeColor(grade.grade, grade.max_grade)}`}>{grade.grade}/{grade.max_grade}</span></td>
-                            <td className="px-4 py-3 text-sm text-slate-500 hidden sm:table-cell">{grade.graded_at ? new Date(grade.graded_at).toLocaleDateString("es-PE", { day: "numeric", month: "short" }) : "--"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
-            </>
+              ))}
+            </div>
           )}
         </main>
       </div>

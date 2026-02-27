@@ -1,35 +1,75 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import {
-  ClipboardList, Loader2, Search, CheckCircle, Clock, AlertCircle, Calendar, BookOpen, ChevronRight, Upload
+  ClipboardList, Clock, CheckCircle, AlertCircle, Loader2, BookOpen,
+  Calendar, ChevronDown, Filter, FileText, User, AlertTriangle, Timer
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
 const STATUS_CONFIG = {
-  pending: { label: "Pendiente", color: "bg-amber-100 text-amber-700", icon: Clock },
-  submitted: { label: "Entregada", color: "bg-blue-100 text-blue-700", icon: Upload },
-  graded: { label: "Calificada", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
-  late: { label: "Atrasada", color: "bg-red-100 text-red-700", icon: AlertCircle }
+  pending: { label: "Pendiente", color: "bg-amber-100 text-amber-700 border-amber-200", icon: Clock, dot: "bg-amber-500" },
+  submitted: { label: "Entregado", color: "bg-blue-100 text-blue-700 border-blue-200", icon: CheckCircle, dot: "bg-blue-500" },
+  graded: { label: "Calificado", color: "bg-emerald-100 text-emerald-700 border-emerald-200", icon: CheckCircle, dot: "bg-emerald-500" },
+  late: { label: "Atrasado", color: "bg-red-100 text-red-700 border-red-200", icon: AlertTriangle, dot: "bg-red-500" },
+  overdue: { label: "Vencido", color: "bg-red-100 text-red-700 border-red-200", icon: AlertCircle, dot: "bg-red-500" },
 };
 
+function getTaskStatus(task) {
+  if (task.submission?.grade != null || task.status === "graded") return "graded";
+  if (task.submission || task.status === "submitted") return "submitted";
+  if (task.due_date) {
+    const now = new Date();
+    const due = new Date(task.due_date + "T23:59:59");
+    if (now > due) return "overdue";
+  }
+  return "pending";
+}
+
+function formatDueDate(dateStr) {
+  if (!dateStr) return "";
+  const date = new Date(dateStr + "T12:00:00");
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due = new Date(date); due.setHours(0,0,0,0);
+  const diff = Math.ceil((due - today) / (1000*60*60*24));
+  if (diff === 0) return "Hoy";
+  if (diff === 1) return "Manana";
+  if (diff === -1) return "Ayer";
+  if (diff > 0 && diff <= 7) return `En ${diff} dias`;
+  if (diff < 0) return `Hace ${Math.abs(diff)} dias`;
+  return date.toLocaleDateString("es-PE", { day: "numeric", month: "short" });
+}
+
 export default function ParentTasksPage({ user, token, onLogout }) {
-  const navigate = useNavigate();
   const { subdomain } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState(null);
   const [children, setChildren] = useState([]);
   const [selectedChild, setSelectedChild] = useState(null);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterCourse, setFilterCourse] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
+
+  const loadTasksForChild = async (childId) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/api/parent/tasks?student_id=${childId}`, { headers });
+      setTasks(res.data.tasks || []);
+    } catch (err) {
+      console.error("Error loading tasks:", err);
+      setTasks([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -46,11 +86,10 @@ export default function ParentTasksPage({ user, token, onLogout }) {
           const savedId = localStorage.getItem('selected_child_id');
           const child = childrenList.find(c => c.id === savedId) || childrenList[0];
           setSelectedChild(child);
-          const res = await axios.get(`${API}/api/parent/tasks?student_id=${child.id}`, { headers });
-          setTasks(res.data.tasks || []);
           localStorage.setItem('selected_child_id', child.id);
-        }
-      } catch (err) { console.error("Error:", err); } finally { setLoading(false); }
+          await loadTasksForChild(child.id);
+        } else { setLoading(false); }
+      } catch (err) { console.error("Error:", err); setLoading(false); }
     };
     init();
   }, [token]);
@@ -58,31 +97,35 @@ export default function ParentTasksPage({ user, token, onLogout }) {
   const handleChildChange = async (newChild) => {
     if (!newChild || newChild.id === selectedChild?.id) return;
     setSelectedChild(newChild);
-    setLoading(true);
-    try {
-      const res = await axios.get(`${API}/api/parent/tasks?student_id=${newChild.id}`, { headers });
-      setTasks(res.data.tasks || []);
-      localStorage.setItem('selected_child_id', newChild.id);
-    } catch (err) { console.error("Error:", err); } finally { setLoading(false); }
+    localStorage.setItem('selected_child_id', newChild.id);
+    await loadTasksForChild(newChild.id);
   };
 
   const schoolName = settings?.system_name || user?.school_name || "Portal Padres";
   const logoUrl = settings?.logo_url;
-  const navigateTo = (path) => navigate(subdomain ? `/school/${subdomain}${path}` : path);
 
-  const filteredTasks = tasks.filter(task => {
-    const matchesSearch = task.title?.toLowerCase().includes(searchQuery.toLowerCase()) || task.course_name?.toLowerCase().includes(searchQuery.toLowerCase());
-    if (!matchesSearch) return false;
-    if (statusFilter === "all") return true;
-    return task.status === statusFilter;
-  });
+  const enrichedTasks = useMemo(() => tasks.map(t => ({ ...t, computedStatus: getTaskStatus(t) })), [tasks]);
 
-  const stats = {
-    total: tasks.length,
-    pending: tasks.filter(t => t.status === "pending").length,
-    submitted: tasks.filter(t => t.status === "submitted").length,
-    graded: tasks.filter(t => t.status === "graded").length,
-  };
+  const courses = useMemo(() => {
+    const unique = [...new Set(tasks.map(t => t.subject_name || t.course_name).filter(Boolean))];
+    return unique.sort();
+  }, [tasks]);
+
+  const filteredTasks = useMemo(() => {
+    return enrichedTasks.filter(t => {
+      if (filterStatus !== "all" && t.computedStatus !== filterStatus) return false;
+      if (filterCourse !== "all" && (t.subject_name || t.course_name) !== filterCourse) return false;
+      return true;
+    });
+  }, [enrichedTasks, filterStatus, filterCourse]);
+
+  const stats = useMemo(() => ({
+    total: enrichedTasks.length,
+    pending: enrichedTasks.filter(t => t.computedStatus === "pending").length,
+    submitted: enrichedTasks.filter(t => t.computedStatus === "submitted").length,
+    graded: enrichedTasks.filter(t => t.computedStatus === "graded").length,
+    overdue: enrichedTasks.filter(t => t.computedStatus === "overdue").length,
+  }), [enrichedTasks]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex" data-testid="parent-tasks-page">
@@ -93,77 +136,127 @@ export default function ParentTasksPage({ user, token, onLogout }) {
         <StudentHeader user={user} onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain || user?.subdomain} token={token} roleLabel="Padre/Apoderado" profilePath="/parent/profile" />
 
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
-          <div className="flex items-center gap-2 mb-6">
-            <ClipboardList className="w-6 h-6 text-amber-500" />
-            <h2 className="text-xl font-bold text-slate-800">Tareas de {selectedChild?.name || ""}</h2>
-            <span className="text-sm text-slate-500">({stats.pending} pendientes · {stats.submitted} entregadas · {stats.graded} calificadas)</span>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                <ClipboardList className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-bold text-slate-800" style={{ fontFamily: "Manrope, sans-serif" }}>
+                  Tareas de {selectedChild?.name || ""}
+                </h1>
+                <p className="text-sm text-slate-500">{filteredTasks.length} tareas</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all ${showFilters ? "bg-cyan-50 border-cyan-200 text-cyan-700" : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"}`}
+            >
+              <Filter className="w-4 h-4" />
+              <span className="text-sm font-medium">Filtros</span>
+            </button>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            {[
-              { key: "pending", label: "Pendientes", count: stats.pending, icon: Clock, active: "bg-amber-50 border-amber-300", iconBg: "bg-amber-100", iconColor: "text-amber-600" },
-              { key: "submitted", label: "Entregadas", count: stats.submitted, icon: Upload, active: "bg-blue-50 border-blue-300", iconBg: "bg-blue-100", iconColor: "text-blue-600" },
-              { key: "graded", label: "Calificadas", count: stats.graded, icon: CheckCircle, active: "bg-emerald-50 border-emerald-300", iconBg: "bg-emerald-100", iconColor: "text-emerald-600" },
-              { key: "all", label: "Todas", count: stats.total, icon: ClipboardList, active: "bg-slate-100 border-slate-400", iconBg: "bg-slate-200", iconColor: "text-slate-600" }
-            ].map(s => (
-              <button key={s.key} onClick={() => setStatusFilter(s.key)} className={`p-4 rounded-xl border transition-all ${statusFilter === s.key ? s.active : "bg-white border-slate-200 hover:border-slate-300"}`}>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-lg ${s.iconBg} flex items-center justify-center`}><s.icon className={`w-5 h-5 ${s.iconColor}`} /></div>
-                  <div className="text-left"><p className="text-2xl font-bold text-slate-800">{s.count}</p><p className="text-xs text-slate-500">{s.label}</p></div>
-                </div>
-              </button>
-            ))}
-          </div>
-
-          <div className="mb-6">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar tarea o curso..." className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:border-amber-400 transition-colors" data-testid="search-tasks" />
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <p className="text-sm text-slate-500">Total</p>
+              <p className="text-2xl font-bold text-slate-800">{stats.total}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-2 text-amber-600 mb-1"><Clock className="w-4 h-4" /><span className="text-sm font-medium">Pendientes</span></div>
+              <p className="text-2xl font-bold text-slate-800">{stats.pending}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-2 text-blue-600 mb-1"><CheckCircle className="w-4 h-4" /><span className="text-sm font-medium">Entregados</span></div>
+              <p className="text-2xl font-bold text-slate-800">{stats.submitted}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-2 text-emerald-600 mb-1"><CheckCircle className="w-4 h-4" /><span className="text-sm font-medium">Calificados</span></div>
+              <p className="text-2xl font-bold text-slate-800">{stats.graded}</p>
+            </div>
+            <div className="bg-white rounded-xl border border-slate-200 p-4">
+              <div className="flex items-center gap-2 text-red-600 mb-1"><AlertCircle className="w-4 h-4" /><span className="text-sm font-medium">Vencidos</span></div>
+              <p className="text-2xl font-bold text-slate-800">{stats.overdue}</p>
             </div>
           </div>
 
+          {/* Filters */}
+          {showFilters && (
+            <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex flex-wrap gap-4">
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Estado</label>
+                <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                  <option value="all">Todos</option>
+                  <option value="pending">Pendientes</option>
+                  <option value="submitted">Entregados</option>
+                  <option value="graded">Calificados</option>
+                  <option value="overdue">Vencidos</option>
+                </select>
+              </div>
+              <div className="flex-1 min-w-[180px]">
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5">Curso</label>
+                <select value={filterCourse} onChange={(e) => setFilterCourse(e.target.value)} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500">
+                  <option value="all">Todos los cursos</option>
+                  {courses.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Task List */}
           {loading ? (
-            <div className="flex items-center justify-center py-20"><Loader2 className="w-10 h-10 text-amber-500 animate-spin" /></div>
+            <div className="flex items-center justify-center py-20"><Loader2 className="w-10 h-10 text-cyan-500 animate-spin" /></div>
           ) : filteredTasks.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="w-20 h-20 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-10 h-10 text-amber-400" /></div>
-              <h3 className="text-lg font-semibold text-slate-700 mb-2">{searchQuery || statusFilter !== "all" ? "Sin resultados" : "Sin tareas"}</h3>
-              <p className="text-slate-500 max-w-sm mx-auto">{searchQuery || statusFilter !== "all" ? "No encontramos tareas que coincidan" : "No hay tareas asignadas por el momento"}</p>
+            <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center">
+              <div className="w-20 h-20 mx-auto mb-4 bg-cyan-50 rounded-full flex items-center justify-center">
+                <ClipboardList className="w-10 h-10 text-cyan-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-slate-700 mb-2">Sin tareas</h3>
+              <p className="text-slate-500 max-w-md mx-auto">No se encontraron tareas con los filtros seleccionados.</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              <div className="divide-y divide-slate-100">
-                {filteredTasks.map((task) => {
-                  const status = task.status || "pending";
-                  const StatusIcon = STATUS_CONFIG[status]?.icon || Clock;
-                  const dueDate = task.due_date || null;
-                  const isPastDue = dueDate && new Date(dueDate) < new Date();
-                  return (
-                    <div key={task.id} onClick={() => navigateTo(`/parent/courses/${task.course_id}?task=${task.id}`)} className="p-4 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-4" data-testid={`task-item-${task.id}`}>
-                      <div className="w-2 h-12 rounded-full flex-shrink-0" style={{ backgroundColor: task.course_color || "#f59e0b" }} />
+            <div className="space-y-3">
+              {filteredTasks.map((task) => {
+                const statusConf = STATUS_CONFIG[task.computedStatus] || STATUS_CONFIG.pending;
+                const StatusIcon = statusConf.icon;
+                return (
+                  <div key={task.id} className="bg-white rounded-xl border border-slate-200 hover:shadow-md hover:border-cyan-200 transition-all p-4" data-testid={`parent-task-${task.id}`}>
+                    <div className="flex items-start gap-4">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${statusConf.color}`}>
+                        <StatusIcon className="w-5 h-5" />
+                      </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
                           <h3 className="font-semibold text-slate-800 truncate">{task.title}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_CONFIG[status]?.color || "bg-slate-100"}`}>{STATUS_CONFIG[status]?.label || status}</span>
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${statusConf.color}`}>{statusConf.label}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-slate-500">
-                          <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{task.course_name}</span>
-                          {dueDate && (
-                            <span className={`flex items-center gap-1 ${isPastDue && status === "pending" ? "text-red-500" : ""}`}>
-                              <Calendar className="w-3.5 h-3.5" />
-                              {new Date(dueDate).toLocaleDateString("es-PE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}
-                            </span>
+                        {task.description && (
+                          <p className="text-sm text-slate-500 line-clamp-1 mb-2">{task.description}</p>
+                        )}
+                        <div className="flex items-center gap-3 flex-wrap text-xs text-slate-500">
+                          {(task.subject_name || task.course_name) && (
+                            <span className="flex items-center gap-1"><BookOpen className="w-3.5 h-3.5" />{task.subject_name || task.course_name}</span>
+                          )}
+                          {task.due_date && (
+                            <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5" />{formatDueDate(task.due_date)}</span>
+                          )}
+                          {task.teacher_name && (
+                            <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{task.teacher_name}</span>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <StatusIcon className={`w-5 h-5 ${status === "graded" ? "text-emerald-500" : status === "submitted" ? "text-blue-500" : status === "late" ? "text-red-500" : "text-amber-500"}`} />
-                        <ChevronRight className="w-5 h-5 text-slate-300" />
-                      </div>
+                      {task.submission?.grade != null && (
+                        <div className="text-right flex-shrink-0">
+                          <p className="text-2xl font-bold text-emerald-600">{task.submission.grade}</p>
+                          <p className="text-xs text-slate-500">/{task.max_score || 20}</p>
+                        </div>
+                      )}
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </main>
