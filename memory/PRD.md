@@ -45,9 +45,11 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 - Schedule management with breaks
 
 ### Course Posts Seeding (COMPLETE - Feb 27, 2026)
-- Seeded course_posts (materials, announcements, tasks) for all subjects in elroble school
+- Seeded course_posts (materials, announcements, tasks, forum posts) for all subjects in elroble school
+- Seeded course_reminders for multiple subjects with future dates
 - Updated demo_seeder.py to include course_posts for future schools
-- Materials tab now displays correctly in both Student and Parent portals
+- Materials, Forum, and Reminders tabs now display correctly in both Student and Parent portals
+- Added RemindersContent component with proper tab rendering (was missing case "recordatorios")
 
 ## Known Issues / Tech Debt
 - **P0**: `server.py` is monolithic (21,000+ lines) - needs modularization
