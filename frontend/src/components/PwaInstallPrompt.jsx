@@ -116,7 +116,7 @@ export default function PwaInstallPrompt() {
         </div>
       )}
 
-      {/* iOS guide modal */}
+      {/* Guide modal (iOS/generic) */}
       {showIosGuide && (
         <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4" data-testid="ios-guide-overlay">
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 relative">
@@ -127,22 +127,39 @@ export default function PwaInstallPrompt() {
               <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-[#001f4b] flex items-center justify-center">
                 <Smartphone className="w-6 h-6 text-[#e1b82c]" />
               </div>
-              <h3 className="text-lg font-bold text-[#001f4b]">Instalar en iPhone</h3>
+              <h3 className="text-lg font-bold text-[#001f4b]">Instalar EduNet</h3>
             </div>
-            <ol className="space-y-3 text-sm text-slate-600">
-              <li className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
-                <span>Toca el botón <strong>Compartir</strong> (cuadrado con flecha) en la barra de Safari</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
-                <span>Desplázate y selecciona <strong>"Agregar a pantalla de inicio"</strong></span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
-                <span>Toca <strong>"Agregar"</strong> para confirmar</span>
-              </li>
-            </ol>
+            {/iPhone|iPad|iPod/.test(navigator.userAgent) ? (
+              <ol className="space-y-3 text-sm text-slate-600">
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <span>Toca el botón <strong>Compartir</strong> (cuadrado con flecha) en Safari</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <span>Selecciona <strong>"Agregar a pantalla de inicio"</strong></span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <span>Toca <strong>"Agregar"</strong> para confirmar</span>
+                </li>
+              </ol>
+            ) : (
+              <ol className="space-y-3 text-sm text-slate-600">
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <span>Abre el <strong>menú del navegador</strong> (tres puntos)</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <span>Selecciona <strong>"Instalar aplicación"</strong> o <strong>"Agregar a pantalla de inicio"</strong></span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <span>Confirma tocando <strong>"Instalar"</strong></span>
+                </li>
+              </ol>
+            )}
             <button
               onClick={() => setShowIosGuide(false)}
               className="w-full mt-5 py-3 bg-[#001f4b] text-white font-semibold rounded-xl"
