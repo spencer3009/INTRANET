@@ -63,7 +63,7 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 ## Test Credentials
 - **Owner**: admin@elroble.edu / 1234abc8 (subdomain: elroble)
 - **Parent**: miguel@gmail.com / password123 (child: Juan Lopez Zapata)
-- **App URL**: https://edunet-parent-dev.preview.emergentagent.com
+- **App URL**: https://parent-portal-debug.preview.emergentagent.com
 
 ## File Structure
 ```
