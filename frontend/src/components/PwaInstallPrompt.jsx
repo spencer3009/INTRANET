@@ -63,7 +63,7 @@ export default function PwaInstallPrompt() {
       }
       setDeferredPrompt(null);
     } else {
-      // iOS fallback
+      // No native prompt available — show guide
       await new Promise((r) => setTimeout(r, 500));
       setInstalling(false);
       setShowIosGuide(true);
