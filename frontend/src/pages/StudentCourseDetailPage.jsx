@@ -4445,9 +4445,12 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
     setLoading(true);
     try {
       // Load settings and subject info
+      const coursesUrl = isParent && selectedChild
+        ? `${API}/api/parent/courses?student_id=${selectedChild.id}`
+        : `${API}/api/student/courses`;
       const [settingsRes, coursesRes] = await Promise.all([
         axios.get(`${API}/api/settings/public/${subdomain}`, { headers }).catch(() => ({ data: null })),
-        axios.get(`${API}/api/student/courses`, { headers })
+        axios.get(coursesUrl, { headers }).catch(() => ({ data: { courses: [] } }))
       ]);
       
       if (settingsRes.data) {
@@ -4462,11 +4465,13 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
       }
       
       // Load classmates (students in the same section)
-      try {
-        const classmatesRes = await axios.get(`${API}/api/student/classmates`, { headers });
-        setStudents(classmatesRes.data.students || []);
-      } catch (e) {
-        console.log("Could not load classmates:", e);
+      if (!isParent) {
+        try {
+          const classmatesRes = await axios.get(`${API}/api/student/classmates`, { headers });
+          setStudents(classmatesRes.data.students || []);
+        } catch (e) {
+          console.log("Could not load classmates:", e);
+        }
       }
       
       // Load course reminders - correct endpoint
