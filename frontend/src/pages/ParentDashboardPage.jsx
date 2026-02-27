@@ -190,12 +190,14 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
   const loadChildDashboard = async (childId) => {
     try {
-      const [dashboardRes, coursesRes] = await Promise.all([
+      const [dashboardRes, coursesRes, paymentsRes] = await Promise.all([
         axios.get(`${API}/api/parent/dashboard?student_id=${childId}`, { headers }),
-        axios.get(`${API}/api/parent/courses?student_id=${childId}`, { headers })
+        axios.get(`${API}/api/parent/courses?student_id=${childId}`, { headers }),
+        axios.get(`${API}/api/parent/payments?student_id=${childId}`, { headers }).catch(() => ({ data: null }))
       ]);
       setDashboardData(dashboardRes.data);
       setCourses(coursesRes.data.courses || []);
+      setPaymentData(paymentsRes.data);
       setCoursesPage(1);
       setTasksPage(1);
     } catch (err) {
