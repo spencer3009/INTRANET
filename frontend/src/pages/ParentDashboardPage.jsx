@@ -424,7 +424,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
 
           {/* Financial Status + Student Profile - Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 items-start" data-testid="financial-profile-section">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-4 items-start" data-testid="financial-profile-section">
             {/* Left Column: Financial Status (70%) */}
             <div className={`${paymentData ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
               {paymentData ? (
@@ -591,8 +591,8 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           </div>
 
           {/* Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-8 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="lg:col-span-8 space-y-4">
               <HeroCarousel banners={banners} user={studentInfo} schoolName={schoolName} />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
