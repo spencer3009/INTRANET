@@ -71,7 +71,6 @@ import ParentSchedulePage from "@/pages/ParentSchedulePage";
 import ParentExamsPage from "@/pages/ParentExamsPage";
 import ParentMessagesPage from "@/pages/ParentMessagesPage";
 import ParentCourseDetailPage from "@/pages/ParentCourseDetailPage";
-import ParentStudentDashboardPage from "@/pages/ParentStudentDashboardPage";
 import { Toaster } from "sonner";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 // Support Panel imports
