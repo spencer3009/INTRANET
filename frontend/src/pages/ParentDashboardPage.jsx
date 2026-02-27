@@ -423,147 +423,172 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           </div>
 
 
-          {/* Financial Status Section */}
-          {paymentData && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6" data-testid="financial-status">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    paymentData.summary.overall_status === 'moroso' 
-                      ? 'bg-red-100' 
-                      : paymentData.summary.overall_status === 'pendiente' 
-                        ? 'bg-amber-100' 
-                        : 'bg-emerald-100'
-                  }`}>
-                    <Wallet className={`w-5 h-5 ${
-                      paymentData.summary.overall_status === 'moroso' 
-                        ? 'text-red-600' 
-                        : paymentData.summary.overall_status === 'pendiente' 
-                          ? 'text-amber-600' 
-                          : 'text-emerald-600'
-                    }`} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-slate-800">Estado Financiero</h3>
-                    <p className="text-xs text-slate-500">Pensiones mensuales {new Date().getFullYear()}</p>
-                  </div>
-                </div>
-                
-                {paymentData.summary.overall_status === 'moroso' && (
-                  <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 animate-pulse" data-testid="morosidad-alert">
-                    <AlertTriangle className="w-4 h-4 text-red-600" />
-                    <span className="text-xs font-bold text-red-700">MOROSIDAD DETECTADA</span>
-                  </div>
-                )}
-                {paymentData.summary.overall_status === 'al_dia' && (
-                  <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-600" />
-                    <span className="text-xs font-bold text-emerald-700">AL DÍA</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Multi-color Progress Bar */}
-              <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Progreso de pagos: {paymentData.summary.paid_percentage}%
-                  </span>
-                  <span className="text-sm text-slate-500">
-                    {paymentData.summary.paid_count} de {paymentData.summary.total_months} meses
-                  </span>
-                </div>
-                <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden flex">
-                  {paymentData.summary.paid_count > 0 && (
-                    <div 
-                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-700"
-                      style={{ width: `${(paymentData.summary.paid_count / paymentData.summary.total_months) * 100}%` }}
-                      title={`${paymentData.summary.paid_count} pagados`}
-                    />
-                  )}
-                  {paymentData.summary.pending_count > 0 && (
-                    <div 
-                      className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-700"
-                      style={{ width: `${(paymentData.summary.pending_count / paymentData.summary.total_months) * 100}%` }}
-                      title={`${paymentData.summary.pending_count} pendientes`}
-                    />
-                  )}
-                  {paymentData.summary.overdue_count > 0 && (
-                    <div 
-                      className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-700"
-                      style={{ width: `${(paymentData.summary.overdue_count / paymentData.summary.total_months) * 100}%` }}
-                      title={`${paymentData.summary.overdue_count} morosos`}
-                    />
-                  )}
-                </div>
-                <div className="flex items-center gap-4 mt-2">
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-3 h-3 rounded-full bg-emerald-500" />
-                    <span className="text-xs text-slate-600">{paymentData.summary.paid_count} pagados</span>
-                  </div>
-                  {paymentData.summary.pending_count > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-amber-500" />
-                      <span className="text-xs text-slate-600">{paymentData.summary.pending_count} pendientes</span>
+          {/* Financial Status + Student Profile - Two Column Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6" data-testid="financial-profile-section">
+            {/* Left Column: Financial Status (70%) */}
+            <div className={`${paymentData ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
+              {paymentData ? (
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 h-full" data-testid="financial-status">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                        paymentData.summary.overall_status === 'moroso' 
+                          ? 'bg-red-100' 
+                          : paymentData.summary.overall_status === 'pendiente' 
+                            ? 'bg-amber-100' 
+                            : 'bg-emerald-100'
+                      }`}>
+                        <Wallet className={`w-5 h-5 ${
+                          paymentData.summary.overall_status === 'moroso' 
+                            ? 'text-red-600' 
+                            : paymentData.summary.overall_status === 'pendiente' 
+                              ? 'text-amber-600' 
+                              : 'text-emerald-600'
+                        }`} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-slate-800">Estado Financiero</h3>
+                        <p className="text-xs text-slate-500">Pensiones mensuales {new Date().getFullYear()}</p>
+                      </div>
                     </div>
-                  )}
-                  {paymentData.summary.overdue_count > 0 && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-500" />
-                      <span className="text-xs text-red-600 font-semibold">{paymentData.summary.overdue_count} morosos</span>
+                    
+                    {paymentData.summary.overall_status === 'moroso' && (
+                      <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-2 animate-pulse" data-testid="morosidad-alert">
+                        <AlertTriangle className="w-4 h-4 text-red-600" />
+                        <span className="text-xs font-bold text-red-700">MOROSIDAD DETECTADA</span>
+                      </div>
+                    )}
+                    {paymentData.summary.overall_status === 'al_dia' && (
+                      <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        <span className="text-xs font-bold text-emerald-700">AL DÍA</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Multi-color Progress Bar */}
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-slate-700">
+                        Progreso de pagos: {paymentData.summary.paid_percentage}%
+                      </span>
+                      <span className="text-sm text-slate-500">
+                        {paymentData.summary.paid_count} de {paymentData.summary.total_months} meses
+                      </span>
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div className="w-full h-4 bg-slate-100 rounded-full overflow-hidden flex">
+                      {paymentData.summary.paid_count > 0 && (
+                        <div 
+                          className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 transition-all duration-700"
+                          style={{ width: `${(paymentData.summary.paid_count / paymentData.summary.total_months) * 100}%` }}
+                          title={`${paymentData.summary.paid_count} pagados`}
+                        />
+                      )}
+                      {paymentData.summary.pending_count > 0 && (
+                        <div 
+                          className="h-full bg-gradient-to-r from-amber-400 to-amber-500 transition-all duration-700"
+                          style={{ width: `${(paymentData.summary.pending_count / paymentData.summary.total_months) * 100}%` }}
+                          title={`${paymentData.summary.pending_count} pendientes`}
+                        />
+                      )}
+                      {paymentData.summary.overdue_count > 0 && (
+                        <div 
+                          className="h-full bg-gradient-to-r from-red-500 to-red-600 transition-all duration-700"
+                          style={{ width: `${(paymentData.summary.overdue_count / paymentData.summary.total_months) * 100}%` }}
+                          title={`${paymentData.summary.overdue_count} morosos`}
+                        />
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                        <span className="text-xs text-slate-600">{paymentData.summary.paid_count} pagados</span>
+                      </div>
+                      {paymentData.summary.pending_count > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-amber-500" />
+                          <span className="text-xs text-slate-600">{paymentData.summary.pending_count} pendientes</span>
+                        </div>
+                      )}
+                      {paymentData.summary.overdue_count > 0 && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded-full bg-red-500" />
+                          <span className="text-xs text-red-600 font-semibold">{paymentData.summary.overdue_count} morosos</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-              {/* Financial Summary Cards */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-                <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
-                  <CircleDollarSign className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
-                  <p className="text-lg font-bold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {paymentData.summary.paid_amount.toLocaleString('es-PE')}
-                  </p>
-                  <p className="text-[10px] text-emerald-600 font-medium">Total Pagado</p>
-                </div>
-                <div className={`rounded-xl p-3 text-center border ${
-                  paymentData.summary.debt_amount > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'
-                }`}>
-                  <AlertTriangle className={`w-5 h-5 mx-auto mb-1 ${paymentData.summary.debt_amount > 0 ? 'text-red-600' : 'text-slate-400'}`} />
-                  <p className={`text-lg font-bold ${paymentData.summary.debt_amount > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {paymentData.summary.debt_amount.toLocaleString('es-PE')}
-                  </p>
-                  <p className={`text-[10px] font-medium ${paymentData.summary.debt_amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>Deuda Total</p>
-                </div>
-                <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
-                  <TrendingUp className="w-5 h-5 text-blue-600 mx-auto mb-1" />
-                  <p className="text-lg font-bold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {paymentData.summary.total_amount.toLocaleString('es-PE')}
-                  </p>
-                  <p className="text-[10px] text-blue-600 font-medium">Total Anual</p>
-                </div>
-                <div className={`rounded-xl p-3 text-center border ${
-                  paymentData.matricula.paid ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'
-                }`}>
-                  <Receipt className={`w-5 h-5 mx-auto mb-1 ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`} />
-                  <p className={`text-lg font-bold ${paymentData.matricula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    {paymentData.matricula.paid ? 'Pagada' : 'Pendiente'}
-                  </p>
-                  <p className={`text-[10px] font-medium ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matrícula</p>
-                </div>
-              </div>
+                  {/* Financial Summary Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
+                      <CircleDollarSign className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
+                      <p className="text-lg font-bold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                        S/ {paymentData.summary.paid_amount.toLocaleString('es-PE')}
+                      </p>
+                      <p className="text-[10px] text-emerald-600 font-medium">Total Pagado</p>
+                    </div>
+                    <div className={`rounded-xl p-3 text-center border ${
+                      paymentData.summary.debt_amount > 0 ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-100'
+                    }`}>
+                      <AlertTriangle className={`w-5 h-5 mx-auto mb-1 ${paymentData.summary.debt_amount > 0 ? 'text-red-600' : 'text-slate-400'}`} />
+                      <p className={`text-lg font-bold ${paymentData.summary.debt_amount > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                        S/ {paymentData.summary.debt_amount.toLocaleString('es-PE')}
+                      </p>
+                      <p className={`text-[10px] font-medium ${paymentData.summary.debt_amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>Deuda Total</p>
+                    </div>
+                    <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
+                      <TrendingUp className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+                      <p className="text-lg font-bold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                        S/ {paymentData.summary.total_amount.toLocaleString('es-PE')}
+                      </p>
+                      <p className="text-[10px] text-blue-600 font-medium">Total Anual</p>
+                    </div>
+                    <div className={`rounded-xl p-3 text-center border ${
+                      paymentData.matricula.paid ? 'bg-emerald-50 border-emerald-100' : 'bg-amber-50 border-amber-100'
+                    }`}>
+                      <Receipt className={`w-5 h-5 mx-auto mb-1 ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`} />
+                      <p className={`text-lg font-bold ${paymentData.matricula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
+                        {paymentData.matricula.paid ? 'Pagada' : 'Pendiente'}
+                      </p>
+                      <p className={`text-[10px] font-medium ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matrícula</p>
+                    </div>
+                  </div>
 
-              {/* Link to full payments detail */}
-              <button 
-                onClick={() => navigateTo("/parent/payments")}
-                className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700"
-                data-testid="view-payments-detail"
-              >
-                <Receipt className="w-4 h-4" />
-                Ver detalle de pagos
-                <ChevronRight className="w-4 h-4" />
-              </button>
+                  {/* Link to full payments detail */}
+                  <button 
+                    onClick={() => navigateTo("/parent/payments")}
+                    className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700"
+                    data-testid="view-payments-detail"
+                  >
+                    <Receipt className="w-4 h-4" />
+                    Ver detalle de pagos
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-slate-200 p-8 h-full flex items-center justify-center">
+                  <div className="text-center text-slate-400">
+                    <Wallet className="w-10 h-10 mx-auto mb-2 opacity-40" />
+                    <p className="text-sm">Sin información financiera disponible</p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+
+            {/* Right Column: Student Profile (30%) */}
+            <div className="lg:col-span-4" data-testid="profile-column">
+              <div className="space-y-3 h-full flex flex-col">
+                <div className="flex items-center gap-2 px-1">
+                  <User className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alumno seleccionado</span>
+                </div>
+                <div className="flex-1">
+                  <StudentProfileCard student={studentInfo} dashboardData={dashboardData} academic={academic} />
+                </div>
+              </div>
+            </div>
+          </div>
 
           {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
