@@ -597,7 +597,80 @@ async def seed_demo_data_for_school(db, school_id: str, owner_user_id: str):
         summary["seeded"].append(f"datos de inscripción")
         
         # ─────────────────────────────────────────────────────────────────────
-        # 15. UPDATE SCHOOL WITH DEMO FLAG
+        # 15. SEED COURSE POSTS (Materials, Announcements, Tasks)
+        # ─────────────────────────────────────────────────────────────────────
+        course_posts_count = 0
+        materials_templates = {
+            "Matemáticas": [
+                {"title": "Guía de Fracciones y Decimales", "content": "Material de estudio sobre fracciones, conversión de decimales y operaciones básicas. Incluye ejercicios resueltos paso a paso."},
+                {"title": "Geometría Básica - Figuras y Áreas", "content": "Resumen de figuras geométricas: triángulos, cuadriláteros, círculos. Fórmulas de perímetro y área con ejemplos resueltos."},
+            ],
+            "Comunicación": [
+                {"title": "Comprensión Lectora - Técnicas", "content": "Estrategias para mejorar la comprensión lectora: subrayado, resumen, mapas mentales y técnica SQ3R."},
+                {"title": "Redacción de Textos Narrativos", "content": "Guía para escribir cuentos y narraciones: estructura narrativa, elementos, uso del diálogo y la descripción."},
+            ],
+            "Ciencia y Tecnología": [
+                {"title": "El Sistema Solar", "content": "Presentación sobre los planetas del sistema solar, sus características principales, órbitas y datos curiosos."},
+                {"title": "Ciclo del Agua", "content": "Explicación detallada del ciclo hidrológico: evaporación, condensación, precipitación e infiltración."},
+            ],
+            "Personal Social": [
+                {"title": "La Constitución Política del Perú", "content": "Resumen de los artículos más importantes. Derechos fundamentales, deberes ciudadanos y organización del Estado."},
+            ],
+            "Inglés": [
+                {"title": "Basic Grammar - Present Tense", "content": "Introduction to present simple and present continuous. Rules, examples and practice exercises."},
+            ],
+        }
+        for i, sid in enumerate(subject_ids):
+            subject_data = get_demo_subjects()[i] if i < len(get_demo_subjects()) else None
+            subject_name = subject_data["name"] if subject_data else f"Subject {i}"
+            teacher_id = teacher_ids[i % len(teacher_ids)] if teacher_ids else owner_user_id
+            
+            materials = materials_templates.get(subject_name, [
+                {"title": f"Material de {subject_name} - Unidad 1", "content": f"Material de estudio para la primera unidad del curso de {subject_name}."},
+            ])
+            
+            for j, mat in enumerate(materials):
+                post_id = str(uuid.uuid4())
+                await db.course_posts.insert_one({
+                    "id": post_id,
+                    "subject_id": sid,
+                    "school_id": school_id,
+                    "author_id": teacher_id,
+                    "post_type": "material",
+                    "title": mat["title"],
+                    "content": mat["content"],
+                    "status": "active",
+                    "likes": [],
+                    "likes_count": 0,
+                    "comments_count": 0,
+                    "is_demo": True,
+                    "created_at": (now - timedelta(days=10-j*2)).isoformat(),
+                    "updated_at": (now - timedelta(days=10-j*2)).isoformat(),
+                })
+                course_posts_count += 1
+            
+            # Add one announcement per subject
+            await db.course_posts.insert_one({
+                "id": str(uuid.uuid4()),
+                "subject_id": sid,
+                "school_id": school_id,
+                "author_id": teacher_id,
+                "post_type": "announcement",
+                "content": f"Bienvenidos al curso de {subject_name}. Este bimestre trabajaremos temas muy interesantes.",
+                "status": "active",
+                "likes": [],
+                "likes_count": 0,
+                "comments_count": 0,
+                "is_demo": True,
+                "created_at": (now - timedelta(days=1)).isoformat(),
+                "updated_at": (now - timedelta(days=1)).isoformat(),
+            })
+            course_posts_count += 1
+        
+        summary["seeded"].append(f"{course_posts_count} publicaciones de cursos")
+        
+        # ─────────────────────────────────────────────────────────────────────
+        # 16. UPDATE SCHOOL WITH DEMO FLAG
         # ─────────────────────────────────────────────────────────────────────
         await db.schools.update_one(
             {"id": school_id},
