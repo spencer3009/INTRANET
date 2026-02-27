@@ -226,6 +226,9 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
         expanded={sidebarExpanded}
         onToggle={() => setSidebarExpanded(!sidebarExpanded)}
         onLogout={onLogout}
+        schoolName={schoolName}
+        subdomain={subdomain || user?.subdomain}
+        user={user}
       />
 
       <div className="flex-1 flex flex-col min-w-0">
