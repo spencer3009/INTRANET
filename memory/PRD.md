@@ -59,6 +59,14 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 - Removed ParentStudentDashboardPage.jsx (was separate page, now integrated)
 - Tested: child switching updates all data correctly (Pepito vs Juan show different stats)
 
+### Payment Module in Parent Portal (COMPLETE - Feb 27, 2026)
+- Created /api/parent/payments endpoint returning payment summary per child
+- Dashboard shows financial summary: progress bar (green/yellow/red), 4 summary cards, morosidad alert
+- New ParentPaymentsPage.jsx with full monthly detail table accessible via sidebar "Pagos" or "Ver detalle" button
+- Seeded realistic payment data for 3 children (Pepito: 71%, Juan: 57%, Jorge: 20%) with different morosidad levels
+- Added "Pagos" (Wallet icon) to ParentSidebar
+- Child selector auto-updates all financial data
+
 ## Known Issues / Tech Debt
 - **P0**: `server.py` is monolithic (21,000+ lines) - needs modularization
 - **P0**: Owner Dashboard has hardcoded data for "Asistencia del Mes" and "Noticias y Avisos"
