@@ -20396,7 +20396,7 @@ async def get_parent_dashboard(
     student_id: str = Query(..., description="ID del estudiante"),
     current_user = Depends(get_current_user)
 ):
-    """Get dashboard data for a specific child. Same as student dashboard but for parents."""
+    """Get full dashboard data for a specific child - mirrors student dashboard format."""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -20416,8 +20416,9 @@ async def get_parent_dashboard(
     if student.get("seccion_id"):
         seccion = await db.sections.find_one({"id": student["seccion_id"], "school_id": school_id}, {"_id": 0})
     
-    # Get courses
+    # Get courses via academic_assignments
     courses = []
+    subject_ids = []
     if student.get("seccion_id"):
         assignments = await db.academic_assignments.find({
             "school_id": school_id,
@@ -20432,45 +20433,86 @@ async def get_parent_dashboard(
                 "school_id": school_id
             }, {"_id": 0}).to_list(50)
     
-    # Get pending tasks
-    pending_tasks = []
-    if courses:
-        subject_ids = [c["id"] for c in courses]
-        tasks = await db.course_posts.find({
+    # Get section students count
+    section_students_count = 0
+    if student.get("seccion_id"):
+        section_students_count = await db.users.count_documents({
+            "school_id": school_id,
+            "role": "student",
+            "seccion_id": student["seccion_id"]
+        })
+    
+    # Get ALL tasks for this student's subjects (for task progress calculation)
+    all_tasks = []
+    upcoming_tasks = []
+    if subject_ids:
+        now = datetime.now(timezone.utc)
+        all_tasks = await db.course_posts.find({
             "school_id": school_id,
             "subject_id": {"$in": subject_ids},
             "$or": [{"post_type": "task"}, {"type": "task"}],
-            "due_date": {"$gte": datetime.now(timezone.utc).isoformat()}
-        }, {"_id": 0}).sort("due_date", 1).to_list(10)
+            "status": "active",
+            "deleted_at": {"$exists": False}
+        }, {"_id": 0}).to_list(200)
         
-        for task in tasks:
+        # Get all submissions for this student
+        task_ids = [t.get("id") for t in all_tasks if t.get("id")]
+        submitted_task_ids = set()
+        if task_ids:
+            submitted = await db.task_submissions.find({
+                "school_id": school_id,
+                "student_id": student_id,
+                "task_id": {"$in": task_ids}
+            }, {"_id": 0, "task_id": 1}).to_list(200)
+            submitted_task_ids = set(s["task_id"] for s in submitted)
+        
+        # Build upcoming tasks (not submitted, with future due date)
+        for task in all_tasks:
+            task_id = task.get("id")
+            due_date = task.get("due_date") or task.get("metadata", {}).get("due_date")
+            if task_id in submitted_task_ids:
+                continue
+            # Also check embedded submissions
+            submissions = task.get("submissions", [])
+            if any(s.get("student_id") == student_id for s in submissions):
+                continue
             subject = next((c for c in courses if c["id"] == task.get("subject_id")), None)
-            # Check submission status
-            submission = await db.task_submissions.find_one({
-                "task_id": task["id"],
-                "student_id": student_id
-            }, {"_id": 0})
-            
-            pending_tasks.append({
-                "id": task["id"],
+            upcoming_tasks.append({
+                "id": task_id,
                 "title": task.get("title"),
-                "due_date": task.get("due_date"),
-                "subject_name": subject.get("name") if subject else "",
-                "subject_id": task.get("subject_id"),
-                "status": "submitted" if submission else "pending",
-                "grade": submission.get("grade") if submission else None
+                "subject_name": subject.get("name") if subject else "Sin asignatura",
+                "subject_color": subject.get("color") if subject else "#6366f1",
+                "due_date": due_date,
+                "subject_id": task.get("subject_id")
             })
+        upcoming_tasks = upcoming_tasks[:10]
     
-    # Get attendance summary
-    attendance_summary = {"present": 0, "absent": 0, "late": 0, "total": 0}
+    # Task progress
+    total_tasks = len(all_tasks)
+    tasks_submitted = len([t for t in all_tasks if t.get("id") in submitted_task_ids]) if subject_ids else 0
+    task_percentage = round((tasks_submitted / total_tasks * 100) if total_tasks > 0 else 0)
+    
+    # Attendance summary (last 30 days)
+    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    attendance_summary = {"present": 0, "absent": 0, "late": 0, "justified": 0}
+    
     attendance_records = await db.attendances.find({
         "school_id": school_id,
         "user_id": student_id,
-        "type": "student"
+        "type": "student",
+        "date": {"$gte": thirty_days_ago}
     }, {"_id": 0, "status": 1}).to_list(100)
     
+    qr_attendance = await db.student_attendance.find({
+        "school_id": school_id,
+        "student_id": student_id,
+        "date": {"$gte": thirty_days_ago}
+    }, {"_id": 0, "status": 1, "date": 1}).to_list(100)
+    
+    seen_dates = set()
     for record in attendance_records:
-        attendance_summary["total"] += 1
+        date_key = record.get("date", "")
+        seen_dates.add(date_key)
         status = record.get("status", "").lower()
         if status in ["presente", "present", "p"]:
             attendance_summary["present"] += 1
@@ -20478,11 +20520,40 @@ async def get_parent_dashboard(
             attendance_summary["absent"] += 1
         elif status in ["tardanza", "late", "t"]:
             attendance_summary["late"] += 1
+        elif status in ["justificado", "justified", "j"]:
+            attendance_summary["justified"] += 1
     
-    # Get recent grades
+    for record in qr_attendance:
+        date_key = record.get("date", "")
+        if date_key not in seen_dates:
+            seen_dates.add(date_key)
+            status = record.get("status", "").lower()
+            if status in ["presente", "present", "p"]:
+                attendance_summary["present"] += 1
+            elif status in ["ausente", "absent", "a"]:
+                attendance_summary["absent"] += 1
+            elif status in ["tardanza", "late", "t"]:
+                attendance_summary["late"] += 1
+    
+    # Recent announcements
+    announcements = await db.institutional_messages.find({
+        "school_id": school_id,
+        "status": "active"
+    }, {"_id": 0}).sort("created_at", -1).limit(5).to_list(5)
+    
+    recent_announcements = []
+    for ann in announcements:
+        recent_announcements.append({
+            "id": ann["id"],
+            "title": ann.get("title"),
+            "priority": ann.get("priority", "normal"),
+            "created_at": ann.get("created_at"),
+            "is_read": student_id in ann.get("read_by", [])
+        })
+    
+    # Recent grades
     recent_grades = []
-    if courses:
-        subject_ids = [c["id"] for c in courses]
+    if subject_ids:
         grades = await db.grades_records.find({
             "school_id": school_id,
             "student_id": student_id,
@@ -20499,7 +20570,7 @@ async def get_parent_dashboard(
                 "date": grade.get("created_at")
             })
     
-    # Get unread messages count
+    # Unread messages count
     unread_pipeline = [
         {"$match": {
             "recipients": {
@@ -20533,13 +20604,22 @@ async def get_parent_dashboard(
         },
         "stats": {
             "courses_count": len(courses),
-            "pending_tasks": len(pending_tasks),
+            "pending_tasks": len(upcoming_tasks),
             "unread_messages": unread_messages,
-            "attendance_rate": round((attendance_summary["present"] / attendance_summary["total"] * 100) if attendance_summary["total"] > 0 else 0, 1)
+            "attendance_rate": round((attendance_summary["present"] / (attendance_summary["present"] + attendance_summary["absent"] + attendance_summary["late"] + attendance_summary["justified"]) * 100) if (attendance_summary["present"] + attendance_summary["absent"] + attendance_summary["late"] + attendance_summary["justified"]) > 0 else 0, 1),
+            "section_students_count": section_students_count
         },
-        "pending_tasks": pending_tasks[:5],
+        "courses_count": len(courses),
+        "upcoming_tasks": upcoming_tasks,
+        "task_progress": {
+            "total_tasks": total_tasks,
+            "tasks_submitted": tasks_submitted,
+            "percentage": task_percentage
+        },
+        "attendance_summary": attendance_summary,
+        "recent_announcements": recent_announcements,
         "recent_grades": recent_grades,
-        "attendance_summary": attendance_summary
+        "unread_messages": unread_messages
     }
 
 @api_router.get("/parent/courses")
