@@ -862,7 +862,6 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
             {/* Right column */}
             <div className="lg:col-span-4 space-y-6">
-              <StudentProfileCard student={studentInfo} dashboardData={dashboardData} academic={academic} />
               <MiniCalendar events={calendarEvents} />
             </div>
           </div>
