@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import axios from "axios";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import {
   Calendar, Clock, User, Loader2, AlertCircle, GraduationCap,
-  FileText, Timer, Archive, ChevronLeft, ChevronRight, Play,
+  FileText, Timer, Archive, ChevronLeft, ChevronRight,
   CheckCircle, BookOpen, TrendingUp, Target, Sparkles, ArrowRight
 } from "lucide-react";
 
@@ -81,7 +81,7 @@ function ParentExamCard({ exam }) {
             </div>
           ) : exam.status === "upcoming" ? (
             <div className="w-full py-2.5 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-sm font-medium flex items-center justify-center gap-2"><Timer className="w-4 h-4" /> Programado</div>
-          ) : exam.status === "completed" ? (
+          ) : exam.status === "completed" || exam.status === "finished" ? (
             <div className="w-full py-2.5 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl text-sm font-medium flex items-center justify-center gap-2"><Archive className="w-4 h-4" /> Examen finalizado</div>
           ) : null}
         </div>
@@ -238,6 +238,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
             <div className="bg-red-50 border border-red-200 rounded-2xl p-8 text-center"><AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-3" /><p className="text-red-700 font-medium">{error}</p></div>
           ) : (
             <>
+              {/* Stats */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-indigo-500 to-indigo-600 shadow-lg shadow-indigo-500/20"><div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" /><div className="relative"><div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3"><FileText className="w-5 h-5 text-white" /></div><p className="text-3xl font-extrabold text-white">{exams.length}</p><p className="text-xs text-indigo-200 mt-1 font-medium">Examenes este mes</p></div></div>
                 <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg shadow-amber-500/20"><div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" /><div className="relative"><div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3"><Target className="w-5 h-5 text-white" /></div><p className="text-3xl font-extrabold text-white">{upcomingExams.length}</p><p className="text-xs text-amber-100 mt-1 font-medium">Proximos</p></div></div>
@@ -245,6 +246,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
                 <div className="relative overflow-hidden rounded-2xl p-5 bg-gradient-to-br from-violet-500 to-purple-600 shadow-lg shadow-violet-500/20"><div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-6 translate-x-6" /><div className="relative"><div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center mb-3"><TrendingUp className="w-5 h-5 text-white" /></div><p className="text-3xl font-extrabold text-white">{new Set(exams.map(e => e.subject_name).filter(Boolean)).size}</p><p className="text-xs text-violet-200 mt-1 font-medium">Materias</p></div></div>
               </div>
 
+              {/* Calendar + Detail */}
               <div className="grid lg:grid-cols-5 gap-6 mb-6">
                 <div className="lg:col-span-3 space-y-4">
                   <div className="flex items-center justify-between">
@@ -276,6 +278,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
                 </div>
               </div>
 
+              {/* Upcoming exams */}
               {upcomingExams.length > 0 && (
                 <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden">
                   <div className="px-5 py-4 bg-gradient-to-r from-slate-800 to-slate-700 flex items-center justify-between">
