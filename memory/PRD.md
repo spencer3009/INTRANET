@@ -66,7 +66,15 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 - Attendance chart shows: percentage, days count, breakdown (presentes, tardanzas, faltas)
 - Smooth animation on load with stroke-dashoffset transition
 
-### Premium Financial + Profile Layout Reorganization (COMPLETE - Feb 27, 2026)
+### PWA Installation (COMPLETE - Feb 27, 2026)
+- Created manifest.json with EduNet branding, icons (192x192, 512x512 PNG)
+- Created service-worker.js for PWA capability
+- Updated index.html with manifest link, apple-mobile-web-app meta tags, service worker registration
+- Created PwaInstallPrompt component: mobile-only install button with animated download overlay
+- Integrated in both LoginPage.jsx and SchoolLoginPage.jsx
+- Mobile detection: user agent + viewport width <= 768px
+- Flow: Button → 2.5s animated progress bar → native beforeinstallprompt (or manual guide)
+- Hidden on desktop and when app is already installed (standalone mode)
 - Reorganized dashboard into two-column layout (70/30) for Financial Status + Student Profile
 - Left column (lg:col-span-8): Estado Financiero with progress bar, summary cards, morosidad alerts
 - Right column (lg:col-span-4): "Alumno seleccionado" header + StudentProfileCard
