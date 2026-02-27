@@ -861,6 +861,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     </div>
                   );
                 })()}
+              </div>
             </div>
           </div>
         </main>
