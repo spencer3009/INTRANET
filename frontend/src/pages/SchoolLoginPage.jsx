@@ -183,7 +183,7 @@ export default function SchoolLoginPage({ onLogin }) {
           </div>
 
           {/* Mobile: Show install screen first, with option to login */}
-          {pwaReady && !showLoginForm ? (
+          {isMobile && !showLoginForm ? (
             <div data-testid="mobile-install-view">
               <PwaInstallPrompt mode="hero" />
 
