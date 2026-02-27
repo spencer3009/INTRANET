@@ -69,7 +69,7 @@ export default function SchoolLoginPage({ onLogin }) {
       
       // Navigate to school's dashboard
       if (user.subdomain) {
-        navigate(`/school/${user.subdomain}/dashboard`);
+        navigate(`/${user.subdomain}/dashboard`);
       } else if (user.email_verified) {
         navigate("/onboarding");
       } else {
