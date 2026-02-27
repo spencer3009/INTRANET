@@ -66,6 +66,14 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 - Attendance chart shows: percentage, days count, breakdown (presentes, tardanzas, faltas)
 - Smooth animation on load with stroke-dashoffset transition
 
+### Premium Financial + Profile Layout Reorganization (COMPLETE - Feb 27, 2026)
+- Reorganized dashboard into two-column layout (70/30) for Financial Status + Student Profile
+- Left column (lg:col-span-8): Estado Financiero with progress bar, summary cards, morosidad alerts
+- Right column (lg:col-span-4): "Alumno seleccionado" header + StudentProfileCard
+- Responsive: stacks vertically on mobile (Financial first, then Profile)
+- StudentProfileCard removed from lower right sidebar, now only MiniCalendar there
+- No logic changes, only layout restructure
+
 ### Payment Module in Parent Portal (COMPLETE - Feb 27, 2026)
 - Created /api/parent/payments endpoint returning payment summary per child
 - Dashboard shows financial summary: progress bar (green/yellow/red), 4 summary cards, morosidad alert
