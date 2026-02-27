@@ -54,10 +54,17 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 ### Parent Student Dashboard (COMPLETE - Feb 27, 2026)
 - Replaced ParentDashboardPage with student dashboard replica as the MAIN parent view
 - Dashboard auto-updates when selecting different children from the sidebar dropdown
-- Read-only mode: same visual design as student dashboard (stat cards, progress bars, hero carousel, courses, tasks, profile card, calendar)
+- Read-only mode: same visual design as student dashboard (stat cards, circular progress charts, hero carousel, courses, tasks, profile card, calendar)
 - No separate menu item — the parent's Dashboard IS the student dashboard
 - Removed ParentStudentDashboardPage.jsx (was separate page, now integrated)
 - Tested: child switching updates all data correctly (Pepito vs Juan show different stats)
+
+### Circular Progress Charts (COMPLETE - Feb 27, 2026)
+- Converted linear progress bars for "Progreso de Tareas" and "Asistencia" into SVG circular graphs
+- Color-coded: green (>=80%), amber (>=50%), red (<50%)
+- Tasks chart shows: percentage, submitted/total count, status label
+- Attendance chart shows: percentage, days count, breakdown (presentes, tardanzas, faltas)
+- Smooth animation on load with stroke-dashoffset transition
 
 ### Payment Module in Parent Portal (COMPLETE - Feb 27, 2026)
 - Created /api/parent/payments endpoint returning payment summary per child
