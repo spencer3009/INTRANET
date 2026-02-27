@@ -4528,7 +4528,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
 
   const handleBack = () => {
     const basePath = subdomain ? `/school/${subdomain}` : "";
-    navigate(`${basePath}/student/courses`);
+    navigate(`${basePath}/${isParent ? "parent" : "student"}/courses`);
   };
 
   const handleSubmitTask = async (task, submissionData) => {
