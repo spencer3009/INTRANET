@@ -20280,6 +20280,93 @@ async def get_parent_profile(current_user = Depends(get_current_user)):
         "school_id": school_id
     }
 
+
+@api_router.get("/parent/payments")
+async def get_parent_payments(
+    student_id: str = Query(..., description="ID del estudiante"),
+    current_user = Depends(get_current_user)
+):
+    """Get payment summary for a specific child - used in parent dashboard."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    
+    # Get all mensualidad payments for this student
+    payments = await db.payments.find({
+        "school_id": school_id,
+        "student_id": student_id,
+        "concept": "mensualidad"
+    }, {"_id": 0}).sort("payment_date", 1).to_list(100)
+    
+    # Calculate summary
+    total_months = len(payments)
+    paid_count = sum(1 for p in payments if p.get("payment_status") == "paid")
+    pending_count = sum(1 for p in payments if p.get("payment_status") == "pending")
+    overdue_count = sum(1 for p in payments if p.get("payment_status") == "overdue")
+    
+    total_amount = sum(p.get("total_amount", 0) for p in payments)
+    paid_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "paid")
+    pending_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "pending")
+    overdue_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "overdue")
+    
+    paid_percentage = round((paid_count / total_months * 100) if total_months > 0 else 0)
+    
+    # Determine overall status
+    if overdue_count > 0:
+        overall_status = "moroso"
+    elif pending_count > 0:
+        overall_status = "pendiente"
+    else:
+        overall_status = "al_dia"
+    
+    # Build monthly detail
+    monthly_detail = []
+    for p in payments:
+        monthly_detail.append({
+            "id": p.get("id"),
+            "month_name": p.get("month_name") or p.get("description", ""),
+            "payment_date": p.get("payment_date"),
+            "total_amount": p.get("total_amount", 0),
+            "payment_status": p.get("payment_status"),
+            "payment_method": p.get("payment_method"),
+            "receipt_number": p.get("receipt_number"),
+        })
+    
+    # Get matricula payment
+    matricula = await db.payments.find_one({
+        "school_id": school_id,
+        "student_id": student_id,
+        "concept": "matricula",
+        "payment_status": "paid"
+    }, {"_id": 0, "total_amount": 1, "payment_date": 1, "payment_status": 1})
+    
+    return {
+        "student_id": student_id,
+        "summary": {
+            "total_months": total_months,
+            "paid_count": paid_count,
+            "pending_count": pending_count,
+            "overdue_count": overdue_count,
+            "paid_percentage": paid_percentage,
+            "total_amount": round(total_amount, 2),
+            "paid_amount": round(paid_amount, 2),
+            "pending_amount": round(pending_amount, 2),
+            "overdue_amount": round(overdue_amount, 2),
+            "debt_amount": round(pending_amount + overdue_amount, 2),
+            "overall_status": overall_status,
+        },
+        "matricula": {
+            "paid": bool(matricula),
+            "amount": matricula.get("total_amount") if matricula else 0,
+            "date": matricula.get("payment_date") if matricula else None,
+        },
+        "monthly_detail": monthly_detail,
+    }
+
+
 @api_router.get("/parent/students")
 async def get_parent_students(current_user = Depends(get_current_user)):
     """Get list of children linked to this parent."""
