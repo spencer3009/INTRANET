@@ -765,6 +765,8 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
         expanded={sidebarExpanded}
         onToggle={() => setSidebarExpanded(!sidebarExpanded)}
         onLogout={onLogout}
+        schoolName={schoolName}
+        subdomain={subdomain || user?.subdomain}
         user={user}
       />
 
