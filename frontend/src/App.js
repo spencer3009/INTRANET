@@ -267,7 +267,7 @@ function App() {
     setToken("");
     setUser(null);
     if (sub) {
-      navigate(`/${sub}/login`, { replace: true });
+      window.location.href = `/${sub}/login`;
     }
   };
 
