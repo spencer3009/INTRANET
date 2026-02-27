@@ -140,6 +140,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const [selectedChild, setSelectedChild] = useState(null);
   const [dashboardData, setDashboardData] = useState(null);
   const [courses, setCourses] = useState([]);
+  const [paymentData, setPaymentData] = useState(null);
   const [settings, setSettings] = useState(null);
   const [banners, setBanners] = useState([]);
   const [calendarEvents, setCalendarEvents] = useState([]);
