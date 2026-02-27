@@ -709,48 +709,79 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 </div>
               </div>
 
-              {/* Recent Announcements */}
-              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-                <div className="px-5 py-4 border-b border-slate-100">
-                  <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-                    <Bell className="w-5 h-5 text-indigo-500" />
-                    Anuncios Recientes
-                  </h2>
-                </div>
-                <div className="divide-y divide-slate-100">
-                  {dashboardData?.recent_announcements?.length > 0 ? (
-                    dashboardData.recent_announcements.map((ann) => (
-                      <div key={ann.id} className="px-5 py-4 hover:bg-slate-50 transition-colors">
-                        <div className="flex items-start gap-3">
-                          <div className={`mt-1 w-2 h-2 rounded-full flex-shrink-0 ${
-                            ann.priority === "urgent" ? "bg-red-500" :
-                            ann.priority === "important" ? "bg-amber-500" : "bg-blue-500"
-                          }`} />
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <p className="font-medium text-slate-800">{ann.title}</p>
-                              {!ann.is_read && (
-                                <span className="px-1.5 py-0.5 text-[10px] font-bold bg-cyan-100 text-cyan-700 rounded">NUEVO</span>
-                              )}
-                            </div>
-                            <p className="text-xs text-slate-500">
-                              {new Date(ann.created_at).toLocaleDateString("es-PE", { 
-                                day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" 
-                              })}
-                            </p>
-                          </div>
-                          <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${PRIORITY_COLORS[ann.priority] || PRIORITY_COLORS.normal}`}>
-                            {ann.priority === "urgent" ? "Urgente" : ann.priority === "important" ? "Importante" : "Normal"}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="px-5 py-8 text-center text-slate-500">
-                      <Bell className="w-10 h-10 mx-auto mb-2 text-slate-300" />
-                      <p>No hay anuncios recientes</p>
+              {/* Progress Bars - Tasks & Attendance */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-2xl p-5 border border-slate-200" data-testid="progress-tasks">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="w-5 h-5 text-amber-500" />
+                      <span className="font-semibold text-slate-800">Progreso de Tareas</span>
                     </div>
-                  )}
+                    <span className={`text-2xl font-bold ${
+                      !dashboardData?.task_progress?.total_tasks ? "text-slate-400" :
+                      dashboardData?.task_progress?.percentage >= 80 ? "text-emerald-600" :
+                      dashboardData?.task_progress?.percentage >= 50 ? "text-amber-600" : "text-red-600"
+                    }`}>
+                      {dashboardData?.task_progress?.total_tasks ? `${dashboardData.task_progress.percentage}%` : "\u2014"}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full transition-all duration-500 ${
+                        !dashboardData?.task_progress?.total_tasks ? "bg-slate-200" :
+                        dashboardData?.task_progress?.percentage >= 80 ? "bg-gradient-to-r from-emerald-500 to-emerald-600" :
+                        dashboardData?.task_progress?.percentage >= 50 ? "bg-gradient-to-r from-amber-500 to-amber-600" : 
+                        "bg-gradient-to-r from-red-500 to-red-600"
+                      }`}
+                      style={{ width: `${dashboardData?.task_progress?.percentage || 0}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    {dashboardData?.task_progress?.total_tasks 
+                      ? `${dashboardData.task_progress.tasks_submitted} de ${dashboardData.task_progress.total_tasks} tareas entregadas`
+                      : "Sin tareas asignadas aún"
+                    }
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 border border-slate-200" data-testid="progress-attendance">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <CalendarCheck className="w-5 h-5 text-emerald-500" />
+                      <span className="font-semibold text-slate-800">Asistencia</span>
+                    </div>
+                    <span className="text-2xl font-bold text-emerald-600">
+                      {(() => {
+                        const s = dashboardData?.attendance_summary;
+                        if (!s) return "N/A";
+                        const total = (s.present || 0) + (s.absent || 0) + (s.late || 0) + (s.justified || 0);
+                        if (total === 0) return "N/A";
+                        return `${Math.round(((s.present || 0) + (s.justified || 0)) / total * 100)}%`;
+                      })()}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
+                    <div 
+                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: `${(() => {
+                          const s = dashboardData?.attendance_summary;
+                          if (!s) return 0;
+                          const total = (s.present || 0) + (s.absent || 0) + (s.late || 0) + (s.justified || 0);
+                          if (total === 0) return 0;
+                          return ((s.present || 0) + (s.justified || 0)) / total * 100;
+                        })()}%` 
+                      }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-2">
+                    {(() => {
+                      const s = dashboardData?.attendance_summary;
+                      if (!s) return "Sin datos de asistencia";
+                      const total = (s.present || 0) + (s.absent || 0) + (s.late || 0) + (s.justified || 0);
+                      return `${(s.present || 0) + (s.justified || 0)} de ${total} días registrados`;
+                    })()}
+                  </p>
                 </div>
               </div>
             </div>
