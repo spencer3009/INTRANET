@@ -213,7 +213,7 @@ export default function ParentSchedulePage({ user, token, onLogout }) {
     try {
       const res = await axios.get(`${API}/api/parent/schedule?student_id=${childId}`, { headers });
       const data = res.data;
-      setSchedules(data.schedules || []);
+      setSchedules(data.schedule || data.schedules || []);
       setBreaks(data.breaks || []);
       setScheduleSettings(data.settings || null);
       setGradeName(data.grade_name || "");
