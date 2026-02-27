@@ -192,7 +192,7 @@ function ProtectedRoute({ children, token, user, requireSchool = false, requireE
     // Extract subdomain from current path to redirect to school-specific login
     const pathMatch = location.pathname.match(/^\/([^/]+)/);
     const subdomain = pathMatch ? pathMatch[1] : null;
-    const knownNonSchool = ['login', 'register', 'verify-email', 'onboarding', 'reset-password', 'school'];
+    const knownNonSchool = ['login', 'register', 'verify-email', 'onboarding', 'reset-password', 'school', 'support'];
     const loginPath = subdomain && !knownNonSchool.includes(subdomain) 
       ? `/${subdomain}/login` 
       : '/login';
