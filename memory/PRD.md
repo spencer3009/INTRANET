@@ -51,6 +51,15 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 - Materials, Forum, and Reminders tabs now display correctly in both Student and Parent portals
 - Added RemindersContent component with proper tab rendering (was missing case "recordatorios")
 
+### Parent Student Dashboard (COMPLETE - Feb 27, 2026)
+- Created ParentStudentDashboardPage.jsx - exact visual replica of student dashboard
+- Enhanced /api/parent/dashboard endpoint with task_progress, upcoming_tasks, attendance_summary, recent_announcements
+- Added child selector banner (Pepito/Juan/Jorge) that auto-updates dashboard data
+- Read-only mode with navigation to parent routes
+- Added "Dashboard Alumno" nav item in ParentSidebar with GraduationCap icon
+- Added routes in App.js for both direct and subdomain paths
+- Tested: 13/13 backend + 12/12 frontend tests passed
+
 ## Known Issues / Tech Debt
 - **P0**: `server.py` is monolithic (21,000+ lines) - needs modularization
 - **P0**: Owner Dashboard has hardcoded data for "Asistencia del Mes" and "Noticias y Avisos"
