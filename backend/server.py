@@ -21016,6 +21016,32 @@ async def get_parent_student_exam_schedule(
         "section_name": section_name
     }
 
+
+@api_router.get("/parent/classmates")
+async def get_parent_student_classmates(
+    student_id: str = Query(..., description="ID del estudiante"),
+    current_user = Depends(get_current_user)
+):
+    """Get classmates of a specific child."""
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    student = await verify_parent_student_access(user, student_id)
+    school_id = user.get("school_id")
+    seccion_id = student.get("seccion_id")
+    
+    if not seccion_id:
+        return {"students": []}
+    
+    students = await db.users.find(
+        {"school_id": school_id, "seccion_id": seccion_id, "role": "student"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1}
+    ).to_list(100)
+    
+    return {"students": students}
+
+
 @api_router.get("/parent/messages/inbox")
 async def get_parent_student_inbox(
     student_id: str = Query(..., description="ID del estudiante"),
