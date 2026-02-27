@@ -223,8 +223,8 @@ export default function NotificationBell({ token }) {
 
   // Build correct path prefix based on current URL
   const getSchoolPrefix = useCallback(() => {
-    const match = window.location.pathname.match(/^\/school\/([^/]+)/);
-    return match ? `/school/${match[1]}` : "";
+    const match = window.location.pathname.match(/^\/([^/]+)/);
+    return match ? `/${match[1]}` : "";
   }, []);
 
   // WebSocket handler for real-time push notifications
