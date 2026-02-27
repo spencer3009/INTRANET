@@ -106,54 +106,61 @@ export default function ParentCoursesPage({ user, token, onLogout }) {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {courses.map((course) => (
                 <div
                   key={course.id}
                   onClick={() => navigate(`/school/${subdomain}/parent/courses/${course.id}`)}
-                  className="group bg-white rounded-2xl border border-slate-200/80 overflow-hidden hover:shadow-lg hover:border-cyan-200 transition-all duration-300 cursor-pointer"
+                  className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-cyan-300 hover:shadow-lg transition-all cursor-pointer group"
                   data-testid={`parent-course-${course.id}`}
                 >
-                  {/* Color Strip */}
-                  <div className="h-2" style={{ backgroundColor: course.color || "#3B82F6" }} />
-
-                  <div className="p-5">
-                    {/* Course Icon + Name */}
-                    <div className="flex items-start gap-3 mb-4">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center text-white flex-shrink-0 shadow-md"
-                        style={{ backgroundColor: course.color || "#3B82F6" }}
-                      >
-                        <BookOpen className="w-6 h-6" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-slate-800 text-base truncate group-hover:text-cyan-600 transition-colors">
-                          {course.name}
-                        </h3>
-                        {course.description && (
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{course.description}</p>
-                        )}
-                      </div>
+                  {/* Course Image/Color Header */}
+                  {course.image_url ? (
+                    <div className="h-36 overflow-hidden relative">
+                      <img
+                        src={course.image_url}
+                        alt={course.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                     </div>
+                  ) : (
+                    <div
+                      className="h-36 flex items-center justify-center relative"
+                      style={{ backgroundColor: course.color || "#06b6d4" }}
+                    >
+                      <BookOpen className="w-16 h-16 text-white/80" />
+                    </div>
+                  )}
+
+                  {/* Course Info */}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-slate-800 text-lg mb-2 line-clamp-2">
+                      {course.name}
+                    </h3>
 
                     {/* Teacher */}
-                    {course.teacher && (
-                      <div className="flex items-center gap-2 mb-3">
-                        {course.teacher.photo_url ? (
-                          <img src={course.teacher.photo_url} alt="" className="w-7 h-7 rounded-full object-cover" />
-                        ) : (
-                          <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center">
-                            <User className="w-3.5 h-3.5 text-slate-500" />
-                          </div>
-                        )}
-                        <span className="text-sm text-slate-600">{course.teacher.name}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-2 mb-3">
+                      {course.teacher?.photo_url ? (
+                        <img
+                          src={course.teacher.photo_url}
+                          alt=""
+                          className="w-7 h-7 rounded-full object-cover ring-2 ring-white shadow-sm"
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center">
+                          <User className="w-4 h-4 text-slate-500" />
+                        </div>
+                      )}
+                      <span className="text-sm text-slate-600 truncate">
+                        {course.teacher?.name || "Sin profesor"}
+                      </span>
+                    </div>
 
                     {/* Stats */}
-                    <div className="flex items-center gap-4 mt-3 pt-3 border-t border-slate-100">
-                      <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                        <ClipboardList className="w-3.5 h-3.5" />
+                    <div className="flex items-center gap-4 text-sm text-slate-500 pt-3 border-t border-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <ClipboardList className="w-4 h-4 text-amber-500" />
                         <span>{course.pending_tasks || 0} tareas pend.</span>
                       </div>
                     </div>
