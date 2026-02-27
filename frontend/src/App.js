@@ -273,18 +273,16 @@ function App() {
     supportsWildcard: environment.supportsWildcard,
     getSchoolPath: (path) => {
       if (environment.supportsWildcard || environment.mode === 'subdomain') {
-        return path; // Use path as-is for subdomain mode
+        return path;
       }
-      // Route mode: prepend /school/{subdomain}
       const sub = user?.subdomain;
-      return sub ? `/school/${sub}${path}` : path;
+      return sub ? `/${sub}${path}` : path;
     },
     getSchoolUrl: (subdomain) => {
       if (environment.supportsWildcard) {
         return `https://${subdomain}.${BASE_DOMAIN}`;
       }
-      // Route mode: use current origin with school route
-      return `${window.location.origin}/school/${subdomain}`;
+      return `${window.location.origin}/${subdomain}`;
     },
   };
 
