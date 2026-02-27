@@ -4528,7 +4528,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
     }
   };
 
-  const schoolName = settings?.system_name || user?.school_name || "Portal Alumno";
+  const schoolName = settings?.system_name || user?.school_name || (isParent ? "Portal Padres" : "Portal Alumno");
   const logoUrl = settings?.logo_url;
 
   const handleBack = () => {
