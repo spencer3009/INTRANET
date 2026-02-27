@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Eye, EyeOff, Lock, Mail, GraduationCap, ArrowLeft, AtSign } from "lucide-react";
+import PwaInstallPrompt from "../components/PwaInstallPrompt";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
@@ -152,6 +153,8 @@ export default function LoginPage({ onLogin }) {
               Crea una gratis
             </Link>
           </p>
+
+          <PwaInstallPrompt />
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
