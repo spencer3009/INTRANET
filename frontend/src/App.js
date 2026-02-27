@@ -189,7 +189,14 @@ function ProtectedRoute({ children, token, user, requireSchool = false, requireE
   const location = useLocation();
   
   if (!token) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    // Extract subdomain from current path to redirect to school-specific login
+    const pathMatch = location.pathname.match(/^\/([^/]+)/);
+    const subdomain = pathMatch ? pathMatch[1] : null;
+    const knownNonSchool = ['login', 'register', 'verify-email', 'onboarding', 'reset-password', 'school'];
+    const loginPath = subdomain && !knownNonSchool.includes(subdomain) 
+      ? `/${subdomain}/login` 
+      : '/login';
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
   }
   
   if (requireEmailVerified && user && !user.email_verified) {
