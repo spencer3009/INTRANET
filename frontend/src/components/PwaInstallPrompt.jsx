@@ -63,7 +63,11 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     setDeferredPrompt(null);
   };
 
-  if (!deferredPrompt || installed) return null;
+  // Only hide in inline mode when no prompt available
+  if (mode !== "hero" && (!deferredPrompt || installed)) return null;
+  
+  // In hero mode, always render (even without deferredPrompt)
+  if (installed) return null;
 
   // Hero mode: large prominent install screen
   if (mode === "hero") {
