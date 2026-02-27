@@ -20321,7 +20321,7 @@ async def get_parent_students(current_user = Depends(get_current_user)):
         if student.get("seccion_id"):
             assignments = await db.academic_assignments.find({
                 "school_id": school_id,
-                "seccion_id": student["seccion_id"],
+                "section_id": student["seccion_id"],
                 "status": "activo"
             }, {"_id": 0, "subject_id": 1}).to_list(50)
             subject_ids = list(set([a["subject_id"] for a in assignments]))
@@ -20421,7 +20421,7 @@ async def get_parent_dashboard(
     if student.get("seccion_id"):
         assignments = await db.academic_assignments.find({
             "school_id": school_id,
-            "seccion_id": student["seccion_id"],
+            "section_id": student["seccion_id"],
             "status": "activo"
         }, {"_id": 0}).to_list(50)
         
@@ -20560,7 +20560,7 @@ async def get_parent_student_courses(
         # Get assignments for this section
         assignments = await db.academic_assignments.find({
             "school_id": school_id,
-            "seccion_id": student["seccion_id"],
+            "section_id": student["seccion_id"],
             "status": "activo"
         }, {"_id": 0}).to_list(50)
         
@@ -20625,7 +20625,7 @@ async def get_parent_student_tasks(
     if student.get("seccion_id"):
         assignments = await db.academic_assignments.find({
             "school_id": school_id,
-            "seccion_id": student["seccion_id"],
+            "section_id": student["seccion_id"],
             "status": "activo"
         }, {"_id": 0, "subject_id": 1}).to_list(50)
         subject_ids = list(set([a["subject_id"] for a in assignments]))
@@ -20716,7 +20716,7 @@ async def get_parent_student_grades(
     if student.get("seccion_id"):
         assignments = await db.academic_assignments.find({
             "school_id": school_id,
-            "seccion_id": student["seccion_id"],
+            "section_id": student["seccion_id"],
             "status": "activo"
         }, {"_id": 0, "subject_id": 1}).to_list(50)
         subject_ids = list(set([a["subject_id"] for a in assignments]))
