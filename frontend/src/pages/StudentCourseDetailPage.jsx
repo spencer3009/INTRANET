@@ -4473,6 +4473,13 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
         } catch (e) {
           console.log("Could not load classmates:", e);
         }
+      } else if (selectedChild) {
+        try {
+          const classmatesRes = await axios.get(`${API}/api/parent/classmates?student_id=${selectedChild.id}`, { headers });
+          setStudents(classmatesRes.data.students || []);
+        } catch (e) {
+          console.log("Could not load classmates:", e);
+        }
       }
       
       // Load course reminders - correct endpoint
