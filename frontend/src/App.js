@@ -1660,6 +1660,20 @@ function App() {
           <Route path="/school/:subdomain/*" element={<SchoolRedirect />} />
           
           {/* ════════════════════════════════════════════════════════════════════
+              SHORT URL - /:subdomain goes directly to login
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/:subdomain"
+            element={
+              isLoggedIn && hasSubdomain ? (
+                <Navigate to={getDashboardPath()} replace />
+              ) : (
+                <SchoolLoginPage onLogin={handleLogin} />
+              )
+            }
+          />
+          
+          {/* ════════════════════════════════════════════════════════════════════
               404
           ════════════════════════════════════════════════════════════════════ */}
           <Route path="*" element={<NotFoundPage />} />
