@@ -20596,6 +20596,7 @@ async def get_parent_student_courses(
                 "description": subject.get("description"),
                 "color": subject.get("color", "#3B82F6"),
                 "icon": subject.get("icon"),
+                "image_url": subject.get("image_url"),
                 "teacher": {
                     "id": teacher["id"],
                     "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
