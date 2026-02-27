@@ -33,8 +33,6 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
   }, []);
 
   const handleInstall = async () => {
-    if (!deferredPrompt) return;
-
     setInstalling(true);
     setProgress(0);
 
@@ -55,13 +53,20 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     await new Promise((r) => setTimeout(r, 200));
     setInstalling(false);
 
-    deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    if (result.outcome === "accepted") {
-      setInstalled(true);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      if (result.outcome === "accepted") {
+        setInstalled(true);
+      }
+      setDeferredPrompt(null);
+    } else {
+      // No native prompt — show browser-specific instructions
+      setShowGuide(true);
     }
-    setDeferredPrompt(null);
   };
+
+  const [showGuide, setShowGuide] = useState(false);
 
   // Only hide in inline mode when no prompt available
   if (mode !== "hero" && (!deferredPrompt || installed)) return null;
