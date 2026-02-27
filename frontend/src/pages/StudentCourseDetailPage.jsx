@@ -4341,7 +4341,7 @@ function GradesContent({ tasks, exams, studentId, subject }) {
 }
 
 // Main Component
-export default function StudentCourseDetailPage({ user, token, onLogout }) {
+export default function StudentCourseDetailPage({ user, token, onLogout, isParent = false, parentChildren = [], selectedChild = null, onSelectChild }) {
   const navigate = useNavigate();
   const { subdomain, courseId } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
