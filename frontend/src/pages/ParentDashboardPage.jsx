@@ -20,7 +20,12 @@ import {
   CheckCircle,
   Eye,
   User,
-  UserCheck
+  UserCheck,
+  Wallet,
+  AlertTriangle,
+  CircleDollarSign,
+  TrendingUp,
+  Receipt
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
