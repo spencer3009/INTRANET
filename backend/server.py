@@ -20900,9 +20900,9 @@ async def get_parent_student_exam_schedule(
     }
     
     if student.get("seccion_id"):
-        query["$or"].append({"seccion_id": student["seccion_id"]})
+        query["$or"].append({"section_id": student["seccion_id"]})
     if student.get("grado_id"):
-        query["$or"].append({"grado_id": student["grado_id"]})
+        query["$or"].append({"grade_id": student["grado_id"]})
     
     if not query["$or"]:
         return {"exams": []}
