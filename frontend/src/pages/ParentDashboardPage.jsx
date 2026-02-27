@@ -424,7 +424,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
 
           {/* Financial Status + Student Profile - Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6" data-testid="financial-profile-section">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-6 items-start" data-testid="financial-profile-section">
             {/* Left Column: Financial Status (70%) */}
             <div className={`${paymentData ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
               {paymentData ? (
