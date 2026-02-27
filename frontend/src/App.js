@@ -378,7 +378,7 @@ function App() {
           
           {/* ════════════════════════════════════════════════════════════════════
               SCHOOL-SPECIFIC LOGIN (Branded login page)
-              Pattern: /school/:subdomain/login
+              Pattern: /:subdomain/login
           ════════════════════════════════════════════════════════════════════ */}
           <Route
             path="/:subdomain/login"
