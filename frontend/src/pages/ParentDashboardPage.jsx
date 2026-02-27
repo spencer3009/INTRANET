@@ -13,6 +13,7 @@ import {
   Calendar,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   Loader2,
   GraduationCap,
   Users,
@@ -301,9 +302,34 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
               Estás viendo la información de <span className="font-semibold">{studentInfo.name} {studentInfo.last_name}</span>
             </p>
             {children.length > 1 && (
-              <div className="ml-auto flex items-center gap-2 bg-white/60 rounded-lg px-3 py-1">
-                <UserCheck className="w-4 h-4 text-emerald-600" />
-                <span className="text-xs text-emerald-700 font-medium">{children.length} hijos vinculados</span>
+              <div className="ml-auto relative group">
+                <button className="flex items-center gap-2 bg-white/80 hover:bg-white rounded-lg px-3 py-1.5 border border-emerald-200 transition-colors cursor-pointer" data-testid="child-switcher-btn">
+                  <UserCheck className="w-4 h-4 text-emerald-600" />
+                  <span className="text-xs text-emerald-700 font-medium">Cambiar hijo</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-emerald-600" />
+                </button>
+                <div className="absolute right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-lg py-1 z-50 min-w-[200px] opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-150">
+                  {children.map((child) => (
+                    <button
+                      key={child.id}
+                      onClick={() => handleChildChange(child)}
+                      className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 transition-colors ${
+                        selectedChild?.id === child.id
+                          ? "bg-emerald-50 text-emerald-700 font-semibold"
+                          : "text-slate-700 hover:bg-slate-50"
+                      }`}
+                      data-testid={`child-option-${child.id}`}
+                    >
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                        selectedChild?.id === child.id ? "bg-emerald-500 text-white" : "bg-slate-200 text-slate-600"
+                      }`}>
+                        {(child.name || "A")[0]}
+                      </div>
+                      <span>{child.name} {child.last_name || ""}</span>
+                      {selectedChild?.id === child.id && <CheckCircle className="w-3.5 h-3.5 ml-auto text-emerald-500" />}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
