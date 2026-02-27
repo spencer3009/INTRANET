@@ -4715,6 +4715,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
         return <ExamsContent exams={exams} studentId={user?.id} subdomain={subdomain} token={token} />;
       case "foro":
         return <ForumContent posts={forumPosts} token={token} user={user} students={students} highlightedPostId={highlightedPostId} onClearHighlight={() => setHighlightedPostId(null)} />;
+      case "recordatorios":
+        return <RemindersContent reminders={reminders} />;
       case "mensajes":
         return (
           <StudentMessagesContent 
