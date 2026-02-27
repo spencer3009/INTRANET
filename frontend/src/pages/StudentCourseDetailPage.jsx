@@ -2823,6 +2823,95 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
   );
 }
 
+// Reminders Content - Full tab view for course reminders
+function RemindersContent({ reminders }) {
+  const getTypeIcon = (type) => {
+    switch (type) {
+      case 'task': return <FileText className="w-4 h-4" />;
+      case 'exam': return <ClipboardList className="w-4 h-4" />;
+      default: return <Bell className="w-4 h-4" />;
+    }
+  };
+
+  const getTypeLabel = (type) => {
+    switch (type) {
+      case 'task': return 'Tarea';
+      case 'exam': return 'Examen';
+      default: return 'Aviso';
+    }
+  };
+
+  const getTypeColor = (type) => {
+    switch (type) {
+      case 'task': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'exam': return 'bg-red-100 text-red-700 border-red-200';
+      default: return 'bg-violet-100 text-violet-700 border-violet-200';
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'completed': return <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">Completado</span>;
+      case 'cancelled': return <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">Cancelado</span>;
+      default: return <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">Activo</span>;
+    }
+  };
+
+  if (!reminders || reminders.length === 0) {
+    return (
+      <EmptyState
+        icon={Bell}
+        title="Sin recordatorios"
+        description="No hay recordatorios para este curso."
+      />
+    );
+  }
+
+  return (
+    <div className="space-y-3" data-testid="reminders-content">
+      {reminders.map((reminder, idx) => (
+        <div key={reminder.id || idx} className="bg-white rounded-xl border border-slate-200 p-4 hover:shadow-sm transition-shadow">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3 flex-1">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${getTypeColor(reminder.reminder_type)}`}>
+                {getTypeIcon(reminder.reminder_type)}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h4 className="font-semibold text-slate-800 text-sm">{reminder.title || reminder.message}</h4>
+                  <span className={`text-xs px-2 py-0.5 rounded-full border ${getTypeColor(reminder.reminder_type)}`}>
+                    {getTypeLabel(reminder.reminder_type)}
+                  </span>
+                  {getStatusBadge(reminder.status)}
+                </div>
+                {reminder.description && (
+                  <p className="text-sm text-slate-500 mt-1">{reminder.description}</p>
+                )}
+                {reminder.date && (
+                  <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(reminder.date).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+                  </p>
+                )}
+                {reminder.creator && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    Creado por {reminder.creator.name}
+                  </p>
+                )}
+              </div>
+            </div>
+            {reminder.is_important && (
+              <span className="text-amber-500" title="Importante">
+                <AlertCircle className="w-5 h-5" />
+              </span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // Student Forum Download Button - For downloading attachments in forum posts
 function StudentForumDownloadButton({ post, token }) {
   const [downloading, setDownloading] = useState(false);
