@@ -1625,12 +1625,6 @@ function App() {
             }
           />
           
-          {/* Redirect /school/:subdomain to /school/:subdomain/dashboard */}
-          <Route
-            path="/school/:subdomain"
-            element={<Navigate to="dashboard" replace />}
-          />
-          
           {/* ════════════════════════════════════════════════════════════════════
               SUPPORT PANEL - Global support admin only
           ════════════════════════════════════════════════════════════════════ */}
