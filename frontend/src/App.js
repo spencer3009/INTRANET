@@ -1227,6 +1227,14 @@ function App() {
             }
           />
           <Route
+            path="/school/:subdomain/parent/payments"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentPaymentsPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/school/:subdomain/parent/courses"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
