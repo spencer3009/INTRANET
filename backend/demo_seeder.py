@@ -719,6 +719,7 @@ async def delete_demo_data_for_school(db, school_id: str):
         "payments",
         "metrics",
         "enrollment",
+        "course_posts",
     ]
     
     for collection_name in collections:
