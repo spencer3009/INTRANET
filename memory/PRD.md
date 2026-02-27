@@ -1,179 +1,83 @@
 # EduNet - Product Requirements Document
 
-## Overview
-EduNet es una aplicación SaaS multi-tenant premium para colegios en Perú. Cada colegio tiene su propia intranet con gestión de estudiantes, docentes, horarios, calificaciones, mensajería interna y más.
+## Problem Statement
+EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provides dashboards and portals for school owners, administrators, teachers, students, and parents.
 
-## Core Modules
-### 1. Gestión de Usuarios
-- Roles: Owner, Director, Admin, Coordinador, Auxiliar, Teacher, Student, Parent
-- CRUD completo de usuarios por rol
-- Perfil con foto (optimizada a WebP 200px)
-- QR para estudiantes
+## User Personas
+- **School Owner**: Manages the school, views financial data, monitors attendance, sends messages
+- **Admin**: Assists owner with administrative tasks
+- **Teacher**: Manages courses, assigns tasks/exams, records grades/attendance
+- **Student**: Views courses, tasks, grades, attendance, exams, schedule, messages
+- **Parent**: Views child's academic information (same views as student portal, adapted for parent role)
 
-### 2. Gestión Académica
-- Cursos y secciones
-- Calificaciones y promedios
-- Tareas y entregas
+## Core Architecture
+- **Frontend**: React (CRA) + Tailwind CSS + Shadcn/UI
+- **Backend**: FastAPI + MongoDB (motor)
+- **Database**: MongoDB (DB_NAME from .env, currently `test_database`)
+- **Multi-tenant**: Subdomain-based routing (e.g., `elroble.edunet.pe`)
 
-### 3. Horarios
-- Grilla de horario semanal
-- Auto-fill de hora de fin
+## Implemented Features
 
-### 4. Exámenes
-- Creación y programación
-- Tipos de preguntas
+### Parent Portal (COMPLETE - Feb 27, 2026)
+- 8 pages replicated from Student Portal:
+  - `ParentDashboardPage` - Custom parent dashboard with child selector, KPIs, quick actions
+  - `ParentCoursesPage` - Exact replica of StudentCoursesPage with parent API
+  - `ParentTasksPage` - Exact replica with filtering, stats cards
+  - `ParentGradesPage` - Grades grouped by subject with averages
+  - `ParentAttendancePage` - Calendar view with month navigation, stats
+  - `ParentSchedulePage` - Full schedule grid with tooltips, breaks
+  - `ParentExamsPage` - Exam calendar with stats, day detail panel
+  - `ParentMessagesPage` - Full email-style inbox (compose, reply, folders, search)
+- `ParentSidebar` with child selector
+- Parent-specific API endpoints (`/api/parent/*`)
+- Backend: 19+ parent API endpoints tested and working
 
-### 5. Sistema de Mensajería Interna
-- Mensajes entre usuarios del colegio
-- **Contactos categorizados por carpetas** para todos los roles (IMPLEMENTADO - 25 Feb 2026):
-  - Owner/Admin: Alumnos → Profesores → Padres/Apoderados → Personal Administrativo
-  - Teacher: Mis Alumnos → Profesores → Padres/Apoderados → Personal Administrativo
-  - Student: Mis Profesores → Compañeros de Clase → Personal Administrativo
-  - Parent: Profesores de mis Hijos → Personal Administrativo → Otros Padres
-- Filtro `is_demo: true` para excluir usuarios de prueba de contactos y conversaciones
+### Other Completed Features
+- Premium Accounting Module (Ingresos, Egresos, Deuda)
+- Debtors page (MorososPage) with pagination and debt-blocking toggle
+- Owner's Message Center (email-style UI)
+- Student Portal (full suite: courses, tasks, grades, attendance, schedule, exams, messages)
+- Exam system with scheduling and attempt tracking
+- Internal mail system (compose, reply, folders, search, archive, trash)
+- Multi-tenant authentication with subdomain routing
+- Academic structure (levels, grades, sections, shifts, subjects, assignments)
+- Attendance tracking with QR
+- Schedule management with breaks
 
-### 6. Portal de Estudiantes
-- Dashboard, cursos, tareas, calificaciones, horario, mensajes, perfil
+## Known Issues / Tech Debt
+- **P0**: `server.py` is monolithic (21,000+ lines) - needs modularization
+- **P0**: Owner Dashboard has hardcoded data for "Asistencia del Mes" and "Noticias y Avisos"
+- **P1**: Message Center unread count discrepancy
+- **P2**: Replace `window.confirm/alert` with custom modals project-wide
 
-### 7. Portal de Padres (En progreso)
-- Dashboard, hijos, calificaciones, asistencia, mensajes
-- Pendiente: ParentProfilePage, ParentCourseDetailPage, ParentMessagesPage completo
+## Upcoming Tasks
+- Modularize `server.py` into FastAPI routers (auth, parent, accounting, exams, etc.)
+- Remove hardcoded data from Owner Dashboard
+- Apply intelligent filters to Parents view in UsersPage
+- Cache invalidation for `/api/student/tasks`
+- Matriculas (Enrollments) module
+- Anti-cheating system for exams
+- Question bank for exams
+- Automatic notifications for students
 
-### 8. Panel Global de Soporte (IMPLEMENTADO - 24 Feb 2026)
-#### Usuario Soporte Global
-- Email: spencer3009@gmail.com / Password: Socios3009
-- Rol: `system_admin_global`
-- Se crea automáticamente al iniciar el backend
-- No tiene `school_id` (accede a colegios via `user_school_roles`)
+## Test Credentials
+- **Owner**: admin@elroble.edu / 1234abc8 (subdomain: elroble)
+- **Parent**: miguel@gmail.com / password123 (child: Juan Lopez Zapata)
+- **App URL**: https://edunet-parent-dev.preview.emergentagent.com
 
-#### Endpoints de Soporte (`/api/support/*`)
-- `GET /api/support/overview` - Métricas globales
-- `GET /api/support/schools` - Colegios asignados
-- `POST /api/support/switch-school` - Cambiar contexto (JWT con role=owner)
-
-### 9. Modo Demo (Implementado)
-- Usuarios con `is_demo_user: true` (solo creados por Owner)
-- Backend middleware bloquea escritura
-- Badge "MODO DEMO" en header
-
-### 10. Admin Sistema por Colegio (Implementado)
-- Usuarios con `is_system_user: true` por colegio
-- Ineditable e ineliminable
-
-### 11. Dashboard Propietario (IMPLEMENTADO - 24-25 Feb 2026)
-- KPIs: Alumnos Activos, Docentes Activos, Ingresos del Mes, Mensajes Sin Leer
-- Gráfico Ingresos Mensuales (Cobrado/Por Cobrar/Vencido)
-- Acceso Ejecutivo (Alumnos, Docentes, Reportes, Colegio)
-- Próximos Eventos con popup detalle al hacer clic
-- Noticias y Avisos con popup premium
-- Mini Calendario con popup de eventos posicionado arriba
-
-### 12. Sistema de Notificaciones Navegables Premium (IMPLEMENTADO - 25 Feb 2026)
-- Notificaciones clickeables que navegan al contenido relacionado
-- Marcado automático como leída al hacer clic
-- Contador de campana se actualiza en tiempo real sin recargar
-- Diferenciación visual leída/no leída (fondo coloreado vs blanco, texto bold vs normal)
-- Botón "Marcar todo leído"
-- Tabs: Actividad (notificaciones generales) y Recordatorios
-- Tipos: task, exam, material, forum, announcement, reminder
-- Cada notificación tiene `link_destino` auto-generado según tipo
-- **WebSocket Push en Tiempo Real (IMPLEMENTADO - 25 Feb 2026):**
-  - Conexión WebSocket persistente `/api/ws/notifications?token=JWT`
-  - Indicador verde pulsante cuando está conectado en tiempo real
-  - Push instantáneo cuando se crea tarea, examen, material, foro, etc.
-  - Push instantáneo cuando se recibe un mensaje académico
-  - Toast notification (sonner) con título, descripción y botón "Ver"
-  - Reconexión automática cada 5 segundos si se pierde la conexión
-  - Keepalive ping/pong cada 30 segundos
-  - Soporte multi-tab (múltiples conexiones por usuario)
-- **Endpoints:**
-  - `GET /api/notifications/all` - Lista con is_read y link_destino
-  - `GET /api/notifications/unread-count` - Contador para badge
-  - `POST /api/notifications/{id}/read` - Marca leída, retorna unread_count
-  - `POST /api/notifications/read-all` - Marca todas leídas
-  - `POST /api/notifications/test-push` - Endpoint de prueba para push
-  - `WS /api/ws/notifications?token=JWT` - WebSocket para push en tiempo real
-
-### 13. Pantalla de Reglas Pre-Examen (IMPLEMENTADO - 26 Feb 2026)
-- Pantalla obligatoria antes de comenzar examen en línea
-- 5 reglas claras con iconos de colores: no salir del examen, permanecer en pantalla, buena conexión, no recargar, leer bien cada pregunta
-- Checkbox de aceptación obligatoria antes de habilitar botón "Comenzar Examen"
-- Timer rediseñado: más grande (text-4xl), moderno, con etiqueta "Tiempo restante" y efectos visuales
-- **Endpoints:** `GET /api/exams/{exam_id}/info` - Info básica del examen para pantalla de reglas
-
-### 14. Módulo Contabilidad Premium (IMPLEMENTADO - 26 Feb 2026)
-- Campo `pension_month` (YYYY-MM) obligatorio para mensualidades en pagos
-- Tab "Morosos" con tabla de alumnos deudores: Estado, Alumno, Grado, Deuda, Meses Pendientes, Último Pago
-- Modal "Historial de Pagos" por alumno con secciones: Matrícula, Mensualidades, Otros
-- KPIs nuevos en Dashboard: Alumnos Morosos, Deuda Total, Alumnos al Día
-- Filtros en tab Morosos: Todos / Morosos / Al Día
-- Seed data: 30 alumnos demo con pagos realistas (23 morosos, 12 al día)
-- **Página dedicada de Morosos** (`/school/{subdomain}/morosos`): KPIs, búsqueda, filtros, tabla de deudores
-- **Toggle global "Bloquear acceso si alumno tiene deuda"** ubicado en MorososPage (NO en Settings) — controla bloqueo de login para alumnos y padres morosos
-- **Endpoints:** `GET /api/accounting/debtors`, `GET /api/accounting/student-history/{student_id}`, `PUT /api/settings/roles`
-
-## Database Collections
-- `schools`, `users`, `user_school_roles`, `tenant_settings`, `task_submissions`
-- `notifications`: id, school_id, subject_id, title, message, notification_type, reference_id, link_destino, read_by[], created_at
-- `academic_threads`: Conversaciones de mensajería
-- `payments`: Pagos con payment_status, total_amount
-- `calendar_events`: Eventos del calendario
-- `attendances`: Registros de asistencia
-
-## Architecture
+## File Structure
 ```
-/app
-├── backend/
-│   ├── server.py              # Servidor principal (~20k líneas)
-│   ├── routes/
-│   │   └── support.py         # Router de soporte global
-│   └── tests/
-│       └── test_notifications_messaging.py
-└── frontend/
-    └── src/
-        ├── App.js
-        ├── components/
-        │   ├── NotificationBell.jsx     # Sistema notificaciones navegables
-        │   ├── MessageCenter.jsx        # Mensajería con contactos categorizados
-        │   ├── EventsList.jsx           # Widget eventos con popup detalle
-        │   ├── AttendanceAndNews.jsx    # Widget noticias con popup premium
-        │   ├── MiniCalendar.jsx         # Calendario con popup arriba
-        │   └── dashboard/
-        │       ├── OwnerMetricCards.jsx
-        │       ├── OwnerQuickAccess.jsx
-        │       ├── PaymentsChart.jsx
-        │       └── ProfileCard.jsx
-        └── pages/
-            ├── DashboardPage.jsx
-            └── support/
+/app/frontend/src/pages/
+  ParentDashboardPage.jsx  (custom parent dashboard - NOT replicated)
+  ParentCoursesPage.jsx    (replica of StudentCoursesPage)
+  ParentTasksPage.jsx      (replica of StudentTasksPage)
+  ParentGradesPage.jsx     (replica of StudentGradesPage)
+  ParentAttendancePage.jsx (replica of StudentAttendancePage)
+  ParentSchedulePage.jsx   (replica of StudentSchedulePage)
+  ParentExamsPage.jsx      (replica of StudentExamSchedulePage)
+  ParentMessagesPage.jsx   (replica of StudentMessagesPage)
+/app/frontend/src/components/
+  ParentSidebar.jsx        (sidebar with child selector)
+/app/backend/
+  server.py                (parent endpoints at lines 20153-20987)
 ```
-
-## Third-Party Integrations
-- Cloudinary (imágenes)
-- qrcode.react, @yudiel/react-qr-scanner (QR)
-- jspdf & jspdf-autotable (PDFs)
-- @tanstack/react-query (caching)
-
-## Pending Tasks (Prioritized)
-### P0
-- Modularizar server.py en routers por dominio (CRÍTICO - >20k líneas)
-
-### P1
-- Discrepancia mensajes no leídos (recurrente)
-- Parent Portal: Horario vacío
-- Completar Parent Portal (Profile, CourseDetail, Messages)
-- Filtros inteligentes para Padres en UsersPage
-- Conectar "Asistencia del Mes" a datos reales (actualmente hardcodeado)
-- Conectar "Noticias y Avisos" a colección real (actualmente hardcodeado)
-
-### P2
-- Módulo de Matrículas
-- Sistema anti-trampas para exámenes (parcialmente implementado con reglas pre-examen)
-- Banco de preguntas
-- Reemplazar window.confirm/alert con modales custom
-- Cache invalidation para /api/student/tasks
-
-## Credentials
-- Owner El Roble: admin@elroble.edu / 1234abc8
-- Soporte Global: spencer3009@gmail.com / Socios3009
-- Test exam ID: 222e2266-3309-4d96-9a5f-0d3f66b5a18d
