@@ -204,8 +204,14 @@ function ProtectedRoute({ children, token, user, requireSchool = false, requireE
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// School Routes Wrapper - Handles /school/:subdomain/* routes
+// School Routes Wrapper - Handles /:subdomain/* routes
 // ══════════════════════════════════════════════════════════════════════════════
+
+// Backward compatibility: redirect /school/:subdomain/* → /:subdomain/*
+function SchoolRedirect() {
+  const { subdomain, "*": rest } = useParams();
+  return <Navigate to={`/${subdomain}${rest ? `/${rest}` : ""}`} replace />;
+}
 
 function SchoolDashboardRoute({ user, token, onLogout }) {
   const { subdomain } = useParams();
