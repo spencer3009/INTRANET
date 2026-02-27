@@ -15,8 +15,7 @@ import {
   Trophy,
   Calendar,
   ChevronDown,
-  Check,
-  GraduationCap
+  Check
 } from "lucide-react";
 
 // Parent navigation items - same as student but for viewing child's info
