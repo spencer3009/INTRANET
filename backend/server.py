@@ -17115,7 +17115,7 @@ async def google_drive_callback(
     
     # Build the correct settings URL with subdomain
     if subdomain:
-        settings_url = f"{origin}/school/{subdomain}/settings"
+        settings_url = f"{origin}/{subdomain}/settings"
     else:
         settings_url = f"{origin}/settings"
     
