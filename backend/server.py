@@ -20883,49 +20883,137 @@ async def get_parent_student_schedule(
 @api_router.get("/parent/exam-schedule")
 async def get_parent_student_exam_schedule(
     student_id: str = Query(..., description="ID del estudiante"),
+    from_date: Optional[str] = None,
+    to_date: Optional[str] = None,
     current_user = Depends(get_current_user)
 ):
-    """Get exam schedule for a specific child."""
+    """Get exam schedule for a specific child - mirrors student endpoint logic."""
     user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     student = await verify_parent_student_access(user, student_id)
     school_id = user.get("school_id")
+    grade_id = student.get("grado_id")
+    section_id = student.get("seccion_id")
     
-    # Get exams for student's section/grade
+    # Get grade and section names
+    grade_name = None
+    section_name = None
+    if grade_id:
+        grade = await db.grades.find_one({"id": grade_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        if grade:
+            grade_name = grade.get("nombre")
+    if section_id:
+        section = await db.sections.find_one({"id": section_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+        if section:
+            section_name = section.get("nombre")
+    
+    if not grade_id:
+        return {"exams": [], "grade_name": grade_name, "section_name": section_name}
+    
+    # Get all subjects for the student's grade
+    subjects = await db.subjects.find(
+        {"grade_id": grade_id, "school_id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "teacher_id": 1}
+    ).to_list(100)
+    subject_ids = [s["id"] for s in subjects]
+    subject_map = {s["id"]: s for s in subjects}
+    
+    if not subject_ids:
+        return {"exams": [], "grade_name": grade_name, "section_name": section_name}
+    
+    # Query online_exams for published exams in these subjects
     query = {
         "school_id": school_id,
-        "$or": []
+        "subject_id": {"$in": subject_ids},
+        "status": "published"
     }
     
-    if student.get("seccion_id"):
-        query["$or"].append({"section_id": student["seccion_id"]})
-    if student.get("grado_id"):
-        query["$or"].append({"grade_id": student["grado_id"]})
+    if from_date or to_date:
+        date_filter = {}
+        if from_date:
+            date_filter["$gte"] = from_date + "T00:00:00Z"
+        if to_date:
+            date_filter["$lte"] = to_date + "T23:59:59Z"
+        if date_filter:
+            query["start_datetime"] = date_filter
     
-    if not query["$or"]:
-        return {"exams": []}
+    exams = await db.online_exams.find(query, {"_id": 0}).sort("start_datetime", 1).to_list(100)
     
-    exams = await db.exam_schedules.find(query, {"_id": 0}).sort("date", 1).to_list(50)
+    # Enrich exams
+    enriched_exams = []
+    now = datetime.now(timezone.utc)
     
-    # Enrich with subject info
     for exam in exams:
-        if exam.get("subject_id"):
-            subject = await db.subjects.find_one({"id": exam["subject_id"]}, {"_id": 0, "name": 1, "color": 1})
-            if subject:
-                exam["subject_name"] = subject.get("name")
-                exam["subject_color"] = subject.get("color", "#3B82F6")
-    
-    # Separate into upcoming and past
-    now = datetime.now(timezone.utc).isoformat()[:10]
-    upcoming = [e for e in exams if (e.get("date") or "") >= now]
-    past = [e for e in exams if (e.get("date") or "") < now]
+        subject_info = subject_map.get(exam.get("subject_id"), {})
+        teacher_name = None
+        teacher_photo = None
+        teacher_id = subject_info.get("teacher_id") or exam.get("created_by")
+        
+        if teacher_id:
+            teacher = await db.users.find_one(
+                {"id": teacher_id},
+                {"_id": 0, "name": 1, "last_name": 1, "profile_image": 1, "photo_url": 1}
+            )
+            if teacher:
+                teacher_name = f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip()
+                teacher_photo = teacher.get("profile_image") or teacher.get("photo_url")
+        
+        start_dt_str = exam.get("start_datetime", "")
+        end_dt_str = exam.get("end_datetime", "")
+        
+        try:
+            start_dt = datetime.fromisoformat(start_dt_str.replace("Z", "+00:00"))
+        except Exception:
+            start_dt = now
+        try:
+            end_dt = datetime.fromisoformat(end_dt_str.replace("Z", "+00:00"))
+        except Exception:
+            end_dt = now
+        
+        exam_date = start_dt.strftime("%Y-%m-%d")
+        start_time = start_dt.strftime("%H:%M")
+        end_time = end_dt.strftime("%H:%M")
+        
+        if now < start_dt:
+            status = "upcoming"
+        elif start_dt <= now <= end_dt:
+            status = "in_progress"
+        else:
+            status = "completed"
+        
+        # Check if student already attempted
+        attempt = await db.exam_attempts.find_one(
+            {"exam_id": exam["id"], "student_id": student_id},
+            {"_id": 0, "id": 1, "status": 1, "score": 1}
+        )
+        
+        enriched_exams.append({
+            "id": exam["id"],
+            "title": exam.get("title", ""),
+            "description": exam.get("description", ""),
+            "subject_id": exam.get("subject_id"),
+            "subject_name": subject_info.get("name", ""),
+            "date": exam_date,
+            "start_time": start_time,
+            "end_time": end_time,
+            "start_datetime": start_dt_str,
+            "end_datetime": end_dt_str,
+            "duration_minutes": exam.get("duration_minutes", 60),
+            "teacher_name": teacher_name,
+            "teacher_photo": teacher_photo,
+            "status": status,
+            "has_attempted": attempt is not None,
+            "attempt_status": attempt.get("status") if attempt else None,
+            "attempt_score": attempt.get("score") if attempt else None,
+            "type": exam.get("type", "regular"),
+        })
     
     return {
-        "exams": exams,
-        "upcoming": upcoming,
-        "past": past
+        "exams": enriched_exams,
+        "grade_name": grade_name,
+        "section_name": section_name
     }
 
 @api_router.get("/parent/messages/inbox")
