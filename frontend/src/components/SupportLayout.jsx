@@ -25,8 +25,9 @@ export default function SupportLayout({ user, token, onLogout }) {
   const navigate = useNavigate();
 
   const handleLogout = () => {
+    const sub = user?.subdomain;
     onLogout();
-    navigate("/login");
+    navigate(sub ? `/${sub}/login` : "/login");
   };
 
   return (
