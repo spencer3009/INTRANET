@@ -9025,9 +9025,9 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   // Determine the back navigation route based on user role
   const getBackRoute = () => {
     if (user?.role === "teacher") {
-      return subdomain ? `/school/${subdomain}/teacher/courses` : "/teacher/courses";
+      return subdomain ? `/${subdomain}/teacher/courses` : "/teacher/courses";
     }
-    return subdomain ? `/school/${subdomain}/asignaturas` : "/asignaturas";
+    return subdomain ? `/${subdomain}/asignaturas` : "/asignaturas";
   };
 
   // Handle URL parameters for task navigation
@@ -9167,7 +9167,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
 
   const handleBack = () => {
     if (subdomain) {
-      navigate(`/school/${subdomain}/asignaturas`);
+      navigate(`/${subdomain}/asignaturas`);
     } else {
       navigate("/asignaturas");
     }

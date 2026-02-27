@@ -41,7 +41,7 @@ export default function OwnerQuickAccess({ subdomain }) {
 
   const handleNavigate = (path) => {
     if (subdomain) {
-      navigate(`/school/${subdomain}/${path}`);
+      navigate(`/${subdomain}/${path}`);
     } else {
       navigate(`/${path}`);
     }

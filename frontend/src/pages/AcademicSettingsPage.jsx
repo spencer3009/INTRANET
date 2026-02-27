@@ -1154,7 +1154,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       {/* Special card for Academic Years - redirects to dedicated page */}
       <button 
         onClick={() => {
-          const basePath = subdomain ? `/school/${subdomain}` : "";
+          const basePath = subdomain ? `/${subdomain}` : "";
           navigate(`${basePath}/anos-academicos`);
         }}
         className="group relative overflow-hidden rounded-2xl p-6 text-left transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 border-2 border-indigo-200 bg-gradient-to-br from-indigo-50 to-violet-50"

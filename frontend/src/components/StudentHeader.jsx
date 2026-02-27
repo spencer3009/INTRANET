@@ -79,7 +79,7 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
 
   const handleProfileClick = () => {
     setProfileMenuOpen(false);
-    const basePath = subdomain ? `/school/${subdomain}` : "";
+    const basePath = subdomain ? `/${subdomain}` : "";
     navigate(`${basePath}${profilePath}`);
   };
 

@@ -101,7 +101,7 @@ export default function OnboardingPage({ token, user, onLogin, onLogout }) {
           window.location.href = res.data.redirect_url;
         } else {
           // Preview/development - use route-based approach
-          navigate(`/school/${subdomain}/dashboard`);
+          navigate(`/${subdomain}/dashboard`);
         }
       }, 3000);
       

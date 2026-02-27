@@ -82,7 +82,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
   const schoolName = settings?.system_name || user?.school_name || "Portal Padres";
   const logoUrl = settings?.logo_url;
   const navigateTo = (path) => {
-    if (subdomain) navigate(`/school/${subdomain}${path}`);
+    if (subdomain) navigate(`/${subdomain}${path}`);
     else navigate(path);
   };
 

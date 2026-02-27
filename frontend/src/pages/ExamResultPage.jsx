@@ -22,7 +22,7 @@ export default function ExamResultPage() {
   
   useEffect(() => {
     if (!token) {
-      navigate(`/school/${subdomain}/login`);
+      navigate(`/${subdomain}/login`);
       return;
     }
     fetchResult();
@@ -86,7 +86,7 @@ export default function ExamResultPage() {
         <div className="max-w-5xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate(`/school/${subdomain}/student/courses`)}
+              onClick={() => navigate(`/${subdomain}/student/courses`)}
               className="flex items-center gap-2 text-slate-600 hover:text-slate-800 font-medium"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -347,7 +347,7 @@ export default function ExamResultPage() {
         {/* Back button */}
         <div className="mt-8 flex justify-center">
           <button
-            onClick={() => navigate(`/school/${subdomain}/student/courses`)}
+            onClick={() => navigate(`/${subdomain}/student/courses`)}
             className="px-8 py-4 bg-indigo-600 text-white rounded-2xl font-bold text-lg hover:bg-indigo-700 shadow-xl shadow-indigo-500/30 transition-all"
           >
             Volver a mis cursos

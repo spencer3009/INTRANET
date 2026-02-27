@@ -98,7 +98,7 @@ export default function AdminSidebar({
   const handleNavClick = (item) => {
     if (item.route) {
       if (subdomain) {
-        navigate(`/school/${subdomain}${item.route}`);
+        navigate(`/${subdomain}${item.route}`);
       } else {
         navigate(item.route);
       }
@@ -116,7 +116,7 @@ export default function AdminSidebar({
   
   const isActiveRoute = (route) => {
     const currentPath = location.pathname;
-    const fullRoute = subdomain ? `/school/${subdomain}${route}` : route;
+    const fullRoute = subdomain ? `/${subdomain}${route}` : route;
     
     // Exact match for dashboard
     if (route === "/admin") {
@@ -129,7 +129,7 @@ export default function AdminSidebar({
   
   const handleLogoutClick = () => {
     if (subdomain) {
-      navigate(`/school/${subdomain}/login`);
+      navigate(`/${subdomain}/login`);
     } else {
       navigate('/login');
     }

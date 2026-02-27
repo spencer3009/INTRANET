@@ -48,7 +48,7 @@ export default function StudentSidebar({
     if (item.route) {
       // Navigate to specific route
       if (subdomain) {
-        navigate(`/school/${subdomain}${item.route}`);
+        navigate(`/${subdomain}${item.route}`);
       } else {
         navigate(item.route);
       }
@@ -60,7 +60,7 @@ export default function StudentSidebar({
   
   const handleProfileClick = () => {
     if (subdomain) {
-      navigate(`/school/${subdomain}/student/profile`);
+      navigate(`/${subdomain}/student/profile`);
     } else {
       navigate('/student/profile');
     }

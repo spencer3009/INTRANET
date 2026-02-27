@@ -219,7 +219,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
   const logoUrl = settings?.logo_url;
 
   const navigateTo = (path) => {
-    if (subdomain) navigate(`/school/${subdomain}${path}`);
+    if (subdomain) navigate(`/${subdomain}${path}`);
     else navigate(path);
   };
 

@@ -220,7 +220,7 @@ export default function ExamAttemptPage() {
     } finally { setSubmitting(false); }
   };
 
-  const viewResults = () => navigate(`/school/${subdomain}/exam/${examId}/result/${attemptId}`);
+  const viewResults = () => navigate(`/${subdomain}/exam/${examId}/result/${attemptId}`);
   const currentQuestion = questions[currentIndex];
   const answeredCount = Object.keys(answers).filter(qId => answers[qId]?.selected_option_id || answers[qId]?.text_answer).length;
   const timerStyle = getTimerColor();
@@ -294,7 +294,7 @@ export default function ExamAttemptPage() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => navigate(`/school/${subdomain}/student/courses`)} className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors border border-slate-200">Volver</button>
+            <button onClick={() => navigate(`/${subdomain}/student/courses`)} className="flex-1 px-6 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors border border-slate-200">Volver</button>
             <button onClick={viewResults} className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">Ver detalle</button>
           </div>
         </div>

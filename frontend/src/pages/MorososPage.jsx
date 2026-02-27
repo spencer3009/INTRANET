@@ -223,7 +223,7 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button onClick={() => navigate(`/school/${subdomain}/contabilidad`)} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors" data-testid="back-to-accounting">
+              <button onClick={() => navigate(`/${subdomain}/contabilidad`)} className="p-2 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors" data-testid="back-to-accounting">
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>

@@ -45,7 +45,7 @@ export default function TeacherSidebar({
   const handleNavClick = (item) => {
     if (item.route) {
       if (subdomain) {
-        navigate(`/school/${subdomain}${item.route}`);
+        navigate(`/${subdomain}${item.route}`);
       } else {
         navigate(item.route);
       }
@@ -56,7 +56,7 @@ export default function TeacherSidebar({
   
   const handleProfileClick = () => {
     if (subdomain) {
-      navigate(`/school/${subdomain}/teacher/profile`);
+      navigate(`/${subdomain}/teacher/profile`);
     } else {
       navigate('/teacher/profile');
     }

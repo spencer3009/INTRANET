@@ -56,7 +56,7 @@ export default function ParentSidebar({
     if (item.route) {
       // Navigate to specific route
       if (subdomain) {
-        navigate(`/school/${subdomain}${item.route}`);
+        navigate(`/${subdomain}${item.route}`);
       } else {
         navigate(item.route);
       }
@@ -68,7 +68,7 @@ export default function ParentSidebar({
   
   const handleProfileClick = () => {
     if (subdomain) {
-      navigate(`/school/${subdomain}/parent/profile`);
+      navigate(`/${subdomain}/parent/profile`);
     } else {
       navigate('/parent/profile');
     }

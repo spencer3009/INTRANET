@@ -110,7 +110,7 @@ export default function ParentCoursesPage({ user, token, onLogout }) {
               {courses.map((course) => (
                 <div
                   key={course.id}
-                  onClick={() => navigate(`/school/${subdomain}/parent/courses/${course.id}`)}
+                  onClick={() => navigate(`/${subdomain}/parent/courses/${course.id}`)}
                   className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:border-cyan-300 hover:shadow-lg transition-all cursor-pointer group"
                   data-testid={`parent-course-${course.id}`}
                 >

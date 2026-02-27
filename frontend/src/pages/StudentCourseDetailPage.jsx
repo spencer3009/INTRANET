@@ -2664,11 +2664,11 @@ function ExamsContent({ exams, studentId, subdomain, token }) {
   
   const handleStartExam = (exam) => {
     setStartingExam(exam.id);
-    navigate(`/school/${subdomain}/exam/${exam.id}/attempt`);
+    navigate(`/${subdomain}/exam/${exam.id}/attempt`);
   };
   
   const handleViewResults = (exam, attemptId) => {
-    navigate(`/school/${subdomain}/exam/${exam.id}/result/${attemptId}`);
+    navigate(`/${subdomain}/exam/${exam.id}/result/${attemptId}`);
   };
 
   return (
@@ -4629,7 +4629,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
   const logoUrl = settings?.logo_url;
 
   const handleBack = () => {
-    const basePath = subdomain ? `/school/${subdomain}` : "";
+    const basePath = subdomain ? `/${subdomain}` : "";
     navigate(`${basePath}/${isParent ? "parent" : "student"}/courses`);
   };
 

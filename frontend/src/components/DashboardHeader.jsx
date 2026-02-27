@@ -95,7 +95,7 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
 
   const handleProfileClick = () => {
     setProfileMenuOpen(false);
-    const basePath = subdomain ? `/school/${subdomain}` : "";
+    const basePath = subdomain ? `/${subdomain}` : "";
     navigate(`${basePath}/perfil`);
   };
 

@@ -776,7 +776,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
 
   const handleViewCourse = (subject) => {
     if (subdomain) {
-      navigate(`/school/${subdomain}/curso/${subject.id}`);
+      navigate(`/${subdomain}/curso/${subject.id}`);
     } else {
       navigate(`/curso/${subject.id}`);
     }

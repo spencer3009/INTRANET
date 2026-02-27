@@ -66,7 +66,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       
       // Navigate to school dashboard
       const subdomain = school.subdomain;
-      navigate(`/school/${subdomain}/dashboard`);
+      navigate(`/${subdomain}/dashboard`);
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al cambiar de colegio");
     } finally {

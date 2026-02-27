@@ -135,7 +135,7 @@ export default function AdminSettingsPage({ user, token, onLogout }) {
 
   const navigateTo = (path) => {
     if (subdomain) {
-      navigate(`/school/${subdomain}${path}`);
+      navigate(`/${subdomain}${path}`);
     } else {
       navigate(path);
     }

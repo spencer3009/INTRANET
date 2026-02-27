@@ -60,7 +60,7 @@ function StudentExamCard({ exam }) {
   const isAvailable = exam.is_available && !exam.has_attempted;
   const hasAttempted = exam.has_attempted;
   const handleTakeExam = () => {
-    const prefix = subdomain ? `/school/${subdomain}` : "";
+    const prefix = subdomain ? `/${subdomain}` : "";
     navigate(`${prefix}/exam/${exam.id}/attempt`);
   };
 

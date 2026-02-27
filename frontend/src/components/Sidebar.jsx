@@ -87,7 +87,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
     if (item.route) {
       // Navigate to specific route
       if (subdomain) {
-        navigate(`/school/${subdomain}${item.route}`);
+        navigate(`/${subdomain}${item.route}`);
       } else {
         navigate(item.route);
       }
@@ -100,7 +100,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
   const handleSettingsClick = () => {
     // Navigate to settings page using route-based approach
     if (subdomain) {
-      navigate(`/school/${subdomain}/settings`);
+      navigate(`/${subdomain}/settings`);
     } else {
       navigate('/settings');
     }
