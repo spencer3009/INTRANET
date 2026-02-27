@@ -424,11 +424,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
 
 
           {/* Financial Status + Student Profile - Two Column Layout */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-4 items-start" data-testid="financial-profile-section">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-4" data-testid="financial-profile-section">
             {/* Left Column: Financial Status (70%) */}
             <div className={`${paymentData ? 'lg:col-span-8' : 'lg:col-span-12'}`}>
               {paymentData ? (
-                <div className="bg-white rounded-2xl border border-slate-200 p-5 h-full" data-testid="financial-status">
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 h-full flex flex-col" data-testid="financial-status">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
@@ -558,7 +558,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                   {/* Link to full payments detail */}
                   <button 
                     onClick={() => navigateTo("/parent/payments")}
-                    className="w-full mt-3 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700"
+                    className="w-full mt-auto flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors text-sm font-medium text-slate-700"
                     data-testid="view-payments-detail"
                   >
                     <Receipt className="w-4 h-4" />
