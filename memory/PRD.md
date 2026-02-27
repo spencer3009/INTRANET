@@ -44,6 +44,11 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 - Attendance tracking with QR
 - Schedule management with breaks
 
+### Course Posts Seeding (COMPLETE - Feb 27, 2026)
+- Seeded course_posts (materials, announcements, tasks) for all subjects in elroble school
+- Updated demo_seeder.py to include course_posts for future schools
+- Materials tab now displays correctly in both Student and Parent portals
+
 ## Known Issues / Tech Debt
 - **P0**: `server.py` is monolithic (21,000+ lines) - needs modularization
 - **P0**: Owner Dashboard has hardcoded data for "Asistencia del Mes" and "Noticias y Avisos"
@@ -62,7 +67,7 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 
 ## Test Credentials
 - **Owner**: admin@elroble.edu / 1234abc8 (subdomain: elroble)
-- **Parent**: miguel@gmail.com / password123 (child: Juan Lopez Zapata)
+- **Parent**: miguel@gmail.com / 1234abc8 (child: Pepito Peres Rios)
 - **App URL**: https://parent-portal-debug.preview.emergentagent.com
 
 ## File Structure
