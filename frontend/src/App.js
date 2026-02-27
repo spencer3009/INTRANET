@@ -167,12 +167,12 @@ function ShopifyRedirect({ user, environment }) {
     }
     
     // In route-based mode, redirect to school route if not already there
-    const schoolPrefix = `/school/${user.subdomain}`;
-    if (!location.pathname.startsWith(schoolPrefix) && !location.pathname.startsWith('/school/')) {
+    const schoolPrefix = `/${user.subdomain}`;
+    if (!location.pathname.startsWith(schoolPrefix)) {
       // Only redirect to school route if trying to access dashboard
       if (location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard/')) {
         const newPath = `${schoolPrefix}${location.pathname}`;
-        console.log(`[Shopify Rule] Redirecting to school route: ${newPath}`);
+        console.log(`[Route] Redirecting to school route: ${newPath}`);
         navigate(newPath, { replace: true });
       }
     }
