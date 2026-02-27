@@ -67,14 +67,20 @@ EduNet is a premium, multi-tenant SaaS application for schools in Peru. It provi
 - Smooth animation on load with stroke-dashoffset transition
 
 ### PWA Installation (COMPLETE - Feb 27, 2026)
-- Created manifest.json with EduNet branding, icons (192x192, 512x512 PNG)
+- Created manifest.json with EduNet branding, custom user icon (192x192, 512x512 PNG)
 - Created service-worker.js for PWA capability
 - Updated index.html with manifest link, apple-mobile-web-app meta tags, service worker registration
-- Created PwaInstallPrompt component: mobile-only install button with animated download overlay
-- Integrated in both LoginPage.jsx and SchoolLoginPage.jsx
-- Mobile detection: user agent + viewport width <= 768px
-- Flow: Button → 2.5s animated progress bar → native beforeinstallprompt (or manual guide)
-- Hidden on desktop and when app is already installed (standalone mode)
+- Created PwaInstallPrompt component: automatic install via beforeinstallprompt (no manual steps)
+- Flow: Button → 2.5s animated progress bar → native prompt → one-click install
+- Hidden on desktop and when app is already installed
+
+### URL Simplification (COMPLETE - Feb 27, 2026)
+- Refactored ALL routes from /school/:subdomain/* to /:subdomain/*
+- /elroble now opens login directly (short URL for WhatsApp sharing)
+- /elroble/login also works
+- Old /school/elroble/* URLs auto-redirect to /elroble/* via SchoolRedirect component
+- 71 route definitions + 48 navigation calls updated
+- Tested: 9/9 tests passed (login, redirect, sidebar, courses, payments, child switcher)
 - Reorganized dashboard into two-column layout (70/30) for Financial Status + Student Profile
 - Left column (lg:col-span-8): Estado Financiero with progress bar, summary cards, morosidad alerts
 - Right column (lg:col-span-4): "Alumno seleccionado" header + StudentProfileCard
