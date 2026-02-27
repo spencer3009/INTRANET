@@ -638,7 +638,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                   <div className="divide-y divide-slate-100 flex-1">
                     {courses.length > 0 ? (
                       courses.slice((coursesPage - 1) * ITEMS_PER_PAGE, coursesPage * ITEMS_PER_PAGE).map((course) => (
-                        <div key={course.id} onClick={() => navigateTo(`/parent/course/${course.id}`)}
+                        <div key={course.id} onClick={() => navigateTo(`/parent/courses/${course.id}`)}
                           className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3">
                           <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                             style={{ backgroundColor: course.color || "#6366f1" }}>
@@ -704,7 +704,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                       dashboardData.upcoming_tasks.slice((tasksPage - 1) * ITEMS_PER_PAGE, tasksPage * ITEMS_PER_PAGE).map((task) => {
                         const dueDate = task.due_date || task.metadata?.due_date;
                         return (
-                          <div key={task.id} onClick={() => navigateTo(`/parent/course/${task.subject_id}`)}
+                          <div key={task.id} onClick={() => navigateTo(`/parent/courses/${task.subject_id}`)}
                             className="px-5 py-3 hover:bg-slate-50 cursor-pointer transition-colors flex items-center gap-3">
                             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                               style={{ backgroundColor: task.subject_color || "#f59e0b" }}>
