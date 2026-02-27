@@ -298,7 +298,7 @@ function App() {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
         return '/student';
       }
-      return user?.subdomain ? `/school/${user.subdomain}/student` : '/student';
+      return user?.subdomain ? `/${user.subdomain}/student` : '/student';
     }
     
     // Parents get redirected to parent portal
@@ -306,7 +306,7 @@ function App() {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
         return '/parent';
       }
-      return user?.subdomain ? `/school/${user.subdomain}/parent` : '/parent';
+      return user?.subdomain ? `/${user.subdomain}/parent` : '/parent';
     }
     
     // Teachers get redirected to teacher portal
@@ -314,23 +314,22 @@ function App() {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
         return '/teacher';
       }
-      return user?.subdomain ? `/school/${user.subdomain}/teacher` : '/teacher';
+      return user?.subdomain ? `/${user.subdomain}/teacher` : '/teacher';
     }
     
     // Admin role uses the SAME Owner portal with RBAC restrictions
-    // NO separate admin portal - uses Dashboard with filtered sections
     if (isAdminOnly(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
         return '/dashboard';
       }
-      return user?.subdomain ? `/school/${user.subdomain}/dashboard` : '/dashboard';
+      return user?.subdomain ? `/${user.subdomain}/dashboard` : '/dashboard';
     }
     
     // Default: regular dashboard (owner, director, coordinator, etc.)
     if (environment.mode === 'subdomain' || environment.supportsWildcard) {
       return '/dashboard';
     }
-    return user?.subdomain ? `/school/${user.subdomain}/dashboard` : '/dashboard';
+    return user?.subdomain ? `/${user.subdomain}/dashboard` : '/dashboard';
   };
 
   return (
