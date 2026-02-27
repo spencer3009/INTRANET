@@ -261,10 +261,14 @@ function App() {
   };
 
   const handleLogout = () => {
+    const sub = user?.subdomain;
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     setToken("");
     setUser(null);
+    if (sub) {
+      navigate(`/${sub}/login`, { replace: true });
+    }
   };
 
   // User state
