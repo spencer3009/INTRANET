@@ -4702,6 +4702,8 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
             schoolName={schoolName}
             subdomain={subdomain || user?.subdomain}
             token={token}
+            roleLabel={isParent ? "Padre/Apoderado" : undefined}
+            profilePath={isParent ? "/parent/profile" : undefined}
           />
         </div>
 
