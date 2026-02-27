@@ -4438,8 +4438,9 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
   }, []);
 
   useEffect(() => {
+    if (isParent && !selectedChild) return;
     loadData();
-  }, [token, courseId]);
+  }, [token, courseId, selectedChild?.id]);
 
   const loadData = async () => {
     setLoading(true);
