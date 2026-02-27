@@ -15,7 +15,8 @@ import {
   Trophy,
   Calendar,
   ChevronDown,
-  Check
+  Check,
+  Wallet
 } from "lucide-react";
 
 // Parent navigation items - same as student but for viewing child's info
@@ -27,6 +28,7 @@ const parentNavItems = [
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/parent/tasks" },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy, route: "/parent/grades" },
   { id: "asistencia", label: "Asistencia", icon: Clock, route: "/parent/attendance" },
+  { id: "pagos", label: "Pagos", icon: Wallet, route: "/parent/payments" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/parent/messages" },
 ];
 
