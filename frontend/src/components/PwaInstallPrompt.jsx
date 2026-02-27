@@ -20,18 +20,14 @@ export default function PwaInstallPrompt() {
   useEffect(() => {
     if (!isMobile() || isStandalone()) return;
 
+    // Always show on mobile
+    setShowButton(true);
+
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setShowButton(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
-
-    // For iOS Safari (no beforeinstallprompt), show manual instructions
-    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) && !window.MSStream;
-    if (isIOS && !isStandalone()) {
-      setShowButton(true);
-    }
 
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, [isMobile, isStandalone]);
