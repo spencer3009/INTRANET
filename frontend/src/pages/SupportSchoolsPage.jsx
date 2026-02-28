@@ -370,22 +370,51 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   )}
                 </div>
 
-                {/* Pricing */}
-                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                  <DollarSign className="w-3 h-3 text-slate-400" />
-                  <span className="text-xs text-slate-400">Precio:</span>
-                  {school.pricing_override ? (
-                    <span className="text-xs font-semibold text-blue-600">Personalizado</span>
-                  ) : (
-                    <span className="text-xs font-semibold text-slate-500">Global</span>
-                  )}
-                  <button
-                    onClick={(e) => { e.stopPropagation(); handleOpenPricing(school); }}
-                    className="ml-auto p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
-                    data-testid={`edit-pricing-${school.subdomain}`}
-                  >
-                    <Tag className="w-3 h-3" />
-                  </button>
+                {/* Pricing Summary */}
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                      <span className="text-xs font-bold text-emerald-800">Pago Mensual</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {school.pricing_override ? (
+                        <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Personalizado</span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Global</span>
+                      )}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleOpenPricing(school); }}
+                        className="p-1 text-slate-400 hover:text-slate-600 hover:bg-white/60 rounded transition-colors"
+                        data-testid={`edit-pricing-${school.subdomain}`}
+                      >
+                        <Tag className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex items-end justify-between">
+                    <div>
+                      <p className="text-2xl font-extrabold text-slate-800" data-testid={`price-${school.subdomain}`}>
+                        S/ {(school.calculated_price ?? 0).toFixed(2)}
+                      </p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">
+                        S/ {(school.base_charge ?? 0).toFixed(2)} base
+                        {school.per_student_applies ? (
+                          <> + {school.student_count || 0} alumnos x S/ {(school.per_student_fee ?? 0).toFixed(2)}</>
+                        ) : (
+                          <> (sin cobro por alumno aun)</>
+                        )}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] text-slate-400">Mes {school.months_active || 1}</p>
+                      {!school.per_student_applies && school.per_student_from_month && (
+                        <p className="text-[10px] text-amber-600 font-medium">
+                          Cobro/alumno desde mes {school.per_student_from_month}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {editingPricing === school.id && (
