@@ -79,6 +79,7 @@ import SupportLayout from "@/components/SupportLayout";
 import SupportDashboardPage from "@/pages/SupportDashboardPage";
 import SupportSchoolsPage from "@/pages/SupportSchoolsPage";
 import SupportProfilePage from "@/pages/SupportProfilePage";
+import SupportPricingPage from "@/pages/SupportPricingPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
