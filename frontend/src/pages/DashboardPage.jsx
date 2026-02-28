@@ -227,7 +227,6 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
           {hasPermissionError && <PermissionsFixer token={token} onFixed={fetchData} />}
           
           <DemoBanner token={token} onDemoDeleted={fetchData} />
-          
           {/* Subscription Card - Only for owner/admin */}
           {(user?.is_owner || user?.role === "owner" || user?.role === "admin") && (
             <SubscriptionCard token={token} />
