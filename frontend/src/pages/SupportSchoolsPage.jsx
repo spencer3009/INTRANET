@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { 
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
-  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil
+  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
