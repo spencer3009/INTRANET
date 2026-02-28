@@ -92,7 +92,7 @@ export default function SubscriptionCard({ token }) {
           <>
             <div className="flex items-center gap-1.5 whitespace-nowrap" data-testid="subscription-pricing">
               <DollarSign className="w-4 h-4 text-emerald-500" />
-              <span className="text-sm font-bold text-slate-800" data-testid="subscription-price">S/ {p.projected_price?.toFixed(2)}</span>
+              <span className="text-sm font-bold text-slate-800" data-testid="subscription-price">S/ {p.calculated_price?.toFixed(2)}</span>
             </div>
             <div className="hidden md:block w-px h-6 bg-slate-200" />
           </>
