@@ -383,6 +383,9 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       ) : (
                         <span className="text-[10px] font-semibold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Global</span>
                       )}
+                      <span className="text-[10px] font-medium text-slate-400 bg-white px-1.5 py-0.5 rounded">
+                        {school.billing_mode === "flat_fee" ? "Fijo" : school.billing_mode === "student_only" ? "x Alumno" : "Base+Alumno"}
+                      </span>
                       <button
                         onClick={(e) => { e.stopPropagation(); handleOpenPricing(school); }}
                         className="p-1 text-slate-400 hover:text-slate-600 hover:bg-white/60 rounded transition-colors"
@@ -398,35 +401,41 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                         S/ {(school.calculated_price ?? 0).toFixed(2)}
                       </p>
                       <p className="text-[10px] text-slate-500 mt-0.5">
-                        S/ {(school.base_charge ?? 0).toFixed(2)} base
-                        {school.per_student_applies ? (
-                          <> + {school.student_count || 0} alumnos x S/ {(school.per_student_fee ?? 0).toFixed(2)}</>
+                        {school.billing_mode === "flat_fee" ? (
+                          <>Tarifa fija mensual</>
+                        ) : school.billing_mode === "student_only" ? (
+                          school.per_student_applies ? (
+                            <>{school.student_count || 0} alumnos x S/ {(school.per_student_fee ?? 0).toFixed(2)}</>
+                          ) : (
+                            <>Sin cobro por alumno aun</>
+                          )
                         ) : (
-                          <> (sin cobro por alumno aun)</>
+                          school.per_student_applies ? (
+                            <>S/ {(school.base_charge ?? 0).toFixed(2)} base + {school.student_count || 0} alumnos x S/ {(school.per_student_fee ?? 0).toFixed(2)}</>
+                          ) : (
+                            <>S/ {(school.base_charge ?? 0).toFixed(2)} base (sin cobro por alumno aun)</>
+                          )
                         )}
                       </p>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] text-slate-400">Mes {school.months_active || 1}</p>
-                      {!school.per_student_applies && school.per_student_from_month && (
+                      {school.billing_mode !== "flat_fee" && !school.per_student_applies && school.per_student_from_month && (
                         <p className="text-[10px] text-amber-600 font-medium">
                           Cobro/alumno desde mes {school.per_student_from_month}
                         </p>
                       )}
                     </div>
                   </div>
-                  {/* Projection: what they'll pay after offer months end */}
-                  {!school.per_student_applies && school.student_count > 0 && (
+                  {/* Projection for non-flat modes */}
+                  {school.billing_mode !== "flat_fee" && !school.per_student_applies && school.student_count > 0 && (
                     <div className="border-t border-emerald-200 pt-2 mt-1">
                       <div className="flex items-center justify-between">
                         <p className="text-[11px] text-slate-500 font-medium">Desde mes {school.per_student_from_month}:</p>
                         <p className="text-sm font-extrabold text-amber-700" data-testid={`projected-price-${school.subdomain}`}>
-                          S/ {((school.base_charge ?? 0) + (school.student_count ?? 0) * (school.per_student_fee ?? 0)).toFixed(2)}
+                          S/ {((school.billing_mode === "student_only" ? 0 : (school.base_charge ?? 0)) + (school.student_count ?? 0) * (school.per_student_fee ?? 0)).toFixed(2)}
                         </p>
                       </div>
-                      <p className="text-[10px] text-slate-400">
-                        S/ {(school.base_charge ?? 0).toFixed(2)} + {school.student_count} x S/ {(school.per_student_fee ?? 0).toFixed(2)} = S/ {((school.student_count ?? 0) * (school.per_student_fee ?? 0)).toFixed(2)} por alumnos
-                      </p>
                     </div>
                   )}
                 </div>
