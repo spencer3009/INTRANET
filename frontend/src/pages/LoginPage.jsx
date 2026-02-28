@@ -17,15 +17,6 @@ export default function LoginPage({ onLogin }) {
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
-  // PWA auto-redirect: if in standalone mode and we have a saved school, go there
-  useEffect(() => {
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    const lastSchool = localStorage.getItem('edunet_last_school');
-    if (isStandalone && lastSchool) {
-      navigate(`/${lastSchool}`, { replace: true });
-    }
-  }, [navigate]);
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
