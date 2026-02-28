@@ -235,12 +235,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
             <MetricCards metrics={metrics} />
           )}
 
-          {/* Subscription Card - Below KPIs, only for owner/admin */}
-          {(user?.is_owner || user?.role === "owner" || user?.role === "admin") && (
-            <div className="mt-4">
-              <SubscriptionCard token={token} />
-            </div>
-          )}
+          {/* Subscription Card removed - now integrated into ProfileCard */}
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
             {/* Left column */}
