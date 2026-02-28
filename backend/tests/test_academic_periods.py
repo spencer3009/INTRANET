@@ -8,7 +8,7 @@ import os
 import uuid
 from datetime import datetime, timedelta
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://parent-portal-v2.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://pricing-calc-18.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 TEST_EMAIL = "admin.settings@test.pe"

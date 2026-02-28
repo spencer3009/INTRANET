@@ -1,59 +1,83 @@
 <analysis>**original_problem_statement:**
-The user, building EduNet for Peruvian schools, has made a series of iterative requests to enhance the Parent Portal:
+The user is building EduNet, an educational platform for Peruvian schools.
 
-**PRODUCT REQUIREMENTS:**
-1.  **Fix Bugs:** Resolve issues with the Materiales (Materials), Foro (Forum), and Recordatorios (Reminders) tabs in the course detail view, which were showing no content.
-2.  **Replicate Student Dashboard:** The user initially requested a replica of the Student Dashboard be added to the Parent Portal.
-3.  **Refine Dashboard Integration:** The user clarified that the replicated Student Dashboard should become the **main, default dashboard** for the parent. This dashboard must automatically update its content to reflect the data of the child currently selected in the sidebar, eliminating the need for a separate menu item.
-4.  **Integrate Premium Payments:** Add a premium financial section to the Parent Dashboard to display payment status. This should include a progress bar showing paid, pending, and overdue amounts, and summary cards. The data must come from the backend, not be hardcoded.
-5.  **Create Detailed Payments Page:** The user requested that the detailed monthly payment list be moved from the dashboard to its own dedicated Pagos (Payments) page, leaving only the summary on the main dashboard.
-6.  **Adjust Dashboard Layout:** Relocate the Progreso de Tareas (Task Progress) and Asistencia (Attendance) progress bars to the bottom of the dashboard, replacing the Anuncios Recientes (Recent Announcements) section.
-7.  **Convert to Circular Graphs:** The final request was to change the linear progress bars for Tasks and Attendance into circular graphs for a more modern look.
+**Initial requirements from the previous session:**
+*   Overhaul the Parent Portal UI/UX (circular graphs, two-column layout, child selector).
+*   Fix navigation bugs (404 errors, incorrect tab navigation).
+*   Implement a full PWA (Progressive Web App) for mobile users with a custom icon and an install-first experience.
+*   Refactor the core URL structure to remove the  prefix.
+
+**New requirements from this session:**
+1.  **PWA Robustness:**
+    *   Diagnose and fix PWA installation failures on real devices.
+    *   Change the PWA icon to a new user-provided image.
+    *   Implement an install-first screen on the generic  page, matching the behavior of the school-specific login page.
+    *   Detect when the app is opened in a WebView (like WhatsApp or Facebook) and show a dedicated screen guiding the user to open the link in a proper browser (e.g., Chrome).
+    *   Detect if the app is already installed (running in standalone mode) and bypass the installation screen, showing the login form directly.
+    *   Fix a Colegio no encontrado error that occurred when launching the installed PWA.
+2.  **Permissions and Bug Fixes:**
+    *   Resolve an issue where a specific owner account () could not see the Ajustes (Settings) menu.
+    *   Investigate and fix the root cause of the permission issue: a backend flaw where new owner accounts were being assigned the role director instead of owner.
+    *   Conduct a full-stack audit to ensure all permission checks are robust and handle legacy account structures.
+3.  **Support Panel Enhancements:**
+    *   Add  and  fields for each school in the support panel.
+    *   Allow the  to be manually edited.
+    *   Fix a timezone bug that saved the wrong date and a UI bug that caused unintended redirection.
+4.  **Subscription and Billing Features:**
+    *   Add a Subscription Status card to the owner/admin dashboard, showing a progress bar for the billing cycle and a countdown to the expiration date, with color-coded warnings.
+    *   Implement a global and per-school pricing configuration system (base monthly fee, price per student, and the month from which per-student fees apply).
+    *   **(Latest Request):** The system must calculate the total monthly payment for each school (base price + number of students \* per-student fee) and display this amount in the support panel.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack FastAPI/React app. The Parent Portal has been significantly overhauled:
--   The main Parent Dashboard is now a functional, read-only replica of the Student Dashboard. It dynamically updates based on which child the parent selects from the sidebar.
--   A new Payments feature has been fully integrated. The main dashboard displays a financial summary with a multi-color progress bar (representing paid, pending, and overdue amounts) and summary cards.
--   A new dedicated page, , shows a detailed, month-by-month breakdown of the selected child's financial status.
--   The backend has been enhanced with a new  endpoint and seeded with realistic test data for course materials and payments to support the new features.
--   The critical technical debt of a monolithic  and hardcoded Owner Dashboard data persists.
+The application is a full-stack FastAPI/React app. The PWA functionality is now highly robust, handling various edge cases like in-app browsers (WebViews) and detecting if the app is already installed. The critical permission issue related to owner accounts has been resolved through a full-stack audit and correction, ensuring both new and existing accounts work correctly. The support panel now displays school subscription expiration dates, which are editable. A subscription status card is visible on the owner dashboard. A comprehensive pricing system has been implemented on both the backend (endpoints for global/individual settings) and frontend (a new Precios page and UI for per-school overrides).
 
 **Last working item**:
--   **Last item agent was working**: The user requested to convert the linear progress bars for Progreso de Tareas (Task Progress) and Asistencia (Attendance) on the Parent Dashboard into circular graphs. The agent acknowledged the request and was about to begin implementation.
+-   **Last item agent was working**: The user requested that the system should calculate the total monthly fee for each school based on the number of students and the configured pricing rules. This calculated amount should then be displayed on the school's card in the support panel.
 -   **Status**: NOT STARTED
 -   **Agent Testing Done**: N
--   **Which testing method agent to use?**: screenshot tool. This is a visual-only change. The agent should modify  to implement the circular graphs and then use the screenshot tool to capture the updated dashboard and verify the change.
+-   **Which testing method agent to use?**: both
+    -   Backend:  to a new or modified endpoint to verify it returns student count and the calculated price.
+    -   Frontend:  tool to verify the calculated price is displayed correctly on the support dashboard.
 -   **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Remove Hardcoded Data from Owner Dashboard (P0)**
+-   **Issue 1: Extra Students in Course View (P0)**
+    -   **Description:** The user sees 17 students in a course view instead of their 5 registered ones. The agent identified that 30 demo students from  are the cause.
+    -   **Status:** BLOCKED (on user confirmation to delete the demo students)
+    -   **Is recurring issue?** N
+
+-   **Issue 2: Remove Hardcoded Data from Owner Dashboard (P1)**
     -   **Description:** An inherited critical issue where components on the Owner's Dashboard use hardcoded data instead of fetching from the backend.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
 
--   **Issue 2: Message Center Unread Count Discrepancy (P1)**
+-   **Issue 3: Message Center Unread Count Discrepancy (P2)**
     -   **Description:** An inherited issue where the dashboard widget shows an unread message count that doesn't match the actual message list.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
 
--   **Issue 3: Parent Portal - Horario page shows empty table (P2)**
-    -   **Description:** An inherited issue where the parent's schedule page may show an empty table. Needs verification as recent overhauls might have inadvertently fixed it.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-
 **In progress Task List**:
--   None.
+-   **Task 1: Implement Pricing Calculation and Display (P0)**
+    -   **Where to resume:**
+        1.  **Backend ():** Modify the support endpoints (, ) to:
+            *   Fetch the count of active students for each school.
+            *   Implement the logic to calculate the total monthly fee based on the global or per-school pricing rules and the student count.
+            *   Return the student count and the calculated price along with the other school data.
+        2.  **Frontend ():** Update the  component to display the newly available student count and calculated monthly price.
+    -   **What will be achieved with this?** The support user will be able to see the exact monthly billing amount for each school, completing the pricing feature.
+    -   **Status:** IN PROGRESS (Foundation is built, but this final piece is missing).
+    -   **Should Test frontend/backend/both after fix?** both
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Convert linear progress bars to circular graphs:** Implement the user's latest request to change the Task and Attendance progress bars into circular graphs on the .
-    -   **P0: Modularize :** CRITICAL. This is the highest priority technical task. The file is large, fragile, and difficult to maintain. It must be refactored into smaller, domain-specific FastAPI routers.
-    -   **P1: Apply Intelligent Filters to Parents View:** Implement the advanced filtering system from the Students view to the Parents view in .
+    -   **P0: Delete Demo Students:** Upon user confirmation, create and run a script to remove the demo student accounts from the database.
+    -   **P1: Modularize :** (CRITICAL Tech Debt) Refactor the monolithic  into smaller, domain-specific FastAPI routers.
+    -   **P2: Apply Intelligent Filters to Parents View:** Implement the advanced filtering system from the Students view to the Parents view in .
 
 -   **Future Tasks:**
-    -   **P1:** Complete Parent Portal Feature Parity (any remaining functional differences).
+    -   **P1:** Complete Parent Portal Feature Parity.
     -   **P1:** Implement Cache Invalidation for .
     -   **P1:** Build a Matrículas (Enrollments) module.
     -   **P1:** Implement a basic anti-cheating system for exams.
@@ -62,36 +86,53 @@ The application is a full-stack FastAPI/React app. The Parent Portal has been si
     -   **P2:** Perform a project-wide replacement of  and  with a global custom modal.
 
 **Completed work in this session**
--   **Bugfix: Empty Course Content Tabs (DONE):** Fixed the Materiales, Foro, and Recordatorios tabs by seeding the  collection and adding a missing  statement in .
--   **Feature: Dynamic Parent Dashboard (DONE):** Replaced the static parent dashboard with a replica of the student dashboard. It now automatically updates to show the data for the child selected in the sidebar. This involved modifying  and removing the temporary .
--   **Feature: Premium Payments Integration (DONE):**
-    -   Created a new backend endpoint () and seeded realistic payment data.
-    -   Added a financial summary section (progress bar, summary cards) to .
-    -   Created a new  to show a detailed monthly payment breakdown.
-    -   Added a Pagos link to the parent sidebar.
--   **Refactor: Dashboard Layout Adjustment (DONE):** Moved the Task and Attendance progress bars to the bottom of the , replacing the Recent Announcements section.
+-   **PWA Enhancements:**
+    -   Fixed all reported installation issues by overhauling , , and the component logic in .
+    -   Implemented robust WebView detection to guide users from in-app browsers (WhatsApp, Facebook) to a standard browser.
+    -   Added logic to hide the install prompt if the PWA is already installed and running in standalone mode.
+    -   Updated the PWA icon with a new image provided by the user.
+    -   Fixed the PWA  to point to , resolving a Colegio no encontrado error on launch.
+-   **Permissions & Bug Fixes:**
+    -   Fixed a critical bug preventing an owner-level user from accessing the Ajustes (Settings) page.
+    -   Conducted a full-stack audit and corrected the root cause in the backend onboarding logic, ensuring new owners are created with the correct role (). All frontend and backend permission checks were made more robust.
+-   **Support Panel & Subscription Features:**
+    -   Added  and  to the school list in the support panel.
+    -   Implemented functionality to manually edit a school's .
+    -   Fixed UI bugs related to timezone handling and event propagation when editing the date.
+    -   Created and integrated a Subscription Status card on the owner/admin dashboard.
+    -   Designed and implemented a full pricing configuration system, with a new Precios page in the support panel and a UI to set per-school overrides.
 
 **Earlier issues found/mentioned but not fixed**
--   The critical refactoring of  into smaller, manageable modules.
--   The removal of hardcoded data from the Owner's Dashboard.
--   Project-wide replacement of native browser dialogs (, ).
+-   **Issue 1:  Refactor**
+    -   **Why to solve this issue and what will be achieved with this?** The  file is a monolith, making it hard to maintain and prone to bugs. Refactoring it into smaller routers will improve code organization and scalability.
+    -   **Status:** NOT STARTED
+-   **Issue 2: Hardcoded Data on Owner Dashboard**
+    -   **Why to solve this issue and what will be achieved with this?** Components like Asistencia del Mes and Noticias y Avisos show static data. Connecting them to the backend will make the dashboard functional.
+    -   **Status:** NOT STARTED
 
 **Known issue recurrence from previous fork**
--   **Hardcoded Owner Dashboard Data:** This high-priority issue from the previous fork was again deferred in favor of user-requested features.
--   **Message Center Unread Count Discrepancy:** This recurring issue remains unresolved.
+-   **Hardcoded Owner Dashboard Data:** Recurrence count: 2. Status: NOT STARTED.
+-   **Message Center Unread Count Discrepancy:** Recurrence count: 2. Status: NOT STARTED.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Dynamic Component State:** Refactoring the  to dynamically re-render its entire content based on the  state, providing an interactive and seamless user experience.
--   **API-Driven UI:** Building new frontend features (Payments) that are powered by dedicated backend endpoints () and realistic seeded data.
--   **Feature Scoping and Refinement:** Iterating on a feature based on user feedback, moving from a separate page () to an integrated solution (), and then splitting a feature into summary (dashboard) and detail () views.
--   **Data Seeding:** Extensive use of  and one-off scripts to create realistic test data for  (materials, forums) and , which was crucial for developing and testing new UI features.
+-   **PWA Lifecycle & Edge Cases:** Advanced handling of the PWA lifecycle, including , service worker control (), WebView detection via , and standalone mode detection using .
+-   **Full-Stack Permission Auditing:** Tracing a permission bug from the frontend UI (, ) to the backend logic () and fixing it at the root cause (onboarding flow) as well as implementing defensive checks ().
+-   **Dynamic Pricing Engine:** Implemented a flexible billing model with global defaults stored in the database and per-school overrides.
+-   **UI/UX Iteration:** Continuously refined UI components based on direct user feedback, such as redesigning the subscription card to be more compact and professional.
+-   **FastAPI & Pydantic:** Added new API endpoints and Pydantic models for managing pricing and subscription dates. Modified existing models to include new fields.
+-   **Database Migrations (on-the-fly):** Implemented logic on server startup to backfill the  for existing school documents that didn't have it.
 
 **key DB schema**
--   **payments**: New collection used for storing student payment records. Fields include , , , ,  ('PAGADO', 'PENDIENTE', 'MOROSO').
--   **course_posts**: Heavily used for materials, forums, and reminders.
+-   **schools**:
+    -    (added)
+    -    (added, optional)
+    -    (critical for permission checks)
+    -    (can be 'director' for legacy owners)
+-   **pricing_config**: New collection (or single document) to store global settings.
+    -   
 
 **changes in tech stack**
 -   None.
@@ -104,59 +145,69 @@ The application is a full-stack FastAPI/React app. The Parent Portal has been si
 -   
 -   
 -   
+-   
+-   
+-   
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This remains the top priority. The file is fragile and increasingly complex. It MUST be broken down into FastAPI routers.
--   ** (High):** This component now contains a significant amount of logic for the student dashboard replica, data fetching, and the financial summary. It should be broken down into smaller, more focused sub-components (e.g., , , ).
+-   ** (CRITICAL):** This remains the top priority. The file has grown even more complex with the addition of pricing and subscription logic, making it fragile and difficult to maintain.
 
 **key api endpoints**
--   **CREATED**:  - Fetches detailed payment history for the selected child.
--   **MODIFIED**:  - Logic was updated to return data compatible with the student dashboard view.
--   **VERIFIED**:  - The endpoint for materials, forums, and reminders was debugged by seeding data and confirmed to work correctly.
+-   **New Endpoints:**
+    -   : Updates a school's expiration date.
+    -   : Retrieves global pricing configuration.
+    -   : Updates global pricing configuration.
+    -   : Sets a pricing override for a specific school.
+-   **Modified Endpoints:**
+    -   : Corrected to assign  to new owners.
+    -   , : Modified to return new  and  fields.
+    -   Multiple backend endpoints: Logic updated to check  in addition to .
 
 **Critical Info for New Agent**
 -   **¡Habla en español!** You must communicate with the user in Spanish.
--   **Immediate Task:** Your first task is to convert the two linear progress bars (Task Progress and Attendance) at the bottom of the Parent Dashboard into circular graphs. This is a visual change primarily affecting .
--   **Dashboard Context:** The parent's main dashboard () IS the student's dashboard. It's not a separate page. It updates automatically when the parent uses the child selector in the sidebar.
--   **Payments Feature:** A complete financial/payments feature is now live. It consists of a summary on the main dashboard and a detailed view on the separate  page.
--   **Backend Fragility:** The  file is a significant technical debt risk. After completing the current user request, you should strongly advocate for and plan its refactoring.
+-   **Your immediate task is to finish the pricing feature.** You need to implement the calculation logic (base price + student count * per-student fee) in the backend and display the result on the . This will require getting the student count for each school.
+-   **The user tests on their production environment.** Changes must be robust. Be aware that the support user  may not exist in the preview environment.
+-   **PWA changes require cache clearing.** When modifying PWA-related files (, , icons, etc.), always remind the user to **uninstall the app, clear their browser cache, and reinstall** to see the changes.
 
 **documents and test reports created in this job**
--   
+-   None.
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** The progress bars for Tasks and Attendance should be at the bottom instead of Recent Announcements. **Status: COMPLETED.**
-9.  **User:** The detailed monthly payment list should be on a separate page, not on the dashboard. **Status: COMPLETED.**
-8.  **User:** Let's integrate payments into the Parent Portal to show a premium financial status. **Status: COMPLETED.**
-7.  **User:** The student dashboard should be the *main* dashboard for the parent, not a separate menu item. It should change when I select a student. **Status: COMPLETED.**
-6.  **User:** I need to see the student dashboard in the parent panel. **Status: COMPLETED.**
-5.  **User:** Let's add a replica of the student dashboard to the parent portal. **Status: COMPLETED.**
-4.  **User:** The Forum and Reminders tabs are not showing anything. **Status: COMPLETED.**
-3.  **User:** (Sends image) The Materials tab is not showing anything. **Status: COMPLETED.**
-2.  **User:** The Forum and Reminders tabs are not showing anything. **Status: IN PROGRESS (at the time, now completed).**
-1.  **User:** (Sends image) The materials tab is not showing anything. **Status: IN PROGRESS (at the time, now completed).**
+10. **User:** Requested a full pricing configuration system (global and per-school). **Status: COMPLETED** (Agent implemented the backend and frontend for setting prices).
+9.  **User:** Requested to make the subscription card text bigger. **Status: COMPLETED**.
+8.  **User:** Complained the new subscription card was too big and had the wrong background color. **Status: COMPLETED** (Agent redesigned it to be compact and professional).
+7.  **User:** Requested a Subscription Status card for the owner dashboard. **Status: COMPLETED**.
+6.  **User:** Reported unintended redirection when saving the expiration date. **Status: COMPLETED** (Agent fixed it by stopping event propagation).
+5.  **User:** Reported a timezone issue where saving a date saved the previous day. **Status: COMPLETED** (Agent fixed the date serialization).
+4.  **User:** Requested to add and edit an  for schools in the support panel. **Status: COMPLETED**.
+3.  **User:** Asked for the support URL. **Status: COMPLETED**.
+2.  **User:** Confirmed the settings page was still not working correctly and asked if new accounts would be created correctly. **Status: COMPLETED** (Agent did a full-stack audit and fixed all related permission issues).
+1.  **User (LATEST):** the system must be able to calculate the number of students it has and multiply by the price per student and know when it must pay when the months of offer or monthly base price expire. Everything must be shown on the card. **Status: PENDING**.
 
 **Project Health Check:**
--   **Broken**: None.
+-   **Broken**: The pricing feature is functionally incomplete until the final calculation and display logic is implemented as per the last user request.
 -   **Mocked**: Asistencia del Mes and Noticias y Avisos components on the Owner's dashboard still use hardcoded data.
 
 **3rd Party Integrations**
 -   Cloudinary (Image Storage)
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. Used successfully after the major dashboard refactoring.
+-   **Testing agent used after significant changes**: NO
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None
--   **Known regressions**: None
+-   **Known regressions**: None from this session. The agent performed extensive manual testing via screenshots and backend log/compile checks after each iterative change.
 
 **Credentials to test flow:**
--   **School Owner:**
+-   **Support / Admin (for Support Panel testing):**
+    -   **Email:** 
+    -   **Password:** 
+    -   *Note: This user exists in production, may not exist in preview.*
+-   **School Owner (for Ajustes and Subscription Card testing):**
     -   **Subdomain:** 
-    -   **Email:** 
+    -   **Email:**  (legacy account with )
     -   **Password:** 
--   **Parent (user who reported issues):**
-    -   **Email:** 
-    -   **Password:** 
+-   **Parent / Student / Teacher (for general portal testing):**
+    -   Use credentials from the original handoff summary.
 
 **What agent forgot to execute**
--   The agent correctly prioritized the user's continuous stream of feature requests and refinements. As a result, critical technical debt items (refactoring , removing hardcoded data from the Owner's dashboard) were once again deferred. This is an acceptable trade-off but these items are now more critical than ever.</analysis>
+-   The agent did not forget anything but was in the process of implementing the pricing feature when the session ended. The next step is to act on the user's latest request to add the price calculation and display.</analysis>
