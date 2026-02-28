@@ -1,77 +1,61 @@
 import { useState, useEffect, useRef } from "react";
-import { Smartphone, Download } from "lucide-react";
+import { Smartphone, Download, ExternalLink, Chrome } from "lucide-react";
+
+const APP_URL = "https://edunet.pe/login";
+
+// Detect in-app browsers (WhatsApp, Facebook, Instagram, etc.)
+function detectWebView() {
+  const ua = navigator.userAgent || "";
+  return /wv|WebView/i.test(ua) ||
+    /FBAN|FBAV/i.test(ua) ||
+    /Instagram/i.test(ua) ||
+    /WhatsApp/i.test(ua) ||
+    /Twitter/i.test(ua) ||
+    /Line\//i.test(ua) ||
+    /MicroMessenger/i.test(ua) ||
+    /Snapchat/i.test(ua) ||
+    /TikTok/i.test(ua);
+}
 
 export default function PwaInstallPrompt({ mode = "inline" }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [installing, setInstalling] = useState(false);
   const [progress, setProgress] = useState(0);
   const [installed, setInstalled] = useState(false);
-  const [swStatus, setSwStatus] = useState("checking"); // checking | controlling | failed
   const promptRef = useRef(null);
+  const isWebView = detectWebView();
 
   useEffect(() => {
     console.log('[PWA] === INICIALIZANDO ===');
-    console.log('[PWA] URL:', window.location.href);
-    console.log('[PWA] standalone:', window.matchMedia('(display-mode: standalone)').matches);
+    console.log('[PWA] UserAgent:', navigator.userAgent);
+    console.log('[PWA] WebView detectado:', isWebView);
 
-    // Already installed
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || window.__pwaInstalled) {
-      console.log('[PWA] App ya instalada');
       setInstalled(true);
+      return;
+    }
+
+    // Don't bother with install logic in WebView
+    if (isWebView) {
+      console.log('[PWA] WebView detectado - mostrando instrucciones para abrir en Chrome');
       return;
     }
 
     // Check if prompt was captured globally before React
     if (window.__pwaInstallPromptFired && window.__pwaInstallPrompt) {
-      console.log('[PWA] Usando prompt capturado globalmente');
       promptRef.current = window.__pwaInstallPrompt;
       setDeferredPrompt(window.__pwaInstallPrompt);
     }
 
-    // Check SW controller status
-    const checkController = () => {
-      const ctrl = navigator.serviceWorker?.controller;
-      console.log('[PWA] SW controller:', ctrl ? ctrl.scriptURL : 'null');
-      if (ctrl) {
-        setSwStatus("controlling");
-        return true;
-      }
-      return false;
-    };
-
-    // Check immediately
-    if (!checkController()) {
-      // Wait for SW to take control
-      if (window.__swReady) {
-        window.__swReady.then((success) => {
-          if (success) {
-            console.log('[PWA] SW ahora controla la pagina');
-            setSwStatus("controlling");
-          } else {
-            console.warn('[PWA] SW no logro controlar la pagina');
-            setSwStatus("failed");
-          }
-        });
-      }
-
-      // Also listen for controllerchange directly
-      navigator.serviceWorker?.addEventListener('controllerchange', () => {
-        console.log('[PWA] controllerchange detectado en componente');
-        setSwStatus("controlling");
-      });
-    }
-
-    // Listen for beforeinstallprompt
     const handler = (e) => {
       e.preventDefault();
       console.log('[PWA] beforeinstallprompt DISPARADO');
-      console.log('[PWA] platforms:', e.platforms);
       promptRef.current = e;
       setDeferredPrompt(e);
     };
 
     const installedHandler = () => {
-      console.log('[PWA] APP INSTALADA - appinstalled event');
+      console.log('[PWA] APP INSTALADA');
       setInstalled(true);
       setDeferredPrompt(null);
       promptRef.current = null;
@@ -81,81 +65,40 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     window.addEventListener("beforeinstallprompt", handler);
     window.addEventListener("appinstalled", installedHandler);
 
-    // Diagnostic after 8 seconds
-    const diagTimeout = setTimeout(() => {
-      const ctrl = navigator.serviceWorker?.controller;
-      console.log('[PWA] === DIAGNOSTICO 8s ===');
-      console.log('[PWA] SW controller:', ctrl ? 'SI (' + ctrl.state + ')' : 'NO (null)');
-      console.log('[PWA] beforeinstallprompt recibido:', !!promptRef.current);
-      console.log('[PWA] window.__pwaInstallPromptFired:', window.__pwaInstallPromptFired);
-
-      if (!ctrl) {
-        console.error('[PWA] PROBLEMA: SW no controla la pagina. La PWA NO se puede instalar.');
-        console.error('[PWA] Solucion: Recargar la pagina (el SW necesita claim() + reload)');
-      }
-      if (!promptRef.current) {
-        console.warn('[PWA] beforeinstallprompt no se ha disparado.');
-        if (!ctrl) {
-          console.warn('[PWA] Causa probable: SW no controla la pagina');
-        } else {
-          console.warn('[PWA] Posibles causas: falta engagement (30s+click), manifest invalido, o app ya instalada');
-        }
-      }
-    }, 8000);
-
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
       window.removeEventListener("appinstalled", installedHandler);
-      clearTimeout(diagTimeout);
     };
-  }, []);
+  }, [isWebView]);
 
   const handleInstall = async () => {
     const activePrompt = deferredPrompt || promptRef.current || window.__pwaInstallPrompt;
-
-    console.log('[PWA] === INSTALANDO ===');
-    console.log('[PWA] prompt disponible:', !!activePrompt);
-    console.log('[PWA] SW controller:', !!navigator.serviceWorker?.controller);
-
-    if (!activePrompt) {
-      console.error('[PWA] No hay prompt. beforeinstallprompt no se disparo.');
-      return;
-    }
+    if (!activePrompt) return;
 
     setInstalling(true);
     setProgress(0);
 
-    // Quick animation
     const steps = [
       { target: 30, delay: 300 },
       { target: 60, delay: 400 },
       { target: 85, delay: 300 },
     ];
-
     for (const step of steps) {
       await new Promise((r) => setTimeout(r, step.delay));
       setProgress(step.target);
     }
 
     try {
-      console.log('[PWA] Llamando prompt()...');
       activePrompt.prompt();
-      console.log('[PWA] prompt() OK - esperando userChoice...');
-
       setProgress(90);
       const result = await activePrompt.userChoice;
-      console.log('[PWA] userChoice:', result.outcome, '| platform:', result.platform);
-
       if (result.outcome === "accepted") {
         setProgress(100);
         await new Promise((r) => setTimeout(r, 600));
         setInstalled(true);
-        console.log('[PWA] Instalacion ACEPTADA');
-      } else {
-        console.log('[PWA] Instalacion RECHAZADA por el usuario');
       }
     } catch (err) {
-      console.error('[PWA] ERROR en prompt():', err.name, err.message);
+      console.error('[PWA] ERROR:', err);
     } finally {
       setInstalling(false);
       setDeferredPrompt(null);
@@ -163,14 +106,67 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     }
   };
 
-  // Inline mode: only show if prompt available
-  if (mode !== "hero" && (!deferredPrompt || installed)) return null;
-  if (installed) return null;
+  const handleOpenInChrome = () => {
+    // Try Android intent to open in Chrome
+    const intentUrl = `intent://${APP_URL.replace('https://', '')}#Intent;scheme=https;package=com.android.chrome;end`;
+    window.location.href = intentUrl;
+    // Fallback: just open the URL (will open in default browser on some devices)
+    setTimeout(() => {
+      window.location.href = APP_URL;
+    }, 500);
+  };
 
-  const hasPrompt = !!(deferredPrompt || promptRef.current || window.__pwaInstallPrompt);
+  // Inline mode: only show if prompt available and not WebView
+  if (mode !== "hero" && (!deferredPrompt || installed || isWebView)) return null;
+  if (installed) return null;
 
   // Hero mode
   if (mode === "hero") {
+    // WebView detected - show "Open in Chrome" card
+    if (isWebView) {
+      return (
+        <div className="text-center" data-testid="pwa-webview-warning">
+          <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-red-400 to-orange-500 flex items-center justify-center shadow-lg">
+            <ExternalLink className="w-10 h-10 text-white" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-800 mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            Instalar EduNet correctamente
+          </h2>
+          <p className="text-sm text-slate-500 mb-5 leading-relaxed">
+            Para instalar EduNet debe abrir este enlace en <strong className="text-slate-700">Chrome</strong>.
+          </p>
+          <p className="text-xs text-slate-400 mb-6 leading-relaxed">
+            Los navegadores internos como WhatsApp no permiten instalar la aplicacion.
+          </p>
+
+          <button
+            onClick={handleOpenInChrome}
+            className="w-full py-4 bg-[#001f4b] text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-[#0a3068] active:scale-[0.98] transition-all shadow-lg mb-5"
+            style={{ boxShadow: '0 10px 30px -10px rgba(0,31,75,0.5)' }}
+            data-testid="open-in-chrome-button"
+          >
+            <Chrome className="w-5 h-5" />
+            Abrir en Chrome
+          </button>
+
+          <div className="bg-slate-50 rounded-xl p-4 text-left">
+            <p className="text-xs font-semibold text-slate-600 mb-2">Si no abre automaticamente:</p>
+            <div className="space-y-2">
+              <div className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center">1</span>
+                <p className="text-xs text-slate-500">Toque <strong className="text-slate-700">&#8942;</strong> (tres puntos) arriba a la derecha</p>
+              </div>
+              <div className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center">2</span>
+                <p className="text-xs text-slate-500">Seleccione <strong className="text-slate-700">"Abrir en Chrome"</strong></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Normal Chrome - show install button
     return (
       <>
         <div className="text-center" data-testid="pwa-install-hero">
