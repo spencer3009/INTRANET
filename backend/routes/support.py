@@ -103,7 +103,7 @@ async def support_schools(user=Depends(require_support_admin)):
     # Get global pricing config
     global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
     if not global_pricing:
-        global_pricing = {"base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3}
+        global_pricing = {"billing_mode": "base_plus_student", "base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3, "flat_fee": 0.0}
     
     now = datetime.now(timezone.utc)
     
@@ -126,17 +126,21 @@ async def support_schools(user=Depends(require_support_admin)):
         
         # Effective pricing (override > global)
         override = school.get("pricing_override")
-        eff_base = override.get("base_monthly_fee", global_pricing["base_monthly_fee"]) if override else global_pricing["base_monthly_fee"]
-        eff_student_fee = override.get("per_student_fee", global_pricing["per_student_fee"]) if override else global_pricing["per_student_fee"]
-        eff_from_month = override.get("per_student_from_month", global_pricing["per_student_from_month"]) if override else global_pricing["per_student_from_month"]
+        def eff_v(key, default):
+            if override and key in override:
+                return override[key]
+            return global_pricing.get(key, default)
         
-        # Calculate charges
-        student_charge = 0.0
-        per_student_applies = months_active >= eff_from_month
-        if per_student_applies:
-            student_charge = student_count * eff_student_fee
+        eff_mode = eff_v("billing_mode", "base_plus_student")
+        eff_base = eff_v("base_monthly_fee", 50.0)
+        eff_student_fee = eff_v("per_student_fee", 0.70)
+        eff_from_month = eff_v("per_student_from_month", 3)
+        eff_flat = eff_v("flat_fee", 0.0)
         
-        calculated_price = round(eff_base + student_charge, 2)
+        calculated_price, student_charge, base_charge = calc_price(
+            eff_mode, eff_base, eff_student_fee, eff_from_month, eff_flat, student_count, months_active
+        )
+        per_student_applies = eff_mode != "flat_fee" and months_active >= eff_from_month
         
         assignment = assignment_map.get(sid, {})
         result.append({
@@ -147,11 +151,13 @@ async def support_schools(user=Depends(require_support_admin)):
             "teacher_count": teacher_count,
             "total_users": total_count,
             "months_active": months_active,
+            "billing_mode": eff_mode,
             "calculated_price": calculated_price,
-            "base_charge": eff_base,
-            "student_charge": round(student_charge, 2),
+            "base_charge": base_charge,
+            "student_charge": student_charge,
             "per_student_fee": eff_student_fee,
             "per_student_from_month": eff_from_month,
+            "flat_fee": eff_flat,
             "per_student_applies": per_student_applies
         })
     
