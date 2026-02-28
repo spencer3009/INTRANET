@@ -282,7 +282,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       Vence: {getExpirationInfo(school.expiration_date).text}
                     </span>
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingExpiration(editingExpiration === school.id ? null : school.id);
                         setNewExpDate(school.expiration_date ? school.expiration_date.split("T")[0] : "");
                       }}
