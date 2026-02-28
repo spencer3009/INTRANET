@@ -84,7 +84,7 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
     const s = new Date(school.created_at), e = new Date(school.expiration_date), n = new Date();
     const total = e - s;
     if (total <= 0) return 100;
-    return Math.min(100, Math.max(0, Math.round(((n - s) / total) * 100)));
+    return Math.min(100, Math.max(2, Math.round(((n - s) / total) * 100)));
   })();
 
   return (
