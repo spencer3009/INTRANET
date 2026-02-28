@@ -11,39 +11,29 @@ EduNet is an educational platform (intranet escolar) for Peruvian schools. Built
 - **Auth**: JWT-based
 - **PWA**: Custom service worker with WebView detection
 
-## Key File Structure
-```
-/app
-├── backend/
-│   ├── server.py (monolith - needs refactoring)
-│   └── routes/
-│       ├── core.py
-│       └── support.py (pricing, school management)
-└── frontend/
-    └── src/
-        ├── pages/
-        │   ├── SupportSchoolsPage.jsx (school cards with pricing)
-        │   ├── SupportPricingPage.jsx (global pricing config)
-        │   ├── SupportDashboardPage.jsx
-        │   ├── DashboardPage.jsx
-        │   ├── LoginPage.jsx (PWA install-first)
-        │   └── SettingsPage.jsx
-        └── components/
-            ├── PwaInstallPrompt.jsx
-            └── SupportLayout.jsx
-```
-
 ## Completed Features (Feb 2026)
 - [x] PWA with WebView detection and install-first experience
 - [x] Custom PWA icon
 - [x] Full-stack permission audit (owner role fixes)
 - [x] Support panel with school management
 - [x] School expiration dates (editable)
-- [x] Subscription status card on owner dashboard
+- [x] Subscription status card integrated into ProfileCard (owner/admin dashboard)
 - [x] Global & per-school pricing configuration system
-- [x] **Pricing calculation & display on school cards** (Feb 28, 2026)
-  - Backend calculates: base_price + (students * per_student_fee) when months >= threshold
-  - School cards show: total price, breakdown, student count, month active, per-student timing
+- [x] **Pricing calculation & display on school cards** (Feb 28)
+- [x] **3 billing modes** (Feb 28): base_plus_student, student_only, flat_fee
+  - Switch/selector on /support/pricing page
+  - Each mode shows relevant fields only
+  - Preview section for quick calculations
+  - School cards show billing mode badge
+
+## Pricing Model
+- **3 Billing Modes:**
+  1. `base_plus_student`: base_monthly_fee + (students * per_student_fee) from per_student_from_month
+  2. `student_only`: (students * per_student_fee) from per_student_from_month, no base
+  3. `flat_fee`: fixed monthly amount regardless of students
+- Global defaults in `pricing_config` collection
+- Per-school overrides in `schools.pricing_override`
+- Default: S/50.00 base + S/0.70/student from month 3
 
 ## Pending Issues
 - P0: Extra demo students in course view (blocked on user confirmation)
@@ -66,10 +56,4 @@ EduNet is an educational platform (intranet escolar) for Peruvian schools. Built
 
 ## Key Credentials
 - Support: spencer3009@gmail.com / Socios3009
-- School Owner: Iep.exploradores@gmail.com / 1234abc8 (subdomain: elroble)
-
-## Pricing Model
-- Global defaults stored in `pricing_config` collection
-- Per-school overrides stored in `schools.pricing_override`
-- Calculation: base_monthly_fee + (student_count * per_student_fee) when months_active >= per_student_from_month
-- Default: S/50.00 base + S/0.70/student from month 3
+- School Owner: admin@elroble.edu / 1234abc8 (subdomain: elroble)
