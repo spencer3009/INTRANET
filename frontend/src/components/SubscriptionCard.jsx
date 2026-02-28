@@ -58,7 +58,7 @@ export default function SubscriptionCard({ token }) {
   const p = school.pricing;
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-xl px-6 py-4 shadow-sm space-y-3" data-testid="subscription-card">
+    <div className="bg-white border border-slate-200/80 rounded-xl px-6 py-4 shadow-sm" data-testid="subscription-card">
       <div className="flex items-center gap-5 flex-wrap">
         {/* Status */}
         <div className="flex items-center gap-2.5 min-w-0">
@@ -87,6 +87,17 @@ export default function SubscriptionCard({ token }) {
         {/* Divider */}
         <div className="hidden md:block w-px h-6 bg-slate-200" />
 
+        {/* Amount to pay */}
+        {p && (
+          <>
+            <div className="flex items-center gap-1.5 whitespace-nowrap" data-testid="subscription-pricing">
+              <DollarSign className="w-4 h-4 text-emerald-500" />
+              <span className="text-sm font-bold text-slate-800" data-testid="subscription-price">S/ {p.projected_price?.toFixed(2)}</span>
+            </div>
+            <div className="hidden md:block w-px h-6 bg-slate-200" />
+          </>
+        )}
+
         {/* Progress bar */}
         <div className="flex items-center gap-2.5 flex-1 min-w-[140px]">
           <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -108,29 +119,6 @@ export default function SubscriptionCard({ token }) {
           <span className="text-sm text-slate-500 font-medium">Contacte soporte</span>
         )}
       </div>
-
-      {/* Pricing row */}
-      {p && (
-        <div className="flex items-center gap-4 flex-wrap border-t border-slate-100 pt-3" data-testid="subscription-pricing">
-          <div className="flex items-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm font-bold text-slate-700">Al vencer:</span>
-            <span className="text-lg font-extrabold text-slate-800" data-testid="subscription-price">S/ {p.projected_price?.toFixed(2)}</span>
-          </div>
-          <div className="hidden md:block w-px h-5 bg-slate-200" />
-          <span className="text-xs text-slate-500">
-            S/ {p.base_charge?.toFixed(2)} base + {p.student_count} alumnos x S/ {p.per_student_fee?.toFixed(2)}
-          </span>
-          {!p.per_student_applies && (
-            <>
-              <div className="hidden md:block w-px h-5 bg-slate-200" />
-              <span className="text-xs text-amber-600 font-semibold">
-                Ahora: S/ {p.calculated_price?.toFixed(2)} (cobro por alumno desde mes {p.per_student_from_month})
-              </span>
-            </>
-          )}
-        </div>
-      )}
     </div>
   );
 }
