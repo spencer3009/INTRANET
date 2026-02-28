@@ -1294,7 +1294,7 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
         await db.users.update_one(
             {"id": user["id"]},
             {"$set": {
-                "role": "director",
+                "role": "owner",
                 "is_owner": True,
                 "is_super_admin": True,
                 "is_protected": True,  # Cannot be deleted or demoted
@@ -1333,7 +1333,7 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
             {"id": user["id"]},
             {"$set": {
                 "school_id": school_id,
-                "role": "director",
+                "role": "owner",
                 "is_owner": True,
                 "is_super_admin": True,
                 "is_protected": True,  # Cannot be deleted or demoted
