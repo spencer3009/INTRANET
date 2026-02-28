@@ -298,7 +298,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     </div>
                   )}
                   {editingExpiration === school.id && (
-                    <div className="flex items-center gap-2 pt-1">
+                    <div className="flex items-center gap-2 pt-1" onClick={(e) => e.stopPropagation()}>
                       <input
                         type="date"
                         value={newExpDate}
@@ -307,14 +307,14 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                         data-testid={`expiration-input-${school.subdomain}`}
                       />
                       <button
-                        onClick={() => handleSaveExpiration(school.id)}
+                        onClick={(e) => { e.stopPropagation(); handleSaveExpiration(school.id); }}
                         className="px-2.5 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-medium hover:bg-emerald-600 transition-colors"
                         data-testid={`save-expiration-${school.subdomain}`}
                       >
                         <Check className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => setEditingExpiration(null)}
+                        onClick={(e) => { e.stopPropagation(); setEditingExpiration(null); }}
                         className="px-2.5 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs hover:bg-slate-200 transition-colors"
                       >
                         <X className="w-3.5 h-3.5" />
