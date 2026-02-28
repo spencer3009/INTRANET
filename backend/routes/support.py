@@ -96,7 +96,7 @@ async def support_schools(user=Depends(require_support_admin)):
     # Fetch school details
     schools_cursor = db.schools.find(
         {"id": {"$in": school_ids}},
-        {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1}
+        {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1, "pricing_override": 1}
     )
     schools = await schools_cursor.to_list(length=500)
     
