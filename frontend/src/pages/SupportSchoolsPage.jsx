@@ -269,10 +269,58 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   </div>
                 </div>
 
-                {/* Date */}
-                <p className="text-xs text-slate-400">
-                  Creado: {formatDate(school.created_at)}
-                </p>
+                {/* Dates */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3 h-3 text-slate-400" />
+                    <span className="text-xs text-slate-400">Creado: {formatDate(school.created_at)}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CalendarClock className={`w-3 h-3 ${getExpirationInfo(school.expiration_date).color}`} />
+                    <span className={`text-xs font-medium ${getExpirationInfo(school.expiration_date).color}`}>
+                      Vence: {getExpirationInfo(school.expiration_date).text}
+                    </span>
+                    <button
+                      onClick={() => {
+                        setEditingExpiration(editingExpiration === school.id ? null : school.id);
+                        setNewExpDate(school.expiration_date ? school.expiration_date.split("T")[0] : "");
+                      }}
+                      className="ml-auto p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                      data-testid={`edit-expiration-${school.subdomain}`}
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </button>
+                  </div>
+                  {getExpirationInfo(school.expiration_date).isExpired && (
+                    <div className="bg-red-50 border border-red-200 rounded-lg px-2.5 py-1.5">
+                      <p className="text-[10px] text-red-600 font-semibold">Plan vencido</p>
+                    </div>
+                  )}
+                  {editingExpiration === school.id && (
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="date"
+                        value={newExpDate}
+                        onChange={(e) => setNewExpDate(e.target.value)}
+                        className="flex-1 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-200"
+                        data-testid={`expiration-input-${school.subdomain}`}
+                      />
+                      <button
+                        onClick={() => handleSaveExpiration(school.id)}
+                        className="px-2.5 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-medium hover:bg-emerald-600 transition-colors"
+                        data-testid={`save-expiration-${school.subdomain}`}
+                      >
+                        <Check className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setEditingExpiration(null)}
+                        className="px-2.5 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs hover:bg-slate-200 transition-colors"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="flex gap-2">
