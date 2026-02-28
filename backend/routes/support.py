@@ -354,12 +354,11 @@ async def get_school_pricing(school_id: str, user=Depends(require_support_admin)
     """Get pricing for a specific school (global + override)"""
     global_config = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
     if not global_config:
-        global_config = {"base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3}
+        global_config = {"billing_mode": "base_plus_student", "base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3, "flat_fee": 0.0}
     
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "pricing_override": 1, "created_at": 1})
     override = school.get("pricing_override") if school else None
     
-    # Calculate current month number
     months_active = 1
     if school and school.get("created_at"):
         try:
@@ -370,30 +369,38 @@ async def get_school_pricing(school_id: str, user=Depends(require_support_admin)
             pass
     
     # Effective pricing
-    eff = {
-        "base_monthly_fee": override.get("base_monthly_fee", global_config["base_monthly_fee"]) if override else global_config["base_monthly_fee"],
-        "per_student_fee": override.get("per_student_fee", global_config["per_student_fee"]) if override else global_config["per_student_fee"],
-        "per_student_from_month": override.get("per_student_from_month", global_config["per_student_from_month"]) if override else global_config["per_student_from_month"],
-    }
+    def eff_val(key, default):
+        if override and key in override:
+            return override[key]
+        return global_config.get(key, default)
     
-    # Count students
+    eff_mode = eff_val("billing_mode", "base_plus_student")
+    eff_base = eff_val("base_monthly_fee", 50.0)
+    eff_student_fee = eff_val("per_student_fee", 0.70)
+    eff_from_month = eff_val("per_student_from_month", 3)
+    eff_flat = eff_val("flat_fee", 0.0)
+    
     student_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
     
-    # Calculate price
-    base = eff["base_monthly_fee"]
-    student_charge = 0
-    if months_active >= eff["per_student_from_month"]:
-        student_charge = student_count * eff["per_student_fee"]
+    calculated_price, student_charge, base_charge = calc_price(
+        eff_mode, eff_base, eff_student_fee, eff_from_month, eff_flat, student_count, months_active
+    )
     
     return {
         "global": global_config,
         "override": override,
-        "effective": eff,
+        "effective": {
+            "billing_mode": eff_mode,
+            "base_monthly_fee": eff_base,
+            "per_student_fee": eff_student_fee,
+            "per_student_from_month": eff_from_month,
+            "flat_fee": eff_flat
+        },
         "months_active": months_active,
         "student_count": student_count,
-        "calculated_price": round(base + student_charge, 2),
-        "base_charge": base,
-        "student_charge": round(student_charge, 2)
+        "calculated_price": calculated_price,
+        "base_charge": base_charge,
+        "student_charge": student_charge
     }
 
 
