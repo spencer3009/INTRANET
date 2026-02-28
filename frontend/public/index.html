@@ -138,34 +138,89 @@
             });
         </script>
         <script>
-          // Capture beforeinstallprompt EARLY before React mounts
+          // 1. Capture beforeinstallprompt EARLY before React mounts
           window.__pwaInstallPrompt = null;
           window.__pwaInstallPromptFired = false;
+          window.__swControlling = false;
+          window.__swReady = null;
+
           window.addEventListener('beforeinstallprompt', function(e) {
             e.preventDefault();
             window.__pwaInstallPrompt = e;
             window.__pwaInstallPromptFired = true;
-            console.log('[PWA-GLOBAL] beforeinstallprompt capturado ANTES de React');
+            console.log('[PWA-GLOBAL] beforeinstallprompt CAPTURADO');
+            console.log('[PWA-GLOBAL] platforms:', e.platforms);
           });
+
           window.addEventListener('appinstalled', function() {
-            console.log('[PWA-GLOBAL] App instalada!');
+            console.log('[PWA-GLOBAL] APP INSTALADA exitosamente');
             window.__pwaInstalled = true;
           });
-        </script>
-        <script>
+
+          // 2. Register Service Worker IMMEDIATELY (not on load)
           if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
-                .then(function(reg) {
-                  console.log('[SW] Registrado exitosamente. Scope:', reg.scope);
-                  reg.addEventListener('updatefound', function() {
-                    console.log('[SW] Nueva version encontrada, instalando...');
-                  });
-                })
-                .catch(function(err) {
-                  console.error('[SW] Error al registrar:', err);
-                });
+            console.log('[SW] Registrando Service Worker...');
+            console.log('[SW] controller actual:', navigator.serviceWorker.controller);
+
+            // Create a promise that resolves when SW controls the page
+            window.__swReady = new Promise(function(resolve) {
+              if (navigator.serviceWorker.controller) {
+                console.log('[SW] Ya hay un controller activo:', navigator.serviceWorker.controller.scriptURL);
+                window.__swControlling = true;
+                resolve(true);
+                return;
+              }
+
+              // Wait for controllerchange event (fires after claim())
+              navigator.serviceWorker.addEventListener('controllerchange', function() {
+                console.log('[SW] controllerchange - SW ahora controla la pagina');
+                console.log('[SW] nuevo controller:', navigator.serviceWorker.controller);
+                window.__swControlling = true;
+                resolve(true);
+              });
+
+              // Timeout after 10s
+              setTimeout(function() {
+                if (!window.__swControlling) {
+                  console.warn('[SW] Timeout 10s - SW no controla la pagina');
+                  console.warn('[SW] controller:', navigator.serviceWorker.controller);
+                  resolve(false);
+                }
+              }, 10000);
             });
+
+            navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+              .then(function(reg) {
+                console.log('[SW] Registrado. Scope:', reg.scope);
+                console.log('[SW] installing:', !!reg.installing);
+                console.log('[SW] waiting:', !!reg.waiting);
+                console.log('[SW] active:', !!reg.active, reg.active ? reg.active.state : '');
+
+                // If there's a waiting SW, activate it
+                if (reg.waiting) {
+                  console.log('[SW] Hay un SW en espera, enviando skipWaiting...');
+                  reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+
+                // Watch for new SW installing
+                reg.addEventListener('updatefound', function() {
+                  var newSW = reg.installing;
+                  console.log('[SW] Update found, nuevo SW instalando...');
+                  if (newSW) {
+                    newSW.addEventListener('statechange', function() {
+                      console.log('[SW] Estado del nuevo SW:', newSW.state);
+                      if (newSW.state === 'activated') {
+                        console.log('[SW] Nuevo SW activado');
+                      }
+                    });
+                  }
+                });
+              })
+              .catch(function(err) {
+                console.error('[SW] ERROR al registrar:', err);
+              });
+          } else {
+            console.error('[SW] Service Worker NO soportado en este navegador');
           }
         </script>
     </body>
