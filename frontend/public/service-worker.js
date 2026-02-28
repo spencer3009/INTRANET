@@ -1,4 +1,4 @@
-const CACHE_NAME = 'edunet-v5';
+const CACHE_NAME = 'edunet-v6';
 
 // Install: skip waiting immediately
 self.addEventListener('install', (event) => {
