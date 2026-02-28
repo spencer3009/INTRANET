@@ -1,0 +1,76 @@
+{
+  "summary": "Pricing calculation feature fully tested - Backend 100% (10/10), Frontend 100% verified. School card displays: calculated monthly fee S/50.00, student count (35), per-student fee timing info 'Cobro/alumno desde mes 3'. Global pricing config page working correctly.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: GET /api/support/pricing returns global config with base_monthly_fee, per_student_fee, per_student_from_month",
+    "Backend: PUT /api/support/pricing updates global pricing config",
+    "Backend: GET /api/support/schools returns calculated_price, base_charge, student_charge, months_active, per_student_applies, per_student_fee, per_student_from_month, student_count fields",
+    "Backend: Colegio El Roble pricing calculation verified - 35 students, Month 1, per_student_applies=false, S/50.00 base",
+    "Backend: GET /api/support/school-pricing/{school_id} returns full pricing details (global, override, effective)",
+    "Backend: Pricing calculation logic verified: base + student_charge when months >= per_student_from_month",
+    "Backend: School pricing override SET and DELETE endpoints working",
+    "Frontend: Support login works with spencer3009@gmail.com / Socios3009",
+    "Frontend: /support/schools page shows Colegio El Roble card with 'Pago Mensual' section",
+    "Frontend: School card shows S/50.00 calculated price, 35 Alumnos, 'Cobro/alumno desde mes 3' timing info",
+    "Frontend: /support/pricing page loads with editable global pricing fields (base=50, per_student=0.7, from_month=3)"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_support_pricing.py",
+    "/app/test_reports/pytest/pytest_support_pricing.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_support_pricing.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% (all features verified)"
+  },
+
+  "test_credentials": {
+    "support_email": "spencer3009@gmail.com",
+    "support_password": "Socios3009"
+  },
+
+  "seed_data_creation": "None - used existing El Roble school data",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Pricing calculation feature complete. Backend endpoints: GET/PUT /api/support/pricing (global config), GET /api/support/schools (returns pricing fields in school list), GET/PUT/DELETE /api/support/school-pricing/{school_id} (individual school pricing). Frontend pages: /support/schools (school cards with pricing), /support/pricing (global config editor). El Roble has 35 students, at Month 1, per_student_from_month=3, so per-student fees don't apply yet - total is S/50.00 base only.",
+
+  "verified_pricing_display": {
+    "school_card_shows": {
+      "calculated_price": "S/ 50.00",
+      "student_count": "35 Alumnos",
+      "base_info": "S/ 50.00 base (sin cobro por alumno aun)",
+      "month_info": "Mes 1",
+      "per_student_timing": "Cobro/alumno desde mes 3",
+      "pricing_type": "Global (no override)"
+    },
+    "pricing_config_page": {
+      "base_monthly_fee": "50",
+      "per_student_fee": "0.7",
+      "per_student_from_month": "3",
+      "preview_example": "Mes 1 al 2 = S/50.00, Desde mes 3 (20 alumnos) = S/64.00"
+    }
+  }
+}
