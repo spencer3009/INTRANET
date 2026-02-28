@@ -3375,6 +3375,44 @@ async def get_school_info(current_user=Depends(require_school)):
     if not school:
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
     
+    # Calculate pricing info for subscription card
+    global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
+    if not global_pricing:
+        global_pricing = {"base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3}
+    
+    override = school.get("pricing_override")
+    eff_base = override.get("base_monthly_fee", global_pricing["base_monthly_fee"]) if override else global_pricing["base_monthly_fee"]
+    eff_student_fee = override.get("per_student_fee", global_pricing["per_student_fee"]) if override else global_pricing["per_student_fee"]
+    eff_from_month = override.get("per_student_from_month", global_pricing["per_student_from_month"]) if override else global_pricing["per_student_from_month"]
+    
+    student_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
+    
+    months_active = 1
+    if school.get("created_at"):
+        try:
+            created = datetime.fromisoformat(str(school["created_at"]).replace("Z", "+00:00"))
+            now = datetime.now(timezone.utc)
+            months_active = max(1, (now.year - created.year) * 12 + now.month - created.month + 1)
+        except Exception:
+            pass
+    
+    per_student_applies = months_active >= eff_from_month
+    student_charge = student_count * eff_student_fee if per_student_applies else 0.0
+    calculated_price = round(eff_base + student_charge, 2)
+    projected_price = round(eff_base + student_count * eff_student_fee, 2)
+    
+    school["pricing"] = {
+        "calculated_price": calculated_price,
+        "projected_price": projected_price,
+        "base_charge": eff_base,
+        "student_charge": round(student_charge, 2),
+        "per_student_fee": eff_student_fee,
+        "per_student_from_month": eff_from_month,
+        "student_count": student_count,
+        "months_active": months_active,
+        "per_student_applies": per_student_applies
+    }
+    
     return school
 
 # ══════════════════════════════════════════════════════════════════════════════
