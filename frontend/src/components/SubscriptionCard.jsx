@@ -67,7 +67,7 @@ export default function SubscriptionCard({ token }) {
 
   useEffect(() => {
     const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-    fetch(`${API}/school-info`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API}/dashboard/school`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
       .then(data => {
         setSchool(data);
