@@ -115,28 +115,6 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
             </div>
           </div>
         )}
-
-        {showGuide && (
-          <div className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end justify-center p-4" data-testid="pwa-guide-overlay">
-            <div className="bg-white rounded-t-3xl rounded-b-xl shadow-2xl w-full max-w-sm p-6 text-center">
-              <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-[#001f4b] flex items-center justify-center">
-                <Smartphone className="w-5 h-5 text-[#e1b82c]" />
-              </div>
-              <h3 className="text-lg font-bold text-[#001f4b] mb-2">Casi listo</h3>
-              <p className="text-sm text-slate-500 mb-4">
-                {/iPhone|iPad|iPod/.test(navigator.userAgent)
-                  ? 'Toca el botón "Compartir" de Safari y selecciona "Agregar a pantalla de inicio"'
-                  : 'Abre el menú de tu navegador (tres puntos) y selecciona "Instalar aplicación"'}
-              </p>
-              <button
-                onClick={() => setShowGuide(false)}
-                className="w-full py-3 bg-[#001f4b] text-white font-semibold rounded-xl"
-              >
-                Entendido
-              </button>
-            </div>
-          </div>
-        )}
       </>
     );
   }
