@@ -1316,6 +1316,8 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
     else:
         # CREATE new school record
         school_id = str(uuid.uuid4())
+        created_at = datetime.now(timezone.utc).isoformat()
+        expiration_date = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
         school_doc = {
             "id": school_id,
             "school_name": user["name"],
@@ -1323,7 +1325,8 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
             "full_domain": full_domain,
             "status": "active",
             "owner_user_id": user["id"],
-            "created_at": datetime.now(timezone.utc).isoformat(),
+            "created_at": created_at,
+            "expiration_date": expiration_date,
             "updated_at": datetime.now(timezone.utc).isoformat()
         }
         await db.schools.insert_one(school_doc)
