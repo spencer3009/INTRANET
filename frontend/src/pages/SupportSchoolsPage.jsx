@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { 
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
-  ArrowLeft, Loader2
+  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -19,6 +19,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [search, setSearch] = useState("");
   const [switching, setSwitching] = useState(null);
   const [assigning, setAssigning] = useState(null);
+  const [editingExpiration, setEditingExpiration] = useState(null);
+  const [newExpDate, setNewExpDate] = useState("");
 
   const headers = { Authorization: `Bearer ${token}` };
 
