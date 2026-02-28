@@ -57,27 +57,27 @@ export default function SubscriptionCard({ token }) {
   const Icon = t.Icon;
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-xl px-5 py-3.5 shadow-sm" data-testid="subscription-card">
+    <div className="bg-white border border-slate-200/80 rounded-xl px-6 py-4 shadow-sm" data-testid="subscription-card">
       <div className="flex items-center gap-5 flex-wrap">
         {/* Status */}
         <div className="flex items-center gap-2.5 min-w-0">
-          <Icon className={`w-4 h-4 ${t.iconCls} flex-shrink-0`} />
-          <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Suscripcion</span>
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${t.badge} whitespace-nowrap`}>{t.label}</span>
+          <Icon className={`w-5 h-5 ${t.iconCls} flex-shrink-0`} />
+          <span className="text-sm font-bold text-slate-700 whitespace-nowrap">Suscripcion</span>
+          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${t.badge} whitespace-nowrap`}>{t.label}</span>
         </div>
 
         {/* Divider */}
         <div className="hidden md:block w-px h-6 bg-slate-200" />
 
         {/* Dates */}
-        <div className="flex items-center gap-4 text-xs text-slate-500">
+        <div className="flex items-center gap-4 text-sm text-slate-500">
           <div className="flex items-center gap-1.5">
-            <CalendarDays className="w-3 h-3 text-slate-400" />
+            <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-slate-400">Inicio:</span>
             <span className="font-semibold text-slate-600">{fmtDate(school.created_at)}</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <CalendarClock className="w-3 h-3 text-slate-400" />
+            <CalendarClock className="w-3.5 h-3.5 text-slate-400" />
             <span className="text-slate-400">Pago:</span>
             <span className="font-semibold text-slate-600">{fmtDate(school.expiration_date)}</span>
           </div>
@@ -88,10 +88,10 @@ export default function SubscriptionCard({ token }) {
 
         {/* Progress bar */}
         <div className="flex items-center gap-2.5 flex-1 min-w-[140px]">
-          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
             <div className={`h-full ${t.bar} rounded-full transition-all duration-700`} style={{ width: `${progress}%` }} />
           </div>
-          <span className="text-[10px] font-bold text-slate-400 w-7 text-right">{progress}%</span>
+          <span className="text-xs font-bold text-slate-400 w-7 text-right">{progress}%</span>
         </div>
 
         {/* Divider */}
@@ -100,11 +100,11 @@ export default function SubscriptionCard({ token }) {
         {/* Countdown */}
         {state.id !== "suspended" ? (
           <div className={`flex items-center gap-1.5 ${t.countdown} whitespace-nowrap`}>
-            <Clock className="w-3 h-3" />
-            <span className="text-xs font-semibold">{state.days}d {state.hours}h {state.mins}m</span>
+            <Clock className="w-3.5 h-3.5" />
+            <span className="text-sm font-semibold">{state.days}d {state.hours}h {state.mins}m</span>
           </div>
         ) : (
-          <span className="text-xs text-slate-500 font-medium">Contacte soporte</span>
+          <span className="text-sm text-slate-500 font-medium">Contacte soporte</span>
         )}
       </div>
     </div>
