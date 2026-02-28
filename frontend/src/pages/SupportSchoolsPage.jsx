@@ -126,9 +126,11 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     setEditingPricing(school.id);
     const ov = school.pricing_override || {};
     setPricingForm({
+      billing_mode: ov.billing_mode ?? "",
       base_monthly_fee: ov.base_monthly_fee ?? "",
       per_student_fee: ov.per_student_fee ?? "",
       per_student_from_month: ov.per_student_from_month ?? "",
+      flat_fee: ov.flat_fee ?? "",
       discount_notes: ov.discount_notes ?? ""
     });
     try {
@@ -140,9 +142,11 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const handleSavePricing = async (schoolId) => {
     try {
       const payload = { school_id: schoolId };
+      if (pricingForm.billing_mode) payload.billing_mode = pricingForm.billing_mode;
       if (pricingForm.base_monthly_fee !== "") payload.base_monthly_fee = parseFloat(pricingForm.base_monthly_fee);
       if (pricingForm.per_student_fee !== "") payload.per_student_fee = parseFloat(pricingForm.per_student_fee);
       if (pricingForm.per_student_from_month !== "") payload.per_student_from_month = parseInt(pricingForm.per_student_from_month);
+      if (pricingForm.flat_fee !== "") payload.flat_fee = parseFloat(pricingForm.flat_fee);
       if (pricingForm.discount_notes) payload.discount_notes = pricingForm.discount_notes;
       await axios.put(`${API}/support/school-pricing`, payload, { headers });
       toast.success("Precio personalizado guardado");
