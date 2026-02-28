@@ -21,7 +21,7 @@ export function canAccessSection(user, section) {
   }
   
   // Fallback: Owner always has access
-  if (user.role === 'owner') return true;
+  if (user.role === 'owner' || user.is_owner === true) return true;
   
   // Fallback: Define base permissions
   const sectionPermissions = {
