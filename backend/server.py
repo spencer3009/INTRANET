@@ -398,7 +398,7 @@ async def can_access_section(user: dict, section: str, school_id: str = None) ->
     feature_flag = section_config.get("feature_flag")
     
     # Owner always has access to everything
-    if role == "owner":
+    if role == "owner" or user.get("is_owner"):
         return True
     
     # Check if role is in allowed list
@@ -449,7 +449,7 @@ async def get_user_permissions(user: dict, school_id: str = None) -> dict:
         feature_flag = config.get("feature_flag")
         
         # Owner always has access
-        if role == "owner":
+        if role == "owner" or user.get("is_owner"):
             sections[section_name] = True
             continue
         
@@ -469,7 +469,7 @@ async def get_user_permissions(user: dict, school_id: str = None) -> dict:
     
     return {
         "role": role,
-        "is_owner": role == "owner",
+        "is_owner": role == "owner" or user.get("is_owner", False),
         "is_admin": role == "admin",
         "sections": sections
     }
