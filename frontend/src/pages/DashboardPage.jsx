@@ -227,10 +227,6 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
           {hasPermissionError && <PermissionsFixer token={token} onFixed={fetchData} />}
           
           <DemoBanner token={token} onDemoDeleted={fetchData} />
-          {/* Subscription Card - Only for owner/admin */}
-          {(user?.is_owner || user?.role === "owner" || user?.role === "admin") && (
-            <SubscriptionCard token={token} />
-          )}
           
           {/* Tarjetas KPI: Propietario vs Otros roles */}
           {(user?.is_owner || user?.role === "owner" || user?.is_support_session) && ownerStats ? (
