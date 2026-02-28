@@ -1,179 +1,112 @@
 import { useState, useEffect } from "react";
 import { Shield, ShieldAlert, ShieldOff, Clock, CalendarDays, CalendarClock } from "lucide-react";
 
-function getSubscriptionState(expirationDate) {
-  if (!expirationDate) return { status: "unknown", daysLeft: 0, hoursLeft: 0, minutesLeft: 0, percentage: 0 };
-
+function getState(expDate) {
+  if (!expDate) return null;
   const now = new Date();
-  const exp = new Date(expirationDate);
+  const exp = new Date(expDate);
   const diffMs = exp - now;
-  const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  const hoursLeft = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const minutesLeft = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-
-  if (daysLeft <= 0) return { status: "suspended", daysLeft: 0, hoursLeft: 0, minutesLeft: 0, percentage: 100 };
-  if (daysLeft <= 5) return { status: "critical", daysLeft, hoursLeft, minutesLeft, percentage: 0 };
-  if (daysLeft <= 10) return { status: "warning", daysLeft, hoursLeft, minutesLeft, percentage: 0 };
-  return { status: "active", daysLeft, hoursLeft, minutesLeft, percentage: 0 };
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  const hours = Math.max(0, Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
+  const mins = Math.max(0, Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
+  if (days <= 0) return { id: "suspended", days: 0, hours: 0, mins: 0 };
+  if (days <= 5) return { id: "critical", days, hours, mins };
+  if (days <= 10) return { id: "warning", days, hours, mins };
+  return { id: "active", days, hours, mins };
 }
 
-function calcProgress(startDate, expirationDate) {
-  if (!startDate || !expirationDate) return 0;
-  const start = new Date(startDate);
-  const end = new Date(expirationDate);
-  const now = new Date();
-  const total = end - start;
+function calcProgress(start, end) {
+  if (!start || !end) return 0;
+  const s = new Date(start), e = new Date(end), n = new Date();
+  const total = e - s;
   if (total <= 0) return 100;
-  const elapsed = now - start;
-  return Math.min(100, Math.max(0, Math.round((elapsed / total) * 100)));
+  return Math.min(100, Math.max(0, Math.round(((n - s) / total) * 100)));
 }
 
-const THEME = {
-  active: {
-    bg: "bg-emerald-50", border: "border-emerald-200",
-    bar: "bg-emerald-500", barBg: "bg-emerald-100",
-    icon: Shield, iconColor: "text-emerald-600", iconBg: "bg-emerald-100",
-    title: "text-emerald-700", badge: "bg-emerald-100 text-emerald-700",
-    badgeText: "Activo", countdown: "text-emerald-600",
-  },
-  warning: {
-    bg: "bg-amber-50", border: "border-amber-200",
-    bar: "bg-amber-500", barBg: "bg-amber-100",
-    icon: ShieldAlert, iconColor: "text-amber-600", iconBg: "bg-amber-100",
-    title: "text-amber-700", badge: "bg-amber-100 text-amber-700",
-    badgeText: "Proximo a vencer", countdown: "text-amber-600",
-  },
-  critical: {
-    bg: "bg-red-50", border: "border-red-200",
-    bar: "bg-red-500", barBg: "bg-red-100",
-    icon: ShieldAlert, iconColor: "text-red-600", iconBg: "bg-red-100",
-    title: "text-red-700", badge: "bg-red-100 text-red-700",
-    badgeText: "Vence muy pronto", countdown: "text-red-600",
-  },
-  suspended: {
-    bg: "bg-slate-100", border: "border-slate-300",
-    bar: "bg-slate-500", barBg: "bg-slate-200",
-    icon: ShieldOff, iconColor: "text-slate-500", iconBg: "bg-slate-200",
-    title: "text-slate-600", badge: "bg-red-900 text-white",
-    badgeText: "Suspendido", countdown: "text-slate-500",
-  },
+const T = {
+  active:    { bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200", label: "Activo", Icon: Shield, iconCls: "text-emerald-500", countdown: "text-slate-600" },
+  warning:   { bar: "bg-amber-500",   badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",     label: "Proximo a vencer", Icon: ShieldAlert, iconCls: "text-amber-500", countdown: "text-amber-600" },
+  critical:  { bar: "bg-red-500",     badge: "bg-red-50 text-red-700 ring-1 ring-red-200",           label: "Vence pronto",     Icon: ShieldAlert, iconCls: "text-red-500", countdown: "text-red-600" },
+  suspended: { bar: "bg-slate-400",   badge: "bg-slate-700 text-white",                               label: "Suspendido",       Icon: ShieldOff, iconCls: "text-slate-400", countdown: "text-slate-500" },
 };
+
+const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
 export default function SubscriptionCard({ token }) {
   const [school, setSchool] = useState(null);
   const [state, setState] = useState(null);
   const [progress, setProgress] = useState(0);
-  const [tick, setTick] = useState(0);
 
   useEffect(() => {
     const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
     fetch(`${API}/dashboard/school`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.json())
-      .then(data => {
-        setSchool(data);
-        setState(getSubscriptionState(data.expiration_date));
-        setProgress(calcProgress(data.created_at, data.expiration_date));
-      })
+      .then(d => { setSchool(d); setState(getState(d.expiration_date)); setProgress(calcProgress(d.created_at, d.expiration_date)); })
       .catch(() => {});
   }, [token]);
 
-  // Update countdown every minute
   useEffect(() => {
     if (!school?.expiration_date) return;
-    const interval = setInterval(() => {
-      setState(getSubscriptionState(school.expiration_date));
-      setTick(t => t + 1);
-    }, 60000);
-    return () => clearInterval(interval);
+    const i = setInterval(() => { setState(getState(school.expiration_date)); }, 60000);
+    return () => clearInterval(i);
   }, [school]);
 
   if (!school || !state) return null;
 
-  const theme = THEME[state.status] || THEME.active;
-  const Icon = theme.icon;
-
-  const formatDate = (iso) => {
-    if (!iso) return "—";
-    return new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" });
-  };
+  const t = T[state.id];
+  const Icon = t.Icon;
 
   return (
-    <div className={`${theme.bg} ${theme.border} border rounded-2xl p-5 mb-6`} data-testid="subscription-card">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 ${theme.iconBg} rounded-xl flex items-center justify-center`}>
-            <Icon className={`w-5 h-5 ${theme.iconColor}`} />
-          </div>
-          <div>
-            <h3 className={`text-sm font-bold ${theme.title}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-              Estado de Suscripcion
-            </h3>
-            {state.status === "warning" && (
-              <p className="text-xs text-amber-600 mt-0.5">Su servicio esta proximo a vencer</p>
-            )}
-            {state.status === "critical" && (
-              <p className="text-xs text-red-600 mt-0.5 font-medium">Su servicio vence muy pronto</p>
-            )}
-            {state.status === "suspended" && (
-              <p className="text-xs text-slate-500 mt-0.5">Servicio suspendido por vencimiento</p>
-            )}
-          </div>
+    <div className="bg-white border border-slate-200/80 rounded-xl px-5 py-3.5 shadow-sm" data-testid="subscription-card">
+      <div className="flex items-center gap-5 flex-wrap">
+        {/* Status */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Icon className={`w-4 h-4 ${t.iconCls} flex-shrink-0`} />
+          <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Suscripcion</span>
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${t.badge} whitespace-nowrap`}>{t.label}</span>
         </div>
-        <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${theme.badge}`}>
-          {theme.badgeText}
-        </span>
-      </div>
 
-      {/* Dates */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
-          <div>
-            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Fecha de inicio</p>
-            <p className="text-xs font-semibold text-slate-700">{formatDate(school.created_at)}</p>
+        {/* Divider */}
+        <div className="hidden md:block w-px h-6 bg-slate-200" />
+
+        {/* Dates */}
+        <div className="flex items-center gap-4 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5">
+            <CalendarDays className="w-3 h-3 text-slate-400" />
+            <span className="text-slate-400">Inicio:</span>
+            <span className="font-semibold text-slate-600">{fmtDate(school.created_at)}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <CalendarClock className="w-3 h-3 text-slate-400" />
+            <span className="text-slate-400">Pago:</span>
+            <span className="font-semibold text-slate-600">{fmtDate(school.expiration_date)}</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <CalendarClock className={`w-3.5 h-3.5 ${state.status === "active" ? "text-slate-400" : theme.iconColor}`} />
-          <div>
-            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Proximo pago</p>
-            <p className={`text-xs font-semibold ${state.status === "active" ? "text-slate-700" : theme.title}`}>
-              {formatDate(school.expiration_date)}
-            </p>
+
+        {/* Divider */}
+        <div className="hidden md:block w-px h-6 bg-slate-200" />
+
+        {/* Progress bar */}
+        <div className="flex items-center gap-2.5 flex-1 min-w-[140px]">
+          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className={`h-full ${t.bar} rounded-full transition-all duration-700`} style={{ width: `${progress}%` }} />
           </div>
+          <span className="text-[10px] font-bold text-slate-400 w-7 text-right">{progress}%</span>
         </div>
-      </div>
 
-      {/* Progress Bar */}
-      <div className="mb-3">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-medium text-slate-400 uppercase tracking-wider">Uso del periodo de servicio</span>
-          <span className={`text-[10px] font-bold ${theme.title}`}>{progress}%</span>
-        </div>
-        <div className={`w-full h-2 ${theme.barBg} rounded-full overflow-hidden`}>
-          <div
-            className={`h-full ${theme.bar} rounded-full transition-all duration-500`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
-      </div>
+        {/* Divider */}
+        <div className="hidden md:block w-px h-6 bg-slate-200" />
 
-      {/* Countdown */}
-      {state.status !== "suspended" ? (
-        <div className={`flex items-center gap-2 ${theme.countdown}`}>
-          <Clock className="w-3.5 h-3.5" />
-          <span className="text-xs font-semibold">
-            Quedan: {state.daysLeft} dias, {state.hoursLeft} horas, {state.minutesLeft} minutos
-          </span>
-        </div>
-      ) : (
-        <div className="bg-slate-200/80 rounded-lg px-3 py-2 mt-1">
-          <p className="text-xs text-slate-600 font-medium">
-            Comuniquese con soporte para reactivacion.
-          </p>
-        </div>
-      )}
+        {/* Countdown */}
+        {state.id !== "suspended" ? (
+          <div className={`flex items-center gap-1.5 ${t.countdown} whitespace-nowrap`}>
+            <Clock className="w-3 h-3" />
+            <span className="text-xs font-semibold">{state.days}d {state.hours}h {state.mins}m</span>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-500 font-medium">Contacte soporte</span>
+        )}
+      </div>
     </div>
   );
 }
