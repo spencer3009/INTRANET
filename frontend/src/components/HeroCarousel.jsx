@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Circle } from "lucide-react";
 // Default banner when no custom banners exist
 const DEFAULT_BANNER = {
   id: "default",
-  image_url: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1920&h=400",
+  image_url: "https://images.unsplash.com/photo-1759922378123-a1f4f1e39bae?auto=format&fit=crop&q=80&w=1920&h=400",
   active: true
 };
 
