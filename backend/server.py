@@ -247,7 +247,7 @@ async def resolve_user_from_token(current_user: dict):
             "original_role": current_user.get("original_role", "system_admin_global"),
             "email_verified": True
         }
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0})
+    user = await resolve_user_from_token(current_user)
     return user
 
 def is_admin_user(user: dict) -> bool:
@@ -308,7 +308,7 @@ def require_role(allowed_roles: list):
             if "owner" in allowed_roles:
                 return await resolve_user_from_token(current_user)
             raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta función")
-        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+        user = await resolve_user_from_token(current_user)
         if not user:
             raise HTTPException(status_code=403, detail="Usuario no encontrado")
         if user.get("role") not in allowed_roles:
@@ -494,7 +494,7 @@ def require_section_access(section: str):
                 "original_role": current_user.get("original_role", "system_admin_global")
             }
         
-        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+        user = await resolve_user_from_token(current_user)
         if not user:
             raise HTTPException(status_code=403, detail="Usuario no encontrado")
         
@@ -536,7 +536,7 @@ def require_not_demo():
     Usage: Depends(require_not_demo())
     """
     async def check_not_demo(current_user = Depends(get_current_user)):
-        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+        user = await resolve_user_from_token(current_user)
         if not user:
             raise HTTPException(status_code=403, detail="Usuario no encontrado")
         check_demo_user_block(user)
@@ -1039,7 +1039,7 @@ async def get_me(current_user=Depends(get_current_user)):
 @api_router.get("/auth/permissions")
 async def get_permissions(current_user=Depends(get_current_user)):
     """Get RBAC permissions for the current user"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -1060,7 +1060,7 @@ class PasswordChange(BaseModel):
 @api_router.put("/auth/profile")
 async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_user)):
     """Update current user's profile"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -1828,7 +1828,7 @@ async def get_student_profile(current_user = Depends(get_current_user)):
     Get complete student profile with academic context.
     Returns all necessary info for student portal navigation.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -1930,7 +1930,7 @@ async def get_student_courses(current_user = Depends(get_current_user)):
     Includes teacher info for each course.
     Uses academic_assignments collection.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2018,7 +2018,7 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
     Get all students in the same section (including current user).
     Used for displaying student list in tasks and other views.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2220,7 +2220,7 @@ async def get_student_schedule(current_user = Depends(get_current_user)):
     Returns schedules, breaks, settings, and academic context.
     NO parameters accepted - all data extracted from authenticated user.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2326,7 +2326,7 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
     Get dashboard data for student portal.
     Includes upcoming tasks, recent announcements, schedule preview.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2532,7 +2532,7 @@ async def get_student_attendance(
     """
     Get attendance records for the current student.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2610,7 +2610,7 @@ async def get_student_attendance(
 @api_router.get("/teacher/profile")
 async def get_teacher_profile(current_user = Depends(get_current_user)):
     """Get teacher profile with assigned courses and sections."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2655,7 +2655,7 @@ async def get_teacher_profile(current_user = Depends(get_current_user)):
 @api_router.get("/teacher/dashboard")
 async def get_teacher_dashboard(current_user = Depends(get_current_user)):
     """Get dashboard data for teacher portal."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2794,7 +2794,7 @@ async def get_teacher_dashboard(current_user = Depends(get_current_user)):
 @api_router.get("/teacher/courses")
 async def get_teacher_courses(current_user = Depends(get_current_user)):
     """Get all courses assigned to teacher."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2865,7 +2865,7 @@ async def get_teacher_students(
     current_user = Depends(get_current_user)
 ):
     """Get students from teacher's assigned sections."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -2951,7 +2951,7 @@ async def get_teacher_student_detail(
     current_user = Depends(get_current_user)
 ):
     """Get detailed academic info for a specific student (read-only view for teachers)."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -3026,7 +3026,7 @@ async def get_teacher_student_detail(
 @api_router.get("/teacher/tasks")
 async def get_teacher_tasks(current_user = Depends(get_current_user)):
     """Get all tasks created by or assigned to teacher's courses."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -3091,7 +3091,7 @@ async def get_teacher_grades(
     current_user = Depends(get_current_user)
 ):
     """Get grades for a specific subject/section."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -3132,7 +3132,7 @@ class SaveGradesRequest(BaseModel):
 @api_router.post("/teacher/grades")
 async def save_teacher_grades(data: SaveGradesRequest, current_user = Depends(get_current_user)):
     """Save grades for students in a subject/section."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -3198,7 +3198,7 @@ async def get_teacher_attendance(
     current_user = Depends(get_current_user)
 ):
     """Get attendance records for a section on a specific date."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -3245,7 +3245,7 @@ class SaveAttendanceRequest(BaseModel):
 @api_router.post("/teacher/attendance")
 async def save_teacher_student_attendance(data: SaveAttendanceRequest, current_user = Depends(get_current_user)):
     """Save attendance records for a section (teacher recording student attendance)."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -3450,7 +3450,7 @@ async def get_admin_grades(
     current_user = Depends(get_current_user)
 ):
     """Get all grades for admin view with filters."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3497,7 +3497,7 @@ async def get_admin_grades_summary(
     current_user = Depends(get_current_user)
 ):
     """Get grades summary by section for admin dashboard."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3554,7 +3554,7 @@ async def update_admin_grade(
     current_user = Depends(get_current_user)
 ):
     """Update a grade with administrative reason (audit trail)."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3607,7 +3607,7 @@ async def get_admin_attendance(
     current_user = Depends(get_current_user)
 ):
     """Get attendance records for admin view with filters."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3653,7 +3653,7 @@ async def get_admin_attendance_summary(
     current_user = Depends(get_current_user)
 ):
     """Get attendance summary by section."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3715,7 +3715,7 @@ async def update_admin_attendance(
     current_user = Depends(get_current_user)
 ):
     """Update attendance record with administrative reason."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3765,7 +3765,7 @@ async def get_admin_tasks(
     current_user = Depends(get_current_user)
 ):
     """Get all tasks for admin view."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3825,7 +3825,7 @@ async def get_admin_tasks(
 @api_router.get("/admin/tasks/summary")
 async def get_admin_tasks_summary(current_user = Depends(get_current_user)):
     """Get tasks summary for admin dashboard."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3877,7 +3877,7 @@ async def update_admin_task_status(
     current_user = Depends(get_current_user)
 ):
     """Update task status (close/reopen)."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -3908,7 +3908,7 @@ async def submit_task(
     current_user = Depends(get_current_user)
 ):
     """Submit a task as a student."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4084,7 +4084,7 @@ async def download_submission_file(
     current_user = Depends(get_current_user)
 ):
     """Download a student's submission file (works with both Google Drive and Cloudinary)."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4178,7 +4178,7 @@ async def get_admin_exams(
     current_user = Depends(get_current_user)
 ):
     """Get all exams for admin view."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4211,7 +4211,7 @@ async def get_admin_exams(
 @api_router.get("/admin/exams/summary")
 async def get_admin_exams_summary(current_user = Depends(get_current_user)):
     """Get exams summary for admin dashboard."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4248,7 +4248,7 @@ async def update_admin_exam(
     current_user = Depends(get_current_user)
 ):
     """Update exam status/schedule from admin."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4297,7 +4297,7 @@ async def get_admin_announcements(
     current_user = Depends(get_current_user)
 ):
     """Get all announcements for admin view."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4322,7 +4322,7 @@ async def create_announcement(
     current_user = Depends(get_current_user)
 ):
     """Create a new announcement."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4357,7 +4357,7 @@ async def update_announcement(
     current_user = Depends(get_current_user)
 ):
     """Update an announcement."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4383,7 +4383,7 @@ async def delete_announcement(
     current_user = Depends(get_current_user)
 ):
     """Delete an announcement."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4408,7 +4408,7 @@ async def create_support_user_for_school(current_user = Depends(get_current_user
     Create the system support user (Admin Técnico) for the current school.
     Only the owner can execute this. Used for existing schools that don't have a support user.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -4459,7 +4459,7 @@ async def reset_support_user_password(current_user = Depends(get_current_user)):
     Only the owner can execute this.
     Returns the new password.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5009,7 +5009,7 @@ class CreateUserRequest(BaseModel):
 @api_router.get("/users/check-username/{username}")
 async def check_username(username: str, current_user = Depends(get_current_user)):
     """Check if username is available"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5030,7 +5030,7 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
     Only admins/owners can create users.
     Demo users can only be created by the real owner.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5178,7 +5178,7 @@ class UpdateUserRequest(BaseModel):
 @api_router.put("/users/{user_id}")
 async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depends(get_current_user)):
     """Update an existing user"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5288,7 +5288,7 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
 @api_router.delete("/users/{user_id}")
 async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     """Delete a user and all their related data (cascade delete)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5498,7 +5498,7 @@ async def create_academic_level(
     current_user = Depends(get_current_user)
 ):
     """Create a new academic level"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5548,7 +5548,7 @@ async def update_academic_level(
     current_user = Depends(get_current_user)
 ):
     """Update an academic level"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5602,7 +5602,7 @@ async def delete_academic_level(
     current_user = Depends(get_current_user)
 ):
     """Delete an academic level (only if no grades are associated)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5704,7 +5704,7 @@ async def create_grade(
     current_user = Depends(get_current_user)
 ):
     """Create a new grade"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5762,7 +5762,7 @@ async def update_grade(
     current_user = Depends(get_current_user)
 ):
     """Update a grade"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5829,7 +5829,7 @@ async def delete_grade(
     current_user = Depends(get_current_user)
 ):
     """Delete a grade (only if no sections are associated)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5881,7 +5881,7 @@ async def get_section_types(
     current_user = Depends(get_current_user)
 ):
     """Get all section types for the current tenant (creates default catalog if empty)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5915,7 +5915,7 @@ async def create_section_type(
     current_user = Depends(get_current_user)
 ):
     """Create a new section type (admin only)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5961,7 +5961,7 @@ async def reorder_section_types(
     current_user = Depends(get_current_user)
 ):
     """Reorder section types (admin only)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5989,7 +5989,7 @@ async def update_section_type(
     current_user = Depends(get_current_user)
 ):
     """Update a section type (admin only)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6039,7 +6039,7 @@ async def delete_section_type(
     current_user = Depends(get_current_user)
 ):
     """Soft delete a section type (admin only) - sets activo=false"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6175,7 +6175,7 @@ async def create_section(
     current_user = Depends(get_current_user)
 ):
     """Create a new section"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6243,7 +6243,7 @@ async def update_section(
     current_user = Depends(get_current_user)
 ):
     """Update a section"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6328,7 +6328,7 @@ async def delete_section(
     current_user = Depends(get_current_user)
 ):
     """Delete a section (only if no students are enrolled)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6394,7 +6394,7 @@ async def create_shift(
     current_user = Depends(get_current_user)
 ):
     """Create a new shift"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6437,7 +6437,7 @@ async def update_shift(
     current_user = Depends(get_current_user)
 ):
     """Update a shift"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6493,7 +6493,7 @@ async def delete_shift(
     current_user = Depends(get_current_user)
 ):
     """Delete a shift"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6552,7 +6552,7 @@ async def get_academic_years(
     current_user = Depends(get_current_user)
 ):
     """Get all academic years for the current tenant"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6583,7 +6583,7 @@ async def get_academic_years(
 @api_router.get("/academic/years/active")
 async def get_active_academic_year(current_user = Depends(get_current_user)):
     """Get the currently active academic year"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6603,7 +6603,7 @@ async def create_academic_year(
     current_user = Depends(get_current_user)
 ):
     """Create a new academic year with optional period cloning"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6698,7 +6698,7 @@ async def update_academic_year(
     current_user = Depends(get_current_user)
 ):
     """Update an academic year status or year number"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6765,7 +6765,7 @@ async def check_year_can_delete(
     current_user = Depends(get_current_user)
 ):
     """Check if an academic year can be safely deleted and return dependency info"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6828,7 +6828,7 @@ async def delete_academic_year(
     Delete an academic year - ONLY if it's in 'futuro' status with NO dependencies.
     This is a safe delete for years created by mistake and never used.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6898,7 +6898,7 @@ async def get_academic_periods(
     current_user = Depends(get_current_user)
 ):
     """Get all academic periods for the current tenant, optionally filtered by year"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6934,7 +6934,7 @@ async def get_academic_periods(
 @api_router.get("/academic/periods/active")
 async def get_active_academic_period(current_user = Depends(get_current_user)):
     """Get the currently active academic period for the tenant"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6954,7 +6954,7 @@ async def create_academic_period(
     current_user = Depends(get_current_user)
 ):
     """Create a new academic period within an academic year"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7058,7 +7058,7 @@ async def update_academic_period(
     current_user = Depends(get_current_user)
 ):
     """Update an academic period"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7155,7 +7155,7 @@ async def activate_academic_period(
     current_user = Depends(get_current_user)
 ):
     """Activate an academic period (deactivates any other active period)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7210,7 +7210,7 @@ async def delete_academic_period(
     current_user = Depends(get_current_user)
 ):
     """Delete an academic period (only if not active and not in use)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7254,7 +7254,7 @@ async def clone_periods_to_year(
     current_user = Depends(get_current_user)
 ):
     """Clone periods from one academic year to another."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7355,7 +7355,7 @@ async def migrate_periods_to_years(
     - Assigns periods to their respective years
     - Cleans period names (removes year suffix)
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7497,7 +7497,7 @@ class ScheduleUpdate(BaseModel):
 @api_router.get("/schedule-settings")
 async def get_schedule_settings(current_user = Depends(get_current_user)):
     """Get schedule settings for school"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7527,7 +7527,7 @@ async def save_schedule_settings(
     current_user = Depends(get_current_user)
 ):
     """Save or update schedule settings for school"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7598,7 +7598,7 @@ async def get_schedule_breaks(
     current_user = Depends(get_current_user)
 ):
     """Get schedule breaks (recreos, almuerzos, eventos) filtered by grade and section"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7620,7 +7620,7 @@ async def create_schedule_break(
     current_user = Depends(get_current_user)
 ):
     """Create a new schedule break (recreo, almuerzo, evento) for specific grade/section"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7693,7 +7693,7 @@ async def update_schedule_break(
     current_user = Depends(get_current_user)
 ):
     """Update a schedule break"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7759,7 +7759,7 @@ async def delete_schedule_break(
     current_user = Depends(get_current_user)
 ):
     """Delete a schedule break"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7789,7 +7789,7 @@ async def get_schedules(
     current_user = Depends(get_current_user)
 ):
     """Get schedules filtered by type and criteria"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7905,7 +7905,7 @@ async def create_schedule(
     current_user = Depends(get_current_user)
 ):
     """Create a new schedule entry with robust conflict validation"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -7967,7 +7967,7 @@ async def update_schedule(
     current_user = Depends(get_current_user)
 ):
     """Update a schedule entry with conflict validation"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8024,7 +8024,7 @@ async def delete_schedule(
     current_user = Depends(get_current_user)
 ):
     """Delete a schedule entry"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8054,7 +8054,7 @@ async def send_heartbeat(current_user = Depends(get_current_user)):
     Send heartbeat to mark user as online.
     Should be called periodically (every 30-60 seconds) by the frontend.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8081,7 +8081,7 @@ async def get_presence_status(current_user = Depends(get_current_user)):
     """
     Get online/offline status for all users in the same school.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8146,7 +8146,7 @@ async def get_message_users(current_user = Depends(get_current_user)):
     Get all users in the same school, grouped by role.
     Includes online/offline status and sorts online users first.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8243,7 +8243,7 @@ async def get_chat_list(current_user = Depends(get_current_user)):
     Get list of all chat conversations for current user.
     Returns unique conversations with last message preview and presence status.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8339,7 +8339,7 @@ async def get_chat_history(partner_id: str, current_user = Depends(get_current_u
     Get chat history with a specific user.
     Also marks messages as read. Includes partner's presence status.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8409,7 +8409,7 @@ async def get_chat_history(partner_id: str, current_user = Depends(get_current_u
 @api_router.post("/messages/chats/send")
 async def send_chat_message(data: MessageCreate, current_user = Depends(get_current_user)):
     """Send a chat message to another user"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8451,7 +8451,7 @@ async def get_inbox(
     Get inbox messages (mail type) for current user.
     Can filter by type: 'received', 'sent', or all.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8509,7 +8509,7 @@ async def get_inbox(
 @api_router.post("/messages/send")
 async def send_mail_message(data: MessageCreate, current_user = Depends(get_current_user)):
     """Send a mail-type message (formal internal communication)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8550,7 +8550,7 @@ async def send_mail_message(data: MessageCreate, current_user = Depends(get_curr
 @api_router.put("/messages/{message_id}/read")
 async def mark_message_read(message_id: str, current_user = Depends(get_current_user)):
     """Mark a message as read"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8574,7 +8574,7 @@ async def mark_message_read(message_id: str, current_user = Depends(get_current_
 @api_router.get("/messages/unread-count")
 async def get_unread_count(current_user = Depends(get_current_user)):
     """Get total unread message count for current user"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8589,7 +8589,7 @@ async def get_unread_count(current_user = Depends(get_current_user)):
 @api_router.delete("/messages/{message_id}")
 async def delete_message(message_id: str, current_user = Depends(get_current_user)):
     """Delete a message (only sender can delete)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8643,7 +8643,7 @@ async def get_students_for_attendance(
     Get students for a specific grade/section with their attendance status for the given date.
     If no attendance exists for that date, returns students with default status 'present'.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8710,7 +8710,7 @@ async def save_student_attendance(data: AttendanceBatchSave, current_user = Depe
     Save attendance records for students in batch.
     Creates or updates records for the specified date.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8776,7 +8776,7 @@ async def get_student_attendance_history(
     current_user = Depends(get_current_user)
 ):
     """Get attendance history for a specific student within a date range."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8822,7 +8822,7 @@ async def get_teachers_for_attendance(
     Get all teachers with their attendance status for the given date.
     If no attendance exists, returns teachers with default status 'present'.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8879,7 +8879,7 @@ async def save_teacher_attendance(data: TeacherAttendanceSave, current_user = De
     """
     Save attendance records for teachers in batch.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -8942,7 +8942,7 @@ async def get_teacher_attendance_report(
     Get teacher attendance report with summary statistics.
     Can filter by specific teacher and/or date range.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9035,7 +9035,7 @@ async def get_student_attendance_report(
     """
     Get student attendance report with summary statistics.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9131,7 +9131,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     Scan student QR code and register attendance.
     Returns student info and attendance status.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No autorizado")
     
@@ -9339,7 +9339,7 @@ async def generate_qr_for_existing_students(current_user = Depends(get_current_u
     Generate QR tokens for existing students that don't have one.
     Admin only endpoint.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar esta acción")
     
@@ -9381,7 +9381,7 @@ async def get_qr_attendance_history(
     """
     Get recent QR attendance scan history for today.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No autorizado")
     
@@ -9568,7 +9568,7 @@ async def create_calendar_event(data: CalendarEventCreate, current_user = Depend
     Create a new calendar event.
     Only admin/director roles can create events.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9634,7 +9634,7 @@ async def update_calendar_event(event_id: str, data: CalendarEventUpdate, curren
     Update a calendar event.
     Only admin/director roles can update events.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9706,7 +9706,7 @@ async def delete_calendar_event(event_id: str, current_user = Depends(get_curren
     Delete a calendar event.
     Only admin/director roles can delete events.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9730,7 +9730,7 @@ async def delete_calendar_event(event_id: str, current_user = Depends(get_curren
 @api_router.get("/calendar/events/{event_id}")
 async def get_calendar_event(event_id: str, current_user = Depends(get_current_user)):
     """Get a single calendar event by ID"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9776,7 +9776,7 @@ async def get_surveys(
     Get all surveys for the current tenant.
     Admin/directors see all, other users see only active surveys targeting their role.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9835,7 +9835,7 @@ async def get_surveys(
 @api_router.get("/surveys/{survey_id}")
 async def get_survey(survey_id: str, current_user = Depends(get_current_user)):
     """Get a single survey by ID"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9866,7 +9866,7 @@ async def create_survey(data: SurveyCreate, current_user = Depends(get_current_u
     Create a new survey.
     Only admin/owner/director can create surveys.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9913,7 +9913,7 @@ async def update_survey(survey_id: str, data: SurveyUpdate, current_user = Depen
     Only admin/owner/director can update surveys.
     Cannot edit surveys that are closed or have responses (if changing options).
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -9969,7 +9969,7 @@ async def close_survey(survey_id: str, current_user = Depends(get_current_user))
     Close a survey.
     Only admin/owner/director can close surveys.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10004,7 +10004,7 @@ async def delete_survey(survey_id: str, current_user = Depends(get_current_user)
     Delete a survey and all its responses.
     Only admin/owner/director can delete surveys.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10033,7 +10033,7 @@ async def answer_survey(survey_id: str, data: SurveyAnswer, current_user = Depen
     Submit an answer to a survey.
     Each user can only answer once per survey.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10088,7 +10088,7 @@ async def get_survey_results(survey_id: str, current_user = Depends(get_current_
     Get detailed results and statistics for a survey.
     Only admin/owner/director can see results, or anyone if survey is closed.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10209,7 +10209,7 @@ async def get_discipline_reports(
     - Professors can only see reports they created
     - Directors/Admins can see all reports
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10293,7 +10293,7 @@ async def get_discipline_reports(
 @api_router.get("/discipline/{report_id}")
 async def get_discipline_report(report_id: str, current_user = Depends(get_current_user)):
     """Get a single discipline report by ID"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10341,7 +10341,7 @@ async def create_discipline_report(data: DisciplineReportCreate, current_user = 
     Create a new discipline report.
     Teachers, Directors, and Admins can create reports.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10409,7 +10409,7 @@ async def update_discipline_report(report_id: str, data: DisciplineReportUpdate,
     - Professors can only edit their own open reports
     - Directors/Admins can edit any non-resolved report
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10460,7 +10460,7 @@ async def update_discipline_status(report_id: str, data: DisciplineStatusUpdate,
     Change the status of a discipline report.
     Only Directors and Admins can change status.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10501,7 +10501,7 @@ async def delete_discipline_report(report_id: str, current_user = Depends(get_cu
     Delete a discipline report.
     Only Admins can delete reports.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10523,7 +10523,7 @@ async def delete_discipline_report(report_id: str, current_user = Depends(get_cu
 @api_router.get("/discipline/stats/summary")
 async def get_discipline_stats(current_user = Depends(get_current_user)):
     """Get summary statistics for discipline reports"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10644,7 +10644,7 @@ async def get_news(
     - Admin/Director see all (including drafts)
     - Others see only published articles that match their visibility
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10719,7 +10719,7 @@ async def get_news(
 @api_router.get("/news/{news_id}")
 async def get_news_article(news_id: str, current_user = Depends(get_current_user)):
     """Get a single news article by ID"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10755,7 +10755,7 @@ async def create_news(data: NewsCreate, current_user = Depends(get_current_user)
     Create a new news article.
     Only Admin/Director can create news.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10809,7 +10809,7 @@ async def update_news(news_id: str, data: NewsUpdate, current_user = Depends(get
     Update a news article.
     Only Admin/Director can edit news.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10873,7 +10873,7 @@ async def update_news(news_id: str, data: NewsUpdate, current_user = Depends(get
 @api_router.put("/news/{news_id}/publish")
 async def publish_news(news_id: str, current_user = Depends(get_current_user)):
     """Publish a draft news article"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10905,7 +10905,7 @@ async def publish_news(news_id: str, current_user = Depends(get_current_user)):
 @api_router.put("/news/{news_id}/archive")
 async def archive_news(news_id: str, current_user = Depends(get_current_user)):
     """Archive a news article"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10937,7 +10937,7 @@ async def archive_news(news_id: str, current_user = Depends(get_current_user)):
 @api_router.put("/news/{news_id}/pin")
 async def pin_news(news_id: str, current_user = Depends(get_current_user)):
     """Toggle pin status of a news article"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -10987,7 +10987,7 @@ async def delete_news(news_id: str, current_user = Depends(get_current_user)):
     Delete a news article.
     Only Admin can delete news.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -11925,7 +11925,7 @@ async def get_subjects(
     current_user = Depends(get_current_user)
 ):
     """Get all subjects for a school"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -11993,7 +11993,7 @@ async def get_teacher_subjects(
     current_user = Depends(get_current_user)
 ):
     """Get subjects assigned to a specific teacher, optionally filtered by grade and section"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12037,7 +12037,7 @@ async def get_teacher_subjects(
 @api_router.post("/academic/subjects")
 async def create_subject(data: SubjectCreate, current_user = Depends(get_current_user)):
     """Create a new subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12110,7 +12110,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
 @api_router.put("/academic/subjects/{subject_id}")
 async def update_subject(subject_id: str, data: SubjectUpdate, current_user = Depends(get_current_user)):
     """Update a subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12209,7 +12209,7 @@ async def update_subject(subject_id: str, data: SubjectUpdate, current_user = De
 @api_router.delete("/academic/subjects/{subject_id}")
 async def delete_subject(subject_id: str, current_user = Depends(get_current_user)):
     """Delete a subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12243,7 +12243,7 @@ async def delete_subject(subject_id: str, current_user = Depends(get_current_use
 @api_router.get("/academic/subjects/{subject_id}/teachers")
 async def get_subject_teachers(subject_id: str, current_user = Depends(get_current_user)):
     """Get teachers assigned to a subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12276,7 +12276,7 @@ async def get_subject_teachers(subject_id: str, current_user = Depends(get_curre
 @api_router.post("/academic/subjects/{subject_id}/teachers")
 async def assign_subject_teachers(subject_id: str, data: SubjectTeacherAssign, current_user = Depends(get_current_user)):
     """Assign teachers to a subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12324,7 +12324,7 @@ async def assign_subject_teachers(subject_id: str, data: SubjectTeacherAssign, c
 @api_router.delete("/academic/subjects/{subject_id}/teachers/{teacher_id}")
 async def remove_subject_teacher(subject_id: str, teacher_id: str, current_user = Depends(get_current_user)):
     """Remove a teacher from a subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12369,7 +12369,7 @@ class BannerReorder(BaseModel):
 @api_router.get("/dashboard/banners")
 async def get_dashboard_banners(current_user = Depends(get_current_user)):
     """Get all dashboard banners for the current tenant"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12383,7 +12383,7 @@ async def get_dashboard_banners(current_user = Depends(get_current_user)):
 @api_router.get("/dashboard/banners/active")
 async def get_active_dashboard_banners(current_user = Depends(get_current_user)):
     """Get only active dashboard banners for display"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12397,7 +12397,7 @@ async def get_active_dashboard_banners(current_user = Depends(get_current_user))
 @api_router.post("/dashboard/banners")
 async def create_dashboard_banner(data: BannerCreate, current_user = Depends(get_current_user)):
     """Create a new dashboard banner - only for owners/super admins"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12436,7 +12436,7 @@ async def create_dashboard_banner(data: BannerCreate, current_user = Depends(get
 @api_router.put("/dashboard/banners/{banner_id}")
 async def update_dashboard_banner(banner_id: str, data: BannerUpdate, current_user = Depends(get_current_user)):
     """Update a dashboard banner"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12466,7 +12466,7 @@ async def update_dashboard_banner(banner_id: str, data: BannerUpdate, current_us
 @api_router.put("/dashboard/banners/reorder")
 async def reorder_dashboard_banners(data: BannerReorder, current_user = Depends(get_current_user)):
     """Reorder dashboard banners"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12485,7 +12485,7 @@ async def reorder_dashboard_banners(data: BannerReorder, current_user = Depends(
 @api_router.delete("/dashboard/banners/{banner_id}")
 async def delete_dashboard_banner(banner_id: str, current_user = Depends(get_current_user)):
     """Delete a dashboard banner"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12539,7 +12539,7 @@ async def get_academic_assignments(
     current_user = Depends(get_current_user)
 ):
     """Get all academic assignments with optional filters"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12627,7 +12627,7 @@ async def get_assignments_by_teacher(
     current_user = Depends(get_current_user)
 ):
     """Get all assignments for a specific teacher (for profile view)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12661,7 +12661,7 @@ async def get_teachers_assignments_summary(
     current_user = Depends(get_current_user)
 ):
     """Get summary of assignments per teacher (for load visualization)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12700,7 +12700,7 @@ async def create_academic_assignment(
     current_user = Depends(get_current_user)
 ):
     """Create a new academic assignment"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12822,7 +12822,7 @@ async def update_academic_assignment(
     current_user = Depends(get_current_user)
 ):
     """Update an academic assignment"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12925,7 +12925,7 @@ async def delete_academic_assignment(
     current_user = Depends(get_current_user)
 ):
     """Delete an academic assignment"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -12951,7 +12951,7 @@ async def get_active_teachers(
     current_user = Depends(get_current_user)
 ):
     """Get all active teachers for the school"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -13015,7 +13015,7 @@ async def get_course_posts(
     current_user = Depends(get_current_user)
 ):
     """Get all posts for a course/subject, optionally filtered by type"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -13088,7 +13088,7 @@ async def create_course_post(
     current_user = Depends(get_current_user)
 ):
     """Create a new post in a course"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -13226,7 +13226,7 @@ async def update_course_post(
     current_user = Depends(get_current_user)
 ):
     """Update a post (only author can update)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13281,7 +13281,7 @@ async def delete_course_post(
     If task has submissions, returns error - user must archive instead.
     For materials stored in Google Drive: Also deletes the file from Drive.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13358,7 +13358,7 @@ async def get_task_submission_stats(
     current_user = Depends(get_current_user)
 ):
     """Get submission statistics for a task before deletion/archiving"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13392,7 +13392,7 @@ async def get_task_submissions(
     Get all submissions for a task with student details.
     Used by teachers/owners to view and grade student work.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -13496,7 +13496,7 @@ async def grade_task_submission(
     """
     logger.info(f"Grading submission: task_id={task_id}, submission_id={submission_id}, data={data}")
     
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -13597,7 +13597,7 @@ async def archive_task(
     Preserves all data: submissions, grades, files.
     Task becomes invisible in main view but data remains for reports.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13659,7 +13659,7 @@ async def restore_task(
     current_user = Depends(get_current_user)
 ):
     """Restore an archived task back to active status"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13719,7 +13719,7 @@ async def get_archived_tasks(
     current_user = Depends(get_current_user)
 ):
     """Get all archived tasks for a subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13760,7 +13760,7 @@ async def toggle_post_like(
     current_user = Depends(get_current_user)
 ):
     """Toggle like on a post (like/unlike)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13848,7 +13848,7 @@ async def create_post_comment(
     current_user = Depends(get_current_user)
 ):
     """Add a comment to a post"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13906,7 +13906,7 @@ async def delete_comment(
     current_user = Depends(get_current_user)
 ):
     """Delete a comment"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -13984,7 +13984,7 @@ async def get_course_activities(
     current_user = Depends(get_current_user)
 ):
     """Get activity stream for a course"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14020,7 +14020,7 @@ async def get_course_sidebar_summary(
     - Latest news (upcoming exams, tasks, announcements, reminders)
     - Quick access counters (materials, pending tasks, recorded classes)
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14264,7 +14264,7 @@ async def get_course_reminders(
     current_user = Depends(get_current_user)
 ):
     """Get all reminders for a course/subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14305,7 +14305,7 @@ async def create_course_reminder(
     current_user = Depends(get_current_user)
 ):
     """Create a new reminder for a course (teachers/admins only)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14388,7 +14388,7 @@ async def update_course_reminder(
     current_user = Depends(get_current_user)
 ):
     """Update a course reminder"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14431,7 +14431,7 @@ async def delete_course_reminder(
     current_user = Depends(get_current_user)
 ):
     """Delete (cancel) a course reminder"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14462,7 +14462,7 @@ async def complete_course_reminder(
     current_user = Depends(get_current_user)
 ):
     """Mark a reminder as completed"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14492,7 +14492,7 @@ async def mark_reminder_viewed(
     current_user = Depends(get_current_user)
 ):
     """Mark a reminder as viewed by the current user"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14520,7 +14520,7 @@ async def get_notification_reminders(
     - Upcoming reminders (within 48 hours)
     - New (unviewed) reminders
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14645,7 +14645,7 @@ async def get_popup_reminders(
     - Overdue reminders not viewed
     Returns max 1 reminder to show as popup
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14744,7 +14744,7 @@ async def dismiss_popup_reminder(
     current_user = Depends(get_current_user)
 ):
     """Record that user dismissed a popup for a reminder (once per day limit)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14875,7 +14875,7 @@ async def get_all_notifications(
     current_user = Depends(get_current_user)
 ):
     """Get all notifications for the current user (from their subjects)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14942,7 +14942,7 @@ async def get_all_notifications(
 @api_router.post("/notifications/test-push")
 async def test_push_notification(current_user = Depends(get_current_user)):
     """Test endpoint: Creates a notification and broadcasts via WebSocket"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14968,7 +14968,7 @@ async def mark_notification_read(
     current_user = Depends(get_current_user)
 ):
     """Mark a notification as read"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -14995,7 +14995,7 @@ async def mark_all_notifications_read(
     current_user = Depends(get_current_user)
 ):
     """Mark all notifications as read for the current user"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15019,7 +15019,7 @@ async def mark_all_notifications_read(
 @api_router.get("/notifications/unread-count")
 async def get_notifications_unread_count(current_user = Depends(get_current_user)):
     """Get unread notification count for the bell badge"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15105,7 +15105,7 @@ class AcademicMessageCreate(BaseModel):
 
 @api_router.get("/messaging/office-hours")
 async def get_office_hours(current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15133,7 +15133,7 @@ async def create_institutional_message(
     data: InstitutionalMessageCreate,
     current_user = Depends(get_current_user)
 ):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15170,7 +15170,7 @@ async def get_institutional_messages(
     limit: int = 50,
     current_user = Depends(get_current_user)
 ):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15187,7 +15187,7 @@ async def get_institutional_messages(
 
 @api_router.post("/messaging/institutional/{message_id}/read")
 async def mark_institutional_read(message_id: str, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     await db.institutional_messages.update_one({"id": message_id}, {"$addToSet": {"read_by": user["id"]}})
@@ -15195,7 +15195,7 @@ async def mark_institutional_read(message_id: str, current_user = Depends(get_cu
 
 @api_router.delete("/messaging/institutional/{message_id}")
 async def delete_institutional_message(message_id: str, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or user.get("role") not in ["admin", "owner", "director"]:
         raise HTTPException(status_code=403, detail="No tienes permisos")
     await db.institutional_messages.update_one(
@@ -15206,7 +15206,7 @@ async def delete_institutional_message(message_id: str, current_user = Depends(g
 
 @api_router.post("/messaging/support")
 async def create_support_ticket(data: SupportTicketCreate, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15241,7 +15241,7 @@ async def create_support_ticket(data: SupportTicketCreate, current_user = Depend
 
 @api_router.get("/messaging/support")
 async def get_support_tickets(status: Optional[str] = None, limit: int = 50, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15256,7 +15256,7 @@ async def get_support_tickets(status: Optional[str] = None, limit: int = 50, cur
 
 @api_router.get("/messaging/support/{ticket_id}")
 async def get_support_ticket(ticket_id: str, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15267,7 +15267,7 @@ async def get_support_ticket(ticket_id: str, current_user = Depends(get_current_
 
 @api_router.post("/messaging/support/{ticket_id}/reply")
 async def reply_support_ticket(ticket_id: str, data: SupportTicketReply, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15291,7 +15291,7 @@ async def reply_support_ticket(ticket_id: str, data: SupportTicketReply, current
 
 @api_router.put("/messaging/support/{ticket_id}/status")
 async def update_ticket_status(ticket_id: str, status: str = Body(..., embed=True), current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or user.get("role") not in ["admin", "owner", "director", "coordinator"]:
         raise HTTPException(status_code=403, detail="No tienes permisos")
     await db.support_tickets.update_one({"id": ticket_id}, {"$set": {"status": status, "updated_at": datetime.now(timezone.utc).isoformat()}})
@@ -15299,7 +15299,7 @@ async def update_ticket_status(ticket_id: str, status: str = Body(..., embed=Tru
 
 @api_router.get("/messaging/academic/contacts")
 async def get_academic_contacts(current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15824,7 +15824,7 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
 
 @api_router.post("/messaging/academic")
 async def send_academic_message(data: AcademicMessageCreate, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15900,7 +15900,7 @@ async def send_academic_message(data: AcademicMessageCreate, current_user = Depe
 # Edit academic message
 @api_router.put("/messaging/academic/{thread_id}/messages/{message_id}")
 async def edit_academic_message(thread_id: str, message_id: str, data: dict, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15941,7 +15941,7 @@ async def edit_academic_message(thread_id: str, message_id: str, data: dict, cur
 # Delete academic message
 @api_router.delete("/messaging/academic/{thread_id}/messages/{message_id}")
 async def delete_academic_message(thread_id: str, message_id: str, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15974,7 +15974,7 @@ async def delete_academic_message(thread_id: str, message_id: str, current_user 
 
 @api_router.get("/messaging/academic")
 async def get_academic_threads(limit: int = 50, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -15999,7 +15999,7 @@ async def get_academic_threads(limit: int = 50, current_user = Depends(get_curre
 
 @api_router.get("/messaging/academic/{thread_id}")
 async def get_academic_thread(thread_id: str, current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16020,7 +16020,7 @@ async def get_academic_thread(thread_id: str, current_user = Depends(get_current
 
 @api_router.get("/messaging/stats")
 async def get_messaging_stats(current_user = Depends(get_current_user)):
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16074,7 +16074,7 @@ async def get_course_exams(
     current_user = Depends(get_current_user)
 ):
     """Get all exams for a course/subject"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16126,7 +16126,7 @@ async def create_exam(
     current_user = Depends(get_current_user)
 ):
     """Create a new exam for a course"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16184,7 +16184,7 @@ async def create_exam(
 @api_router.post("/exams/{exam_id}/duplicate")
 async def duplicate_exam(exam_id: str, current_user = Depends(get_current_user)):
     """Duplicate an exam with all its questions"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16239,7 +16239,7 @@ async def get_exam_detail(
     current_user = Depends(get_current_user)
 ):
     """Get exam details"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16284,7 +16284,7 @@ async def update_exam(
     current_user = Depends(get_current_user)
 ):
     """Update an exam"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16357,7 +16357,7 @@ async def publish_exam(
     current_user = Depends(get_current_user)
 ):
     """Publish an exam (make it visible to students)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16424,7 +16424,7 @@ async def close_exam(
     current_user = Depends(get_current_user)
 ):
     """Close an exam (no more attempts allowed)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16453,7 +16453,7 @@ async def schedule_exam(
     current_user = Depends(get_current_user)
 ):
     """Schedule an exam (intermediate state before publishing)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16482,7 +16482,7 @@ async def delete_exam(
     current_user = Depends(get_current_user)
 ):
     """Delete an exam (with restrictions)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16517,7 +16517,7 @@ async def archive_exam(
     current_user = Depends(get_current_user)
 ):
     """Archive an exam (soft delete for closed exams or exams with attempts)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16578,7 +16578,7 @@ async def get_exam_questions(
     current_user = Depends(get_current_user)
 ):
     """Get all questions for an exam"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16614,7 +16614,7 @@ async def create_exam_question(
     current_user = Depends(get_current_user)
 ):
     """Create a new question for an exam"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16719,7 +16719,7 @@ async def update_exam_question(
     current_user = Depends(get_current_user)
 ):
     """Update an exam question"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16790,7 +16790,7 @@ async def delete_exam_question(
     current_user = Depends(get_current_user)
 ):
     """Delete an exam question"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16839,7 +16839,7 @@ async def delete_question_image(
     current_user = Depends(get_current_user)
 ):
     """Delete only the image from a question"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16878,7 +16878,7 @@ async def reorder_exam_question(
     current_user = Depends(get_current_user)
 ):
     """Reorder a question within an exam"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -16919,7 +16919,7 @@ async def get_exam_full_detail(
     current_user = Depends(get_current_user)
 ):
     """Get full exam details including subject info and questions count"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -17050,7 +17050,7 @@ async def find_or_create_folder(service, name: str, parent_id: str = None):
 @api_router.get("/integrations/google-drive/status")
 async def get_google_drive_status(current_user=Depends(get_current_user)):
     """Get Google Drive connection status for the school"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -17085,7 +17085,7 @@ async def initiate_google_drive_auth(
     Only accessible by school owners (propietarios).
     """
     # Verify user is owner
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -17254,7 +17254,7 @@ async def disconnect_google_drive(current_user=Depends(get_current_user)):
     Disconnect Google Drive from the school.
     Only accessible by school owners (propietarios).
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -17297,7 +17297,7 @@ async def upload_material_to_drive(
     Upload a material file to Google Drive.
     Only for non-image files (PDF, DOC, etc.)
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -17408,7 +17408,7 @@ async def upload_file_to_drive_only(
     Used for attaching files to tasks, forums, and board posts.
     The actual post record is created separately via /course/{subject_id}/posts.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -17495,7 +17495,7 @@ async def download_material_from_drive(
     Streams the file through the backend - student never sees Drive link.
     Uses true streaming for immediate response.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -17601,7 +17601,7 @@ async def check_drive_for_materials(
     Check if Google Drive is connected and can be used for materials.
     Returns status and message for UI display.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -17656,7 +17656,7 @@ async def debug_exam_data(
     """
     DEBUG ENDPOINT - Temporary endpoint to check exam data.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -17729,7 +17729,7 @@ async def start_exam_attempt(
     Returns attempt_id and remaining time.
     """
     try:
-        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+        user = await resolve_user_from_token(current_user)
         if not user:
             raise HTTPException(status_code=403, detail="Usuario no encontrado")
         
@@ -17890,7 +17890,7 @@ async def get_exam_questions_for_student(
     Get exam questions for a student taking the exam.
     Does NOT include correct answers.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -17937,7 +17937,7 @@ async def save_exam_answer(
     """
     Save a single answer during exam. Auto-save functionality.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18001,7 +18001,7 @@ async def report_tab_change(
     """
     Report when student changes browser tab. Anti-cheat measure.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18041,7 +18041,7 @@ async def submit_exam_attempt(
     Submit exam and auto-grade.
     Can be called manually by student or automatically when time runs out.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18190,7 +18190,7 @@ async def get_exam_result(
     """
     Get exam result after completion.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18281,7 +18281,7 @@ async def get_my_exam_attempt(
     """
     Check if student has an attempt for this exam.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18331,7 +18331,7 @@ async def get_inbox(
     current_user = Depends(get_current_user)
 ):
     """Get inbox messages for current user"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18400,7 +18400,7 @@ async def get_sent(
     current_user = Depends(get_current_user)
 ):
     """Get sent messages for current user"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18445,7 +18445,7 @@ async def get_sent(
 @api_router.get("/internal-mail/unread")
 async def get_unread(current_user = Depends(get_current_user)):
     """Get unread messages count and list"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18476,7 +18476,7 @@ async def get_archived(
     current_user = Depends(get_current_user)
 ):
     """Get archived messages (both received and sent)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18574,7 +18574,7 @@ async def get_trash(
     current_user = Depends(get_current_user)
 ):
     """Get deleted/trash messages (both received and sent)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18662,7 +18662,7 @@ async def get_trash(
 @api_router.get("/internal-mail/stats")
 async def get_mail_stats(current_user = Depends(get_current_user)):
     """Get mail statistics for badges"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18748,7 +18748,7 @@ async def get_mail_stats(current_user = Depends(get_current_user)):
 @api_router.get("/internal-mail/{message_id}")
 async def get_message(message_id: str, current_user = Depends(get_current_user)):
     """Get a single message and mark as read"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18805,7 +18805,7 @@ async def get_message(message_id: str, current_user = Depends(get_current_user))
 @api_router.post("/internal-mail/send")
 async def send_internal_mail(data: InternalMailCreate, current_user = Depends(get_current_user)):
     """Send a new internal mail message"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18856,7 +18856,7 @@ async def send_internal_mail(data: InternalMailCreate, current_user = Depends(ge
 @api_router.post("/internal-mail/{message_id}/reply")
 async def reply_to_mail(message_id: str, data: InternalMailReply, current_user = Depends(get_current_user)):
     """Reply to a message"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18899,7 +18899,7 @@ async def reply_to_mail(message_id: str, data: InternalMailReply, current_user =
 @api_router.put("/internal-mail/{message_id}/read")
 async def toggle_read(message_id: str, is_read: bool = True, current_user = Depends(get_current_user)):
     """Mark message as read or unread"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18917,7 +18917,7 @@ async def toggle_read(message_id: str, is_read: bool = True, current_user = Depe
 @api_router.put("/internal-mail/{message_id}/star")
 async def toggle_star(message_id: str, is_starred: bool = True, current_user = Depends(get_current_user)):
     """Star or unstar a message"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18932,7 +18932,7 @@ async def toggle_star(message_id: str, is_starred: bool = True, current_user = D
 @api_router.put("/internal-mail/{message_id}/archive")
 async def archive_message(message_id: str, is_archived: bool = True, current_user = Depends(get_current_user)):
     """Archive or unarchive a message"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18960,7 +18960,7 @@ async def archive_message(message_id: str, is_archived: bool = True, current_use
 @api_router.delete("/internal-mail/{message_id}")
 async def delete_internal_mail(message_id: str, current_user = Depends(get_current_user)):
     """Soft delete a message (move to trash)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -18988,7 +18988,7 @@ async def delete_internal_mail(message_id: str, current_user = Depends(get_curre
 @api_router.put("/internal-mail/{message_id}/restore")
 async def restore_message(message_id: str, current_user = Depends(get_current_user)):
     """Restore a message from trash"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19016,7 +19016,7 @@ async def restore_message(message_id: str, current_user = Depends(get_current_us
 @api_router.delete("/internal-mail/{message_id}/permanent")
 async def permanent_delete_message(message_id: str, current_user = Depends(get_current_user)):
     """Permanently delete a message from trash (cannot be recovered)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19050,7 +19050,7 @@ async def permanent_delete_message(message_id: str, current_user = Depends(get_c
 @api_router.delete("/internal-mail/trash/empty")
 async def empty_trash(current_user = Depends(get_current_user)):
     """Permanently delete all messages in trash"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19089,7 +19089,7 @@ async def empty_trash(current_user = Depends(get_current_user)):
 @api_router.get("/internal-mail/contacts/search")
 async def search_contacts(q: str = "", current_user = Depends(get_current_user)):
     """Search contacts for message composition"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19143,7 +19143,7 @@ async def get_student_allowed_recipients(course_id: str, current_user = Depends(
     """Get allowed recipients for a student within a subject/course context
     course_id is actually subject_id from the frontend
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19233,7 +19233,7 @@ async def get_student_messages_inbox(
     current_user = Depends(get_current_user)
 ):
     """Get inbox messages for a student within a course context"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19349,7 +19349,7 @@ async def get_student_messages_sent(
     current_user = Depends(get_current_user)
 ):
     """Get sent messages for a student"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19396,7 +19396,7 @@ async def get_student_messages_sent(
 @api_router.get("/student-portal/messages/stats")
 async def get_student_messages_stats(course_id: str, current_user = Depends(get_current_user)):
     """Get message stats for a student"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19518,7 +19518,7 @@ async def get_student_messages_stats(course_id: str, current_user = Depends(get_
 @api_router.post("/student-portal/messages/send")
 async def send_student_message(data: InternalMailCreate, course_id: str, current_user = Depends(get_current_user)):
     """Send a message from student within course context"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19602,7 +19602,7 @@ async def send_student_message(data: InternalMailCreate, course_id: str, current
 @api_router.get("/student-portal/messages/{message_id}")
 async def get_student_message_detail(message_id: str, current_user = Depends(get_current_user)):
     """Get message detail for student"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19646,7 +19646,7 @@ async def get_student_message_detail(message_id: str, current_user = Depends(get
 @api_router.put("/student-portal/messages/{message_id}/read")
 async def mark_student_message_read(message_id: str, current_user = Depends(get_current_user)):
     """Mark message as read"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
@@ -19724,7 +19724,7 @@ async def get_exam_schedules(
     current_user = Depends(get_current_user)
 ):
     """Get exam schedules filtered by grade and section (REQUIRED)"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -19809,7 +19809,7 @@ async def create_exam_schedule(
     current_user = Depends(get_current_user)
 ):
     """Create a new exam schedule for a specific grade/section"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -19931,7 +19931,7 @@ async def update_exam_schedule(
     current_user = Depends(get_current_user)
 ):
     """Update an exam schedule"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -20031,7 +20031,7 @@ async def delete_exam_schedule(
     current_user = Depends(get_current_user)
 ):
     """Delete an exam schedule"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -20059,7 +20059,7 @@ async def get_student_exam_schedule(
     Get exam schedule for student - auto-filtered by their grade/section.
     NO parameters for grade/section - extracted from authenticated user.
     """
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -20255,7 +20255,7 @@ async def verify_parent_student_access(parent_user: dict, student_id: str) -> di
 @api_router.get("/parent/me")
 async def get_parent_profile(current_user = Depends(get_current_user)):
     """Get parent profile with linked children."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -20349,7 +20349,7 @@ async def get_parent_payments(
     current_user = Depends(get_current_user)
 ):
     """Get payment summary for a specific child - used in parent dashboard."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -20432,7 +20432,7 @@ async def get_parent_payments(
 @api_router.get("/parent/students")
 async def get_parent_students(current_user = Depends(get_current_user)):
     """Get list of children linked to this parent."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -20546,7 +20546,7 @@ async def get_parent_dashboard(
     current_user = Depends(get_current_user)
 ):
     """Get full dashboard data for a specific child - mirrors student dashboard format."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -20777,7 +20777,7 @@ async def get_parent_student_courses(
     current_user = Depends(get_current_user)
 ):
     """Get courses for a specific child."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -20843,7 +20843,7 @@ async def get_parent_student_tasks(
     current_user = Depends(get_current_user)
 ):
     """Get tasks for a specific child."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -20934,7 +20934,7 @@ async def get_parent_student_grades(
     current_user = Depends(get_current_user)
 ):
     """Get grades for a specific child."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -21028,7 +21028,7 @@ async def get_parent_student_attendance(
     current_user = Depends(get_current_user)
 ):
     """Get attendance for a specific child."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -21076,7 +21076,7 @@ async def get_parent_student_schedule(
     current_user = Depends(get_current_user)
 ):
     """Get class schedule for a specific child."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -21118,7 +21118,7 @@ async def get_parent_student_exam_schedule(
     current_user = Depends(get_current_user)
 ):
     """Get exam schedule for a specific child - mirrors student endpoint logic."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -21253,7 +21253,7 @@ async def get_parent_student_classmates(
     current_user = Depends(get_current_user)
 ):
     """Get classmates of a specific child."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -21278,7 +21278,7 @@ async def get_parent_student_inbox(
     current_user = Depends(get_current_user)
 ):
     """Get inbox messages for parent viewing child's messages."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
@@ -21333,7 +21333,7 @@ async def get_parent_student_message_stats(
     current_user = Depends(get_current_user)
 ):
     """Get message stats for parent viewing child's messages."""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
