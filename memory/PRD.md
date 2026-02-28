@@ -1,89 +1,75 @@
-# EduNet - Product Requirements Document
+# EduNet - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-Build "EduNet", a school management platform (intranet) for Peruvian schools with multi-tenant architecture, PWA support, and comprehensive admin tools.
+EduNet is an educational platform (intranet escolar) for Peruvian schools. Built as a full-stack FastAPI + React + MongoDB application with PWA support.
 
 ## Core Architecture
-- **Frontend**: React + Tailwind CSS + Shadcn UI
-- **Backend**: FastAPI (Python)  
+- **Backend**: FastAPI (Python) on port 8001
+- **Frontend**: React on port 3000
 - **Database**: MongoDB
-- **Hosting**: Emergent Platform with preview URL
-- **Production Domain**: edunet.pe
+- **Storage**: Cloudinary
+- **Auth**: JWT-based
+- **PWA**: Custom service worker with WebView detection
 
-## What's Been Implemented
+## Key File Structure
+```
+/app
+├── backend/
+│   ├── server.py (monolith - needs refactoring)
+│   └── routes/
+│       ├── core.py
+│       └── support.py (pricing, school management)
+└── frontend/
+    └── src/
+        ├── pages/
+        │   ├── SupportSchoolsPage.jsx (school cards with pricing)
+        │   ├── SupportPricingPage.jsx (global pricing config)
+        │   ├── SupportDashboardPage.jsx
+        │   ├── DashboardPage.jsx
+        │   ├── LoginPage.jsx (PWA install-first)
+        │   └── SettingsPage.jsx
+        └── components/
+            ├── PwaInstallPrompt.jsx
+            └── SupportLayout.jsx
+```
 
-### PWA (Progressive Web App) - COMPLETED
-- Full PWA with manifest.json, service-worker.js (v6), custom icons
-- WebView detection (WhatsApp, Facebook, Instagram) → shows "Open in Chrome" card
-- Mobile-first install experience on /login
-- Standalone mode detection (hides install UI when already installed)
-- Global beforeinstallprompt capture in index.html before React mounts
-- Auto claim() via service worker for immediate page control
-
-### URL Refactor - COMPLETED
-- Routes simplified from /school/:subdomain/... to /:subdomain/...
-- Backward compatibility redirects in place
-- School login at /:subdomain directly
-
-### Owner Role Fix - COMPLETED (Feb 28, 2026)
-- Fixed: onboarding was setting role="director" instead of role="owner"
-- Fixed: isOwner() now checks both role==="owner" AND is_owner===true
-- Fixed: canAccessSection() in permissions.js  
-- Fixed: SettingsPage access check
-- Fixed: ProfilePage super admin badge
-- Full audit of backend server.py: all role checks now include is_owner fallback
-
-### Subscription System - COMPLETED (Feb 28, 2026)
-- Schools have created_at and expiration_date fields
-- Subscription card on owner/admin dashboard with:
-  - Progress bar (color-coded: green/amber/red/grey)
-  - Countdown timer (days, hours, minutes)
-  - Status: Active / Próximo a vencer / Vence pronto / Suspendido
-- Support panel: edit expiration date per school
-- Timezone fix: dates sent as T12:00:00Z to avoid shifting
-- Auto-set expiration_date (30 days) for schools without it on startup
-
-### Pricing Configuration - COMPLETED (Feb 28, 2026)
-- Global pricing config (base fee + per-student fee + from which month)
-- Per-school pricing overrides (custom discounts)
-- New page: /support/pricing for global config
-- Per-school pricing editor in school cards
-- Calculated price based on student count and months active
-- Backend endpoints: GET/PUT /support/pricing, GET/PUT/DELETE /support/school-pricing
-
-### Parent Portal UI - COMPLETED (Previous sessions)
-- Circular progress graphs
-- Two-column responsive layout
-- Child selector dropdown in welcome banner
+## Completed Features (Feb 2026)
+- [x] PWA with WebView detection and install-first experience
+- [x] Custom PWA icon
+- [x] Full-stack permission audit (owner role fixes)
+- [x] Support panel with school management
+- [x] School expiration dates (editable)
+- [x] Subscription status card on owner dashboard
+- [x] Global & per-school pricing configuration system
+- [x] **Pricing calculation & display on school cards** (Feb 28, 2026)
+  - Backend calculates: base_price + (students * per_student_fee) when months >= threshold
+  - School cards show: total price, breakdown, student count, month active, per-student timing
 
 ## Pending Issues
-- **P0**: Demo students (17 vs 5) - awaiting user confirmation to delete
-- **P1**: Hardcoded data in Owner dashboard (Asistencia del Mes, Noticias)
-- **P2**: Message Center unread count discrepancy
-- **P2**: Replace window.confirm/alert with custom modals
+- P0: Extra demo students in course view (blocked on user confirmation)
+- P1: Hardcoded data on Owner Dashboard (Asistencia del Mes, Noticias y Avisos)
+- P2: Message Center unread count discrepancy
 
 ## Upcoming Tasks
-- **P1**: Modularize server.py into FastAPI routers
-- **P1**: Complete Parent Portal feature parity
-- **P1**: Build Matrículas (Enrollments) module
-- **P1**: Anti-cheating system for exams
-- **P2**: Intelligent filters on Parents view
-- **P2**: Question Bank for exams
-- **P2**: Automatic student notifications
+- P0: Delete demo students (pending user confirmation)
+- P1: Modularize server.py into routers
+- P2: Apply intelligent filters to Parents view
 
-## Credentials
-- **Owner**: admin@elroble.edu / 1234abc8 (subdomain: elroble)
-- **Parent**: miguel@gmail.com / 1234abc8
-- **Student**: pepito@elroble.edu / 1234abc8
-- **Teacher**: profesor.historia@elroble.edu / 1234abc8
-- **Support**: spencer3009@gmail.com / 1234abc8
+## Future/Backlog
+- P1: Parent Portal feature parity
+- P1: Cache invalidation for /api/student/tasks
+- P1: Matriculas module
+- P1: Anti-cheating system for exams
+- P1: Question bank for exams
+- P1: Automatic student notifications
+- P2: Replace window.confirm/alert with custom modals
 
-## Key Files
-- `/app/frontend/src/components/PwaInstallPrompt.jsx` - PWA install logic
-- `/app/frontend/src/components/SubscriptionCard.jsx` - Subscription status
-- `/app/frontend/src/pages/SupportPricingPage.jsx` - Global pricing config
-- `/app/frontend/src/pages/SupportSchoolsPage.jsx` - School management
-- `/app/frontend/src/pages/LoginPage.jsx` - Login with mobile-first install
-- `/app/frontend/src/lib/permissions.js` - Role/permission checks
-- `/app/backend/routes/support.py` - Support panel APIs
-- `/app/backend/server.py` - Main backend (monolithic, needs refactoring)
+## Key Credentials
+- Support: spencer3009@gmail.com / Socios3009
+- School Owner: Iep.exploradores@gmail.com / 1234abc8 (subdomain: elroble)
+
+## Pricing Model
+- Global defaults stored in `pricing_config` collection
+- Per-school overrides stored in `schools.pricing_override`
+- Calculation: base_monthly_fee + (student_count * per_student_fee) when months_active >= per_student_from_month
+- Default: S/50.00 base + S/0.70/student from month 3
