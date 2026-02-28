@@ -101,6 +101,22 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     }
   };
 
+  const handleSaveExpiration = async (schoolId) => {
+    if (!newExpDate) return;
+    try {
+      await axios.put(`${API}/support/school-expiration`, {
+        school_id: schoolId,
+        expiration_date: new Date(newExpDate).toISOString()
+      }, { headers });
+      toast.success("Fecha de vencimiento actualizada");
+      setEditingExpiration(null);
+      setNewExpDate("");
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al actualizar");
+    }
+  };
+
   const formatDate = (iso) => {
     if (!iso) return "";
     return new Date(iso).toLocaleDateString("es-PE", { 
