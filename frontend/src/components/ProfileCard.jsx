@@ -1,4 +1,5 @@
-import { Crown, Shield, Users, UserCheck } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Crown, Shield, Users, UserCheck, ShieldCheck, ShieldAlert, ShieldOff, Clock, CalendarDays, CalendarClock, DollarSign } from "lucide-react";
 
 function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
   const getInitials = (name) => {
@@ -41,14 +42,51 @@ function getRoleBadgeColors(role, isOwner, isSuperAdmin) {
   return ROLE_DISPLAY_MAP[role]?.colors || "bg-slate-100 text-slate-600 border-slate-200";
 }
 
-export default function ProfileCard({ user, stats, ownerStats, schoolName }) {
+function getSubState(expDate) {
+  if (!expDate) return null;
+  const now = new Date();
+  const exp = new Date(expDate);
+  const diffMs = exp - now;
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+  if (days <= 0) return { id: "suspended", days: 0, label: "Suspendido", color: "text-slate-500", bar: "bg-slate-400", badge: "bg-slate-700 text-white" };
+  if (days <= 5) return { id: "critical", days, label: "Vence pronto", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-50 text-red-700 ring-1 ring-red-200" };
+  if (days <= 10) return { id: "warning", days, label: "Proximo a vencer", color: "text-amber-600", bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" };
+  return { id: "active", days, label: "Activo", color: "text-emerald-600", bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" };
+}
+
+const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" }) : "—";
+
+export default function ProfileCard({ user, stats, ownerStats, schoolName, token }) {
   const userPhoto = user?.photo_url;
   const userName = user?.name || "Usuario";
   const userEmail = user?.email || "";
   const roleDisplay = getRoleDisplay(user?.role, user?.is_owner, user?.is_super_admin);
   const badgeColors = getRoleBadgeColors(user?.role, user?.is_owner, user?.is_super_admin);
   const isOwner = user?.is_owner || user?.role === "owner" || user?.is_support_session;
-  
+  const isAdmin = user?.role === "admin";
+  const showSub = isOwner || isAdmin;
+
+  const [school, setSchool] = useState(null);
+
+  useEffect(() => {
+    if (!showSub || !token) return;
+    const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+    fetch(`${API}/dashboard/school`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(d => setSchool(d))
+      .catch(() => {});
+  }, [token, showSub]);
+
+  const subState = school ? getSubState(school.expiration_date) : null;
+  const p = school?.pricing;
+  const progress = (() => {
+    if (!school?.created_at || !school?.expiration_date) return 0;
+    const s = new Date(school.created_at), e = new Date(school.expiration_date), n = new Date();
+    const total = e - s;
+    if (total <= 0) return 100;
+    return Math.min(100, Math.max(0, Math.round(((n - s) / total) * 100)));
+  })();
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 text-center" data-testid="profile-card">
       <div className="relative w-20 h-20 mx-auto mb-3">
@@ -95,25 +133,47 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName }) {
         <p className="text-xs text-slate-400 mt-1.5">{schoolName}</p>
       )}
 
-      {/* Indicadores - condicional por rol */}
-      {isOwner && ownerStats ? (
-        <div className="mt-5 grid grid-cols-2 gap-3">
-          <div className="bg-slate-50 rounded-lg p-3">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <Users className="w-3.5 h-3.5 text-blue-500" />
-            </div>
-            <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{ownerStats.students ?? 0}</p>
-            <p className="text-[10px] text-slate-500">Alumnos Activos</p>
+      {/* Subscription info for owner/admin */}
+      {showSub && subState ? (
+        <div className="mt-4 space-y-3 text-left" data-testid="subscription-card">
+          {/* Status + Price */}
+          <div className="flex items-center justify-between">
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${subState.badge}`}>{subState.label}</span>
+            {p && <span className="text-base font-extrabold text-slate-800" data-testid="subscription-price">S/ {p.calculated_price?.toFixed(2)}</span>}
           </div>
-          <div className="bg-slate-50 rounded-lg p-3">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
+
+          {/* Progress bar */}
+          <div className="flex items-center gap-2">
+            <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div className={`h-full ${subState.bar} rounded-full transition-all duration-700`} style={{ width: `${progress}%` }} />
             </div>
-            <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{ownerStats.teachers ?? 0}</p>
-            <p className="text-[10px] text-slate-500">Docentes Activos</p>
+            <span className="text-[10px] font-bold text-slate-400">{progress}%</span>
           </div>
+
+          {/* Dates + Countdown */}
+          <div className="flex items-center justify-between text-[10px] text-slate-500">
+            <div className="flex items-center gap-1">
+              <CalendarDays className="w-3 h-3 text-slate-400" />
+              <span>{fmtDate(school.created_at)}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CalendarClock className="w-3 h-3 text-slate-400" />
+              <span>{fmtDate(school.expiration_date)}</span>
+            </div>
+          </div>
+
+          {/* Countdown */}
+          {subState.id !== "suspended" ? (
+            <div className={`flex items-center justify-center gap-1 ${subState.color}`}>
+              <Clock className="w-3 h-3" />
+              <span className="text-xs font-semibold">{subState.days} dias restantes</span>
+            </div>
+          ) : (
+            <p className="text-xs text-center text-slate-500 font-medium">Contacte soporte</p>
+          )}
         </div>
-      ) : (
+      ) : !showSub ? (
+        /* Non-owner stats */
         <div className="mt-5 grid grid-cols-2 gap-3">
           <div className="bg-slate-50 rounded-lg p-3">
             <p className="text-lg font-bold text-[#001f4b]" style={{ fontFamily: 'Manrope, sans-serif' }}>{stats?.subjects || 0}</p>
@@ -124,7 +184,7 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName }) {
             <p className="text-[11px] text-slate-500">Alumnos</p>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }
