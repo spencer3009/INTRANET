@@ -1279,15 +1279,19 @@ async def create_school(data: CreateSchoolRequest, current_user=Depends(get_curr
     if existing_school:
         # UPDATE existing school record (legacy user completing onboarding)
         school_id = existing_school["id"]
+        update_fields = {
+            "subdomain": subdomain,
+            "full_domain": full_domain,
+            "status": "active",
+            "owner_user_id": user["id"],
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }
+        # Set expiration_date if not already set
+        if not existing_school.get("expiration_date"):
+            update_fields["expiration_date"] = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
         await db.schools.update_one(
             {"id": school_id},
-            {"$set": {
-                "subdomain": subdomain,
-                "full_domain": full_domain,
-                "status": "active",
-                "owner_user_id": user["id"],
-                "updated_at": datetime.now(timezone.utc).isoformat()
-            }}
+            {"$set": update_fields}
         )
         
         # Update owner user with super admin privileges
