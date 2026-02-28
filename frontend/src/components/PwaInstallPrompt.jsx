@@ -19,21 +19,26 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
 
     // Check if already in standalone mode
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isStandalone) {
+    if (isStandalone || window.__pwaInstalled) {
       console.log('[PWA] Ya esta instalada (modo standalone). Ocultando boton.');
       setInstalled(true);
       return;
     }
 
-    // Listen for beforeinstallprompt
+    // Check if beforeinstallprompt was captured globally BEFORE React mounted
+    if (window.__pwaInstallPromptFired && window.__pwaInstallPrompt) {
+      console.log('[PWA] Prompt capturado ANTES de React. Usando prompt global.');
+      promptRef.current = window.__pwaInstallPrompt;
+      setDeferredPrompt(window.__pwaInstallPrompt);
+    }
+
+    // Listen for beforeinstallprompt (in case it fires after mount)
     const handler = (e) => {
       e.preventDefault();
       console.log('[PWA] *** beforeinstallprompt DISPARADO ***');
       console.log('[PWA] Plataformas:', e.platforms);
-      console.log('[PWA] Tipo de evento:', e.type);
       promptRef.current = e;
       setDeferredPrompt(e);
-      setDebugInfo(prev => ({ ...prev, promptFired: true, platforms: e.platforms }));
     };
 
     const installedHandler = () => {
@@ -41,6 +46,7 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
       setInstalled(true);
       setDeferredPrompt(null);
       promptRef.current = null;
+      window.__pwaInstalled = true;
     };
 
     window.addEventListener("beforeinstallprompt", handler);
@@ -52,68 +58,37 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     fetch('/manifest.json')
       .then(r => {
         console.log('[PWA] Manifest HTTP status:', r.status);
-        console.log('[PWA] Manifest Content-Type:', r.headers.get('content-type'));
         return r.json();
       })
       .then(m => {
-        console.log('[PWA] Manifest cargado correctamente:');
-        console.log('[PWA]   name:', m.name);
-        console.log('[PWA]   short_name:', m.short_name);
-        console.log('[PWA]   start_url:', m.start_url);
-        console.log('[PWA]   scope:', m.scope);
-        console.log('[PWA]   display:', m.display);
-        console.log('[PWA]   id:', m.id);
-        console.log('[PWA]   prefer_related_applications:', m.prefer_related_applications);
-        console.log('[PWA]   icons:', JSON.stringify(m.icons));
-        setDebugInfo(prev => ({ ...prev, manifestValid: true, manifest: m }));
+        console.log('[PWA] Manifest OK:', m.name, '| start_url:', m.start_url, '| display:', m.display, '| id:', m.id);
+        console.log('[PWA] Icons:', m.icons?.length, 'configurados');
       })
-      .catch(err => {
-        console.error('[PWA] ERROR cargando manifest:', err);
-        setDebugInfo(prev => ({ ...prev, manifestValid: false, manifestError: err.message }));
-      });
+      .catch(err => console.error('[PWA] ERROR cargando manifest:', err));
 
     // Check service worker status
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistration()
         .then(reg => {
           if (reg) {
-            console.log('[PWA] Service Worker registrado. Scope:', reg.scope);
-            console.log('[PWA] SW estado activo:', reg.active?.state);
-            console.log('[PWA] SW estado instalando:', reg.installing?.state);
-            console.log('[PWA] SW estado esperando:', reg.waiting?.state);
-            setDebugInfo(prev => ({ ...prev, swRegistered: true, swScope: reg.scope, swState: reg.active?.state }));
+            console.log('[PWA] Service Worker registrado. Scope:', reg.scope, '| Estado:', reg.active?.state);
           } else {
             console.warn('[PWA] ADVERTENCIA: Service Worker NO registrado');
-            setDebugInfo(prev => ({ ...prev, swRegistered: false }));
           }
         });
-    } else {
-      console.warn('[PWA] ADVERTENCIA: Service Worker NO soportado');
     }
 
-    // Verify icons are loadable
+    // Verify icon
     const img = new Image();
-    img.onload = () => {
-      console.log('[PWA] Icono 192x192 carga OK:', img.naturalWidth, 'x', img.naturalHeight);
-      setDebugInfo(prev => ({ ...prev, iconLoaded: true }));
-    };
-    img.onerror = () => {
-      console.error('[PWA] ERROR: Icono 192x192 NO carga');
-      setDebugInfo(prev => ({ ...prev, iconLoaded: false }));
-    };
+    img.onload = () => console.log('[PWA] Icono 192x192 OK:', img.naturalWidth, 'x', img.naturalHeight);
+    img.onerror = () => console.error('[PWA] ERROR: Icono 192x192 NO carga');
     img.src = '/icons/icon-192.png';
 
-    // Timeout check - if prompt hasn't fired after 10s, log diagnostic
+    // Timeout diagnostic
     const timeout = setTimeout(() => {
       if (!promptRef.current) {
-        console.warn('[PWA] === DIAGNOSTICO (10s sin beforeinstallprompt) ===');
-        console.warn('[PWA] El evento beforeinstallprompt NO se ha disparado.');
-        console.warn('[PWA] Posibles causas:');
-        console.warn('[PWA]   1. La app ya esta instalada');
-        console.warn('[PWA]   2. Chrome no detecta un manifest valido');
-        console.warn('[PWA]   3. No se cumple el criterio de engagement (30s en pagina + click)');
-        console.warn('[PWA]   4. El navegador no soporta PWA install');
-        console.warn('[PWA] Verificar en Chrome DevTools > Application > Manifest');
+        console.warn('[PWA] === 10s sin beforeinstallprompt ===');
+        console.warn('[PWA] Posibles causas: app ya instalada, manifest invalido, falta engagement (30s+click), navegador no soporta');
       }
     }, 10000);
 
