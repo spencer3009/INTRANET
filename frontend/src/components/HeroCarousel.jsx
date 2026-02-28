@@ -72,7 +72,10 @@ export default function HeroCarousel({ banners = [], user, schoolName }) {
               alt={`Banner ${index + 1}`}
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.target.src = DEFAULT_BANNER.image_url;
+                if (!e.target.dataset.fallback) {
+                  e.target.dataset.fallback = "true";
+                  e.target.src = DEFAULT_BANNER.image_url;
+                }
               }}
             />
             {/* Gradient overlay */}
