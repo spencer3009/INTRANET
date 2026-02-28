@@ -71,6 +71,11 @@ export default function SchoolLoginPage({ onLogin }) {
       // Save to state
       onLogin(token, user);
       
+      // Save last school for PWA auto-redirect
+      if (subdomain) {
+        localStorage.setItem('edunet_last_school', subdomain);
+      }
+      
       // Navigate to school's dashboard
       if (user.subdomain) {
         navigate(`/${user.subdomain}/dashboard`);
