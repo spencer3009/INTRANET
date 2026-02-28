@@ -21451,6 +21451,20 @@ async def create_indexes():
         # Ensure global support user exists
         await ensure_global_support_user()
         
+        # Set expiration_date for schools that don't have it (30 days from creation)
+        schools_without_exp = db.schools.find({"expiration_date": {"$exists": False}}, {"_id": 0, "id": 1, "created_at": 1})
+        async for school in schools_without_exp:
+            created = school.get("created_at")
+            if created:
+                try:
+                    created_dt = datetime.fromisoformat(created.replace("Z", "+00:00"))
+                    exp_date = (created_dt + timedelta(days=30)).isoformat()
+                except:
+                    exp_date = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+            else:
+                exp_date = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
+            await db.schools.update_one({"id": school["id"]}, {"$set": {"expiration_date": exp_date}})
+        
         logging.info("MongoDB indexes created successfully")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
