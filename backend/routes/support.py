@@ -244,16 +244,31 @@ async def update_school_expiration(req: UpdateExpirationRequest, user=Depends(re
 # ══════════════════════════════════════════════════════════════════════════════
 
 class GlobalPricingRequest(BaseModel):
-    base_monthly_fee: float = Field(..., description="Base mensual en soles")
-    per_student_fee: float = Field(..., description="Precio por alumno")
-    per_student_from_month: int = Field(..., description="Mes desde el que aplica cobro por alumno")
+    billing_mode: str = Field(..., description="base_plus_student | student_only | flat_fee")
+    base_monthly_fee: float = Field(0, description="Base mensual en soles")
+    per_student_fee: float = Field(0, description="Precio por alumno")
+    per_student_from_month: int = Field(1, description="Mes desde el que aplica cobro por alumno")
+    flat_fee: float = Field(0, description="Tarifa fija mensual")
 
 class SchoolPricingRequest(BaseModel):
     school_id: str
+    billing_mode: Optional[str] = None
     base_monthly_fee: Optional[float] = None
     per_student_fee: Optional[float] = None
     per_student_from_month: Optional[int] = None
+    flat_fee: Optional[float] = None
     discount_notes: Optional[str] = None
+
+def calc_price(billing_mode, base_fee, student_fee, from_month, flat_fee, student_count, months_active):
+    """Calculate monthly price based on billing mode"""
+    if billing_mode == "flat_fee":
+        return round(flat_fee, 2), 0.0, round(flat_fee, 2)
+    if billing_mode == "student_only":
+        sc = student_count * student_fee if months_active >= from_month else 0.0
+        return round(sc, 2), round(sc, 2), 0.0
+    # base_plus_student (default)
+    sc = student_count * student_fee if months_active >= from_month else 0.0
+    return round(base_fee + sc, 2), round(sc, 2), round(base_fee, 2)
 
 @router.get("/pricing")
 async def get_global_pricing(user=Depends(require_support_admin)):
@@ -262,12 +277,19 @@ async def get_global_pricing(user=Depends(require_support_admin)):
     if not config:
         config = {
             "id": "global",
+            "billing_mode": "base_plus_student",
             "base_monthly_fee": 50.0,
             "per_student_fee": 0.70,
             "per_student_from_month": 3,
+            "flat_fee": 0.0,
             "currency": "PEN"
         }
         await db.pricing_config.insert_one(config)
+    # Ensure billing_mode exists for legacy configs
+    if "billing_mode" not in config:
+        config["billing_mode"] = "base_plus_student"
+    if "flat_fee" not in config:
+        config["flat_fee"] = 0.0
     return config
 
 @router.put("/pricing")
@@ -277,9 +299,11 @@ async def update_global_pricing(req: GlobalPricingRequest, user=Depends(require_
         {"id": "global"},
         {"$set": {
             "id": "global",
+            "billing_mode": req.billing_mode,
             "base_monthly_fee": req.base_monthly_fee,
             "per_student_fee": req.per_student_fee,
             "per_student_from_month": req.per_student_from_month,
+            "flat_fee": req.flat_fee,
             "currency": "PEN",
             "updated_at": now_iso()
         }},
