@@ -296,7 +296,7 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
                     <p className="text-white/60 text-sm mt-0.5">@{user.username}</p>
                   )}
                   <div className="flex items-center gap-3 mt-3">
-                    {(user?.is_super_admin || user?.role === "super_admin" || user?.role === "owner") && (
+                    {(user?.is_super_admin || user?.role === "super_admin" || user?.role === "owner" || user?.is_owner) && (
                       <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-400 text-amber-900 rounded-full text-xs font-bold">
                         <Crown className="w-3.5 h-3.5" />
                         Super Admin
