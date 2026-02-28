@@ -202,6 +202,138 @@ async def update_school_expiration(req: UpdateExpirationRequest, user=Depends(re
     return {"message": "Fecha de vencimiento actualizada"}
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# PRICING CONFIGURATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+class GlobalPricingRequest(BaseModel):
+    base_monthly_fee: float = Field(..., description="Base mensual en soles")
+    per_student_fee: float = Field(..., description="Precio por alumno")
+    per_student_from_month: int = Field(..., description="Mes desde el que aplica cobro por alumno")
+
+class SchoolPricingRequest(BaseModel):
+    school_id: str
+    base_monthly_fee: Optional[float] = None
+    per_student_fee: Optional[float] = None
+    per_student_from_month: Optional[int] = None
+    discount_notes: Optional[str] = None
+
+@router.get("/pricing")
+async def get_global_pricing(user=Depends(require_support_admin)):
+    """Get global pricing configuration"""
+    config = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
+    if not config:
+        config = {
+            "id": "global",
+            "base_monthly_fee": 50.0,
+            "per_student_fee": 0.70,
+            "per_student_from_month": 3,
+            "currency": "PEN"
+        }
+        await db.pricing_config.insert_one(config)
+    return config
+
+@router.put("/pricing")
+async def update_global_pricing(req: GlobalPricingRequest, user=Depends(require_support_admin)):
+    """Update global pricing configuration"""
+    await db.pricing_config.update_one(
+        {"id": "global"},
+        {"$set": {
+            "id": "global",
+            "base_monthly_fee": req.base_monthly_fee,
+            "per_student_fee": req.per_student_fee,
+            "per_student_from_month": req.per_student_from_month,
+            "currency": "PEN",
+            "updated_at": now_iso()
+        }},
+        upsert=True
+    )
+    return {"message": "Configuracion de precios actualizada"}
+
+@router.put("/school-pricing")
+async def update_school_pricing(req: SchoolPricingRequest, user=Depends(require_support_admin)):
+    """Set custom pricing override for a specific school"""
+    school = await db.schools.find_one({"id": req.school_id}, {"_id": 0, "id": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    override = {}
+    if req.base_monthly_fee is not None:
+        override["base_monthly_fee"] = req.base_monthly_fee
+    if req.per_student_fee is not None:
+        override["per_student_fee"] = req.per_student_fee
+    if req.per_student_from_month is not None:
+        override["per_student_from_month"] = req.per_student_from_month
+    if req.discount_notes is not None:
+        override["discount_notes"] = req.discount_notes
+    
+    if not override:
+        # Clear override
+        await db.schools.update_one({"id": req.school_id}, {"$unset": {"pricing_override": ""}})
+        return {"message": "Precio personalizado eliminado, se usara el global"}
+    
+    override["updated_at"] = now_iso()
+    await db.schools.update_one(
+        {"id": req.school_id},
+        {"$set": {"pricing_override": override, "updated_at": now_iso()}}
+    )
+    return {"message": "Precio personalizado actualizado"}
+
+@router.delete("/school-pricing/{school_id}")
+async def delete_school_pricing(school_id: str, user=Depends(require_support_admin)):
+    """Remove custom pricing override for a school"""
+    await db.schools.update_one({"id": school_id}, {"$unset": {"pricing_override": ""}})
+    return {"message": "Precio personalizado eliminado"}
+
+@router.get("/school-pricing/{school_id}")
+async def get_school_pricing(school_id: str, user=Depends(require_support_admin)):
+    """Get pricing for a specific school (global + override)"""
+    global_config = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
+    if not global_config:
+        global_config = {"base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3}
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "pricing_override": 1, "created_at": 1})
+    override = school.get("pricing_override") if school else None
+    
+    # Calculate current month number
+    months_active = 1
+    if school and school.get("created_at"):
+        try:
+            created = datetime.fromisoformat(school["created_at"].replace("Z", "+00:00"))
+            now = datetime.now(timezone.utc)
+            months_active = max(1, (now.year - created.year) * 12 + now.month - created.month + 1)
+        except:
+            pass
+    
+    # Effective pricing
+    eff = {
+        "base_monthly_fee": override.get("base_monthly_fee", global_config["base_monthly_fee"]) if override else global_config["base_monthly_fee"],
+        "per_student_fee": override.get("per_student_fee", global_config["per_student_fee"]) if override else global_config["per_student_fee"],
+        "per_student_from_month": override.get("per_student_from_month", global_config["per_student_from_month"]) if override else global_config["per_student_from_month"],
+    }
+    
+    # Count students
+    student_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
+    
+    # Calculate price
+    base = eff["base_monthly_fee"]
+    student_charge = 0
+    if months_active >= eff["per_student_from_month"]:
+        student_charge = student_count * eff["per_student_fee"]
+    
+    return {
+        "global": global_config,
+        "override": override,
+        "effective": eff,
+        "months_active": months_active,
+        "student_count": student_count,
+        "calculated_price": round(base + student_charge, 2),
+        "base_charge": base,
+        "student_charge": round(student_charge, 2)
+    }
+
+
+
 
 @router.post("/switch-school")
 async def switch_school(req: SwitchSchoolRequest, user=Depends(require_support_admin)):
