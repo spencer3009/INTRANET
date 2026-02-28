@@ -100,13 +100,43 @@ async def support_schools(user=Depends(require_support_admin)):
     )
     schools = await schools_cursor.to_list(length=500)
     
-    # Enrich with user counts and role info
+    # Get global pricing config
+    global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
+    if not global_pricing:
+        global_pricing = {"base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3}
+    
+    now = datetime.now(timezone.utc)
+    
+    # Enrich with user counts, role info, and calculated pricing
     result = []
     for school in schools:
         sid = school["id"]
         student_count = await db.users.count_documents({"school_id": sid, "role": "student"})
         teacher_count = await db.users.count_documents({"school_id": sid, "role": "teacher"})
         total_count = await db.users.count_documents({"school_id": sid})
+        
+        # Calculate months active
+        months_active = 1
+        if school.get("created_at"):
+            try:
+                created = datetime.fromisoformat(str(school["created_at"]).replace("Z", "+00:00"))
+                months_active = max(1, (now.year - created.year) * 12 + now.month - created.month + 1)
+            except Exception:
+                pass
+        
+        # Effective pricing (override > global)
+        override = school.get("pricing_override")
+        eff_base = override.get("base_monthly_fee", global_pricing["base_monthly_fee"]) if override else global_pricing["base_monthly_fee"]
+        eff_student_fee = override.get("per_student_fee", global_pricing["per_student_fee"]) if override else global_pricing["per_student_fee"]
+        eff_from_month = override.get("per_student_from_month", global_pricing["per_student_from_month"]) if override else global_pricing["per_student_from_month"]
+        
+        # Calculate charges
+        student_charge = 0.0
+        per_student_applies = months_active >= eff_from_month
+        if per_student_applies:
+            student_charge = student_count * eff_student_fee
+        
+        calculated_price = round(eff_base + student_charge, 2)
         
         assignment = assignment_map.get(sid, {})
         result.append({
@@ -115,7 +145,14 @@ async def support_schools(user=Depends(require_support_admin)):
             "is_system_assignment": assignment.get("is_system_assignment", True),
             "student_count": student_count,
             "teacher_count": teacher_count,
-            "total_users": total_count
+            "total_users": total_count,
+            "months_active": months_active,
+            "calculated_price": calculated_price,
+            "base_charge": eff_base,
+            "student_charge": round(student_charge, 2),
+            "per_student_fee": eff_student_fee,
+            "per_student_from_month": eff_from_month,
+            "per_student_applies": per_student_applies
         })
     
     # Sort by name
