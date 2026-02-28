@@ -3378,12 +3378,19 @@ async def get_school_info(current_user=Depends(require_school)):
     # Calculate pricing info for subscription card
     global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
     if not global_pricing:
-        global_pricing = {"base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3}
+        global_pricing = {"billing_mode": "base_plus_student", "base_monthly_fee": 50.0, "per_student_fee": 0.70, "per_student_from_month": 3, "flat_fee": 0.0}
     
     override = school.get("pricing_override")
-    eff_base = override.get("base_monthly_fee", global_pricing["base_monthly_fee"]) if override else global_pricing["base_monthly_fee"]
-    eff_student_fee = override.get("per_student_fee", global_pricing["per_student_fee"]) if override else global_pricing["per_student_fee"]
-    eff_from_month = override.get("per_student_from_month", global_pricing["per_student_from_month"]) if override else global_pricing["per_student_from_month"]
+    def _ev(key, default):
+        if override and key in override:
+            return override[key]
+        return global_pricing.get(key, default)
+    
+    eff_mode = _ev("billing_mode", "base_plus_student")
+    eff_base = _ev("base_monthly_fee", 50.0)
+    eff_student_fee = _ev("per_student_fee", 0.70)
+    eff_from_month = _ev("per_student_from_month", 3)
+    eff_flat = _ev("flat_fee", 0.0)
     
     student_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
     
@@ -3396,21 +3403,31 @@ async def get_school_info(current_user=Depends(require_school)):
         except Exception:
             pass
     
-    per_student_applies = months_active >= eff_from_month
-    student_charge = student_count * eff_student_fee if per_student_applies else 0.0
-    calculated_price = round(eff_base + student_charge, 2)
-    projected_price = round(eff_base + student_count * eff_student_fee, 2)
+    # Use same calc_price logic
+    if eff_mode == "flat_fee":
+        calculated_price = round(eff_flat, 2)
+        student_charge = 0.0
+        base_charge = round(eff_flat, 2)
+    elif eff_mode == "student_only":
+        student_charge = round(student_count * eff_student_fee, 2) if months_active >= eff_from_month else 0.0
+        calculated_price = student_charge
+        base_charge = 0.0
+    else:
+        student_charge = round(student_count * eff_student_fee, 2) if months_active >= eff_from_month else 0.0
+        base_charge = eff_base
+        calculated_price = round(base_charge + student_charge, 2)
     
     school["pricing"] = {
+        "billing_mode": eff_mode,
         "calculated_price": calculated_price,
-        "projected_price": projected_price,
-        "base_charge": eff_base,
-        "student_charge": round(student_charge, 2),
+        "base_charge": base_charge,
+        "student_charge": student_charge,
         "per_student_fee": eff_student_fee,
         "per_student_from_month": eff_from_month,
+        "flat_fee": eff_flat,
         "student_count": student_count,
         "months_active": months_active,
-        "per_student_applies": per_student_applies
+        "per_student_applies": eff_mode != "flat_fee" and months_active >= eff_from_month
     }
     
     return school
