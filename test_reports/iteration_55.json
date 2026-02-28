@@ -1,0 +1,86 @@
+{
+  "summary": "Billing Modes Feature - All tests passed. Backend 13/13 tests passed, Frontend all features verified. 3 billing modes working: base_plus_student, student_only, flat_fee",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+
+  "passed_tests": [
+    "Backend: GET /api/support/pricing returns billing_mode field",
+    "Backend: GET /api/support/pricing returns flat_fee field",
+    "Backend: PUT /api/support/pricing accepts billing_mode=base_plus_student",
+    "Backend: PUT /api/support/pricing accepts billing_mode=student_only",
+    "Backend: PUT /api/support/pricing accepts billing_mode=flat_fee with flat_fee value",
+    "Backend: GET /api/support/schools returns billing_mode for each school",
+    "Backend: GET /api/support/schools returns flat_fee for each school",
+    "Backend: Price calculation in base_plus_student mode verified",
+    "Backend: Price calculation in student_only mode (base_charge=0) verified",
+    "Backend: Price calculation in flat_fee mode (calculated_price=flat_fee) verified",
+    "Backend: GET /api/support/school-pricing/{school_id} returns billing_mode in effective",
+    "Backend: PUT /api/support/school-pricing can override billing_mode for individual school",
+    "Backend: Billing mode propagates from global config to schools list",
+    "Frontend: /support/pricing displays 3 billing mode cards with data-testid",
+    "Frontend: Switching to flat_fee shows flat-fee-input, hides base/student inputs",
+    "Frontend: Switching to student_only shows student-fee-input, hides base-fee-input",
+    "Frontend: Switching to base_plus_student shows both base-fee-input and student-fee-input",
+    "Frontend: Save button persists billing mode config",
+    "Frontend: After page reload, selected billing mode persists",
+    "Frontend: /support/schools displays billing mode badge (Base+Alumno) on school card"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_billing_modes.py",
+    "/app/test_reports/pytest/pytest_billing_modes.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_billing_modes.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (13/13 tests passed)",
+    "frontend": "100% (all billing mode features verified)"
+  },
+
+  "test_credentials": {
+    "support_email": "spencer3009@gmail.com",
+    "support_password": "Socios3009"
+  },
+
+  "seed_data_creation": "None - used existing El Roble school data",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "Billing modes feature complete. 3 modes: base_plus_student (default), student_only, flat_fee. Frontend data-testid attributes: mode-base_plus_student, mode-student_only, mode-flat_fee, flat-fee-input, base-fee-input, student-fee-input, from-month-input, save-pricing-btn. School card shows billing mode badge (Fijo/x Alumno/Base+Alumno). El Roble at Month 1 shows S/50.00 (base only) with projection S/74.50 from month 3.",
+
+  "verified_billing_modes": {
+    "base_plus_student": {
+      "description": "Base fee + per-student fee from certain month",
+      "fields_shown": ["base_monthly_fee", "per_student_fee", "per_student_from_month"],
+      "badge_text": "Base+Alumno"
+    },
+    "student_only": {
+      "description": "Only per-student fee, no base",
+      "fields_shown": ["per_student_fee", "per_student_from_month"],
+      "badge_text": "x Alumno"
+    },
+    "flat_fee": {
+      "description": "Fixed monthly amount regardless of students",
+      "fields_shown": ["flat_fee"],
+      "badge_text": "Fijo"
+    }
+  }
+}
