@@ -777,7 +777,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
             )}
 
             {/* Role Settings Section - Only for owner */}
-            {user?.role === "owner" && (
+            {(user?.role === "owner" || user?.is_owner) && (
               <section className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm mt-8" data-testid="role-settings-section">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
