@@ -21,6 +21,9 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [assigning, setAssigning] = useState(null);
   const [editingExpiration, setEditingExpiration] = useState(null);
   const [newExpDate, setNewExpDate] = useState("");
+  const [editingPricing, setEditingPricing] = useState(null);
+  const [pricingForm, setPricingForm] = useState({ base_monthly_fee: "", per_student_fee: "", per_student_from_month: "", discount_notes: "" });
+  const [pricingInfo, setPricingInfo] = useState({});
 
   const headers = { Authorization: `Bearer ${token}` };
 
