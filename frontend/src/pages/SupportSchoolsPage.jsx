@@ -415,6 +415,20 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       )}
                     </div>
                   </div>
+                  {/* Projection: what they'll pay after offer months end */}
+                  {!school.per_student_applies && school.student_count > 0 && (
+                    <div className="border-t border-emerald-200 pt-2 mt-1">
+                      <div className="flex items-center justify-between">
+                        <p className="text-[11px] text-slate-500 font-medium">Desde mes {school.per_student_from_month}:</p>
+                        <p className="text-sm font-extrabold text-amber-700" data-testid={`projected-price-${school.subdomain}`}>
+                          S/ {((school.base_charge ?? 0) + (school.student_count ?? 0) * (school.per_student_fee ?? 0)).toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="text-[10px] text-slate-400">
+                        S/ {(school.base_charge ?? 0).toFixed(2)} + {school.student_count} x S/ {(school.per_student_fee ?? 0).toFixed(2)} = S/ {((school.student_count ?? 0) * (school.per_student_fee ?? 0)).toFixed(2)} por alumnos
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {editingPricing === school.id && (
