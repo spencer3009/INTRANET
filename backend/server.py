@@ -5472,7 +5472,7 @@ async def get_academic_levels(
     current_user = Depends(get_current_user)
 ):
     """Get all academic levels for the current tenant"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -5668,7 +5668,7 @@ async def get_grades(
     current_user = Depends(get_current_user)
 ):
     """Get all grades for the current tenant"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6100,7 +6100,7 @@ async def get_sections(
     current_user = Depends(get_current_user)
 ):
     """Get all sections for the current tenant"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
@@ -6376,7 +6376,7 @@ async def get_shifts(
     current_user = Depends(get_current_user)
 ):
     """Get all shifts for the current tenant"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
