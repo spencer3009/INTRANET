@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Eye, EyeOff, Lock, GraduationCap, ArrowLeft, AtSign, LogIn, Globe } from "lucide-react";
+import { Eye, EyeOff, Lock, GraduationCap, AtSign, Globe } from "lucide-react";
 import PwaInstallPrompt from "../components/PwaInstallPrompt";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -16,6 +16,7 @@ export default function LoginPage({ onLogin }) {
   const [showLoginForm, setShowLoginForm] = useState(false);
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
+  const isStandalone = typeof window !== 'undefined' && (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,7 +28,6 @@ export default function LoginPage({ onLogin }) {
       
       onLogin(token, user);
 
-      // Save last school for PWA auto-redirect
       if (user.subdomain) {
         localStorage.setItem('edunet_last_school', user.subdomain);
       }
@@ -35,7 +35,6 @@ export default function LoginPage({ onLogin }) {
       if (redirect_to_support || user.role === "system_admin_global" || user.is_support_global) {
         navigate("/support");
       } else if (redirect_to_subdomain && redirect_url) {
-        console.log(`[Redirect] Would redirect to: ${redirect_url}`);
         navigate("/dashboard");
       } else if (user.school_id) {
         navigate("/dashboard");
@@ -50,6 +49,81 @@ export default function LoginPage({ onLogin }) {
       setLoading(false);
     }
   };
+
+  const loginForm = (
+    <>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-xl" data-testid="login-error">
+            {error}
+          </div>
+        )}
+        <div>
+          <label className="block text-sm font-semibold text-slate-600 mb-2">Email o nombre de usuario</label>
+          <div className="relative">
+            <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              data-testid="login-email-input"
+              type="text"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full pl-11 pr-4 py-3.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all placeholder:text-slate-400"
+              placeholder="tu@email.com o tu_usuario"
+              required
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-600 mb-2">Contrasena</label>
+          <div className="relative">
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              data-testid="login-password-input"
+              type={showPass ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full pl-11 pr-11 py-3.5 bg-slate-50/80 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#001f4b]/20 focus:border-[#001f4b] focus:bg-white transition-all placeholder:text-slate-400"
+              placeholder="Tu contrasena"
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPass(!showPass)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              data-testid="toggle-password"
+            >
+              {showPass ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
+        </div>
+        <button
+          data-testid="login-submit-button"
+          type="submit"
+          disabled={loading}
+          className="w-full py-4 bg-[#001f4b] text-white font-bold rounded-xl hover:bg-[#0a3068] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+          style={{ boxShadow: loading ? 'none' : '0 10px 30px -10px rgba(0,31,75,0.5)' }}
+        >
+          {loading ? (
+            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          ) : (
+            "Iniciar Sesion"
+          )}
+        </button>
+      </form>
+      <p className="text-center text-sm text-slate-500 mt-6">
+        No tienes cuenta?{" "}
+        <Link to="/register" className="font-semibold text-[#001f4b] hover:underline" data-testid="login-register-link">
+          Crea una gratis
+        </Link>
+      </p>
+    </>
+  );
+
+  // Decide what to show on mobile:
+  // - Standalone (PWA already installed) → login form directly
+  // - Browser + not showLoginForm → install prompt
+  // - Browser + showLoginForm → login form
+  const showInstallScreen = isMobile && !isStandalone && !showLoginForm;
 
   return (
     <div
@@ -73,33 +147,24 @@ export default function LoginPage({ onLogin }) {
             <p className="text-sm text-slate-500 mt-1">Intranet escolar</p>
           </div>
 
-          {/* Mobile: show install screen first, unless already installed as PWA */}
-          {isMobile && !showLoginForm ? (
-            (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) ? (
-              <>
-                <p className="text-sm text-slate-500 text-center mb-6">Accede a tu intranet escolar</p>
-                {renderLoginForm()}
-              </>
-            ) : (
-              <div data-testid="mobile-install-view">
-                <PwaInstallPrompt mode="hero" />
-
-                <div className="mt-6 pt-5 border-t border-slate-100 text-center">
-                  <button
-                    onClick={() => setShowLoginForm(true)}
-                    className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors"
-                    data-testid="show-login-btn"
-                  >
-                    <Globe className="w-3.5 h-3.5" />
-                    Abrir en el navegador
-                  </button>
-                </div>
+          {showInstallScreen ? (
+            <div data-testid="mobile-install-view">
+              <PwaInstallPrompt mode="hero" />
+              <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+                <button
+                  onClick={() => setShowLoginForm(true)}
+                  className="inline-flex items-center gap-2 text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors"
+                  data-testid="show-login-btn"
+                >
+                  <Globe className="w-3.5 h-3.5" />
+                  Abrir en el navegador
+                </button>
               </div>
-            )
+            </div>
           ) : (
             <>
               <p className="text-sm text-slate-500 text-center mb-6">Accede a tu intranet escolar</p>
-              {renderLoginForm()}
+              {loginForm}
               {!isMobile && <PwaInstallPrompt />}
             </>
           )}
