@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Smartphone, Download, AlertTriangle, Loader2 } from "lucide-react";
+import { Smartphone, Download } from "lucide-react";
 
 export default function PwaInstallPrompt({ mode = "inline" }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
