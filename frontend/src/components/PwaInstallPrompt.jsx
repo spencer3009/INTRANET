@@ -168,7 +168,6 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
   if (installed) return null;
 
   const hasPrompt = !!(deferredPrompt || promptRef.current || window.__pwaInstallPrompt);
-  const isReady = hasPrompt && swStatus === "controlling";
 
   // Hero mode
   if (mode === "hero") {
@@ -185,7 +184,7 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
             Instale EduNet en su celular para acceder desde su pantalla principal.
           </p>
 
-          {isReady ? (
+          {hasPrompt ? (
             <button
               onClick={handleInstall}
               disabled={installing}
@@ -196,14 +195,14 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
               <Download className="w-5 h-5" />
               Instalar EduNet
             </button>
-          ) : swStatus === "checking" ? (
+          ) : swStatus === "controlling" || swStatus === "checking" ? (
             <button
               disabled
               className="w-full py-4 bg-slate-200 text-slate-500 font-bold rounded-xl flex items-center justify-center gap-3"
               data-testid="pwa-install-button-loading"
             >
               <Loader2 className="w-5 h-5 animate-spin" />
-              Preparando...
+              Preparando instalacion...
             </button>
           ) : (
             <div className="space-y-3">
