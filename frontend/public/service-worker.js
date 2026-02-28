@@ -1,34 +1,63 @@
-const CACHE_NAME = 'edunet-v4';
-const PRECACHE_URLS = ['/icons/icon-192.png', '/icons/icon-512.png'];
+const CACHE_NAME = 'edunet-v5';
 
+// Install: skip waiting immediately
 self.addEventListener('install', (event) => {
-  console.log('[SW] Installing service worker v4');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
-  );
+  console.log('[SW] install event - skipWaiting');
   self.skipWaiting();
 });
 
+// Activate: claim all clients immediately
 self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating service worker v4');
+  console.log('[SW] activate event - claiming clients');
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
+    Promise.all([
+      // Delete old caches
+      caches.keys().then((keys) =>
+        Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+      ),
+      // Claim all open clients so SW controls immediately
+      self.clients.claim().then(() => {
+        console.log('[SW] clients.claim() completado - SW controla la pagina');
+      })
+    ])
   );
-  self.clients.claim();
 });
 
+// Listen for skipWaiting message from page
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Recibido SKIP_WAITING, saltando espera...');
+    self.skipWaiting();
+  }
+});
+
+// Fetch: network-first for navigations, cache-first for assets
 self.addEventListener('fetch', (event) => {
-  if (event.request.method !== 'GET') return;
-  if (event.request.url.includes('/api/')) return;
-  if (event.request.mode === 'navigate') {
+  const request = event.request;
+
+  // Skip non-GET and API requests
+  if (request.method !== 'GET') return;
+  if (request.url.includes('/api/')) return;
+
+  // Navigation requests: always go to network (SPA)
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
+      fetch(request).catch(() => caches.match('/index.html'))
     );
     return;
   }
+
+  // Static assets: network first with cache fallback
   event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
+    fetch(request)
+      .then((response) => {
+        // Cache successful responses for icons
+        if (response.ok && request.url.includes('/icons/')) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
   );
 });
