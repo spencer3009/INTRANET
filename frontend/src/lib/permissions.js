@@ -47,7 +47,7 @@ export function canAccessSection(user, section) {
  * @returns {boolean}
  */
 export function isOwner(user) {
-  return user?.role === 'owner';
+  return user?.role === 'owner' || user?.is_owner === true;
 }
 
 /**
