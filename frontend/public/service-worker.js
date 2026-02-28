@@ -1,14 +1,10 @@
-const CACHE_NAME = 'edunet-v2';
-const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/edunet-icon-192.png',
-  '/edunet-icon-512.png'
-];
+const CACHE_NAME = 'edunet-v3';
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll(['/', '/index.html', '/icons/icon-192.png', '/icons/icon-512.png'])
+    )
   );
   self.skipWaiting();
 });
@@ -25,16 +21,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   if (event.request.url.includes('/api/')) return;
-
   event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok && event.request.url.startsWith(self.location.origin)) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request).then((r) => r || caches.match('/')))
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });
