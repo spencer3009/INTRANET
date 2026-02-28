@@ -1,25 +1,37 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { DollarSign, Save, Settings2, Users, Calendar, Tag, ArrowLeft } from "lucide-react";
+import { DollarSign, Save, Settings2, Users, Calendar, ToggleLeft, ToggleRight, Zap } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
+const MODES = [
+  { id: "base_plus_student", label: "Base + Por alumno", desc: "Precio base fijo + cobro por alumno desde cierto mes" },
+  { id: "student_only", label: "Solo por alumno", desc: "Solo se cobra por cantidad de alumnos, sin monto fijo" },
+  { id: "flat_fee", label: "Tarifa fija", desc: "Un monto fijo mensual, sin importar cantidad de alumnos" },
+];
+
 export default function SupportPricingPage({ token }) {
   const headers = { Authorization: `Bearer ${token}` };
-  const [config, setConfig] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ base_monthly_fee: 50, per_student_fee: 0.7, per_student_from_month: 3 });
+  const [form, setForm] = useState({
+    billing_mode: "base_plus_student",
+    base_monthly_fee: 50,
+    per_student_fee: 0.7,
+    per_student_from_month: 3,
+    flat_fee: 0
+  });
 
   useEffect(() => {
     axios.get(`${API}/support/pricing`, { headers })
       .then(r => {
-        setConfig(r.data);
         setForm({
-          base_monthly_fee: r.data.base_monthly_fee,
-          per_student_fee: r.data.per_student_fee,
-          per_student_from_month: r.data.per_student_from_month
+          billing_mode: r.data.billing_mode || "base_plus_student",
+          base_monthly_fee: r.data.base_monthly_fee ?? 50,
+          per_student_fee: r.data.per_student_fee ?? 0.7,
+          per_student_from_month: r.data.per_student_from_month ?? 3,
+          flat_fee: r.data.flat_fee ?? 0
         });
       })
       .catch(() => toast.error("Error al cargar configuracion"))
@@ -36,6 +48,13 @@ export default function SupportPricingPage({ token }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const previewPrice = () => {
+    const students = 20;
+    if (form.billing_mode === "flat_fee") return form.flat_fee;
+    if (form.billing_mode === "student_only") return students * form.per_student_fee;
+    return form.base_monthly_fee + students * form.per_student_fee;
   };
 
   if (loading) return <div className="flex items-center justify-center py-20"><div className="w-6 h-6 border-2 border-slate-300 border-t-slate-600 rounded-full animate-spin" /></div>;
@@ -60,79 +79,152 @@ export default function SupportPricingPage({ token }) {
         </div>
 
         <div className="p-6 space-y-6">
-          {/* Base monthly fee */}
+          {/* Billing Mode Selector */}
           <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-              <DollarSign className="w-4 h-4 text-emerald-500" />
-              Precio base mensual
+            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-3">
+              <Zap className="w-4 h-4 text-violet-500" />
+              Modo de facturacion
             </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">S/</span>
-              <input
-                type="number"
-                step="0.01"
-                value={form.base_monthly_fee}
-                onChange={(e) => setForm({ ...form, base_monthly_fee: parseFloat(e.target.value) || 0 })}
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
-                data-testid="base-fee-input"
-              />
+            <div className="space-y-2">
+              {MODES.map(mode => (
+                <button
+                  key={mode.id}
+                  onClick={() => setForm({ ...form, billing_mode: mode.id })}
+                  data-testid={`mode-${mode.id}`}
+                  className={`w-full text-left px-4 py-3 rounded-xl border-2 transition-all ${
+                    form.billing_mode === mode.id
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-slate-200 bg-white hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className={`text-sm font-bold ${form.billing_mode === mode.id ? "text-blue-700" : "text-slate-700"}`}>{mode.label}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">{mode.desc}</p>
+                    </div>
+                    {form.billing_mode === mode.id ? (
+                      <ToggleRight className="w-6 h-6 text-blue-500 flex-shrink-0" />
+                    ) : (
+                      <ToggleLeft className="w-6 h-6 text-slate-300 flex-shrink-0" />
+                    )}
+                  </div>
+                </button>
+              ))}
             </div>
-            <p className="text-xs text-slate-400 mt-1.5">Se cobra este monto fijo cada mes a cada colegio</p>
           </div>
 
-          {/* Per student fee */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-              <Users className="w-4 h-4 text-blue-500" />
-              Precio por alumno
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">S/</span>
-              <input
-                type="number"
-                step="0.01"
-                value={form.per_student_fee}
-                onChange={(e) => setForm({ ...form, per_student_fee: parseFloat(e.target.value) || 0 })}
-                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
-                data-testid="student-fee-input"
-              />
+          {/* Flat Fee - only for flat_fee mode */}
+          {form.billing_mode === "flat_fee" && (
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                <DollarSign className="w-4 h-4 text-emerald-500" />
+                Tarifa fija mensual
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">S/</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.flat_fee}
+                  onChange={(e) => setForm({ ...form, flat_fee: parseFloat(e.target.value) || 0 })}
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
+                  data-testid="flat-fee-input"
+                />
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">Se cobra este monto fijo cada mes, sin importar la cantidad de alumnos</p>
             </div>
-            <p className="text-xs text-slate-400 mt-1.5">Se cobra este monto adicional por cada alumno registrado</p>
-          </div>
+          )}
 
-          {/* From which month */}
-          <div>
-            <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
-              <Calendar className="w-4 h-4 text-amber-500" />
-              Cobro por alumno desde el mes
-            </label>
-            <input
-              type="number"
-              min="1"
-              max="12"
-              value={form.per_student_from_month}
-              onChange={(e) => setForm({ ...form, per_student_from_month: parseInt(e.target.value) || 1 })}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
-              data-testid="from-month-input"
-            />
-            <p className="text-xs text-slate-400 mt-1.5">Los primeros {Math.max(0, form.per_student_from_month - 1)} mes(es) solo se cobra el precio base, sin cobro por alumno</p>
-          </div>
+          {/* Base monthly fee - for base_plus_student mode */}
+          {form.billing_mode === "base_plus_student" && (
+            <div>
+              <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                <DollarSign className="w-4 h-4 text-emerald-500" />
+                Precio base mensual
+              </label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">S/</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={form.base_monthly_fee}
+                  onChange={(e) => setForm({ ...form, base_monthly_fee: parseFloat(e.target.value) || 0 })}
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
+                  data-testid="base-fee-input"
+                />
+              </div>
+              <p className="text-xs text-slate-400 mt-1.5">Se cobra este monto fijo cada mes a cada colegio</p>
+            </div>
+          )}
+
+          {/* Per student fee - for base_plus_student and student_only */}
+          {form.billing_mode !== "flat_fee" && (
+            <>
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                  <Users className="w-4 h-4 text-blue-500" />
+                  Precio por alumno
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-slate-400">S/</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={form.per_student_fee}
+                    onChange={(e) => setForm({ ...form, per_student_fee: parseFloat(e.target.value) || 0 })}
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
+                    data-testid="student-fee-input"
+                  />
+                </div>
+                <p className="text-xs text-slate-400 mt-1.5">Se cobra este monto adicional por cada alumno registrado</p>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                  <Calendar className="w-4 h-4 text-amber-500" />
+                  Cobro por alumno desde el mes
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max="12"
+                  value={form.per_student_from_month}
+                  onChange={(e) => setForm({ ...form, per_student_from_month: parseInt(e.target.value) || 1 })}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
+                  data-testid="from-month-input"
+                />
+                <p className="text-xs text-slate-400 mt-1.5">Los primeros {Math.max(0, form.per_student_from_month - 1)} mes(es) solo se cobra {form.billing_mode === "base_plus_student" ? "el precio base" : "nada"}, sin cobro por alumno</p>
+              </div>
+            </>
+          )}
 
           {/* Preview */}
           <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Vista previa de cobro</h3>
             <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-slate-500">Mes 1 al {Math.max(1, form.per_student_from_month - 1)}</span>
-                <span className="font-bold text-slate-700">S/ {form.base_monthly_fee.toFixed(2)}</span>
-              </div>
-              <div className="border-t border-dashed border-slate-200 pt-2 flex justify-between text-sm">
-                <span className="text-slate-500">Desde mes {form.per_student_from_month} (ej: 20 alumnos)</span>
-                <span className="font-bold text-slate-700">S/ {(form.base_monthly_fee + 20 * form.per_student_fee).toFixed(2)}</span>
-              </div>
-              <p className="text-[10px] text-slate-400 pt-1">
-                = S/ {form.base_monthly_fee.toFixed(2)} base + 20 x S/ {form.per_student_fee.toFixed(2)} por alumno
-              </p>
+              {form.billing_mode === "flat_fee" ? (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">Todos los meses</span>
+                  <span className="font-bold text-slate-700">S/ {form.flat_fee.toFixed(2)}</span>
+                </div>
+              ) : (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-slate-500">Mes 1 al {Math.max(1, form.per_student_from_month - 1)}</span>
+                    <span className="font-bold text-slate-700">S/ {form.billing_mode === "base_plus_student" ? form.base_monthly_fee.toFixed(2) : "0.00"}</span>
+                  </div>
+                  <div className="border-t border-dashed border-slate-200 pt-2 flex justify-between text-sm">
+                    <span className="text-slate-500">Desde mes {form.per_student_from_month} (ej: 20 alumnos)</span>
+                    <span className="font-bold text-slate-700">S/ {previewPrice().toFixed(2)}</span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 pt-1">
+                    {form.billing_mode === "base_plus_student" 
+                      ? `= S/ ${form.base_monthly_fee.toFixed(2)} base + 20 x S/ ${form.per_student_fee.toFixed(2)} por alumno`
+                      : `= 20 x S/ ${form.per_student_fee.toFixed(2)} por alumno`
+                    }
+                  </p>
+                </>
+              )}
             </div>
           </div>
         </div>
