@@ -60,13 +60,8 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
         setInstalled(true);
       }
       setDeferredPrompt(null);
-    } else {
-      // No native prompt — show browser-specific instructions
-      setShowGuide(true);
     }
   };
-
-  const [showGuide, setShowGuide] = useState(false);
 
   // Only hide in inline mode when no prompt available
   if (mode !== "hero" && (!deferredPrompt || installed)) return null;
