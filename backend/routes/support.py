@@ -319,17 +319,20 @@ async def update_school_pricing(req: SchoolPricingRequest, user=Depends(require_
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
     
     override = {}
+    if req.billing_mode is not None:
+        override["billing_mode"] = req.billing_mode
     if req.base_monthly_fee is not None:
         override["base_monthly_fee"] = req.base_monthly_fee
     if req.per_student_fee is not None:
         override["per_student_fee"] = req.per_student_fee
     if req.per_student_from_month is not None:
         override["per_student_from_month"] = req.per_student_from_month
+    if req.flat_fee is not None:
+        override["flat_fee"] = req.flat_fee
     if req.discount_notes is not None:
         override["discount_notes"] = req.discount_notes
     
     if not override:
-        # Clear override
         await db.schools.update_one({"id": req.school_id}, {"$unset": {"pricing_override": ""}})
         return {"message": "Precio personalizado eliminado, se usara el global"}
     
