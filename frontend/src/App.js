@@ -1654,6 +1654,7 @@ function App() {
           >
             <Route index element={<SupportDashboardPage token={token} />} />
             <Route path="schools" element={<SupportSchoolsPage token={token} onLogin={handleLogin} />} />
+            <Route path="pricing" element={<SupportPricingPage token={token} />} />
             <Route path="profile" element={<SupportProfilePage token={token} user={user} onUserUpdate={handleUserUpdate} />} />
             <Route path="*" element={<Navigate to="/support" replace />} />
           </Route>
