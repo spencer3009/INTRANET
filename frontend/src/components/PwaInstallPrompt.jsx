@@ -184,29 +184,16 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
             Instale EduNet en su celular para acceder desde su pantalla principal.
           </p>
 
-          {hasPrompt ? (
-            <button
-              onClick={handleInstall}
-              disabled={installing}
-              className="w-full py-4 bg-[#001f4b] text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-[#0a3068] active:scale-[0.98] transition-all disabled:opacity-70 shadow-lg"
-              style={{ boxShadow: '0 10px 30px -10px rgba(0,31,75,0.5)' }}
-              data-testid="pwa-install-button"
-            >
-              <Download className="w-5 h-5" />
-              Instalar EduNet
-            </button>
-          ) : (
-            <button
-              onClick={handleInstall}
-              disabled={installing}
-              className="w-full py-4 bg-[#001f4b] text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-[#0a3068] active:scale-[0.98] transition-all disabled:opacity-70 shadow-lg"
-              style={{ boxShadow: '0 10px 30px -10px rgba(0,31,75,0.5)' }}
-              data-testid="pwa-install-button"
-            >
-              <Download className="w-5 h-5" />
-              Instalar EduNet
-            </button>
-          )}
+          <button
+            onClick={handleInstall}
+            disabled={installing}
+            className="w-full py-4 bg-[#001f4b] text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-[#0a3068] active:scale-[0.98] transition-all disabled:opacity-70 shadow-lg"
+            style={{ boxShadow: '0 10px 30px -10px rgba(0,31,75,0.5)' }}
+            data-testid="pwa-install-button"
+          >
+            <Download className="w-5 h-5" />
+            Instalar EduNet
+          </button>
         </div>
 
         {installing && (
