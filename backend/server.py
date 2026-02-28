@@ -19112,8 +19112,8 @@ async def get_student_allowed_recipients(course_id: str, current_user = Depends(
             "name": full_name,
             "email": owner.get("email"),
             "photo_url": owner.get("photo_url"),
-            "role": "owner" if owner.get("role") == "owner" else "admin",
-            "role_label": "Propietario" if owner.get("role") == "owner" else "Administrador"
+            "role": "owner" if (owner.get("role") == "owner" or owner.get("is_owner")) else "admin",
+            "role_label": "Propietario" if (owner.get("role") == "owner" or owner.get("is_owner")) else "Administrador"
         })
     
     # 2. Find teacher from academic_assignments for this subject and section
