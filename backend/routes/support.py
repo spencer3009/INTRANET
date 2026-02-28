@@ -181,6 +181,28 @@ async def unassign_school(school_id: str, user=Depends(require_support_admin)):
     return {"message": "Acceso removido"}
 
 
+class UpdateExpirationRequest(BaseModel):
+    school_id: str
+    expiration_date: str
+
+@router.put("/school-expiration")
+async def update_school_expiration(req: UpdateExpirationRequest, user=Depends(require_support_admin)):
+    """Update a school's expiration date"""
+    school = await db.schools.find_one({"id": req.school_id}, {"_id": 0, "id": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    await db.schools.update_one(
+        {"id": req.school_id},
+        {"$set": {
+            "expiration_date": req.expiration_date,
+            "updated_at": now_iso()
+        }}
+    )
+    return {"message": "Fecha de vencimiento actualizada"}
+
+
+
 @router.post("/switch-school")
 async def switch_school(req: SwitchSchoolRequest, user=Depends(require_support_admin)):
     """
