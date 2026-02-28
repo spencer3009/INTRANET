@@ -124,6 +124,16 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     });
   };
 
+  const getExpirationInfo = (expDate) => {
+    if (!expDate) return { text: "Sin fecha", color: "text-slate-400", isExpired: false };
+    const now = new Date();
+    const exp = new Date(expDate);
+    const diffDays = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return { text: `Vencido hace ${Math.abs(diffDays)} dias`, color: "text-red-500", isExpired: true };
+    if (diffDays <= 7) return { text: `Vence en ${diffDays} dias`, color: "text-amber-500", isExpired: false };
+    return { text: formatDate(expDate), color: "text-slate-500", isExpired: false };
+  };
+
   const unassignedSchools = allSchools.filter(s => 
     !s.is_assigned && 
     (s.name || s.subdomain || "").toLowerCase().includes(search.toLowerCase())
