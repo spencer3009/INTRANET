@@ -121,6 +121,49 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     }
   };
 
+  const handleOpenPricing = async (school) => {
+    if (editingPricing === school.id) { setEditingPricing(null); return; }
+    setEditingPricing(school.id);
+    const ov = school.pricing_override || {};
+    setPricingForm({
+      base_monthly_fee: ov.base_monthly_fee ?? "",
+      per_student_fee: ov.per_student_fee ?? "",
+      per_student_from_month: ov.per_student_from_month ?? "",
+      discount_notes: ov.discount_notes ?? ""
+    });
+    try {
+      const res = await axios.get(`${API}/support/school-pricing/${school.id}`, { headers });
+      setPricingInfo(prev => ({ ...prev, [school.id]: res.data }));
+    } catch {}
+  };
+
+  const handleSavePricing = async (schoolId) => {
+    try {
+      const payload = { school_id: schoolId };
+      if (pricingForm.base_monthly_fee !== "") payload.base_monthly_fee = parseFloat(pricingForm.base_monthly_fee);
+      if (pricingForm.per_student_fee !== "") payload.per_student_fee = parseFloat(pricingForm.per_student_fee);
+      if (pricingForm.per_student_from_month !== "") payload.per_student_from_month = parseInt(pricingForm.per_student_from_month);
+      if (pricingForm.discount_notes) payload.discount_notes = pricingForm.discount_notes;
+      await axios.put(`${API}/support/school-pricing`, payload, { headers });
+      toast.success("Precio personalizado guardado");
+      setEditingPricing(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error");
+    }
+  };
+
+  const handleDeletePricing = async (schoolId) => {
+    try {
+      await axios.delete(`${API}/support/school-pricing/${schoolId}`, { headers });
+      toast.success("Precio personalizado eliminado");
+      setEditingPricing(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error");
+    }
+  };
+
   const formatDate = (iso) => {
     if (!iso) return "";
     return new Date(iso).toLocaleDateString("es-PE", { 
