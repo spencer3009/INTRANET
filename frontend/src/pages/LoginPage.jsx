@@ -15,6 +15,15 @@ export default function LoginPage({ onLogin }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // PWA auto-redirect: if in standalone mode and we have a saved school, go there
+  useState(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+    const lastSchool = localStorage.getItem('edunet_last_school');
+    if (isStandalone && lastSchool) {
+      navigate(`/${lastSchool}`, { replace: true });
+    }
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -25,6 +34,11 @@ export default function LoginPage({ onLogin }) {
       
       // Save to state and localStorage
       onLogin(token, user);
+
+      // Save last school for PWA auto-redirect
+      if (user.subdomain) {
+        localStorage.setItem('edunet_last_school', user.subdomain);
+      }
       
       // Global support user -> redirect to /support
       if (redirect_to_support || user.role === "system_admin_global" || user.is_support_global) {
