@@ -1,47 +1,77 @@
 import { useState, useEffect, useRef } from "react";
-import { Smartphone, Download, AlertTriangle } from "lucide-react";
+import { Smartphone, Download, AlertTriangle, Loader2 } from "lucide-react";
 
 export default function PwaInstallPrompt({ mode = "inline" }) {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [installing, setInstalling] = useState(false);
   const [progress, setProgress] = useState(0);
   const [installed, setInstalled] = useState(false);
+  const [swStatus, setSwStatus] = useState("checking"); // checking | controlling | failed
   const promptRef = useRef(null);
 
   useEffect(() => {
-    console.log('[PWA] === INICIALIZANDO PWA ===');
-    console.log('[PWA] User Agent:', navigator.userAgent);
-    console.log('[PWA] Protocol:', window.location.protocol);
-    console.log('[PWA] Host:', window.location.host);
-    console.log('[PWA] display-mode standalone:', window.matchMedia('(display-mode: standalone)').matches);
-    console.log('[PWA] navigator.standalone:', window.navigator.standalone);
+    console.log('[PWA] === INICIALIZANDO ===');
+    console.log('[PWA] URL:', window.location.href);
+    console.log('[PWA] standalone:', window.matchMedia('(display-mode: standalone)').matches);
 
-    // Check if already in standalone mode
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-    if (isStandalone || window.__pwaInstalled) {
-      console.log('[PWA] Ya esta instalada (modo standalone). Ocultando boton.');
+    // Already installed
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || window.__pwaInstalled) {
+      console.log('[PWA] App ya instalada');
       setInstalled(true);
       return;
     }
 
-    // Check if beforeinstallprompt was captured globally BEFORE React mounted
+    // Check if prompt was captured globally before React
     if (window.__pwaInstallPromptFired && window.__pwaInstallPrompt) {
-      console.log('[PWA] Prompt capturado ANTES de React. Usando prompt global.');
+      console.log('[PWA] Usando prompt capturado globalmente');
       promptRef.current = window.__pwaInstallPrompt;
       setDeferredPrompt(window.__pwaInstallPrompt);
     }
 
-    // Listen for beforeinstallprompt (in case it fires after mount)
+    // Check SW controller status
+    const checkController = () => {
+      const ctrl = navigator.serviceWorker?.controller;
+      console.log('[PWA] SW controller:', ctrl ? ctrl.scriptURL : 'null');
+      if (ctrl) {
+        setSwStatus("controlling");
+        return true;
+      }
+      return false;
+    };
+
+    // Check immediately
+    if (!checkController()) {
+      // Wait for SW to take control
+      if (window.__swReady) {
+        window.__swReady.then((success) => {
+          if (success) {
+            console.log('[PWA] SW ahora controla la pagina');
+            setSwStatus("controlling");
+          } else {
+            console.warn('[PWA] SW no logro controlar la pagina');
+            setSwStatus("failed");
+          }
+        });
+      }
+
+      // Also listen for controllerchange directly
+      navigator.serviceWorker?.addEventListener('controllerchange', () => {
+        console.log('[PWA] controllerchange detectado en componente');
+        setSwStatus("controlling");
+      });
+    }
+
+    // Listen for beforeinstallprompt
     const handler = (e) => {
       e.preventDefault();
-      console.log('[PWA] *** beforeinstallprompt DISPARADO ***');
-      console.log('[PWA] Plataformas:', e.platforms);
+      console.log('[PWA] beforeinstallprompt DISPARADO');
+      console.log('[PWA] platforms:', e.platforms);
       promptRef.current = e;
       setDeferredPrompt(e);
     };
 
     const installedHandler = () => {
-      console.log('[PWA] *** APP INSTALADA *** evento appinstalled disparado');
+      console.log('[PWA] APP INSTALADA - appinstalled event');
       setInstalled(true);
       setDeferredPrompt(null);
       promptRef.current = null;
@@ -51,80 +81,55 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     window.addEventListener("beforeinstallprompt", handler);
     window.addEventListener("appinstalled", installedHandler);
 
-    console.log('[PWA] Listeners registrados. Esperando beforeinstallprompt...');
+    // Diagnostic after 8 seconds
+    const diagTimeout = setTimeout(() => {
+      const ctrl = navigator.serviceWorker?.controller;
+      console.log('[PWA] === DIAGNOSTICO 8s ===');
+      console.log('[PWA] SW controller:', ctrl ? 'SI (' + ctrl.state + ')' : 'NO (null)');
+      console.log('[PWA] beforeinstallprompt recibido:', !!promptRef.current);
+      console.log('[PWA] window.__pwaInstallPromptFired:', window.__pwaInstallPromptFired);
 
-    // Validate manifest
-    fetch('/manifest.json')
-      .then(r => {
-        console.log('[PWA] Manifest HTTP status:', r.status);
-        return r.json();
-      })
-      .then(m => {
-        console.log('[PWA] Manifest OK:', m.name, '| start_url:', m.start_url, '| display:', m.display, '| id:', m.id);
-        console.log('[PWA] Icons:', m.icons?.length, 'configurados');
-      })
-      .catch(err => console.error('[PWA] ERROR cargando manifest:', err));
-
-    // Check service worker status
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration()
-        .then(reg => {
-          if (reg) {
-            console.log('[PWA] Service Worker registrado. Scope:', reg.scope, '| Estado:', reg.active?.state);
-          } else {
-            console.warn('[PWA] ADVERTENCIA: Service Worker NO registrado');
-          }
-        });
-    }
-
-    // Verify icon
-    const img = new Image();
-    img.onload = () => console.log('[PWA] Icono 192x192 OK:', img.naturalWidth, 'x', img.naturalHeight);
-    img.onerror = () => console.error('[PWA] ERROR: Icono 192x192 NO carga');
-    img.src = '/icons/icon-192.png';
-
-    // Timeout diagnostic
-    const timeout = setTimeout(() => {
-      if (!promptRef.current) {
-        console.warn('[PWA] === 10s sin beforeinstallprompt ===');
-        console.warn('[PWA] Posibles causas: app ya instalada, manifest invalido, falta engagement (30s+click), navegador no soporta');
+      if (!ctrl) {
+        console.error('[PWA] PROBLEMA: SW no controla la pagina. La PWA NO se puede instalar.');
+        console.error('[PWA] Solucion: Recargar la pagina (el SW necesita claim() + reload)');
       }
-    }, 10000);
+      if (!promptRef.current) {
+        console.warn('[PWA] beforeinstallprompt no se ha disparado.');
+        if (!ctrl) {
+          console.warn('[PWA] Causa probable: SW no controla la pagina');
+        } else {
+          console.warn('[PWA] Posibles causas: falta engagement (30s+click), manifest invalido, o app ya instalada');
+        }
+      }
+    }, 8000);
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
       window.removeEventListener("appinstalled", installedHandler);
-      clearTimeout(timeout);
+      clearTimeout(diagTimeout);
     };
   }, []);
 
   const handleInstall = async () => {
-    console.log('[PWA] === BOTON INSTALAR PRESIONADO ===');
-    console.log('[PWA] deferredPrompt disponible:', !!deferredPrompt);
-    console.log('[PWA] promptRef disponible:', !!promptRef.current);
+    const activePrompt = deferredPrompt || promptRef.current || window.__pwaInstallPrompt;
 
-    const activePrompt = deferredPrompt || promptRef.current;
+    console.log('[PWA] === INSTALANDO ===');
+    console.log('[PWA] prompt disponible:', !!activePrompt);
+    console.log('[PWA] SW controller:', !!navigator.serviceWorker?.controller);
 
     if (!activePrompt) {
-      console.error('[PWA] ERROR: No hay prompt disponible para instalar');
-      console.error('[PWA] El evento beforeinstallprompt nunca se disparo');
-      console.error('[PWA] Verificar:');
-      console.error('[PWA]   - manifest.json es valido');
-      console.error('[PWA]   - Service Worker esta registrado');
-      console.error('[PWA]   - Sitio en HTTPS');
-      console.error('[PWA]   - App no esta ya instalada');
+      console.error('[PWA] No hay prompt. beforeinstallprompt no se disparo.');
       return;
     }
 
     setInstalling(true);
     setProgress(0);
 
-    // Animated progress bar
+    // Quick animation
     const steps = [
-      { target: 25, delay: 300 },
-      { target: 50, delay: 500 },
-      { target: 75, delay: 400 },
-      { target: 90, delay: 400 },
+      { target: 30, delay: 300 },
+      { target: 60, delay: 400 },
+      { target: 85, delay: 300 },
     ];
 
     for (const step of steps) {
@@ -132,31 +137,25 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
       setProgress(step.target);
     }
 
-    // Now trigger the real install prompt
     try {
       console.log('[PWA] Llamando prompt()...');
       activePrompt.prompt();
-      console.log('[PWA] prompt() ejecutado correctamente');
+      console.log('[PWA] prompt() OK - esperando userChoice...');
 
-      setProgress(95);
-
+      setProgress(90);
       const result = await activePrompt.userChoice;
-      console.log('[PWA] Resultado userChoice:', JSON.stringify(result));
-      console.log('[PWA] outcome:', result.outcome);
-      console.log('[PWA] platform:', result.platform);
+      console.log('[PWA] userChoice:', result.outcome, '| platform:', result.platform);
 
       if (result.outcome === "accepted") {
-        console.log('[PWA] Usuario ACEPTO la instalacion');
         setProgress(100);
-        await new Promise((r) => setTimeout(r, 500));
+        await new Promise((r) => setTimeout(r, 600));
         setInstalled(true);
+        console.log('[PWA] Instalacion ACEPTADA');
       } else {
-        console.log('[PWA] Usuario RECHAZO la instalacion');
+        console.log('[PWA] Instalacion RECHAZADA por el usuario');
       }
     } catch (err) {
-      console.error('[PWA] ERROR durante prompt():', err);
-      console.error('[PWA] Error name:', err.name);
-      console.error('[PWA] Error message:', err.message);
+      console.error('[PWA] ERROR en prompt():', err.name, err.message);
     } finally {
       setInstalling(false);
       setDeferredPrompt(null);
@@ -164,9 +163,12 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     }
   };
 
-  // For inline mode: only show if prompt is available
+  // Inline mode: only show if prompt available
   if (mode !== "hero" && (!deferredPrompt || installed)) return null;
   if (installed) return null;
+
+  const hasPrompt = !!(deferredPrompt || promptRef.current || window.__pwaInstallPrompt);
+  const isReady = hasPrompt && swStatus === "controlling";
 
   // Hero mode
   if (mode === "hero") {
@@ -183,7 +185,7 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
             Instale EduNet en su celular para acceder desde su pantalla principal.
           </p>
 
-          {deferredPrompt ? (
+          {isReady ? (
             <button
               onClick={handleInstall}
               disabled={installing}
@@ -194,25 +196,27 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
               <Download className="w-5 h-5" />
               Instalar EduNet
             </button>
+          ) : swStatus === "checking" ? (
+            <button
+              disabled
+              className="w-full py-4 bg-slate-200 text-slate-500 font-bold rounded-xl flex items-center justify-center gap-3"
+              data-testid="pwa-install-button-loading"
+            >
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Preparando...
+            </button>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-center gap-2 text-amber-600 bg-amber-50 rounded-xl py-3 px-4">
                 <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                <span className="text-sm">Navegue la pagina unos segundos para activar la instalacion</span>
+                <span className="text-xs">Recargue la pagina para activar la instalacion</span>
               </div>
               <button
-                onClick={() => {
-                  console.log('[PWA] Boton presionado sin prompt. Estado actual:', { deferredPrompt: !!deferredPrompt, promptRef: !!promptRef.current });
-                  if (promptRef.current) {
-                    setDeferredPrompt(promptRef.current);
-                    handleInstall();
-                  }
-                }}
-                className="w-full py-4 bg-slate-200 text-slate-500 font-bold rounded-xl flex items-center justify-center gap-3 cursor-wait"
-                data-testid="pwa-install-button-waiting"
+                onClick={() => window.location.reload()}
+                className="w-full py-4 bg-[#001f4b] text-white font-bold rounded-xl flex items-center justify-center gap-3 hover:bg-[#0a3068] active:scale-[0.98] transition-all shadow-lg"
+                data-testid="pwa-reload-button"
               >
-                <Download className="w-5 h-5" />
-                Preparando instalacion...
+                Recargar pagina
               </button>
             </div>
           )}
@@ -284,7 +288,7 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
   );
 }
 
-// Hook for parent components to check PWA install availability
+// Hook for parent components
 export function usePwaInstallReady() {
   const [ready, setReady] = useState(false);
   const [installed, setInstalled] = useState(false);
@@ -294,16 +298,8 @@ export function usePwaInstallReady() {
       setInstalled(true);
       return;
     }
-
-    const handler = (e) => {
-      e.preventDefault();
-      setReady(true);
-    };
-    const installedHandler = () => {
-      setInstalled(true);
-      setReady(false);
-    };
-
+    const handler = (e) => { e.preventDefault(); setReady(true); };
+    const installedHandler = () => { setInstalled(true); setReady(false); };
     window.addEventListener("beforeinstallprompt", handler);
     window.addEventListener("appinstalled", installedHandler);
     return () => {
