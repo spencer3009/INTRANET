@@ -138,9 +138,17 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
         <div className="mt-4 space-y-3 text-left" data-testid="subscription-card">
           {/* Status + Price */}
           <div className="flex items-center justify-between">
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${subState.badge}`}>{subState.label}</span>
-            {p && <span className="text-base font-extrabold text-slate-800" data-testid="subscription-price">S/ {p.calculated_price?.toFixed(2)}</span>}
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-bold text-slate-700">Suscripcion</span>
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${subState.badge}`}>{subState.label}</span>
+            </div>
           </div>
+          {p && (
+            <div className="flex items-center justify-end">
+              <span className="text-base font-extrabold text-slate-800" data-testid="subscription-price">S/ {p.calculated_price?.toFixed(2)}</span>
+            </div>
+          )}
 
           {/* Progress bar */}
           <div className="flex items-center gap-2">
