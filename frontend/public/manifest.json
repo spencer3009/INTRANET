@@ -3,7 +3,7 @@
   "short_name": "EduNet",
   "description": "Plataforma educativa para colegios",
   "id": "/edunet-app",
-  "start_url": "/elroble",
+  "start_url": "/login",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
