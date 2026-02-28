@@ -159,14 +159,14 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
           </div>
 
           {/* Dates + Countdown */}
-          <div className="flex items-center justify-between text-[10px] text-slate-500">
+          <div className="flex items-center justify-between text-xs text-slate-600">
             <div className="flex items-center gap-1">
-              <CalendarDays className="w-3 h-3 text-slate-400" />
-              <span>{fmtDate(school.created_at)}</span>
+              <CalendarDays className="w-3.5 h-3.5 text-slate-400" />
+              <span className="font-semibold">{fmtDate(school.created_at)}</span>
             </div>
             <div className="flex items-center gap-1">
-              <CalendarClock className="w-3 h-3 text-slate-400" />
-              <span>{fmtDate(school.expiration_date)}</span>
+              <CalendarClock className="w-3.5 h-3.5 text-slate-400" />
+              <span className="font-semibold">{fmtDate(school.expiration_date)}</span>
             </div>
           </div>
 
