@@ -126,17 +126,17 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     if (isWebView) {
       return (
         <div className="text-center" data-testid="pwa-webview-warning">
-          <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-red-400 to-orange-500 flex items-center justify-center shadow-lg">
+          <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-amber-400 to-yellow-500 flex items-center justify-center shadow-lg">
             <ExternalLink className="w-10 h-10 text-white" />
           </div>
-          <h2 className="text-lg font-bold text-slate-800 mb-2" style={{ fontFamily: 'Manrope, sans-serif' }}>
-            Instalar EduNet correctamente
+          <h2 className="text-xl font-bold text-slate-800 mb-3" style={{ fontFamily: 'Manrope, sans-serif' }}>
+            Instalar EduNet
           </h2>
-          <p className="text-sm text-slate-500 mb-5 leading-relaxed">
-            Para instalar EduNet debe abrir este enlace en <strong className="text-slate-700">Chrome</strong>.
+          <p className="text-sm text-slate-500 mb-2 leading-relaxed">
+            Para instalar EduNet correctamente, debe abrir esta pagina en <strong className="text-slate-700">Chrome</strong>.
           </p>
           <p className="text-xs text-slate-400 mb-6 leading-relaxed">
-            Los navegadores internos como WhatsApp no permiten instalar la aplicacion.
+            Algunos navegadores integrados como WhatsApp o Facebook no permiten la instalacion de aplicaciones.
           </p>
 
           <button
@@ -150,11 +150,11 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
           </button>
 
           <div className="bg-slate-50 rounded-xl p-4 text-left">
-            <p className="text-xs font-semibold text-slate-600 mb-2">Si no abre automaticamente:</p>
-            <div className="space-y-2">
+            <p className="text-xs font-semibold text-slate-600 mb-3">Si no se abre automaticamente:</p>
+            <div className="space-y-2.5">
               <div className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center">1</span>
-                <p className="text-xs text-slate-500">Toque <strong className="text-slate-700">&#8942;</strong> (tres puntos) arriba a la derecha</p>
+                <p className="text-xs text-slate-500">Toque los tres puntos <strong className="text-slate-700">(&#8942;)</strong> arriba a la derecha</p>
               </div>
               <div className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#001f4b] text-white text-xs font-bold flex items-center justify-center">2</span>
