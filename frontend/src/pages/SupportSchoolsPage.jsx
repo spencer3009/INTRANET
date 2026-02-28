@@ -370,6 +370,71 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   )}
                 </div>
 
+                {/* Pricing */}
+                <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                  <DollarSign className="w-3 h-3 text-slate-400" />
+                  <span className="text-xs text-slate-400">Precio:</span>
+                  {school.pricing_override ? (
+                    <span className="text-xs font-semibold text-blue-600">Personalizado</span>
+                  ) : (
+                    <span className="text-xs font-semibold text-slate-500">Global</span>
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleOpenPricing(school); }}
+                    className="ml-auto p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors"
+                    data-testid={`edit-pricing-${school.subdomain}`}
+                  >
+                    <Tag className="w-3 h-3" />
+                  </button>
+                </div>
+
+                {editingPricing === school.id && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                    <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Precio personalizado</p>
+                    {pricingInfo[school.id] && (
+                      <div className="bg-white rounded-lg px-2.5 py-1.5 text-[10px] text-slate-500 mb-1">
+                        Global: S/{pricingInfo[school.id].global?.base_monthly_fee} base + S/{pricingInfo[school.id].global?.per_student_fee}/alumno desde mes {pricingInfo[school.id].global?.per_student_from_month}
+                        {pricingInfo[school.id].student_count > 0 && ` | ${pricingInfo[school.id].student_count} alumnos | Mes ${pricingInfo[school.id].months_active}`}
+                        {pricingInfo[school.id].calculated_price > 0 && ` | Total: S/${pricingInfo[school.id].calculated_price}`}
+                      </div>
+                    )}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] text-slate-500 block mb-0.5">Base mensual</label>
+                        <div className="relative">
+                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">S/</span>
+                          <input type="number" step="0.01" value={pricingForm.base_monthly_fee} onChange={(e) => setPricingForm({...pricingForm, base_monthly_fee: e.target.value})} placeholder="Global" className="w-full pl-6 pr-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-500 block mb-0.5">Por alumno</label>
+                        <div className="relative">
+                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">S/</span>
+                          <input type="number" step="0.01" value={pricingForm.per_student_fee} onChange={(e) => setPricingForm({...pricingForm, per_student_fee: e.target.value})} placeholder="Global" className="w-full pl-6 pr-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-slate-500 block mb-0.5">Desde mes</label>
+                        <input type="number" min="1" value={pricingForm.per_student_from_month} onChange={(e) => setPricingForm({...pricingForm, per_student_from_month: e.target.value})} placeholder="Global" className="w-full px-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
+                      </div>
+                    </div>
+                    <input type="text" value={pricingForm.discount_notes} onChange={(e) => setPricingForm({...pricingForm, discount_notes: e.target.value})} placeholder="Nota (ej: Descuento promocional)" className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
+                    <div className="flex items-center gap-2 pt-1">
+                      <button onClick={(e) => { e.stopPropagation(); handleSavePricing(school.id); }} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Guardar
+                      </button>
+                      {school.pricing_override && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDeletePricing(school.id); }} className="px-3 py-1.5 bg-red-50 text-red-500 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors">
+                          Usar global
+                        </button>
+                      )}
+                      <button onClick={(e) => { e.stopPropagation(); setEditingPricing(null); }} className="px-3 py-1.5 bg-slate-100 text-slate-500 rounded-lg text-xs hover:bg-slate-200 transition-colors">
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Actions */}
                 <div className="flex gap-2">
                   <button
