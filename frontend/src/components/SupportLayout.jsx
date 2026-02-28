@@ -2,12 +2,13 @@ import { useState } from "react";
 import { NavLink, useNavigate, Outlet } from "react-router-dom";
 import { 
   LayoutDashboard, School, User, LogOut, Menu, X, 
-  Headset, ChevronRight, Shield
+  Headset, ChevronRight, Shield, DollarSign
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/support", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/support/schools", icon: School, label: "Colegios" },
+  { to: "/support/pricing", icon: DollarSign, label: "Precios" },
   { to: "/support/profile", icon: User, label: "Mi Perfil" },
 ];
 
