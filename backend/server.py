@@ -4953,7 +4953,7 @@ async def get_tenant_users(current_user = Depends(get_current_user)):
 @api_router.get("/users/{user_id}")
 async def get_user_by_id(user_id: str, current_user = Depends(get_current_user)):
     """Get a specific user by ID"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0})
+    user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
