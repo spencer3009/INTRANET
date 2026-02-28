@@ -445,38 +445,81 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 </div>
 
                 {editingPricing === school.id && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-3" onClick={(e) => e.stopPropagation()}>
                     <p className="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Precio personalizado</p>
                     {pricingInfo[school.id] && (
-                      <div className="bg-white rounded-lg px-2.5 py-1.5 text-[10px] text-slate-500 mb-1">
-                        Global: S/{pricingInfo[school.id].global?.base_monthly_fee} base + S/{pricingInfo[school.id].global?.per_student_fee}/alumno desde mes {pricingInfo[school.id].global?.per_student_from_month}
+                      <div className="bg-white rounded-lg px-2.5 py-1.5 text-[10px] text-slate-500">
+                        Global: {pricingInfo[school.id].global?.billing_mode === "flat_fee" ? `Fijo S/${pricingInfo[school.id].global?.flat_fee}` : pricingInfo[school.id].global?.billing_mode === "student_only" ? `S/${pricingInfo[school.id].global?.per_student_fee}/alumno` : `S/${pricingInfo[school.id].global?.base_monthly_fee} base + S/${pricingInfo[school.id].global?.per_student_fee}/alumno`}
                         {pricingInfo[school.id].student_count > 0 && ` | ${pricingInfo[school.id].student_count} alumnos | Mes ${pricingInfo[school.id].months_active}`}
-                        {pricingInfo[school.id].calculated_price > 0 && ` | Total: S/${pricingInfo[school.id].calculated_price}`}
                       </div>
                     )}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div>
-                        <label className="text-[10px] text-slate-500 block mb-0.5">Base mensual</label>
-                        <div className="relative">
-                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">S/</span>
-                          <input type="number" step="0.01" value={pricingForm.base_monthly_fee} onChange={(e) => setPricingForm({...pricingForm, base_monthly_fee: e.target.value})} placeholder="Global" className="w-full pl-6 pr-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
-                        </div>
+
+                    {/* Billing Mode Selector */}
+                    <div>
+                      <label className="text-[10px] text-slate-500 block mb-1">Modo de facturacion</label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {[
+                          { id: "base_plus_student", label: "Base+Alumno" },
+                          { id: "student_only", label: "Solo Alumno" },
+                          { id: "flat_fee", label: "Tarifa Fija" }
+                        ].map(m => (
+                          <button
+                            key={m.id}
+                            onClick={(e) => { e.stopPropagation(); setPricingForm({...pricingForm, billing_mode: m.id}); }}
+                            data-testid={`school-mode-${m.id}`}
+                            className={`px-2 py-1.5 rounded-lg text-[10px] font-bold border-2 transition-all ${
+                              pricingForm.billing_mode === m.id
+                                ? "border-blue-500 bg-blue-100 text-blue-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-slate-300"
+                            }`}
+                          >
+                            {m.label}
+                          </button>
+                        ))}
                       </div>
-                      <div>
-                        <label className="text-[10px] text-slate-500 block mb-0.5">Por alumno</label>
-                        <div className="relative">
-                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">S/</span>
-                          <input type="number" step="0.01" value={pricingForm.per_student_fee} onChange={(e) => setPricingForm({...pricingForm, per_student_fee: e.target.value})} placeholder="Global" className="w-full pl-6 pr-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
-                        </div>
-                      </div>
-                      <div>
-                        <label className="text-[10px] text-slate-500 block mb-0.5">Desde mes</label>
-                        <input type="number" min="1" value={pricingForm.per_student_from_month} onChange={(e) => setPricingForm({...pricingForm, per_student_from_month: e.target.value})} placeholder="Global" className="w-full px-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
-                      </div>
+                      {!pricingForm.billing_mode && <p className="text-[9px] text-slate-400 mt-0.5">Vacio = usar modo global</p>}
                     </div>
+
+                    {/* Flat Fee Input */}
+                    {pricingForm.billing_mode === "flat_fee" && (
+                      <div>
+                        <label className="text-[10px] text-slate-500 block mb-0.5">Tarifa fija mensual</label>
+                        <div className="relative">
+                          <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">S/</span>
+                          <input type="number" step="0.01" value={pricingForm.flat_fee} onChange={(e) => setPricingForm({...pricingForm, flat_fee: e.target.value})} placeholder="Global" className="w-full pl-6 pr-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" data-testid="school-flat-fee-input" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Base + Student Fields */}
+                    {pricingForm.billing_mode !== "flat_fee" && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {pricingForm.billing_mode !== "student_only" && (
+                          <div>
+                            <label className="text-[10px] text-slate-500 block mb-0.5">Base mensual</label>
+                            <div className="relative">
+                              <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">S/</span>
+                              <input type="number" step="0.01" value={pricingForm.base_monthly_fee} onChange={(e) => setPricingForm({...pricingForm, base_monthly_fee: e.target.value})} placeholder="Global" className="w-full pl-6 pr-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
+                            </div>
+                          </div>
+                        )}
+                        <div>
+                          <label className="text-[10px] text-slate-500 block mb-0.5">Por alumno</label>
+                          <div className="relative">
+                            <span className="absolute left-1.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-400">S/</span>
+                            <input type="number" step="0.01" value={pricingForm.per_student_fee} onChange={(e) => setPricingForm({...pricingForm, per_student_fee: e.target.value})} placeholder="Global" className="w-full pl-6 pr-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="text-[10px] text-slate-500 block mb-0.5">Desde mes</label>
+                          <input type="number" min="1" value={pricingForm.per_student_from_month} onChange={(e) => setPricingForm({...pricingForm, per_student_from_month: e.target.value})} placeholder="Global" className="w-full px-1.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
+                        </div>
+                      </div>
+                    )}
+
                     <input type="text" value={pricingForm.discount_notes} onChange={(e) => setPricingForm({...pricingForm, discount_notes: e.target.value})} placeholder="Nota (ej: Descuento promocional)" className="w-full px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-200" />
                     <div className="flex items-center gap-2 pt-1">
-                      <button onClick={(e) => { e.stopPropagation(); handleSavePricing(school.id); }} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-1">
+                      <button onClick={(e) => { e.stopPropagation(); handleSavePricing(school.id); }} className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors flex items-center gap-1" data-testid="save-school-pricing-btn">
                         <Check className="w-3 h-3" /> Guardar
                       </button>
                       {school.pricing_override && (
