@@ -104,9 +104,10 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const handleSaveExpiration = async (schoolId) => {
     if (!newExpDate) return;
     try {
+      // Send as noon UTC to avoid timezone shifting the date
       await axios.put(`${API}/support/school-expiration`, {
         school_id: schoolId,
-        expiration_date: new Date(newExpDate).toISOString()
+        expiration_date: `${newExpDate}T12:00:00.000Z`
       }, { headers });
       toast.success("Fecha de vencimiento actualizada");
       setEditingExpiration(null);
