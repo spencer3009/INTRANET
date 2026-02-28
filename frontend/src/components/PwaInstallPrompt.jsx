@@ -8,23 +8,60 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
+    console.log('[PWA] Initializing PWA install prompt...');
+    console.log('[PWA] display-mode standalone:', window.matchMedia('(display-mode: standalone)').matches);
+    console.log('[PWA] navigator.standalone:', window.navigator.standalone);
+
     if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      console.log('[PWA] App already installed (standalone mode). Hiding button.');
       setInstalled(true);
       return;
     }
 
     const handler = (e) => {
       e.preventDefault();
+      console.log('[PWA] *** beforeinstallprompt FIRED ***');
+      console.log('[PWA] Event platforms:', e.platforms);
       setDeferredPrompt(e);
     };
 
     const installedHandler = () => {
+      console.log('[PWA] *** APP INSTALLED *** appinstalled event fired');
       setInstalled(true);
       setDeferredPrompt(null);
     };
 
     window.addEventListener("beforeinstallprompt", handler);
     window.addEventListener("appinstalled", installedHandler);
+
+    console.log('[PWA] Event listeners registered. Waiting for beforeinstallprompt...');
+
+    // Check manifest validity
+    fetch('/manifest.json')
+      .then(r => r.json())
+      .then(m => {
+        console.log('[PWA] Manifest loaded:', JSON.stringify(m, null, 2));
+        console.log('[PWA] start_url:', m.start_url);
+        console.log('[PWA] scope:', m.scope);
+        console.log('[PWA] display:', m.display);
+        console.log('[PWA] icons:', m.icons?.length, 'icons configured');
+      })
+      .catch(err => console.error('[PWA] ERROR loading manifest:', err));
+
+    // Check service worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistration()
+        .then(reg => {
+          if (reg) {
+            console.log('[PWA] Service Worker registered:', reg.scope);
+            console.log('[PWA] SW state:', reg.active?.state);
+          } else {
+            console.warn('[PWA] WARNING: No Service Worker registered!');
+          }
+        });
+    } else {
+      console.warn('[PWA] WARNING: Service Worker NOT supported in this browser');
+    }
 
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
@@ -33,6 +70,9 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
   }, []);
 
   const handleInstall = async () => {
+    console.log('[PWA] Install button pressed');
+    console.log('[PWA] deferredPrompt available:', !!deferredPrompt);
+    
     setInstalling(true);
     setProgress(0);
 
@@ -54,12 +94,25 @@ export default function PwaInstallPrompt({ mode = "inline" }) {
     setInstalling(false);
 
     if (deferredPrompt) {
-      deferredPrompt.prompt();
-      const result = await deferredPrompt.userChoice;
-      if (result.outcome === "accepted") {
-        setInstalled(true);
+      console.log('[PWA] Calling deferredPrompt.prompt()...');
+      try {
+        deferredPrompt.prompt();
+        console.log('[PWA] prompt() called successfully');
+        const result = await deferredPrompt.userChoice;
+        console.log('[PWA] User choice result:', JSON.stringify(result));
+        if (result.outcome === "accepted") {
+          console.log('[PWA] User ACCEPTED install');
+          setInstalled(true);
+        } else {
+          console.log('[PWA] User DISMISSED install');
+        }
+        setDeferredPrompt(null);
+      } catch (err) {
+        console.error('[PWA] ERROR during prompt():', err);
       }
-      setDeferredPrompt(null);
+    } else {
+      console.warn('[PWA] No deferredPrompt available - beforeinstallprompt never fired');
+      console.warn('[PWA] Check: 1) manifest.json valid  2) Service Worker registered  3) HTTPS  4) Not already installed');
     }
   };
 
