@@ -138,6 +138,21 @@
             });
         </script>
         <script>
+          // Capture beforeinstallprompt EARLY before React mounts
+          window.__pwaInstallPrompt = null;
+          window.__pwaInstallPromptFired = false;
+          window.addEventListener('beforeinstallprompt', function(e) {
+            e.preventDefault();
+            window.__pwaInstallPrompt = e;
+            window.__pwaInstallPromptFired = true;
+            console.log('[PWA-GLOBAL] beforeinstallprompt capturado ANTES de React');
+          });
+          window.addEventListener('appinstalled', function() {
+            console.log('[PWA-GLOBAL] App instalada!');
+            window.__pwaInstalled = true;
+          });
+        </script>
+        <script>
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', function() {
               navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
