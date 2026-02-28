@@ -1010,7 +1010,7 @@ async def login(creds: UserLogin):
 @api_router.get("/auth/me")
 async def get_me(current_user=Depends(get_current_user)):
     """Get current user with school info and RBAC permissions"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0, "verification_code": 0})
+    user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
