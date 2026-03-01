@@ -409,7 +409,7 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                     <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                       <Receipt className="w-8 h-8 text-gray-300" />
                     </div>
-                    <p className="text-gray-500 font-semibold">No hay ingresos registrados</p>
+                    <p className="text-gray-500 font-semibold">Sin registros en este periodo</p>
                     <p className="text-sm text-gray-400 mt-1">Registra tu primer ingreso</p>
                   </td>
                 </tr>
