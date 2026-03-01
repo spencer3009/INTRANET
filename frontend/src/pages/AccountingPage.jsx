@@ -1972,6 +1972,12 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               onCancel={handleCancelPaymentClick}
               filterStatus={filterPaymentStatus}
               setFilterStatus={setFilterPaymentStatus}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFilter={handleDateFilter}
+              onDateClear={handleDateClear}
+              periodSummary={periodSummary}
+              summaryLoading={summaryLoading}
             />
           )}
           {activeTab === "expenses" && (
