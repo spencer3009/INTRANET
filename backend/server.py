@@ -11379,8 +11379,66 @@ PENSION_MONTHS_LABELS = {
     "09": "Septiembre", "10": "Octubre", "11": "Noviembre", "12": "Diciembre"
 }
 
+@api_router.get("/accounting/period-summary")
+async def get_period_summary(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
+    current_user = Depends(require_section_access("accounting"))
+):
+    """Get period summary for accounting cards filtered by date range."""
+    user = current_user
+    school_id = user["school_id"]
+
+    # Payment query
+    pay_query = {"school_id": school_id, "payment_status": {"$ne": "canceled"}}
+    if date_from or date_to:
+        date_filter = {}
+        if date_from:
+            date_filter["$gte"] = date_from
+        if date_to:
+            date_filter["$lte"] = date_to
+        pay_query["payment_date"] = date_filter
+
+    pay_pipeline = [
+        {"$match": pay_query},
+        {"$group": {
+            "_id": None,
+            "total_income": {"$sum": {"$cond": [{"$eq": ["$payment_status", "paid"]}, "$total_amount", 0]}},
+            "total_pending": {"$sum": {"$cond": [{"$eq": ["$payment_status", "pending"]}, "$total_amount", 0]}},
+        }}
+    ]
+    pay_result = await db.payments.aggregate(pay_pipeline).to_list(1)
+    total_income = round(pay_result[0]["total_income"], 2) if pay_result else 0
+    total_pending = round(pay_result[0]["total_pending"], 2) if pay_result else 0
+
+    # Expense query
+    exp_query = {"school_id": school_id}
+    if date_from or date_to:
+        exp_date_filter = {}
+        if date_from:
+            exp_date_filter["$gte"] = date_from
+        if date_to:
+            exp_date_filter["$lte"] = date_to
+        exp_query["expense_date"] = exp_date_filter
+
+    exp_pipeline = [
+        {"$match": exp_query},
+        {"$group": {"_id": None, "total_expenses": {"$sum": "$total_amount"}}}
+    ]
+    exp_result = await db.expenses.aggregate(exp_pipeline).to_list(1)
+    total_expenses = round(exp_result[0]["total_expenses"], 2) if exp_result else 0
+
+    return {
+        "total_income": total_income,
+        "total_pending": total_pending,
+        "total_expenses": total_expenses,
+        "total_general": round(total_income + total_pending, 2)
+    }
+
 @api_router.get("/accounting/debtors")
 async def get_debtors(
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
     current_user = Depends(require_section_access("accounting"))
 ):
     """Get list of students with pending payments (morosos). Shows debt per student."""
@@ -11388,8 +11446,17 @@ async def get_debtors(
     school_id = user["school_id"]
     
     # Get all non-canceled payments grouped by student
+    match_query = {"school_id": school_id, "payment_status": {"$ne": "canceled"}}
+    if date_from or date_to:
+        date_filter = {}
+        if date_from:
+            date_filter["$gte"] = date_from
+        if date_to:
+            date_filter["$lte"] = date_to
+        match_query["payment_date"] = date_filter
+
     pipeline = [
-        {"$match": {"school_id": school_id, "payment_status": {"$ne": "canceled"}}},
+        {"$match": match_query},
         {"$group": {
             "_id": "$student_id",
             "total_paid": {"$sum": {"$cond": [{"$eq": ["$payment_status", "paid"]}, "$total_amount", 0]}},
