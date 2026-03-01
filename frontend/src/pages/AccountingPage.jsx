@@ -535,13 +535,26 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
 // ══════════════════════════════════════════════════════════════════════════════
 // EXPENSES TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onDelete, filterCategory, setFilterCategory }) {
+function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onDelete, filterCategory, setFilterCategory, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading }) {
   return (
     <div className="space-y-5">
+      {/* Date filter */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <AccountingDateFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onFilter={onDateFilter}
+          onClear={onDateClear}
+        />
+      </div>
+
+      {/* Summary cards */}
+      <AccountingSummaryCards summary={periodSummary} loading={summaryLoading} />
+
       {/* Header - Premium style */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">
-          <span className="text-sm font-medium text-gray-500">Categoría:</span>
+          <span className="text-sm font-medium text-gray-500">Categoria:</span>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
