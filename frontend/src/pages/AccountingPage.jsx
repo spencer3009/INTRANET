@@ -327,9 +327,22 @@ function DashboardTab({ summary, loading, debtorsSummary }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // PAYMENTS TAB - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, filterStatus, setFilterStatus }) {
+function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange, onCreateNew, onEdit, onConfirm, onCancel, filterStatus, setFilterStatus, dateFrom, dateTo, onDateFilter, onDateClear, periodSummary, summaryLoading }) {
   return (
     <div className="space-y-5">
+      {/* Date filter */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+        <AccountingDateFilter
+          dateFrom={dateFrom}
+          dateTo={dateTo}
+          onFilter={onDateFilter}
+          onClear={onDateClear}
+        />
+      </div>
+
+      {/* Summary cards */}
+      <AccountingSummaryCards summary={periodSummary} loading={summaryLoading} />
+
       {/* Header - Premium style */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3">
