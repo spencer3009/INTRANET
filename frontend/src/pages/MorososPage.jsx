@@ -278,8 +278,21 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
             </div>
           </div>
 
+          {/* Date filter */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+            <AccountingDateFilter
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onFilter={handleDateFilter}
+              onClear={handleDateClear}
+            />
+          </div>
+
+          {/* Summary cards */}
+          <AccountingSummaryCards summary={periodSummary} loading={summaryLoading} />
+
           {/* KPI Cards */}
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100" data-testid="kpi-morosos-total">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-2xl flex items-center justify-center shadow-lg shadow-red-500/20">
