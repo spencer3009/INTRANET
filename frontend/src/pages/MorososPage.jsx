@@ -395,7 +395,7 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
             ) : filtered.length === 0 ? (
               <div className="py-20 text-center">
                 <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><UserX className="w-8 h-8 text-gray-300" /></div>
-                <p className="text-gray-500 font-semibold">Sin resultados</p>
+                <p className="text-gray-500 font-semibold">Sin registros en este periodo</p>
                 <p className="text-xs text-gray-400 mt-1">No hay alumnos con los filtros seleccionados</p>
               </div>
             ) : (
