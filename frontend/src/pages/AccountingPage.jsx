@@ -1576,6 +1576,12 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [filterPaymentStatus, setFilterPaymentStatus] = useState("");
   const [filterExpenseCategory, setFilterExpenseCategory] = useState("");
   
+  // Date range filter state (shared across tabs)
+  const [dateFrom, setDateFrom] = useState(getDefaultDates().from);
+  const [dateTo, setDateTo] = useState(getDefaultDates().to);
+  const [periodSummary, setPeriodSummary] = useState(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+  
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [editingPayment, setEditingPayment] = useState(null);
   const [showExpenseModal, setShowExpenseModal] = useState(false);
