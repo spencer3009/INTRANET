@@ -1654,6 +1654,8 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     try {
       const params = { page: paymentsPage, limit: 20 };
       if (filterPaymentStatus) params.status = filterPaymentStatus;
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
       const res = await axios.get(`${API}/accounting/payments`, { headers, params });
       setPayments(res.data.payments || []);
       setPaymentsTotal(res.data.total || 0);
