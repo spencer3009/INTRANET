@@ -11869,6 +11869,59 @@ async def get_accounting_summary(
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# FINANCIAL SETTINGS (CONFIGURACIÓN FINANCIERA)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class FinancialSettingsUpdate(BaseModel):
+    pension_mensual: Optional[float] = None
+    matricula: Optional[float] = None
+    pronto_pago_activo: Optional[bool] = None
+    pronto_pago_monto: Optional[float] = None
+    pronto_pago_fecha_limite: Optional[int] = None
+    interes_activo: Optional[bool] = None
+    interes_tipo: Optional[str] = None
+    interes_valor: Optional[float] = None
+
+@api_router.get("/accounting/financial-settings")
+async def get_financial_settings(current_user = Depends(require_section_access("accounting"))):
+    user = current_user
+    school_id = user["school_id"]
+    settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+    if not settings:
+        settings = {
+            "school_id": school_id,
+            "pension_mensual": 0,
+            "matricula": 0,
+            "pronto_pago_activo": False,
+            "pronto_pago_monto": 0,
+            "pronto_pago_fecha_limite": 5,
+            "interes_activo": False,
+            "interes_tipo": "porcentaje",
+            "interes_valor": 0
+        }
+    return settings
+
+@api_router.put("/accounting/financial-settings")
+async def update_financial_settings(req: FinancialSettingsUpdate, current_user = Depends(require_section_access("accounting"))):
+    user = current_user
+    school_id = user["school_id"]
+    role = user.get("role", "")
+    is_owner = user.get("is_owner", False)
+    if role not in ("owner", "director", "admin") and not is_owner:
+        raise HTTPException(status_code=403, detail="Solo propietarios y administradores pueden editar la configuracion financiera")
+    update_data = {k: v for k, v in req.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No hay datos para actualizar")
+    update_data["updated_at"] = now_iso()
+    await db.school_financial_settings.update_one(
+        {"school_id": school_id},
+        {"$set": {**update_data, "school_id": school_id}},
+        upsert=True
+    )
+    settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+    return settings
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SUBJECTS MODULE (ASIGNATURAS)
 # ══════════════════════════════════════════════════════════════════════════════
 
