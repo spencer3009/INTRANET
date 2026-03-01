@@ -1993,6 +1993,12 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               onDelete={handleDeleteExpenseClick}
               filterCategory={filterExpenseCategory}
               setFilterCategory={setFilterExpenseCategory}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              onDateFilter={handleDateFilter}
+              onDateClear={handleDateClear}
+              periodSummary={periodSummary}
+              summaryLoading={summaryLoading}
             />
           )}
           {activeTab === "config" && (
