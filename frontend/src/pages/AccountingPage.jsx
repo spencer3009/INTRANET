@@ -1789,6 +1789,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     }
     loadExpenses();
     loadSummary();
+    loadPeriodSummary(dateFrom, dateTo);
   };
 
   const handleDeleteExpenseClick = (expense) => {
