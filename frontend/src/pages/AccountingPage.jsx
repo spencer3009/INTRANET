@@ -1917,6 +1917,9 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
               setFilterCategory={setFilterExpenseCategory}
             />
           )}
+          {activeTab === "config" && (
+            <FinancialSettingsTab token={token} user={user} />
+          )}
         </main>
       </div>
 
