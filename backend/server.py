@@ -11912,7 +11912,7 @@ async def update_financial_settings(req: FinancialSettingsUpdate, current_user =
     update_data = {k: v for k, v in req.dict().items() if v is not None}
     if not update_data:
         raise HTTPException(status_code=400, detail="No hay datos para actualizar")
-    update_data["updated_at"] = now_iso()
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.school_financial_settings.update_one(
         {"school_id": school_id},
         {"$set": {**update_data, "school_id": school_id}},
