@@ -1669,6 +1669,8 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     try {
       const params = { page: expensesPage, limit: 20 };
       if (filterExpenseCategory) params.category = filterExpenseCategory;
+      if (dateFrom) params.date_from = dateFrom;
+      if (dateTo) params.date_to = dateTo;
       const res = await axios.get(`${API}/accounting/expenses`, { headers, params });
       setExpenses(res.data.expenses || []);
       setExpensesTotal(res.data.total || 0);
