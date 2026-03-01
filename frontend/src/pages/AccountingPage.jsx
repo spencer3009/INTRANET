@@ -1610,11 +1610,15 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
 
   useEffect(() => {
     if (!loading) loadPayments();
-  }, [filterPaymentStatus, paymentsPage]);
+  }, [filterPaymentStatus, paymentsPage, dateFrom, dateTo]);
 
   useEffect(() => {
     if (!loading) loadExpenses();
-  }, [filterExpenseCategory, expensesPage]);
+  }, [filterExpenseCategory, expensesPage, dateFrom, dateTo]);
+
+  useEffect(() => {
+    if (!loading) loadPeriodSummary(dateFrom, dateTo);
+  }, [dateFrom, dateTo]);
 
   const loadInitialData = async () => {
     setLoading(true);
