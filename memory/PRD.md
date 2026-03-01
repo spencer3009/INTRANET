@@ -9,31 +9,25 @@ EduNet is an educational platform (intranet escolar) for Peruvian schools. Built
 - **Database**: MongoDB
 - **Storage**: Cloudinary
 - **Auth**: JWT-based
-- **PWA**: Custom service worker with WebView detection
+- **PWA**: InstallGateway component with WebView detection
 
-## Completed Features (Feb 2026)
-- [x] PWA with WebView detection and install-first experience
-- [x] Custom PWA icon
+## Completed Features (Feb-Mar 2026)
+- [x] PWA InstallGateway system (WebView detection, Chrome redirect, copy link)
 - [x] Full-stack permission audit (owner role fixes)
 - [x] Support panel with school management
 - [x] School expiration dates (editable)
-- [x] Subscription status card integrated into ProfileCard (owner/admin dashboard)
-- [x] Global & per-school pricing configuration system
-- [x] **Pricing calculation & display on school cards** (Feb 28)
-- [x] **3 billing modes** (Feb 28): base_plus_student, student_only, flat_fee
-  - Switch/selector on /support/pricing page
-  - Each mode shows relevant fields only
-  - Preview section for quick calculations
-  - School cards show billing mode badge
+- [x] Subscription status in ProfileCard (owner/admin dashboard)
+- [x] 3 billing modes (base_plus_student, student_only, flat_fee)
+- [x] Per-school pricing overrides with mode selector
+- [x] Support session fix (~280 endpoints fixed for school context)
+- [x] HeroCarousel without external images (gradient CSS fallback)
 
-## Pricing Model
-- **3 Billing Modes:**
-  1. `base_plus_student`: base_monthly_fee + (students * per_student_fee) from per_student_from_month
-  2. `student_only`: (students * per_student_fee) from per_student_from_month, no base
-  3. `flat_fee`: fixed monthly amount regardless of students
-- Global defaults in `pricing_config` collection
-- Per-school overrides in `schools.pricing_override`
-- Default: S/50.00 base + S/0.70/student from month 3
+## Key Components
+- `InstallGateway.jsx` - Professional PWA install flow (WebView/Chrome/standalone)
+- `ProfileCard.jsx` - Subscription status integrated
+- `SupportPricingPage.jsx` - 3 billing modes
+- `SupportSchoolsPage.jsx` - School cards with pricing
+- `HeroCarousel.jsx` - CSS gradient, no Unsplash
 
 ## Pending Issues
 - P0: Extra demo students in course view (blocked on user confirmation)
@@ -53,7 +47,3 @@ EduNet is an educational platform (intranet escolar) for Peruvian schools. Built
 - P1: Question bank for exams
 - P1: Automatic student notifications
 - P2: Replace window.confirm/alert with custom modals
-
-## Key Credentials
-- Support: spencer3009@gmail.com / Socios3009
-- School Owner: admin@elroble.edu / 1234abc8 (subdomain: elroble)
