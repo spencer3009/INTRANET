@@ -7,6 +7,7 @@ import DashboardHeader from "../components/DashboardHeader";
 import AccessDenied from "../components/AccessDenied";
 import { canAccessSection } from "../lib/permissions";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
+import FinancialSettingsTab from "../components/FinancialSettingsTab";
 import { 
   Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
   TrendingUp, TrendingDown, Clock, CheckCircle2, XCircle,
@@ -15,7 +16,7 @@ import {
   CircleDollarSign, FileText, Percent, Scale, Briefcase,
   BadgeDollarSign, Coins, ChartLine, Building2, Wallet2,
   ShieldCheck, BarChart4, LineChart, Users, AlertOctagon, 
-  Eye, History, UserX, UserCheck
+  Eye, History, UserX, UserCheck, Settings
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
