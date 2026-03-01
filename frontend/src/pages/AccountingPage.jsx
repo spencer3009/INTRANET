@@ -1736,6 +1736,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     loadPayments();
     loadSummary();
     loadDebtors();
+    loadPeriodSummary(dateFrom, dateTo);
   };
 
   const handleConfirmPaymentClick = (payment) => {
