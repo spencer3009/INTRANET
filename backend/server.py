@@ -247,7 +247,7 @@ async def resolve_user_from_token(current_user: dict):
             "original_role": current_user.get("original_role", "system_admin_global"),
             "email_verified": True
         }
-    user = await resolve_user_from_token(current_user)
+    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0})
     return user
 
 def is_admin_user(user: dict) -> bool:
