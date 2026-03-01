@@ -1693,6 +1693,36 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
     }
   };
 
+  const loadPeriodSummary = async (from, to) => {
+    setSummaryLoading(true);
+    try {
+      const params = {};
+      if (from) params.date_from = from;
+      if (to) params.date_to = to;
+      const res = await axios.get(`${API}/accounting/period-summary`, { headers, params });
+      setPeriodSummary(res.data);
+    } catch (err) {
+      console.error("Error loading period summary:", err);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handleDateFilter = (from, to) => {
+    setDateFrom(from);
+    setDateTo(to);
+    setPaymentsPage(1);
+    setExpensesPage(1);
+  };
+
+  const handleDateClear = () => {
+    const defaults = getDefaultDates();
+    setDateFrom(defaults.from);
+    setDateTo(defaults.to);
+    setPaymentsPage(1);
+    setExpensesPage(1);
+  };
+
   const handleSavePayment = async (data) => {
     if (editingPayment?.id) {
       await axios.put(`${API}/accounting/payments/${editingPayment.id}`, data, { headers });
