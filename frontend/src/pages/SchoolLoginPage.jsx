@@ -22,10 +22,6 @@ export default function SchoolLoginPage({ onLogin }) {
   const [showPass, setShowPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showLoginForm, setShowLoginForm] = useState(false);
-
-  // Always show install screen first on mobile
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 768;
 
   // Fetch school info on mount
   useEffect(() => {
