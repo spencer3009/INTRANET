@@ -5,8 +5,6 @@ import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import AccessDenied from "../components/AccessDenied";
 import { canAccessSection } from "../lib/permissions";
-import AccountingDateFilter, { getDefaultDates } from "../components/AccountingDateFilter";
-import AccountingSummaryCards from "../components/AccountingSummaryCards";
 import {
   UserX, BadgeDollarSign, TrendingDown, User, Eye, X, Loader2,
   History, ArrowLeft, Search, ChevronDown, ChevronUp, ShieldBan,
