@@ -1145,7 +1145,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 <option value="">Seleccionar concepto</option>
-                {paymentConcepts.map(c => (
+                {availableConcepts.map(c => (
                   <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </select>
