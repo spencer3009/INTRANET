@@ -9124,7 +9124,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           // For owners/admins, load all students
           const usersRes = await axios.get(`${API}/users`, { headers });
           const gradeStudents = usersRes.data.filter(
-            u => u.role === "student" && u.grado_id === foundSubject.grade_id
+            u => u.role === "student" && u.grado_id === foundSubject.grade_id && u.student_status !== "pending"
           );
           setStudents(gradeStudents);
         }
