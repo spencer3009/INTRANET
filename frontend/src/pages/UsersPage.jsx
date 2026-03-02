@@ -626,8 +626,8 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
               <p className="text-xs text-slate-400 mt-2">Click para subir foto</p>
             </div>
 
-            {/* Demo User Switch - Only visible for real owner - POSITIONED AT TOP */}
-            {isRealOwner && (
+            {/* Demo User Switch - Only visible for support users */}
+            {isSupportUser && (
               <div className="md:col-span-2">
                 <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl">
                   <div className="flex items-center gap-3">
