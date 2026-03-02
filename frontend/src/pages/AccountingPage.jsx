@@ -1415,6 +1415,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
               </div>
             </div>
           </div>
+          )}
 
           {/* Status and date */}
           <div className="grid grid-cols-2 gap-4 mb-6">
