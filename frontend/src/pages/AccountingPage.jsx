@@ -698,10 +698,21 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
 // PAYMENT FORM MODAL - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, students, financialSettings }) {
-  const getDefaultAmount = (concept) => {
-    if (!financialSettings) return "";
-    if (concept === "mensualidad" && financialSettings.pension_mensual) return financialSettings.pension_mensual.toString();
-    if (concept === "matricula" && financialSettings.matricula) return financialSettings.matricula.toString();
+  const headers = { Authorization: `Bearer ${localStorage.getItem("token") || ""}` };
+  const [paymentConcepts, setPaymentConcepts] = useState([]);
+
+  // Load active payment concepts
+  useEffect(() => {
+    if (isOpen) {
+      axios.get(`${API}/accounting/payment-concepts`, { headers })
+        .then(r => setPaymentConcepts(r.data.concepts || []))
+        .catch(() => {});
+    }
+  }, [isOpen]);
+
+  const getDefaultAmount = (conceptName) => {
+    const found = paymentConcepts.find(c => c.name === conceptName);
+    if (found) return found.amount.toString();
     return "";
   };
 
@@ -709,7 +720,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     student_id: "",
     grade_id: "",
     section_id: "",
-    concept: "mensualidad",
+    concept: "",
     description: "",
     amount_base: "",
     igv_applicable: true,
