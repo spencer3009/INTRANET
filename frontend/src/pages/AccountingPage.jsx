@@ -737,8 +737,9 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [applyDiscount, setApplyDiscount] = useState(false);
+  const [applyInterest, setApplyInterest] = useState(false);
 
-  // Pronto pago logic
+  // Financial settings
   const fs = financialSettings || {};
   const prontoPagoActivo = fs.pronto_pago_activo === true;
   const prontoPagoMonto = parseFloat(fs.pronto_pago_monto) || 0;
@@ -748,7 +749,36 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const isMensualidad = formData.concept.toLowerCase() === "mensualidad";
   const canApplyDiscount = prontoPagoActivo && isMensualidad && prontoPagoDescuento > 0;
 
-  // Auto-detect if discount should apply based on payment date
+  // Interest logic
+  const interesActivo = fs.interes_activo === true;
+  const interesTipo = fs.interes_tipo || "porcentaje";
+  const interesValor = parseFloat(fs.interes_valor) || 0;
+  const canApplyInterest = interesActivo && isMensualidad && interesValor > 0;
+
+  // Calculate days late based on pension_month and payment_date
+  const calcDaysLate = () => {
+    if (!formData.pension_month || !formData.payment_date) return 0;
+    const [year, month] = formData.pension_month.split("-").map(Number);
+    const deadline = new Date(year, month - 1, prontoPagoFechaLimite);
+    const payDate = new Date(formData.payment_date + "T12:00:00");
+    const diff = Math.floor((payDate - deadline) / (1000 * 60 * 60 * 24));
+    return Math.max(diff, 0);
+  };
+  const daysLate = calcDaysLate();
+
+  // Calculate interest amount
+  const calcInterestAmount = (base) => {
+    if (!applyInterest || !canApplyInterest || daysLate <= 0) return 0;
+    if (interesTipo === "porcentaje") {
+      const dailyRate = interesValor / 30 / 100;
+      return Math.round(base * dailyRate * daysLate * 100) / 100;
+    }
+    // Fixed monthly amount → daily
+    const dailyFixed = interesValor / 30;
+    return Math.round(dailyFixed * daysLate * 100) / 100;
+  };
+
+  // Auto-detect discount and interest based on dates
   useEffect(() => {
     if (canApplyDiscount && formData.payment_date) {
       const payDay = new Date(formData.payment_date + "T12:00:00").getDate();
@@ -756,13 +786,20 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     } else {
       setApplyDiscount(false);
     }
-  }, [formData.payment_date, canApplyDiscount, prontoPagoFechaLimite]);
+    if (canApplyInterest) {
+      setApplyInterest(daysLate > 0);
+    } else {
+      setApplyInterest(false);
+    }
+  }, [formData.payment_date, formData.pension_month, canApplyDiscount, canApplyInterest, prontoPagoFechaLimite]);
 
   const amountBase = parseFloat(formData.amount_base) || 0;
   const discountAmount = (applyDiscount && canApplyDiscount) ? prontoPagoDescuento : 0;
   const amountAfterDiscount = Math.max(amountBase - discountAmount, 0);
-  const igvAmount = formData.igv_applicable ? amountAfterDiscount * (formData.igv_percentage / 100) : 0;
-  const totalAmount = amountAfterDiscount + igvAmount;
+  const interestAmount = calcInterestAmount(amountAfterDiscount);
+  const amountWithInterest = amountAfterDiscount + interestAmount;
+  const igvAmount = formData.igv_applicable ? amountWithInterest * (formData.igv_percentage / 100) : 0;
+  const totalAmount = amountWithInterest + igvAmount;
 
   useEffect(() => {
     if (payment) {
