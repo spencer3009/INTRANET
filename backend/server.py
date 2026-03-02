@@ -11178,6 +11178,7 @@ async def get_payments(
             students_cache[payment["student_id"]] = student
         student_info = students_cache[payment["student_id"]]
         payment["student_name"] = f"{student_info.get('name', '')} {student_info.get('last_name', '')}".strip() if student_info else "Desconocido"
+        payment["student_photo"] = student_info.get("photo_url", "") if student_info else ""
         
         # Grade info
         if payment["grade_id"] not in grades_cache:
