@@ -11261,6 +11261,10 @@ async def create_payment(data: PaymentCreate, current_user = Depends(require_sec
     await db.payments.insert_one(payment)
     payment.pop("_id", None)
     
+    # Auto-update student status based on payment concept
+    if data.payment_status == "paid":
+        await auto_update_student_status_on_payment(data.student_id, school_id, data.concept)
+    
     # Enrich response
     payment["student_name"] = f"{student.get('name', '')} {student.get('last_name', '')}".strip()
     payment["concept_label"] = PAYMENT_CONCEPTS.get(data.concept, data.concept)
