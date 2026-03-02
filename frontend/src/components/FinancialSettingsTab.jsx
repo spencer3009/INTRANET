@@ -286,6 +286,53 @@ export default function FinancialSettingsTab({ token, user }) {
         </div>
       </div>
 
+      {/* Student Activation Config */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-violet-100 rounded-lg flex items-center justify-center">
+              <Settings className="w-4 h-4 text-violet-600" />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-slate-800">Activacion automatica del alumno</h4>
+              <p className="text-xs text-slate-400">Define cuando un alumno pasa a estado Activo</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-5">
+          <div className="space-y-3">
+            {[
+              { value: "matricula", label: "Activar con matricula", desc: "El alumno se activa al registrar pago de matricula" },
+              { value: "matricula_pension", label: "Activar con matricula + primera pension", desc: "El alumno se activa al registrar matricula y primera mensualidad" }
+            ].map(opt => (
+              <label
+                key={opt.value}
+                className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                  (form.activacion_modo || "matricula_pension") === opt.value
+                    ? "border-violet-300 bg-violet-50"
+                    : "border-slate-200 hover:border-slate-300 bg-white"
+                }`}
+                data-testid={`activacion-${opt.value}`}
+              >
+                <input
+                  type="radio"
+                  name="activacion_modo"
+                  value={opt.value}
+                  checked={(form.activacion_modo || "matricula_pension") === opt.value}
+                  onChange={() => set("activacion_modo", opt.value)}
+                  disabled={!isOwnerOrAdmin}
+                  className="mt-0.5 w-4 h-4 text-violet-600 focus:ring-violet-500"
+                />
+                <div>
+                  <p className="text-sm font-bold text-slate-700">{opt.label}</p>
+                  <p className="text-xs text-slate-400">{opt.desc}</p>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {/* Payment Concepts Section */}
       <PaymentConceptsSection token={token} user={user} />
     </div>
