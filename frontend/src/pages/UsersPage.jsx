@@ -10,7 +10,7 @@ import {
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles, Search, UserCheck,
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Key, RefreshCw, 
   ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode,
-  ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail
+  ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail, UserX
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
 import { QRCodeSVG } from "qrcode.react";
