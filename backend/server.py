@@ -12067,8 +12067,8 @@ async def update_payment_concept(concept_id: str, data: PaymentConceptUpdate, cu
     if not existing:
         raise HTTPException(status_code=404, detail="Concepto no encontrado")
     update_data = {k: v for k, v in data.dict().items() if v is not None}
-    if "name" in update_data:
-        update_data["name"] = update_data["name"].strip()
+    if existing.get("is_default") and "name" in update_data:
+        del update_data["name"]
     if "amount" in update_data:
         update_data["amount"] = round(update_data["amount"], 2)
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
