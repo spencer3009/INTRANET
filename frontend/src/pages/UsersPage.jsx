@@ -1536,6 +1536,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [studentViewMode, setStudentViewMode] = useState(() => 
     localStorage.getItem(STUDENT_FILTER_KEYS.VIEW_MODE) || 'grouped'
   );
+  const [studentStatusFilter, setStudentStatusFilter] = useState("");
   const [expandedLevels, setExpandedLevels] = useState(() => {
     try {
       const saved = localStorage.getItem(STUDENT_FILTER_KEYS.EXPANDED_LEVELS);
