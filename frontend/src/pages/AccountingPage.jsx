@@ -1098,12 +1098,12 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
     // Combo mode validation
     if (isComboMode) {
-      if (!comboAmounts.matricula || comboMatricula <= 0) {
-        setError("Ingrese el monto de matrícula");
+      if (comboMatriculaAmount <= 0) {
+        setError("No se encontró el monto de Matrícula en los conceptos registrados");
         return;
       }
-      if (!comboAmounts.mensualidad || comboMensualidad <= 0) {
-        setError("Ingrese el monto de mensualidad");
+      if (comboMensualidadAmount <= 0) {
+        setError("No se encontró el monto de Mensualidad en los conceptos registrados");
         return;
       }
       if (!formData.pension_month) {
@@ -1127,11 +1127,11 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
         // Create Matrícula payment
         const matriculaConceptName = availableConcepts.find(c => c.name.toLowerCase() === "matricula" || c.name === "Matrícula")?.name || "Matrícula";
-        await onSave({ ...baseData, concept: matriculaConceptName, amount_base: comboMatricula, description: "Pago combinado: Matrícula" });
+        await onSave({ ...baseData, concept: matriculaConceptName, amount_base: comboMatriculaAmount, description: "Pago combinado: Matrícula" });
 
         // Create Mensualidad payment
         const mensualidadConceptName = availableConcepts.find(c => c.name.toLowerCase() === "mensualidad" || c.name === "Mensualidad")?.name || "Mensualidad";
-        await onSave({ ...baseData, concept: mensualidadConceptName, amount_base: comboMensualidad, pension_month: formData.pension_month, description: "Pago combinado: Mensualidad" });
+        await onSave({ ...baseData, concept: mensualidadConceptName, amount_base: comboMensualidadAmount, pension_month: formData.pension_month, description: "Pago combinado: Mensualidad" });
 
         onClose();
       } catch (err) {
