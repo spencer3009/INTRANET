@@ -255,9 +255,15 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                   value={form.name}
                   onChange={(e) => setForm(prev => ({ ...prev, name: e.target.value }))}
                   placeholder="Ej: Taller de Robotica"
-                  className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  disabled={editing?.is_default}
+                  className={`w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent ${editing?.is_default ? "opacity-60 cursor-not-allowed" : ""}`}
                   data-testid="concept-name-input"
                 />
+                {editing?.is_default && (
+                  <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> El nombre de conceptos principales no se puede modificar
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-700 mb-1.5">Monto Base (S/.)</label>
