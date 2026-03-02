@@ -2490,19 +2490,19 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-slate-100">
+              <div className="w-16 h-16 rounded-xl overflow-hidden border-2 border-slate-100">
                 {student.photo_url ? (
                   <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <div className={`w-full h-full ${levelColor?.light || 'bg-amber-50'} flex items-center justify-center`}>
-                    <span className={`text-lg font-bold ${levelColor?.text || 'text-amber-600'}`}>
+                    <span className={`text-xl font-bold ${levelColor?.text || 'text-amber-600'}`}>
                       {student.name?.charAt(0)?.toUpperCase()}
                     </span>
                   </div>
                 )}
               </div>
-              <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 ${levelColor?.bg || 'bg-emerald-500'} rounded-full border-2 border-white flex items-center justify-center`}>
-                <Check className="w-2 h-2 text-white" />
+              <div className={`absolute -bottom-0.5 -right-0.5 w-5 h-5 ${levelColor?.bg || 'bg-emerald-500'} rounded-full border-2 border-white flex items-center justify-center`}>
+                <Check className="w-2.5 h-2.5 text-white" />
               </div>
             </div>
             <div>
@@ -2512,13 +2512,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <span className="px-1.5 py-0.5 text-[8px] font-bold bg-blue-100 text-blue-700 rounded-full">DEMO</span>
                 )}
               </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
+              <div className="flex items-center gap-2 mt-1">
                 <p className="text-xs text-slate-400">@{student.username}</p>
                 {(() => {
                   const st = student.student_status || "active";
                   const cfg = { pending: "bg-amber-100 text-amber-700", enrolled: "bg-blue-100 text-blue-700", active: "bg-emerald-100 text-emerald-700", withdrawn: "bg-red-100 text-red-700" };
                   const lbl = { pending: "Pendiente", enrolled: "Matriculado", active: "Activo", withdrawn: "Retirado" };
-                  return <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded-full ${cfg[st] || cfg.active}`}>{lbl[st] || st}</span>;
+                  return <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full ${cfg[st] || cfg.active}`}>{lbl[st] || st}</span>;
                 })()}
               </div>
             </div>
