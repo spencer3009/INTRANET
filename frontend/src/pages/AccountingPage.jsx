@@ -1093,6 +1093,54 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
       setError("Selecciona un estudiante");
       return;
     }
+
+    // Combo mode validation
+    if (isComboMode) {
+      if (!comboAmounts.matricula || comboMatricula <= 0) {
+        setError("Ingrese el monto de matrícula");
+        return;
+      }
+      if (!comboAmounts.mensualidad || comboMensualidad <= 0) {
+        setError("Ingrese el monto de mensualidad");
+        return;
+      }
+      if (!formData.pension_month) {
+        setError("Selecciona el mes de pensión");
+        return;
+      }
+
+      setSaving(true);
+      try {
+        const baseData = {
+          student_id: formData.student_id,
+          grade_id: formData.grade_id,
+          section_id: formData.section_id,
+          igv_applicable: formData.igv_applicable,
+          igv_percentage: formData.igv_percentage,
+          payment_method: formData.payment_method,
+          payment_status: formData.payment_status,
+          payment_date: formData.payment_date,
+          notes: formData.notes,
+        };
+
+        // Create Matrícula payment
+        const matriculaConceptName = availableConcepts.find(c => c.name.toLowerCase() === "matricula" || c.name === "Matrícula")?.name || "Matrícula";
+        await onSave({ ...baseData, concept: matriculaConceptName, amount_base: comboMatricula, description: "Pago combinado: Matrícula" });
+
+        // Create Mensualidad payment
+        const mensualidadConceptName = availableConcepts.find(c => c.name.toLowerCase() === "mensualidad" || c.name === "Mensualidad")?.name || "Mensualidad";
+        await onSave({ ...baseData, concept: mensualidadConceptName, amount_base: comboMensualidad, pension_month: formData.pension_month, description: "Pago combinado: Mensualidad" });
+
+        onClose();
+      } catch (err) {
+        setError(err.response?.data?.detail || "Error al guardar pagos");
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    // Normal mode
     if (!formData.amount_base || parseFloat(formData.amount_base) <= 0) {
       setError("Ingresa un monto válido");
       return;
