@@ -7,7 +7,6 @@ EduNet is an educational platform for Peruvian schools, built as a full-stack Re
 - **Frontend**: React (CRA) with Tailwind CSS + Shadcn/UI components
 - **Backend**: FastAPI with MongoDB (Motor async driver)
 - **Database**: MongoDB
-- **Deployment**: Kubernetes container
 - **3rd Party**: Cloudinary (image storage)
 
 ## What's Been Implemented
@@ -18,43 +17,36 @@ EduNet is an educational platform for Peruvian schools, built as a full-stack Re
 - PWA with custom install gateway for WebViews (WhatsApp)
 - Support panel for global school management
 
+### Student Status System (NEW - March 2, 2026)
+- **States**: pending → enrolled → active (+ withdrawn)
+- **Manual enrollment**: PUT /api/students/{id}/enroll (assigns grade/section, changes to enrolled)
+- **Auto-activation**: On payment creation, auto-updates status based on config
+- **Configurable activation mode**: "matricula" or "matricula_pension"
+- **Login restriction**: Only active/enrolled students can login; pending/withdrawn blocked
+- **Status badges**: Yellow (Pendiente), Blue (Matriculado), Green (Activo), Red (Retirado)
+- **Status filters**: Filter students by status in Users page
+- **Action buttons**: Matricular, Retirar, Reactivar in student card menu
+- **Migration endpoint**: POST /api/students/migrate-statuses
+
 ### Accounting Module (Contabilidad)
-- **Resumen tab**: Dashboard with KPIs, charts (pie, bar, area)
-- **Ingresos tab**: CRUD for payments with status filters, date range filters, and summary cards
-- **Egresos tab**: CRUD for expenses with category filters, date range filters, and summary cards
-- **Morosos page**: Debtors tracking with search, status filters, KPI cards
-- **Configuracion tab**: Financial settings (pension, discounts, interest) + Payment Concepts management
-- **Payment Concepts**: Full CRUD for configurable payment concepts with auto-seeded defaults
-- **Period Summary API**: `GET /api/accounting/period-summary` with date filtering
+- **Resumen tab**: Dashboard with KPIs, charts
+- **Ingresos tab**: CRUD with status filters, date range filters (Mes/Rango/Año), summary cards
+- **Egresos tab**: CRUD with category filters, date range filters, summary cards
+- **Morosos page**: Debtors tracking with KPI cards
+- **Configuracion tab**: Financial settings + Payment Concepts CRUD + Activation Config
+- **Payment Concepts**: Full CRUD, auto-seeded defaults (Matrícula, Mensualidad), dynamic in payment form
+- **Pronto Pago**: Auto-discount in payment form based on financial settings
+- **Interest/Mora**: Auto-calculated daily interest for late payments
+- **Period Summary API**: GET /api/accounting/period-summary
 
 ### Billing System
 - 3-mode billing (Base+Student, Student-Only, Flat Rate)
 - Per-school overrides via support panel
-- Price calculations and projections
 
-### Bug Fixes Applied
-- Support session data visibility (mass refactor ~280 endpoints)
-- Console 404 errors from Unsplash images (CSS gradient fallback)
-- Invisible progress bar (CSS min-width fix)
-- Infinite recursion bug in server.py
-
-## Recent Changes
-
-### March 2, 2026 - Payment Concepts System
-- New MongoDB collection `payment_concepts` with CRUD API endpoints
-- Auto-seeded default concepts (Matrícula, Mensualidad) from financial settings
-- Concepts have: name, amount, concept_type (recurrente/unico), status (active/inactive), is_default
-- Default concepts cannot be deleted, only deactivated
-- Payment form now uses dynamic concepts from API with auto-fill amounts
-- PaymentConceptsSection component in Configuracion tab
-- Testing: 100% pass (22/22 backend + all frontend verified)
-
-### March 1, 2026 - Date Range Filters & Summary Cards
-- New `GET /api/accounting/period-summary` backend endpoint
-- Reusable `AccountingDateFilter` and `AccountingSummaryCards` components
-- Integrated into Ingresos and Egresos tabs (NOT Morosos per user request)
-- Default dates: current month
-- Testing: 100% pass
+## Key DB Schema
+- **users.student_status**: "pending" | "enrolled" | "active" | "withdrawn" (direct field)
+- **payment_concepts**: { id, school_id, name, amount, concept_type, status, is_default }
+- **school_financial_settings**: { pension_mensual, matricula, pronto_pago_*, interes_*, activacion_modo }
 
 ## Prioritized Backlog
 
@@ -67,7 +59,6 @@ EduNet is an educational platform for Peruvian schools, built as a full-stack Re
 - Fix Message Center unread count discrepancy - recurring x3
 - Apply intelligent filters to Parents view
 - Complete Parent Portal feature parity
-- Cache invalidation for /api/student/tasks
 - Build "Matrículas" (Enrollments) module
 - Anti-cheating system for exams
 - Question Bank for exams
@@ -75,12 +66,7 @@ EduNet is an educational platform for Peruvian schools, built as a full-stack Re
 
 ### P2 (Low)
 - Replace window.confirm/alert with global custom modal
-
-## Key DB Schema
-- **payment_concepts**: `{ id, school_id, name, amount, concept_type, status, is_default, created_at, updated_at }`
-- **school_financial_settings**: `{ pension_mensual, matricula, pronto_pago_activo, pronto_pago_monto, pronto_pago_fecha_limite, interes_activo, interes_tipo, interes_valor }`
-- **schools**: `pricing_override` with `mode: str`
-- **pricing_config**: `mode: str`
+- Auto-downgrade: active → enrolled if debt > X months (Phase 2)
 
 ## Key Credentials
 - School Owner: admin@elroble.edu / 1234abc8 (subdomain: elroble)
