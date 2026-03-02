@@ -862,6 +862,7 @@ function StudentAutocomplete({ students, grades, sections, selectedId, onSelect,
 function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, students, financialSettings }) {
   const headers = { Authorization: `Bearer ${localStorage.getItem("token") || ""}` };
   const [paymentConcepts, setPaymentConcepts] = useState([]);
+  const [studentPaidConcepts, setStudentPaidConcepts] = useState([]);
 
   // Load active payment concepts
   useEffect(() => {
@@ -871,6 +872,21 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
         .catch(() => {});
     }
   }, [isOpen]);
+
+  // Load student's already-paid concepts for current year
+  const loadStudentPaidConcepts = (studentId) => {
+    if (!studentId) { setStudentPaidConcepts([]); return; }
+    const currentYear = new Date().getFullYear();
+    axios.get(`${API}/accounting/student-paid-concepts/${studentId}?year=${currentYear}`, { headers })
+      .then(r => setStudentPaidConcepts(r.data.paid_concepts || []))
+      .catch(() => setStudentPaidConcepts([]));
+  };
+
+  // Filter out "unico" concepts already paid by this student
+  const availableConcepts = paymentConcepts.filter(c => {
+    if (c.concept_type === "unico" && studentPaidConcepts.includes(c.name)) return false;
+    return true;
+  });
 
   const getDefaultAmount = (conceptName) => {
     const found = paymentConcepts.find(c => c.name === conceptName);
