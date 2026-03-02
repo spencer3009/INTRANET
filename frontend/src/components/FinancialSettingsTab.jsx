@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
 import { Settings, DollarSign, Clock, Percent, Save, ToggleLeft, ToggleRight, CalendarDays, AlertTriangle } from "lucide-react";
+import PaymentConceptsSection from "./PaymentConceptsSection";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
