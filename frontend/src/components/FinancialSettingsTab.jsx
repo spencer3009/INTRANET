@@ -220,14 +220,10 @@ export default function FinancialSettingsTab({ token, user }) {
             {isOwnerOrAdmin && (
               <button
                 onClick={() => set("interes_activo", !form.interes_activo)}
-                className="flex items-center gap-2 text-xs font-semibold transition-colors"
+                className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${form.interes_activo ? "bg-amber-500" : "bg-slate-300"}`}
                 data-testid="toggle-interes"
               >
-                {form.interes_activo ? (
-                  <ToggleRight className="w-10 h-10 text-amber-500" />
-                ) : (
-                  <ToggleLeft className="w-10 h-10 text-slate-300" />
-                )}
+                <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${form.interes_activo ? "translate-x-7" : "translate-x-1"}`} />
               </button>
             )}
           </div>
