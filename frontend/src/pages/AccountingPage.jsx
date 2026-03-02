@@ -695,6 +695,130 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// STUDENT AUTOCOMPLETE COMPONENT
+// ══════════════════════════════════════════════════════════════════════════════
+function StudentAutocomplete({ students, grades, sections, selectedId, onSelect, onClear }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const ref = useRef(null);
+
+  const selected = selectedId ? students.find(s => s.id === selectedId) : null;
+
+  const getGradeName = (gId) => {
+    const g = grades.find(gr => gr.id === gId);
+    return g ? `${g.nivel_nombre} - ${g.nombre}` : "";
+  };
+  const getSectionName = (sId) => {
+    const s = sections.find(sec => sec.id === sId);
+    return s ? s.nombre : "";
+  };
+
+  const filtered = students.filter(s => {
+    const fullName = `${s.name || ""} ${s.last_name || ""}`.toLowerCase();
+    return fullName.includes(search.toLowerCase());
+  });
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const initials = (s) => `${(s.name || "")[0] || ""}${(s.last_name || "")[0] || ""}`.toUpperCase();
+
+  return (
+    <div className="mb-6 relative" ref={ref} data-testid="student-autocomplete">
+      <label className="block text-sm font-bold text-gray-700 mb-2">Estudiante *</label>
+      {selected ? (
+        <div
+          className="flex items-center justify-between px-4 py-3 bg-gray-50 border-2 border-emerald-300 rounded-xl cursor-pointer"
+          onClick={() => setOpen(!open)}
+        >
+          <div className="flex items-center gap-3">
+            {selected.profile_image ? (
+              <img src={selected.profile_image} alt="" className="w-9 h-9 rounded-full object-cover" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold">
+                {initials(selected)}
+              </div>
+            )}
+            <div>
+              <p className="text-sm font-bold text-gray-800">{selected.name} {selected.last_name}</p>
+              <p className="text-xs text-gray-400">{getGradeName(selected.grado_id)} {getSectionName(selected.seccion_id)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={(e) => { e.stopPropagation(); onClear(); setSearch(""); }} className="p-1 text-gray-400 hover:text-gray-600 rounded">
+              <X className="w-4 h-4" />
+            </button>
+            <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${open ? "rotate-90" : ""}`} />
+          </div>
+        </div>
+      ) : (
+        <div
+          className="flex items-center px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:border-emerald-300 transition-colors"
+          onClick={() => setOpen(true)}
+        >
+          <User className="w-4 h-4 text-gray-400 mr-3" />
+          <span className="text-sm text-gray-400">Buscar estudiante...</span>
+        </div>
+      )}
+
+      {open && (
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden" data-testid="student-dropdown">
+          <div className="p-3 border-b border-gray-100">
+            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg border border-gray-200">
+              <Filter className="w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar estudiante..."
+                className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-gray-400"
+                autoFocus
+                data-testid="student-search-input"
+              />
+            </div>
+          </div>
+          <div className="max-h-60 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-center text-sm text-gray-400 py-6">Sin resultados</p>
+            ) : (
+              filtered.map(s => (
+                <div
+                  key={s.id}
+                  onClick={() => { onSelect(s); setOpen(false); setSearch(""); }}
+                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer transition-colors ${
+                    s.id === selectedId ? "bg-emerald-50" : "hover:bg-gray-50"
+                  }`}
+                  data-testid={`student-option-${s.id}`}
+                >
+                  {s.profile_image ? (
+                    <img src={s.profile_image} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                      {initials(s)}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-semibold text-gray-800 truncate">{s.name} {s.last_name}</p>
+                    <p className="text-xs text-gray-400 truncate">{getGradeName(s.grado_id)} {getSectionName(s.seccion_id)}</p>
+                  </div>
+                  {s.id === selectedId && (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // PAYMENT FORM MODAL - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
 function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, students, financialSettings }) {
