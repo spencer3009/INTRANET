@@ -831,8 +831,8 @@ function StudentAutocomplete({ students, grades, sections, selectedId, onSelect,
                     }`}
                     data-testid={`student-option-${s.id}`}
                   >
-                    {s.profile_image ? (
-                      <img src={s.profile_image} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                    {s.photo_url ? (
+                      <img src={s.photo_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                     ) : (
                       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
                         {initials(s)}
