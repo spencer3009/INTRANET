@@ -46,6 +46,9 @@ EduNet is an educational platform for Peruvian schools. Full PWA with support pa
 ## Recently Fixed
 - **Navigation bug from Contabilidad** (2026-03-02): Fixed infinite useEffect loop caused by `availableConcepts` array being recreated on every render. Memoized with `useMemo`.
 - **IGV default off** (2026-03-02): Changed "Incluye IGV (18%)" checkbox to be disabled by default.
+- **Removed Pendientes card** (2026-03-02): Eliminated the "Pendientes" card from Users page and cleaned up email_verified filtering logic.
+- **Student photos in Ingresos** (2026-03-02): Added photo_url to payment records so student photos show in the income table.
+- **Combo Payment: Matrícula + Mensualidad** (2026-03-02): New feature allowing a single registration that creates two separate payment records internally. Includes auto-filled amounts, total calculation, and student status auto-transition.
 
 ## Upcoming Tasks
 - P0: Mutually exclusive discounts/interest logic
