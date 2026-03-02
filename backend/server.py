@@ -69,6 +69,10 @@ JWT_SECRET = os.environ.get('JWT_SECRET', 'edunet-saas-secret-key-2026-dev-only'
 JWT_ALGORITHM = "HS256"
 BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'edunet.pe')
 
+# Academic student filter - excludes pending students from all academic modules
+ACADEMIC_STUDENT_FILTER = {"student_status": {"$in": ["enrolled", "active"]}}
+
+
 # Cloudinary configuration
 cloudinary.config(
     cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
