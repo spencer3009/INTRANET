@@ -15762,11 +15762,12 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
             if seccion_id:
                 seccion_ids_taught.add(seccion_id)
         
-        # Fetch students in taught grades/sections
+        # Fetch students in taught grades/sections (exclude pending)
         student_query = {
             "school_id": user["school_id"],
             "role": "student",
-            "is_active": {"$ne": False}, "is_demo": {"$ne": True}
+            "is_active": {"$ne": False}, "is_demo": {"$ne": True},
+            **ACADEMIC_STUDENT_FILTER
         }
         
         if seccion_ids_taught:
