@@ -426,9 +426,13 @@ function PaymentsTab({ payments, loading, total, page, totalPages, onPageChange,
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                            <User className="w-4 h-4 text-gray-500" />
-                          </div>
+                          {payment.student_photo ? (
+                            <img src={payment.student_photo} alt="" className="w-9 h-9 rounded-lg object-cover" />
+                          ) : (
+                            <div className="w-9 h-9 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
+                              <User className="w-4 h-4 text-gray-500" />
+                            </div>
+                          )}
                           <div>
                             <p className="text-sm font-semibold text-gray-800">{payment.student_name}</p>
                             <p className="text-xs text-gray-400">{payment.grade_name}</p>
