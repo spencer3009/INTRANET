@@ -903,7 +903,6 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
   // Combo mode: Matrícula + Mensualidad
   const COMBO_CONCEPT = "__combo_matricula_mensualidad__";
-  const isComboMode = formData.concept === COMBO_CONCEPT;
   const [comboAmounts, setComboAmounts] = useState({ matricula: "", mensualidad: "" });
 
   // Show combo option only if Matrícula is available (not already paid)
