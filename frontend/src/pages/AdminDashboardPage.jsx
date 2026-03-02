@@ -119,11 +119,11 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
       // Calculate stats
       setStats({
         totalUsers: users.length,
-        totalStudents: users.filter(u => u.role === 'student').length,
+        totalStudents: users.filter(u => u.role === 'student' && u.student_status !== 'pending').length,
         totalTeachers: users.filter(u => u.role === 'teacher').length,
         totalParents: users.filter(u => u.role === 'parent').length,
-        activeSubjects: 0, // Will be fetched separately if needed
-        pendingUsers: users.filter(u => !u.email_verified).length
+        activeSubjects: 0,
+        pendingUsers: users.filter(u => u.role === 'student' && u.student_status === 'pending').length
       });
       
       if (settingsRes.data) {
