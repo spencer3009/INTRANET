@@ -2701,11 +2701,12 @@ async def get_teacher_dashboard(current_user = Depends(get_current_user)):
         grade = await db.grades.find_one({"id": assignment.get("grade_id"), "school_id": school_id}, {"_id": 0})
         
         if subject:
-            # Count students in this section
+            # Count students in this section (exclude pending)
             students_count = await db.users.count_documents({
                 "school_id": school_id,
                 "role": "student",
-                "seccion_id": assignment.get("section_id")
+                "seccion_id": assignment.get("section_id"),
+                **ACADEMIC_STUDENT_FILTER
             })
             
             courses.append({
