@@ -38,10 +38,14 @@ EduNet is an educational platform for Peruvian schools. Full PWA with support pa
 - **School:** elroble
 
 ## Pending Issues
-1. **P0:** Disappearing student selection in PaymentFormModal (fix applied, needs verification)
+1. **P0:** ~~Disappearing student selection in PaymentFormModal~~ (needs verification)
 2. **P1:** Extra demo students in course views (30 seeder students)
 3. **P2:** Hardcoded data on Owner Dashboard (Asistencia, Noticias)
 4. **P2:** Message Center unread count discrepancy
+
+## Recently Fixed
+- **Navigation bug from Contabilidad** (2026-03-02): Fixed infinite useEffect loop caused by `availableConcepts` array being recreated on every render. Memoized with `useMemo`.
+- **IGV default off** (2026-03-02): Changed "Incluye IGV (18%)" checkbox to be disabled by default.
 
 ## Upcoming Tasks
 - P0: Mutually exclusive discounts/interest logic
