@@ -8673,13 +8673,14 @@ async def get_students_for_attendance(
     
     school_id = user["school_id"]
     
-    # Get students for this grade/section
+    # Get students for this grade/section (exclude pending)
     students_cursor = db.users.find(
         {
             "school_id": school_id,
             "role": "student",
             "grado_id": grade_id,
-            "seccion_id": section_id
+            "seccion_id": section_id,
+            **ACADEMIC_STUDENT_FILTER
         },
         {"_id": 0, "password": 0, "verification_code": 0}
     )
