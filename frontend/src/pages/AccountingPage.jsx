@@ -1007,10 +1007,8 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const igvAmount = formData.igv_applicable ? amountWithInterest * (formData.igv_percentage / 100) : 0;
   const totalAmount = amountWithInterest + igvAmount;
 
-  // Combo calculations
-  const comboMatricula = parseFloat(comboAmounts.matricula) || 0;
-  const comboMensualidad = parseFloat(comboAmounts.mensualidad) || 0;
-  const comboTotal = comboMatricula + comboMensualidad;
+  // Combo calculations (read-only from registered concepts)
+  const comboTotal = isComboMode ? (comboMatriculaAmount + comboMensualidadAmount) : 0;
 
   useEffect(() => {
     if (payment) {
