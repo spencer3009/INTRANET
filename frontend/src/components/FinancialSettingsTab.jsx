@@ -293,6 +293,9 @@ export default function FinancialSettingsTab({ token, user }) {
           </div>
         </div>
       </div>
+
+      {/* Payment Concepts Section */}
+      <PaymentConceptsSection token={token} user={user} />
     </div>
   );
 }
