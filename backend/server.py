@@ -1628,7 +1628,7 @@ async def get_owner_stats(current_user=Depends(require_school)):
     school_id = user.get("school_id") or current_user.get("school_id")
     
     students = await db.users.count_documents({
-        "school_id": school_id, "role": "student"
+        "school_id": school_id, "role": "student", **ACADEMIC_STUDENT_FILTER
     })
     teachers = await db.users.count_documents({
         "school_id": school_id, "role": "teacher"
