@@ -889,11 +889,16 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
     setSaving(true);
     try {
-      const saveData = { ...formData, amount_base: amountAfterDiscount };
+      const saveData = { ...formData, amount_base: amountWithInterest };
       if (applyDiscount && canApplyDiscount) {
         saveData.pronto_pago_applied = true;
         saveData.pronto_pago_discount = prontoPagoDescuento;
         saveData.amount_base_original = amountBase;
+      }
+      if (applyInterest && canApplyInterest && interestAmount > 0) {
+        saveData.interes_applied = true;
+        saveData.interes_amount = interestAmount;
+        saveData.interes_days = daysLate;
       }
       await onSave(saveData);
       onClose();
