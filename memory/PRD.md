@@ -22,8 +22,9 @@ EduNet is an educational platform for Peruvian schools, built as a full-stack Re
 - **Resumen tab**: Dashboard with KPIs, charts (pie, bar, area)
 - **Ingresos tab**: CRUD for payments with status filters, date range filters, and summary cards
 - **Egresos tab**: CRUD for expenses with category filters, date range filters, and summary cards
-- **Morosos page**: Debtors tracking with search, status filters, date range filters, and summary cards
-- **Configuracion tab**: Financial settings (pension, discounts, interest)
+- **Morosos page**: Debtors tracking with search, status filters, KPI cards
+- **Configuracion tab**: Financial settings (pension, discounts, interest) + Payment Concepts management
+- **Payment Concepts**: Full CRUD for configurable payment concepts with auto-seeded defaults
 - **Period Summary API**: `GET /api/accounting/period-summary` with date filtering
 
 ### Billing System
@@ -37,17 +38,23 @@ EduNet is an educational platform for Peruvian schools, built as a full-stack Re
 - Invisible progress bar (CSS min-width fix)
 - Infinite recursion bug in server.py
 
-## Date: March 1, 2026 - Implemented
-- **Date Range Filters & Summary Cards in Accounting**
-  - New `GET /api/accounting/period-summary` backend endpoint
-  - Added `date_from`/`date_to` params to debtors endpoint
-  - Reusable `AccountingDateFilter` component
-  - Reusable `AccountingSummaryCards` component (3 cards: Ingresos del periodo, Total Adeudado, Total General)
-  - Integrated into Ingresos, Egresos tabs and Morosos page
-  - Default dates: current month
-  - Dynamic updates without page reload
-  - Responsive design (stacks on mobile)
-  - Testing: 100% pass rate (17/17 backend tests, all frontend verified)
+## Recent Changes
+
+### March 2, 2026 - Payment Concepts System
+- New MongoDB collection `payment_concepts` with CRUD API endpoints
+- Auto-seeded default concepts (Matrícula, Mensualidad) from financial settings
+- Concepts have: name, amount, concept_type (recurrente/unico), status (active/inactive), is_default
+- Default concepts cannot be deleted, only deactivated
+- Payment form now uses dynamic concepts from API with auto-fill amounts
+- PaymentConceptsSection component in Configuracion tab
+- Testing: 100% pass (22/22 backend + all frontend verified)
+
+### March 1, 2026 - Date Range Filters & Summary Cards
+- New `GET /api/accounting/period-summary` backend endpoint
+- Reusable `AccountingDateFilter` and `AccountingSummaryCards` components
+- Integrated into Ingresos and Egresos tabs (NOT Morosos per user request)
+- Default dates: current month
+- Testing: 100% pass
 
 ## Prioritized Backlog
 
@@ -69,6 +76,12 @@ EduNet is an educational platform for Peruvian schools, built as a full-stack Re
 ### P2 (Low)
 - Replace window.confirm/alert with global custom modal
 
-## Key Credentials (Testing)
+## Key DB Schema
+- **payment_concepts**: `{ id, school_id, name, amount, concept_type, status, is_default, created_at, updated_at }`
+- **school_financial_settings**: `{ pension_mensual, matricula, pronto_pago_activo, pronto_pago_monto, pronto_pago_fecha_limite, interes_activo, interes_tipo, interes_valor }`
+- **schools**: `pricing_override` with `mode: str`
+- **pricing_config**: `mode: str`
+
+## Key Credentials
 - School Owner: admin@elroble.edu / 1234abc8 (subdomain: elroble)
-- Support: spencer3009@gmail.com / 1234abc8 (subdomain: demosettings)
+- Support: spencer3009@gmail.com / 1234abc8
