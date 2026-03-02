@@ -12108,6 +12108,124 @@ async def delete_payment_concept(concept_id: str, current_user=Depends(require_s
     await db.payment_concepts.delete_one({"id": concept_id, "school_id": school_id})
     return {"message": "Concepto eliminado"}
 
+# ─────────────────────────────────────────────────────────────────────────────
+# STUDENT STATUS MANAGEMENT (ESTADOS DE ESTUDIANTE)
+# ─────────────────────────────────────────────────────────────────────────────
+
+STUDENT_STATUSES = {
+    "pending": {"label": "Pendiente", "color": "#EAB308"},
+    "enrolled": {"label": "Matriculado", "color": "#3B82F6"},
+    "active": {"label": "Activo", "color": "#22C55E"},
+    "withdrawn": {"label": "Retirado", "color": "#EF4444"},
+}
+
+class EnrollStudentRequest(BaseModel):
+    grado_id: str
+    seccion_id: str
+    nivel_id: Optional[str] = None
+    turno_id: Optional[str] = None
+
+@api_router.put("/students/{student_id}/enroll")
+async def enroll_student(student_id: str, data: EnrollStudentRequest, current_user=Depends(get_current_user)):
+    """Manually enroll a student: assign grade/section and set status to enrolled."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden matricular")
+    school_id = user["school_id"]
+    student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"})
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    
+    update = {
+        "grado_id": data.grado_id,
+        "seccion_id": data.seccion_id,
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+    if data.nivel_id:
+        update["nivel_id"] = data.nivel_id
+    if data.turno_id:
+        update["turno_id"] = data.turno_id
+    
+    # Only change to enrolled if currently pending
+    current_status = student.get("student_status", "pending")
+    if current_status == "pending":
+        update["student_status"] = "enrolled"
+    
+    await db.users.update_one({"id": student_id}, {"$set": update})
+    return {"message": "Alumno matriculado correctamente", "student_status": update.get("student_status", current_status)}
+
+@api_router.put("/students/{student_id}/status")
+async def update_student_status(student_id: str, current_user=Depends(get_current_user), status: str = ""):
+    """Manually change a student's status (e.g., withdraw)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden cambiar estados")
+    if status not in STUDENT_STATUSES:
+        raise HTTPException(status_code=400, detail="Estado no válido")
+    school_id = user["school_id"]
+    student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"})
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    await db.users.update_one({"id": student_id}, {"$set": {"student_status": status, "updated_at": datetime.now(timezone.utc).isoformat()}})
+    return {"message": f"Estado cambiado a {STUDENT_STATUSES[status]['label']}", "student_status": status}
+
+@api_router.post("/students/migrate-statuses")
+async def migrate_student_statuses(current_user=Depends(get_current_user)):
+    """One-time migration: set student_status for existing students."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+    school_id = user["school_id"]
+    
+    students = await db.users.find({"school_id": school_id, "role": "student", "student_status": {"$exists": False}}).to_list(5000)
+    counts = {"pending": 0, "enrolled": 0, "active": 0}
+    
+    for s in students:
+        # Check if student has payments
+        has_payments = await db.payments.count_documents({"student_id": s["id"], "school_id": school_id, "payment_status": "paid"})
+        if has_payments > 0:
+            new_status = "active"
+        elif s.get("grado_id") and s.get("seccion_id"):
+            new_status = "enrolled"
+        else:
+            new_status = "pending"
+        await db.users.update_one({"id": s["id"]}, {"$set": {"student_status": new_status}})
+        counts[new_status] += 1
+    
+    return {"message": "Migración completada", "counts": counts}
+
+async def auto_update_student_status_on_payment(student_id: str, school_id: str, concept: str):
+    """Automatically update student status when a payment is registered."""
+    student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"})
+    if not student:
+        return
+    current_status = student.get("student_status", "pending")
+    if current_status in ("active", "withdrawn"):
+        return  # No changes needed
+    
+    # Get activation config
+    fin_settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+    activacion_modo = (fin_settings or {}).get("activacion_modo", "matricula_pension")
+    
+    concept_lower = concept.lower().strip()
+    
+    if activacion_modo == "matricula":
+        # Activate with just matrícula payment
+        if concept_lower == "matricula" and current_status in ("pending", "enrolled"):
+            await db.users.update_one({"id": student_id}, {"$set": {"student_status": "active"}})
+    else:
+        # matricula_pension mode
+        if concept_lower == "matricula" and current_status == "pending":
+            await db.users.update_one({"id": student_id}, {"$set": {"student_status": "enrolled"}})
+        elif concept_lower == "mensualidad" and current_status == "enrolled":
+            await db.users.update_one({"id": student_id}, {"$set": {"student_status": "active"}})
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SUBJECTS MODULE (ASIGNATURAS)
 # ══════════════════════════════════════════════════════════════════════════════
