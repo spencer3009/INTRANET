@@ -184,15 +184,14 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                     {isOwnerOrAdmin ? (
                       <button
                         onClick={() => handleToggleStatus(c)}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-colors ${
-                          c.status === "active"
-                            ? "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"
-                            : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                        className={`relative w-12 h-7 rounded-full transition-colors duration-300 ${
+                          c.status === "active" ? "bg-emerald-500" : "bg-slate-300"
                         }`}
                         data-testid={`toggle-status-${c.id}`}
                       >
-                        {c.status === "active" ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
-                        {c.status === "active" ? "Activo" : "Inactivo"}
+                        <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
+                          c.status === "active" ? "translate-x-[22px]" : "translate-x-0.5"
+                        }`} />
                       </button>
                     ) : (
                       <span className={`text-xs font-semibold ${c.status === "active" ? "text-emerald-600" : "text-slate-400"}`}>
