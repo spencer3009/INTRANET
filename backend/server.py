@@ -973,11 +973,15 @@ async def login(creds: UserLogin):
             # Student status login restriction - only active students can login
             if user.get("role") == "student":
                 sstatus = user.get("student_status", "active")  # Default active for migrated users
-                if sstatus in ("pending", "withdrawn"):
-                    status_labels = {"pending": "pendiente", "withdrawn": "retirado"}
+                if sstatus == "pending":
                     raise HTTPException(
                         status_code=403,
-                        detail=f"Tu cuenta de estudiante está en estado {status_labels.get(sstatus, sstatus)}. Comunícate con la administración."
+                        detail="Su matrícula aún no ha sido registrada. Por favor comuníquese con la administración del colegio."
+                    )
+                if sstatus == "withdrawn":
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Tu cuenta de estudiante está en estado retirado. Comunícate con la administración."
                     )
         else:
             # Legacy user with school but no subdomain - treat as not onboarded
