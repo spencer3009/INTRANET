@@ -822,7 +822,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
       setError("Ingresa un monto válido");
       return;
     }
-    if (formData.concept === "mensualidad" && !formData.pension_month) {
+    if (formData.concept.toLowerCase() === "mensualidad" && !formData.pension_month) {
       setError("Selecciona el mes de pensión");
       return;
     }
