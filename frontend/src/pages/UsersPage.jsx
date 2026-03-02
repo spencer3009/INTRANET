@@ -2925,15 +2925,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <div className={`absolute -top-10 -right-10 w-32 h-32 rounded-full bg-gradient-to-br ${role.gradientBg} opacity-10`} />
               <div className={`absolute -bottom-8 -left-8 w-24 h-24 rounded-full bg-gradient-to-br ${role.gradientBg} opacity-10`} />
 
-              {/* Pending badge */}
-              {role.isPending && count > 0 && (
-                <div className="absolute top-4 left-4 z-10">
-                  <span className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">
-                    {count} nuevos
-                  </span>
-                </div>
-              )}
-
               {/* Content */}
               <div className="relative z-10">
                 {/* Icon container with gradient border */}
