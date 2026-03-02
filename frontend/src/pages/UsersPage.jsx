@@ -124,20 +124,6 @@ const ROLE_CARDS = [
     lightGradient: "from-rose-50 to-red-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135725.png"
   },
-  { 
-    id: "pending", 
-    label: "Pendientes", 
-    labelSingular: "Pendiente",
-    color: "from-slate-400 to-slate-500",
-    bgColor: "bg-slate-50",
-    iconBg: "bg-slate-100",
-    textColor: "text-slate-600",
-    borderColor: "border-slate-200",
-    gradientBg: "from-slate-400 to-gray-500",
-    lightGradient: "from-slate-50 to-gray-50",
-    image: "https://cdn-icons-png.flaticon.com/512/3135/3135823.png",
-    isPending: true
-  },
 ];
 
 // Add User Modal Component
