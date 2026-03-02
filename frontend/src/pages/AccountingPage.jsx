@@ -1228,8 +1228,12 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 value={formData.concept}
                 onChange={(e) => handleConceptChange(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                data-testid="concept-select"
               >
                 <option value="">Seleccionar concepto</option>
+                {showComboOption && !payment?.id && (
+                  <option value={COMBO_CONCEPT} className="font-bold">Matrícula + Mensualidad</option>
+                )}
                 {availableConcepts.map(c => (
                   <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
