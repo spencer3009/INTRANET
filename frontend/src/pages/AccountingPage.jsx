@@ -1601,6 +1601,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const [debtorsLoading, setDebtorsLoading] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [historyStudentId, setHistoryStudentId] = useState(null);
+  const [financialSettings, setFinancialSettings] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
 
