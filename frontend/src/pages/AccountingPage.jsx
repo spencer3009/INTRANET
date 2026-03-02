@@ -1001,22 +1001,26 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
       // For new payments, set first available concept
       const firstConcept = availableConcepts.length > 0 ? availableConcepts[0].name : "";
       const firstAmount = availableConcepts.length > 0 ? availableConcepts[0].amount.toString() : "";
-      setFormData({
-        student_id: "",
-        grade_id: "",
-        section_id: "",
+      setFormData(prev => ({
+        ...prev,
         concept: firstConcept,
-        description: "",
         amount_base: firstAmount,
+        // Only reset student fields on modal open, not on concept list change
+        ...(prev.student_id ? {} : {
+          student_id: "",
+          grade_id: "",
+          section_id: "",
+        }),
+        description: prev.student_id ? prev.description : "",
         igv_applicable: true,
         igv_percentage: IGV_PERCENTAGE,
-        payment_method: "efectivo",
-        payment_status: "pending",
-        payment_date: new Date().toISOString().split("T")[0],
-        pension_month: "",
-        receipt_number: "",
-        notes: ""
-      });
+        payment_method: prev.student_id ? prev.payment_method : "efectivo",
+        payment_status: prev.student_id ? prev.payment_status : "pending",
+        payment_date: prev.payment_date || new Date().toISOString().split("T")[0],
+        pension_month: prev.student_id ? prev.pension_month : "",
+        receipt_number: prev.student_id ? prev.receipt_number : "",
+        notes: prev.student_id ? prev.notes : ""
+      }));
     }
     setError("");
   }, [payment, isOpen, availableConcepts]);
