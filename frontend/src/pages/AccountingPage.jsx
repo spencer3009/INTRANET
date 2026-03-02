@@ -903,7 +903,6 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
   // Combo mode: Matrícula + Mensualidad
   const COMBO_CONCEPT = "__combo_matricula_mensualidad__";
-  const [comboAmounts, setComboAmounts] = useState({ matricula: "", mensualidad: "" });
 
   // Show combo option only if Matrícula is available (not already paid)
   const showComboOption = useMemo(() => {
@@ -911,6 +910,16 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     const hasMensualidad = availableConcepts.some(c => c.name.toLowerCase() === "mensualidad" || c.name === "Mensualidad");
     return hasMatricula && hasMensualidad;
   }, [availableConcepts]);
+
+  // Combo amounts are read-only, pulled from registered concepts
+  const comboMatriculaAmount = useMemo(() => {
+    const c = paymentConcepts.find(c => c.name === "Matrícula" || c.name.toLowerCase() === "matricula");
+    return c ? c.amount : 0;
+  }, [paymentConcepts]);
+  const comboMensualidadAmount = useMemo(() => {
+    const c = paymentConcepts.find(c => c.name === "Mensualidad" || c.name.toLowerCase() === "mensualidad");
+    return c ? c.amount : 0;
+  }, [paymentConcepts]);
 
   const [formData, setFormData] = useState({
     student_id: "",
