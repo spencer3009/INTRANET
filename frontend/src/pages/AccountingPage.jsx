@@ -760,14 +760,16 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
         notes: payment.notes || ""
       });
     } else {
-      const defaultConcept = "mensualidad";
+      // For new payments, set first concept from API list when loaded
+      const firstConcept = paymentConcepts.length > 0 ? paymentConcepts[0].name : "";
+      const firstAmount = paymentConcepts.length > 0 ? paymentConcepts[0].amount.toString() : "";
       setFormData({
         student_id: "",
         grade_id: "",
         section_id: "",
-        concept: defaultConcept,
+        concept: firstConcept,
         description: "",
-        amount_base: getDefaultAmount(defaultConcept),
+        amount_base: firstAmount,
         igv_applicable: true,
         igv_percentage: IGV_PERCENTAGE,
         payment_method: "efectivo",
@@ -779,7 +781,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
       });
     }
     setError("");
-  }, [payment, isOpen]);
+  }, [payment, isOpen, paymentConcepts]);
 
   // Auto-fill amount when concept changes (only for new payments)
   const handleConceptChange = (newConcept) => {
