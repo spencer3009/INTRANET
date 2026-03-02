@@ -941,44 +941,15 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             </div>
           )}
 
-          {/* Student selection */}
-          <div className="mb-6">
-            <label className="block text-sm font-bold text-gray-700 mb-3">Estudiante</label>
-            <div className="grid grid-cols-3 gap-3">
-              <select
-                value={formData.grade_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value, section_id: "", student_id: "" }))}
-                className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              >
-                <option value="">Grado</option>
-                {grades.map(g => (
-                  <option key={g.id} value={g.id}>{g.nivel_nombre} - {g.nombre}</option>
-                ))}
-              </select>
-              <select
-                value={formData.section_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, section_id: e.target.value, student_id: "" }))}
-                disabled={!formData.grade_id}
-                className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
-              >
-                <option value="">Sección</option>
-                {filteredSections.map(s => (
-                  <option key={s.id} value={s.id}>{s.nombre}</option>
-                ))}
-              </select>
-              <select
-                value={formData.student_id}
-                onChange={(e) => setFormData(prev => ({ ...prev, student_id: e.target.value }))}
-                disabled={!formData.section_id}
-                className="px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:opacity-50"
-              >
-                <option value="">Estudiante</option>
-                {filteredStudents.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} {s.last_name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          {/* Student selection - Autocomplete */}
+          <StudentAutocomplete
+            students={students}
+            grades={grades}
+            sections={sections}
+            selectedId={formData.student_id}
+            onSelect={(s) => setFormData(prev => ({ ...prev, student_id: s.id, grade_id: s.grado_id || "", section_id: s.seccion_id || "" }))}
+            onClear={() => setFormData(prev => ({ ...prev, student_id: "", grade_id: "", section_id: "" }))}
+          />
 
           {/* Concept and method */}
           <div className="grid grid-cols-2 gap-4 mb-6">
