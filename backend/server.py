@@ -11967,6 +11967,7 @@ class FinancialSettingsUpdate(BaseModel):
     interes_activo: Optional[bool] = None
     interes_tipo: Optional[str] = None
     interes_valor: Optional[float] = None
+    activacion_modo: Optional[str] = None  # "matricula" or "matricula_pension"
 
 @api_router.get("/accounting/financial-settings")
 async def get_financial_settings(current_user = Depends(require_section_access("accounting"))):
