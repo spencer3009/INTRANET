@@ -2529,7 +2529,8 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
             "school_id": school_id,
             "seccion_id": seccion_id,
             "role": "student",
-            "id": {"$ne": user["id"]}  # Exclude current student
+            "id": {"$ne": user["id"]},
+            **ACADEMIC_STUDENT_FILTER
         })
     
     return {
