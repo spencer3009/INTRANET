@@ -189,8 +189,8 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                         }`}
                         data-testid={`toggle-status-${c.id}`}
                       >
-                        <span className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${
-                          c.status === "active" ? "translate-x-[22px]" : "translate-x-0.5"
+                        <span className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${
+                          c.status === "active" ? "translate-x-5" : "translate-x-0"
                         }`} />
                       </button>
                     ) : (
