@@ -2027,6 +2027,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         grades={grades}
         sections={sections}
         students={students}
+        financialSettings={financialSettings}
       />
       <ExpenseFormModal
         isOpen={showExpenseModal}
