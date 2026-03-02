@@ -3539,11 +3539,12 @@ async def get_admin_grades_summary(
     
     summary = []
     for section in sections:
-        # Count students in section
+        # Count students in section (exclude pending)
         students_count = await db.users.count_documents({
             "school_id": school_id,
             "role": "student",
-            "seccion_id": section["id"]
+            "seccion_id": section["id"],
+            **ACADEMIC_STUDENT_FILTER
         })
         
         # Get grades for this section
