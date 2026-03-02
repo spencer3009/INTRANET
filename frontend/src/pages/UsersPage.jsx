@@ -1694,10 +1694,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       const matchesLevel = !studentFilterLevel || u.nivel_id === studentFilterLevel;
       const matchesGrade = !studentFilterGrade || u.grado_id === studentFilterGrade;
       const matchesSection = !studentFilterSection || u.seccion_id === studentFilterSection;
+      const matchesStatus = !studentStatusFilter || (u.student_status || "active") === studentStatusFilter;
       
-      return matchesSearch && matchesLevel && matchesGrade && matchesSection;
+      return matchesSearch && matchesLevel && matchesGrade && matchesSection && matchesStatus;
     });
-  }, [users, studentSearch, studentFilterLevel, studentFilterGrade, studentFilterSection]);
+  }, [users, studentSearch, studentFilterLevel, studentFilterGrade, studentFilterSection, studentStatusFilter]);
   
   // Group students by level for hierarchical view
   const studentsByLevel = useMemo(() => {
