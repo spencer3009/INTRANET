@@ -2976,13 +2976,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           </div>
           <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl p-5 text-center text-white shadow-lg">
             <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/10"></div>
-            <p className="text-4xl font-bold mb-1">{users.filter(u => u.email_verified).length}</p>
-            <p className="text-sm text-emerald-100">Verificados</p>
+            <p className="text-4xl font-bold mb-1">{users.filter(u => u.role === 'student').length}</p>
+            <p className="text-sm text-emerald-100">Estudiantes</p>
           </div>
           <div className="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl p-5 text-center text-white shadow-lg">
             <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/10"></div>
-            <p className="text-4xl font-bold mb-1">{users.filter(u => !u.email_verified).length}</p>
-            <p className="text-sm text-amber-100">Pendientes</p>
+            <p className="text-4xl font-bold mb-1">{users.filter(u => u.role === 'teacher').length}</p>
+            <p className="text-sm text-amber-100">Profesores</p>
           </div>
           <div className="relative overflow-hidden bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl p-5 text-center text-white shadow-lg">
             <div className="absolute -top-4 -right-4 w-16 h-16 rounded-full bg-white/10"></div>
