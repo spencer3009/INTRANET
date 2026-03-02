@@ -152,7 +152,7 @@ export default function FinancialSettingsTab({ token, user }) {
                 className={`relative w-14 h-8 rounded-full transition-colors duration-300 ${form.pronto_pago_activo ? "bg-blue-500" : "bg-slate-300"}`}
                 data-testid="toggle-pronto-pago"
               >
-                <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow-md transition-transform duration-300 ${form.pronto_pago_activo ? "translate-x-7" : "translate-x-1"}`} />
+                <span className={`absolute top-1 left-1 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300 ${form.pronto_pago_activo ? "translate-x-6" : "translate-x-0"}`} />
               </button>
             )}
           </div>
