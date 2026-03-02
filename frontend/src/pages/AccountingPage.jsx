@@ -852,7 +852,13 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
     setSaving(true);
     try {
-      await onSave({ ...formData, amount_base: parseFloat(formData.amount_base) });
+      const saveData = { ...formData, amount_base: amountAfterDiscount };
+      if (applyDiscount && canApplyDiscount) {
+        saveData.pronto_pago_applied = true;
+        saveData.pronto_pago_discount = prontoPagoDescuento;
+        saveData.amount_base_original = amountBase;
+      }
+      await onSave(saveData);
       onClose();
     } catch (err) {
       setError(err.response?.data?.detail || "Error al guardar pago");
