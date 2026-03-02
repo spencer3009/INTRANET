@@ -1471,7 +1471,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             data-testid="save-payment-btn"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            {payment?.id ? "Actualizar" : "Registrar"}
+            {payment?.id ? "Actualizar" : isComboMode ? "Registrar 2 pagos" : "Registrar"}
           </button>
         </div>
       </div>
