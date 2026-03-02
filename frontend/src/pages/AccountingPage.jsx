@@ -1313,9 +1313,8 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                   step="0.01"
                   min="0"
                   value={formData.amount_base}
-                  onChange={(e) => setFormData(prev => ({ ...prev, amount_base: e.target.value }))}
-                  placeholder="0.00"
-                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                  readOnly
+                  className="w-full px-4 py-3 bg-gray-100 border border-gray-200 rounded-xl text-lg font-bold text-gray-700 cursor-not-allowed"
                 />
               </div>
               <div className="flex items-end pb-1">
