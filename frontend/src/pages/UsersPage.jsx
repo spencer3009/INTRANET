@@ -2182,6 +2182,31 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 ))}
               </select>
             </div>
+
+            {/* Student Status Filter */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Estado:</span>
+              {[
+                { key: "", label: "Todos", color: "bg-slate-100 text-slate-600" },
+                { key: "pending", label: "Pendientes", color: "bg-amber-100 text-amber-700" },
+                { key: "enrolled", label: "Matriculados", color: "bg-blue-100 text-blue-700" },
+                { key: "active", label: "Activos", color: "bg-emerald-100 text-emerald-700" },
+                { key: "withdrawn", label: "Retirados", color: "bg-red-100 text-red-700" },
+              ].map(s => (
+                <button
+                  key={s.key}
+                  onClick={() => setStudentStatusFilter(s.key)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    studentStatusFilter === s.key
+                      ? `${s.color} ring-2 ring-offset-1 ring-slate-300`
+                      : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+                  }`}
+                  data-testid={`status-filter-${s.key || "all"}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
             
             {/* Results indicator + Clear filters */}
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
