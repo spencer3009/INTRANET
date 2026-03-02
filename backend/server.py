@@ -12189,11 +12189,12 @@ async def migrate_student_statuses(current_user=Depends(get_current_user)):
     counts = {"pending": 0, "enrolled": 0, "active": 0}
     
     for s in students:
-        # Check if student has payments
-        has_payments = await db.payments.count_documents({"student_id": s["id"], "school_id": school_id, "payment_status": "paid"})
-        if has_payments > 0:
+        # Check if student has matrícula payment
+        has_matricula = await db.payments.count_documents({"student_id": s["id"], "school_id": school_id, "payment_status": "paid", "concept": {"$regex": "^matricula$", "$options": "i"}})
+        has_pension = await db.payments.count_documents({"student_id": s["id"], "school_id": school_id, "payment_status": "paid", "concept": {"$regex": "^mensualidad$", "$options": "i"}})
+        if has_matricula and has_pension:
             new_status = "active"
-        elif s.get("grado_id") and s.get("seccion_id"):
+        elif has_matricula:
             new_status = "enrolled"
         else:
             new_status = "pending"
