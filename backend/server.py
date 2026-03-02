@@ -2049,12 +2049,13 @@ async def get_student_classmates(current_user = Depends(get_current_user)):
     if not seccion_id:
         return {"students": [], "message": "No tienes una sección asignada"}
     
-    # Get ALL students in the same section (including current user)
+    # Get ALL students in the same section (including current user) - exclude pending
     students_cursor = db.users.find(
         {
             "school_id": school_id,
             "seccion_id": seccion_id,
-            "role": "student"
+            "role": "student",
+            **ACADEMIC_STUDENT_FILTER
         },
         {"_id": 0, "password": 0, "verification_code": 0}
     )
