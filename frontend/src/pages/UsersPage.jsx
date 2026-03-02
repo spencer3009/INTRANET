@@ -2484,7 +2484,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <span className="px-1.5 py-0.5 text-[8px] font-bold bg-blue-100 text-blue-700 rounded-full">DEMO</span>
                 )}
               </p>
-              <p className="text-xs text-slate-400">@{student.username}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <p className="text-xs text-slate-400">@{student.username}</p>
+                {(() => {
+                  const st = student.student_status || "active";
+                  const cfg = { pending: "bg-amber-100 text-amber-700", enrolled: "bg-blue-100 text-blue-700", active: "bg-emerald-100 text-emerald-700", withdrawn: "bg-red-100 text-red-700" };
+                  const lbl = { pending: "Pendiente", enrolled: "Matriculado", active: "Activo", withdrawn: "Retirado" };
+                  return <span className={`px-1.5 py-0.5 text-[8px] font-bold rounded-full ${cfg[st] || cfg.active}`}>{lbl[st] || st}</span>;
+                })()}
+              </div>
             </div>
           </div>
           <div className="relative">
