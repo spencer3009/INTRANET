@@ -191,7 +191,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
                         }`}
                         data-testid={`toggle-status-${c.id}`}
                       >
-                        {c.status === "active" ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+                        {c.status === "active" ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
                         {c.status === "active" ? "Activo" : "Inactivo"}
                       </button>
                     ) : (
