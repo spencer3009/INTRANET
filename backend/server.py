@@ -15960,8 +15960,8 @@ async def get_academic_contacts(current_user = Depends(get_current_user)):
                             "unread_count": unread_by_contact.get(teacher["id"], 0)
                         })
         
-        # 2. COMPANEROS - classmates
-        classmate_query = {"school_id": school_id, "role": "student", "id": {"$ne": user["id"]}, "is_active": {"$ne": False}, "is_demo": {"$ne": True}}
+        # 2. COMPANEROS - classmates (exclude pending)
+        classmate_query = {"school_id": school_id, "role": "student", "id": {"$ne": user["id"]}, "is_active": {"$ne": False}, "is_demo": {"$ne": True}, **ACADEMIC_STUDENT_FILTER}
         if seccion_id:
             classmate_query["seccion_id"] = seccion_id
         elif grade_id:
