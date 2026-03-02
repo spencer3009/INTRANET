@@ -44,11 +44,14 @@ EduNet is an educational platform for Peruvian schools. Full PWA with support pa
 4. **P2:** Message Center unread count discrepancy
 
 ## Recently Fixed
+- **Pending student exclusion from academic modules** (2026-03-02): Global filter `ACADEMIC_STUDENT_FILTER` excludes pending students from all academic endpoints and frontend pages. Login shows custom message. Only visible in Students management and Accounting.
 - **Navigation bug from Contabilidad** (2026-03-02): Fixed infinite useEffect loop caused by `availableConcepts` array being recreated on every render. Memoized with `useMemo`.
 - **IGV default off** (2026-03-02): Changed "Incluye IGV (18%)" checkbox to be disabled by default.
 - **Removed Pendientes card** (2026-03-02): Eliminated the "Pendientes" card from Users page and cleaned up email_verified filtering logic.
 - **Student photos in Ingresos** (2026-03-02): Added photo_url to payment records so student photos show in the income table.
-- **Combo Payment: Matrícula + Mensualidad** (2026-03-02): New feature allowing a single registration that creates two separate payment records internally. Includes auto-filled amounts, total calculation, and student status auto-transition.
+- **Combo Payment: Matrícula + Mensualidad** (2026-03-02): New feature allowing a single registration that creates two separate payment records internally. Amounts are read-only from registered concepts.
+- **Demo user creation** (2026-03-02): "Crear como Usuario Demo" switch only visible for support sessions.
+- **Deleted 117 demo students** (2026-03-02): Cleaned up seeder-created test students.
 
 ## Upcoming Tasks
 - P0: Mutually exclusive discounts/interest logic
