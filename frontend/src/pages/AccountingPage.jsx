@@ -998,9 +998,9 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
         notes: payment.notes || ""
       });
     } else {
-      // For new payments, set first concept from API list when loaded
-      const firstConcept = paymentConcepts.length > 0 ? paymentConcepts[0].name : "";
-      const firstAmount = paymentConcepts.length > 0 ? paymentConcepts[0].amount.toString() : "";
+      // For new payments, set first available concept
+      const firstConcept = availableConcepts.length > 0 ? availableConcepts[0].name : "";
+      const firstAmount = availableConcepts.length > 0 ? availableConcepts[0].amount.toString() : "";
       setFormData({
         student_id: "",
         grade_id: "",
