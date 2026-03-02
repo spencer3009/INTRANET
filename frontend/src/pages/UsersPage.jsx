@@ -1785,10 +1785,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   // Count users by role
   const getUserCount = (roleId) => {
-    if (roleId === 'pending') {
-      return users.filter(u => !u.email_verified).length;
-    }
-    return users.filter(u => u.role === roleId && u.email_verified).length;
+    return users.filter(u => u.role === roleId).length;
   };
 
   const handleCardClick = (roleId) => {
