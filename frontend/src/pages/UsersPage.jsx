@@ -13,6 +13,7 @@ import {
   ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail, UserX
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
+import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
 
