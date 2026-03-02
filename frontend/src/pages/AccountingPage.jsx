@@ -990,13 +990,18 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     }
   }, [formData.payment_date, formData.pension_month, canApplyDiscount, canApplyInterest, prontoPagoFechaLimite]);
 
-  const amountBase = parseFloat(formData.amount_base) || 0;
+  const amountBase = isComboMode ? 0 : (parseFloat(formData.amount_base) || 0);
   const discountAmount = (applyDiscount && canApplyDiscount) ? prontoPagoDescuento : 0;
   const amountAfterDiscount = Math.max(amountBase - discountAmount, 0);
   const interestAmount = calcInterestAmount(amountAfterDiscount);
   const amountWithInterest = amountAfterDiscount + interestAmount;
   const igvAmount = formData.igv_applicable ? amountWithInterest * (formData.igv_percentage / 100) : 0;
   const totalAmount = amountWithInterest + igvAmount;
+
+  // Combo calculations
+  const comboMatricula = parseFloat(comboAmounts.matricula) || 0;
+  const comboMensualidad = parseFloat(comboAmounts.mensualidad) || 0;
+  const comboTotal = comboMatricula + comboMensualidad;
 
   useEffect(() => {
     if (payment) {
