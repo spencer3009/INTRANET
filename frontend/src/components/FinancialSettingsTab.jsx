@@ -228,9 +228,9 @@ export default function FinancialSettingsTab({ token, user }) {
                 data-testid="toggle-interes"
               >
                 {form.interes_activo ? (
-                  <ToggleRight className="w-7 h-7 text-amber-500" />
+                  <ToggleRight className="w-10 h-10 text-amber-500" />
                 ) : (
-                  <ToggleLeft className="w-7 h-7 text-slate-300" />
+                  <ToggleLeft className="w-10 h-10 text-slate-300" />
                 )}
               </button>
             )}
