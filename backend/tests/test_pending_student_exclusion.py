@@ -95,7 +95,7 @@ class TestPendingStudentExclusion:
         Test 3: GET /api/attendance/students should NOT return pending students
         """
         # First get grades/sections to know valid IDs
-        grades_response = requests.get(f"{BASE_URL}/api/grades", headers=self.headers)
+        grades_response = requests.get(f"{BASE_URL}/api/academic/grades", headers=self.headers)
         assert grades_response.status_code == 200, f"Get grades failed: {grades_response.text}"
         grades = grades_response.json()
         
@@ -103,7 +103,7 @@ class TestPendingStudentExclusion:
             pytest.skip("No grades found in school")
         
         # Get sections for the first grade
-        sections_response = requests.get(f"{BASE_URL}/api/sections", headers=self.headers)
+        sections_response = requests.get(f"{BASE_URL}/api/academic/sections", headers=self.headers)
         assert sections_response.status_code == 200, f"Get sections failed: {sections_response.text}"
         sections = sections_response.json()
         
