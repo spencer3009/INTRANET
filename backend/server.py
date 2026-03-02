@@ -11174,7 +11174,7 @@ async def get_payments(
     for payment in payments:
         # Student info
         if payment["student_id"] not in students_cache:
-            student = await db.users.find_one({"id": payment["student_id"]}, {"_id": 0, "name": 1, "last_name": 1})
+            student = await db.users.find_one({"id": payment["student_id"]}, {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1})
             students_cache[payment["student_id"]] = student
         student_info = students_cache[payment["student_id"]]
         payment["student_name"] = f"{student_info.get('name', '')} {student_info.get('last_name', '')}".strip() if student_info else "Desconocido"
