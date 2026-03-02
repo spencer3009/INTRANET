@@ -64,9 +64,9 @@ export default function AccountingDateFilter({ dateFrom, dateTo, onFilter, onCle
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3" data-testid="date-range-filter">
+    <div className="flex flex-wrap items-center gap-4 justify-end" data-testid="date-range-filter">
       {/* Mode buttons */}
-      <div className="flex bg-gray-100 rounded-lg p-0.5">
+      <div className="flex bg-gray-100 rounded-xl p-1">
         {[
           { key: "month", label: "Mes" },
           { key: "day", label: "Rango" },
@@ -75,7 +75,7 @@ export default function AccountingDateFilter({ dateFrom, dateTo, onFilter, onCle
           <button
             key={m.key}
             onClick={() => setMode(m.key)}
-            className={`px-3.5 py-1.5 rounded-md text-xs font-bold transition-all ${
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
               mode === m.key
                 ? "bg-white text-slate-800 shadow-sm"
                 : "text-gray-500 hover:text-gray-700"
@@ -89,46 +89,46 @@ export default function AccountingDateFilter({ dateFrom, dateTo, onFilter, onCle
 
       {/* Month selector */}
       {mode === "month" && (
-        <div className="flex items-center gap-1.5">
-          <button onClick={handlePrevMonth} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" data-testid="prev-month-btn">
-            <ChevronLeft className="w-4 h-4" />
+        <div className="flex items-center gap-2">
+          <button onClick={handlePrevMonth} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" data-testid="prev-month-btn">
+            <ChevronLeft className="w-5 h-5" />
           </button>
-          <span className="text-sm font-bold text-slate-700 min-w-[140px] text-center" data-testid="current-month-label">
+          <span className="text-base font-bold text-slate-700 min-w-[160px] text-center" data-testid="current-month-label">
             {MONTHS[selectedMonth - 1]} {selectedYear}
           </span>
-          <button onClick={handleNextMonth} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" data-testid="next-month-btn">
-            <ChevronRight className="w-4 h-4" />
+          <button onClick={handleNextMonth} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" data-testid="next-month-btn">
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       )}
 
       {/* Day range selector */}
       {mode === "day" && (
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5">
-            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400" />
             <input
               type="date"
               value={dayFrom}
               onChange={(e) => setDayFrom(e.target.value)}
-              className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+              className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
               data-testid="date-from-input"
             />
           </div>
-          <span className="text-xs text-gray-400 font-medium">a</span>
+          <span className="text-sm text-gray-400 font-medium">a</span>
           <input
             type="date"
             value={dayTo}
             onChange={(e) => setDayTo(e.target.value)}
-            className="px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
+            className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-slate-300"
             data-testid="date-to-input"
           />
           <button
             onClick={handleDayFilter}
-            className="px-3 py-1.5 bg-slate-700 text-white rounded-lg text-xs font-bold hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+            className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-bold hover:bg-slate-800 transition-colors flex items-center gap-2"
             data-testid="filter-btn"
           >
-            <Filter className="w-3 h-3" />
+            <Filter className="w-4 h-4" />
             Filtrar
           </button>
         </div>
@@ -136,15 +136,15 @@ export default function AccountingDateFilter({ dateFrom, dateTo, onFilter, onCle
 
       {/* Year selector */}
       {mode === "year" && (
-        <div className="flex items-center gap-1.5">
-          <button onClick={() => setSelectedYear(y => y - 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" data-testid="prev-year-btn">
-            <ChevronLeft className="w-4 h-4" />
+        <div className="flex items-center gap-2">
+          <button onClick={() => setSelectedYear(y => y - 1)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" data-testid="prev-year-btn">
+            <ChevronLeft className="w-5 h-5" />
           </button>
-          <span className="text-sm font-bold text-slate-700 min-w-[60px] text-center" data-testid="current-year-label">
+          <span className="text-base font-bold text-slate-700 min-w-[70px] text-center" data-testid="current-year-label">
             {selectedYear}
           </span>
-          <button onClick={() => setSelectedYear(y => y + 1)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" data-testid="next-year-btn">
-            <ChevronRight className="w-4 h-4" />
+          <button onClick={() => setSelectedYear(y => y + 1)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 transition-colors" data-testid="next-year-btn">
+            <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       )}
@@ -152,11 +152,11 @@ export default function AccountingDateFilter({ dateFrom, dateTo, onFilter, onCle
       {/* Reset */}
       <button
         onClick={handleReset}
-        className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
         title="Restablecer"
         data-testid="clear-filter-btn"
       >
-        <X className="w-4 h-4" />
+        <X className="w-5 h-5" />
       </button>
     </div>
   );
