@@ -1253,8 +1253,8 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             </div>
           </div>
 
-          {/* Pension Month - shown when concept is mensualidad */}
-          {formData.concept.toLowerCase() === "mensualidad" && (
+          {/* Pension Month - shown when concept is mensualidad or combo */}
+          {(formData.concept.toLowerCase() === "mensualidad" || isComboMode) && (
             <div className="mb-6">
               <label className="block text-sm font-bold text-gray-700 mb-2">Mes de Pensión *</label>
               <input
@@ -1265,6 +1265,59 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 data-testid="pension-month-input"
               />
               <p className="text-xs text-gray-400 mt-1">Selecciona el mes al que corresponde esta pensión</p>
+            </div>
+          )}
+
+          {/* Combo Mode: Two separate amount fields */}
+          {isComboMode && (
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-5 mb-6 border border-emerald-200">
+              <div className="flex items-center gap-2 mb-4">
+                <CircleDollarSign className="w-5 h-5 text-emerald-600" />
+                <span className="text-sm font-bold text-gray-700">Pago Combinado</span>
+                <span className="ml-auto text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-semibold">2 registros</span>
+              </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Monto Matrícula (S/.)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={comboAmounts.matricula}
+                    onChange={(e) => setComboAmounts(prev => ({ ...prev, matricula: e.target.value }))}
+                    placeholder="0.00"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    data-testid="combo-matricula-amount"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Monto Mensualidad (S/.)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={comboAmounts.mensualidad}
+                    onChange={(e) => setComboAmounts(prev => ({ ...prev, mensualidad: e.target.value }))}
+                    placeholder="0.00"
+                    className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-lg font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    data-testid="combo-mensualidad-amount"
+                  />
+                </div>
+              </div>
+              <div className="bg-white rounded-xl p-4 border border-gray-200 mt-4">
+                <div className="flex justify-between text-sm mb-2">
+                  <span className="text-gray-500 font-medium">Matrícula</span>
+                  <span className="font-bold text-gray-700">S/ {formatNumber(comboMatricula)}</span>
+                </div>
+                <div className="flex justify-between text-sm mb-3">
+                  <span className="text-gray-500 font-medium">Mensualidad</span>
+                  <span className="font-bold text-gray-700">S/ {formatNumber(comboMensualidad)}</span>
+                </div>
+                <div className="flex justify-between text-base pt-3 border-t border-gray-100">
+                  <span className="font-bold text-gray-700">Total a Pagar</span>
+                  <span className="text-xl font-bold text-emerald-600">S/ {formatNumber(comboTotal)}</span>
+                </div>
+              </div>
             </div>
           )}
 
