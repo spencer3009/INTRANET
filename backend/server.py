@@ -2914,11 +2914,12 @@ async def get_teacher_students(
     else:
         query_sections = allowed_section_ids
     
-    # Get students
+    # Get students (exclude pending)
     students = await db.users.find({
         "school_id": school_id,
         "role": "student",
-        "seccion_id": {"$in": query_sections}
+        "seccion_id": {"$in": query_sections},
+        **ACADEMIC_STUDENT_FILTER
     }, {"_id": 0, "password": 0}).to_list(500)
     
     # Get section info for each student
