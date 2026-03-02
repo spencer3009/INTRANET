@@ -2726,7 +2726,8 @@ async def get_teacher_dashboard(current_user = Depends(get_current_user)):
         total_students = await db.users.count_documents({
             "school_id": school_id,
             "role": "student",
-            "seccion_id": {"$in": section_ids}
+            "seccion_id": {"$in": section_ids},
+            **ACADEMIC_STUDENT_FILTER
         })
     
     # Count pending reviews (submissions without grades)
