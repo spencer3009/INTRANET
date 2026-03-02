@@ -918,8 +918,9 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 onChange={(e) => handleConceptChange(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
-                {Object.entries(CONCEPTS).map(([key, val]) => (
-                  <option key={key} value={key}>{val}</option>
+                <option value="">Seleccionar concepto</option>
+                {paymentConcepts.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
                 ))}
               </select>
             </div>
