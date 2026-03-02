@@ -934,6 +934,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const [error, setError] = useState("");
   const [applyDiscount, setApplyDiscount] = useState(false);
   const [applyInterest, setApplyInterest] = useState(false);
+  const isComboMode = formData.concept === COMBO_CONCEPT;
 
   // Financial settings
   const fs = financialSettings || {};
