@@ -1321,7 +1321,8 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             </div>
           )}
 
-          {/* Amount and IGV - Premium calculator style */}
+          {/* Amount and IGV - Premium calculator style (hidden in combo mode) */}
+          {!isComboMode && (
           <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-5 mb-6 border border-gray-200">
             <div className="flex items-center gap-2 mb-4">
               <CircleDollarSign className="w-5 h-5 text-emerald-600" />
