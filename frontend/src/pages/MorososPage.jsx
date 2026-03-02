@@ -161,74 +161,31 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 10;
 
-  // Date range filter state
-  const [dateFrom, setDateFrom] = useState(getDefaultDates().from);
-  const [dateTo, setDateTo] = useState(getDefaultDates().to);
-  const [periodSummary, setPeriodSummary] = useState(null);
-  const [summaryLoading, setSummaryLoading] = useState(false);
-
   const hasAccess = canAccessSection(user, 'accounting');
   const headers = { Authorization: `Bearer ${token}` };
 
-  const loadDebtors = async (from, to) => {
-    setLoading(true);
-    try {
-      const params = {};
-      if (from) params.date_from = from;
-      if (to) params.date_to = to;
-      const [debtorsRes, settingsRes] = await Promise.all([
-        axios.get(`${API}/accounting/debtors`, { headers, params }),
-        axios.get(`${API}/settings`, { headers }).catch(() => null)
-      ]);
-      setDebtors(debtorsRes.data.debtors || []);
-      setSummary(debtorsRes.data.summary || null);
-      if (settingsRes) {
-        setSchoolSettings(settingsRes.data);
-        setBlockAccessIfDebt(settingsRes.data.restrict_grades_if_debt || false);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadPeriodSummary = async (from, to) => {
-    setSummaryLoading(true);
-    try {
-      const params = {};
-      if (from) params.date_from = from;
-      if (to) params.date_to = to;
-      const res = await axios.get(`${API}/accounting/period-summary`, { headers, params });
-      setPeriodSummary(res.data);
-    } catch (err) {
-      console.error("Error loading period summary:", err);
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
-
   useEffect(() => {
-    loadDebtors(dateFrom, dateTo);
-    loadPeriodSummary(dateFrom, dateTo);
+    const load = async () => {
+      setLoading(true);
+      try {
+        const [debtorsRes, settingsRes] = await Promise.all([
+          axios.get(`${API}/accounting/debtors`, { headers }),
+          axios.get(`${API}/settings`, { headers }).catch(() => null)
+        ]);
+        setDebtors(debtorsRes.data.debtors || []);
+        setSummary(debtorsRes.data.summary || null);
+        if (settingsRes) {
+          setSchoolSettings(settingsRes.data);
+          setBlockAccessIfDebt(settingsRes.data.restrict_grades_if_debt || false);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
-
-  const handleDateFilter = (from, to) => {
-    setDateFrom(from);
-    setDateTo(to);
-    setCurrentPage(1);
-    loadDebtors(from, to);
-    loadPeriodSummary(from, to);
-  };
-
-  const handleDateClear = () => {
-    const defaults = getDefaultDates();
-    setDateFrom(defaults.from);
-    setDateTo(defaults.to);
-    setCurrentPage(1);
-    loadDebtors(defaults.from, defaults.to);
-    loadPeriodSummary(defaults.from, defaults.to);
-  };
 
   const handleToggleBlockAccess = async () => {
     setSavingToggle(true);
