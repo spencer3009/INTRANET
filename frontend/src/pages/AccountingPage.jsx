@@ -901,6 +901,18 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     return "";
   };
 
+  // Combo mode: Matrícula + Mensualidad
+  const COMBO_CONCEPT = "__combo_matricula_mensualidad__";
+  const isComboMode = formData.concept === COMBO_CONCEPT;
+  const [comboAmounts, setComboAmounts] = useState({ matricula: "", mensualidad: "" });
+
+  // Show combo option only if Matrícula is available (not already paid)
+  const showComboOption = useMemo(() => {
+    const hasMatricula = availableConcepts.some(c => c.name.toLowerCase() === "matricula" || c.name === "Matrícula");
+    const hasMensualidad = availableConcepts.some(c => c.name.toLowerCase() === "mensualidad" || c.name === "Mensualidad");
+    return hasMatricula && hasMensualidad;
+  }, [availableConcepts]);
+
   const [formData, setFormData] = useState({
     student_id: "",
     grade_id: "",
