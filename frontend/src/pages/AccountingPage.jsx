@@ -736,10 +736,33 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [applyDiscount, setApplyDiscount] = useState(false);
+
+  // Pronto pago logic
+  const fs = financialSettings || {};
+  const prontoPagoActivo = fs.pronto_pago_activo === true;
+  const prontoPagoMonto = parseFloat(fs.pronto_pago_monto) || 0;
+  const pensionMensual = parseFloat(fs.pension_mensual) || 0;
+  const prontoPagoDescuento = pensionMensual > 0 && prontoPagoMonto > 0 ? pensionMensual - prontoPagoMonto : 0;
+  const prontoPagoFechaLimite = parseInt(fs.pronto_pago_fecha_limite) || 5;
+  const isMensualidad = formData.concept.toLowerCase() === "mensualidad";
+  const canApplyDiscount = prontoPagoActivo && isMensualidad && prontoPagoDescuento > 0;
+
+  // Auto-detect if discount should apply based on payment date
+  useEffect(() => {
+    if (canApplyDiscount && formData.payment_date) {
+      const payDay = new Date(formData.payment_date + "T12:00:00").getDate();
+      setApplyDiscount(payDay <= prontoPagoFechaLimite);
+    } else {
+      setApplyDiscount(false);
+    }
+  }, [formData.payment_date, canApplyDiscount, prontoPagoFechaLimite]);
 
   const amountBase = parseFloat(formData.amount_base) || 0;
-  const igvAmount = formData.igv_applicable ? amountBase * (formData.igv_percentage / 100) : 0;
-  const totalAmount = amountBase + igvAmount;
+  const discountAmount = (applyDiscount && canApplyDiscount) ? prontoPagoDescuento : 0;
+  const amountAfterDiscount = Math.max(amountBase - discountAmount, 0);
+  const igvAmount = formData.igv_applicable ? amountAfterDiscount * (formData.igv_percentage / 100) : 0;
+  const totalAmount = amountAfterDiscount + igvAmount;
 
   useEffect(() => {
     if (payment) {
