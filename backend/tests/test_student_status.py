@@ -51,8 +51,10 @@ class TestStudentEnrollment:
         response = requests.get(f"{BASE_URL}/api/users?role=student", headers=headers)
         assert response.status_code == 200
         students = response.json()
-        if students:
-            return students[0]
+        # Filter to ensure we get actual students (not owners)
+        actual_students = [s for s in students if s.get("role") == "student"]
+        if actual_students:
+            return actual_students[0]
         return None
     
     @pytest.fixture
@@ -119,12 +121,14 @@ class TestStudentStatusChange:
     
     @pytest.fixture
     def test_student(self, headers):
-        """Get a test student."""
+        """Get a test student with role=student."""
         response = requests.get(f"{BASE_URL}/api/users?role=student", headers=headers)
         assert response.status_code == 200
         students = response.json()
-        if students:
-            return students[0]
+        # Filter to ensure we get actual students (not owners)
+        actual_students = [s for s in students if s.get("role") == "student"]
+        if actual_students:
+            return actual_students[0]
         return None
     
     def test_status_change_requires_auth(self):
