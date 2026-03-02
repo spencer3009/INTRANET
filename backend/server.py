@@ -12030,7 +12030,7 @@ async def get_payment_concepts(
     query = {"school_id": school_id}
     if not include_inactive:
         query["status"] = "active"
-    concepts = await db.payment_concepts.find(query, {"_id": 0}).sort("name", 1).to_list(200)
+    concepts = await db.payment_concepts.find(query, {"_id": 0}).sort([("is_default", -1), ("name", 1)]).to_list(200)
     return {"concepts": concepts}
 
 @api_router.post("/accounting/payment-concepts")
