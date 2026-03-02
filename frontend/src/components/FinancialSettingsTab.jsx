@@ -153,9 +153,9 @@ export default function FinancialSettingsTab({ token, user }) {
                 data-testid="toggle-pronto-pago"
               >
                 {form.pronto_pago_activo ? (
-                  <ToggleRight className="w-7 h-7 text-blue-500" />
+                  <ToggleRight className="w-10 h-10 text-blue-500" />
                 ) : (
-                  <ToggleLeft className="w-7 h-7 text-slate-300" />
+                  <ToggleLeft className="w-10 h-10 text-slate-300" />
                 )}
               </button>
             )}
