@@ -1711,7 +1711,7 @@ async def get_monthly_attendance(current_user=Depends(require_school)):
     # Incluimos meses pasados hasta el mes actual
     result = []
     
-    total_students = await db.users.count_documents({"school_id": school_id, "role": "student"})
+    total_students = await db.users.count_documents({"school_id": school_id, "role": "student", **ACADEMIC_STUDENT_FILTER})
     if total_students == 0:
         total_students = 1  # Evitar division por cero
     
