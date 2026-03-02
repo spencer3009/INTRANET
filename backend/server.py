@@ -5103,11 +5103,8 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["grado_id"] = data.grado_id
         new_user["seccion_id"] = data.seccion_id
         new_user["turno_id"] = data.turno_id
-        # Set student_status based on whether they have grade/section
-        if data.grado_id and data.seccion_id:
-            new_user["student_status"] = "enrolled"
-        else:
-            new_user["student_status"] = "pending"
+        # Always start as pending until matrícula is paid
+        new_user["student_status"] = "pending"
         if data.padre_id:
             new_user["padre_id"] = data.padre_id
         # Complementary info
