@@ -1081,6 +1081,25 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                   <span className="font-bold text-gray-700">S/ {formatNumber(amountAfterDiscount)}</span>
                 </div>
               )}
+              {canApplyInterest && daysLate > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={applyInterest}
+                      onChange={(e) => setApplyInterest(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+                      data-testid="interest-checkbox"
+                    />
+                    <span className="text-rose-600 font-medium">
+                      Interes por mora ({daysLate} {daysLate === 1 ? "dia" : "dias"})
+                    </span>
+                  </label>
+                  <span className={`font-bold ${applyInterest ? "text-rose-600" : "text-gray-300 line-through"}`}>
+                    + S/ {formatNumber(interestAmount > 0 ? interestAmount : calcInterestAmount(amountAfterDiscount))}
+                  </span>
+                </div>
+              )}
               {formData.igv_applicable && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 font-medium">IGV (18%)</span>
