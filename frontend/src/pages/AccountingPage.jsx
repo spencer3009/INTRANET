@@ -939,7 +939,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
           </div>
 
           {/* Pension Month - shown when concept is mensualidad */}
-          {formData.concept === "mensualidad" && (
+          {formData.concept.toLowerCase() === "mensualidad" && (
             <div className="mb-6">
               <label className="block text-sm font-bold text-gray-700 mb-2">Mes de Pensión *</label>
               <input
