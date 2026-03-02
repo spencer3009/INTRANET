@@ -12203,6 +12203,22 @@ async def migrate_student_statuses(current_user=Depends(get_current_user)):
     
     return {"message": "Migración completada", "counts": counts}
 
+@api_router.get("/accounting/student-paid-concepts/{student_id}")
+async def get_student_paid_concepts(student_id: str, year: Optional[int] = None, current_user=Depends(require_section_access("accounting"))):
+    """Return concept names already paid by a student in the given academic year."""
+    school_id = current_user["school_id"]
+    if not year:
+        year = datetime.now(timezone.utc).year
+    date_from = f"{year}-01-01"
+    date_to = f"{year}-12-31"
+    pipeline = [
+        {"$match": {"student_id": student_id, "school_id": school_id, "payment_status": "paid", "payment_date": {"$gte": date_from, "$lte": date_to}}},
+        {"$group": {"_id": "$concept"}}
+    ]
+    results = await db.payments.aggregate(pipeline).to_list(100)
+    return {"paid_concepts": [r["_id"] for r in results], "year": year}
+
+
 async def auto_update_student_status_on_payment(student_id: str, school_id: str, concept: str):
     """Automatically update student status when a payment is registered."""
     student = await db.users.find_one({"id": student_id, "school_id": school_id, "role": "student"})
