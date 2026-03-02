@@ -1587,7 +1587,7 @@ async def get_metrics(current_user=Depends(require_school)):
     school_id = current_user.get("school_id")
     
     # Calculate real counts from database
-    students_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
+    students_count = await db.users.count_documents({"school_id": school_id, "role": "student", **ACADEMIC_STUDENT_FILTER})
     teachers_count = await db.users.count_documents({"school_id": school_id, "role": "teacher"})
     subjects_count = await db.subjects.count_documents({"school_id": school_id})
     
