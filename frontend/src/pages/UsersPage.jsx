@@ -140,7 +140,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
   const [showDemoBlockedModal, setShowDemoBlockedModal] = useState(false);
   
   // Check if current user is support (only support can create demo users)
-  const isSupportUser = currentUser?.role === 'support' || currentUser?.role === 'superadmin';
+  const isSupportUser = currentUser?.role === 'system_admin' || currentUser?.role === 'system_admin_global';
   const isDemoUser = currentUser?.is_demo_user === true;
   
   // Academic data for students
