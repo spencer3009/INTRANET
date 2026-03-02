@@ -1019,7 +1019,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
       });
     }
     setError("");
-  }, [payment, isOpen, paymentConcepts]);
+  }, [payment, isOpen, availableConcepts]);
 
   // Auto-fill amount when concept changes (only for new payments)
   const handleConceptChange = (newConcept) => {
