@@ -1624,12 +1624,13 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      const [settingsRes, gradesRes, sectionsRes, usersRes, summaryRes] = await Promise.all([
+      const [settingsRes, gradesRes, sectionsRes, usersRes, summaryRes, finSettingsRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers }),
         axios.get(`${API}/academic/grades`, { headers }),
         axios.get(`${API}/academic/sections`, { headers }),
         axios.get(`${API}/users`, { headers }),
-        axios.get(`${API}/accounting/summary`, { headers })
+        axios.get(`${API}/accounting/summary`, { headers }),
+        axios.get(`${API}/accounting/financial-settings`, { headers }).catch(() => null)
       ]);
       
       setSettings(settingsRes.data);
@@ -1637,6 +1638,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
       setSections(sectionsRes.data.filter(s => s.activo));
       setStudents(usersRes.data.filter(u => u.role === "student"));
       setSummary(summaryRes.data);
+      if (finSettingsRes) setFinancialSettings(finSettingsRes.data);
       
       await Promise.all([loadPayments(), loadExpenses(), loadDebtors(), loadPeriodSummary(dateFrom, dateTo)]);
     } catch (err) {
