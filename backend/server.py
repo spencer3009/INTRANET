@@ -11988,6 +11988,109 @@ async def update_financial_settings(req: FinancialSettingsUpdate, current_user =
     settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
     return settings
 
+# ─────────────────────────────────────────────────────────────────────────────
+# PAYMENT CONCEPTS (CONCEPTOS DE PAGO)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class PaymentConceptCreate(BaseModel):
+    name: str
+    amount: float = 0
+    concept_type: str = "unico"  # recurrente / unico
+    status: str = "active"  # active / inactive
+
+class PaymentConceptUpdate(BaseModel):
+    name: Optional[str] = None
+    amount: Optional[float] = None
+    concept_type: Optional[str] = None
+    status: Optional[str] = None
+
+async def ensure_default_concepts(school_id: str):
+    """Seed default concepts (Matrícula, Mensualidad) if none exist."""
+    count = await db.payment_concepts.count_documents({"school_id": school_id})
+    if count == 0:
+        now = datetime.now(timezone.utc).isoformat()
+        # Try to read amounts from financial settings
+        fin = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+        mat_amount = fin.get("matricula", 0) if fin else 0
+        pen_amount = fin.get("pension_mensual", 0) if fin else 0
+        defaults = [
+            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Matricula", "amount": mat_amount, "concept_type": "unico", "status": "active", "is_default": True, "created_at": now, "updated_at": now},
+            {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Mensualidad", "amount": pen_amount, "concept_type": "recurrente", "status": "active", "is_default": True, "created_at": now, "updated_at": now},
+        ]
+        await db.payment_concepts.insert_many(defaults)
+
+@api_router.get("/accounting/payment-concepts")
+async def get_payment_concepts(
+    include_inactive: bool = False,
+    current_user=Depends(require_section_access("accounting"))
+):
+    """Get all payment concepts for the school."""
+    school_id = current_user["school_id"]
+    await ensure_default_concepts(school_id)
+    query = {"school_id": school_id}
+    if not include_inactive:
+        query["status"] = "active"
+    concepts = await db.payment_concepts.find(query, {"_id": 0}).sort("name", 1).to_list(200)
+    return {"concepts": concepts}
+
+@api_router.post("/accounting/payment-concepts")
+async def create_payment_concept(data: PaymentConceptCreate, current_user=Depends(require_section_access("accounting"))):
+    """Create a new payment concept."""
+    user = current_user
+    school_id = user["school_id"]
+    if user.get("role") not in ("owner", "director", "admin") and not user.get("is_owner"):
+        raise HTTPException(status_code=403, detail="Sin permisos para crear conceptos")
+    now = datetime.now(timezone.utc).isoformat()
+    concept = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "name": data.name.strip(),
+        "amount": round(data.amount, 2),
+        "concept_type": data.concept_type,
+        "status": data.status,
+        "is_default": False,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.payment_concepts.insert_one(concept)
+    concept.pop("_id", None)
+    return {"message": "Concepto creado", "concept": concept}
+
+@api_router.put("/accounting/payment-concepts/{concept_id}")
+async def update_payment_concept(concept_id: str, data: PaymentConceptUpdate, current_user=Depends(require_section_access("accounting"))):
+    """Update a payment concept."""
+    user = current_user
+    school_id = user["school_id"]
+    if user.get("role") not in ("owner", "director", "admin") and not user.get("is_owner"):
+        raise HTTPException(status_code=403, detail="Sin permisos para editar conceptos")
+    existing = await db.payment_concepts.find_one({"id": concept_id, "school_id": school_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Concepto no encontrado")
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    if "name" in update_data:
+        update_data["name"] = update_data["name"].strip()
+    if "amount" in update_data:
+        update_data["amount"] = round(update_data["amount"], 2)
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.payment_concepts.update_one({"id": concept_id}, {"$set": update_data})
+    updated = await db.payment_concepts.find_one({"id": concept_id}, {"_id": 0})
+    return {"message": "Concepto actualizado", "concept": updated}
+
+@api_router.delete("/accounting/payment-concepts/{concept_id}")
+async def delete_payment_concept(concept_id: str, current_user=Depends(require_section_access("accounting"))):
+    """Delete a payment concept (not allowed for defaults)."""
+    user = current_user
+    school_id = user["school_id"]
+    if user.get("role") not in ("owner", "director", "admin") and not user.get("is_owner"):
+        raise HTTPException(status_code=403, detail="Sin permisos para eliminar conceptos")
+    existing = await db.payment_concepts.find_one({"id": concept_id, "school_id": school_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Concepto no encontrado")
+    if existing.get("is_default"):
+        raise HTTPException(status_code=400, detail="No se puede eliminar un concepto predeterminado. Puedes desactivarlo.")
+    await db.payment_concepts.delete_one({"id": concept_id, "school_id": school_id})
+    return {"message": "Concepto eliminado"}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SUBJECTS MODULE (ASIGNATURAS)
 # ══════════════════════════════════════════════════════════════════════════════
