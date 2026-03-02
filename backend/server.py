@@ -15230,6 +15230,7 @@ async def create_notification_for_subject(
             if subject_doc and subject_doc.get("grade_id"):
                 students = await db.users.find(
                     {"school_id": school_id, "role": "student", "is_active": {"$ne": False}, "is_demo": {"$ne": True},
+                     **ACADEMIC_STUDENT_FILTER,
                      "$or": [{"grade_id": subject_doc["grade_id"]}, {"grado_id": subject_doc["grade_id"]}]},
                     {"_id": 0, "id": 1}
                 ).to_list(500)
