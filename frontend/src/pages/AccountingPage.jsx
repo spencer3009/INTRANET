@@ -1013,6 +1013,31 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
                 <span className="text-gray-500 font-medium">Subtotal</span>
                 <span className="font-bold text-gray-700">S/ {formatNumber(amountBase)}</span>
               </div>
+              {canApplyDiscount && (
+                <div className="flex justify-between items-center text-sm">
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={applyDiscount}
+                      onChange={(e) => setApplyDiscount(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      data-testid="pronto-pago-checkbox"
+                    />
+                    <span className="text-blue-600 font-medium">
+                      Pronto Pago (antes del {prontoPagoFechaLimite})
+                    </span>
+                  </label>
+                  <span className={`font-bold ${applyDiscount ? "text-blue-600" : "text-gray-300 line-through"}`}>
+                    - S/ {formatNumber(prontoPagoDescuento)}
+                  </span>
+                </div>
+              )}
+              {applyDiscount && canApplyDiscount && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500 font-medium">Base con descuento</span>
+                  <span className="font-bold text-gray-700">S/ {formatNumber(amountAfterDiscount)}</span>
+                </div>
+              )}
               {formData.igv_applicable && (
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500 font-medium">IGV (18%)</span>
