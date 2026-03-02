@@ -21661,7 +21661,7 @@ async def get_parent_student_classmates(
         return {"students": []}
     
     students = await db.users.find(
-        {"school_id": school_id, "seccion_id": seccion_id, "role": "student"},
+        {"school_id": school_id, "seccion_id": seccion_id, "role": "student", **ACADEMIC_STUDENT_FILTER},
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "email": 1}
     ).to_list(100)
     
