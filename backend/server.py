@@ -2844,11 +2844,12 @@ async def get_teacher_courses(current_user = Depends(get_current_user)):
             level_name = level.get("nombre") if level else None
         
         if subject:
-            # Count students
+            # Count students (exclude pending)
             students_count = await db.users.count_documents({
                 "school_id": school_id,
                 "role": "student",
-                "seccion_id": assignment.get("section_id")
+                "seccion_id": assignment.get("section_id"),
+                **ACADEMIC_STUDENT_FILTER
             })
             
             # Count materials and tasks
