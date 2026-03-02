@@ -1958,7 +1958,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   const handleAddUser = (roleId) => {
-    setAddModalRole(roleId === 'pending' ? 'teacher' : roleId);
+    setAddModalRole(roleId);
     setShowAddModal(true);
   };
 
