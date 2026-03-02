@@ -1671,7 +1671,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Get all students with applied filters
   const filteredStudents = useMemo(() => {
     return users.filter(u => {
-      if (u.role !== 'student' || !u.email_verified) return false;
+      if (u.role !== 'student') return false;
       
       const matchesSearch = !studentSearch || 
         `${u.name} ${u.last_name}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
