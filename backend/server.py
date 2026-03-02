@@ -3369,7 +3369,7 @@ async def get_enrollment(current_user=Depends(require_school)):
     months_es = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"]
     
     # Count students created up to the end of each month
-    total_students = await db.users.count_documents({"school_id": school_id, "role": "student"})
+    total_students = await db.users.count_documents({"school_id": school_id, "role": "student", **ACADEMIC_STUDENT_FILTER})
     
     result = []
     for month_idx in range(12):
