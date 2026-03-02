@@ -11063,7 +11063,7 @@ class PaymentCreate(BaseModel):
     concept: str
     description: Optional[str] = None
     amount_base: float = Field(..., gt=0)
-    igv_applicable: bool = True
+    igv_applicable: bool = False
     igv_percentage: float = DEFAULT_IGV_PERCENTAGE
     payment_method: str
     payment_status: Literal["pending", "paid"] = "pending"
@@ -11089,7 +11089,7 @@ class ExpenseCreate(BaseModel):
     category: str
     description: Optional[str] = None
     amount_base: float = Field(..., gt=0)
-    igv_applicable: bool = True
+    igv_applicable: bool = False
     igv_percentage: float = DEFAULT_IGV_PERCENTAGE
     expense_date: str
     payment_method: str
