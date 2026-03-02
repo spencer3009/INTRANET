@@ -1125,8 +1125,14 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             grades={grades}
             sections={sections}
             selectedId={formData.student_id}
-            onSelect={(s) => setFormData(prev => ({ ...prev, student_id: s.id, grade_id: s.grado_id || "", section_id: s.seccion_id || "" }))}
-            onClear={() => setFormData(prev => ({ ...prev, student_id: "", grade_id: "", section_id: "" }))}
+            onSelect={(s) => {
+              setFormData(prev => ({ ...prev, student_id: s.id, grade_id: s.grado_id || "", section_id: s.seccion_id || "" }));
+              loadStudentPaidConcepts(s.id);
+            }}
+            onClear={() => {
+              setFormData(prev => ({ ...prev, student_id: "", grade_id: "", section_id: "", concept: "", amount_base: "" }));
+              setStudentPaidConcepts([]);
+            }}
           />
 
           {/* Concept and method */}
