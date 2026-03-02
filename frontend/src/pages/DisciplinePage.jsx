@@ -961,7 +961,7 @@ export default function DisciplinePage({ user, token, subdomain, onLogout }) {
       setSettings(settingsRes.data);
       setGrades(gradesRes.data.filter(g => g.activo));
       setSections(sectionsRes.data.filter(s => s.activo));
-      setStudents(usersRes.data.filter(u => u.role === "student"));
+      setStudents(usersRes.data.filter(u => u.role === "student" && u.student_status !== "pending"));
       
       await loadReports();
       
