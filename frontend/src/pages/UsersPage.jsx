@@ -2517,7 +2517,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 {(() => {
                   const st = student.student_status || "active";
                   const cfg = { pending: "bg-amber-100 text-amber-700", enrolled: "bg-blue-100 text-blue-700", active: "bg-emerald-100 text-emerald-700", withdrawn: "bg-red-100 text-red-700" };
-                  const lbl = { pending: "Pendiente", enrolled: "Matriculado", active: "Activo", withdrawn: "Retirado" };
+                  const lbl = { pending: "Pendiente", enrolled: "Inscrito", active: "Activo", withdrawn: "Retirado" };
                   return <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${cfg[st] || cfg.active}`}>{lbl[st] || st}</span>;
                 })()}
               </div>
