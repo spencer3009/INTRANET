@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from "recharts";
@@ -883,10 +883,13 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   };
 
   // Filter out "unico" concepts already paid by this student
-  const availableConcepts = paymentConcepts.filter(c => {
-    if (c.concept_type === "unico" && studentPaidConcepts.includes(c.name)) return false;
-    return true;
-  });
+  const availableConcepts = useMemo(() => 
+    paymentConcepts.filter(c => {
+      if (c.concept_type === "unico" && studentPaidConcepts.includes(c.name)) return false;
+      return true;
+    }),
+    [paymentConcepts, studentPaidConcepts]
+  );
 
   const getDefaultAmount = (conceptName) => {
     const found = paymentConcepts.find(c => c.name === conceptName);
