@@ -1048,7 +1048,16 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const handleConceptChange = (newConcept) => {
     const updates = { concept: newConcept };
     if (!payment?.id) {
-      updates.amount_base = getDefaultAmount(newConcept);
+      if (newConcept === COMBO_CONCEPT) {
+        // Combo mode: fill both amounts from concept defaults
+        const matAmount = getDefaultAmount("Matrícula") || getDefaultAmount("matricula") || "";
+        const menAmount = getDefaultAmount("Mensualidad") || getDefaultAmount("mensualidad") || "";
+        setComboAmounts({ matricula: matAmount, mensualidad: menAmount });
+        updates.amount_base = "0"; // Will be calculated from combo
+      } else {
+        updates.amount_base = getDefaultAmount(newConcept);
+        setComboAmounts({ matricula: "", mensualidad: "" });
+      }
     }
     setFormData(prev => ({ ...prev, ...updates }));
   };
