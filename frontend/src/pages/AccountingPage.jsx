@@ -774,8 +774,8 @@ function StudentAutocomplete({ students, grades, sections, selectedId, onSelect,
             onClick={() => setOpen(!open)}
           >
             <div className="flex items-center gap-3">
-              {selected.profile_image ? (
-                <img src={selected.profile_image} alt="" className="w-9 h-9 rounded-full object-cover" />
+              {selected.photo_url ? (
+                <img src={selected.photo_url} alt="" className="w-9 h-9 rounded-full object-cover" />
               ) : (
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold">
                   {initials(selected)}
