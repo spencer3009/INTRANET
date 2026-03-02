@@ -697,7 +697,14 @@ function ExpensesTab({ expenses, loading, total, page, totalPages, onPageChange,
 // ══════════════════════════════════════════════════════════════════════════════
 // PAYMENT FORM MODAL - Premium Banking Design
 // ══════════════════════════════════════════════════════════════════════════════
-function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, students }) {
+function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, students, financialSettings }) {
+  const getDefaultAmount = (concept) => {
+    if (!financialSettings) return "";
+    if (concept === "mensualidad" && financialSettings.pension_mensual) return financialSettings.pension_mensual.toString();
+    if (concept === "matricula" && financialSettings.matricula) return financialSettings.matricula.toString();
+    return "";
+  };
+
   const [formData, setFormData] = useState({
     student_id: "",
     grade_id: "",
