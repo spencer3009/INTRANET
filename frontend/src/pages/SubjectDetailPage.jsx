@@ -623,9 +623,9 @@ export default function SubjectDetailPage({ user, token, subdomain, onLogout, su
           }
         }
         
-        // Get students for this grade
+        // Get students for this grade (exclude pending)
         const gradeStudents = usersRes.data.filter(u => 
-          u.role === "student" && u.grado_id === subjectData.grade_id
+          u.role === "student" && u.grado_id === subjectData.grade_id && u.student_status !== "pending"
         );
         setStudents(gradeStudents);
       }
