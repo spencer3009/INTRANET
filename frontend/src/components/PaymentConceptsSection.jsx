@@ -157,14 +157,14 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
               </tr>
             ) : (
               concepts.map(c => (
-                <tr key={c.id} className={`hover:bg-slate-50/50 transition-colors ${c.status === "inactive" ? "opacity-50" : ""}`} data-testid={`concept-row-${c.id}`}>
+                <tr key={c.id} className={`hover:bg-slate-50/50 transition-colors ${c.status === "inactive" ? "opacity-50" : ""} ${c.is_default ? "bg-blue-50/40" : ""}`} data-testid={`concept-row-${c.id}`}>
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-sm font-semibold text-slate-800">{c.name}</span>
+                      <span className={`text-sm font-semibold ${c.is_default ? "text-blue-800" : "text-slate-800"}`}>{c.name}</span>
                       {c.is_default && (
-                        <span className="px-2 py-0.5 bg-blue-50 text-blue-600 text-[10px] font-bold rounded-full uppercase tracking-wider flex items-center gap-1">
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-bold rounded-full uppercase tracking-wider flex items-center gap-1">
                           <ShieldCheck className="w-3 h-3" />
-                          Base
+                          Principal
                         </span>
                       )}
                     </div>
