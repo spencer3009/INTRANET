@@ -1780,7 +1780,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   // Count students without QR
   const studentsWithoutQR = useMemo(() => {
-    return users.filter(u => u.role === 'student' && u.email_verified && !u.qr_token).length;
+    return users.filter(u => u.role === 'student' && !u.qr_token).length;
   }, [users]);
 
   // Count users by role
