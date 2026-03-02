@@ -969,6 +969,16 @@ async def login(creds: UserLogin):
                             status_code=403,
                             detail="El acceso está restringido por pagos pendientes. Comuníquese con la administración."
                         )
+            
+            # Student status login restriction - only active students can login
+            if user.get("role") == "student":
+                sstatus = user.get("student_status", "active")  # Default active for migrated users
+                if sstatus in ("pending", "withdrawn"):
+                    status_labels = {"pending": "pendiente", "withdrawn": "retirado"}
+                    raise HTTPException(
+                        status_code=403,
+                        detail=f"Tu cuenta de estudiante está en estado {status_labels.get(sstatus, sstatus)}. Comunícate con la administración."
+                    )
         else:
             # Legacy user with school but no subdomain - treat as not onboarded
             # Clear school_id from response so frontend knows to redirect to onboarding
