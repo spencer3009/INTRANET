@@ -902,7 +902,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
               <label className="block text-sm font-bold text-gray-700 mb-2">Concepto</label>
               <select
                 value={formData.concept}
-                onChange={(e) => setFormData(prev => ({ ...prev, concept: e.target.value }))}
+                onChange={(e) => handleConceptChange(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               >
                 {Object.entries(CONCEPTS).map(([key, val]) => (
