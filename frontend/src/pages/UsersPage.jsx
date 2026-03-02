@@ -2005,12 +2005,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     // For students, use the filtered list; for others, use normal filter
     const usersToDisplay = selectedRole === 'student'
       ? filteredStudents
-      : selectedRole === 'pending' 
-        ? users.filter(u => !u.email_verified)
-        : users.filter(u => u.role === selectedRole && u.email_verified);
+      : users.filter(u => u.role === selectedRole);
     
     // Get total students count (unfiltered)
-    const totalStudents = users.filter(u => u.role === 'student' && u.email_verified).length;
+    const totalStudents = users.filter(u => u.role === 'student').length;
 
     return (
       <div className="p-6 lg:p-8" data-testid="users-list-content">
