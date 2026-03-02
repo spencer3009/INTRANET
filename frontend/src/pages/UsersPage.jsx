@@ -2560,6 +2560,56 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <Pencil className="w-3.5 h-3.5" />
                   Editar
                 </button>
+                {(student.student_status === "pending" || !student.student_status) && student.grado_id && student.seccion_id && (
+                  <button
+                    onClick={async () => {
+                      setOpenMenuId(null);
+                      try {
+                        await axios.put(`${API}/students/${student.id}/enroll`, { grado_id: student.grado_id, seccion_id: student.seccion_id, nivel_id: student.nivel_id }, { headers });
+                        toast.success("Alumno matriculado");
+                        loadUsers();
+                      } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs hover:bg-blue-50 text-blue-600 flex items-center gap-2"
+                    data-testid={`enroll-student-${student.id}`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Matricular
+                  </button>
+                )}
+                {student.student_status === "active" && (
+                  <button
+                    onClick={async () => {
+                      setOpenMenuId(null);
+                      if (!window.confirm("¿Retirar a este alumno? No podra acceder al sistema.")) return;
+                      try {
+                        await axios.put(`${API}/students/${student.id}/status?status=withdrawn`, {}, { headers });
+                        toast.success("Alumno retirado");
+                        loadUsers();
+                      } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 text-red-500 flex items-center gap-2"
+                  >
+                    <UserX className="w-3.5 h-3.5" />
+                    Retirar
+                  </button>
+                )}
+                {student.student_status === "withdrawn" && (
+                  <button
+                    onClick={async () => {
+                      setOpenMenuId(null);
+                      try {
+                        await axios.put(`${API}/students/${student.id}/status?status=active`, {}, { headers });
+                        toast.success("Alumno reactivado");
+                        loadUsers();
+                      } catch (err) { toast.error(err.response?.data?.detail || "Error"); }
+                    }}
+                    className="w-full px-3 py-2 text-left text-xs hover:bg-emerald-50 text-emerald-600 flex items-center gap-2"
+                  >
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Reactivar
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     handleDeleteClick(student);
