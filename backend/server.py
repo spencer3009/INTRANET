@@ -5725,6 +5725,39 @@ async def get_grades(
     
     return grades
 
+def validate_grade_name(nombre: str, level_name: str = "") -> str:
+    """
+    Validate that a grade name does not contain section-like patterns.
+    Returns error message if invalid, empty string if valid.
+    """
+    clean = nombre.strip()
+    upper = clean.upper()
+    
+    # Patterns that indicate a section was mixed into the grade name
+    # Single letter at end: "4 AÑOS A", "1° B"
+    if re.search(r'\s+[A-Z]$', upper) and not re.search(r'\d+\s*AÑOS$', upper):
+        return "section_pattern"
+    # Explicit: ends with single letter after grade-like content
+    if re.search(r'(AÑOS|°|GRADO)\s+[A-Z]$', upper):
+        return "section_pattern"
+    # Common section words
+    section_words = ["SECCION", "SECCIÓN", "AULA", "ALAMO", "ÁLAMO", "ROBLE", "CEDRO", "PINO", "SAUCE", "OLIVO"]
+    for word in section_words:
+        if word in upper and word != upper:
+            return "section_word"
+    # Pattern: "X AÑOS <extra_text>" where extra_text is not empty
+    m = re.match(r'^(\d+)\s*(AÑOS?)\s+(.+)$', upper)
+    if m and m.group(3).strip():
+        extra = m.group(3).strip()
+        # Allow if extra is just ordinal-like (e.g. nothing else)
+        if len(extra) <= 2 or extra in section_words:
+            return "section_pattern"
+    # Pattern: grade + letter: "1°A", "2° B", "PRIMERO A"
+    if re.search(r'°\s*[A-Z]$', upper):
+        return "section_pattern"
+    
+    return ""
+
 @api_router.post("/academic/grades")
 async def create_grade(
     data: GradeCreate,
@@ -5745,6 +5778,14 @@ async def create_grade(
     })
     if not level:
         raise HTTPException(status_code=400, detail="El nivel educativo no existe")
+    
+    # Validate grade name doesn't contain section patterns
+    validation_error = validate_grade_name(data.nombre, level.get("nombre", ""))
+    if validation_error:
+        raise HTTPException(
+            status_code=400,
+            detail="El nombre parece incluir una sección (ej: A, B, Álamo). Crea el grado como '4 AÑOS' y luego agrega la sección desde 'Agregar sección'."
+        )
     
     # Check for duplicate name within the same level
     existing = await db.grades.find_one({
@@ -5813,6 +5854,16 @@ async def update_grade(
         })
         if not level:
             raise HTTPException(status_code=400, detail="El nivel educativo no existe")
+    
+    # Validate grade name doesn't contain section patterns
+    if data.nombre:
+        level_doc = await db.academic_levels.find_one({"id": new_nivel_id}, {"_id": 0, "nombre": 1})
+        validation_error = validate_grade_name(data.nombre, level_doc.get("nombre", "") if level_doc else "")
+        if validation_error:
+            raise HTTPException(
+                status_code=400,
+                detail="El nombre parece incluir una sección (ej: A, B, Álamo). Crea el grado como '4 AÑOS' y luego agrega la sección desde 'Agregar sección'."
+            )
     
     # Check for duplicate name within the same level
     if data.nombre and (data.nombre.lower() != grade["nombre"].lower() or new_nivel_id != grade["nivel_id"]):

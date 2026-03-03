@@ -161,24 +161,75 @@ function LevelModal({ isOpen, onClose, token, level, onSuccess }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // GRADE MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselectedLevelId }) {
+// Preset grades for INICIAL level (dropdown instead of free text)
+const INICIAL_PRESET_GRADES = ["3 AÑOS", "4 AÑOS", "5 AÑOS"];
+
+// Section-like patterns to block in grade names
+const SECTION_PATTERNS = [
+  /\s+[A-Za-z]$/,                    // ends with single letter: "4 AÑOS A"
+  /(AÑOS|°|GRADO)\s+[A-Za-z]$/i,    // grade + letter: "4 AÑOS B"  
+  /°\s*[A-Za-z]$/,                   // "1°A", "2° B"
+];
+const SECTION_WORDS = ["SECCION", "SECCIÓN", "AULA", "ALAMO", "ÁLAMO", "ROBLE", "CEDRO", "PINO", "SAUCE", "OLIVO"];
+
+function looksLikeSection(name) {
+  const upper = name.trim().toUpperCase();
+  for (const pat of SECTION_PATTERNS) {
+    if (pat.test(upper)) return true;
+  }
+  for (const word of SECTION_WORDS) {
+    if (upper.includes(word) && upper !== word) return true;
+  }
+  // "X AÑOS <extra>" pattern
+  const m = upper.match(/^(\d+)\s*(AÑOS?)\s+(.+)$/);
+  if (m && m[3].trim().length > 0) return true;
+  return false;
+}
+
+function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselectedLevelId, existingGrades = [] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ nombre: "", nivel_id: "", orden: 0, activo: true });
+  const [sectionWarning, setSectionWarning] = useState("");
   const isEdit = !!grade;
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Determine if selected level is INICIAL
+  const selectedLevel = levels.find(l => l.id === form.nivel_id);
+  const isInicial = selectedLevel?.nombre?.toUpperCase()?.includes("INICIAL");
+
+  // Available preset options (exclude already existing grades for this level)
+  const availablePresets = INICIAL_PRESET_GRADES.filter(pg => {
+    if (isEdit && grade?.nombre?.toUpperCase() === pg.toUpperCase()) return true; // Include current grade
+    return !existingGrades.some(eg => eg.nivel_id === form.nivel_id && eg.nombre.toUpperCase() === pg.toUpperCase());
+  });
 
   useEffect(() => {
     if (isOpen) {
       setForm(grade ? { nombre: grade.nombre || "", nivel_id: grade.nivel_id || "", orden: grade.orden || 0, activo: grade.activo !== false } : { nombre: "", nivel_id: preselectedLevelId || "", orden: 0, activo: true });
       setError("");
+      setSectionWarning("");
     }
   }, [isOpen, grade, preselectedLevelId]);
+
+  // Validate name on change (for non-INICIAL levels)
+  const handleNameChange = (value) => {
+    setForm(p => ({ ...p, nombre: value }));
+    if (value.trim() && looksLikeSection(value)) {
+      setSectionWarning("Parece que estás incluyendo una sección. Crea el grado sin letras (A, B) ni nombres de aula. Las secciones se crean por separado.");
+    } else {
+      setSectionWarning("");
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.nombre.trim()) { setError("El nombre es obligatorio"); return; }
     if (!form.nivel_id) { setError("Selecciona un nivel"); return; }
+    if (looksLikeSection(form.nombre)) {
+      setError("El nombre parece incluir una sección (ej: A, B, Álamo). Crea el grado como '4 AÑOS' y luego agrega la sección desde 'Agregar sección'.");
+      return;
+    }
     setLoading(true);
     try {
       const res = isEdit ? await axios.put(`${API}/academic/grades/${grade.id}`, form, { headers }) : await axios.post(`${API}/academic/grades`, form, { headers });
@@ -192,15 +243,62 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
   return (
     <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto">
       <div className="min-h-full flex items-center justify-center p-4 py-8">
-        <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl">
+        <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl" data-testid="grade-modal">
           <div className="bg-gradient-to-r from-emerald-500 to-teal-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
             <div className="flex items-center gap-3"><BookOpen className="w-8 h-8 text-white" /><div className="text-white"><h2 className="text-xl font-bold">{isEdit ? "Editar" : "Nuevo"} Grado</h2></div></div>
             <button onClick={onClose} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><X className="w-5 h-5" /></button>
           </div>
           <form onSubmit={handleSubmit} className="p-6">
-            {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
-            <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Nivel <span className="text-red-500">*</span></label><select value={form.nivel_id} onChange={(e) => setForm(p => ({ ...p, nivel_id: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" required><option value="">Seleccionar...</option>{levels.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}</select></div>
-            <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Nombre <span className="text-red-500">*</span></label><input type="text" value={form.nombre} onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Ej: 1°" required /></div>
+            {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span></div>}
+            
+            {/* Level selector */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Nivel <span className="text-red-500">*</span></label>
+              <select value={form.nivel_id} onChange={(e) => { setForm(p => ({ ...p, nivel_id: e.target.value, nombre: "" })); setSectionWarning(""); }} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" required data-testid="grade-level-select">
+                <option value="">Seleccionar...</option>
+                {levels.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+              </select>
+            </div>
+            
+            {/* Grade name - dropdown for INICIAL, text for others */}
+            <div className="mb-4">
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre del Grado <span className="text-red-500">*</span></label>
+              {isInicial ? (
+                <select
+                  value={form.nombre}
+                  onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"
+                  required
+                  data-testid="grade-name-select"
+                >
+                  <option value="">Seleccionar grado...</option>
+                  {availablePresets.map(pg => <option key={pg} value={pg}>{pg}</option>)}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={form.nombre}
+                  onChange={(e) => handleNameChange(e.target.value)}
+                  className={`w-full px-4 py-3 bg-slate-50 border rounded-xl ${sectionWarning ? "border-amber-400" : "border-slate-200"}`}
+                  placeholder="Ej: 1°, 2°, 3°"
+                  required
+                  data-testid="grade-name-input"
+                />
+              )}
+              {sectionWarning && (
+                <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-start gap-2" data-testid="section-warning">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{sectionWarning}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Helper text */}
+            <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 flex items-start gap-2" data-testid="grade-helper-text">
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              <span>Las letras (A, B) y nombres de aula (Álamo, Roble) se crean como <strong>Secciones</strong>, no como grados.</span>
+            </div>
+
             <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Orden</label><input type="number" value={form.orden} onChange={(e) => setForm(p => ({ ...p, orden: parseInt(e.target.value) || 0 }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" min={0} /><p className="text-xs text-slate-500 mt-1">0 = automático</p></div>
             <div className="mb-6 flex items-center justify-between p-4 bg-slate-50 rounded-xl"><div><p className="font-semibold text-slate-700">Estado</p><p className="text-sm text-slate-500">{form.activo ? "Activo" : "Inactivo"}</p></div><button type="button" onClick={() => setForm(p => ({ ...p, activo: !p.activo }))} className={`relative w-14 h-8 rounded-full transition-colors ${form.activo ? "bg-emerald-500" : "bg-slate-300"}`}><span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${form.activo ? "left-7" : "left-1"}`} /></button></div>
             <div className="flex gap-3"><button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancelar</button><button type="submit" disabled={loading} className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2">{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}{isEdit ? "Guardar" : "Crear"}</button></div>
@@ -1475,7 +1573,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         </main>
       </div>
       <LevelModal isOpen={showLevelModal} onClose={() => { setShowLevelModal(false); setEditingLevel(null); }} token={token} level={editingLevel} onSuccess={handleLevelSuccess} />
-      <GradeModal isOpen={showGradeModal} onClose={() => { setShowGradeModal(false); setEditingGrade(null); }} token={token} grade={editingGrade} levels={levels} onSuccess={handleGradeSuccess} preselectedLevelId={selectedLevelFilter} />
+      <GradeModal isOpen={showGradeModal} onClose={() => { setShowGradeModal(false); setEditingGrade(null); }} token={token} grade={editingGrade} levels={levels} onSuccess={handleGradeSuccess} preselectedLevelId={selectedLevelFilter} existingGrades={grades} />
       <SectionModal isOpen={showSectionModal} onClose={() => { setShowSectionModal(false); setEditingSection(null); setPreselectedGradeForSection(null); }} token={token} section={editingSection} grades={grades} levels={levels} onSuccess={handleSectionSuccess} preselectedGradeId={preselectedGradeForSection || ""} />
       <SectionTypesAdminModal isOpen={showSectionTypesAdmin} onClose={() => setShowSectionTypesAdmin(false)} token={token} onTypesUpdated={loadSections} />
       <ShiftModal isOpen={showShiftModal} onClose={() => { setShowShiftModal(false); setEditingShift(null); }} token={token} shift={editingShift} onSuccess={handleShiftSuccess} />
