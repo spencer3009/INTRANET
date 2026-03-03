@@ -9,20 +9,12 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 ## What's Been Implemented
 
 ### Session - March 3, 2026 (Latest)
-- **CRITICAL BUG FIX: Student Course Visibility (P0)**: Fixed data leakage where students saw wrong courses. Root cause: endpoints used `academic_assignments` (stale pre-refactor data) instead of `subjects` collection (source of truth with `section_id`). Fixed 6 endpoints: `get_student_courses`, `get_student_tasks`, `get_student_dashboard`, `get_parent_student_courses`, `get_parent_student_tasks`, `get_parent_dashboard`.
-- **DATA MIGRATION**: Migrated 12 old subjects (without `section_id`) to have correct `section_id` based on their `academic_assignments`. Deduplicated 1 empty duplicate "Matemáticas" subject. Owner and student views now consistent (8 subjects for Pepito's section).
+- **CRITICAL BUG FIX: Course Visibility across ALL portals (P0)**: Fixed 8 endpoints that incorrectly used `academic_assignments` or `teacher_assignments` as source of truth for student subjects. All now use `subjects.section_id`. Fixed endpoints: `get_student_profile`, `get_student_courses`, `get_student_tasks`, `get_student_dashboard`, `get_parent_student_courses`, `get_parent_student_tasks`, `get_parent_dashboard`, `get_parent_students` (pending count), `download_material_from_drive` (access validation).
+- **DATA MIGRATION**: Migrated 12 old subjects to have correct `section_id` based on `academic_assignments`. Deduplicated empty duplicate subject.
+- **Verified consistency**: Student=8, Parent=8, Owner=8, Teacher=3 (only assigned). All portals consistent.
 
 ### Previous Session - March 3, 2026
-- **Photo Upload Modal with Preview**: Camera icon opens modal with drag-and-drop, preview, Save/Cancel
-- **Grade Name Structural Validation**: Dropdown fijo para Inicial/Primaria/Secundaria, validación anti-sección
-- **Auto-Grade Creation**: Checkbox al crear nivel genera grados estándar automáticamente
-- **Smart Filtering**: Dropdowns filtran grados existentes y niveles completos, botón "Agregar" se oculta
-- **Subjects to Section-Based Structure (P0 MAJOR)**: Asignaturas ahora pertenecen a Secciones.
-
-### Older Sessions
-- Default IGV, Navigation Bug Fix, Student Photos in Income, Demo User Cleanup
-- Combined Payment, Read-Only Amounts, Demo User Switch Restriction
-- Pending Student Academic Exclusion, Data Integrity on Deletion, UI Readability
+- Photo Upload Modal, Grade Validation, Auto-Grade Creation, Smart Filtering, Subjects-to-Section Refactor
 
 ## Prioritized Backlog
 
@@ -32,27 +24,17 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 ### P1
 - Apply Intelligent Filters to Parents View
-- Parent Portal Feature Parity
-- Matriculas module
-- Automatic notifications for students
-- Question Bank for Exams
+- Parent Portal Feature Parity, Matriculas, Notifications, Question Bank
 
 ### P2
-- Cache Invalidation for `/api/student/tasks`
-- Replace window.confirm/alert with custom modals
-- Fix hardcoded Dashboard data (Asistencia del Mes, Noticias y Avisos)
-- Message Center unread count discrepancy
+- Cache Invalidation, Replace window.confirm/alert, Hardcoded Dashboard, Message Center count
 
 ## Key Technical Note
-**Source of Truth for Student Courses**: The `subjects` collection filtered by `section_id` is the canonical source. The `academic_assignments` collection should ONLY be used for teacher assignment lookups, NOT for determining which subjects belong to a section.
-
-## Key Files
-- `/app/backend/server.py` - Main backend (22K+ lines)
-- `/app/frontend/src/pages/Subjects/SubjectsPage.jsx` - Subjects management (section-based)
-- `/app/frontend/src/pages/Settings/CourseStructure.jsx` - Academic settings
+**Source of Truth for Student Courses**: `subjects` collection filtered by `section_id`. `academic_assignments` = teacher-to-subject linkage ONLY. Teacher portals correctly use `academic_assignments` to determine which subjects a teacher teaches.
 
 ## Test Credentials
 - **Support**: spencer3009@gmail.com / 1234abc8
 - **Owner (elroble)**: admin@elroble.edu / 1234abc8 / subdomain=elroble
-- **Owner (demosettings)**: proyectemos@gmail.com / 1234abc8 / subdomain=demosettings
 - **Student (Pepito)**: pepito@gmail.com / 1234abc8 / subdomain=elroble
+- **Parent (Miguel)**: miguel@gmail.com / 1234abc8 / subdomain=elroble
+- **Teacher (Carlos)**: carlos8276@gmail.com / 1234abc8 / subdomain=elroble

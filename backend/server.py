@@ -1874,21 +1874,14 @@ async def get_student_profile(current_user = Depends(get_current_user)):
     if user.get("turno_id"):
         turno = await db.shifts.find_one({"id": user["turno_id"], "school_id": school_id}, {"_id": 0})
     
-    # Get enrolled courses (subjects assigned to student's section)
+    # Get enrolled courses (subjects assigned to student's section - source of truth: section_id)
     courses = []
     if user.get("seccion_id"):
-        # Get subjects assigned to this section via teacher assignments
-        assignments = await db.teacher_assignments.find({
+        courses = await db.subjects.find({
             "school_id": school_id,
-            "seccion_id": user["seccion_id"]
+            "section_id": user["seccion_id"],
+            "status": "active"
         }, {"_id": 0}).to_list(100)
-        
-        subject_ids = list(set([a["subject_id"] for a in assignments]))
-        if subject_ids:
-            courses = await db.subjects.find({
-                "id": {"$in": subject_ids},
-                "school_id": school_id
-            }, {"_id": 0}).to_list(100)
     
     # Get pending tasks count
     pending_tasks = 0
@@ -18167,14 +18160,14 @@ async def download_material_from_drive(
     
     # Validate student access - check if they belong to the course
     if user.get("role") == "student":
-        # Get student's assigned subjects via academic_assignments
-        assignments = await db.academic_assignments.find({
+        # Get student's assigned subjects via section_id (source of truth)
+        section_subjects = await db.subjects.find({
             "school_id": school_id,
             "section_id": user.get("seccion_id"),
-            "status": "activo"
-        }, {"_id": 0}).to_list(100)
+            "status": "active"
+        }, {"_id": 0, "id": 1}).to_list(100)
         
-        subject_ids = [a.get("subject_id") for a in assignments]
+        subject_ids = [s["id"] for s in section_subjects]
         if post.get("subject_id") not in subject_ids:
             raise HTTPException(status_code=403, detail="No tienes acceso a este archivo")
     
@@ -21104,15 +21097,15 @@ async def get_parent_students(current_user = Depends(get_current_user)):
         if student.get("nivel_id"):
             nivel = await db.academic_levels.find_one({"id": student["nivel_id"]}, {"_id": 0, "name": 1})
         
-        # Get pending tasks count
+        # Get pending tasks count (source of truth: subjects.section_id)
         pending_tasks = 0
         if student.get("seccion_id"):
-            assignments = await db.academic_assignments.find({
+            section_subjects = await db.subjects.find({
                 "school_id": school_id,
                 "section_id": student["seccion_id"],
-                "status": "activo"
-            }, {"_id": 0, "subject_id": 1}).to_list(50)
-            subject_ids = list(set([a["subject_id"] for a in assignments]))
+                "status": "active"
+            }, {"_id": 0, "id": 1}).to_list(100)
+            subject_ids = [s["id"] for s in section_subjects]
             
             if subject_ids:
                 pending_tasks = await db.course_posts.count_documents({
