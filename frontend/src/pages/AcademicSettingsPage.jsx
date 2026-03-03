@@ -229,6 +229,14 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
   const presetGrades = PRESET_GRADES_BY_LEVEL[levelNameNorm] || null;
   const hasPresets = !!presetGrades;
 
+  // Filter out grades that already exist for this level
+  const availablePresets = presetGrades
+    ? presetGrades.filter(pg => {
+        if (isEdit && grade?.nombre?.toUpperCase() === pg.toUpperCase()) return true;
+        return !existingGrades.some(eg => eg.nivel_id === form.nivel_id && eg.nombre.toUpperCase() === pg.toUpperCase());
+      })
+    : [];
+
   useEffect(() => {
     if (isOpen) {
       setForm(grade ? { nombre: grade.nombre || "", nivel_id: grade.nivel_id || "", orden: grade.orden || 0, activo: grade.activo !== false } : { nombre: "", nivel_id: preselectedLevelId || "", orden: 0, activo: true });
@@ -289,16 +297,21 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
             <div className="mb-4">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre del Grado <span className="text-red-500">*</span></label>
               {hasPresets ? (
-                <select
-                  value={form.nombre}
-                  onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"
-                  required
-                  data-testid="grade-name-select"
-                >
-                  <option value="">Seleccionar grado...</option>
-                  {presetGrades.map(pg => <option key={pg} value={pg}>{pg}</option>)}
-                </select>
+                <>
+                  <select
+                    value={form.nombre}
+                    onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl"
+                    required={availablePresets.length > 0}
+                    data-testid="grade-name-select"
+                  >
+                    <option value="">Seleccionar grado...</option>
+                    {availablePresets.map(pg => <option key={pg} value={pg}>{pg}</option>)}
+                  </select>
+                  {availablePresets.length === 0 && (
+                    <p className="mt-2 text-sm text-amber-600">Todos los grados de este nivel ya fueron creados.</p>
+                  )}
+                </>
               ) : (
                 <input
                   type="text"
