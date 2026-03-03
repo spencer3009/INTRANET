@@ -966,6 +966,24 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const [shifts, setShifts] = useState([]);
   const [periods, setPeriods] = useState([]);
   const [sectionStudentCounts, setSectionStudentCounts] = useState({});
+
+  // Computed: students per grade and per level (from section counts)
+  const gradeStudentCounts = {};
+  const gradeSectionCounts = {};
+  sections.forEach(s => {
+    if (!gradeSectionCounts[s.grado_id]) gradeSectionCounts[s.grado_id] = 0;
+    gradeSectionCounts[s.grado_id]++;
+    if (!gradeStudentCounts[s.grado_id]) gradeStudentCounts[s.grado_id] = 0;
+    gradeStudentCounts[s.grado_id] += (sectionStudentCounts[s.id] || 0);
+  });
+  const levelSectionCounts = {};
+  const levelStudentCounts = {};
+  grades.forEach(g => {
+    if (!levelSectionCounts[g.nivel_id]) levelSectionCounts[g.nivel_id] = 0;
+    if (!levelStudentCounts[g.nivel_id]) levelStudentCounts[g.nivel_id] = 0;
+    levelSectionCounts[g.nivel_id] += (gradeSectionCounts[g.id] || 0);
+    levelStudentCounts[g.nivel_id] += (gradeStudentCounts[g.id] || 0);
+  });
   
   // Modal states
   const [showLevelModal, setShowLevelModal] = useState(false);
@@ -1262,13 +1280,18 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         {levels.length === 0 ? <EmptyState category={cat} message="Crea el primer nivel para comenzar." onAdd={() => { setEditingLevel(null); setShowLevelModal(true); }} addLabel="Crear nivel" /> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {levels.map(level => (
-              <ItemCard key={level.id} item={level} category={cat} onEdit={(l) => { setEditingLevel(l); setShowLevelModal(true); }} onDelete={(l) => openDelete("level", l)} canDelete={(level.grade_count || 0) === 0} badge={<span className="text-xs text-slate-500"><Layers className="w-3 h-3 inline mr-1" />{level.grade_count || 0} grados</span>}>
+              <ItemCard key={level.id} item={level} category={cat} onEdit={(l) => { setEditingLevel(l); setShowLevelModal(true); }} onDelete={(l) => openDelete("level", l)} canDelete={(level.grade_count || 0) === 0}>
                 <div className="flex flex-col items-center text-center mb-2">
                   <div className={`w-20 h-20 rounded-2xl overflow-hidden border-2 ${cat.borderColor} shadow-lg mb-4 bg-gradient-to-br ${cat.lightColor}`}>
                     {level.imagen_url ? <img src={level.imagen_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><GraduationCap className={`w-10 h-10 ${cat.textColor}`} /></div>}
                   </div>
                   <h3 className="text-lg font-bold text-slate-800">{level.nombre}</h3>
                   {level.descripcion && <p className="text-sm text-slate-500 line-clamp-2">{level.descripcion}</p>}
+                </div>
+                <div className="flex flex-wrap gap-2 justify-center mt-3 pt-3 border-t border-slate-100">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium"><Layers className="w-3 h-3" />{level.grade_count || 0} grados</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium"><BookOpen className="w-3 h-3" />{levelSectionCounts[level.id] || 0} secciones</span>
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium"><Users className="w-3 h-3" />{levelStudentCounts[level.id] || 0} estudiantes</span>
                 </div>
               </ItemCard>
             ))}
@@ -1325,6 +1348,10 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                               <span className={`w-1 h-1 rounded-full ${g.activo ? "bg-emerald-500" : "bg-slate-400"}`}></span>
                               {g.activo ? "Activo" : "Inactivo"}
                             </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 justify-center mt-2 pt-2 border-t border-slate-100">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 text-purple-600 text-[10px] font-medium">{gradeSectionCounts[g.id] || 0} sec</span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-medium">{gradeStudentCounts[g.id] || 0} est</span>
                           </div>
                         </div>
                       </div>
@@ -1389,6 +1416,9 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                           <div className={`w-14 h-14 mx-auto mb-2 rounded-xl bg-gradient-to-br ${cat.lightColor} border-2 ${cat.borderColor} flex items-center justify-center`}><span className={`text-xl font-bold ${cat.textColor}`}>{s.nombre}</span></div>
                           {s.capacidad_maxima && <p className="text-xs text-slate-500 mb-1">Cap: {s.capacidad_maxima}</p>}
                           <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs ${s.activo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}><span className={`w-1 h-1 rounded-full ${s.activo ? "bg-emerald-500" : "bg-slate-400"}`}></span>{s.activo ? "Activa" : "Inactiva"}</span>
+                          <div className="mt-2 pt-2 border-t border-slate-100">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[10px] font-medium"><Users className="w-3 h-3" />{sectionStudentCounts[s.id] || 0} est</span>
+                          </div>
                         </div>
                       </div>
                     </div>
