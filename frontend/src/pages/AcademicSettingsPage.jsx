@@ -198,12 +198,6 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
   const selectedLevel = levels.find(l => l.id === form.nivel_id);
   const isInicial = selectedLevel?.nombre?.toUpperCase()?.includes("INICIAL");
 
-  // Available preset options (exclude already existing grades for this level)
-  const availablePresets = INICIAL_PRESET_GRADES.filter(pg => {
-    if (isEdit && grade?.nombre?.toUpperCase() === pg.toUpperCase()) return true; // Include current grade
-    return !existingGrades.some(eg => eg.nivel_id === form.nivel_id && eg.nombre.toUpperCase() === pg.toUpperCase());
-  });
-
   useEffect(() => {
     if (isOpen) {
       setForm(grade ? { nombre: grade.nombre || "", nivel_id: grade.nivel_id || "", orden: grade.orden || 0, activo: grade.activo !== false } : { nombre: "", nivel_id: preselectedLevelId || "", orden: 0, activo: true });
@@ -272,7 +266,7 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
                   data-testid="grade-name-select"
                 >
                   <option value="">Seleccionar grado...</option>
-                  {availablePresets.map(pg => <option key={pg} value={pg}>{pg}</option>)}
+                  {INICIAL_PRESET_GRADES.map(pg => <option key={pg} value={pg}>{pg}</option>)}
                 </select>
               ) : (
                 <input

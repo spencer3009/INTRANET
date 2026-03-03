@@ -5779,6 +5779,12 @@ async def create_grade(
     if not level:
         raise HTTPException(status_code=400, detail="El nivel educativo no existe")
     
+    # Strict validation for INICIAL level: only allow preset grades
+    INICIAL_VALID_GRADES = ["3 AÑOS", "4 AÑOS", "5 AÑOS"]
+    if level.get("nombre", "").upper().strip() in ["INICIAL", "NIVEL INICIAL"]:
+        if data.nombre.strip().upper() not in [g.upper() for g in INICIAL_VALID_GRADES]:
+            raise HTTPException(status_code=400, detail="Grado inválido para Nivel Inicial. Solo se permite: 3 AÑOS, 4 AÑOS, 5 AÑOS.")
+    
     # Validate grade name doesn't contain section patterns
     validation_error = validate_grade_name(data.nombre, level.get("nombre", ""))
     if validation_error:
@@ -5858,7 +5864,15 @@ async def update_grade(
     # Validate grade name doesn't contain section patterns
     if data.nombre:
         level_doc = await db.academic_levels.find_one({"id": new_nivel_id}, {"_id": 0, "nombre": 1})
-        validation_error = validate_grade_name(data.nombre, level_doc.get("nombre", "") if level_doc else "")
+        level_name = level_doc.get("nombre", "") if level_doc else ""
+        
+        # Strict validation for INICIAL level
+        INICIAL_VALID_GRADES = ["3 AÑOS", "4 AÑOS", "5 AÑOS"]
+        if level_name.upper().strip() in ["INICIAL", "NIVEL INICIAL"]:
+            if data.nombre.strip().upper() not in [g.upper() for g in INICIAL_VALID_GRADES]:
+                raise HTTPException(status_code=400, detail="Grado inválido para Nivel Inicial. Solo se permite: 3 AÑOS, 4 AÑOS, 5 AÑOS.")
+        
+        validation_error = validate_grade_name(data.nombre, level_name)
         if validation_error:
             raise HTTPException(
                 status_code=400,
