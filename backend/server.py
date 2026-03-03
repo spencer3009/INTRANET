@@ -5883,6 +5883,16 @@ async def delete_grade(
         )
     
     # TODO: Check for enrolled students when that module is implemented
+    student_count = await db.users.count_documents({
+        "school_id": user["school_id"],
+        "grado_id": grade_id,
+        "role": "student"
+    })
+    if student_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede eliminar el grado porque tiene {student_count} estudiante(s) asignado(s). Reasigna o retira los estudiantes primero."
+        )
     
     await db.grades.delete_one({"id": grade_id})
     
@@ -6370,14 +6380,38 @@ async def delete_section(
     if not section:
         raise HTTPException(status_code=404, detail="Sección no encontrada")
     
-    # TODO: Check for enrolled students when that module is implemented
-    # student_count = await db.enrollments.count_documents({"section_id": section_id})
-    # if student_count > 0:
-    #     raise HTTPException(status_code=400, detail=f"No se puede eliminar la sección porque tiene {student_count} estudiante(s) matriculado(s)")
+    # Check for enrolled students
+    student_count = await db.users.count_documents({
+        "school_id": user["school_id"],
+        "seccion_id": section_id,
+        "role": "student"
+    })
+    if student_count > 0:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No se puede eliminar la sección porque tiene {student_count} estudiante(s) asignado(s). Reasigna o retira los estudiantes primero."
+        )
     
     await db.sections.delete_one({"id": section_id})
     
     return {"message": "Sección eliminada correctamente"}
+
+@api_router.get("/academic/sections/{section_id}/students-count")
+async def get_section_students_count(
+    section_id: str,
+    current_user = Depends(get_current_user)
+):
+    """Get the number of students assigned to a section"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    
+    count = await db.users.count_documents({
+        "school_id": user["school_id"],
+        "seccion_id": section_id,
+        "role": "student"
+    })
+    return {"count": count}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC SETTINGS - TURNOS

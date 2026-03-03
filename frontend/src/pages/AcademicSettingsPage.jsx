@@ -965,6 +965,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const [sections, setSections] = useState([]);
   const [shifts, setShifts] = useState([]);
   const [periods, setPeriods] = useState([]);
+  const [sectionStudentCounts, setSectionStudentCounts] = useState({});
   
   // Modal states
   const [showLevelModal, setShowLevelModal] = useState(false);
@@ -1017,6 +1018,18 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         setSections(sectionsRes.data || []);
         setShifts(shiftsRes.data || []);
         setPeriods(periodsRes.data || []);
+        // Load student counts per section
+        const secs = sectionsRes.data || [];
+        if (secs.length > 0) {
+          const counts = {};
+          await Promise.all(secs.map(async (s) => {
+            try {
+              const r = await axios.get(`${API}/academic/sections/${s.id}/students-count`, { headers });
+              counts[s.id] = r.data?.count || 0;
+            } catch { counts[s.id] = 0; }
+          }));
+          setSectionStudentCounts(counts);
+        }
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     };
@@ -1218,7 +1231,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   );
 
   // Item card component with menu
-  const ItemCard = ({ item, category, onEdit, onDelete, children, badge }) => (
+  const ItemCard = ({ item, category, onEdit, onDelete, children, badge, canDelete = true }) => (
     <div className={`group relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all border-2 ${category.borderColor} hover:-translate-y-1`}>
       <div className={`h-2 bg-gradient-to-r ${category.color}`}></div>
       <div className="p-6 relative">
@@ -1227,7 +1240,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
           {menuOpen === item.id && (
             <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl border py-2 min-w-[160px] z-10">
               <button onClick={() => { onEdit(item); setMenuOpen(null); }} className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Pencil className="w-4 h-4 text-blue-600" /></div>Editar</button>
-              <button onClick={() => onDelete(item)} className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Trash2 className="w-4 h-4 text-red-600" /></div>Eliminar</button>
+              {canDelete && <button onClick={() => onDelete(item)} className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Trash2 className="w-4 h-4 text-red-600" /></div>Eliminar</button>}
             </div>
           )}
         </div>
@@ -1249,7 +1262,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         {levels.length === 0 ? <EmptyState category={cat} message="Crea el primer nivel para comenzar." onAdd={() => { setEditingLevel(null); setShowLevelModal(true); }} addLabel="Crear nivel" /> : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {levels.map(level => (
-              <ItemCard key={level.id} item={level} category={cat} onEdit={(l) => { setEditingLevel(l); setShowLevelModal(true); }} onDelete={(l) => openDelete("level", l)} badge={<span className="text-xs text-slate-500"><Layers className="w-3 h-3 inline mr-1" />{level.grade_count || 0} grados</span>}>
+              <ItemCard key={level.id} item={level} category={cat} onEdit={(l) => { setEditingLevel(l); setShowLevelModal(true); }} onDelete={(l) => openDelete("level", l)} canDelete={(level.grade_count || 0) === 0} badge={<span className="text-xs text-slate-500"><Layers className="w-3 h-3 inline mr-1" />{level.grade_count || 0} grados</span>}>
                 <div className="flex flex-col items-center text-center mb-2">
                   <div className={`w-20 h-20 rounded-2xl overflow-hidden border-2 ${cat.borderColor} shadow-lg mb-4 bg-gradient-to-br ${cat.lightColor}`}>
                     {level.imagen_url ? <img src={level.imagen_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><GraduationCap className={`w-10 h-10 ${cat.textColor}`} /></div>}
@@ -1294,7 +1307,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       <div className={`h-1.5 bg-gradient-to-r ${cat.color}`}></div>
                       <div className="p-4 relative">
                         <button onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === g.id ? null : g.id); }} className="absolute top-1 right-1 w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 opacity-0 group-hover:opacity-100 z-10"><MoreVertical className="w-4 h-4" /></button>
-                        {menuOpen === g.id && <div className="absolute right-0 top-10 bg-white rounded-xl shadow-2xl border py-2 min-w-[140px] z-20"><button onClick={() => { setEditingGrade(g); setShowGradeModal(true); setMenuOpen(null); }} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"><Pencil className="w-4 h-4 text-blue-500" />Editar</button><button onClick={() => openDelete("grade", g)} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" />Eliminar</button></div>}
+                        {menuOpen === g.id && <div className="absolute right-0 top-10 bg-white rounded-xl shadow-2xl border py-2 min-w-[140px] z-20"><button onClick={() => { setEditingGrade(g); setShowGradeModal(true); setMenuOpen(null); }} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"><Pencil className="w-4 h-4 text-blue-500" />Editar</button>{sections.filter(s => s.grado_id === g.id).length === 0 && <button onClick={() => openDelete("grade", g)} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" />Eliminar</button>}</div>}
                         <div className="text-center pt-2">
                           {/* Icon container - fixed size */}
                           <div className={`w-14 h-14 mx-auto mb-3 rounded-xl bg-gradient-to-br ${cat.lightColor} border-2 ${cat.borderColor} flex items-center justify-center`}>
@@ -1371,7 +1384,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       <div className={`h-1.5 bg-gradient-to-r ${cat.color}`}></div>
                       <div className="p-4 relative">
                         <button onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === s.id ? null : s.id); }} className="absolute top-1 right-1 w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400 opacity-0 group-hover:opacity-100"><MoreVertical className="w-4 h-4" /></button>
-                        {menuOpen === s.id && <div className="absolute right-0 top-10 bg-white rounded-xl shadow-2xl border py-2 min-w-[140px] z-10"><button onClick={() => { setEditingSection(s); setShowSectionModal(true); setMenuOpen(null); }} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"><Pencil className="w-4 h-4 text-blue-500" />Editar</button><button onClick={() => openDelete("section", s)} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" />Eliminar</button></div>}
+                        {menuOpen === s.id && <div className="absolute right-0 top-10 bg-white rounded-xl shadow-2xl border py-2 min-w-[140px] z-10"><button onClick={() => { setEditingSection(s); setShowSectionModal(true); setMenuOpen(null); }} className="w-full px-4 py-2 text-left text-sm hover:bg-slate-50 flex items-center gap-2"><Pencil className="w-4 h-4 text-blue-500" />Editar</button>{(sectionStudentCounts[s.id] || 0) === 0 && <button onClick={() => openDelete("section", s)} className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"><Trash2 className="w-4 h-4" />Eliminar</button>}</div>}
                         <div className="text-center pt-2">
                           <div className={`w-14 h-14 mx-auto mb-2 rounded-xl bg-gradient-to-br ${cat.lightColor} border-2 ${cat.borderColor} flex items-center justify-center`}><span className={`text-xl font-bold ${cat.textColor}`}>{s.nombre}</span></div>
                           {s.capacidad_maxima && <p className="text-xs text-slate-500 mb-1">Cap: {s.capacidad_maxima}</p>}
