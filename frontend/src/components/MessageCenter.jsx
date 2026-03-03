@@ -1456,7 +1456,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
 
                   {/* Category contacts */}
                   {isExpanded && categoryContacts.length > 0 && (
-                    <div className="bg-slate-50/50 border-t border-slate-100">
+                    <div className="bg-slate-50/50 border-t border-slate-100 pl-3">
                       {categoryContacts.map(contact => renderContactItem(contact))}
                     </div>
                   )}
