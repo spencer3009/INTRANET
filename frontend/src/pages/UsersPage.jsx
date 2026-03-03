@@ -1507,6 +1507,49 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [showQRModal, setShowQRModal] = useState(false);
   const [qrStudent, setQRStudent] = useState(null);
   
+  // Photo upload from card
+  const photoInputRef = useRef(null);
+  const [photoUploadUserId, setPhotoUploadUserId] = useState(null);
+  const [photoUploading, setPhotoUploading] = useState(null);
+
+  const handleCardPhotoClick = (userId) => {
+    setPhotoUploadUserId(userId);
+    setTimeout(() => photoInputRef.current?.click(), 0);
+  };
+
+  const handleCardPhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !photoUploadUserId) return;
+    e.target.value = "";
+
+    const valid = validateImageFile(file);
+    if (!valid.isValid) return;
+
+    setPhotoUploading(photoUploadUserId);
+    try {
+      const processed = await processProfilePhoto(file, { maxWidth: 197, quality: 0.85 });
+      const sigRes = await axios.get(`${API}/cloudinary/signature?resource_type=image&folder=edunet/users`, { headers });
+      const sig = sigRes.data;
+      const fd = new FormData();
+      fd.append("file", processed);
+      fd.append("api_key", sig.api_key);
+      fd.append("timestamp", sig.timestamp);
+      fd.append("signature", sig.signature);
+      fd.append("folder", sig.folder);
+      const upRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, { method: "POST", body: fd });
+      const upData = await upRes.json();
+      if (!upData.secure_url) throw new Error("Error al subir imagen");
+
+      await axios.put(`${API}/users/${photoUploadUserId}`, { photo_url: upData.secure_url }, { headers });
+      setUsers(prev => prev.map(u => u.id === photoUploadUserId ? { ...u, photo_url: upData.secure_url } : u));
+    } catch (err) {
+      console.error("Photo upload error:", err);
+    } finally {
+      setPhotoUploading(null);
+      setPhotoUploadUserId(null);
+    }
+  };
+  
   // ═══════════════════════════════════════════════════════════════════════════════
   // STUDENT FILTERS & GROUPED VIEW STATES (Premium Feature)
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -2763,9 +2806,18 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
               )}
             </div>
-            <div className={`absolute -bottom-1 -right-1 w-6 h-6 bg-gradient-to-r ${roleConfig.gradientBg} rounded-full border-3 border-white flex items-center justify-center`}>
-              <Check className="w-3 h-3 text-white" />
-            </div>
+            <button
+              onClick={(e) => { e.stopPropagation(); handleCardPhotoClick(u.id); }}
+              className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full border-2 border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-emerald-400 transition-all cursor-pointer shadow-sm group/cam"
+              title="Cambiar foto"
+              data-testid={`photo-upload-btn-${u.id}`}
+            >
+              {photoUploading === u.id ? (
+                <Loader2 className="w-4 h-4 text-emerald-500 animate-spin" />
+              ) : (
+                <Camera className="w-4 h-4 text-slate-400 group-hover/cam:text-emerald-500" />
+              )}
+            </button>
           </div>
           <h3 className="text-lg font-bold text-slate-800 mb-1 flex items-center gap-2 justify-center" style={{ fontFamily: 'Manrope, sans-serif' }}>
             {u.name} {u.last_name || ""}
@@ -3845,6 +3897,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           </div>
         </div>
       )}
+
+      {/* Hidden file input for photo upload from card */}
+      <input
+        ref={photoInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleCardPhotoChange}
+      />
+
     </div>
   );
 }
