@@ -113,7 +113,7 @@ export default function DashboardHeader({ user, onMenuClick, onLogout, logoUrl, 
     if (supportToken && supportUser) {
       localStorage.setItem("token", supportToken);
       localStorage.setItem("user", supportUser);
-      window.location.href = "/support";
+      window.location.href = "/support/schools";
     } else {
       // Fallback: ir al login
       onLogout();
