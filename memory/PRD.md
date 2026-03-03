@@ -8,7 +8,10 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 ## What's Been Implemented
 
-### Session - March 3, 2026 (Latest)
+### Session - March 3, 2026 (Latest - Fork 2)
+- **BUG FIX: Parent Portal Attendance Times (P0)**: Fixed date filtering in `GET /api/parent/attendance` - added `start_date`/`end_date` query params. Previously mixed records from all months. Now correctly filters by month and displays entry/exit times in "Detalle del Mes" section.
+
+### Session - March 3, 2026 (Fork 1)
 - **ATTENDANCE ENTRY/EXIT MODULE (P0)**: Extended existing attendance system with entry_time, exit_time, entry_method, exit_method, total_minutes. New endpoints: `POST /api/attendance/mark-entry`, `POST /api/attendance/mark-exit`. Modified QR scan to support `mode` (auto/entry/exit). Frontend: Entry/Exit columns with buttons, mode selector in QR scanner, updated counters. Save endpoint changed from delete+insert to upsert to preserve entry/exit data. **100% tests passed.**
 - **BUG FIX: Course Visibility (P0)**: Fixed 8+ endpoints to use `subjects.section_id` instead of `academic_assignments`. Migrated 12 old subjects.
 - **BUG FIX: Edit Subject Modal**: Nivel/Grado/Sección pre-selected and locked when editing.

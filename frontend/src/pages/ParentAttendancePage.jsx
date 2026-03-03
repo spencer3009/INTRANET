@@ -218,16 +218,36 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
                     {attendance.map((record, idx) => {
                       const config = STATUS_CONFIG[record.status];
                       const StatusIcon = config?.icon || Calendar;
+                      const entryTime = record.entry_time ? (() => { try { return new Date(record.entry_time).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }); } catch { return record.check_in_time || null; } })() : (record.check_in_time || null);
+                      const exitTime = record.exit_time ? (() => { try { return new Date(record.exit_time).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }); } catch { return null; } })() : null;
                       return (
-                        <div key={idx} className="px-4 py-3 flex items-center gap-4">
+                        <div key={idx} className="px-4 py-3 flex items-center gap-4" data-testid={`attendance-record-${record.date}`}>
                           <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${config?.color || "bg-slate-100"}`}>
                             <StatusIcon className="w-5 h-5" />
                           </div>
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <p className="font-medium text-slate-800">{new Date(record.date + "T00:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}</p>
                             {record.notes && <p className="text-sm text-slate-500">{record.notes}</p>}
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-sm ${config?.color || "bg-slate-100"}`}>{config?.label || record.status}</span>
+                          {/* Entry/Exit times */}
+                          <div className="flex items-center gap-3 text-sm" data-testid={`attendance-times-${record.date}`}>
+                            {entryTime && (
+                              <span className="text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg font-medium">
+                                Entrada {entryTime}
+                              </span>
+                            )}
+                            {exitTime && (
+                              <span className="text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg font-medium">
+                                Salida {exitTime}
+                              </span>
+                            )}
+                            {record.total_minutes != null && (
+                              <span className="text-slate-400 text-xs">
+                                {Math.floor(record.total_minutes / 60)}h {record.total_minutes % 60}m
+                              </span>
+                            )}
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-sm flex-shrink-0 ${config?.color || "bg-slate-100"}`}>{config?.label || record.status}</span>
                         </div>
                       );
                     })}

@@ -21892,6 +21892,8 @@ async def get_parent_student_grades(
 async def get_parent_student_attendance(
     student_id: str = Query(..., description="ID del estudiante"),
     month: Optional[str] = Query(None, description="Filter by month (YYYY-MM)"),
+    start_date: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     current_user = Depends(get_current_user)
 ):
     """Get attendance for a specific child."""
@@ -21909,7 +21911,9 @@ async def get_parent_student_attendance(
         "type": "student"
     }
     
-    if month:
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    elif month:
         query["date"] = {"$regex": f"^{month}"}
     
     records = await db.attendances.find(query, {"_id": 0}).sort("date", -1).to_list(100)
@@ -22252,7 +22256,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://edunet-courses-fix.preview.emergentagent.com",
+        "https://parent-times-display.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
