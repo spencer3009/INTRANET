@@ -175,9 +175,16 @@ export default function StudentCoursesPage({ user, token, onLogout }) {
                   
                   {/* Course Info */}
                   <div className="p-4">
-                    <h3 className="font-semibold text-slate-800 text-lg mb-2 line-clamp-2">
+                    <h3 className="font-semibold text-slate-800 text-lg mb-1 line-clamp-2">
                       {course.name}
                     </h3>
+                    
+                    {/* Grade & Section */}
+                    {(course.grade_name || course.section_name) && (
+                      <p className="text-xs text-slate-400 mb-2" data-testid={`course-grade-section-${course.id}`}>
+                        {[course.grade_name, course.section_name ? `Sección ${course.section_name}` : null].filter(Boolean).join(" — ")}
+                      </p>
+                    )}
                     
                     {/* Teacher */}
                     <div className="flex items-center gap-2 mb-3">
