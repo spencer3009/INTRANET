@@ -779,10 +779,14 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
 
   const handleBackToLevels = () => {
     if (selectedSection) {
+      // From subjects view → sections view
       setSelectedSection(null);
-    } else {
+    } else if (selectedGrade) {
+      // From sections view → levels view (keep the correct tab active)
+      const levelId = selectedLevel?.id;
       setSelectedLevel(null);
       setSelectedGrade(null);
+      if (levelId) setActiveTab(levelId);
     }
   };
 
