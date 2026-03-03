@@ -12437,6 +12437,7 @@ class SubjectCreate(BaseModel):
     description: Optional[str] = ""
     level_id: str
     grade_id: Optional[str] = None
+    section_id: Optional[str] = None
     weekly_hours: int = 1
     color: str = "#3B82F6"
     status: str = "active"
@@ -12448,6 +12449,7 @@ class SubjectUpdate(BaseModel):
     description: Optional[str] = None
     level_id: Optional[str] = None
     grade_id: Optional[str] = None
+    section_id: Optional[str] = None
     weekly_hours: Optional[int] = None
     color: Optional[str] = None
     status: Optional[str] = None
@@ -12464,6 +12466,7 @@ class SubjectTeacherAssign(BaseModel):
 async def get_subjects(
     level_id: Optional[str] = None,
     grade_id: Optional[str] = None,
+    section_id: Optional[str] = None,
     status: Optional[str] = None,
     current_user = Depends(get_current_user)
 ):
@@ -12479,6 +12482,8 @@ async def get_subjects(
         query["level_id"] = level_id
     if grade_id:
         query["grade_id"] = grade_id
+    if section_id:
+        query["section_id"] = section_id
     if status:
         query["status"] = status
     
@@ -12488,6 +12493,7 @@ async def get_subjects(
     # Enrich subjects with level and grade names
     levels = {l["id"]: l["nombre"] for l in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)}
     grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(200)}
+    sections_map = {s["id"]: s for s in await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(500)}
     
     # Get all users (teachers) for assignment lookup - include both profile_image and photo_url
     users_cache = {u["id"]: u for u in await db.users.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "profile_image": 1, "photo_url": 1}).to_list(500)}
@@ -12496,6 +12502,8 @@ async def get_subjects(
         subject["level_name"] = levels.get(subject.get("level_id"), "")
         grade = grades.get(subject.get("grade_id"))
         subject["grade_name"] = grade.get("nombre", "") if grade else "Todos"
+        section = sections_map.get(subject.get("section_id"))
+        subject["section_name"] = section.get("nombre", "") if section else ""
         
         # Get assigned teachers from academic_assignments (the new architecture)
         assignments = await db.academic_assignments.find({
@@ -12600,14 +12608,26 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
         if not grade:
             raise HTTPException(status_code=400, detail="El grado seleccionado no existe")
     
-    # Check for duplicates (name + level + grade)
+    # Verify section exists if provided
+    if data.section_id:
+        section = await db.sections.find_one({"id": data.section_id, "school_id": school_id})
+        if not section:
+            raise HTTPException(status_code=400, detail="La sección seleccionada no existe")
+        # Auto-set grade_id from section if not provided
+        if not data.grade_id:
+            data.grade_id = section.get("grado_id")
+    
+    # Check for duplicates (name + level + grade + section)
     duplicate_query = {
         "school_id": school_id,
-        "name": {"$regex": f"^{data.name}$", "$options": "i"},
+        "name": {"$regex": f"^{re.escape(data.name.strip())}$", "$options": "i"},
         "level_id": data.level_id
     }
-    if data.grade_id:
+    if data.section_id:
+        duplicate_query["section_id"] = data.section_id
+    elif data.grade_id:
         duplicate_query["grade_id"] = data.grade_id
+        duplicate_query["$or"] = [{"section_id": None}, {"section_id": {"$exists": False}}, {"section_id": ""}]
     else:
         duplicate_query["$or"] = [{"grade_id": None}, {"grade_id": {"$exists": False}}]
     
@@ -12633,6 +12653,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
         "description": data.description.strip() if data.description else "",
         "level_id": data.level_id,
         "grade_id": data.grade_id,
+        "section_id": data.section_id,
         "weekly_hours": max(1, data.weekly_hours),
         "color": data.color,
         "status": data.status,
@@ -12716,6 +12737,17 @@ async def update_subject(subject_id: str, data: SubjectUpdate, current_user = De
                 raise HTTPException(status_code=400, detail="El grado seleccionado no existe")
             update_data["grade_id"] = data.grade_id
     
+    if data.section_id is not None:
+        if data.section_id == "":
+            update_data["section_id"] = None
+        else:
+            section = await db.sections.find_one({"id": data.section_id, "school_id": school_id})
+            if not section:
+                raise HTTPException(status_code=400, detail="La sección seleccionada no existe")
+            update_data["section_id"] = data.section_id
+            if not data.grade_id:
+                update_data["grade_id"] = section.get("grado_id")
+    
     if data.weekly_hours is not None:
         update_data["weekly_hours"] = max(1, data.weekly_hours)
     
@@ -12748,6 +12780,64 @@ async def update_subject(subject_id: str, data: SubjectUpdate, current_user = De
     logger.info(f"Subject updated: {subject_id} by {user['id']}")
     
     return {"message": "Asignatura actualizada correctamente", "subject": updated_subject}
+
+
+@api_router.post("/academic/subjects/migrate-to-sections")
+async def migrate_subjects_to_sections(current_user = Depends(get_current_user)):
+    """Migrate existing subjects without section_id by duplicating them to all sections of their grade"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden realizar la migración")
+    
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+    
+    # Find subjects without section_id
+    subjects_no_section = await db.subjects.find({
+        "school_id": school_id,
+        "$or": [{"section_id": None}, {"section_id": {"$exists": False}}, {"section_id": ""}]
+    }, {"_id": 0}).to_list(500)
+    
+    created = 0
+    updated = 0
+    
+    for subj in subjects_no_section:
+        grade_id = subj.get("grade_id")
+        if not grade_id:
+            continue
+        
+        # Find all sections for this grade
+        sections = await db.sections.find({"grado_id": grade_id, "school_id": school_id}, {"_id": 0}).to_list(50)
+        
+        if len(sections) == 0:
+            continue
+        
+        if len(sections) == 1:
+            # Only one section: assign directly to the original subject
+            await db.subjects.update_one({"id": subj["id"]}, {"$set": {"section_id": sections[0]["id"], "updated_at": now}})
+            updated += 1
+        else:
+            # Multiple sections: assign first to original, duplicate for the rest
+            await db.subjects.update_one({"id": subj["id"]}, {"$set": {"section_id": sections[0]["id"], "updated_at": now}})
+            updated += 1
+            for sec in sections[1:]:
+                # Check if duplicate already exists
+                exists = await db.subjects.find_one({
+                    "school_id": school_id,
+                    "name": subj["name"],
+                    "level_id": subj["level_id"],
+                    "grade_id": grade_id,
+                    "section_id": sec["id"]
+                })
+                if not exists:
+                    new_subj = {**subj, "id": str(uuid.uuid4()), "section_id": sec["id"], "created_at": now, "updated_at": now}
+                    new_subj.pop("_id", None)
+                    await db.subjects.insert_one(new_subj)
+                    created += 1
+    
+    return {"message": f"Migración completada: {updated} actualizados, {created} nuevos creados", "updated": updated, "created": created}
 
 @api_router.delete("/academic/subjects/{subject_id}")
 async def delete_subject(subject_id: str, current_user = Depends(get_current_user)):

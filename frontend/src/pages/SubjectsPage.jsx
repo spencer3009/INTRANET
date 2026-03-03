@@ -8,7 +8,7 @@ import DashboardHeader from "../components/DashboardHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
-  Clock, MoreVertical, GraduationCap, ArrowRight, User, Power, PowerOff,
+  Clock, MoreVertical, GraduationCap, ArrowRight, User, Users, Power, PowerOff,
   Image, Upload, Trash2, Crop, ZoomIn, ZoomOut, RotateCcw,
   Baby, Backpack, Settings2, Sparkles, Star
 } from "lucide-react";
@@ -161,7 +161,7 @@ function PremiumGradeCard({ grade, subjectCount, theme, onClick }) {
       {/* Action */}
       <div className={`flex items-center gap-2 ${theme.accent} font-semibold group-hover:gap-3 transition-all duration-300`}>
         <Settings2 className="w-5 h-5" />
-        <span>Gestionar asignaturas</span>
+        <span>Ver secciones</span>
         <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
       </div>
     </button>
@@ -322,12 +322,13 @@ function AddSubjectCard({ onClick, theme }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBJECT FORM MODAL - Premium with colors
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, preselectedLevel, preselectedGrade, token }) {
+function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, sections, preselectedLevel, preselectedGrade, preselectedSection, token }) {
   const [formData, setFormData] = useState({
-    name: "", code: "", description: "", level_id: "", grade_id: "",
+    name: "", code: "", description: "", level_id: "", grade_id: "", section_id: "",
     weekly_hours: 2, color: "#3B82F6", status: "active", image_url: ""
   });
   const [filteredGrades, setFilteredGrades] = useState([]);
+  const [filteredSections, setFilteredSections] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   
@@ -348,7 +349,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
       if (subject) {
         setFormData({
           name: subject.name || "", code: subject.code || "", description: subject.description || "",
-          level_id: subject.level_id || "", grade_id: subject.grade_id || "",
+          level_id: subject.level_id || "", grade_id: subject.grade_id || "", section_id: subject.section_id || "",
           weekly_hours: subject.weekly_hours || 2, color: subject.color || "#3B82F6",
           status: subject.status || "active", image_url: subject.image_url || ""
         });
@@ -356,7 +357,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
       } else {
         setFormData({
           name: "", code: "", description: "",
-          level_id: preselectedLevel || "", grade_id: preselectedGrade || "",
+          level_id: preselectedLevel || "", grade_id: preselectedGrade || "", section_id: preselectedSection || "",
           weekly_hours: 2, color: SUBJECT_COLORS[Math.floor(Math.random() * SUBJECT_COLORS.length)].value,
           status: "active", image_url: ""
         });
@@ -368,7 +369,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
       setShowCropModal(false);
       setScale(1);
     }
-  }, [subject, isOpen, preselectedLevel, preselectedGrade]);
+  }, [subject, isOpen, preselectedLevel, preselectedGrade, preselectedSection]);
 
   useEffect(() => {
     if (formData.level_id) {
@@ -377,6 +378,14 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
       setFilteredGrades([]);
     }
   }, [formData.level_id, grades]);
+
+  useEffect(() => {
+    if (formData.grade_id) {
+      setFilteredSections((sections || []).filter(s => s.grado_id === formData.grade_id && s.activo !== false));
+    } else {
+      setFilteredSections([]);
+    }
+  }, [formData.grade_id, sections]);
 
   const onImageLoad = useCallback((e) => {
     const { width, height } = e.currentTarget;
@@ -477,6 +486,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     if (!formData.code.trim()) { setError("El código es requerido"); return; }
     if (!formData.level_id) { setError("Selecciona un nivel"); return; }
     if (!formData.grade_id) { setError("Selecciona un grado"); return; }
+    if (!formData.section_id) { setError("Selecciona una sección"); return; }
 
     setSaving(true);
     try {
@@ -489,7 +499,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
     }
   };
 
-  const isLocked = preselectedLevel && preselectedGrade;
+  const isLocked = preselectedLevel && preselectedGrade && preselectedSection;
   if (!isOpen) return null;
 
   return (
@@ -582,7 +592,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
             <div className="grid grid-cols-2 gap-4 mb-5">
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Nivel *</label>
-                <select value={formData.level_id} onChange={(e) => setFormData(prev => ({ ...prev, level_id: e.target.value, grade_id: "" }))}
+                <select value={formData.level_id} onChange={(e) => setFormData(prev => ({ ...prev, level_id: e.target.value, grade_id: "", section_id: "" }))}
                   disabled={isLocked} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isLocked ? "opacity-60" : ""}`}>
                   <option value="">Seleccionar</option>
                   {levels.filter(l => l.activo).map(level => (<option key={level.id} value={level.id}>{level.nombre}</option>))}
@@ -590,12 +600,22 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, pr
               </div>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Grado *</label>
-                <select value={formData.grade_id} onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value }))}
+                <select value={formData.grade_id} onChange={(e) => setFormData(prev => ({ ...prev, grade_id: e.target.value, section_id: "" }))}
                   disabled={isLocked || !formData.level_id} className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isLocked || !formData.level_id ? "opacity-60" : ""}`}>
                   <option value="">Seleccionar</option>
                   {filteredGrades.map(grade => (<option key={grade.id} value={grade.id}>{grade.nombre}</option>))}
                 </select>
               </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-sm font-bold text-gray-700 mb-2">Sección *</label>
+              <select value={formData.section_id} onChange={(e) => setFormData(prev => ({ ...prev, section_id: e.target.value }))}
+                disabled={isLocked || !formData.grade_id} data-testid="subject-section-select"
+                className={`w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isLocked || !formData.grade_id ? "opacity-60" : ""}`}>
+                <option value="">Seleccionar sección</option>
+                {filteredSections.map(sec => (<option key={sec.id} value={sec.id}>Sección {sec.nombre}</option>))}
+              </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4 mb-5">
@@ -700,6 +720,8 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [selectedGrade, setSelectedGrade] = useState(null);
+  const [selectedSection, setSelectedSection] = useState(null);
+  const [sections, setSections] = useState([]);
   const [activeTab, setActiveTab] = useState("");
   
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -712,11 +734,12 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const loadInitialData = async () => {
     setLoading(true);
     try {
-      const [settingsRes, levelsRes, gradesRes, subjectsRes] = await Promise.all([
+      const [settingsRes, levelsRes, gradesRes, subjectsRes, sectionsRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers }),
         axios.get(`${API}/academic/levels`, { headers }),
         axios.get(`${API}/academic/grades`, { headers }),
-        axios.get(`${API}/academic/subjects`, { headers })
+        axios.get(`${API}/academic/subjects`, { headers }),
+        axios.get(`${API}/academic/sections`, { headers })
       ]);
       
       setSettings(settingsRes.data);
@@ -724,6 +747,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       setLevels(activeLevels);
       setGrades(gradesRes.data || []);
       setSubjects(subjectsRes.data || []);
+      setSections(sectionsRes.data || []);
       
       if (activeLevels.length > 0) {
         setActiveTab(activeLevels[0].id);
@@ -745,17 +769,26 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   const handleSelectGrade = (level, grade) => {
     setSelectedLevel(level);
     setSelectedGrade(grade);
+    setSelectedSection(null);
+  };
+
+  const handleSelectSection = (section) => {
+    setSelectedSection(section);
   };
 
   const handleBackToLevels = () => {
-    setSelectedLevel(null);
-    setSelectedGrade(null);
+    if (selectedSection) {
+      setSelectedSection(null);
+    } else {
+      setSelectedLevel(null);
+      setSelectedGrade(null);
+    }
   };
 
   const handleSaveSubject = async (data) => {
     const subjectData = {
       name: data.name, code: data.code, description: data.description,
-      level_id: data.level_id, grade_id: data.grade_id,
+      level_id: data.level_id, grade_id: data.grade_id, section_id: data.section_id || null,
       weekly_hours: data.weekly_hours, color: data.color,
       status: data.status, image_url: data.image_url || null
     };
@@ -782,15 +815,22 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
     }
   };
 
-  // Compute subject counts
+  // Compute subject counts per grade and per section
   const subjectCountByGrade = {};
+  const subjectCountBySection = {};
   subjects.forEach(subject => {
     if (subject.grade_id) {
       subjectCountByGrade[subject.grade_id] = (subjectCountByGrade[subject.grade_id] || 0) + 1;
     }
+    if (subject.section_id) {
+      subjectCountBySection[subject.section_id] = (subjectCountBySection[subject.section_id] || 0) + 1;
+    }
   });
 
-  const gradeSubjects = selectedGrade ? subjects.filter(s => s.grade_id === selectedGrade.id) : [];
+  // Sections for the selected grade
+  const gradeSections = selectedGrade ? sections.filter(s => s.grado_id === selectedGrade.id && s.activo !== false) : [];
+  // Subjects for selected section
+  const sectionSubjects = selectedSection ? subjects.filter(s => s.section_id === selectedSection.id) : [];
   const currentTheme = selectedLevel ? getLevelTheme(selectedLevel.nombre) : LEVEL_THEMES.default;
 
   if (loading) {
@@ -826,7 +866,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
             {/* Page Header - Vibrant */}
             <div className="mb-10">
               <div className="flex items-center gap-5 mb-2">
-                {selectedGrade && (
+                {(selectedGrade) && (
                   <button 
                     onClick={handleBackToLevels}
                     data-testid="back-to-levels"
@@ -843,9 +883,11 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                     Asignaturas
                   </h1>
                   <p className="text-gray-500 font-medium text-lg">
-                    {selectedGrade 
-                      ? `${selectedLevel?.nombre} — ${selectedGrade?.nombre}`
-                      : "Gestiona las materias por nivel y grado"
+                    {selectedSection 
+                      ? `${selectedLevel?.nombre} — ${selectedGrade?.nombre} — Sección ${selectedSection?.nombre}`
+                      : selectedGrade
+                        ? `${selectedLevel?.nombre} — ${selectedGrade?.nombre}`
+                        : "Gestiona las materias por nivel, grado y sección"
                     }
                   </p>
                 </div>
@@ -928,9 +970,9 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                   })}
                 </Tabs>
               )
-            ) : (
+            ) : !selectedSection ? (
               // ════════════════════════════════════════════════════════════════
-              // GRADE SUBJECTS VIEW - Premium Colorful
+              // SECTIONS VIEW - Intermediate step between Grade and Subjects
               // ════════════════════════════════════════════════════════════════
               <div>
                 {/* Grade Header */}
@@ -943,22 +985,92 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                     <div className="flex-1">
                       <p className={`text-lg ${currentTheme.accent} font-bold mb-1`}>{selectedLevel.nombre}</p>
                       <h2 className="text-4xl font-black text-gray-800">{selectedGrade.nombre}</h2>
+                      <p className="text-base text-gray-500 mt-1">Selecciona una sección para gestionar sus asignaturas</p>
                     </div>
                     <div className="text-right">
-                      <p className={`text-5xl font-black ${currentTheme.accent}`}>{gradeSubjects.length}</p>
-                      <p className="text-base text-gray-500 font-semibold">asignatura{gradeSubjects.length !== 1 ? "s" : ""}</p>
+                      <p className={`text-5xl font-black ${currentTheme.accent}`}>{gradeSections.length}</p>
+                      <p className="text-base text-gray-500 font-semibold">sección{gradeSections.length !== 1 ? "es" : ""}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {gradeSections.length === 0 ? (
+                  <div className={`${currentTheme.cardBg} rounded-3xl border-2 border-dashed ${currentTheme.cardBorder} p-16 text-center`}>
+                    <div className={`w-20 h-20 ${currentTheme.iconBg} rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl opacity-50`}>
+                      <Users className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-700 mb-3">Sin secciones</h3>
+                    <p className="text-gray-500 mb-4 max-w-md mx-auto text-lg">Este grado no tiene secciones configuradas. Crea secciones en Ajustes Académicos.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {gradeSections.map(section => {
+                      const sCount = subjectCountBySection[section.id] || 0;
+                      return (
+                        <button
+                          key={section.id}
+                          onClick={() => handleSelectSection(section)}
+                          data-testid={`section-card-${section.id}`}
+                          className={`group relative overflow-hidden rounded-3xl p-8 text-left w-full
+                            ${currentTheme.cardBg} border-2 ${currentTheme.cardBorder}
+                            shadow-lg ${currentTheme.cardHover} hover:shadow-2xl
+                            hover:-translate-y-2 transition-all duration-300 ease-out`}
+                        >
+                          <div className={`absolute -top-10 -right-10 w-32 h-32 bg-gradient-to-br ${currentTheme.gradient} rounded-full opacity-10 group-hover:opacity-20 group-hover:scale-125 transition-all duration-500`} />
+                          {sCount > 0 && (
+                            <div className={`absolute -top-2 -right-2 min-w-[36px] h-9 px-3 ${currentTheme.badge} text-white rounded-full flex items-center justify-center text-sm font-bold shadow-lg ring-4 ring-white z-10`}>
+                              {sCount}
+                            </div>
+                          )}
+                          <div className={`relative w-16 h-16 ${currentTheme.iconBg} rounded-2xl flex items-center justify-center mb-6 shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}>
+                            <Users className="w-8 h-8 text-white" />
+                          </div>
+                          <h3 className="text-2xl font-bold text-gray-800 mb-2">Sección {section.nombre}</h3>
+                          <p className={`text-base mb-6 font-medium ${sCount > 0 ? currentTheme.accent : 'text-gray-400'}`}>
+                            {sCount === 0 ? "Sin asignaturas" : `${sCount} asignatura${sCount !== 1 ? "s" : ""}`}
+                          </p>
+                          <div className={`flex items-center gap-2 ${currentTheme.accent} font-semibold group-hover:gap-3 transition-all duration-300`}>
+                            <Settings2 className="w-5 h-5" />
+                            <span>Gestionar asignaturas</span>
+                            <ArrowRight className="w-5 h-5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              // ════════════════════════════════════════════════════════════════
+              // SECTION SUBJECTS VIEW - Premium Colorful
+              // ════════════════════════════════════════════════════════════════
+              <div>
+                {/* Section Header */}
+                <div className={`${currentTheme.cardBg} rounded-3xl border-2 ${currentTheme.cardBorder} p-8 mb-8 shadow-xl relative overflow-hidden`}>
+                  <div className={`absolute top-0 right-0 w-64 h-64 bg-gradient-to-br ${currentTheme.gradient} opacity-10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl`} />
+                  <div className="relative flex items-center gap-6">
+                    <div className={`w-20 h-20 ${currentTheme.iconBg} rounded-2xl flex items-center justify-center shadow-xl`}>
+                      <BookOpen className="w-10 h-10 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className={`text-lg ${currentTheme.accent} font-bold mb-1`}>{selectedLevel.nombre} — {selectedGrade.nombre}</p>
+                      <h2 className="text-4xl font-black text-gray-800">Sección {selectedSection.nombre}</h2>
+                    </div>
+                    <div className="text-right">
+                      <p className={`text-5xl font-black ${currentTheme.accent}`}>{sectionSubjects.length}</p>
+                      <p className="text-base text-gray-500 font-semibold">asignatura{sectionSubjects.length !== 1 ? "s" : ""}</p>
                     </div>
                   </div>
                 </div>
 
                 {/* Subjects Grid */}
-                {gradeSubjects.length === 0 ? (
+                {sectionSubjects.length === 0 ? (
                   <div className={`${currentTheme.cardBg} rounded-3xl border-2 border-dashed ${currentTheme.cardBorder} p-16 text-center`}>
                     <div className={`w-20 h-20 ${currentTheme.iconBg} rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl opacity-50`}>
                       <BookOpen className="w-10 h-10 text-white" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-700 mb-3">Sin asignaturas</h3>
-                    <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">Este grado aún no tiene materias configuradas</p>
+                    <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">Esta sección aún no tiene materias configuradas</p>
                     <button
                       onClick={() => { setEditingSubject(null); setShowSubjectModal(true); }}
                       data-testid="add-first-subject"
@@ -971,7 +1083,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                    {gradeSubjects.map(subject => (
+                    {sectionSubjects.map(subject => (
                       <SubjectCard
                         key={subject.id}
                         subject={subject}
@@ -999,8 +1111,10 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         onSave={handleSaveSubject}
         levels={levels}
         grades={grades}
+        sections={sections}
         preselectedLevel={selectedLevel?.id}
         preselectedGrade={selectedGrade?.id}
+        preselectedSection={selectedSection?.id}
         token={token}
       />
     </div>
