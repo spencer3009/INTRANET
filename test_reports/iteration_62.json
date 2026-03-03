@@ -63,10 +63,10 @@
   },
 
   "test_credentials": {
-    "login_url": "https://photo-modal-fix.preview.emergentagent.com/school/demosettings/login",
+    "login_url": "https://edunet-courses-fix.preview.emergentagent.com/school/demosettings/login",
     "email": "admin.settings@test.pe",
     "password": "1234abc8",
-    "academic_settings_url": "https://photo-modal-fix.preview.emergentagent.com/demosettings/academic-settings"
+    "academic_settings_url": "https://edunet-courses-fix.preview.emergentagent.com/demosettings/academic-settings"
   },
 
   "seed_data_creation": "",
@@ -75,7 +75,7 @@
 
   "should_main_agent_self_test": false,
 
-  "context_for_next_testing_agent": "Grade name validation is working correctly. Key data-testids: grade-modal, grade-level-select, grade-name-select (INICIAL only), grade-name-input (non-INICIAL), section-warning (amber warning), grade-helper-text (blue info). INICIAL has 3 preset grades (3,4,5 AÑOS) - all currently exist in demosettings school, so dropdown only shows placeholder. Section patterns blocked: single letter suffix, ordinal+letter, section words (SECCION, AULA, ALAMO, ROBLE, etc.). Level IDs: Inicial=035e4a2b-1d7e-48e1-ab85-dfeef62312cf, Primaria=65478f43-bbc8-4099-9936-5e4d455220a4, Secundaria=057794a9-c9ee-4cdf-9c2a-e25f85219347.",
+  "context_for_next_testing_agent": "Grade name validation is working correctly. Key data-testids: grade-modal, grade-level-select, grade-name-select (INICIAL only), grade-name-input (non-INICIAL), section-warning (amber warning), grade-helper-text (blue info). INICIAL has 3 preset grades (3,4,5 AÑOS) - all currently exist in demosettings school, so dropdown only shows placeholder. Section patterns blocked: single letter suffix, ordinal+letter, section words (SECCION, AULA, ALAMO, ROBLE, etc.). Level IDs: Inicial=edunet-courses-fix, Primaria=edunet-courses-fix, Secundaria=edunet-courses-fix.",
 
   "verified_features": {
     "GradeValidation": {

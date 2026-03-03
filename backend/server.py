@@ -1976,58 +1976,63 @@ async def get_student_courses(current_user = Depends(get_current_user)):
             level = await db.academic_levels.find_one({"id": grade["nivel_id"], "school_id": school_id}, {"_id": 0})
             level_name = level.get("nombre", "-") if level else "-"
     
-    # Get academic assignments for this section (from academic_assignments collection)
+    # Source of truth: subjects assigned to this section via section_id
+    grade_id = section.get("grado_id") if section else None
+    section_subjects = await db.subjects.find({
+        "school_id": school_id,
+        "section_id": seccion_id,
+        "status": "active"
+    }, {"_id": 0}).to_list(100)
+    
+    # Build a lookup of teacher assignments for this section
     assignments = await db.academic_assignments.find({
         "school_id": school_id,
         "section_id": seccion_id,
         "status": "activo"
     }, {"_id": 0}).to_list(100)
+    teacher_by_subject = {}
+    for a in assignments:
+        sid = a.get("subject_id")
+        if sid and sid not in teacher_by_subject:
+            teacher_by_subject[sid] = a.get("teacher_id")
     
-    # Build courses with teacher info
     courses = []
-    seen_subjects = set()  # Avoid duplicates
-    
-    for assignment in assignments:
-        subject_id = assignment.get("subject_id")
-        if subject_id in seen_subjects:
-            continue
-        seen_subjects.add(subject_id)
+    for subject in section_subjects:
+        teacher_id = teacher_by_subject.get(subject["id"])
+        teacher = None
+        if teacher_id:
+            teacher = await db.users.find_one({"id": teacher_id}, {"_id": 0, "password": 0})
         
-        subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id}, {"_id": 0})
-        if subject:
-            teacher = await db.users.find_one({"id": assignment.get("teacher_id")}, {"_id": 0, "password": 0})
-            
-            # Count materials, tasks, etc. for this subject
-            materials_count = await db.course_posts.count_documents({
-                "school_id": school_id,
-                "subject_id": subject["id"],
-                "type": "material"
-            })
-            tasks_count = await db.course_posts.count_documents({
-                "school_id": school_id,
-                "subject_id": subject["id"],
-                "type": "task"
-            })
-            
-            courses.append({
-                "id": subject["id"],
-                "name": subject.get("name"),
-                "description": subject.get("description"),
-                "image_url": subject.get("image_url"),
-                "color": subject.get("color"),
-                "teacher": {
-                    "id": teacher["id"] if teacher else None,
-                    "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip() if teacher else "Sin asignar",
-                    "photo_url": teacher.get("photo_url") if teacher else None
-                },
-                "materials_count": materials_count,
-                "tasks_count": tasks_count,
-                "section_id": seccion_id,
-                "section_name": section_name,
-                "grade_id": assignment.get("grade_id"),
-                "grade_name": grade_name,
-                "level_name": level_name
-            })
+        materials_count = await db.course_posts.count_documents({
+            "school_id": school_id,
+            "subject_id": subject["id"],
+            "type": "material"
+        })
+        tasks_count = await db.course_posts.count_documents({
+            "school_id": school_id,
+            "subject_id": subject["id"],
+            "type": "task"
+        })
+        
+        courses.append({
+            "id": subject["id"],
+            "name": subject.get("name"),
+            "description": subject.get("description"),
+            "image_url": subject.get("image_url"),
+            "color": subject.get("color"),
+            "teacher": {
+                "id": teacher["id"] if teacher else None,
+                "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip() if teacher else "Sin asignar",
+                "photo_url": teacher.get("photo_url") if teacher else None
+            },
+            "materials_count": materials_count,
+            "tasks_count": tasks_count,
+            "section_id": seccion_id,
+            "section_name": section_name,
+            "grade_id": grade_id,
+            "grade_name": grade_name,
+            "level_name": level_name
+        })
     
     return {"courses": courses}
 
@@ -2124,15 +2129,14 @@ async def get_student_tasks(
     if not seccion_id:
         return JSONResponse(content=empty_response, headers={"Cache-Control": "private, max-age=60"})
     
-    # OPTIMIZED: Single aggregation pipeline instead of multiple queries
-    # Get academic assignments for this section
-    assignments = await db.academic_assignments.find({
+    # Source of truth: subjects assigned to this section via section_id
+    section_subjects = await db.subjects.find({
         "school_id": school_id,
         "section_id": seccion_id,
-        "status": "activo"
-    }, {"_id": 0, "subject_id": 1}).to_list(100)
+        "status": "active"
+    }, {"_id": 0, "id": 1}).to_list(100)
     
-    subject_ids = list(set(a.get("subject_id") for a in assignments if a.get("subject_id")))
+    subject_ids = [s["id"] for s in section_subjects]
     
     if not subject_ids:
         STUDENT_TASKS_CACHE[student_id] = empty_response
@@ -2356,15 +2360,15 @@ async def get_student_dashboard(current_user = Depends(get_current_user)):
     school_id = user.get("school_id")
     seccion_id = user.get("seccion_id")
     
-    # Get student's courses from academic_assignments
+    # Get student's courses from subjects collection (source of truth: section_id)
     subject_ids = []
     if seccion_id:
-        assignments = await db.academic_assignments.find({
+        section_subjects = await db.subjects.find({
             "school_id": school_id,
             "section_id": seccion_id,
-            "status": "activo"
-        }, {"_id": 0}).to_list(100)
-        subject_ids = list(set([a.get("subject_id") for a in assignments if a.get("subject_id")]))
+            "status": "active"
+        }, {"_id": 0, "id": 1}).to_list(100)
+        subject_ids = [s["id"] for s in section_subjects]
     
     # Upcoming tasks (next 7 days) - only tasks the student has NOT submitted yet
     upcoming_tasks = []
@@ -21200,22 +21204,16 @@ async def get_parent_dashboard(
     if student.get("seccion_id"):
         seccion = await db.sections.find_one({"id": student["seccion_id"], "school_id": school_id}, {"_id": 0})
     
-    # Get courses via academic_assignments
+    # Get courses via subjects collection (source of truth: section_id)
     courses = []
     subject_ids = []
     if student.get("seccion_id"):
-        assignments = await db.academic_assignments.find({
+        courses = await db.subjects.find({
             "school_id": school_id,
             "section_id": student["seccion_id"],
-            "status": "activo"
-        }, {"_id": 0}).to_list(50)
-        
-        subject_ids = list(set([a["subject_id"] for a in assignments]))
-        if subject_ids:
-            courses = await db.subjects.find({
-                "id": {"$in": subject_ids},
-                "school_id": school_id
-            }, {"_id": 0}).to_list(50)
+            "status": "active"
+        }, {"_id": 0}).to_list(100)
+        subject_ids = [s["id"] for s in courses]
     
     # Get section students count
     section_students_count = 0
@@ -21421,35 +21419,36 @@ async def get_parent_student_courses(
     
     courses = []
     if student.get("seccion_id"):
-        # Get assignments for this section
+        seccion_id = student["seccion_id"]
+        
+        # Source of truth: subjects assigned to this section via section_id
+        section_subjects = await db.subjects.find({
+            "school_id": school_id,
+            "section_id": seccion_id,
+            "status": "active"
+        }, {"_id": 0}).to_list(100)
+        
+        # Build teacher lookup from academic_assignments
         assignments = await db.academic_assignments.find({
             "school_id": school_id,
-            "section_id": student["seccion_id"],
+            "section_id": seccion_id,
             "status": "activo"
-        }, {"_id": 0}).to_list(50)
+        }, {"_id": 0}).to_list(100)
+        teacher_by_subject = {}
+        for a in assignments:
+            sid = a.get("subject_id")
+            if sid and sid not in teacher_by_subject:
+                teacher_by_subject[sid] = a.get("teacher_id")
         
-        # Group by subject
-        subject_map = {}
-        for assign in assignments:
-            sid = assign.get("subject_id")
-            if sid not in subject_map:
-                subject_map[sid] = assign
-        
-        # Get subject details
-        for sid, assign in subject_map.items():
-            subject = await db.subjects.find_one({"id": sid, "school_id": school_id}, {"_id": 0})
-            if not subject:
-                continue
-            
-            # Get teacher
+        for subject in section_subjects:
+            teacher_id = teacher_by_subject.get(subject["id"])
             teacher = None
-            if assign.get("teacher_id"):
-                teacher = await db.users.find_one({"id": assign["teacher_id"]}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1})
+            if teacher_id:
+                teacher = await db.users.find_one({"id": teacher_id}, {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1})
             
-            # Get pending tasks count
             pending = await db.course_posts.count_documents({
                 "school_id": school_id,
-                "subject_id": sid,
+                "subject_id": subject["id"],
                 "$or": [{"post_type": "task"}, {"type": "task"}],
                 "due_date": {"$gte": datetime.now(timezone.utc).isoformat()}
             })
@@ -21485,15 +21484,15 @@ async def get_parent_student_tasks(
     student = await verify_parent_student_access(user, student_id)
     school_id = user.get("school_id")
     
-    # Get student's subjects
+    # Get student's subjects from subjects collection (source of truth: section_id)
     subject_ids = []
     if student.get("seccion_id"):
-        assignments = await db.academic_assignments.find({
+        section_subjects = await db.subjects.find({
             "school_id": school_id,
             "section_id": student["seccion_id"],
-            "status": "activo"
-        }, {"_id": 0, "subject_id": 1}).to_list(50)
-        subject_ids = list(set([a["subject_id"] for a in assignments]))
+            "status": "active"
+        }, {"_id": 0, "id": 1}).to_list(100)
+        subject_ids = [s["id"] for s in section_subjects]
     
     if not subject_ids:
         return {"tasks": [], "stats": {"total": 0, "pending": 0, "submitted": 0, "graded": 0}}
@@ -21576,15 +21575,15 @@ async def get_parent_student_grades(
     student = await verify_parent_student_access(user, student_id)
     school_id = user.get("school_id")
     
-    # Get student's subjects
+    # Get student's subjects from subjects collection (source of truth: section_id)
     subject_ids = []
     if student.get("seccion_id"):
-        assignments = await db.academic_assignments.find({
+        section_subjects = await db.subjects.find({
             "school_id": school_id,
             "section_id": student["seccion_id"],
-            "status": "activo"
-        }, {"_id": 0, "subject_id": 1}).to_list(50)
-        subject_ids = list(set([a["subject_id"] for a in assignments]))
+            "status": "active"
+        }, {"_id": 0, "id": 1}).to_list(100)
+        subject_ids = [s["id"] for s in section_subjects]
     
     if subject_id and subject_id in subject_ids:
         subject_ids = [subject_id]
@@ -22020,7 +22019,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://photo-modal-fix.preview.emergentagent.com",
+        "https://edunet-courses-fix.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
