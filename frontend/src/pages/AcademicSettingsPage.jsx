@@ -345,12 +345,6 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
               )}
             </div>
 
-            {/* Helper text */}
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-100 rounded-xl text-sm text-blue-700 flex items-start gap-2" data-testid="grade-helper-text">
-              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              <span>Las letras (A, B) y nombres de aula (Álamo, Roble) se crean como <strong>Secciones</strong>, no como grados.</span>
-            </div>
-
             <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Orden</label><input type="number" value={form.orden} onChange={(e) => setForm(p => ({ ...p, orden: parseInt(e.target.value) || 0 }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" min={0} /><p className="text-xs text-slate-500 mt-1">0 = automático</p></div>
             <div className="mb-6 flex items-center justify-between p-4 bg-slate-50 rounded-xl"><div><p className="font-semibold text-slate-700">Estado</p><p className="text-sm text-slate-500">{form.activo ? "Activo" : "Inactivo"}</p></div><button type="button" onClick={() => setForm(p => ({ ...p, activo: !p.activo }))} className={`relative w-14 h-8 rounded-full transition-colors ${form.activo ? "bg-emerald-500" : "bg-slate-300"}`}><span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${form.activo ? "left-7" : "left-1"}`} /></button></div>
             <div className="flex gap-3"><button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancelar</button><button type="submit" disabled={loading} className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2">{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}{isEdit ? "Guardar" : "Crear"}</button></div>
