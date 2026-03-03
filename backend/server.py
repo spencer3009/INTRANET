@@ -5817,11 +5817,17 @@ async def create_grade(
     if not level:
         raise HTTPException(status_code=400, detail="El nivel educativo no existe")
     
-    # Strict validation for INICIAL level: only allow preset grades
-    INICIAL_VALID_GRADES = ["3 AÑOS", "4 AÑOS", "5 AÑOS"]
-    if level.get("nombre", "").upper().strip() in ["INICIAL", "NIVEL INICIAL"]:
-        if data.nombre.strip().upper() not in [g.upper() for g in INICIAL_VALID_GRADES]:
-            raise HTTPException(status_code=400, detail="Grado inválido para Nivel Inicial. Solo se permite: 3 AÑOS, 4 AÑOS, 5 AÑOS.")
+    # Strict validation: only allow preset grades for standard levels
+    VALID_GRADES_BY_LEVEL = {
+        "INICIAL": ["3 AÑOS", "4 AÑOS", "5 AÑOS"],
+        "PRIMARIA": ["1°", "2°", "3°", "4°", "5°", "6°"],
+        "SECUNDARIA": ["1°", "2°", "3°", "4°", "5°"],
+    }
+    level_name_norm = unicodedata.normalize("NFD", level.get("nombre", "").strip()).encode("ascii", "ignore").decode("ascii").upper()
+    if level_name_norm in VALID_GRADES_BY_LEVEL:
+        allowed = [g.upper() for g in VALID_GRADES_BY_LEVEL[level_name_norm]]
+        if data.nombre.strip().upper() not in allowed:
+            raise HTTPException(status_code=400, detail=f"Grado inválido para {level.get('nombre')}. Solo se permite: {', '.join(VALID_GRADES_BY_LEVEL[level_name_norm])}")
     
     # Validate grade name doesn't contain section patterns
     validation_error = validate_grade_name(data.nombre, level.get("nombre", ""))
@@ -5904,11 +5910,17 @@ async def update_grade(
         level_doc = await db.academic_levels.find_one({"id": new_nivel_id}, {"_id": 0, "nombre": 1})
         level_name = level_doc.get("nombre", "") if level_doc else ""
         
-        # Strict validation for INICIAL level
-        INICIAL_VALID_GRADES = ["3 AÑOS", "4 AÑOS", "5 AÑOS"]
-        if level_name.upper().strip() in ["INICIAL", "NIVEL INICIAL"]:
-            if data.nombre.strip().upper() not in [g.upper() for g in INICIAL_VALID_GRADES]:
-                raise HTTPException(status_code=400, detail="Grado inválido para Nivel Inicial. Solo se permite: 3 AÑOS, 4 AÑOS, 5 AÑOS.")
+        # Strict validation: only allow preset grades for standard levels
+        VALID_GRADES_BY_LEVEL = {
+            "INICIAL": ["3 AÑOS", "4 AÑOS", "5 AÑOS"],
+            "PRIMARIA": ["1°", "2°", "3°", "4°", "5°", "6°"],
+            "SECUNDARIA": ["1°", "2°", "3°", "4°", "5°"],
+        }
+        level_name_norm = unicodedata.normalize("NFD", level_name.strip()).encode("ascii", "ignore").decode("ascii").upper()
+        if level_name_norm in VALID_GRADES_BY_LEVEL:
+            allowed = [g.upper() for g in VALID_GRADES_BY_LEVEL[level_name_norm]]
+            if data.nombre.strip().upper() not in allowed:
+                raise HTTPException(status_code=400, detail=f"Grado inválido para {level_name}. Solo se permite: {', '.join(VALID_GRADES_BY_LEVEL[level_name_norm])}")
         
         validation_error = validate_grade_name(data.nombre, level_name)
         if validation_error:

@@ -186,8 +186,12 @@ function LevelModal({ isOpen, onClose, token, level, onSuccess }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // GRADE MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-// Preset grades for INICIAL level (dropdown instead of free text)
-const INICIAL_PRESET_GRADES = ["3 AÑOS", "4 AÑOS", "5 AÑOS"];
+// Preset grades per standard level (dropdown instead of free text)
+const PRESET_GRADES_BY_LEVEL = {
+  INICIAL: ["3 AÑOS", "4 AÑOS", "5 AÑOS"],
+  PRIMARIA: ["1°", "2°", "3°", "4°", "5°", "6°"],
+  SECUNDARIA: ["1°", "2°", "3°", "4°", "5°"],
+};
 
 // Section-like patterns to block in grade names
 const SECTION_PATTERNS = [
@@ -219,9 +223,11 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
   const isEdit = !!grade;
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Determine if selected level is INICIAL
+  // Determine if selected level has preset grades
   const selectedLevel = levels.find(l => l.id === form.nivel_id);
-  const isInicial = selectedLevel?.nombre?.toUpperCase()?.includes("INICIAL");
+  const levelNameNorm = selectedLevel?.nombre?.normalize("NFD")?.replace(/[\u0300-\u036f]/g, "")?.toUpperCase()?.trim() || "";
+  const presetGrades = PRESET_GRADES_BY_LEVEL[levelNameNorm] || null;
+  const hasPresets = !!presetGrades;
 
   useEffect(() => {
     if (isOpen) {
@@ -282,7 +288,7 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
             {/* Grade name - dropdown for INICIAL, text for others */}
             <div className="mb-4">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre del Grado <span className="text-red-500">*</span></label>
-              {isInicial ? (
+              {hasPresets ? (
                 <select
                   value={form.nombre}
                   onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))}
@@ -291,7 +297,7 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
                   data-testid="grade-name-select"
                 >
                   <option value="">Seleccionar grado...</option>
-                  {INICIAL_PRESET_GRADES.map(pg => <option key={pg} value={pg}>{pg}</option>)}
+                  {presetGrades.map(pg => <option key={pg} value={pg}>{pg}</option>)}
                 </select>
               ) : (
                 <input
