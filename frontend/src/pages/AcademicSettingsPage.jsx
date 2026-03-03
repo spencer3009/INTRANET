@@ -1380,7 +1380,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
             <div className="w-24 h-24 bg-white rounded-2xl shadow-lg p-4 flex items-center justify-center"><category.icon className={`w-14 h-14 ${category.textColor}`} /></div>
             <div><h1 className="text-4xl font-bold mb-2">{category.label}</h1><span className="px-4 py-1.5 bg-white/20 rounded-full text-sm font-medium">{count} {countLabel}</span></div>
           </div>
-          <button onClick={onAdd} className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl"><div className={`w-10 h-10 rounded-full bg-gradient-to-r ${category.color} flex items-center justify-center`}><Plus className="w-5 h-5 text-white" /></div><span>{addLabel}</span></button>
+          {onAdd && <button onClick={onAdd} className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl"><div className={`w-10 h-10 rounded-full bg-gradient-to-r ${category.color} flex items-center justify-center`}><Plus className="w-5 h-5 text-white" /></div><span>{addLabel}</span></button>}
         </div>
       </div>
     </div>
@@ -1465,9 +1465,19 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       return (levelA?.orden || 99) - (levelB?.orden || 99);
     });
 
+    // Check if there are any available grades to create across all levels
+    const hasAvailableGrades = levels.some(l => {
+      if (!l.activo) return false;
+      const norm = l.nombre?.normalize("NFD")?.replace(/[\u0300-\u036f]/g, "")?.toUpperCase()?.trim() || "";
+      const presets = PRESET_GRADES_BY_LEVEL[norm];
+      if (!presets) return true; // Non-standard levels can always add
+      const existingForLevel = grades.filter(g => g.nivel_id === l.id);
+      return !presets.every(pg => existingForLevel.some(g => g.nombre.toUpperCase() === pg.toUpperCase()));
+    });
+
     return (
       <div>
-        <SectionHeader category={cat} count={grades.length} countLabel={grades.length === 1 ? "grado" : "grados"} onAdd={() => { setEditingGrade(null); setShowGradeModal(true); }} addLabel="Nuevo Grado" />
+        <SectionHeader category={cat} count={grades.length} countLabel={grades.length === 1 ? "grado" : "grados"} onAdd={hasAvailableGrades ? () => { setEditingGrade(null); setShowGradeModal(true); } : null} addLabel="Nuevo Grado" />
         {levels.length > 0 && <div className="mb-6 flex flex-wrap gap-2"><button onClick={() => setSelectedLevelFilter("")} className={`px-4 py-2 rounded-xl font-medium transition-all ${!selectedLevelFilter ? "bg-emerald-500 text-white" : "bg-white text-slate-700 hover:bg-slate-50 border"}`}>Todos</button>{levels.filter(l => l.activo).map(l => <button key={l.id} onClick={() => setSelectedLevelFilter(l.id)} className={`px-4 py-2 rounded-xl font-medium transition-all ${selectedLevelFilter === l.id ? "bg-emerald-500 text-white" : "bg-white text-slate-700 hover:bg-slate-50 border"}`}>{l.nombre}</button>)}</div>}
         {sortedLevelEntries.length === 0 ? <EmptyState category={cat} message={levels.length === 0 ? "Primero crea un nivel educativo." : "Crea el primer grado."} onAdd={levels.length > 0 ? () => { setEditingGrade(null); setShowGradeModal(true); } : null} addLabel="Crear grado" /> : (
           <div className="space-y-8">
@@ -1503,7 +1513,16 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
                       </div>
                     </div>
                   ))}
-                  <button onClick={() => { setEditingGrade(null); setShowGradeModal(true); }} className={`rounded-2xl border-2 border-dashed ${cat.borderColor} hover:border-emerald-400 hover:bg-emerald-50 p-6 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-600 min-h-[200px]`}><Plus className="w-8 h-8 mb-2" /><span className="text-base font-medium">Agregar</span></button>
+                  {(() => {
+                    const lvl = levels.find(l => l.id === nivelId);
+                    const norm = lvl?.nombre?.normalize("NFD")?.replace(/[\u0300-\u036f]/g, "")?.toUpperCase()?.trim() || "";
+                    const presets = PRESET_GRADES_BY_LEVEL[norm];
+                    if (presets) {
+                      const allCreated = presets.every(pg => data.grades.some(g => g.nombre.toUpperCase() === pg.toUpperCase()));
+                      if (allCreated) return null;
+                    }
+                    return <button onClick={() => { setEditingGrade(null); setShowGradeModal(true); }} className={`rounded-2xl border-2 border-dashed ${cat.borderColor} hover:border-emerald-400 hover:bg-emerald-50 p-6 flex flex-col items-center justify-center text-slate-400 hover:text-emerald-600 min-h-[200px]`}><Plus className="w-8 h-8 mb-2" /><span className="text-base font-medium">Agregar</span></button>;
+                  })()}
                 </div>
               </div>
             ))}
