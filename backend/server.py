@@ -9326,6 +9326,27 @@ async def get_student_attendance_report(
         "summary": overall_summary
     }
 
+
+@api_router.get("/attendance/reports/student-detail")
+async def get_student_attendance_detail(
+    student_id: str = Query(..., description="ID del estudiante"),
+    start_date: Optional[str] = Query(None),
+    end_date: Optional[str] = Query(None),
+    current_user = Depends(get_current_user)
+):
+    """Get detailed attendance records for a specific student (admin/owner)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    
+    query = {"school_id": user["school_id"], "user_id": student_id, "type": "student"}
+    if start_date and end_date:
+        query["date"] = {"$gte": start_date, "$lte": end_date}
+    
+    records = await db.attendances.find(query, {"_id": 0}).sort("date", -1).to_list(500)
+    return {"records": records}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ATTENDANCE ENTRY / EXIT SYSTEM
 # ══════════════════════════════════════════════════════════════════════════════

@@ -8,7 +8,8 @@ import autoTable from "jspdf-autotable";
 import { 
   ClipboardCheck, Users, UserCheck, FileText, Calendar, ChevronRight,
   Loader2, AlertCircle, Check, Clock, X, Save, RefreshCw, Download,
-  User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle
+  User, Filter, CheckCircle2, XCircle, AlertTriangle, QrCode, Circle,
+  Eye, ChevronLeft, CheckCircle
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -839,6 +840,10 @@ function ReportsTab({ token, schoolId }) {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(false);
   const [loadingGrades, setLoadingGrades] = useState(true);
+  const [detailModal, setDetailModal] = useState(null); // { studentId, studentName, studentPhoto }
+  const [detailRecords, setDetailRecords] = useState([]);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailMonth, setDetailMonth] = useState(new Date());
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -903,6 +908,38 @@ function ReportsTab({ token, schoolId }) {
   // Get grade and section names for display
   const gradeName = grades.find(g => g.id === selectedGrade)?.nombre || "";
   const sectionName = sections.find(s => s.id === selectedSection)?.nombre || "";
+
+  // Student detail modal functions
+  const openDetailModal = async (studentId, studentName, studentPhoto) => {
+    setDetailModal({ studentId, studentName, studentPhoto });
+    setDetailMonth(new Date());
+    await loadDetailRecords(studentId, new Date());
+  };
+
+  const loadDetailRecords = async (studentId, month) => {
+    setDetailLoading(true);
+    try {
+      const y = month.getFullYear();
+      const m = month.getMonth();
+      const sd = new Date(y, m, 1).toISOString().split("T")[0];
+      const ed = new Date(y, m + 1, 0).toISOString().split("T")[0];
+      const res = await axios.get(`${API}/attendance/reports/student-detail?student_id=${studentId}&start_date=${sd}&end_date=${ed}`, { headers });
+      setDetailRecords(res.data.records || []);
+    } catch (err) {
+      console.error("Error:", err);
+      setDetailRecords([]);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const changeDetailMonth = (dir) => {
+    const newMonth = new Date(detailMonth.getFullYear(), detailMonth.getMonth() + dir, 1);
+    if (newMonth <= new Date()) {
+      setDetailMonth(newMonth);
+      if (detailModal) loadDetailRecords(detailModal.studentId, newMonth);
+    }
+  };
 
   // Export to PDF function
   const exportToPDF = () => {
@@ -1173,6 +1210,7 @@ function ReportsTab({ token, schoolId }) {
                     <th className="px-4 py-4 text-center text-sm font-bold text-amber-600">Tardanzas</th>
                     <th className="px-4 py-4 text-center text-sm font-bold text-red-600">Inasistencias</th>
                     <th className="px-6 py-4 text-center text-sm font-bold text-slate-700">% Asistencia</th>
+                    <th className="px-4 py-4 text-center text-sm font-bold text-slate-700">Detalle</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -1225,6 +1263,16 @@ function ReportsTab({ token, schoolId }) {
                           </span>
                         </div>
                       </td>
+                      <td className="px-4 py-4 text-center">
+                        <button
+                          data-testid={`view-detail-${item.student_id}`}
+                          onClick={() => openDetailModal(item.student_id, item.student_name, item.student_photo)}
+                          className="w-9 h-9 rounded-lg bg-violet-100 hover:bg-violet-200 flex items-center justify-center transition-colors mx-auto"
+                          title="Ver detalle mensual"
+                        >
+                          <Eye className="w-4 h-4 text-violet-600" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -1247,6 +1295,121 @@ function ReportsTab({ token, schoolId }) {
           <h3 className="text-xl font-bold text-slate-700 mb-2">Reporte de Asistencia de Estudiantes</h3>
           <p className="text-slate-500 mb-4">Selecciona un grado, sección y rango de fechas para generar el reporte.</p>
           <p className="text-sm text-slate-400">El reporte mostrará las asistencias, tardanzas e inasistencias de cada alumno.</p>
+        </div>
+      )}
+
+      {/* Student Detail Modal */}
+      {detailModal && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDetailModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="student-detail-modal">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {detailModal.studentPhoto ? (
+                  <img src={detailModal.studentPhoto} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-white/50" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">{detailModal.studentName?.charAt(0)}</div>
+                )}
+                <div className="text-white">
+                  <h3 className="font-bold text-lg">Asistencia de {detailModal.studentName}</h3>
+                  <p className="text-violet-200 text-sm">Detalle mensual</p>
+                </div>
+              </div>
+              <button onClick={() => setDetailModal(null)} className="w-8 h-8 rounded-lg bg-white/20 hover:bg-white/30 flex items-center justify-center text-white"><X className="w-4 h-4" /></button>
+            </div>
+
+            {/* Month Navigation */}
+            <div className="px-6 py-3 border-b border-slate-200 flex items-center justify-between">
+              <button onClick={() => changeDetailMonth(-1)} className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center"><ChevronLeft className="w-5 h-5 text-slate-600" /></button>
+              <h4 className="text-lg font-semibold text-slate-800 capitalize">{detailMonth.toLocaleDateString("es-PE", { month: "long", year: "numeric" })}</h4>
+              <button onClick={() => changeDetailMonth(1)} disabled={detailMonth.getMonth() === new Date().getMonth() && detailMonth.getFullYear() === new Date().getFullYear()} className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-50 flex items-center justify-center"><ChevronRight className="w-5 h-5 text-slate-600" /></button>
+            </div>
+
+            {/* Stats */}
+            {(() => {
+              const st = { present: 0, absent: 0, late: 0, justified: 0, total: detailRecords.length };
+              detailRecords.forEach(a => { if (st[a.status] !== undefined) st[a.status]++; });
+              const pct = st.total > 0 ? Math.round(((st.present + st.justified) / st.total) * 100) : 0;
+              return (
+                <div className="px-6 py-3 grid grid-cols-5 gap-2">
+                  <div className="bg-emerald-500 rounded-lg p-2 text-white text-center"><p className="text-xs text-white/80">Asistencia</p><p className="text-xl font-bold">{pct}%</p></div>
+                  <div className="bg-emerald-50 rounded-lg p-2 text-center"><p className="text-xs text-emerald-600">Asistencias</p><p className="text-xl font-bold text-emerald-700">{st.present}</p></div>
+                  <div className="bg-amber-50 rounded-lg p-2 text-center"><p className="text-xs text-amber-600">Tardanzas</p><p className="text-xl font-bold text-amber-700">{st.late}</p></div>
+                  <div className="bg-red-50 rounded-lg p-2 text-center"><p className="text-xs text-red-600">Faltas</p><p className="text-xl font-bold text-red-700">{st.absent}</p></div>
+                  <div className="bg-blue-50 rounded-lg p-2 text-center"><p className="text-xs text-blue-600">Justificadas</p><p className="text-xl font-bold text-blue-700">{st.justified}</p></div>
+                </div>
+              );
+            })()}
+
+            {/* Calendar */}
+            <div className="px-6 py-4">
+              {detailLoading ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 text-violet-500 animate-spin" /></div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-7 gap-1 mb-1">
+                    {["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"].map(d => (
+                      <div key={d} className="text-center text-xs font-medium text-slate-500 py-1">{d}</div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-7 gap-1">
+                    {(() => {
+                      const y = detailMonth.getFullYear(), mo = detailMonth.getMonth();
+                      const firstDay = new Date(y, mo, 1).getDay();
+                      const daysInMonth = new Date(y, mo + 1, 0).getDate();
+                      const monthName = detailMonth.toLocaleDateString("es-PE", { month: "long" });
+                      const cells = [];
+                      for (let i = 0; i < firstDay; i++) cells.push(<div key={`e${i}`} />);
+                      for (let day = 1; day <= daysInMonth; day++) {
+                        const dateStr = `${y}-${String(mo + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                        const rec = detailRecords.find(a => a.date === dateStr);
+                        const isWeekend = [0, 6].includes(new Date(y, mo, day).getDay());
+                        const entryTime = rec?.entry_time ? (() => { try { return new Date(rec.entry_time).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }); } catch { return null; } })() : null;
+                        const exitTime = rec?.exit_time ? (() => { try { return new Date(rec.exit_time).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }); } catch { return null; } })() : null;
+
+                        if (!rec?.status) {
+                          cells.push(<div key={day} className={`aspect-square rounded-lg flex items-center justify-center text-sm ${isWeekend ? "bg-slate-50 text-slate-400" : "bg-slate-50 text-slate-600"}`}><span className="font-medium">{day}</span></div>);
+                        } else if (rec.status === "absent" || rec.status === "justified") {
+                          const cfg = rec.status === "absent" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700";
+                          cells.push(
+                            <div key={day} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm ${cfg}`}>
+                              <span className="font-medium">{day}</span>
+                              <span className="text-[8px] opacity-70">{day} de {monthName}</span>
+                              {rec.status === "absent" ? <XCircle className="w-3 h-3 mt-0.5" /> : <FileText className="w-3 h-3 mt-0.5" />}
+                            </div>
+                          );
+                        } else {
+                          const isLate = rec.status === "late";
+                          cells.push(
+                            <div key={day} className="aspect-square rounded-lg overflow-hidden flex flex-col">
+                              <div className={`flex-1 flex flex-col items-center justify-center px-1 ${entryTime ? "bg-emerald-100" : isLate ? "bg-amber-100" : "bg-emerald-100"}`}>
+                                <span className={`font-bold text-xs leading-tight ${isLate && !entryTime ? "text-amber-700" : "text-emerald-700"}`}>{day} de {monthName}</span>
+                                {entryTime ? (
+                                  <span className="text-emerald-700 font-semibold leading-tight text-center text-[10px]">Entrada {entryTime}</span>
+                                ) : isLate ? <Clock className="w-3 h-3 text-amber-600 mt-0.5" /> : <CheckCircle className="w-3 h-3 text-emerald-600 mt-0.5" />}
+                              </div>
+                              <div className={`flex-1 flex items-center justify-center px-1 ${exitTime ? "bg-blue-100" : entryTime ? "bg-emerald-50" : isLate ? "bg-amber-50" : "bg-emerald-50"}`}>
+                                {exitTime && <span className="text-blue-700 font-semibold leading-tight text-center text-[10px]">Salida {exitTime}</span>}
+                              </div>
+                            </div>
+                          );
+                        }
+                      }
+                      return cells;
+                    })()}
+                  </div>
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-3 mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-emerald-100 border border-emerald-200" /><span className="text-slate-600">Entrada</span></div>
+                    <div className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-200" /><span className="text-slate-600">Salida</span></div>
+                    <div className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-amber-100 border border-amber-200" /><span className="text-slate-600">Tardanza</span></div>
+                    <div className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-red-100 border border-red-200" /><span className="text-slate-600">Falta</span></div>
+                    <div className="flex items-center gap-1.5 text-xs"><span className="w-3 h-3 rounded bg-blue-100 border border-blue-200" /><span className="text-slate-600">Justificado</span></div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </div>
