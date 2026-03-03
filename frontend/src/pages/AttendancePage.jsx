@@ -1384,11 +1384,11 @@ function ReportsTab({ token, schoolId }) {
                               <div className={`flex-1 flex flex-col items-center justify-center ${entryTime ? "bg-emerald-100" : isLate ? "bg-amber-100" : "bg-emerald-100"}`}>
                                 <span className={`font-bold text-sm ${isLate && !entryTime ? "text-amber-700" : "text-emerald-700"}`}>{day}</span>
                                 {entryTime ? (
-                                  <span className="text-emerald-700 font-medium text-center text-[10px] leading-tight">Entrada {entryTime}</span>
+                                  <span className="text-emerald-700 font-medium text-center text-[10px] leading-tight">E {entryTime}</span>
                                 ) : isLate ? <Clock className="w-3 h-3 text-amber-600" /> : <CheckCircle className="w-3 h-3 text-emerald-600" />}
                               </div>
                               <div className={`flex-1 flex items-center justify-center ${exitTime ? "bg-blue-100" : entryTime ? "bg-emerald-50" : isLate ? "bg-amber-50" : "bg-emerald-50"}`}>
-                                {exitTime && <span className="text-blue-700 font-medium text-center text-[10px] leading-tight">Salida {exitTime}</span>}
+                                {exitTime && <span className="text-blue-700 font-medium text-center text-[10px] leading-tight">S {exitTime}</span>}
                               </div>
                             </div>
                           );
