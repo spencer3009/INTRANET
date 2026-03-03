@@ -1253,18 +1253,18 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
     <div className={`group relative overflow-hidden bg-white rounded-2xl shadow-md hover:shadow-xl transition-all border-2 ${category.borderColor} hover:-translate-y-1`}>
       <div className={`h-2 bg-gradient-to-r ${category.color}`}></div>
       <div className="p-6 relative">
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-3 right-3">
           <button onClick={(e) => { e.stopPropagation(); setMenuOpen(menuOpen === item.id ? null : item.id); }} className="w-10 h-10 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"><MoreVertical className="w-5 h-5" /></button>
           {menuOpen === item.id && (
-            <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl border py-2 min-w-[160px] z-10">
-              <button onClick={() => { onEdit(item); setMenuOpen(null); }} className="w-full px-4 py-3 text-left text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center"><Pencil className="w-4 h-4 text-blue-600" /></div>Editar</button>
-              {canDelete && <button onClick={() => onDelete(item)} className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center"><Trash2 className="w-4 h-4 text-red-600" /></div>Eliminar</button>}
+            <div className="absolute right-0 top-12 bg-white rounded-xl shadow-2xl border py-2 min-w-[170px] z-10">
+              <button onClick={() => { onEdit(item); setMenuOpen(null); }} className="w-full px-4 py-3 text-left text-base text-slate-700 hover:bg-slate-50 flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center"><Pencil className="w-5 h-5 text-blue-600" /></div>Editar</button>
+              {canDelete && <button onClick={() => onDelete(item)} className="w-full px-4 py-3 text-left text-base text-red-600 hover:bg-red-50 flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center"><Trash2 className="w-5 h-5 text-red-600" /></div>Eliminar</button>}
             </div>
           )}
         </div>
         {children}
         <div className={`mt-4 pt-4 border-t ${category.borderColor} flex items-center justify-between`}>
-          <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold ${item.activo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}><span className={`w-1.5 h-1.5 rounded-full ${item.activo ? "bg-emerald-500" : "bg-slate-400"}`}></span>{item.activo ? "Activo" : "Inactivo"}</span>
+          <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold ${item.activo ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"}`}><span className={`w-2 h-2 rounded-full ${item.activo ? "bg-emerald-500" : "bg-slate-400"}`}></span>{item.activo ? "Activo" : "Inactivo"}</span>
           {badge}
         </div>
       </div>
@@ -1282,16 +1282,16 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
             {levels.map(level => (
               <ItemCard key={level.id} item={level} category={cat} onEdit={(l) => { setEditingLevel(l); setShowLevelModal(true); }} onDelete={(l) => openDelete("level", l)} canDelete={(level.grade_count || 0) === 0}>
                 <div className="flex flex-col items-center text-center mb-2">
-                  <div className={`w-20 h-20 rounded-2xl overflow-hidden border-2 ${cat.borderColor} shadow-lg mb-4 bg-gradient-to-br ${cat.lightColor}`}>
-                    {level.imagen_url ? <img src={level.imagen_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><GraduationCap className={`w-10 h-10 ${cat.textColor}`} /></div>}
+                  <div className={`w-24 h-24 rounded-2xl overflow-hidden border-2 ${cat.borderColor} shadow-lg mb-4 bg-gradient-to-br ${cat.lightColor}`}>
+                    {level.imagen_url ? <img src={level.imagen_url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center"><GraduationCap className={`w-12 h-12 ${cat.textColor}`} /></div>}
                   </div>
-                  <h3 className="text-lg font-bold text-slate-800">{level.nombre}</h3>
-                  {level.descripcion && <p className="text-sm text-slate-500 line-clamp-2">{level.descripcion}</p>}
+                  <h3 className="text-2xl font-bold text-slate-800">{level.nombre}</h3>
+                  {level.descripcion && <p className="text-base text-slate-500 line-clamp-2 mt-1">{level.descripcion}</p>}
                 </div>
-                <div className="flex flex-wrap gap-2 justify-center mt-3 pt-3 border-t border-slate-100">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-medium"><Layers className="w-3 h-3" />{level.grade_count || 0} grados</span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-medium"><BookOpen className="w-3 h-3" />{levelSectionCounts[level.id] || 0} secciones</span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-xs font-medium"><Users className="w-3 h-3" />{levelStudentCounts[level.id] || 0} estudiantes</span>
+                <div className="flex flex-wrap gap-2.5 justify-center mt-4 pt-4 border-t border-slate-100">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 text-blue-700 text-sm font-semibold"><Layers className="w-4 h-4" />{level.grade_count || 0} grados</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-50 text-purple-700 text-sm font-semibold"><BookOpen className="w-4 h-4" />{levelSectionCounts[level.id] || 0} secciones</span>
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 text-sm font-semibold"><Users className="w-4 h-4" />{levelStudentCounts[level.id] || 0} estudiantes</span>
                 </div>
               </ItemCard>
             ))}
