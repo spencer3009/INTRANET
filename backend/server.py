@@ -22,6 +22,7 @@ import cloudinary.uploader
 import io
 from cachetools import TTLCache
 import asyncio
+import unicodedata
 
 # Google Drive imports
 from google.oauth2.credentials import Credentials
@@ -5485,6 +5486,7 @@ class AcademicLevelCreate(BaseModel):
     imagen_url: Optional[str] = None
     activo: bool = True
     orden: int = 0
+    crear_grados_estandar: bool = False
 
 class AcademicLevelUpdate(BaseModel):
     nombre: Optional[str] = Field(None, min_length=1, max_length=100)
@@ -5566,7 +5568,43 @@ async def create_academic_level(
     level.pop("_id", None)
     level["grade_count"] = 0
     
-    return {"message": "Nivel creado correctamente", "level": level}
+    # Auto-create standard grades for Primaria/Secundaria
+    created_grades = []
+    if data.crear_grados_estandar:
+        nombre_norm = unicodedata.normalize("NFD", data.nombre.strip()).encode("ascii", "ignore").decode("ascii").upper()
+        standard_grades = []
+        if nombre_norm == "PRIMARIA":
+            standard_grades = [("1°", 1), ("2°", 2), ("3°", 3), ("4°", 4), ("5°", 5), ("6°", 6)]
+        elif nombre_norm == "SECUNDARIA":
+            standard_grades = [("1°", 1), ("2°", 2), ("3°", 3), ("4°", 4), ("5°", 5)]
+        elif nombre_norm == "INICIAL":
+            standard_grades = [("3 AÑOS", 1), ("4 AÑOS", 2), ("5 AÑOS", 3)]
+        
+        now = datetime.now(timezone.utc).isoformat()
+        for grade_name, orden in standard_grades:
+            existing_grade = await db.grades.find_one({
+                "school_id": user["school_id"],
+                "nivel_id": level["id"],
+                "nombre": {"$regex": f"^{re.escape(grade_name)}$", "$options": "i"}
+            })
+            if not existing_grade:
+                grade_doc = {
+                    "id": str(uuid.uuid4()),
+                    "school_id": user["school_id"],
+                    "nombre": grade_name,
+                    "nivel_id": level["id"],
+                    "orden": orden,
+                    "activo": True,
+                    "created_at": now,
+                    "updated_at": now
+                }
+                await db.grades.insert_one(grade_doc)
+                grade_doc.pop("_id", None)
+                created_grades.append(grade_doc)
+        
+        level["grade_count"] = len(created_grades)
+    
+    return {"message": "Nivel creado correctamente", "level": level, "created_grades": created_grades}
 
 @api_router.put("/academic/levels/{level_id}")
 async def update_academic_level(

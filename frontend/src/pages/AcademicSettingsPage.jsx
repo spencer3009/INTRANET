@@ -83,15 +83,26 @@ function LevelModal({ isOpen, onClose, token, level, onSuccess }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ nombre: "", descripcion: "", imagen_url: "", activo: true });
+  const [autoGrades, setAutoGrades] = useState(false);
   const isEdit = !!level;
   const headers = { Authorization: `Bearer ${token}` };
+
+  // Detect if name matches standard levels for auto-checkbox
+  const nameNorm = form.nombre.trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase();
+  const isStandardLevel = ["PRIMARIA", "SECUNDARIA", "INICIAL"].includes(nameNorm);
 
   useEffect(() => {
     if (isOpen) {
       setForm(level ? { nombre: level.nombre || "", descripcion: level.descripcion || "", imagen_url: level.imagen_url || "", activo: level.activo !== false } : { nombre: "", descripcion: "", imagen_url: "", activo: true });
+      setAutoGrades(false);
       setError("");
     }
   }, [isOpen, level]);
+
+  // Auto-toggle checkbox when name matches standard level
+  useEffect(() => {
+    if (!isEdit) setAutoGrades(isStandardLevel);
+  }, [isStandardLevel, isEdit]);
 
   const handleImageUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -117,8 +128,9 @@ function LevelModal({ isOpen, onClose, token, level, onSuccess }) {
     if (!form.nombre.trim()) { setError("El nombre es obligatorio"); return; }
     setLoading(true);
     try {
-      const res = isEdit ? await axios.put(`${API}/academic/levels/${level.id}`, form, { headers }) : await axios.post(`${API}/academic/levels`, form, { headers });
-      onSuccess(res.data.level, isEdit ? "update" : "create");
+      const payload = isEdit ? form : { ...form, crear_grados_estandar: autoGrades };
+      const res = isEdit ? await axios.put(`${API}/academic/levels/${level.id}`, payload, { headers }) : await axios.post(`${API}/academic/levels`, payload, { headers });
+      onSuccess(res.data.level, isEdit ? "update" : "create", res.data.created_grades || []);
       onClose();
     } catch (err) { setError(err.response?.data?.detail || "Error al guardar"); }
     finally { setLoading(false); }
@@ -149,6 +161,19 @@ function LevelModal({ isOpen, onClose, token, level, onSuccess }) {
             </div>
             <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Nombre <span className="text-red-500">*</span></label><input type="text" value={form.nombre} onChange={(e) => setForm(p => ({ ...p, nombre: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" placeholder="Ej: Primaria" required /></div>
             <div className="mb-4"><label className="block text-sm font-semibold text-slate-700 mb-2">Descripción</label><textarea value={form.descripcion} onChange={(e) => setForm(p => ({ ...p, descripcion: e.target.value }))} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl resize-none" rows={3} /></div>
+            {!isEdit && (
+              <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                <label className="flex items-start gap-3 cursor-pointer" data-testid="auto-grades-checkbox">
+                  <input type="checkbox" checked={autoGrades} onChange={(e) => setAutoGrades(e.target.checked)} className="mt-1 w-5 h-5 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-500" />
+                  <div>
+                    <p className="font-semibold text-emerald-800 text-sm">Crear grados estándar automáticamente</p>
+                    <p className="text-xs text-emerald-600 mt-0.5">
+                      {nameNorm === "PRIMARIA" ? "Se crearán: 1°, 2°, 3°, 4°, 5°, 6°" : nameNorm === "SECUNDARIA" ? "Se crearán: 1°, 2°, 3°, 4°, 5°" : nameNorm === "INICIAL" ? "Se crearán: 3 AÑOS, 4 AÑOS, 5 AÑOS" : "Disponible para Inicial, Primaria y Secundaria"}
+                    </p>
+                  </div>
+                </label>
+              </div>
+            )}
             <div className="mb-6 flex items-center justify-between p-4 bg-slate-50 rounded-xl"><div><p className="font-semibold text-slate-700">Estado</p><p className="text-sm text-slate-500">{form.activo ? "Activo" : "Inactivo"}</p></div><button type="button" onClick={() => setForm(p => ({ ...p, activo: !p.activo }))} className={`relative w-14 h-8 rounded-full transition-colors ${form.activo ? "bg-blue-500" : "bg-slate-300"}`}><span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${form.activo ? "left-7" : "left-1"}`} /></button></div>
             <div className="flex gap-3"><button type="button" onClick={onClose} className="flex-1 px-6 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-semibold">Cancelar</button><button type="submit" disabled={loading} className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2">{loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-5 h-5" />}{isEdit ? "Guardar" : "Crear"}</button></div>
           </form>
@@ -1171,7 +1196,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
   const logoUrl = settings?.logo_url;
 
   // Success handlers
-  const handleLevelSuccess = (level, action) => { if (action === "create") setLevels(p => [...p, level]); else setLevels(p => p.map(l => l.id === level.id ? level : l)); };
+  const handleLevelSuccess = (level, action, createdGrades = []) => { if (action === "create") { setLevels(p => [...p, level]); if (createdGrades.length > 0) setGrades(p => [...p, ...createdGrades]); } else setLevels(p => p.map(l => l.id === level.id ? level : l)); };
   const handleGradeSuccess = (grade, action) => {
     if (action === "create") { setGrades(p => [...p, grade]); setLevels(p => p.map(l => l.id === grade.nivel_id ? { ...l, grade_count: (l.grade_count || 0) + 1 } : l)); }
     else setGrades(p => p.map(g => g.id === grade.id ? grade : g));
