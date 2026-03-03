@@ -1302,7 +1302,7 @@ function ReportsTab({ token, schoolId }) {
       {detailModal && (
         <div className="fixed inset-0 z-50 flex justify-end" data-testid="student-detail-drawer">
           <div className="absolute inset-0 bg-black/40 transition-opacity" onClick={() => setDetailModal(null)} />
-          <div className="relative w-full max-w-2xl bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right" style={{ animation: "slideInRight 0.3s ease-out" }}>
+          <div className="relative w-full max-w-3xl bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right" style={{ animation: "slideInRight 0.3s ease-out" }}>
             {/* Header */}
             <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
               <div className="flex items-center gap-3">
@@ -1368,11 +1368,11 @@ function ReportsTab({ token, schoolId }) {
                         const exitTime = rec?.exit_time ? (() => { try { return new Date(rec.exit_time).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }); } catch { return null; } })() : null;
 
                         if (!rec?.status) {
-                          cells.push(<div key={day} className={`h-16 rounded-lg flex items-center justify-center text-sm ${isWeekend ? "bg-slate-50 text-slate-400" : "bg-slate-50 text-slate-600"}`}><span className="font-medium">{day}</span></div>);
+                          cells.push(<div key={day} className={`h-20 rounded-lg flex items-center justify-center text-sm ${isWeekend ? "bg-slate-50 text-slate-400" : "bg-slate-50 text-slate-600"}`}><span className="font-medium">{day}</span></div>);
                         } else if (rec.status === "absent" || rec.status === "justified") {
                           const cfg = rec.status === "absent" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700";
                           cells.push(
-                            <div key={day} className={`h-16 rounded-lg flex flex-col items-center justify-center ${cfg}`}>
+                            <div key={day} className={`h-20 rounded-lg flex flex-col items-center justify-center ${cfg}`}>
                               <span className="font-bold text-sm">{day}</span>
                               {rec.status === "absent" ? <XCircle className="w-3.5 h-3.5 mt-0.5" /> : <FileText className="w-3.5 h-3.5 mt-0.5" />}
                             </div>
@@ -1380,15 +1380,15 @@ function ReportsTab({ token, schoolId }) {
                         } else {
                           const isLate = rec.status === "late";
                           cells.push(
-                            <div key={day} className="h-16 rounded-lg overflow-hidden flex flex-col">
+                            <div key={day} className="h-20 rounded-lg overflow-hidden flex flex-col">
                               <div className={`flex-1 flex flex-col items-center justify-center ${entryTime ? "bg-emerald-100" : isLate ? "bg-amber-100" : "bg-emerald-100"}`}>
-                                <span className={`font-bold text-xs ${isLate && !entryTime ? "text-amber-700" : "text-emerald-700"}`}>{day}</span>
+                                <span className={`font-bold text-sm ${isLate && !entryTime ? "text-amber-700" : "text-emerald-700"}`}>{day}</span>
                                 {entryTime ? (
-                                  <span className="text-emerald-700 font-medium text-center text-[9px] leading-tight">Entrada {entryTime}</span>
+                                  <span className="text-emerald-700 font-medium text-center text-[10px] leading-tight">Entrada {entryTime}</span>
                                 ) : isLate ? <Clock className="w-3 h-3 text-amber-600" /> : <CheckCircle className="w-3 h-3 text-emerald-600" />}
                               </div>
                               <div className={`flex-1 flex items-center justify-center ${exitTime ? "bg-blue-100" : entryTime ? "bg-emerald-50" : isLate ? "bg-amber-50" : "bg-emerald-50"}`}>
-                                {exitTime && <span className="text-blue-700 font-medium text-center text-[9px] leading-tight">Salida {exitTime}</span>}
+                                {exitTime && <span className="text-blue-700 font-medium text-center text-[10px] leading-tight">Salida {exitTime}</span>}
                               </div>
                             </div>
                           );
