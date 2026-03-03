@@ -1,76 +1,74 @@
 # EduNet - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-EduNet is an educational platform for Peruvian schools. Full PWA with support panel, billing, and permissions.
+EduNet es una plataforma educativa para colegios peruanos. Sistema full-stack con FastAPI + React + MongoDB.
 
-## Core Architecture
-- **Backend:** FastAPI (Python) - `/app/backend/server.py`
-- **Frontend:** React - `/app/frontend/src/`
-- **Database:** MongoDB
-- **Image Storage:** Cloudinary
+## Core Requirements
+- Gestión de usuarios por roles (Owner, Admin, Profesor, Estudiante, Padre)
+- Gestión académica (Niveles, Grados, Secciones, Turnos)
+- Sistema de contabilidad y pagos
+- Mensajería interna
+- Asistencia
+- Exámenes
+- Tareas
+- Dashboard multi-rol
+
+## Architecture
+- Backend: FastAPI (`/app/backend/server.py`)
+- Frontend: React (`/app/frontend/src/`)
+- Database: MongoDB
+- Image Storage: Cloudinary
+- UI: Shadcn/UI + Tailwind CSS
 
 ## What's Been Implemented
 
-### Accounting Module
-- Date filters with Month/Range/Year presets for Ingresos and Egresos
-- Summary cards with real-time updates
-- Full CRUD for Payment Concepts (Conceptos de Pago)
-- Intelligent payment form with:
-  - Filterable photo-based student autocomplete
-  - Auto-fill amounts based on selected concept
-  - Dynamic concept hiding (e.g., Matricula if already paid)
-  - Early payment discount and late payment interest calculations
-- IGV (18%) checkbox **disabled by default** (changed 2026-03-02)
+### Session - March 2026
+- **Photo Upload Modal with Preview (DONE)**: Created `PhotoUploadModal.jsx` component. Camera icon on user cards opens a modal popup with drag-and-drop zone, image preview, and Save/Cancel buttons. Replaces the old direct file-input approach. Tested 15/15 pass.
 
-### Student Status System
-- Flow: pending -> matriculado -> active -> withdrawn
-- Automatic status transitions based on payments
-- Login restricted to active students only
-- Migration script for existing students
+### Previous Sessions
+- Default IGV Setting (checkbox unchecked by default)
+- Navigation Bug Fix (infinite render loop in Accounting page)
+- Student Photos in Income Table
+- Demo User & UI Cleanup (117 demo users removed)
+- Combined Payment ("Matrícula + Mensualidad")
+- Read-Only Payment Amounts
+- Demo User Switch Restriction (support-only)
+- 'Pending' Student Academic Exclusion (~20 endpoints)
+- Data Integrity on Deletion (academic structures)
+- UI Readability in Academic Settings
 
-### UI/UX Enhancements
-- iOS-style switches in financial settings
-- Enlarged student photos and text on cards
-- Redesigned date filters with presets
+## Prioritized Backlog
 
-## Login Credentials
-- **Owner:** admin@elroble.edu / 1234abc8
-- **School:** elroble
+### P0 (Critical)
+- Test "Disappearing Student Selection" bug in payment modal
 
-## Pending Issues
-1. **P0:** ~~Disappearing student selection in PaymentFormModal~~ (needs verification)
-2. **P1:** Extra demo students in course views (30 seeder students)
-3. **P2:** Hardcoded data on Owner Dashboard (Asistencia, Noticias)
-4. **P2:** Message Center unread count discrepancy
+### P1 (High)
+- Modularize `server.py` into FastAPI routers
+- Apply Intelligent Filters to Parents View
+- Complete Parent Portal Feature Parity
+- Build "Matrículas" (Enrollments) module
+- Implement automatic notifications for students
+- Enhance Exams module with Question Bank
 
-## Recently Fixed
-- **Pending student exclusion from academic modules** (2026-03-02): Global filter `ACADEMIC_STUDENT_FILTER` excludes pending students from all academic endpoints and frontend pages. Login shows custom message. Only visible in Students management and Accounting.
-- **Navigation bug from Contabilidad** (2026-03-02): Fixed infinite useEffect loop caused by `availableConcepts` array being recreated on every render. Memoized with `useMemo`.
-- **IGV default off** (2026-03-02): Changed "Incluye IGV (18%)" checkbox to be disabled by default.
-- **Removed Pendientes card** (2026-03-02): Eliminated the "Pendientes" card from Users page and cleaned up email_verified filtering logic.
-- **Student photos in Ingresos** (2026-03-02): Added photo_url to payment records so student photos show in the income table.
-- **Combo Payment: Matrícula + Mensualidad** (2026-03-02): New feature allowing a single registration that creates two separate payment records internally. Amounts are read-only from registered concepts.
-- **Demo user creation** (2026-03-02): "Crear como Usuario Demo" switch only visible for support sessions.
-- **Deleted 117 demo students** (2026-03-02): Cleaned up seeder-created test students.
-
-## Upcoming Tasks
-- P0: Mutually exclusive discounts/interest logic
-- P1: Delete demo students
-- P2: Modularize server.py into routers
-- P2: Apply intelligent filters to Parents view
-
-## Future/Backlog
-- P1: Parent Portal feature parity
-- P1: Matriculas module
-- P1: Automatic notifications
-- P1: Exams module enhancements
-- P2: Cache invalidation for /api/student/tasks
-- P2: Replace window.confirm/alert with custom modals
-- P2: Auto status change active->enrolled on debt threshold
+### P2 (Medium)
+- Implement Cache Invalidation for `/api/student/tasks`
+- Replace all `window.confirm` and `alert` with custom modals
+- Fix hardcoded Owner Dashboard data (Asistencia, Noticias)
+- Message Center unread count discrepancy
 
 ## Key Files
-- `/app/backend/server.py` (monolithic - needs refactoring)
-- `/app/frontend/src/pages/Accounting/AccountingPage.jsx`
-- `/app/frontend/src/pages/Accounting/FinancialConfigTab.jsx`
-- `/app/frontend/src/components/Modals/PaymentFormModal.jsx`
-- `/app/frontend/src/pages/Users/UsersPage.jsx`
+- `/app/backend/server.py` - Main backend (21K+ lines, needs modularization)
+- `/app/frontend/src/pages/UsersPage.jsx` - Users management page
+- `/app/frontend/src/components/PhotoUploadModal.jsx` - NEW: Photo upload modal with preview
+- `/app/frontend/src/components/settings/CourseStructure.jsx` - Academic structure management
+- `/app/frontend/src/components/Modals/PaymentFormModal.jsx` - Payment form
+- `/app/frontend/src/pages/Accounting/AccountingPage.jsx` - Accounting page
+
+## Test Credentials
+- **School Director**: email=admin.settings@test.pe, password=1234abc8, school=demosettings
+- **Support**: email=spencer3009@gmail.com, password=1234abc8
+
+## Known Issues
+- `server.py` is 21K+ lines - critical tech debt
+- Hardcoded data on Owner Dashboard (recurring 4+ times)
+- Message Center unread count mismatch (recurring 4+ times)
