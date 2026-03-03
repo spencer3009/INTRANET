@@ -349,7 +349,7 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, se
       if (subject) {
         setFormData({
           name: subject.name || "", code: subject.code || "", description: subject.description || "",
-          level_id: subject.level_id || "", grade_id: subject.grade_id || "", section_id: subject.section_id || "",
+          level_id: subject.level_id || preselectedLevel || "", grade_id: subject.grade_id || preselectedGrade || "", section_id: subject.section_id || preselectedSection || "",
           weekly_hours: subject.weekly_hours || 2, color: subject.color || "#3B82F6",
           status: subject.status || "active", image_url: subject.image_url || ""
         });
@@ -499,7 +499,8 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, se
     }
   };
 
-  const isLocked = preselectedLevel && preselectedGrade && preselectedSection;
+  const isEditing = !!subject?.id;
+  const isLocked = isEditing || (preselectedLevel && preselectedGrade && preselectedSection);
   if (!isOpen) return null;
 
   return (
