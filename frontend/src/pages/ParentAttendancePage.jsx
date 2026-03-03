@@ -107,7 +107,9 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const record = attendance.find(a => a.date === dateStr);
-      days.push({ day, date: dateStr, status: record?.status || null, isWeekend: [0, 6].includes(new Date(year, month, day).getDay()) });
+      const entryTime = record?.entry_time ? (() => { try { return new Date(record.entry_time).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }); } catch { return null; } })() : null;
+      const exitTime = record?.exit_time ? (() => { try { return new Date(record.exit_time).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" }); } catch { return null; } })() : null;
+      days.push({ day, date: dateStr, status: record?.status || null, isWeekend: [0, 6].includes(new Date(year, month, day).getDay()), entryTime, exitTime });
     }
     return days;
   }, [selectedMonth, attendance]);
@@ -181,32 +183,64 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
                   ))}
                 </div>
                 <div className="grid grid-cols-7 gap-1">
-                  {calendarDays.map((cell, idx) => (
-                    <div key={idx} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm ${
-                      cell.day === null ? "" :
-                      cell.status ? (STATUS_CONFIG[cell.status]?.color || "bg-slate-100") :
-                      cell.isWeekend ? "bg-slate-50 text-slate-400" : "bg-slate-50 text-slate-600"
-                    }`} title={cell.status ? STATUS_CONFIG[cell.status]?.label : ""}>
-                      {cell.day && (
-                        <>
+                  {calendarDays.map((cell, idx) => {
+                    const hasEntry = !!cell.entryTime;
+                    const hasExit = !!cell.exitTime;
+                    const hasBoth = hasEntry && hasExit;
+                    const isAbsent = cell.status === "absent";
+                    const isLate = cell.status === "late";
+                    const isJustified = cell.status === "justified";
+
+                    if (cell.day === null) return <div key={idx} />;
+                    if (!cell.status) {
+                      return (
+                        <div key={idx} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm ${cell.isWeekend ? "bg-slate-50 text-slate-400" : "bg-slate-50 text-slate-600"}`}>
                           <span className="font-medium">{cell.day}</span>
-                          {cell.status && (
-                            <span className="mt-0.5">
-                              {cell.status === "present" && <CheckCircle className="w-3 h-3" />}
-                              {cell.status === "absent" && <XCircle className="w-3 h-3" />}
-                              {cell.status === "late" && <Clock className="w-3 h-3" />}
-                              {cell.status === "justified" && <FileText className="w-3 h-3" />}
-                            </span>
+                        </div>
+                      );
+                    }
+
+                    if (isAbsent || isJustified) {
+                      const config = STATUS_CONFIG[cell.status];
+                      return (
+                        <div key={idx} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm ${config?.color}`} title={config?.label}>
+                          <span className="font-medium">{cell.day}</span>
+                          {isAbsent && <XCircle className="w-3 h-3 mt-0.5" />}
+                          {isJustified && <FileText className="w-3 h-3 mt-0.5" />}
+                        </div>
+                      );
+                    }
+
+                    // Present or Late with horizontal split: top green (entry), bottom blue (exit)
+                    return (
+                      <div key={idx} className="aspect-square rounded-lg overflow-hidden flex flex-col" title={STATUS_CONFIG[cell.status]?.label || ""}>
+                        {/* Top half - Entry (green) */}
+                        <div className={`flex-1 flex flex-col items-center justify-center ${hasBoth || hasEntry ? "bg-emerald-100" : isLate ? "bg-amber-100" : "bg-emerald-100"}`}>
+                          <span className={`font-bold text-sm ${isLate && !hasEntry ? "text-amber-700" : "text-emerald-700"}`}>{cell.day}</span>
+                          {hasEntry ? (
+                            <span className="text-emerald-700 font-medium leading-none" style={{ fontSize: "9px" }}>E {cell.entryTime}</span>
+                          ) : isLate ? (
+                            <Clock className="w-3 h-3 text-amber-600" />
+                          ) : (
+                            <CheckCircle className="w-3 h-3 text-emerald-600" />
                           )}
-                        </>
-                      )}
-                    </div>
-                  ))}
+                        </div>
+                        {/* Bottom half - Exit (blue) */}
+                        <div className={`flex-1 flex items-center justify-center ${hasExit ? "bg-blue-100" : hasBoth || hasEntry ? "bg-emerald-50" : isLate ? "bg-amber-50" : "bg-emerald-50"}`}>
+                          {hasExit ? (
+                            <span className="text-blue-700 font-medium leading-none" style={{ fontSize: "9px" }}>S {cell.exitTime}</span>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
                 <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-slate-100">
-                  {Object.entries(STATUS_CONFIG).map(([key, config]) => (
-                    <div key={key} className="flex items-center gap-2 text-sm"><span className={`w-4 h-4 rounded ${config.color}`} /><span className="text-slate-600">{config.label}</span></div>
-                  ))}
+                  <div className="flex items-center gap-2 text-sm"><span className="w-4 h-4 rounded bg-emerald-100 border border-emerald-200" /><span className="text-slate-600">Entrada</span></div>
+                  <div className="flex items-center gap-2 text-sm"><span className="w-4 h-4 rounded bg-blue-100 border border-blue-200" /><span className="text-slate-600">Salida</span></div>
+                  <div className="flex items-center gap-2 text-sm"><span className="w-4 h-4 rounded bg-amber-100 border border-amber-200" /><span className="text-slate-600">Tardanza</span></div>
+                  <div className="flex items-center gap-2 text-sm"><span className="w-4 h-4 rounded bg-red-100 border border-red-200" /><span className="text-slate-600">Falta</span></div>
+                  <div className="flex items-center gap-2 text-sm"><span className="w-4 h-4 rounded bg-blue-100 border border-blue-200" /><span className="text-slate-600">Justificado</span></div>
                 </div>
               </div>
 
