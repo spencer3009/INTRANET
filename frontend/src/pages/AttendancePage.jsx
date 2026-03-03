@@ -1298,12 +1298,13 @@ function ReportsTab({ token, schoolId }) {
         </div>
       )}
 
-      {/* Student Detail Modal */}
+      {/* Student Detail Drawer (Side Panel) */}
       {detailModal && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={() => setDetailModal(null)}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="student-detail-modal">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 rounded-t-2xl flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex justify-end" data-testid="student-detail-drawer">
+          <div className="absolute inset-0 bg-black/40 transition-opacity" onClick={() => setDetailModal(null)} />
+          <div className="relative w-full max-w-lg bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-right" style={{ animation: "slideInRight 0.3s ease-out" }}>
+            {/* Header */}
+            <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
               <div className="flex items-center gap-3">
                 {detailModal.studentPhoto ? (
                   <img src={detailModal.studentPhoto} alt="" className="w-10 h-10 rounded-full object-cover border-2 border-white/50" />
@@ -1311,7 +1312,7 @@ function ReportsTab({ token, schoolId }) {
                   <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white font-bold">{detailModal.studentName?.charAt(0)}</div>
                 )}
                 <div className="text-white">
-                  <h3 className="font-bold text-lg">Asistencia de {detailModal.studentName}</h3>
+                  <h3 className="font-bold text-lg leading-tight">Asistencia de {detailModal.studentName}</h3>
                   <p className="text-violet-200 text-sm">Detalle mensual</p>
                 </div>
               </div>
@@ -1319,7 +1320,7 @@ function ReportsTab({ token, schoolId }) {
             </div>
 
             {/* Month Navigation */}
-            <div className="px-6 py-3 border-b border-slate-200 flex items-center justify-between">
+            <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between">
               <button onClick={() => changeDetailMonth(-1)} className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center"><ChevronLeft className="w-5 h-5 text-slate-600" /></button>
               <h4 className="text-lg font-semibold text-slate-800 capitalize">{detailMonth.toLocaleDateString("es-PE", { month: "long", year: "numeric" })}</h4>
               <button onClick={() => changeDetailMonth(1)} disabled={detailMonth.getMonth() === new Date().getMonth() && detailMonth.getFullYear() === new Date().getFullYear()} className="w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 disabled:opacity-50 flex items-center justify-center"><ChevronRight className="w-5 h-5 text-slate-600" /></button>
@@ -1331,18 +1332,18 @@ function ReportsTab({ token, schoolId }) {
               detailRecords.forEach(a => { if (st[a.status] !== undefined) st[a.status]++; });
               const pct = st.total > 0 ? Math.round(((st.present + st.justified) / st.total) * 100) : 0;
               return (
-                <div className="px-6 py-3 grid grid-cols-5 gap-2">
-                  <div className="bg-emerald-500 rounded-lg p-2 text-white text-center"><p className="text-xs text-white/80">Asistencia</p><p className="text-xl font-bold">{pct}%</p></div>
-                  <div className="bg-emerald-50 rounded-lg p-2 text-center"><p className="text-xs text-emerald-600">Asistencias</p><p className="text-xl font-bold text-emerald-700">{st.present}</p></div>
-                  <div className="bg-amber-50 rounded-lg p-2 text-center"><p className="text-xs text-amber-600">Tardanzas</p><p className="text-xl font-bold text-amber-700">{st.late}</p></div>
-                  <div className="bg-red-50 rounded-lg p-2 text-center"><p className="text-xs text-red-600">Faltas</p><p className="text-xl font-bold text-red-700">{st.absent}</p></div>
-                  <div className="bg-blue-50 rounded-lg p-2 text-center"><p className="text-xs text-blue-600">Justificadas</p><p className="text-xl font-bold text-blue-700">{st.justified}</p></div>
+                <div className="px-5 py-3 grid grid-cols-5 gap-2">
+                  <div className="bg-emerald-500 rounded-lg p-2 text-white text-center"><p className="text-[10px] text-white/80">Asistencia</p><p className="text-lg font-bold">{pct}%</p></div>
+                  <div className="bg-emerald-50 rounded-lg p-2 text-center"><p className="text-[10px] text-emerald-600">Asistencias</p><p className="text-lg font-bold text-emerald-700">{st.present}</p></div>
+                  <div className="bg-amber-50 rounded-lg p-2 text-center"><p className="text-[10px] text-amber-600">Tardanzas</p><p className="text-lg font-bold text-amber-700">{st.late}</p></div>
+                  <div className="bg-red-50 rounded-lg p-2 text-center"><p className="text-[10px] text-red-600">Faltas</p><p className="text-lg font-bold text-red-700">{st.absent}</p></div>
+                  <div className="bg-blue-50 rounded-lg p-2 text-center"><p className="text-[10px] text-blue-600">Justificadas</p><p className="text-lg font-bold text-blue-700">{st.justified}</p></div>
                 </div>
               );
             })()}
 
             {/* Calendar */}
-            <div className="px-6 py-4">
+            <div className="px-5 py-4">
               {detailLoading ? (
                 <div className="flex justify-center py-10"><Loader2 className="w-8 h-8 text-violet-500 animate-spin" /></div>
               ) : (
