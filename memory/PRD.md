@@ -11,7 +11,8 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 ### Session - March 3, 2026 (Latest - Fork 2)
 - **BUG FIX: Parent Portal Attendance Times (P0)**: Fixed date filtering in `GET /api/parent/attendance` - added `start_date`/`end_date` query params. Previously mixed records from all months.
 - **UI: Calendar Split Design**: Calendar cells now show horizontal split: top half green (entry time), bottom half blue (exit time). Each half displays the corresponding time.
-- **FEATURE: Owner Reports Detail Modal**: Added eye icon button per student in the reports table. Clicking opens a modal with monthly calendar (split green/blue) showing entry/exit times. New endpoint: `GET /api/attendance/reports/student-detail`.
+- **FEATURE: Owner Reports Detail Modal**: Added eye icon button per student in the reports table. Clicking opens a side drawer with monthly calendar (split green/blue) showing entry/exit times. New endpoint: `GET /api/attendance/reports/student-detail`.
+- **FEATURE: PWA WebView Detection**: Detects WhatsApp/Facebook/Instagram WebView and shows a special screen guiding users to open in Chrome via `intent://` URL. Does not affect normal browser flow.
 
 ### Session - March 3, 2026 (Fork 1)
 - **ATTENDANCE ENTRY/EXIT MODULE (P0)**: Extended existing attendance system with entry_time, exit_time, entry_method, exit_method, total_minutes. New endpoints: `POST /api/attendance/mark-entry`, `POST /api/attendance/mark-exit`. Modified QR scan to support `mode` (auto/entry/exit). Frontend: Entry/Exit columns with buttons, mode selector in QR scanner, updated counters. Save endpoint changed from delete+insert to upsert to preserve entry/exit data. **100% tests passed.**

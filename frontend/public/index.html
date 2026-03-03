@@ -54,6 +54,47 @@
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>
+
+        <!-- WebView Detection: redirect to Chrome if opened from WhatsApp/Facebook/Instagram -->
+        <div id="webview-blocker" style="display:none;position:fixed;inset:0;z-index:99999;background:#0B2C5F;font-family:'Inter',system-ui,sans-serif;">
+          <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;">
+            <img src="%PUBLIC_URL%/icons/icon-192.png" alt="EduNet" style="width:96px;height:96px;border-radius:20px;margin-bottom:24px;box-shadow:0 8px 32px rgba(0,0,0,0.3);" />
+            <h1 style="color:#fff;font-size:26px;font-weight:700;margin:0 0 12px;">Instala la App EduNet</h1>
+            <p style="color:rgba(255,255,255,0.75);font-size:15px;line-height:1.5;margin:0 0 32px;max-width:320px;">Para instalar la App EduNet debes abrir esta p&aacute;gina en tu navegador.</p>
+            <a id="webview-open-chrome" href="#" style="display:inline-flex;align-items:center;gap:8px;background:#3B82F6;color:#fff;font-size:16px;font-weight:600;padding:16px 40px;border-radius:14px;text-decoration:none;box-shadow:0 4px 16px rgba(59,130,246,0.4);transition:transform 0.15s;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              Abrir en Chrome
+            </a>
+            <div style="margin-top:36px;background:rgba(255,255,255,0.08);border-radius:12px;padding:16px 20px;max-width:320px;">
+              <p style="color:rgba(255,255,255,0.55);font-size:13px;margin:0 0 8px;font-weight:600;">Si el bot&oacute;n no funciona:</p>
+              <p style="color:rgba(255,255,255,0.45);font-size:13px;line-height:1.6;margin:0;">
+                1. Presiona el men&uacute; &#8942; arriba a la derecha<br/>
+                2. Toca <strong style="color:rgba(255,255,255,0.65);">&ldquo;Abrir en navegador&rdquo;</strong>
+              </p>
+            </div>
+          </div>
+        </div>
+        <script>
+          (function() {
+            var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+            var isWebView = /FBAN|FBAV|Instagram|WhatsApp|Messenger|MicroMessenger|Line\//i.test(ua);
+            if (isWebView) {
+              var blocker = document.getElementById('webview-blocker');
+              blocker.style.display = 'block';
+              var root = document.getElementById('root');
+              if (root) root.style.display = 'none';
+              var url = window.location.href;
+              var btn = document.getElementById('webview-open-chrome');
+              btn.href = 'intent://' + url.replace(/^https?:\/\//, '') + '#Intent;scheme=https;package=com.android.chrome;end';
+              btn.addEventListener('click', function() {
+                setTimeout(function() {
+                  window.location.href = url;
+                }, 2000);
+              });
+            }
+          })();
+        </script>
+
         <div id="root"></div>
         <!--
       This HTML file is a template.
