@@ -9,11 +9,12 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 ## What's Been Implemented
 
 ### Session - March 3, 2026 (Latest)
-- **CRITICAL BUG FIX: Course Visibility across ALL portals (P0)**: Fixed 8 endpoints that incorrectly used `academic_assignments` or `teacher_assignments` as source of truth for student subjects. All now use `subjects.section_id`. Fixed endpoints: `get_student_profile`, `get_student_courses`, `get_student_tasks`, `get_student_dashboard`, `get_parent_student_courses`, `get_parent_student_tasks`, `get_parent_dashboard`, `get_parent_students` (pending count), `download_material_from_drive` (access validation).
-- **DATA MIGRATION**: Migrated 12 old subjects to have correct `section_id` based on `academic_assignments`. Deduplicated empty duplicate subject.
-- **Verified consistency**: Student=8, Parent=8, Owner=8, Teacher=3 (only assigned). All portals consistent.
+- **ATTENDANCE ENTRY/EXIT MODULE (P0)**: Extended existing attendance system with entry_time, exit_time, entry_method, exit_method, total_minutes. New endpoints: `POST /api/attendance/mark-entry`, `POST /api/attendance/mark-exit`. Modified QR scan to support `mode` (auto/entry/exit). Frontend: Entry/Exit columns with buttons, mode selector in QR scanner, updated counters. Save endpoint changed from delete+insert to upsert to preserve entry/exit data. **100% tests passed.**
+- **BUG FIX: Course Visibility (P0)**: Fixed 8+ endpoints to use `subjects.section_id` instead of `academic_assignments`. Migrated 12 old subjects.
+- **BUG FIX: Edit Subject Modal**: Nivel/Grado/Sección pre-selected and locked when editing.
+- **UI: Grade/Section on course cards**: Added small text showing grade and section.
 
-### Previous Session - March 3, 2026
+### Previous Sessions
 - Photo Upload Modal, Grade Validation, Auto-Grade Creation, Smart Filtering, Subjects-to-Section Refactor
 
 ## Prioritized Backlog
@@ -23,18 +24,19 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 - Modularize `server.py` into FastAPI routers (CRITICAL tech debt - 22K+ lines)
 
 ### P1
+- Attendance: Settings for schedule/lateness configuration (P1 from spec)
 - Apply Intelligent Filters to Parents View
 - Parent Portal Feature Parity, Matriculas, Notifications, Question Bank
 
 ### P2
+- Attendance: Parent notifications on entry/exit (P2 from spec)
 - Cache Invalidation, Replace window.confirm/alert, Hardcoded Dashboard, Message Center count
 
-## Key Technical Note
-**Source of Truth for Student Courses**: `subjects` collection filtered by `section_id`. `academic_assignments` = teacher-to-subject linkage ONLY. Teacher portals correctly use `academic_assignments` to determine which subjects a teacher teaches.
+## Key Technical Notes
+- **Source of Truth for Student Courses**: `subjects.section_id` is canonical. `academic_assignments` = teacher linkage only.
+- **Attendance Entry/Exit**: Uses upsert in `attendances` collection. QR scan supports mode (auto/entry/exit). Save preserves entry/exit data.
 
 ## Test Credentials
-- **Support**: spencer3009@gmail.com / 1234abc8
 - **Owner (elroble)**: admin@elroble.edu / 1234abc8 / subdomain=elroble
 - **Student (Pepito)**: pepito@gmail.com / 1234abc8 / subdomain=elroble
 - **Parent (Miguel)**: miguel@gmail.com / 1234abc8 / subdomain=elroble
-- **Teacher (Carlos)**: carlos8276@gmail.com / 1234abc8 / subdomain=elroble
