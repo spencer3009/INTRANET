@@ -22,8 +22,14 @@ EduNet es una plataforma educativa para colegios peruanos. Sistema full-stack co
 
 ## What's Been Implemented
 
-### Session - March 2026
-- **Photo Upload Modal with Preview (DONE)**: Created `PhotoUploadModal.jsx` component. Camera icon on user cards opens a modal popup with drag-and-drop zone, image preview, and Save/Cancel buttons. Replaces the old direct file-input approach. Tested 15/15 pass.
+### Session - March 3, 2026
+- **Photo Upload Modal with Preview (DONE)**: Created `PhotoUploadModal.jsx`. Camera icon on user cards opens modal with drag-and-drop, image preview, Save/Cancel. Tested 15/15 pass.
+- **Grade Name Structural Validation (DONE)**: 
+  - INICIAL level: dropdown with preset grades (3, 4, 5 AÑOS) instead of free text
+  - Other levels: text input with real-time validation blocking section-like patterns
+  - Backend validation in both create and update grade endpoints
+  - Helper text and warnings guide users to create sections separately
+  - Tested: Backend 11/11 + Frontend all pass
 
 ### Previous Sessions
 - Default IGV Setting (checkbox unchecked by default)
@@ -43,7 +49,7 @@ EduNet es una plataforma educativa para colegios peruanos. Sistema full-stack co
 - Test "Disappearing Student Selection" bug in payment modal
 
 ### P1 (High)
-- Modularize `server.py` into FastAPI routers
+- Modularize `server.py` into FastAPI routers (CRITICAL tech debt)
 - Apply Intelligent Filters to Parents View
 - Complete Parent Portal Feature Parity
 - Build "Matrículas" (Enrollments) module
@@ -59,10 +65,10 @@ EduNet es una plataforma educativa para colegios peruanos. Sistema full-stack co
 ## Key Files
 - `/app/backend/server.py` - Main backend (21K+ lines, needs modularization)
 - `/app/frontend/src/pages/UsersPage.jsx` - Users management page
-- `/app/frontend/src/components/PhotoUploadModal.jsx` - NEW: Photo upload modal with preview
+- `/app/frontend/src/components/PhotoUploadModal.jsx` - Photo upload modal with preview
+- `/app/frontend/src/pages/AcademicSettingsPage.jsx` - Academic settings (levels, grades, sections)
 - `/app/frontend/src/components/settings/CourseStructure.jsx` - Academic structure management
 - `/app/frontend/src/components/Modals/PaymentFormModal.jsx` - Payment form
-- `/app/frontend/src/pages/Accounting/AccountingPage.jsx` - Accounting page
 
 ## Test Credentials
 - **School Director**: email=admin.settings@test.pe, password=1234abc8, school=demosettings
