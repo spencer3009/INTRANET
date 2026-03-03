@@ -2495,8 +2495,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   </div>
                 )}
               </div>
-              <div className={`absolute -bottom-1 -right-1 w-6 h-6 ${levelColor?.bg || 'bg-emerald-500'} rounded-full border-2 border-white flex items-center justify-center`}>
-                <Check className="w-3 h-3 text-white" />
+              <div className={`absolute -bottom-1 -right-1`}>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleCardPhotoClick(student); }}
+                  className="w-7 h-7 bg-white rounded-full border-2 border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-emerald-400 transition-all cursor-pointer shadow-sm group/cam"
+                  title="Cambiar foto"
+                  data-testid={`photo-upload-btn-${student.id}`}
+                >
+                  <Camera className="w-3.5 h-3.5 text-slate-400 group-hover/cam:text-emerald-500" />
+                </button>
               </div>
             </div>
             <div>
