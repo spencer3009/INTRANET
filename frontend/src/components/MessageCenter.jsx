@@ -1321,8 +1321,8 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
         {contact.photo_url ? (
           <img src={contact.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
-            <User className="w-5 h-5 text-amber-500" />
+          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+            <User className="w-5 h-5 text-blue-500" />
           </div>
         )}
         {/* Unread message indicator badge */}
@@ -1344,7 +1344,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
       </div>
       {/* Arrow indicator for unread */}
       {contact.unread_count > 0 && (
-        <ChevronRight className="w-4 h-4 text-amber-500" />
+        <ChevronRight className="w-4 h-4 text-blue-500" />
       )}
     </div>
   );
@@ -1403,8 +1403,8 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
                     {other?.photo_url ? (
                       <img src={other.photo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center ring-2 ring-amber-400">
-                        <User className="w-5 h-5 text-amber-500" />
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center ring-2 ring-blue-400">
+                        <User className="w-5 h-5 text-blue-500" />
                       </div>
                     )}
                     <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
@@ -1418,7 +1418,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
                       {lastMessage?.content?.length > 40 ? "..." : ""}
                     </p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-amber-500" />
+                  <ChevronRight className="w-4 h-4 text-blue-500" />
                 </div>
               );
             })}
@@ -1493,8 +1493,8 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
                     {other?.photo_url ? (
                       <img src={other.photo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-amber-400" />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center ring-2 ring-amber-400">
-                        <User className="w-5 h-5 text-amber-500" />
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center ring-2 ring-blue-400">
+                        <User className="w-5 h-5 text-blue-500" />
                       </div>
                     )}
                     {/* Unread indicator */}
@@ -1509,7 +1509,7 @@ function AcademicTab({ token, user, onRefreshStats, directChatUser, onClearDirec
                       {lastMessage?.content?.length > 40 ? "..." : ""}
                     </p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-amber-500" />
+                  <ChevronRight className="w-4 h-4 text-blue-500" />
                 </div>
               );
             })}
