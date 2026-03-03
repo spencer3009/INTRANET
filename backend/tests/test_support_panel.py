@@ -11,7 +11,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://edunet-peru-7.preview.emergentagent.com')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://photo-modal-fix.preview.emergentagent.com')
 
 # Test credentials
 SUPPORT_EMAIL = "spencer3009@gmail.com"
