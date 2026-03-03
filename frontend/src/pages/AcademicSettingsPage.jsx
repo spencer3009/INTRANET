@@ -245,7 +245,18 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
     }
   }, [isOpen, grade, preselectedLevelId]);
 
-  // Validate name on change (for non-INICIAL levels)
+  // Filter levels: hide standard levels that already have all preset grades created
+  const levelsWithAvailableGrades = levels.filter(l => {
+    if (!l.activo) return false;
+    const norm = l.nombre?.normalize("NFD")?.replace(/[\u0300-\u036f]/g, "")?.toUpperCase()?.trim() || "";
+    const presets = PRESET_GRADES_BY_LEVEL[norm];
+    if (!presets) return true; // Non-standard levels always shown
+    const existingForLevel = existingGrades.filter(eg => eg.nivel_id === l.id);
+    const allCreated = presets.every(pg => existingForLevel.some(eg => eg.nombre.toUpperCase() === pg.toUpperCase()));
+    return !allCreated;
+  });
+
+  // Validate name on change (for non-standard levels)
   const handleNameChange = (value) => {
     setForm(p => ({ ...p, nombre: value }));
     if (value.trim() && looksLikeSection(value)) {
@@ -289,8 +300,11 @@ function GradeModal({ isOpen, onClose, token, grade, levels, onSuccess, preselec
               <label className="block text-sm font-semibold text-slate-700 mb-2">Nivel <span className="text-red-500">*</span></label>
               <select value={form.nivel_id} onChange={(e) => { setForm(p => ({ ...p, nivel_id: e.target.value, nombre: "" })); setSectionWarning(""); }} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl" required data-testid="grade-level-select">
                 <option value="">Seleccionar...</option>
-                {levels.filter(l => l.activo).map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+                {levelsWithAvailableGrades.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
               </select>
+              {levelsWithAvailableGrades.length === 0 && (
+                <p className="mt-2 text-sm text-amber-600">Todos los niveles ya tienen sus grados completos.</p>
+              )}
             </div>
             
             {/* Grade name - dropdown for INICIAL, text for others */}
