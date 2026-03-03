@@ -219,7 +219,7 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
                         <div className={`flex-1 flex flex-col items-center justify-center px-1 ${hasEntry ? "bg-emerald-100" : isLate ? "bg-amber-100" : "bg-emerald-100"}`}>
                           <span className={`font-bold text-xs leading-tight ${isLate && !hasEntry ? "text-amber-700" : "text-emerald-700"}`}>{cell.day} de {monthName}</span>
                           {hasEntry ? (
-                            <span className="text-emerald-700 font-medium leading-tight text-center" style={{ fontSize: "8px" }}>Entrada {cell.entryTime}</span>
+                            <span className="text-emerald-700 font-semibold leading-tight text-center text-[10px]">Entrada {cell.entryTime}</span>
                           ) : isLate ? (
                             <Clock className="w-3 h-3 text-amber-600 mt-0.5" />
                           ) : (
@@ -229,7 +229,7 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
                         {/* Bottom half - Exit (blue) */}
                         <div className={`flex-1 flex items-center justify-center px-1 ${hasExit ? "bg-blue-100" : hasEntry ? "bg-emerald-50" : isLate ? "bg-amber-50" : "bg-emerald-50"}`}>
                           {hasExit ? (
-                            <span className="text-blue-700 font-medium leading-tight text-center" style={{ fontSize: "8px" }}>Salida {cell.exitTime}</span>
+                            <span className="text-blue-700 font-semibold leading-tight text-center text-[10px]">Salida {cell.exitTime}</span>
                           ) : null}
                         </div>
                       </div>
