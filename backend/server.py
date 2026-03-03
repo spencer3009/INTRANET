@@ -3247,11 +3247,32 @@ async def get_teacher_attendance(
         "type": "student"
     }, {"_id": 0}).to_list(500)
     
-    # Map user_id to student_id for frontend compatibility
-    formatted_records = [{
-        **r,
-        "student_id": r.get("user_id", r.get("student_id"))
-    } for r in records]
+    # Map user_id to student_id for frontend compatibility and include entry/exit
+    formatted_records = []
+    for r in records:
+        entry_time_str = None
+        exit_time_str = None
+        if r.get("entry_time"):
+            try:
+                entry_time_str = datetime.fromisoformat(r["entry_time"]).strftime("%H:%M")
+            except Exception:
+                entry_time_str = r.get("check_in_time")
+        elif r.get("check_in_time"):
+            entry_time_str = r["check_in_time"]
+        if r.get("exit_time"):
+            try:
+                exit_time_str = datetime.fromisoformat(r["exit_time"]).strftime("%H:%M")
+            except Exception:
+                pass
+        formatted_records.append({
+            "student_id": r.get("user_id", r.get("student_id")),
+            "status": r.get("status"),
+            "entry_time": entry_time_str,
+            "exit_time": exit_time_str,
+            "entry_method": r.get("entry_method"),
+            "exit_method": r.get("exit_method"),
+            "total_minutes": r.get("total_minutes")
+        })
     
     return {"records": formatted_records}
 
@@ -8855,6 +8876,22 @@ async def get_students_for_attendance(
     result = []
     for s in students:
         attendance = attendance_map.get(s["id"])
+        entry_time_str = None
+        exit_time_str = None
+        if attendance:
+            if attendance.get("entry_time"):
+                try:
+                    entry_time_str = datetime.fromisoformat(attendance["entry_time"]).strftime("%H:%M")
+                except Exception:
+                    entry_time_str = attendance.get("check_in_time")
+            elif attendance.get("check_in_time"):
+                entry_time_str = attendance["check_in_time"]
+            if attendance.get("exit_time"):
+                try:
+                    exit_time_str = datetime.fromisoformat(attendance["exit_time"]).strftime("%H:%M")
+                except Exception:
+                    pass
+        
         result.append({
             "id": s["id"],
             "name": s.get("name", ""),
@@ -8862,8 +8899,13 @@ async def get_students_for_attendance(
             "full_name": f"{s.get('name', '')} {s.get('last_name', '')}".strip(),
             "photo_url": s.get("photo_url"),
             "email": s.get("email"),
-            "status": attendance["status"] if attendance else "pending",  # Default to PENDING (not present)
-            "has_record": attendance is not None  # Whether a record exists for this date
+            "status": attendance["status"] if attendance else "pending",
+            "has_record": attendance is not None,
+            "entry_time": entry_time_str,
+            "exit_time": exit_time_str,
+            "entry_method": attendance.get("entry_method") if attendance else None,
+            "exit_method": attendance.get("exit_method") if attendance else None,
+            "total_minutes": attendance.get("total_minutes") if attendance else None
         })
     
     # Sort by name
@@ -8891,41 +8933,34 @@ async def save_student_attendance(data: AttendanceBatchSave, current_user = Depe
     school_id = user["school_id"]
     now = datetime.now(timezone.utc).isoformat()
     
-    # Delete existing records for this date/grade/section (both collections)
-    await db.attendances.delete_many({
-        "school_id": school_id,
-        "type": "student",
-        "grade_id": data.grade_id,
-        "section_id": data.section_id,
-        "date": data.date
-    })
-    
-    # Also delete from student_attendance (QR scanner collection) for consistency
-    await db.student_attendance.delete_many({
-        "school_id": school_id,
-        "grado_id": data.grade_id,
-        "seccion_id": data.section_id,
-        "date": data.date
-    })
-    
-    # Insert new records
-    records_to_insert = []
+    # Use upsert instead of delete+insert to preserve entry_time/exit_time data
     for record in data.records:
-        records_to_insert.append({
-            "id": str(uuid.uuid4()),
-            "school_id": school_id,
-            "type": "student",
-            "user_id": record.user_id,
-            "grade_id": data.grade_id,
-            "section_id": data.section_id,
-            "date": data.date,
-            "status": record.status,
-            "recorded_by": current_user["sub"],
-            "created_at": now
-        })
-    
-    if records_to_insert:
-        await db.attendances.insert_many(records_to_insert)
+        await db.attendances.update_one(
+            {
+                "school_id": school_id,
+                "type": "student",
+                "user_id": record.user_id,
+                "date": data.date
+            },
+            {
+                "$set": {
+                    "status": record.status,
+                    "grade_id": data.grade_id,
+                    "section_id": data.section_id,
+                    "recorded_by": current_user["sub"],
+                    "updated_at": now
+                },
+                "$setOnInsert": {
+                    "id": str(uuid.uuid4()),
+                    "school_id": school_id,
+                    "type": "student",
+                    "user_id": record.user_id,
+                    "date": data.date,
+                    "created_at": now
+                }
+            },
+            upsert=True
+        )
     
     # Calculate summary
     summary = {"present": 0, "late": 0, "absent": 0}
@@ -9292,12 +9327,133 @@ async def get_student_attendance_report(
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ATTENDANCE ENTRY / EXIT SYSTEM
+# ══════════════════════════════════════════════════════════════════════════════
+
+class MarkEntryRequest(BaseModel):
+    student_id: str
+    date: Optional[str] = None
+    method: Literal["manual", "qr"] = "manual"
+
+class MarkExitRequest(BaseModel):
+    student_id: str
+    date: Optional[str] = None
+    method: Literal["manual", "qr"] = "manual"
+
+@api_router.post("/attendance/mark-entry")
+async def mark_attendance_entry(data: MarkEntryRequest, current_user=Depends(get_current_user)):
+    """Mark a student's entry for the day."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school_id = user["school_id"]
+    today = data.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    now_time = datetime.now(timezone.utc).strftime("%H:%M")
+
+    # Get student info for grade/section
+    student = await db.users.find_one({"id": data.student_id, "school_id": school_id, "role": "student"}, {"_id": 0})
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    # Check existing record
+    existing = await db.attendances.find_one({
+        "school_id": school_id, "user_id": data.student_id, "date": today, "type": "student"
+    })
+
+    if existing and existing.get("entry_time"):
+        raise HTTPException(status_code=400, detail="Entrada ya registrada para hoy")
+
+    # Upsert attendance with entry
+    await db.attendances.update_one(
+        {"school_id": school_id, "user_id": data.student_id, "date": today, "type": "student"},
+        {
+            "$set": {
+                "status": "present",
+                "entry_time": now_iso,
+                "entry_method": data.method,
+                "check_in_time": now_time,
+                "recorded_by": current_user["sub"],
+                "updated_at": now_iso
+            },
+            "$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "school_id": school_id,
+                "user_id": data.student_id,
+                "type": "student",
+                "grade_id": student.get("grado_id"),
+                "section_id": student.get("seccion_id"),
+                "date": today,
+                "created_at": now_iso
+            }
+        },
+        upsert=True
+    )
+
+    return {
+        "status": "success",
+        "message": "Entrada registrada",
+        "entry_time": now_time,
+        "student_id": data.student_id
+    }
+
+@api_router.post("/attendance/mark-exit")
+async def mark_attendance_exit(data: MarkExitRequest, current_user=Depends(get_current_user)):
+    """Mark a student's exit for the day."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No autorizado")
+    school_id = user["school_id"]
+    today = data.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now_iso = datetime.now(timezone.utc).isoformat()
+    now_time = datetime.now(timezone.utc).strftime("%H:%M")
+
+    # Find existing record
+    existing = await db.attendances.find_one({
+        "school_id": school_id, "user_id": data.student_id, "date": today, "type": "student"
+    })
+
+    if not existing or not existing.get("entry_time"):
+        raise HTTPException(status_code=400, detail="No hay entrada registrada para hoy")
+
+    if existing.get("exit_time"):
+        raise HTTPException(status_code=400, detail="Salida ya registrada para hoy")
+
+    # Calculate total minutes
+    total_minutes = None
+    try:
+        entry_dt = datetime.fromisoformat(existing["entry_time"])
+        exit_dt = datetime.now(timezone.utc)
+        total_minutes = int((exit_dt - entry_dt).total_seconds() / 60)
+    except Exception:
+        pass
+
+    await db.attendances.update_one(
+        {"_id": existing["_id"]},
+        {"$set": {
+            "exit_time": now_iso,
+            "exit_method": data.method,
+            "total_minutes": total_minutes,
+            "updated_at": now_iso
+        }}
+    )
+
+    return {
+        "status": "success",
+        "message": "Salida registrada",
+        "exit_time": now_time,
+        "total_minutes": total_minutes,
+        "student_id": data.student_id
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
 # QR CODE ATTENDANCE SYSTEM
 # ══════════════════════════════════════════════════════════════════════════════
 
 class QRScanRequest(BaseModel):
     """Request to scan QR and register attendance"""
     qr_token: str
+    mode: Literal["entry", "exit", "auto"] = "auto"
 
 @api_router.post("/attendance/qr/scan")
 async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_current_user)):
@@ -9360,25 +9516,56 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     
     # Check if attendance already marked today
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc)
+    now_time = now.strftime("%H:%M")
+    now_iso = now.isoformat()
     
-    # Check in both collections for existing attendance
-    existing_attendance = await db.student_attendance.find_one({
-        "student_id": student_id,
-        "date": today,
-        "school_id": school_id
-    })
-    
-    # Also check the main attendances collection
-    existing_in_attendances = await db.attendances.find_one({
+    # Check main attendances collection
+    existing = await db.attendances.find_one({
         "user_id": student_id,
         "date": today,
         "school_id": school_id,
         "type": "student"
     })
     
+    # Also check student_attendance (legacy QR collection) and sync if needed
+    existing_legacy = await db.student_attendance.find_one({
+        "student_id": student_id, "date": today, "school_id": school_id
+    })
+    if existing_legacy and not existing:
+        # Sync legacy record to main collection
+        await db.attendances.update_one(
+            {"school_id": school_id, "type": "student", "user_id": student_id, "date": today},
+            {
+                "$set": {
+                    "status": existing_legacy.get("status", "present"),
+                    "entry_time": existing_legacy.get("created_at"),
+                    "entry_method": "qr",
+                    "check_in_time": existing_legacy.get("check_in_time", ""),
+                    "method": "qr_scan",
+                    "recorded_by": existing_legacy.get("scanned_by", current_user["sub"]),
+                    "created_at": existing_legacy.get("created_at", now_iso)
+                },
+                "$setOnInsert": {
+                    "id": str(uuid.uuid4()),
+                    "school_id": school_id, "type": "student", "user_id": student_id,
+                    "grade_id": student.get("grado_id"), "section_id": student.get("seccion_id"),
+                    "date": today
+                }
+            },
+            upsert=True
+        )
+        existing = await db.attendances.find_one({
+            "user_id": student_id, "date": today, "school_id": school_id, "type": "student"
+        })
+    
     # Get grade and section names
     grade = await db.grados.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
     section = await db.secciones.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
+    if not grade:
+        grade = await db.grades.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
+    if not section:
+        section = await db.sections.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
     
     student_info = {
         "id": student["id"],
@@ -9392,120 +9579,173 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         "seccion_id": student.get("seccion_id")
     }
     
-    # Use whichever record exists
-    existing_record = existing_attendance or existing_in_attendances
+    mode = data.mode  # entry, exit, auto
     
-    if existing_record:
-        # If record exists in student_attendance but NOT in attendances, sync it
-        if existing_attendance and not existing_in_attendances:
-            now = datetime.now(timezone.utc)
-            await db.attendances.update_one(
-                {
-                    "school_id": school_id,
-                    "type": "student",
-                    "user_id": student_id,
-                    "grade_id": student.get("grado_id"),
-                    "section_id": student.get("seccion_id"),
-                    "date": today
+    has_entry = existing and existing.get("entry_time")
+    has_exit = existing and existing.get("exit_time")
+    
+    # Determine action based on mode
+    if mode == "auto":
+        if not has_entry:
+            action = "entry"
+        elif not has_exit:
+            action = "exit"
+        else:
+            action = "already_both"
+    elif mode == "entry":
+        if has_entry:
+            action = "already_entry"
+        else:
+            action = "entry"
+    elif mode == "exit":
+        if not has_entry:
+            action = "no_entry"
+        elif has_exit:
+            action = "already_exit"
+        else:
+            action = "exit"
+    else:
+        action = "entry"
+    
+    # Execute action
+    if action == "entry":
+        await db.attendances.update_one(
+            {"school_id": school_id, "type": "student", "user_id": student_id, "date": today},
+            {
+                "$set": {
+                    "status": "present",
+                    "entry_time": now_iso,
+                    "entry_method": "qr",
+                    "check_in_time": now_time,
+                    "method": "qr_scan",
+                    "recorded_by": current_user["sub"],
+                    "updated_at": now_iso
                 },
-                {
-                    "$set": {
-                        "status": existing_attendance.get("status", "present"),
-                        "recorded_by": existing_attendance.get("scanned_by", current_user["sub"]),
-                        "created_at": now.isoformat(),
-                        "method": "qr_scan",
-                        "check_in_time": existing_attendance.get("check_in_time", "")
-                    },
-                    "$setOnInsert": {
-                        "id": str(uuid.uuid4()),
-                        "school_id": school_id,
-                        "type": "student",
-                        "user_id": student_id,
-                        "grade_id": student.get("grado_id"),
-                        "section_id": student.get("seccion_id"),
-                        "date": today
-                    }
-                },
-                upsert=True
-            )
-            logger.info(f"QR Attendance synced for {student_info['full_name']} to attendances collection")
+                "$setOnInsert": {
+                    "id": str(uuid.uuid4()),
+                    "school_id": school_id, "type": "student", "user_id": student_id,
+                    "grade_id": student.get("grado_id"), "section_id": student.get("seccion_id"),
+                    "date": today, "created_at": now_iso
+                }
+            },
+            upsert=True
+        )
+        # Also save to legacy collection
+        await db.student_attendance.update_one(
+            {"student_id": student_id, "date": today, "school_id": school_id},
+            {
+                "$set": {"status": "present", "check_in_time": now_time, "method": "qr_scan",
+                         "scanned_by": current_user["sub"], "created_at": now_iso,
+                         "grado_id": student.get("grado_id"), "seccion_id": student.get("seccion_id")},
+                "$setOnInsert": {"id": str(uuid.uuid4()), "student_id": student_id,
+                                 "school_id": school_id, "date": today}
+            },
+            upsert=True
+        )
         
-        # Already marked today
+        logger.info(f"QR Entry: {student_info['full_name']} at {now_time}")
         return {
-            "status": "already_marked",
-            "message": f"Ya se registró asistencia hoy para {student_info['full_name']}",
+            "status": "success",
+            "action": "entry",
+            "message": f"Entrada registrada para {student_info['full_name']}",
             "student": student_info,
             "attendance": {
-                "status": existing_record.get("status"),
-                "time": existing_record.get("check_in_time", ""),
+                "status": "present", "entry_time": now_time, "exit_time": None, "date": today
+            }
+        }
+    
+    elif action == "exit":
+        total_minutes = None
+        try:
+            entry_dt = datetime.fromisoformat(existing["entry_time"])
+            total_minutes = int((now - entry_dt).total_seconds() / 60)
+        except Exception:
+            pass
+        
+        await db.attendances.update_one(
+            {"_id": existing["_id"]},
+            {"$set": {
+                "exit_time": now_iso, "exit_method": "qr",
+                "total_minutes": total_minutes, "updated_at": now_iso
+            }}
+        )
+        
+        entry_time_str = existing.get("check_in_time", "")
+        logger.info(f"QR Exit: {student_info['full_name']} at {now_time} (total: {total_minutes}min)")
+        return {
+            "status": "success",
+            "action": "exit",
+            "message": f"Salida registrada para {student_info['full_name']}",
+            "student": student_info,
+            "attendance": {
+                "status": existing.get("status", "present"),
+                "entry_time": entry_time_str,
+                "exit_time": now_time,
+                "total_minutes": total_minutes,
                 "date": today
             }
         }
     
-    # Register new attendance
-    now = datetime.now(timezone.utc)
-    check_in_time = now.strftime("%H:%M")
-    
-    attendance_record = {
-        "id": str(uuid.uuid4()),
-        "student_id": student_id,
-        "school_id": school_id,
-        "date": today,
-        "status": "present",  # Default to present when scanned
-        "check_in_time": check_in_time,
-        "method": "qr_scan",  # Indicates it was via QR
-        "scanned_by": current_user["sub"],
-        "created_at": now.isoformat(),
-        "grado_id": student.get("grado_id"),
-        "seccion_id": student.get("seccion_id")
-    }
-    
-    await db.student_attendance.insert_one(attendance_record)
-    
-    # ALSO update the main attendances collection (used by the "Estudiantes" tab)
-    # This ensures QR-scanned attendance shows up in the regular attendance view
-    await db.attendances.update_one(
-        {
-            "school_id": school_id,
-            "type": "student",
-            "user_id": student_id,
-            "grade_id": student.get("grado_id"),
-            "section_id": student.get("seccion_id"),
-            "date": today
-        },
-        {
-            "$set": {
-                "status": "present",
-                "recorded_by": current_user["sub"],
-                "created_at": now.isoformat(),
-                "method": "qr_scan",
-                "check_in_time": check_in_time
-            },
-            "$setOnInsert": {
-                "id": str(uuid.uuid4()),
-                "school_id": school_id,
-                "type": "student",
-                "user_id": student_id,
-                "grade_id": student.get("grado_id"),
-                "section_id": student.get("seccion_id"),
+    elif action == "already_both":
+        entry_time_str = existing.get("check_in_time", "")
+        exit_dt = existing.get("exit_time")
+        exit_time_str = ""
+        if exit_dt:
+            try:
+                exit_time_str = datetime.fromisoformat(exit_dt).strftime("%H:%M")
+            except Exception:
+                exit_time_str = str(exit_dt)
+        
+        return {
+            "status": "already_marked",
+            "action": "already_both",
+            "message": f"Ya se registró entrada y salida hoy para {student_info['full_name']}",
+            "student": student_info,
+            "attendance": {
+                "status": existing.get("status"),
+                "entry_time": entry_time_str,
+                "exit_time": exit_time_str,
+                "total_minutes": existing.get("total_minutes"),
                 "date": today
             }
-        },
-        upsert=True
-    )
-    
-    logger.info(f"QR Attendance: {student_info['full_name']} marked present at {check_in_time}")
-    
-    return {
-        "status": "success",
-        "message": f"¡Asistencia registrada para {student_info['full_name']}!",
-        "student": student_info,
-        "attendance": {
-            "status": "present",
-            "time": check_in_time,
-            "date": today
         }
-    }
+    
+    elif action == "already_entry":
+        return {
+            "status": "already_marked",
+            "action": "already_entry",
+            "message": f"Entrada ya registrada para {student_info['full_name']}",
+            "student": student_info,
+            "attendance": {
+                "status": existing.get("status"),
+                "entry_time": existing.get("check_in_time", ""),
+                "exit_time": None,
+                "date": today
+            }
+        }
+    
+    elif action == "already_exit":
+        return {
+            "status": "already_marked",
+            "action": "already_exit",
+            "message": f"Salida ya registrada para {student_info['full_name']}",
+            "student": student_info,
+            "attendance": {
+                "status": existing.get("status"),
+                "entry_time": existing.get("check_in_time", ""),
+                "exit_time": datetime.fromisoformat(existing["exit_time"]).strftime("%H:%M") if existing.get("exit_time") else None,
+                "date": today
+            }
+        }
+    
+    else:  # no_entry
+        return {
+            "status": "error",
+            "action": "no_entry",
+            "message": f"No hay entrada registrada para {student_info['full_name']}. Debe registrar entrada primero.",
+            "student": student_info,
+            "attendance": {"status": None, "entry_time": None, "exit_time": None, "date": today}
+        }
 
 @api_router.post("/attendance/qr/generate")
 async def generate_qr_for_existing_students(current_user = Depends(get_current_user)):

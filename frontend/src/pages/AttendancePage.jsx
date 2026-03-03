@@ -80,6 +80,8 @@ function StudentAttendanceTab({ token, schoolId }) {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPendingModal, setShowPendingModal] = useState(false);
+  const [markingEntry, setMarkingEntry] = useState(null);
+  const [markingExit, setMarkingExit] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -189,6 +191,46 @@ function StudentAttendanceTab({ token, schoolId }) {
     setHasChanges(true);
   };
 
+  const markEntry = async (studentId) => {
+    setMarkingEntry(studentId);
+    setError("");
+    try {
+      const res = await axios.post(`${API}/attendance/mark-entry`, {
+        student_id: studentId, date: selectedDate, method: "manual"
+      }, { headers });
+      setStudents(prev => prev.map(s =>
+        s.id === studentId ? { ...s, entry_time: res.data.entry_time, status: "present", entry_method: "manual" } : s
+      ));
+      setSuccess(`Entrada registrada: ${res.data.entry_time}`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al registrar entrada");
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setMarkingEntry(null);
+    }
+  };
+
+  const markExit = async (studentId) => {
+    setMarkingExit(studentId);
+    setError("");
+    try {
+      const res = await axios.post(`${API}/attendance/mark-exit`, {
+        student_id: studentId, date: selectedDate, method: "manual"
+      }, { headers });
+      setStudents(prev => prev.map(s =>
+        s.id === studentId ? { ...s, exit_time: res.data.exit_time, total_minutes: res.data.total_minutes, exit_method: "manual" } : s
+      ));
+      setSuccess(`Salida registrada: ${res.data.exit_time}`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al registrar salida");
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setMarkingExit(null);
+    }
+  };
+
   const handleSaveClick = () => {
     if (students.length === 0) return;
     
@@ -239,10 +281,12 @@ function StudentAttendanceTab({ token, schoolId }) {
   // Calculate summary
   const summary = {
     pending: students.filter(s => s.status === "pending").length,
-    present: students.filter(s => s.status === "present").length,
+    present: students.filter(s => s.status === "present" || s.status === "late").length,
     late: students.filter(s => s.status === "late").length,
     absent: students.filter(s => s.status === "absent").length,
-    total: students.length
+    total: students.length,
+    with_entry: students.filter(s => s.entry_time).length,
+    with_exit: students.filter(s => s.exit_time).length
   };
 
   return (
@@ -338,21 +382,24 @@ function StudentAttendanceTab({ token, schoolId }) {
                 <h3 className="text-xl font-bold">Asistencia del {new Date(selectedDate + "T12:00:00").toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" })}</h3>
                 <p className="text-blue-100">{summary.total} estudiantes</p>
               </div>
-              <div className="flex gap-3 text-sm flex-wrap">
+              <div className="flex gap-2 text-sm flex-wrap">
+                <div className="bg-white/20 px-3 py-2 rounded-lg" data-testid="counter-entry">
+                  <span className="text-emerald-300">Entrada {summary.with_entry}</span>
+                </div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg" data-testid="counter-exit">
+                  <span className="text-blue-300">Salida {summary.with_exit}</span>
+                </div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg" data-testid="counter-late">
+                  <span className="text-amber-300">Tardanza {summary.late}</span>
+                </div>
+                <div className="bg-white/20 px-3 py-2 rounded-lg" data-testid="counter-absent">
+                  <span className="text-red-300">Ausentes {summary.absent}</span>
+                </div>
                 {summary.pending > 0 && (
-                  <div className="bg-white/20 px-3 py-2 rounded-lg">
-                    <span className="text-slate-300">○ {summary.pending}</span> Pendientes
+                  <div className="bg-white/20 px-3 py-2 rounded-lg" data-testid="counter-pending">
+                    <span className="text-slate-300">Pendientes {summary.pending}</span>
                   </div>
                 )}
-                <div className="bg-white/20 px-3 py-2 rounded-lg">
-                  <span className="text-emerald-300">✓ {summary.present}</span> Presentes
-                </div>
-                <div className="bg-white/20 px-3 py-2 rounded-lg">
-                  <span className="text-amber-300">⏰ {summary.late}</span> Tardanzas
-                </div>
-                <div className="bg-white/20 px-3 py-2 rounded-lg">
-                  <span className="text-red-300">✗ {summary.absent}</span> Ausentes
-                </div>
               </div>
             </div>
             
@@ -370,6 +417,7 @@ function StudentAttendanceTab({ token, schoolId }) {
             {students.map((student, idx) => (
               <div
                 key={student.id}
+                data-testid={`student-row-${student.id}`}
                 className={`p-4 flex items-center gap-4 hover:bg-slate-50 transition-colors ${
                   idx % 2 === 0 ? "bg-white" : "bg-slate-50/50"
                 }`}
@@ -377,22 +425,64 @@ function StudentAttendanceTab({ token, schoolId }) {
                 {/* Avatar */}
                 <div className="flex-shrink-0">
                   {student.photo_url ? (
-                    <img src={student.photo_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                    <img src={student.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-bold">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-bold text-sm">
                       {student.name?.charAt(0) || "E"}
                     </div>
                   )}
                 </div>
 
                 {/* Name */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800">{student.full_name}</p>
-                  <p className="text-sm text-slate-500">{student.email}</p>
+                <div className="min-w-0 w-40">
+                  <p className="font-semibold text-slate-800 text-sm truncate">{student.full_name}</p>
                 </div>
 
-                {/* Status buttons - ALL statuses including Pending are always clickable */}
-                <div className="flex gap-2">
+                {/* Entry/Exit times */}
+                <div className="flex gap-3 items-center min-w-[220px]">
+                  <div className="flex items-center gap-1.5" data-testid={`entry-${student.id}`}>
+                    {student.entry_time ? (
+                      <span className="text-sm font-medium text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                        Entrada {student.entry_time}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => markEntry(student.id)}
+                        disabled={markingEntry === student.id || student.status === "absent"}
+                        data-testid={`mark-entry-${student.id}`}
+                        className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 hover:bg-emerald-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {markingEntry === student.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : "Marcar Entrada"}
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5" data-testid={`exit-${student.id}`}>
+                    {student.exit_time ? (
+                      <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg">
+                        Salida {student.exit_time}
+                        {student.total_minutes != null && (
+                          <span className="text-xs text-blue-400 ml-1">({student.total_minutes}min)</span>
+                        )}
+                      </span>
+                    ) : (
+                      <button
+                        onClick={() => markExit(student.id)}
+                        disabled={!student.entry_time || markingExit === student.id}
+                        data-testid={`mark-exit-${student.id}`}
+                        className="text-xs font-medium px-2.5 py-1.5 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {markingExit === student.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : "Marcar Salida"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Status buttons */}
+                <div className="flex gap-2 ml-auto">
                   {STUDENT_STATUSES.map(status => (
                     <StatusButton
                       key={status.id}

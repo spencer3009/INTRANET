@@ -57,10 +57,11 @@ export default function QRScannerTab({ token }) {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [cameraError, setCameraError] = useState(null);
-  const [cameraFacing, setCameraFacing] = useState("environment"); // "environment" = back, "user" = front
+  const [cameraFacing, setCameraFacing] = useState("environment");
   const [availableCameras, setAvailableCameras] = useState([]);
   const [checkingCamera, setCheckingCamera] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
+  const [scanMode, setScanMode] = useState("auto"); // "auto" | "entry" | "exit"
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -310,13 +311,15 @@ export default function QRScannerTab({ token }) {
     setResult(null);
     
     try {
-      const res = await axios.post(`${API}/attendance/qr/scan`, { qr_token: qrToken }, { headers });
+      const res = await axios.post(`${API}/attendance/qr/scan`, { qr_token: qrToken, mode: scanMode }, { headers });
       setResult(res.data);
       
       if (res.data.status === "success") {
         playSound("success");
       } else if (res.data.status === "already_marked") {
         playSound("warning");
+      } else if (res.data.status === "error") {
+        playSound("error");
       }
       
       // Refresh history
@@ -388,6 +391,27 @@ export default function QRScannerTab({ token }) {
                   <VolumeX className="w-5 h-5 text-white/50" />
                 )}
               </button>
+            </div>
+            {/* Scan Mode Selector */}
+            <div className="flex gap-2 mt-3" data-testid="scan-mode-selector">
+              {[
+                { id: "auto", label: "Automático" },
+                { id: "entry", label: "Solo Entrada" },
+                { id: "exit", label: "Solo Salida" }
+              ].map(mode => (
+                <button
+                  key={mode.id}
+                  onClick={() => setScanMode(mode.id)}
+                  data-testid={`scan-mode-${mode.id}`}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    scanMode === mode.id
+                      ? "bg-white text-violet-700"
+                      : "bg-white/20 text-white/80 hover:bg-white/30"
+                  }`}
+                >
+                  {mode.label}
+                </button>
+              ))}
             </div>
           </div>
           
@@ -619,6 +643,7 @@ export default function QRScannerTab({ token }) {
           <div className={`rounded-2xl shadow-lg overflow-hidden transition-all ${
             result?.status === "success" ? "bg-emerald-50 border-2 border-emerald-500" :
             result?.status === "already_marked" ? "bg-amber-50 border-2 border-amber-500" :
+            result?.status === "error" ? "bg-red-50 border-2 border-red-500" :
             error ? "bg-red-50 border-2 border-red-500" :
             "bg-white"
           }`}>
@@ -627,8 +652,14 @@ export default function QRScannerTab({ token }) {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3">
                     {result.status === "success" ? (
-                      <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                        result.action === "exit" ? "bg-blue-500" : "bg-emerald-500"
+                      }`}>
                         <Check className="w-6 h-6 text-white" />
+                      </div>
+                    ) : result.status === "error" ? (
+                      <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                        <X className="w-6 h-6 text-white" />
                       </div>
                     ) : (
                       <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center">
@@ -636,31 +667,59 @@ export default function QRScannerTab({ token }) {
                       </div>
                     )}
                     <div>
-                      <p className={`text-lg font-bold ${result.status === "success" ? "text-emerald-700" : "text-amber-700"}`}>
-                        {result.status === "success" ? "¡Asistencia Registrada!" : "Ya registrado hoy"}
+                      <p className={`text-lg font-bold ${
+                        result.status === "success" ? (result.action === "exit" ? "text-blue-700" : "text-emerald-700") :
+                        result.status === "error" ? "text-red-700" : "text-amber-700"
+                      }`} data-testid="scan-result-message">
+                        {result.message}
                       </p>
-                      <p className="text-sm text-slate-600">{result.attendance?.time}</p>
                     </div>
                   </div>
                   
                   {/* Student Info */}
-                  <div className="flex items-center gap-4 p-4 bg-white rounded-xl">
-                    {result.student?.photo_url ? (
-                      <img 
-                        src={result.student.photo_url} 
-                        alt="" 
-                        className="w-16 h-16 rounded-full object-cover border-2 border-slate-200"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold">
-                        {result.student?.name?.charAt(0) || "E"}
+                  <div className="p-4 bg-white rounded-xl" data-testid="scan-result-card">
+                    <div className="flex items-center gap-4 mb-3">
+                      {result.student?.photo_url ? (
+                        <img src={result.student.photo_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-slate-200" />
+                      ) : (
+                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold">
+                          {result.student?.name?.charAt(0) || "E"}
+                        </div>
+                      )}
+                      <div>
+                        <p className="text-xl font-bold text-slate-800">{result.student?.full_name}</p>
+                        <p className="text-slate-500">
+                          {result.student?.grade_name} - Sección {result.student?.section_name}
+                        </p>
                       </div>
-                    )}
-                    <div>
-                      <p className="text-xl font-bold text-slate-800">{result.student?.full_name}</p>
-                      <p className="text-slate-500">
-                        {result.student?.grade_name} - Sección {result.student?.section_name}
-                      </p>
+                    </div>
+                    {/* Entry/Exit times */}
+                    <div className="flex gap-4 mt-3 pt-3 border-t border-slate-100">
+                      <div className="flex-1 text-center">
+                        <p className="text-xs text-slate-400 uppercase tracking-wide">Entrada</p>
+                        <p className={`text-lg font-bold ${result.attendance?.entry_time ? "text-emerald-600" : "text-slate-300"}`} data-testid="scan-entry-time">
+                          {result.attendance?.entry_time || "—"}
+                        </p>
+                      </div>
+                      <div className="w-px bg-slate-200" />
+                      <div className="flex-1 text-center">
+                        <p className="text-xs text-slate-400 uppercase tracking-wide">Salida</p>
+                        <p className={`text-lg font-bold ${result.attendance?.exit_time ? "text-blue-600" : "text-slate-300"}`} data-testid="scan-exit-time">
+                          {result.attendance?.exit_time || "—"}
+                        </p>
+                      </div>
+                      <div className="w-px bg-slate-200" />
+                      <div className="flex-1 text-center">
+                        <p className="text-xs text-slate-400 uppercase tracking-wide">Estado</p>
+                        <p className={`text-lg font-bold ${
+                          result.attendance?.status === "present" ? "text-emerald-600" :
+                          result.attendance?.status === "late" ? "text-amber-600" : "text-slate-400"
+                        }`} data-testid="scan-status">
+                          {result.attendance?.status === "present" ? "Presente" :
+                           result.attendance?.status === "late" ? "Tardanza" :
+                           result.attendance?.status === "absent" ? "Ausente" : "—"}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
