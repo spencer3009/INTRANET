@@ -189,12 +189,11 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
                     const isAbsent = cell.status === "absent";
                     const isLate = cell.status === "late";
                     const isJustified = cell.status === "justified";
-                    const monthName = selectedMonth.toLocaleDateString("es-PE", { month: "long" });
 
                     if (cell.day === null) return <div key={idx} />;
                     if (!cell.status) {
                       return (
-                        <div key={idx} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm ${cell.isWeekend ? "bg-slate-50 text-slate-400" : "bg-slate-50 text-slate-600"}`}>
+                        <div key={idx} className={`aspect-square rounded-lg flex items-center justify-center text-sm ${cell.isWeekend ? "bg-slate-50 text-slate-400" : "bg-slate-50 text-slate-600"}`}>
                           <span className="font-medium">{cell.day}</span>
                         </div>
                       );
@@ -204,8 +203,7 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
                       const config = STATUS_CONFIG[cell.status];
                       return (
                         <div key={idx} className={`aspect-square rounded-lg flex flex-col items-center justify-center text-sm ${config?.color}`} title={config?.label}>
-                          <span className="font-medium">{cell.day}</span>
-                          <span className="text-[8px] opacity-70">{cell.day} de {monthName}</span>
+                          <span className="font-bold">{cell.day}</span>
                           {isAbsent && <XCircle className="w-3 h-3 mt-0.5" />}
                           {isJustified && <FileText className="w-3 h-3 mt-0.5" />}
                         </div>
@@ -215,21 +213,19 @@ export default function ParentAttendancePage({ user, token, onLogout }) {
                     // Present or Late with horizontal split
                     return (
                       <div key={idx} className="aspect-square rounded-lg overflow-hidden flex flex-col" title={STATUS_CONFIG[cell.status]?.label || ""}>
-                        {/* Top half - Entry (green) */}
-                        <div className={`flex-1 flex flex-col items-center justify-center px-1 ${hasEntry ? "bg-emerald-100" : isLate ? "bg-amber-100" : "bg-emerald-100"}`}>
-                          <span className={`font-bold text-xs leading-tight ${isLate && !hasEntry ? "text-amber-700" : "text-emerald-700"}`}>{cell.day} de {monthName}</span>
+                        <div className={`flex-1 flex flex-col items-center justify-center ${hasEntry ? "bg-emerald-100" : isLate ? "bg-amber-100" : "bg-emerald-100"}`}>
+                          <span className={`font-bold text-xs ${isLate && !hasEntry ? "text-amber-700" : "text-emerald-700"}`}>{cell.day}</span>
                           {hasEntry ? (
-                            <span className="text-emerald-700 font-semibold leading-tight text-center text-[10px]">Entrada {cell.entryTime}</span>
+                            <span className="text-emerald-700 font-medium text-center text-[9px] leading-tight">Entrada {cell.entryTime}</span>
                           ) : isLate ? (
-                            <Clock className="w-3 h-3 text-amber-600 mt-0.5" />
+                            <Clock className="w-3 h-3 text-amber-600" />
                           ) : (
-                            <CheckCircle className="w-3 h-3 text-emerald-600 mt-0.5" />
+                            <CheckCircle className="w-3 h-3 text-emerald-600" />
                           )}
                         </div>
-                        {/* Bottom half - Exit (blue) */}
-                        <div className={`flex-1 flex items-center justify-center px-1 ${hasExit ? "bg-blue-100" : hasEntry ? "bg-emerald-50" : isLate ? "bg-amber-50" : "bg-emerald-50"}`}>
+                        <div className={`flex-1 flex items-center justify-center ${hasExit ? "bg-blue-100" : hasEntry ? "bg-emerald-50" : isLate ? "bg-amber-50" : "bg-emerald-50"}`}>
                           {hasExit ? (
-                            <span className="text-blue-700 font-semibold leading-tight text-center text-[10px]">Salida {cell.exitTime}</span>
+                            <span className="text-blue-700 font-medium text-center text-[9px] leading-tight">Salida {cell.exitTime}</span>
                           ) : null}
                         </div>
                       </div>
