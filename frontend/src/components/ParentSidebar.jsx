@@ -49,9 +49,9 @@ export default function ParentSidebar({
   
   return (
     <>
-      {/* Mobile overlay */}
+      {/* Mobile overlay - only covers content area, not sidebar */}
       {expanded && (
-        <div className="fixed inset-0 bg-black/10 z-[105] lg:hidden" onClick={onToggle} />
+        <div className="fixed inset-0 left-[280px] bg-black/10 z-[105] lg:hidden" onClick={onToggle} />
       )}
 
       <aside
