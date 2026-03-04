@@ -1626,14 +1626,6 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
         user={user}
       />
 
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
       {/* Main Content */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Header */}

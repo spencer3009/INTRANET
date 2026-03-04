@@ -67,7 +67,12 @@ export default function StudentSidebar({
   };
   
   return (
-    <aside
+    <>
+      {/* Mobile overlay - only covers content area, not sidebar */}
+      {expanded && (
+        <div className="fixed inset-0 left-[240px] bg-black/10 z-[35] lg:hidden" onClick={onToggle} />
+      )}
+      <aside
       className={`student-sidebar fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 ${
         isExpanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
@@ -172,5 +177,6 @@ export default function StudentSidebar({
         </button>
       </div>
     </aside>
+    </>
   );
 }

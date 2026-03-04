@@ -137,10 +137,15 @@ export default function AdminSidebar({
   };
   
   return (
-    <aside
-      className={`fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 ${
-        isExpanded ? "w-64 translate-x-0" : "w-16 -translate-x-full lg:translate-x-0"
-      }`}
+    <>
+      {/* Mobile overlay - only covers content area, not sidebar */}
+      {isExpanded && (
+        <div className="fixed inset-0 left-64 bg-black/10 z-[35] lg:hidden" onClick={onToggle} />
+      )}
+      <aside
+        className={`fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 bg-gradient-to-b from-slate-900 via-slate-800 to-slate-900 ${
+          isExpanded ? "w-64 translate-x-0" : "w-16 -translate-x-full lg:translate-x-0"
+        }`}
       data-testid="admin-sidebar"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -257,5 +262,6 @@ export default function AdminSidebar({
         </button>
       </div>
     </aside>
+    </>
   );
 }

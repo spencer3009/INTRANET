@@ -315,7 +315,6 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
   return (
     <div className="min-h-screen bg-[#f8f9fc] flex" data-testid="student-exam-schedule-page">
       <StudentSidebar active="examenes" onNavigate={() => {}} expanded={sidebarExpanded} onToggle={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} schoolName={schoolName} subdomain={subdomain || user?.subdomain} user={user} />
-      {sidebarExpanded && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarExpanded(false)} />}
 
       <div className="flex-1 flex flex-col min-w-0">
         <StudentHeader user={user} onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain || user?.subdomain} token={token} />

@@ -107,10 +107,15 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
   };
   
   return (
-    <aside
-      className={`sidebar fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 ${
-        isExpanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
-      }`}
+    <>
+      {/* Mobile overlay - only covers content area, not sidebar */}
+      {expanded && (
+        <div className="fixed inset-0 left-[240px] bg-black/10 z-[35] lg:hidden" onClick={onToggle} />
+      )}
+      <aside
+        className={`sidebar fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 ${
+          isExpanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
       data-testid="sidebar"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
@@ -185,5 +190,6 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
         </div>
       )}
     </aside>
+    </>
   );
 }

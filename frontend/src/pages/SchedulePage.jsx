@@ -334,10 +334,6 @@ export default function SchedulePage({ user, token, onLogout }) {
         user={user}
         schoolName={schoolSettings?.system_name}
       />
-      
-      {sidebarExpanded && (
-        <div className="fixed inset-0 bg-black/30 z-30 lg:hidden" onClick={() => setSidebarExpanded(false)} />
-      )}
 
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader 

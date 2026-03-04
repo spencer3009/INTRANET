@@ -4786,14 +4786,6 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
         />
       )}
 
-      {/* Mobile overlay */}
-      {sidebarExpanded && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarExpanded(false)}
-        />
-      )}
-
       {/* Main Content */}
       <div className="flex-1 min-w-0">
         {/* Header - Sticky */}
