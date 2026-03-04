@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { QRCodeSVG } from "qrcode.react";
 import TeacherSidebar from "../components/TeacherSidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import MessageCenter from "../components/MessageCenter";
 import StudentHeader from "../components/StudentHeader";
 import {
@@ -155,7 +156,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
         />
 
         {/* Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Hero Banner */}
           <div 
             className="relative rounded-3xl overflow-hidden shadow-xl mb-6"
@@ -500,6 +501,7 @@ export default function TeacherStudentsPage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="teacher" />
     </div>
   );
 }

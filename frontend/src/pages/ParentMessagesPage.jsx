@@ -9,6 +9,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
+import MobileBottomNav from "../components/MobileBottomNav";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import {
@@ -419,6 +420,7 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
 
       <ComposeModal isOpen={showCompose} onClose={() => { setShowCompose(false); setReplyTo(null); }} token={token} onSent={() => { loadMessages(activeFolder); loadStats(); }} replyTo={replyTo} />
       <ConfirmModal isOpen={confirmModal.isOpen} onClose={() => setConfirmModal({ isOpen: false, type: null, messageId: null })} onConfirm={handleConfirmAction} title={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar mensaje"} message={confirmModal.type === "emptyTrash" ? "Se eliminaran todos los mensajes de forma permanente. Esta accion no se puede deshacer." : "Se eliminara este mensaje permanentemente. Esta accion no se puede deshacer."} confirmText={confirmModal.type === "emptyTrash" ? "Vaciar papelera" : "Eliminar"} confirmStyle="danger" icon={AlertTriangle} loading={confirmLoading} />
+      <MobileBottomNav role="parent" />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import Highlight from "@tiptap/extension-highlight";
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import TeacherSidebar from "../components/TeacherSidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import StudentHeader from "../components/StudentHeader";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
@@ -691,7 +692,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
           profilePath="/teacher/profile"
         />
         
-        <main className="flex-1 p-6 lg:p-8 overflow-hidden flex flex-col">
+        <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-20 lg:pb-8 overflow-hidden flex flex-col">
           {/* Hero Section */}
           <div className="relative mb-6 overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 p-6 lg:p-8 text-white shadow-2xl flex-shrink-0">
             <div className="absolute inset-0 opacity-10">
@@ -1103,6 +1104,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
         icon={AlertTriangle}
         loading={confirmLoading}
       />
+      <MobileBottomNav role="teacher" />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
+import MobileBottomNav from "../components/MobileBottomNav";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
@@ -223,7 +224,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
       <div className="flex-1 flex flex-col min-w-0">
         <StudentHeader user={user} onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain || user?.subdomain} token={token} roleLabel="Padre/Apoderado" profilePath="/parent/profile" />
 
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-2xl font-bold text-[#1e293b] flex items-center gap-3" style={{ fontFamily: "Manrope, sans-serif" }}>Examenes de {selectedChild?.name || ""}</h1>
@@ -305,6 +306,7 @@ export default function ParentExamsPage({ user, token, onLogout }) {
         </main>
       </div>
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="parent" />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import MobileBottomNav from "../components/MobileBottomNav";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import {
@@ -105,7 +106,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
           roleLabel="Padre/Apoderado" profilePath="/parent/profile"
         />
 
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
@@ -284,6 +285,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
           )}
         </main>
       </div>
+      <MobileBottomNav role="parent" />
     </div>
   );
 }

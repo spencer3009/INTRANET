@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import MessageCenter from "../components/MessageCenter";
 import StudentHeader from "../components/StudentHeader";
 import {
@@ -200,7 +201,7 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
         )}
 
         {/* Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           <div className="max-w-3xl mx-auto space-y-6">
             {/* Profile Card */}
             <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -506,6 +507,7 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="teacher" />
     </div>
   );
 }

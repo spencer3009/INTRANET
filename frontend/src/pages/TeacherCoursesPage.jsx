@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import MessageCenter from "../components/MessageCenter";
 import StudentHeader from "../components/StudentHeader";
 import {
@@ -107,7 +108,7 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
           profilePath="/teacher/profile"
         />
 
-        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-20 lg:pb-8 overflow-y-auto">
           {/* Hero Section */}
           <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-600 p-8 text-white shadow-2xl">
             {/* Background Pattern */}

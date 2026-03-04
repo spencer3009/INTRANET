@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import StudentHeader from "../components/StudentHeader";
 import QRScannerTab from "../components/QRScannerTab";
 import { jsPDF } from "jspdf";
@@ -889,7 +890,7 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-20 lg:pb-8">
           {/* Page Title */}
           <div className="relative overflow-hidden rounded-3xl mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-emerald-600">
@@ -949,6 +950,7 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
           )}
         </main>
       </div>
+      <MobileBottomNav role="teacher" />
     </div>
   );
 }

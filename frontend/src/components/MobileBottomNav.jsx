@@ -1,0 +1,60 @@
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import {
+  Home, Clock, ClipboardList, Wallet, MessageSquare,
+  BookOpen, Users, BarChart3, CalendarCheck
+} from "lucide-react";
+
+const parentItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/parent" },
+  { id: "asistencia", label: "Asistencia", icon: Clock, route: "/parent/attendance" },
+  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/parent/tasks" },
+  { id: "pagos", label: "Pagos", icon: Wallet, route: "/parent/payments" },
+  { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/parent/messages" },
+];
+
+const teacherItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/teacher" },
+  { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/teacher/attendance" },
+  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/teacher/tasks" },
+  { id: "cursos", label: "Cursos", icon: BookOpen, route: "/teacher/courses" },
+  { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/teacher/messages" },
+];
+
+export default function MobileBottomNav({ role = "parent" }) {
+  const navigate = useNavigate();
+  const { subdomain } = useParams();
+  const location = useLocation();
+  const items = role === "teacher" ? teacherItems : parentItems;
+
+  const isActive = (route) => {
+    const fullRoute = subdomain ? `/${subdomain}${route}` : route;
+    if (route.endsWith("/parent") || route.endsWith("/teacher")) {
+      return location.pathname === fullRoute;
+    }
+    return location.pathname.startsWith(fullRoute);
+  };
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 lg:hidden safe-bottom" data-testid="mobile-bottom-nav">
+      <div className="flex items-center justify-around h-16 px-1">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = isActive(item.route);
+          return (
+            <button
+              key={item.id}
+              onClick={() => navigate(subdomain ? `/${subdomain}${item.route}` : item.route)}
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-0.5 transition-colors ${
+                active ? "text-emerald-600" : "text-slate-400"
+              }`}
+              data-testid={`mobile-nav-${item.id}`}
+            >
+              <Icon className={`w-5 h-5 ${active ? "stroke-[2.5]" : ""}`} />
+              <span className="text-[10px] font-medium">{item.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}

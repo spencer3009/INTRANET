@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import MessageCenter from "../components/MessageCenter";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
@@ -246,7 +247,7 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
         />
 
         {/* Dashboard Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Quick Stats - Premium Glass Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {/* Mis Cursos - Premium Emerald Gradient */}
@@ -628,6 +629,7 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="teacher" />
     </div>
   );
 }

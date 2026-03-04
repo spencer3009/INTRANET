@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import {
@@ -192,7 +193,7 @@ export default function TeacherAssignmentsViewPage({ user, token, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-20 lg:pb-8 overflow-y-auto">
           {/* Hero Section */}
           <div className="relative mb-8 overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 p-8 text-white shadow-2xl">
             {/* Background Pattern */}
@@ -493,6 +494,7 @@ export default function TeacherAssignmentsViewPage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="teacher" />
     </div>
   );
 }

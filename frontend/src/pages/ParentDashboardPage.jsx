@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
+import MobileBottomNav from "../components/MobileBottomNav";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
@@ -294,7 +295,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           profilePath="/parent/profile"
         />
 
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Read-only info banner */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3" data-testid="parent-dashboard-banner">
             <Eye className="w-5 h-5 text-emerald-600 shrink-0" />
@@ -894,6 +895,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
       </div>
 
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="parent" />
     </div>
   );
 }

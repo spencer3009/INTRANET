@@ -880,7 +880,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         />
         
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-20 lg:pb-8 overflow-x-hidden">
           {/* Page Header */}
           <div className="mb-8">
             <div className="flex items-center justify-between">

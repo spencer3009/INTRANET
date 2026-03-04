@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import MessageCenter from "../components/MessageCenter";
 import StudentHeader from "../components/StudentHeader";
 import {
@@ -252,7 +253,7 @@ export default function TeacherGradesPage({ user, token, onLogout }) {
         </div>
 
         {/* Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {!selectedCourse ? (
             /* Course Selection */
             <div className="space-y-4">
@@ -407,6 +408,7 @@ export default function TeacherGradesPage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="teacher" />
     </div>
   );
 }
