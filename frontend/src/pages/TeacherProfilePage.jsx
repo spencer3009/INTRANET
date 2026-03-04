@@ -163,12 +163,6 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
       />
 
       {/* Mobile overlay */}
-      {sidebarExpanded && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-30 lg:hidden"
-          onClick={() => setSidebarExpanded(false)}
-        />
-      )}
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col min-w-0">
