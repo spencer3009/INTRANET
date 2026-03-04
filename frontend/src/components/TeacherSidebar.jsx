@@ -44,7 +44,7 @@ export default function TeacherSidebar({
       )}
 
       <aside
-        className={`fixed top-0 h-full z-[110] flex flex-col transition-all duration-300 shadow-2xl
+        className={`fixed top-0 h-full lg:h-screen z-[110] flex flex-col transition-all duration-300 shadow-2xl
           ${expanded ? "translate-x-0 w-[280px]" : "-translate-x-full w-[280px]"}
           lg:sticky lg:translate-x-0 lg:z-30 ${isExpanded ? "lg:w-[240px]" : "lg:w-16"}
         `}
