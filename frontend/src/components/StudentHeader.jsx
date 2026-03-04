@@ -55,16 +55,16 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
   return (
     <header className="glass-header sticky top-0" style={{ zIndex: 100 }} data-testid="student-header">
       {/* Row 1: Controls — hamburger, logo, notifications, avatar */}
-      <div className="flex items-center justify-between h-14 px-3 sm:px-4 lg:px-8">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between h-24 px-4 md:px-6 lg:px-8">
+        <div className="flex items-center gap-4">
           <button onClick={onMenuClick} className="lg:hidden w-10 h-10 flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 transition-colors" data-testid="student-header-menu-button">
             <Menu className="w-5 h-5" />
           </button>
           {logoUrl ? (
-            <img src={logoUrl} alt={displayName} className="h-10 w-auto object-contain" data-testid="student-header-logo" onError={(e) => { e.target.style.display = 'none'; }} />
+            <img src={logoUrl} alt={displayName} className="h-16 w-auto object-contain" data-testid="student-header-logo" onError={(e) => { e.target.style.display = 'none'; }} />
           ) : (
-            <div className="h-10 w-10 bg-[#001f4b] rounded-xl flex items-center justify-center" data-testid="student-header-logo-placeholder">
-              <GraduationCap className="w-5 h-5 text-[#e1b82c]" />
+            <div className="h-14 w-14 bg-[#001f4b] rounded-xl flex items-center justify-center" data-testid="student-header-logo-placeholder">
+              <GraduationCap className="w-7 h-7 text-[#e1b82c]" />
             </div>
           )}
           {/* Desktop: show full welcome text inline */}
@@ -74,17 +74,21 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <NotificationBell token={token} />
           <div className="relative" ref={profileMenuRef}>
-            <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="flex items-center gap-2 cursor-pointer hover:opacity-90 transition-opacity" data-testid="student-header-profile-button">
-              <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-[#e1b82c]/30" data-testid="student-header-avatar">
+            <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="flex items-center gap-3 pl-3 border-l border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" data-testid="student-header-profile-button">
+              <div className="hidden sm:block text-right">
+                <p className="text-sm font-semibold text-slate-800">{fullName}</p>
+                <p className="text-[11px] text-slate-500">{roleLabel}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#e1b82c]/30" data-testid="student-header-avatar">
                 {userPhoto ? (
                   <img src={userPhoto} alt={userName} className="w-full h-full object-cover" onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling?.classList.remove('hidden'); }} />
                 ) : null}
                 <div className={`w-full h-full ${userPhoto ? 'hidden' : ''}`}><DefaultAvatar name={fullName} size="w-full h-full" textSize="text-xs" /></div>
               </div>
-              <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 hidden sm:block ${profileMenuOpen ? 'rotate-180' : ''}`} />
+              <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${profileMenuOpen ? 'rotate-180' : ''}`} />
             </button>
             {profileMenuOpen && (
               <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-fade-in-up" data-testid="student-header-profile-dropdown">
