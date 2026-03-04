@@ -40,11 +40,11 @@ export default function TeacherSidebar({
   return (
     <>
       {expanded && (
-        <div className="fixed inset-0 bg-black/50 z-[105] lg:hidden" onClick={onToggle} />
+        <div className="fixed inset-0 bg-black/60 z-[105] lg:hidden" onClick={onToggle} />
       )}
 
       <aside
-        className={`fixed top-0 h-full z-[110] flex flex-col transition-all duration-300
+        className={`fixed top-0 h-full z-[110] flex flex-col transition-all duration-300 shadow-2xl
           ${expanded ? "translate-x-0 w-[280px]" : "-translate-x-full w-[280px]"}
           lg:sticky lg:translate-x-0 lg:z-30 ${isExpanded ? "lg:w-[240px]" : "lg:w-16"}
         `}
@@ -53,33 +53,33 @@ export default function TeacherSidebar({
         onMouseLeave={() => setIsHovered(false)}
         style={{ background: 'linear-gradient(180deg, #1e293b 0%, #0f172a 100%)' }}
       >
-        <div className="flex items-center h-16 border-b border-white/10 px-4">
+        <div className="flex items-center h-16 border-b border-sky-400/15 px-4">
           <div className="hidden lg:flex items-center justify-center w-8 h-8">
-            <PenTool className="w-6 h-6 text-emerald-400" />
+            <PenTool className="w-6 h-6 text-sky-400" />
           </div>
           {(expanded || isExpanded) && (
             <span className="ml-3 text-white font-bold text-sm tracking-wide whitespace-nowrap flex-1">
               {schoolName || "Portal Docente"}
             </span>
           )}
-          <button onClick={onToggle} className="w-10 h-10 rounded-xl flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 lg:hidden ml-auto" data-testid="teacher-sidebar-close">
+          <button onClick={onToggle} className="w-10 h-10 rounded-xl flex items-center justify-center text-white/80 hover:text-white hover:bg-white/10 lg:hidden ml-auto" data-testid="teacher-sidebar-close">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {(expanded || isExpanded) && user && (
-          <div className="px-4 py-3 border-b border-white/10">
+          <div className="px-4 py-3 border-b border-sky-400/15">
             <div className="flex items-center gap-3">
               {user.photo_url ? (
-                <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-emerald-400/50" />
+                <img src={user.photo_url} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-sky-400/50" />
               ) : (
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center ring-2 ring-emerald-400/50">
-                  <User className="w-5 h-5 text-emerald-400" />
+                <div className="w-10 h-10 rounded-full bg-sky-500/20 flex items-center justify-center ring-2 ring-sky-400/50">
+                  <User className="w-5 h-5 text-sky-400" />
                 </div>
               )}
               <div className="flex-1 min-w-0">
                 <p className="text-white text-sm font-medium truncate">{user.name} {user.last_name}</p>
-                <p className="text-emerald-400/70 text-xs">Profesor</p>
+                <p className="text-sky-400 text-xs font-medium">Profesor</p>
               </div>
             </div>
           </div>
@@ -92,10 +92,10 @@ export default function TeacherSidebar({
             return (
               <button key={item.id} onClick={() => handleNavClick(item)}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all ${
-                  isActive ? "bg-emerald-500/20 text-emerald-400" : "text-white/60 hover:text-white hover:bg-white/10"
+                  isActive ? "bg-sky-500/15 text-sky-400" : "text-slate-300 hover:text-white hover:bg-white/10"
                 }`}
                 data-testid={`teacher-nav-${item.id}`} title={item.label}>
-                <span className={`flex items-center justify-center w-8 h-8 rounded-lg ${isActive ? "bg-emerald-500/20" : ""}`}>
+                <span className={`flex items-center justify-center w-8 h-8 rounded-lg ${isActive ? "bg-sky-500/20" : ""}`}>
                   <Icon className="w-5 h-5" />
                 </span>
                 {(expanded || isExpanded) && <span className="text-sm font-medium">{item.label}</span>}
@@ -104,12 +104,12 @@ export default function TeacherSidebar({
           })}
         </nav>
 
-        <div className="border-t border-white/10 p-2 space-y-1">
-          <button onClick={handleProfileClick} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all" data-testid="teacher-nav-profile" title="Mi Perfil">
+        <div className="border-t border-sky-400/15 p-2 space-y-1">
+          <button onClick={handleProfileClick} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all" data-testid="teacher-nav-profile" title="Mi Perfil">
             <span className="flex items-center justify-center w-8 h-8"><User className="w-5 h-5" /></span>
             {(expanded || isExpanded) && <span className="text-sm font-medium">Mi Perfil</span>}
           </button>
-          <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all" data-testid="teacher-logout" title="Cerrar Sesión">
+          <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all" data-testid="teacher-logout" title="Cerrar Sesión">
             <span className="flex items-center justify-center w-8 h-8"><LogOut className="w-5 h-5" /></span>
             {(expanded || isExpanded) && <span className="text-sm font-medium">Cerrar Sesión</span>}
           </button>
