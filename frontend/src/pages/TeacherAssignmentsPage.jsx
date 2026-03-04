@@ -596,19 +596,39 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                 </div>
               ) : (
                 <div className="relative" ref={subjectRef}>
-                  <input
-                    type="text"
-                    placeholder="Buscar asignatura..."
-                    value={subjectOpen ? subjectSearch : (filteredSubjects.find(s => s.id === form.subject_id)?.name ? `${filteredSubjects.find(s => s.id === form.subject_id)?.name} (${filteredSubjects.find(s => s.id === form.subject_id)?.code})` : "")}
-                    onChange={(e) => { setSubjectSearch(e.target.value); setSubjectOpen(true); }}
-                    onFocus={() => { setSubjectOpen(true); setSubjectSearch(""); }}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                    data-testid="subject-autocomplete-input"
-                  />
-                  {form.subject_id && !subjectOpen && (
-                    <button type="button" onClick={() => { setForm({...form, subject_id: ""}); setSubjectSearch(""); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                      <X className="w-4 h-4" />
-                    </button>
+                  {form.subject_id && !subjectOpen ? (
+                    (() => {
+                      const sel = filteredSubjects.find(s => s.id === form.subject_id);
+                      return (
+                        <div
+                          className="w-full flex items-center gap-3 px-4 py-2 border border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 transition-colors"
+                          onClick={() => { setSubjectOpen(true); setSubjectSearch(""); }}
+                          data-testid="subject-selected-preview"
+                        >
+                          {sel?.image_url ? (
+                            <img src={sel.image_url} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: (sel?.color || '#F59E0B') + '20' }}>
+                              <BookOpen className="w-4 h-4" style={{ color: sel?.color || '#F59E0B' }} />
+                            </div>
+                          )}
+                          <span className="text-sm font-medium text-gray-800 truncate">{sel?.name} ({sel?.code})</span>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); setForm({...form, subject_id: ""}); setSubjectSearch(""); }} className="ml-auto text-gray-400 hover:text-gray-600 flex-shrink-0">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      );
+                    })()
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="Buscar asignatura..."
+                      value={subjectSearch}
+                      onChange={(e) => { setSubjectSearch(e.target.value); setSubjectOpen(true); }}
+                      onFocus={() => { setSubjectOpen(true); setSubjectSearch(""); }}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      data-testid="subject-autocomplete-input"
+                    />
                   )}
                   {subjectOpen && (
                     <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
@@ -625,9 +645,13 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                             className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left ${form.subject_id === s.id ? "bg-blue-50" : ""}`}
                             data-testid={`subject-option-${s.id}`}
                           >
-                            <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
-                              <BookOpen className="w-4 h-4 text-amber-600" />
-                            </div>
+                            {s.image_url ? (
+                              <img src={s.image_url} alt="" className="w-9 h-9 rounded-lg object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0" style={{ backgroundColor: (s.color || '#F59E0B') + '20' }}>
+                                <BookOpen className="w-4 h-4" style={{ color: s.color || '#F59E0B' }} />
+                              </div>
+                            )}
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-gray-800 truncate">{s.name}</p>
                               <p className="text-xs text-gray-500">{s.code}</p>
