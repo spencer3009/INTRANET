@@ -319,6 +319,7 @@ export default function TeacherCoursesPage({ user, token, onLogout }) {
         </main>
       </div>
 
+      <MobileBottomNav role="teacher" />
       <MessageCenter token={token} user={user} />
     </div>
   );

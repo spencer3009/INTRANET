@@ -1,4 +1,4 @@
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { Link, useParams, useLocation } from "react-router-dom";
 import {
   Home, Clock, ClipboardList, Wallet, MessageSquare,
   BookOpen, Users, BarChart3, CalendarCheck
@@ -21,7 +21,6 @@ const teacherItems = [
 ];
 
 export default function MobileBottomNav({ role = "parent" }) {
-  const navigate = useNavigate();
   const { subdomain } = useParams();
   const location = useLocation();
   const items = role === "teacher" ? teacherItems : parentItems;
@@ -40,18 +39,19 @@ export default function MobileBottomNav({ role = "parent" }) {
         {items.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.route);
+          const href = subdomain ? `/${subdomain}${item.route}` : item.route;
           return (
-            <button
+            <Link
               key={item.id}
-              onClick={() => navigate(subdomain ? `/${subdomain}${item.route}` : item.route)}
-              className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors ${
+              to={href}
+              className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors no-underline touch-manipulation ${
                 active ? "text-emerald-600" : "text-slate-400"
               }`}
               data-testid={`mobile-nav-${item.id}`}
             >
               <Icon className={`w-6 h-6 ${active ? "stroke-[2.5]" : ""}`} />
               <span className="text-xs font-medium">{item.label}</span>
-            </button>
+            </Link>
           );
         })}
       </div>
