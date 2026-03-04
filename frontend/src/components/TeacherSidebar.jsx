@@ -40,11 +40,11 @@ export default function TeacherSidebar({
   return (
     <>
       {expanded && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onToggle} />
+        <div className="fixed inset-0 bg-black/50 z-[105] lg:hidden" onClick={onToggle} />
       )}
 
       <aside
-        className={`fixed top-0 h-full z-50 flex flex-col transition-all duration-300
+        className={`fixed top-0 h-full z-[110] flex flex-col transition-all duration-300
           ${expanded ? "translate-x-0 w-[280px]" : "-translate-x-full w-[280px]"}
           lg:sticky lg:translate-x-0 lg:z-30 ${isExpanded ? "lg:w-[240px]" : "lg:w-16"}
         `}

@@ -97,7 +97,6 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
         onLogout={onLogout} schoolName={schoolName} subdomain={subdomain || user?.subdomain}
         user={parentProfile || user} children={children} selectedChild={selectedChild} onSelectChild={handleChildChange}
       />
-      {sidebarExpanded && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarExpanded(false)} />}
 
       <div className="flex-1 flex flex-col min-w-0">
         <StudentHeader

@@ -89,7 +89,7 @@ export default function MessageCenter({ token, user, openWithUser, onClose }) {
       {/* Floating Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-2xl shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-all hover:scale-105 z-[200]"
+        className="fixed bottom-24 lg:bottom-6 right-4 lg:right-6 w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-2xl shadow-lg shadow-indigo-500/30 flex items-center justify-center transition-all hover:scale-105 z-[200]"
         data-testid="message-center-btn"
       >
         <MessageSquare className="w-6 h-6" />
