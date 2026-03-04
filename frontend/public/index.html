@@ -199,14 +199,27 @@
           window.addEventListener('appinstalled', function() {
             console.log('[PWA-GLOBAL] APP INSTALADA exitosamente');
             window.__pwaInstalled = true;
-            document.getElementById('root').innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0B2C5F;text-align:center;padding:24px;font-family:Inter,system-ui,sans-serif;">'
-              + '<div style="width:96px;height:96px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 0 40px rgba(34,197,94,0.4);">'
-              + '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+            var root = document.getElementById('root');
+            root.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0B2C5F;text-align:center;padding:24px;font-family:Inter,system-ui,sans-serif;">'
+              + '<style>@keyframes pwaSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>'
+              + '<img src="/icons/icon-192.png" alt="EduNet" style="width:80px;height:80px;border-radius:18px;margin-bottom:20px;box-shadow:0 8px 32px rgba(0,0,0,0.3);" />'
+              + '<h2 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 8px;">Instalando EduNet\u2026</h2>'
+              + '<p style="color:rgba(255,255,255,0.6);font-size:14px;margin:0 0 24px;">Preparando aplicaci\u00f3n en tu dispositivo</p>'
+              + '<div style="width:240px;height:8px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;">'
+              + '<div id="pwa-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#3B82F6,#22c55e);border-radius:6px;transition:width .15s linear;"></div>'
               + '</div>'
-              + '<h2 style="color:#fff;font-size:24px;font-weight:700;margin:0 0 12px;">EduNet se instal\u00f3 correctamente</h2>'
-              + '<p style="color:rgba(255,255,255,0.7);font-size:15px;line-height:1.5;margin:0 0 32px;max-width:300px;">La aplicaci\u00f3n ya est\u00e1 disponible en tu pantalla principal.</p>'
-              + '<button onclick="window.open(window.location.origin, \'_blank\')" style="display:inline-block;background:#3B82F6;color:#fff;font-size:16px;font-weight:600;padding:16px 40px;border-radius:14px;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(59,130,246,0.4);">Abrir EduNet</button>'
+              + '<div style="margin-top:20px;width:28px;height:28px;border:3px solid rgba(255,255,255,0.15);border-top:3px solid #fff;border-radius:50%;animation:pwaSpin 1s linear infinite;"></div>'
               + '</div>';
+            var progress = 0;
+            var iv = setInterval(function() {
+              progress += 2;
+              var bar = document.getElementById('pwa-bar');
+              if (bar) bar.style.width = progress + '%';
+              if (progress >= 100) {
+                clearInterval(iv);
+                setTimeout(function() { window.open(window.location.origin, '_blank'); }, 800);
+              }
+            }, 100);
           });
 
           // 2. Register Service Worker IMMEDIATELY (not on load)
