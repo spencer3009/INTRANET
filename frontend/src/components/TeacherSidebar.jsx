@@ -40,7 +40,7 @@ export default function TeacherSidebar({
   return (
     <>
       {expanded && (
-        <div className="fixed inset-0 bg-black/60 z-[105] lg:hidden" onClick={onToggle} />
+        <div className="fixed inset-0 bg-black/20 z-[105] lg:hidden" onClick={onToggle} />
       )}
 
       <aside
