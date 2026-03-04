@@ -77,8 +77,10 @@
         <script>
           (function() {
             var ua = navigator.userAgent || navigator.vendor || window.opera || '';
-            var isWebView = /FBAN|FBAV|Instagram|WhatsApp|Messenger|MicroMessenger|Line\//i.test(ua);
-            if (isWebView) {
+            var isWebView = /FBAN|FBAV|Instagram|WhatsApp|Messenger|MicroMessenger|Line\//i.test(ua) || /\bwv\b/.test(ua);
+            var isAndroidAppReferrer = document.referrer && document.referrer.indexOf('android-app://') !== -1;
+            var isExternalApp = isWebView || isAndroidAppReferrer;
+            if (isExternalApp) {
               var blocker = document.getElementById('webview-blocker');
               blocker.style.display = 'block';
               var root = document.getElementById('root');
