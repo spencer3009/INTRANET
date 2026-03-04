@@ -200,24 +200,36 @@
             console.log('[PWA-GLOBAL] APP INSTALADA exitosamente');
             window.__pwaInstalled = true;
             var root = document.getElementById('root');
-            root.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0B2C5F;text-align:center;padding:24px;font-family:Inter,system-ui,sans-serif;">'
+            root.innerHTML = '<div id="pwa-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:#0B2C5F;text-align:center;padding:24px;font-family:Inter,system-ui,sans-serif;">'
               + '<style>@keyframes pwaSpin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}</style>'
               + '<img src="/icons/icon-192.png" alt="EduNet" style="width:80px;height:80px;border-radius:18px;margin-bottom:20px;box-shadow:0 8px 32px rgba(0,0,0,0.3);" />'
-              + '<h2 style="color:#fff;font-size:22px;font-weight:700;margin:0 0 8px;">Instalando EduNet\u2026</h2>'
-              + '<p style="color:rgba(255,255,255,0.6);font-size:14px;margin:0 0 24px;">Preparando aplicaci\u00f3n en tu dispositivo</p>'
-              + '<div style="width:240px;height:8px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;">'
+              + '<h2 id="pwa-title" style="color:#fff;font-size:22px;font-weight:700;margin:0 0 8px;">Instalando EduNet\u2026</h2>'
+              + '<p id="pwa-text" style="color:rgba(255,255,255,0.6);font-size:14px;margin:0 0 24px;">Preparando la aplicaci\u00f3n en tu dispositivo</p>'
+              + '<div id="pwa-progress" style="width:240px;height:8px;background:rgba(255,255,255,0.1);border-radius:6px;overflow:hidden;">'
               + '<div id="pwa-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#3B82F6,#22c55e);border-radius:6px;transition:width .15s linear;"></div>'
               + '</div>'
-              + '<div style="margin-top:20px;width:28px;height:28px;border:3px solid rgba(255,255,255,0.15);border-top:3px solid #fff;border-radius:50%;animation:pwaSpin 1s linear infinite;"></div>'
+              + '<div id="pwa-spinner" style="margin-top:20px;width:28px;height:28px;border:3px solid rgba(255,255,255,0.15);border-top:3px solid #fff;border-radius:50%;animation:pwaSpin 1s linear infinite;"></div>'
               + '</div>';
             var progress = 0;
             var iv = setInterval(function() {
-              progress += 2;
+              progress += 1.43;
+              if (progress > 100) progress = 100;
               var bar = document.getElementById('pwa-bar');
               if (bar) bar.style.width = progress + '%';
               if (progress >= 100) {
                 clearInterval(iv);
-                setTimeout(function() { window.open(window.location.origin, '_blank'); }, 800);
+                setTimeout(function() {
+                  var screen = document.getElementById('pwa-screen');
+                  if (!screen) return;
+                  screen.innerHTML = '<div style="width:80px;height:80px;background:#22c55e;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 0 40px rgba(34,197,94,0.4);">'
+                    + '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+                    + '</div>'
+                    + '<h2 style="color:#fff;font-size:24px;font-weight:700;margin:0 0 16px;">EduNet se instal\u00f3 correctamente</h2>'
+                    + '<p style="color:rgba(255,255,255,0.65);font-size:15px;line-height:1.6;margin:0 0 32px;max-width:300px;">La aplicaci\u00f3n ya est\u00e1 disponible en tu dispositivo.</p>'
+                    + '<div style="background:rgba(255,255,255,0.08);border-radius:14px;padding:20px 24px;max-width:300px;">'
+                    + '<p style="color:rgba(255,255,255,0.85);font-size:14px;line-height:1.6;margin:0;">Busca el \u00edcono <strong style="color:#fff;">\u201cEduNet\u201d</strong> en la pantalla principal de tu celular y \u00e1brelo desde all\u00ed.</p>'
+                    + '</div>';
+                }, 500);
               }
             }, 100);
           });
