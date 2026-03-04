@@ -331,6 +331,15 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
             )}
           </div>
 
+          {/* Mobile-only: Student Profile at top */}
+          <div className="lg:hidden mb-4" data-testid="mobile-student-profile">
+            <div className="flex items-center gap-2 px-1 mb-2">
+              <User className="w-4 h-4 text-emerald-600" />
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Alumno seleccionado</span>
+            </div>
+            <StudentProfileCard student={studentInfo} dashboardData={dashboardData} academic={academic} />
+          </div>
+
           {/* Quick Stats Cards - Student Dashboard Design */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <div 
@@ -599,8 +608,8 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
               )}
             </div>
 
-            {/* Right Column: Student Profile (30%) */}
-            <div className="lg:col-span-4" data-testid="profile-column">
+            {/* Right Column: Student Profile (30%) - desktop only */}
+            <div className="hidden lg:block lg:col-span-4" data-testid="profile-column">
               <div className="space-y-3 h-full flex flex-col">
                 <div className="flex items-center gap-2 px-1">
                   <User className="w-4 h-4 text-emerald-600" />
