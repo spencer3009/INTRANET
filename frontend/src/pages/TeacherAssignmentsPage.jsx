@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
@@ -314,6 +314,12 @@ function TeachersSummary({ teachers, onSelect, selectedTeacherId }) {
 function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academicData, existingAssignments = [] }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [teacherOpen, setTeacherOpen] = useState(false);
+  const [subjectSearch, setSubjectSearch] = useState("");
+  const [subjectOpen, setSubjectOpen] = useState(false);
+  const teacherRef = useRef(null);
+  const subjectRef = useRef(null);
   const [form, setForm] = useState({
     level_id: "",
     grade_id: "",
@@ -399,8 +405,22 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
         });
       }
       setError("");
+      setTeacherSearch("");
+      setSubjectSearch("");
+      setTeacherOpen(false);
+      setSubjectOpen(false);
     }
   }, [isOpen, assignment, academicData.academicYears]);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (teacherRef.current && !teacherRef.current.contains(e.target)) setTeacherOpen(false);
+      if (subjectRef.current && !subjectRef.current.contains(e.target)) setSubjectOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   
   // Handler for Level change - reset dependent fields
   const handleLevelChange = (e) => {
@@ -564,29 +584,67 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               )}
             </div>
             
-            {/* Subject - FILTERED BY LEVEL + GRADE */}
+            {/* Subject - AUTOCOMPLETE */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <BookOpen className="w-4 h-4 inline mr-1 text-amber-500" />
                 Asignatura *
               </label>
-              <select
-                value={form.subject_id}
-                onChange={(e) => setForm({...form, subject_id: e.target.value})}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:bg-gray-50 disabled:text-gray-400"
-                required
-                disabled={!form.grade_id}
-              >
-                <option value="">Seleccionar asignatura...</option>
-                {filteredSubjects.map(s => (
-                  <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                ))}
-              </select>
-              {!form.grade_id && (
-                <p className="text-xs text-gray-400 mt-1">Primero selecciona un grado</p>
-              )}
-              {form.grade_id && !form.section_id && filteredSubjects.length === 0 && (
-                <p className="text-xs text-amber-600 mt-1">No hay asignaturas registradas para este nivel/grado</p>
+              {!form.grade_id ? (
+                <div className="w-full px-4 py-2.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-400 text-sm">
+                  Primero selecciona un grado
+                </div>
+              ) : (
+                <div className="relative" ref={subjectRef}>
+                  <input
+                    type="text"
+                    placeholder="Buscar asignatura..."
+                    value={subjectOpen ? subjectSearch : (filteredSubjects.find(s => s.id === form.subject_id)?.name ? `${filteredSubjects.find(s => s.id === form.subject_id)?.name} (${filteredSubjects.find(s => s.id === form.subject_id)?.code})` : "")}
+                    onChange={(e) => { setSubjectSearch(e.target.value); setSubjectOpen(true); }}
+                    onFocus={() => { setSubjectOpen(true); setSubjectSearch(""); }}
+                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    data-testid="subject-autocomplete-input"
+                  />
+                  {form.subject_id && !subjectOpen && (
+                    <button type="button" onClick={() => { setForm({...form, subject_id: ""}); setSubjectSearch(""); }} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                  {subjectOpen && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-48 overflow-y-auto">
+                      {filteredSubjects
+                        .filter(s => {
+                          const q = subjectSearch.toLowerCase();
+                          return !q || s.name.toLowerCase().includes(q) || (s.code || "").toLowerCase().includes(q);
+                        })
+                        .map(s => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() => { setForm({...form, subject_id: s.id}); setSubjectOpen(false); setSubjectSearch(""); }}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left ${form.subject_id === s.id ? "bg-blue-50" : ""}`}
+                            data-testid={`subject-option-${s.id}`}
+                          >
+                            <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0">
+                              <BookOpen className="w-4 h-4 text-amber-600" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-800 truncate">{s.name}</p>
+                              <p className="text-xs text-gray-500">{s.code}</p>
+                            </div>
+                            {form.subject_id === s.id && <Check className="w-4 h-4 text-blue-500 ml-auto flex-shrink-0" />}
+                          </button>
+                        ))
+                      }
+                      {filteredSubjects.filter(s => {
+                        const q = subjectSearch.toLowerCase();
+                        return !q || s.name.toLowerCase().includes(q) || (s.code || "").toLowerCase().includes(q);
+                      }).length === 0 && (
+                        <div className="px-4 py-3 text-sm text-gray-400 text-center">Sin resultados</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
               {form.grade_id && form.section_id && filteredSubjects.length === 0 && (
                 <p className="text-xs text-emerald-600 mt-1 flex items-center gap-1">
@@ -596,7 +654,7 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
               )}
             </div>
             
-            {/* Teacher */}
+            {/* Teacher - AUTOCOMPLETE WITH PHOTOS */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 <User className="w-4 h-4 inline mr-1 text-indigo-500" />
@@ -608,17 +666,86 @@ function AssignmentModal({ isOpen, onClose, token, assignment, onSuccess, academ
                   No hay profesores registrados con rol activo.
                 </div>
               ) : (
-                <select
-                  value={form.teacher_id}
-                  onChange={(e) => setForm({...form, teacher_id: e.target.value})}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  required
-                >
-                  <option value="">Seleccionar profesor...</option>
-                  {academicData.teachers.map(t => (
-                    <option key={t.id} value={t.id}>{t.name} {t.last_name}</option>
-                  ))}
-                </select>
+                <div className="relative" ref={teacherRef}>
+                  {/* Selected teacher preview or search input */}
+                  {form.teacher_id && !teacherOpen ? (
+                    <div
+                      className="w-full flex items-center gap-3 px-4 py-2 border border-gray-200 rounded-xl cursor-pointer hover:border-blue-300 transition-colors"
+                      onClick={() => { setTeacherOpen(true); setTeacherSearch(""); }}
+                      data-testid="teacher-selected-preview"
+                    >
+                      {(() => {
+                        const t = academicData.teachers.find(t => t.id === form.teacher_id);
+                        if (!t) return <span className="text-gray-400 text-sm">Seleccionar profesor...</span>;
+                        return (
+                          <>
+                            {t.photo_url ? (
+                              <img src={t.photo_url} alt="" className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <User className="w-4 h-4 text-indigo-600" />
+                              </div>
+                            )}
+                            <span className="text-sm font-medium text-gray-800 truncate">{t.name} {t.last_name}</span>
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setForm({...form, teacher_id: ""}); setTeacherSearch(""); }} className="ml-auto text-gray-400 hover:text-gray-600 flex-shrink-0">
+                              <X className="w-4 h-4" />
+                            </button>
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : (
+                    <input
+                      type="text"
+                      placeholder="Buscar profesor por nombre..."
+                      value={teacherSearch}
+                      onChange={(e) => { setTeacherSearch(e.target.value); setTeacherOpen(true); }}
+                      onFocus={() => setTeacherOpen(true)}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                      data-testid="teacher-autocomplete-input"
+                      autoComplete="off"
+                    />
+                  )}
+                  {teacherOpen && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl max-h-56 overflow-y-auto">
+                      {academicData.teachers
+                        .filter(t => {
+                          const q = teacherSearch.toLowerCase();
+                          const fullName = `${t.name} ${t.last_name}`.toLowerCase();
+                          return !q || fullName.includes(q);
+                        })
+                        .map(t => (
+                          <button
+                            key={t.id}
+                            type="button"
+                            onClick={() => { setForm({...form, teacher_id: t.id}); setTeacherOpen(false); setTeacherSearch(""); }}
+                            className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-blue-50 transition-colors text-left ${form.teacher_id === t.id ? "bg-blue-50" : ""}`}
+                            data-testid={`teacher-option-${t.id}`}
+                          >
+                            {t.photo_url ? (
+                              <img src={t.photo_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                                <User className="w-4 h-4 text-indigo-600" />
+                              </div>
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-gray-800 truncate">{t.name} {t.last_name}</p>
+                              <p className="text-xs text-gray-500">{t.email}</p>
+                            </div>
+                            {form.teacher_id === t.id && <Check className="w-4 h-4 text-blue-500 ml-auto flex-shrink-0" />}
+                          </button>
+                        ))
+                      }
+                      {academicData.teachers.filter(t => {
+                        const q = teacherSearch.toLowerCase();
+                        return !q || `${t.name} ${t.last_name}`.toLowerCase().includes(q);
+                      }).length === 0 && (
+                        <div className="px-4 py-3 text-sm text-gray-400 text-center">Sin resultados para "{teacherSearch}"</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
             
