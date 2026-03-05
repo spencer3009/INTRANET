@@ -21279,11 +21279,11 @@ async def get_parent_payments(
     student = await verify_parent_student_access(user, student_id)
     school_id = user.get("school_id")
     
-    # Get all mensualidad payments for this student
+    # Get all mensualidad payments for this student (case-insensitive)
     payments = await db.payments.find({
         "school_id": school_id,
         "student_id": student_id,
-        "concept": "mensualidad"
+        "concept": {"$regex": "^mensualidad$", "$options": "i"}
     }, {"_id": 0}).sort("payment_date", 1).to_list(100)
     
     # Calculate summary
@@ -21320,11 +21320,11 @@ async def get_parent_payments(
             "receipt_number": p.get("receipt_number"),
         })
     
-    # Get matricula payment
+    # Get matricula payment (case-insensitive)
     matricula = await db.payments.find_one({
         "school_id": school_id,
         "student_id": student_id,
-        "concept": "matricula",
+        "concept": {"$regex": "^matricula$|^matrícula$", "$options": "i"},
         "payment_status": "paid"
     }, {"_id": 0, "total_amount": 1, "payment_date": 1, "payment_status": 1})
     
