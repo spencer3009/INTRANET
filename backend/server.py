@@ -21371,6 +21371,8 @@ async def get_parent_payments(
         overall_status = "al_dia"
     
     monthly_detail = []
+    month_names_es = {1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
+                      7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"}
     for p in payments:
         interest_charge = 0
         if interes_activo and p.get("payment_status") == "overdue":
@@ -21380,9 +21382,27 @@ async def get_parent_payments(
         is_pronto_pago = (pronto_pago_activo and p.get("payment_status") == "paid" 
                           and p.get("total_amount", 0) <= pronto_pago_monto and pronto_pago_monto > 0)
         
+        # Build display label: prefer description > month_name > generated from date
+        label = p.get("description") or p.get("month_name") or ""
+        if not label:
+            pdate = p.get("payment_date", "")
+            if pdate:
+                try:
+                    if isinstance(pdate, str):
+                        month_num = int(pdate.split("-")[1]) if "-" in pdate else 0
+                        year = pdate.split("-")[0] if "-" in pdate else ""
+                    else:
+                        month_num = pdate.month
+                        year = str(pdate.year)
+                    label = f"Mensualidad {month_names_es.get(month_num, '')} {year}".strip()
+                except Exception:
+                    label = "Mensualidad"
+            else:
+                label = "Mensualidad"
+        
         monthly_detail.append({
             "id": p.get("id"),
-            "month_name": p.get("month_name") or p.get("description", ""),
+            "month_name": label,
             "payment_date": p.get("payment_date"),
             "total_amount": p.get("total_amount", 0),
             "payment_status": p.get("payment_status"),
