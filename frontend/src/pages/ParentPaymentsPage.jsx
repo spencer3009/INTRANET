@@ -161,14 +161,14 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <AlertTriangle className={`w-8 h-8 mx-auto mb-2 ${summary.debt_amount > 0 ? 'text-red-500' : 'text-slate-300'}`} />
                   <p className={`text-2xl font-black ${summary.debt_amount > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {summary.debt_amount?.toLocaleString('es-PE')}
+                    S/ {(summary.debt_amount || 0).toLocaleString('es-PE')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">Deuda Pendiente</p>
                 </div>
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
                   <p className="text-2xl font-black text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {((summary.total_amount || 0) + (paymentData.matricula?.amount || 0)).toLocaleString('es-PE')}
+                    S/ {(summary.total_annual || summary.total_amount || 0).toLocaleString('es-PE')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">Total Anual</p>
                 </div>

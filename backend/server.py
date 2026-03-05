@@ -21279,6 +21279,13 @@ async def get_parent_payments(
     student = await verify_parent_student_access(user, student_id)
     school_id = user.get("school_id")
     
+    # Get financial settings for the school (pension amount, school year months)
+    fin_settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0}) or {}
+    pension_mensual = fin_settings.get("pension_mensual", 0)
+    matricula_amount_config = fin_settings.get("matricula", 0)
+    # School year months: typically March(3) to December(12) = 10 months in Peru
+    school_year_months = fin_settings.get("meses_ano_escolar", 10)
+    
     # Get all mensualidad payments for this student (case-insensitive)
     payments = await db.payments.find({
         "school_id": school_id,
@@ -21286,18 +21293,24 @@ async def get_parent_payments(
         "concept": {"$regex": "^mensualidad$", "$options": "i"}
     }, {"_id": 0}).sort("payment_date", 1).to_list(100)
     
-    # Calculate summary
-    total_months = len(payments)
+    # Calculate summary based on actual payments AND expected full year
     paid_count = sum(1 for p in payments if p.get("payment_status") == "paid")
     pending_count = sum(1 for p in payments if p.get("payment_status") == "pending")
     overdue_count = sum(1 for p in payments if p.get("payment_status") == "overdue")
+    registered_months = len(payments)
     
-    total_amount = sum(p.get("total_amount", 0) for p in payments)
     paid_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "paid")
     pending_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "pending")
     overdue_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "overdue")
     
-    paid_percentage = round((paid_count / total_months * 100) if total_months > 0 else 0)
+    # Total Anual = full year of mensualidades + matrícula (based on configured amounts)
+    total_annual_mensualidades = pension_mensual * school_year_months if pension_mensual > 0 else sum(p.get("total_amount", 0) for p in payments)
+    
+    # Months not yet registered (future months with no payment record)
+    unregistered_months = max(0, school_year_months - registered_months)
+    unregistered_amount = pension_mensual * unregistered_months if pension_mensual > 0 else 0
+    
+    paid_percentage = round((paid_count / school_year_months * 100) if school_year_months > 0 else 0)
     
     # Determine overall status
     if overdue_count > 0:
@@ -21328,24 +21341,27 @@ async def get_parent_payments(
         "payment_status": "paid"
     }, {"_id": 0, "total_amount": 1, "payment_date": 1, "payment_status": 1})
     
+    matricula_paid_amount = matricula.get("total_amount", 0) if matricula else 0
+    
     return {
         "student_id": student_id,
         "summary": {
-            "total_months": total_months,
+            "total_months": school_year_months,
             "paid_count": paid_count,
             "pending_count": pending_count,
             "overdue_count": overdue_count,
             "paid_percentage": paid_percentage,
-            "total_amount": round(total_amount, 2),
+            "total_amount": round(total_annual_mensualidades, 2),
+            "total_annual": round(total_annual_mensualidades + matricula_amount_config, 2),
             "paid_amount": round(paid_amount, 2),
-            "pending_amount": round(pending_amount, 2),
+            "pending_amount": round(pending_amount + unregistered_amount, 2),
             "overdue_amount": round(overdue_amount, 2),
-            "debt_amount": round(pending_amount + overdue_amount, 2),
+            "debt_amount": round(total_annual_mensualidades - paid_amount + (matricula_amount_config - matricula_paid_amount), 2),
             "overall_status": overall_status,
         },
         "matricula": {
             "paid": bool(matricula),
-            "amount": matricula.get("total_amount") if matricula else 0,
+            "amount": matricula_paid_amount or matricula_amount_config,
             "date": matricula.get("payment_date") if matricula else None,
         },
         "monthly_detail": monthly_detail,

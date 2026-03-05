@@ -565,14 +565,14 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     }`}>
                       <AlertTriangle className={`w-5 h-5 mx-auto mb-1 ${paymentData.summary.debt_amount > 0 ? 'text-red-600' : 'text-slate-400'}`} />
                       <p className={`text-lg font-bold ${paymentData.summary.debt_amount > 0 ? 'text-red-700' : 'text-slate-400'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        S/ {paymentData.summary.debt_amount.toLocaleString('es-PE')}
+                        S/ {(paymentData.summary.debt_amount || 0).toLocaleString('es-PE')}
                       </p>
                       <p className={`text-[10px] font-medium ${paymentData.summary.debt_amount > 0 ? 'text-red-600' : 'text-slate-400'}`}>Deuda Total</p>
                     </div>
                     <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
                       <TrendingUp className="w-5 h-5 text-blue-600 mx-auto mb-1" />
                       <p className="text-lg font-bold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        S/ {((paymentData.summary.total_amount || 0) + (paymentData.matricula?.amount || 0)).toLocaleString('es-PE')}
+                        S/ {(paymentData.summary.total_annual || paymentData.summary.total_amount || 0).toLocaleString('es-PE')}
                       </p>
                       <p className="text-[10px] text-blue-600 font-medium">Total Anual</p>
                     </div>
