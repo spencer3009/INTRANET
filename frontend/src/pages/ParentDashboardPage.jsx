@@ -556,7 +556,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     <div className="bg-emerald-50 rounded-xl p-3 text-center border border-emerald-100">
                       <CircleDollarSign className="w-5 h-5 text-emerald-600 mx-auto mb-1" />
                       <p className="text-lg font-bold text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        S/ {paymentData.summary.paid_amount.toLocaleString('es-PE')}
+                        S/ {((paymentData.summary.paid_amount || 0) + (paymentData.matricula?.paid ? (paymentData.matricula?.amount || 0) : 0)).toLocaleString('es-PE')}
                       </p>
                       <p className="text-[10px] text-emerald-600 font-medium">Total Pagado</p>
                     </div>
@@ -572,7 +572,7 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     <div className="bg-blue-50 rounded-xl p-3 text-center border border-blue-100">
                       <TrendingUp className="w-5 h-5 text-blue-600 mx-auto mb-1" />
                       <p className="text-lg font-bold text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        S/ {paymentData.summary.total_amount.toLocaleString('es-PE')}
+                        S/ {((paymentData.summary.total_amount || 0) + (paymentData.matricula?.amount || 0)).toLocaleString('es-PE')}
                       </p>
                       <p className="text-[10px] text-blue-600 font-medium">Total Anual</p>
                     </div>
@@ -581,9 +581,9 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                     }`}>
                       <Receipt className={`w-5 h-5 mx-auto mb-1 ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`} />
                       <p className={`text-lg font-bold ${paymentData.matricula.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                        {paymentData.matricula.paid ? 'Pagada' : 'Pendiente'}
+                        {paymentData.matricula.paid ? `S/ ${(paymentData.matricula.amount || 0).toLocaleString('es-PE')}` : 'Pendiente'}
                       </p>
-                      <p className={`text-[10px] font-medium ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matrícula</p>
+                      <p className={`text-[10px] font-medium ${paymentData.matricula.paid ? 'text-emerald-600' : 'text-amber-600'}`}>Matrícula {paymentData.matricula.paid ? '- Pagada' : ''}</p>
                     </div>
                   </div>
 

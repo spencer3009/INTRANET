@@ -154,7 +154,7 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <CircleDollarSign className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
                   <p className="text-2xl font-black text-emerald-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {summary.paid_amount?.toLocaleString('es-PE')}
+                    S/ {((summary.paid_amount || 0) + (paymentData.matricula?.paid ? (paymentData.matricula?.amount || 0) : 0)).toLocaleString('es-PE')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">Total Pagado</p>
                 </div>
@@ -168,16 +168,16 @@ export default function ParentPaymentsPage({ user, token, onLogout }) {
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
                   <p className="text-2xl font-black text-blue-700" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    S/ {summary.total_amount?.toLocaleString('es-PE')}
+                    S/ {((summary.total_amount || 0) + (paymentData.matricula?.amount || 0)).toLocaleString('es-PE')}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">Total Anual</p>
                 </div>
                 <div className="bg-white rounded-2xl p-5 border border-slate-200 text-center">
                   <Receipt className={`w-8 h-8 mx-auto mb-2 ${paymentData.matricula?.paid ? 'text-emerald-500' : 'text-amber-500'}`} />
                   <p className={`text-2xl font-black ${paymentData.matricula?.paid ? 'text-emerald-700' : 'text-amber-700'}`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    {paymentData.matricula?.paid ? 'Pagada' : 'Pendiente'}
+                    {paymentData.matricula?.paid ? `S/ ${(paymentData.matricula?.amount || 0).toLocaleString('es-PE')}` : 'Pendiente'}
                   </p>
-                  <p className="text-xs text-slate-500 mt-1">Matrícula</p>
+                  <p className="text-xs text-slate-500 mt-1">Matrícula {paymentData.matricula?.paid ? '- Pagada' : ''}</p>
                 </div>
               </div>
 
