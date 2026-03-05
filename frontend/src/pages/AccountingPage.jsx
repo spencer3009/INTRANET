@@ -897,6 +897,16 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
   const getDefaultAmount = (conceptName) => {
     const found = paymentConcepts.find(c => c.name === conceptName);
+    if (found && found.amount > 0) return found.amount.toString();
+    // Fallback to financial settings
+    if (conceptName.toLowerCase() === "matricula" || conceptName === "Matrícula") {
+      const val = financialSettings?.matricula || financialSettings?.matricula_monto || 0;
+      return val > 0 ? val.toString() : "";
+    }
+    if (conceptName.toLowerCase() === "mensualidad") {
+      const val = financialSettings?.pension_mensual || 0;
+      return val > 0 ? val.toString() : "";
+    }
     if (found) return found.amount.toString();
     return "";
   };
@@ -911,15 +921,19 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     return hasMatricula && hasMensualidad;
   }, [availableConcepts]);
 
-  // Combo amounts are read-only, pulled from registered concepts
+  // Combo amounts: prefer payment concepts, fallback to financial settings
   const comboMatriculaAmount = useMemo(() => {
     const c = paymentConcepts.find(c => c.name === "Matrícula" || c.name.toLowerCase() === "matricula");
-    return c ? c.amount : 0;
-  }, [paymentConcepts]);
+    if (c && c.amount > 0) return c.amount;
+    // Fallback to financial settings
+    return financialSettings?.matricula || financialSettings?.matricula_monto || 0;
+  }, [paymentConcepts, financialSettings]);
   const comboMensualidadAmount = useMemo(() => {
     const c = paymentConcepts.find(c => c.name === "Mensualidad" || c.name.toLowerCase() === "mensualidad");
-    return c ? c.amount : 0;
-  }, [paymentConcepts]);
+    if (c && c.amount > 0) return c.amount;
+    // Fallback to financial settings
+    return financialSettings?.pension_mensual || 0;
+  }, [paymentConcepts, financialSettings]);
 
   const [formData, setFormData] = useState({
     student_id: "",
