@@ -12426,6 +12426,19 @@ async def update_financial_settings(req: FinancialSettingsUpdate, current_user =
         {"$set": {**update_data, "school_id": school_id}},
         upsert=True
     )
+    
+    # Sync payment concept amounts when financial settings change
+    if "matricula" in update_data:
+        await db.payment_concepts.update_many(
+            {"school_id": school_id, "name": {"$in": ["Matricula", "Matrícula", "matricula"]}},
+            {"$set": {"amount": update_data["matricula"], "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    if "pension_mensual" in update_data:
+        await db.payment_concepts.update_many(
+            {"school_id": school_id, "name": {"$in": ["Mensualidad", "mensualidad"]}},
+            {"$set": {"amount": update_data["pension_mensual"], "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+    
     settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
     return settings
 
@@ -12517,6 +12530,23 @@ async def update_payment_concept(concept_id: str, data: PaymentConceptUpdate, cu
     update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.payment_concepts.update_one({"id": concept_id}, {"$set": update_data})
     updated = await db.payment_concepts.find_one({"id": concept_id}, {"_id": 0})
+    
+    # Sync financial settings when default concepts are updated
+    if updated and "amount" in update_data:
+        concept_name = (updated.get("name") or "").lower()
+        if concept_name in ("matricula", "matrícula"):
+            await db.school_financial_settings.update_one(
+                {"school_id": school_id},
+                {"$set": {"matricula": update_data["amount"], "updated_at": datetime.now(timezone.utc).isoformat()}},
+                upsert=True
+            )
+        elif concept_name == "mensualidad":
+            await db.school_financial_settings.update_one(
+                {"school_id": school_id},
+                {"$set": {"pension_mensual": update_data["amount"], "updated_at": datetime.now(timezone.utc).isoformat()}},
+                upsert=True
+            )
+    
     return {"message": "Concepto actualizado", "concept": updated}
 
 @api_router.delete("/accounting/payment-concepts/{concept_id}")
