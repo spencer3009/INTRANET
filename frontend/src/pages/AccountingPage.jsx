@@ -1043,13 +1043,11 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
         notes: payment.notes || ""
       });
     } else {
-      // For new payments, set first available concept
-      const firstConcept = availableConcepts.length > 0 ? availableConcepts[0].name : "";
-      const firstAmount = availableConcepts.length > 0 ? availableConcepts[0].amount.toString() : "";
+      // For new payments, start with empty concept (user must select)
       setFormData(prev => ({
         ...prev,
-        concept: firstConcept,
-        amount_base: firstAmount,
+        concept: "",
+        amount_base: "",
         // Only reset student fields on modal open, not on concept list change
         ...(prev.student_id ? {} : {
           student_id: "",
