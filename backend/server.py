@@ -21283,8 +21283,15 @@ async def get_parent_payments(
     fin_settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0}) or {}
     pension_mensual = fin_settings.get("pension_mensual", 0)
     matricula_amount_config = fin_settings.get("matricula", 0)
-    # School year months: typically March(3) to December(12) = 10 months in Peru
     school_year_months = fin_settings.get("meses_ano_escolar", 10)
+    
+    # Interest and early payment settings
+    interes_activo = fin_settings.get("interes_activo", False)
+    interes_tipo = fin_settings.get("interes_tipo", "porcentaje")
+    interes_valor = fin_settings.get("interes_valor", 0)
+    pronto_pago_activo = fin_settings.get("pronto_pago_activo", False)
+    pronto_pago_monto = fin_settings.get("pronto_pago_monto", 0)
+    pronto_pago_fecha_limite = fin_settings.get("pronto_pago_fecha_limite", 5)
     
     # Get all mensualidad payments for this student (case-insensitive)
     payments = await db.payments.find({
@@ -21293,7 +21300,6 @@ async def get_parent_payments(
         "concept": {"$regex": "^mensualidad$", "$options": "i"}
     }, {"_id": 0}).sort("payment_date", 1).to_list(100)
     
-    # Calculate summary based on actual payments AND expected full year
     paid_count = sum(1 for p in payments if p.get("payment_status") == "paid")
     pending_count = sum(1 for p in payments if p.get("payment_status") == "pending")
     overdue_count = sum(1 for p in payments if p.get("payment_status") == "overdue")
@@ -21303,37 +21309,46 @@ async def get_parent_payments(
     pending_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "pending")
     overdue_amount = sum(p.get("total_amount", 0) for p in payments if p.get("payment_status") == "overdue")
     
-    # Total Anual = full year of mensualidades + matrícula (based on configured amounts)
-    total_annual_mensualidades = pension_mensual * school_year_months if pension_mensual > 0 else sum(p.get("total_amount", 0) for p in payments)
+    # Calculate interest on overdue payments
+    total_interest = 0
+    if interes_activo and overdue_count > 0:
+        for p in payments:
+            if p.get("payment_status") == "overdue":
+                base = p.get("total_amount", pension_mensual)
+                if interes_tipo == "porcentaje":
+                    total_interest += base * (interes_valor / 100)
+                else:
+                    total_interest += interes_valor
     
-    # Months not yet registered (future months with no payment record)
-    unregistered_months = max(0, school_year_months - registered_months)
-    unregistered_amount = pension_mensual * unregistered_months if pension_mensual > 0 else 0
+    # Calculate pronto pago savings (for paid payments that qualified)
+    total_pronto_pago_savings = 0
+    pronto_pago_count = 0
+    if pronto_pago_activo and pronto_pago_monto > 0:
+        for p in payments:
+            if p.get("payment_status") == "paid" and p.get("total_amount", 0) <= pronto_pago_monto:
+                pronto_pago_count += 1
+                total_pronto_pago_savings += pension_mensual - pronto_pago_monto
     
-    paid_percentage = round((paid_count / school_year_months * 100) if school_year_months > 0 else 0)
+    # Base Total Anual (without interest or discounts)
+    total_annual_base = (pension_mensual * school_year_months) + matricula_amount_config if pension_mensual > 0 else sum(p.get("total_amount", 0) for p in payments)
     
-    # Determine overall status
-    if overdue_count > 0:
-        overall_status = "moroso"
-    elif pending_count > 0:
-        overall_status = "pendiente"
-    else:
-        overall_status = "al_dia"
-    
-    # Build monthly detail
-    monthly_detail = []
+    # Adjusted amounts considering interest and pending overdue
+    debt_mensualidades = 0
     for p in payments:
-        monthly_detail.append({
-            "id": p.get("id"),
-            "month_name": p.get("month_name") or p.get("description", ""),
-            "payment_date": p.get("payment_date"),
-            "total_amount": p.get("total_amount", 0),
-            "payment_status": p.get("payment_status"),
-            "payment_method": p.get("payment_method"),
-            "receipt_number": p.get("receipt_number"),
-        })
+        if p.get("payment_status") in ("pending", "overdue"):
+            debt_mensualidades += p.get("total_amount", pension_mensual)
+            if interes_activo and p.get("payment_status") == "overdue":
+                base = p.get("total_amount", pension_mensual)
+                if interes_tipo == "porcentaje":
+                    debt_mensualidades += base * (interes_valor / 100)
+                else:
+                    debt_mensualidades += interes_valor
     
-    # Get matricula payment (case-insensitive)
+    # Add unregistered future months
+    unregistered_months = max(0, school_year_months - registered_months)
+    debt_mensualidades += pension_mensual * unregistered_months
+    
+    # Add unpaid matrícula
     matricula = await db.payments.find_one({
         "school_id": school_id,
         "student_id": student_id,
@@ -21342,6 +21357,40 @@ async def get_parent_payments(
     }, {"_id": 0, "total_amount": 1, "payment_date": 1, "payment_status": 1})
     
     matricula_paid_amount = matricula.get("total_amount", 0) if matricula else 0
+    debt_matricula = matricula_amount_config - matricula_paid_amount if not matricula else 0
+    
+    total_debt = debt_mensualidades + debt_matricula
+    
+    paid_percentage = round((paid_count / school_year_months * 100) if school_year_months > 0 else 0)
+    
+    if overdue_count > 0:
+        overall_status = "moroso"
+    elif pending_count > 0:
+        overall_status = "pendiente"
+    else:
+        overall_status = "al_dia"
+    
+    monthly_detail = []
+    for p in payments:
+        interest_charge = 0
+        if interes_activo and p.get("payment_status") == "overdue":
+            base = p.get("total_amount", pension_mensual)
+            interest_charge = base * (interes_valor / 100) if interes_tipo == "porcentaje" else interes_valor
+        
+        is_pronto_pago = (pronto_pago_activo and p.get("payment_status") == "paid" 
+                          and p.get("total_amount", 0) <= pronto_pago_monto and pronto_pago_monto > 0)
+        
+        monthly_detail.append({
+            "id": p.get("id"),
+            "month_name": p.get("month_name") or p.get("description", ""),
+            "payment_date": p.get("payment_date"),
+            "total_amount": p.get("total_amount", 0),
+            "payment_status": p.get("payment_status"),
+            "payment_method": p.get("payment_method"),
+            "receipt_number": p.get("receipt_number"),
+            "interest_charge": round(interest_charge, 2),
+            "is_pronto_pago": is_pronto_pago,
+        })
     
     return {
         "student_id": student_id,
@@ -21351,18 +21400,30 @@ async def get_parent_payments(
             "pending_count": pending_count,
             "overdue_count": overdue_count,
             "paid_percentage": paid_percentage,
-            "total_amount": round(total_annual_mensualidades, 2),
-            "total_annual": round(total_annual_mensualidades + matricula_amount_config, 2),
+            "total_annual": round(total_annual_base, 2),
+            "total_amount": round(pension_mensual * school_year_months, 2),
             "paid_amount": round(paid_amount, 2),
-            "pending_amount": round(pending_amount + unregistered_amount, 2),
+            "pending_amount": round(pending_amount, 2),
             "overdue_amount": round(overdue_amount, 2),
-            "debt_amount": round(total_annual_mensualidades - paid_amount + (matricula_amount_config - matricula_paid_amount), 2),
+            "debt_amount": round(total_debt, 2),
+            "total_interest": round(total_interest, 2),
+            "total_pronto_pago_savings": round(total_pronto_pago_savings, 2),
+            "pronto_pago_count": pronto_pago_count,
             "overall_status": overall_status,
         },
         "matricula": {
             "paid": bool(matricula),
             "amount": matricula_paid_amount or matricula_amount_config,
             "date": matricula.get("payment_date") if matricula else None,
+        },
+        "financial_config": {
+            "pension_mensual": pension_mensual,
+            "interes_activo": interes_activo,
+            "interes_valor": interes_valor,
+            "interes_tipo": interes_tipo,
+            "pronto_pago_activo": pronto_pago_activo,
+            "pronto_pago_monto": pronto_pago_monto,
+            "pronto_pago_fecha_limite": pronto_pago_fecha_limite,
         },
         "monthly_detail": monthly_detail,
     }

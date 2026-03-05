@@ -8,13 +8,13 @@ import {
 
 const parentNavItems = [
   { id: "inicio", label: "Dashboard", icon: Home, route: "/parent" },
+  { id: "pagos", label: "Pagos", icon: Wallet, route: "/parent/payments" },
   { id: "cursos", label: "Cursos", icon: BookOpen, route: "/parent/courses" },
   { id: "horarios", label: "Horario", icon: CalendarCheck, route: "/parent/schedule" },
   { id: "examenes", label: "Exámenes", icon: Calendar, route: "/parent/exams" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/parent/tasks" },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy, route: "/parent/grades" },
   { id: "asistencia", label: "Asistencia", icon: Clock, route: "/parent/attendance" },
-  { id: "pagos", label: "Pagos", icon: Wallet, route: "/parent/payments" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/parent/messages" },
 ];
 

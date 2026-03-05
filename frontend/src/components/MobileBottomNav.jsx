@@ -6,9 +6,9 @@ import {
 
 const parentItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/parent" },
+  { id: "pagos", label: "Pagos", icon: Wallet, route: "/parent/payments" },
   { id: "asistencia", label: "Asistencia", icon: Clock, route: "/parent/attendance" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/parent/tasks" },
-  { id: "pagos", label: "Pagos", icon: Wallet, route: "/parent/payments" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/parent/messages" },
 ];
 
