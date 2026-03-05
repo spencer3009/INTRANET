@@ -410,18 +410,62 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
               <div className="absolute bottom-4 right-4 w-16 h-16 border-4 border-white/10 rounded-full" />
               <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-300 via-green-200 to-teal-300 opacity-60" />
               <div className="relative flex flex-col">
-                <div className="flex items-center gap-3 mb-4">
+                <div className="flex items-center gap-3 mb-3">
                   <div className="w-11 h-11 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
                     <CalendarCheck className="w-5 h-5 text-white" />
                   </div>
-                  <span className="text-sm font-semibold text-emerald-100 tracking-wide">Asistencias</span>
+                  <span className="text-sm font-semibold text-emerald-100 tracking-wide">Asistencia Hoy</span>
                 </div>
-                <div className="flex items-end justify-between">
-                  <p className="text-4xl font-black text-white tracking-tight drop-shadow-sm" style={{ fontFamily: 'Manrope, sans-serif' }}>
-                    {dashboardData?.attendance_summary?.present || 0}
-                  </p>
-                  <ChevronRight className="w-5 h-5 text-emerald-200 group-hover:text-white group-hover:translate-x-1 transition-all" />
-                </div>
+                {(() => {
+                  const today = dashboardData?.today_attendance;
+                  const status = (today?.status || "").toLowerCase();
+                  if (!today?.status) {
+                    return (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-lg font-bold text-white/70">Sin registro</p>
+                          <p className="text-xs text-emerald-200 mt-0.5">Aún no se registra hoy</p>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-emerald-200 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                      </div>
+                    );
+                  }
+                  const statusLabels = {
+                    "presente": "Presente", "present": "Presente", "p": "Presente",
+                    "tardanza": "Tardanza", "late": "Tardanza", "t": "Tardanza",
+                    "ausente": "Ausente", "absent": "Ausente", "a": "Ausente",
+                    "justificado": "Justificado", "justified": "Justificado", "j": "Justificado"
+                  };
+                  const statusColors = {
+                    "presente": "bg-white/30", "present": "bg-white/30", "p": "bg-white/30",
+                    "tardanza": "bg-amber-400/40", "late": "bg-amber-400/40", "t": "bg-amber-400/40",
+                    "ausente": "bg-red-400/40", "absent": "bg-red-400/40", "a": "bg-red-400/40",
+                    "justificado": "bg-blue-400/40", "justified": "bg-blue-400/40", "j": "bg-blue-400/40"
+                  };
+                  return (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold text-white ${statusColors[status] || "bg-white/20"}`}>
+                            {statusLabels[status] || today.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-3 text-xs text-emerald-100">
+                          {today.entry_time && (
+                            <span>Entrada: <strong className="text-white">{today.entry_time}</strong></span>
+                          )}
+                          {today.exit_time && (
+                            <span>Salida: <strong className="text-white">{today.exit_time}</strong></span>
+                          )}
+                          {!today.exit_time && today.entry_time && (
+                            <span className="text-emerald-200/70">Sin salida</span>
+                          )}
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-emerald-200 group-hover:text-white group-hover:translate-x-1 transition-all" />
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

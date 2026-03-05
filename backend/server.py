@@ -21657,20 +21657,22 @@ async def get_parent_dashboard(
     
     # Attendance summary (last 30 days)
     thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     attendance_summary = {"present": 0, "absent": 0, "late": 0, "justified": 0}
+    today_attendance = {"status": None, "entry_time": None, "exit_time": None}
     
     attendance_records = await db.attendances.find({
         "school_id": school_id,
         "user_id": student_id,
         "type": "student",
         "date": {"$gte": thirty_days_ago}
-    }, {"_id": 0, "status": 1}).to_list(100)
+    }, {"_id": 0, "status": 1, "date": 1, "time": 1, "exit_time": 1}).to_list(100)
     
     qr_attendance = await db.student_attendance.find({
         "school_id": school_id,
         "student_id": student_id,
         "date": {"$gte": thirty_days_ago}
-    }, {"_id": 0, "status": 1, "date": 1}).to_list(100)
+    }, {"_id": 0, "status": 1, "date": 1, "entry_time": 1, "exit_time": 1}).to_list(100)
     
     seen_dates = set()
     for record in attendance_records:
@@ -21685,6 +21687,11 @@ async def get_parent_dashboard(
             attendance_summary["late"] += 1
         elif status in ["justificado", "justified", "j"]:
             attendance_summary["justified"] += 1
+        # Check if this is today's record
+        if date_key == today_str:
+            today_attendance["status"] = record.get("status", "")
+            today_attendance["entry_time"] = record.get("time") or record.get("entry_time")
+            today_attendance["exit_time"] = record.get("exit_time")
     
     for record in qr_attendance:
         date_key = record.get("date", "")
@@ -21697,6 +21704,11 @@ async def get_parent_dashboard(
                 attendance_summary["absent"] += 1
             elif status in ["tardanza", "late", "t"]:
                 attendance_summary["late"] += 1
+        # Check if this is today's record (even if seen in other collection)
+        if date_key == today_str and not today_attendance["status"]:
+            today_attendance["status"] = record.get("status", "")
+            today_attendance["entry_time"] = record.get("entry_time")
+            today_attendance["exit_time"] = record.get("exit_time")
     
     # Recent announcements
     announcements = await db.institutional_messages.find({
@@ -21780,6 +21792,7 @@ async def get_parent_dashboard(
             "percentage": task_percentage
         },
         "attendance_summary": attendance_summary,
+        "today_attendance": today_attendance,
         "recent_announcements": recent_announcements,
         "recent_grades": recent_grades,
         "unread_messages": unread_messages
