@@ -3015,6 +3015,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">QR</span>
               </button>
             )}
+            {selectedRole === 'teacher' && u.qr_token && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setQRTeacher(u);
+                  setShowQRModal(true);
+                }}
+                className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-slate-50 transition-colors group flex-shrink-0"
+                title="Ver código QR completo"
+                data-testid={`mini-teacher-qr-${u.id}`}
+              >
+                <div className="bg-white p-1 rounded-lg shadow-sm border border-slate-200 group-hover:shadow-md transition-shadow">
+                  <QRCodeSVG 
+                    value={u.qr_token} 
+                    size={50}
+                    level="L"
+                  />
+                </div>
+                <span className="text-[9px] font-medium text-slate-400 uppercase tracking-wider">QR</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
