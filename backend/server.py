@@ -12959,6 +12959,90 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
     
     return {"message": "Asignatura creada correctamente", "subject": subject}
 
+class ReplicateSubjectsRequest(BaseModel):
+    source_section_id: str
+    target_section_id: str
+
+@api_router.post("/academic/subjects/replicate")
+async def replicate_subjects(data: ReplicateSubjectsRequest, current_user = Depends(get_current_user)):
+    """Replicate all subjects from one section to another"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if user.get("role") not in ["owner", "admin", "director"]:
+        raise HTTPException(status_code=403, detail="No tienes permiso para replicar asignaturas")
+
+    school_id = user["school_id"]
+
+    source_section = await db.sections.find_one({"id": data.source_section_id, "school_id": school_id})
+    if not source_section:
+        raise HTTPException(status_code=404, detail="Seccion origen no encontrada")
+
+    target_section = await db.sections.find_one({"id": data.target_section_id, "school_id": school_id})
+    if not target_section:
+        raise HTTPException(status_code=404, detail="Seccion destino no encontrada")
+
+    source_subjects = await db.subjects.find({
+        "school_id": school_id,
+        "section_id": data.source_section_id
+    }, {"_id": 0}).to_list(200)
+
+    if not source_subjects:
+        raise HTTPException(status_code=400, detail="La seccion origen no tiene asignaturas")
+
+    existing_target = await db.subjects.find({
+        "school_id": school_id,
+        "section_id": data.target_section_id
+    }, {"_id": 0, "name": 1}).to_list(200)
+    existing_names = {s["name"].strip().lower() for s in existing_target}
+
+    now = datetime.now(timezone.utc).isoformat()
+    created = []
+    skipped = []
+
+    for src in source_subjects:
+        if src["name"].strip().lower() in existing_names:
+            skipped.append(src["name"])
+            continue
+
+        base_code = src.get("code", "")
+        section_suffix = (target_section.get("nombre", "")[:1] or "X").upper()
+        new_code = f"{base_code}-{section_suffix}"
+        code_counter = 1
+        while await db.subjects.find_one({"school_id": school_id, "code": {"$regex": f"^{re.escape(new_code)}$", "$options": "i"}}):
+            new_code = f"{base_code}-{section_suffix}{code_counter}"
+            code_counter += 1
+
+        new_subject = {
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "name": src["name"],
+            "code": new_code,
+            "description": src.get("description", ""),
+            "level_id": target_section.get("nivel_id") or src.get("level_id"),
+            "grade_id": target_section.get("grado_id") or src.get("grade_id"),
+            "section_id": data.target_section_id,
+            "weekly_hours": src.get("weekly_hours", 1),
+            "color": src.get("color", "#3B82F6"),
+            "status": "active",
+            "image_url": src.get("image_url"),
+            "created_at": now,
+            "updated_at": now,
+        }
+        await db.subjects.insert_one(new_subject)
+        new_subject.pop("_id", None)
+        created.append(new_subject)
+
+    logger.info(f"Replicated {len(created)} subjects from section {data.source_section_id} to {data.target_section_id} by {user['id']}")
+
+    return {
+        "message": f"Se replicaron {len(created)} asignaturas correctamente",
+        "created_count": len(created),
+        "skipped_count": len(skipped),
+        "skipped_names": skipped,
+        "subjects": created,
+    }
+
 @api_router.put("/academic/subjects/{subject_id}")
 async def update_subject(subject_id: str, data: SubjectUpdate, current_user = Depends(get_current_user)):
     """Update a subject"""

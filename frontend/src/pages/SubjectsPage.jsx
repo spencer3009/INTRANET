@@ -11,7 +11,7 @@ import {
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
   Clock, MoreVertical, GraduationCap, ArrowRight, User, Users, Power, PowerOff,
   Image, Upload, Trash2, Crop, ZoomIn, ZoomOut, RotateCcw,
-  Baby, Backpack, Settings2, Sparkles, Star
+  Baby, Backpack, Settings2, Sparkles, Star, Copy
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -708,6 +708,224 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, se
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
+// REPLICATE SUBJECTS MODAL
+// ══════════════════════════════════════════════════════════════════════════════
+function ReplicateSubjectsModal({ isOpen, onClose, targetSection, sections, subjects, token, onSuccess }) {
+  const [selectedSourceId, setSelectedSourceId] = useState("");
+  const [step, setStep] = useState("select"); // select | confirm | loading | done
+  const [result, setResult] = useState(null);
+
+  if (!isOpen || !targetSection) return null;
+
+  // Filter sibling sections (same grade) that have subjects
+  const siblingWithSubjects = sections
+    .filter(s => s.grado_id === targetSection.grado_id && s.id !== targetSection.id && s.activo !== false)
+    .map(s => ({
+      ...s,
+      subjectCount: subjects.filter(sub => sub.section_id === s.id).length,
+    }))
+    .filter(s => s.subjectCount > 0);
+
+  const selectedSource = siblingWithSubjects.find(s => s.id === selectedSourceId);
+  const sourceSubjects = selectedSource ? subjects.filter(s => s.section_id === selectedSourceId) : [];
+  const targetHasSubjects = subjects.some(s => s.section_id === targetSection.id);
+
+  const handleClose = () => { setSelectedSourceId(""); setStep("select"); setResult(null); onClose(); };
+
+  const handleReplicate = async () => {
+    setStep("loading");
+    try {
+      const res = await axios.post(`${process.env.REACT_APP_BACKEND_URL}/api/academic/subjects/replicate`, {
+        source_section_id: selectedSourceId,
+        target_section_id: targetSection.id,
+      }, { headers: { Authorization: `Bearer ${token}` } });
+      setResult(res.data);
+      setStep("done");
+      onSuccess();
+    } catch (err) {
+      setResult({ error: err.response?.data?.detail || "Error al replicar asignaturas" });
+      setStep("done");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={handleClose}>
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="replicate-modal">
+        {/* Header */}
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+              <Copy className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900" data-testid="replicate-modal-title">Replicar Asignaturas</h3>
+              <p className="text-xs text-gray-500">Hacia: {targetSection.nombre}</p>
+            </div>
+          </div>
+          <button onClick={handleClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400" data-testid="replicate-modal-close">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5">
+          {step === "select" && (
+            <>
+              {siblingWithSubjects.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-600 font-medium">No hay secciones disponibles</p>
+                  <p className="text-sm text-gray-400 mt-1">No existen otras secciones del mismo grado con asignaturas creadas</p>
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-gray-600 mb-4">Selecciona la seccion de donde copiar las asignaturas:</p>
+
+                  {targetHasSubjects && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 flex items-start gap-2" data-testid="replicate-warning-duplicates">
+                      <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-amber-700">Esta seccion ya tiene asignaturas</p>
+                        <p className="text-xs text-amber-600">Las asignaturas con el mismo nombre seran omitidas automaticamente.</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    {siblingWithSubjects.map(s => (
+                      <button
+                        key={s.id}
+                        onClick={() => setSelectedSourceId(s.id)}
+                        className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                          selectedSourceId === s.id
+                            ? "border-indigo-500 bg-indigo-50"
+                            : "border-gray-100 hover:border-gray-200 hover:bg-gray-50"
+                        }`}
+                        data-testid={`source-section-${s.id}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-semibold text-gray-800">{s.nombre}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{s.subjectCount} asignatura{s.subjectCount !== 1 ? "s" : ""}</p>
+                          </div>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                            selectedSourceId === s.id ? "border-indigo-500 bg-indigo-500" : "border-gray-300"
+                          }`}>
+                            {selectedSourceId === s.id && <Check className="w-3 h-3 text-white" />}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Show source subjects preview */}
+                  {selectedSource && (
+                    <div className="mt-4 bg-gray-50 rounded-xl p-4">
+                      <p className="text-xs font-semibold text-gray-500 uppercase mb-2">Asignaturas a copiar:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {sourceSubjects.map(s => (
+                          <span key={s.id} className="px-3 py-1 rounded-full text-xs font-medium text-white" style={{ backgroundColor: s.color || "#3B82F6" }}>
+                            {s.name}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+
+          {step === "confirm" && (
+            <div className="text-center py-4">
+              <div className="w-16 h-16 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Copy className="w-8 h-8 text-indigo-600" />
+              </div>
+              <p className="text-gray-700 font-medium mb-2">Se copiaran {sourceSubjects.length} asignaturas</p>
+              <p className="text-sm text-gray-500">Desde <strong>{selectedSource?.nombre}</strong> hacia <strong>{targetSection.nombre}</strong></p>
+              <p className="text-xs text-gray-400 mt-3">Podras modificar profesores y horarios despues.</p>
+            </div>
+          )}
+
+          {step === "loading" && (
+            <div className="text-center py-8">
+              <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto mb-4" />
+              <p className="text-gray-600 font-medium">Replicando asignaturas...</p>
+            </div>
+          )}
+
+          {step === "done" && result && (
+            <div className="text-center py-4">
+              {result.error ? (
+                <>
+                  <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <AlertCircle className="w-8 h-8 text-red-500" />
+                  </div>
+                  <p className="text-red-600 font-semibold">{result.error}</p>
+                </>
+              ) : (
+                <>
+                  <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <Check className="w-8 h-8 text-green-600" />
+                  </div>
+                  <p className="text-green-700 font-bold text-lg">{result.message}</p>
+                  {result.skipped_count > 0 && (
+                    <p className="text-sm text-amber-600 mt-2">
+                      {result.skipped_count} asignatura{result.skipped_count !== 1 ? "s" : ""} omitida{result.skipped_count !== 1 ? "s" : ""} (ya existian): {result.skipped_names?.join(", ")}
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
+          {step === "select" && (
+            <>
+              <button onClick={handleClose} className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors" data-testid="replicate-cancel">
+                Cancelar
+              </button>
+              <button
+                onClick={() => setStep("confirm")}
+                disabled={!selectedSourceId}
+                className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center gap-2"
+                data-testid="replicate-next"
+              >
+                <Copy className="w-4 h-4" /> Continuar
+              </button>
+            </>
+          )}
+          {step === "confirm" && (
+            <>
+              <button onClick={() => setStep("select")} className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors" data-testid="replicate-back">
+                Cancelar
+              </button>
+              <button
+                onClick={handleReplicate}
+                className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all flex items-center gap-2"
+                data-testid="replicate-confirm"
+              >
+                <Copy className="w-4 h-4" /> Replicar Asignaturas
+              </button>
+            </>
+          )}
+          {step === "done" && (
+            <button onClick={handleClose} className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-semibold hover:shadow-lg transition-all" data-testid="replicate-done">
+              Cerrar
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE - Premium Tabbed Design with Vibrant Colors
 // ══════════════════════════════════════════════════════════════════════════════
 export default function SubjectsPage({ user, token, subdomain, onLogout }) {
@@ -728,6 +946,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
   
   const [showSubjectModal, setShowSubjectModal] = useState(false);
   const [editingSubject, setEditingSubject] = useState(null);
+  const [showReplicateModal, setShowReplicateModal] = useState(false);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -1076,16 +1295,26 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                       <BookOpen className="w-10 h-10 text-white" />
                     </div>
                     <h3 className="text-2xl font-bold text-gray-700 mb-3">Sin asignaturas</h3>
-                    <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">Esta sección aún no tiene materias configuradas</p>
-                    <button
-                      onClick={() => { setEditingSubject(null); setShowSubjectModal(true); }}
-                      data-testid="add-first-subject"
-                      className={`px-8 py-4 ${currentTheme.buttonBg} text-white rounded-2xl font-bold transition-all inline-flex items-center gap-3 shadow-xl hover:shadow-2xl hover:scale-105`}
-                    >
-                      <Plus className="w-6 h-6" />
-                      Agregar Primera Asignatura
-                      <Sparkles className="w-5 h-5" />
-                    </button>
+                    <p className="text-gray-500 mb-8 max-w-md mx-auto text-lg">Esta seccion aun no tiene materias configuradas</p>
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      <button
+                        onClick={() => { setEditingSubject(null); setShowSubjectModal(true); }}
+                        data-testid="add-first-subject"
+                        className={`px-8 py-4 ${currentTheme.buttonBg} text-white rounded-2xl font-bold transition-all inline-flex items-center gap-3 shadow-xl hover:shadow-2xl hover:scale-105`}
+                      >
+                        <Plus className="w-6 h-6" />
+                        Agregar Primera Asignatura
+                        <Sparkles className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => setShowReplicateModal(true)}
+                        data-testid="replicate-subjects-btn"
+                        className="px-8 py-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-2xl font-bold transition-all inline-flex items-center gap-3 shadow-xl hover:shadow-2xl hover:scale-105"
+                      >
+                        <Copy className="w-6 h-6" />
+                        Replicar Asignaturas
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -1122,6 +1351,15 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         preselectedGrade={selectedGrade?.id}
         preselectedSection={selectedSection?.id}
         token={token}
+      />
+      <ReplicateSubjectsModal
+        isOpen={showReplicateModal}
+        onClose={() => setShowReplicateModal(false)}
+        targetSection={selectedSection}
+        sections={sections}
+        subjects={subjects}
+        token={token}
+        onSuccess={loadSubjects}
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>

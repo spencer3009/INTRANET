@@ -32,10 +32,22 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 #### Feature 3: Mobile QR Direct Access (P0) - COMPLETED
 - When accessing Attendance page with `?tab=qr-scanner` on mobile:
   - Green "Asistencias" banner is hidden (hidden lg:block)
-  - Tab bar (Estudiantes/Profesores/QR/Reportes) is hidden (hidden lg:flex)
+  - Tab bar is hidden (hidden lg:flex)
   - QR scanner shows directly below header
-- Applied to both AttendancePage (Owner/Admin) and TeacherAttendancePage
-- On desktop: banner and tabs remain visible normally
+- Applied to both AttendancePage and TeacherAttendancePage
+
+#### Feature 4: Replicate Subjects Between Sections (P0) - COMPLETED
+- **Backend**: New endpoint `POST /api/academic/subjects/replicate` 
+  - Copies subject names, colors, images from source to target section
+  - Does NOT copy teachers, schedules, or students
+  - Skips subjects that already exist in target (case-insensitive name match)
+  - Generates unique codes with section suffix
+- **Frontend**: New "Replicar Asignaturas" button in empty section view
+  - Modal shows sibling sections (same grade) that have subjects
+  - Preview of subjects to be copied with color badges
+  - 3-step flow: Select source → Confirm → Done
+  - Warning shown if target already has subjects
+  - Auto-refreshes subject list after replication
 
 ### Previous Sessions (Summary)
 - Attendance Entry/Exit Module with QR
