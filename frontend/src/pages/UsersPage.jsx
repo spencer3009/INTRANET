@@ -3979,8 +3979,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   )}
                   <button
                     onClick={() => {
-                      if (!studentFilterLevel || !studentFilterGrade || !studentFilterSection) {
-                        toast.error("Debe seleccionar Nivel, Grado y Seccion antes de descargar la plantilla.");
+                      if (!studentFilterLevel || !studentFilterGrade || !studentFilterSection || !studentFilterShift) {
+                        toast.error("Debe seleccionar Nivel, Grado, Seccion y Turno antes de descargar la plantilla.");
                         return;
                       }
                       const params = new URLSearchParams();
@@ -4027,10 +4027,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     </div>
                     <ChevronRight className="w-5 h-5 text-blue-400 flex-shrink-0" />
                   </button>
-                  {!(studentFilterLevel && studentFilterGrade && studentFilterSection) && (
+                  {!(studentFilterLevel && studentFilterGrade && studentFilterSection && studentFilterShift) && (
                     <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl">
                       <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700">Debe seleccionar <span className="font-bold">Nivel, Grado y Seccion</span> en los filtros antes de descargar la plantilla.</p>
+                      <p className="text-xs text-amber-700">Debe seleccionar <span className="font-bold">Nivel, Grado, Seccion y Turno</span> en los filtros antes de descargar la plantilla.</p>
                     </div>
                   )}
                 </div>
@@ -4042,10 +4042,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <button onClick={() => { setImportModalStep("menu"); setImportFile(null); }} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4 transition-colors" data-testid="import-back-btn">
                     <ArrowLeft className="w-4 h-4" /> Volver
                   </button>
-                  {!(studentFilterLevel && studentFilterGrade && studentFilterSection) && (
+                  {!(studentFilterLevel && studentFilterGrade && studentFilterSection && studentFilterShift) && (
                     <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl mb-4">
                       <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                      <p className="text-xs text-amber-700">Seleccione <span className="font-bold">Nivel, Grado y Seccion</span> en los filtros para asignar los estudiantes correctamente.</p>
+                      <p className="text-xs text-amber-700">Seleccione <span className="font-bold">Nivel, Grado, Seccion y Turno</span> en los filtros para asignar los estudiantes correctamente.</p>
                     </div>
                   )}
                   {(studentFilterLevel || studentFilterGrade || studentFilterSection) && (
