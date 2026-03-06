@@ -12,6 +12,9 @@ from typing import List, Optional, Literal
 from enum import Enum
 import uuid
 from datetime import datetime, timezone, timedelta
+
+# Peru timezone (UTC-5)
+PERU_TZ = timezone(timedelta(hours=-5))
 import jwt
 import bcrypt
 import re
@@ -10010,11 +10013,10 @@ async def mark_attendance_exit(data: MarkExitRequest, current_user=Depends(get_c
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No autorizado")
     school_id = user["school_id"]
-    today = data.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = data.date or datetime.now(PERU_TZ).strftime("%Y-%m-%d")
     now_iso = datetime.now(timezone.utc).isoformat()
-    now_time = datetime.now(timezone.utc).strftime("%H:%M")
+    now_time = datetime.now(PERU_TZ).strftime("%H:%M")
 
-    # Find existing record
     existing = await db.attendances.find_one({
         "school_id": school_id, "user_id": data.student_id, "date": today, "type": "student"
     })
@@ -10125,9 +10127,9 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         })
     
     # Check if attendance already marked today
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(PERU_TZ).strftime("%Y-%m-%d")
     now = datetime.now(timezone.utc)
-    now_time = now.strftime("%H:%M")
+    now_time = datetime.now(PERU_TZ).strftime("%H:%M")
     now_iso = now.isoformat()
     
     attendance_type = scanned_role  # "student" or "teacher"
@@ -10315,7 +10317,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         exit_time_str = ""
         if exit_dt:
             try:
-                exit_time_str = datetime.fromisoformat(exit_dt).strftime("%H:%M")
+                exit_time_str = datetime.fromisoformat(exit_dt).astimezone(PERU_TZ).strftime("%H:%M")
             except Exception:
                 exit_time_str = str(exit_dt)
         
@@ -10356,7 +10358,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             "attendance": {
                 "status": existing.get("status"),
                 "entry_time": existing.get("check_in_time", ""),
-                "exit_time": datetime.fromisoformat(existing["exit_time"]).strftime("%H:%M") if existing.get("exit_time") else None,
+                "exit_time": datetime.fromisoformat(existing["exit_time"]).astimezone(PERU_TZ).strftime("%H:%M") if existing.get("exit_time") else None,
                 "date": today
             }
         }
