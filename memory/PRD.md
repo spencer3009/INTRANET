@@ -36,22 +36,29 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
   - QR scanner shows directly below header
 - Applied to both AttendancePage and TeacherAttendancePage
 
-#### Feature 5: Mass Student Import from Excel/CSV (P0) - COMPLETED
+#### Feature 5: Mass Student Import from Excel/CSV (P0) - COMPLETED + ENHANCED
 - **Backend**: 
-  - `GET /api/students/import/template` - Downloads pre-formatted Excel template with instructions and example row
-  - `POST /api/students/import` - Imports students from .xlsx/.xls/.csv files, skips example row
+  - `GET /api/students/import/template` - Professional Excel template with:
+    - Row 2: Shows Nivel, Grado, Seccion, Turno names
+    - Row 3: Instructions for filling data
+    - Row 4: Note about auto-generated username/password
+    - Row 6: Column headers (frozen for scrolling)
+    - Row 7: Example row (Juan Perez) - auto-skipped during import
+    - Hidden `edunet_metadata` sheet with school_id, filter IDs/names, anio_escolar, timestamp
+  - `POST /api/students/import` - Enhanced with:
+    - Metadata verification: reads hidden sheet, compares with current filters
+    - Returns `metadata_mismatch` response when filters don't match
+    - `use_file_config=true` option to override filters with file metadata
+    - Skips example row (Juan Perez) automatically
   - Auto-generates student_code (STU-000001), QR token, username
-  - Error handling: duplicate DNI/email marks as "pending"
-- **Frontend** (UsersPage.jsx) - REDESIGNED:
-  - Removed import buttons from header banner
-  - Added visual "Excel import block" below academic filters with large icon + "Administrar archivo Excel" button
+- **Frontend** (UsersPage.jsx):
+  - Visual Excel block below filters with Excel image icon + "Administrar archivo Excel" button
   - 4 filter dropdowns: Nivel, Grado, Seccion, Turno
-  - Two-step modal: Menu (Descargar plantilla / Cargar archivo) → Upload with drag-drop
-  - Filter validation: must select Nivel+Grado+Seccion before downloading template
-  - Template includes instructions + example row (Juan Perez)
-  - Import results with "Ver pendientes" button
-  - Progress indicator during import
-- **Testing**: Backend 100% (6/6), Frontend 100% (iteration_67.json)
+  - Two-step modal: Menu (Descargar plantilla / Cargar archivo) → Upload
+  - Filter validation before template download
+  - Mismatch detection: shows comparison + "Usar configuracion del archivo" / "Cancelar"
+  - Progress indicator, result summary, "Ver pendientes" button
+- **Testing**: Backend 100% (9/9), Frontend 100% (iteration_68.json)
 
 #### Feature 4: Replicate Subjects Between Sections (P0) - COMPLETED
 - **Backend**: Endpoint `POST /api/academic/subjects/replicate`

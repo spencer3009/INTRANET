@@ -1,5 +1,24 @@
 # EduNet - Changelog
 
+## March 6, 2026 - Fork 4 (Enhancement)
+
+### Enhancement: Excel Template & Metadata Verification System - COMPLETED
+- **Fixed bug**: Template Row 2 now shows Nivel + Turno names (was empty due to wrong collection names: `grades`→`academic_grades`, `sections`→`academic_sections`)
+- **Corrected collections**: Uses `academic_levels`/`grades`/`sections`/`shifts` with `nombre` field
+- **Template improvements**:
+  - Row 4: "El usuario y contraseña serán generados automáticamente"
+  - Freeze panes at A7 (headers always visible)
+  - Example row (Juan Perez) auto-skipped during import
+- **Metadata verification system**:
+  - Hidden `edunet_metadata` sheet stores school_id, filter IDs/names, anio_escolar, timestamp
+  - Import endpoint reads metadata, compares with current filters
+  - Returns `metadata_mismatch` with side-by-side comparison
+  - User can "Usar configuracion del archivo" or "Cancelar importacion"
+  - Year mismatch detection with specific warning
+- **Frontend**: Replaced FileSpreadsheet icon with Excel image from user
+- **Frontend**: Added mismatch step in modal with comparison view and action buttons
+- Testing: Backend 100% (9/9), Frontend 100% - iteration_68.json
+
 ## March 6, 2026 - Fork 4
 
 ### Feature: Mass Student Import from Excel/CSV (P0) - COMPLETED
