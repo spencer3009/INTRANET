@@ -864,6 +864,8 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
     );
   }
 
+  const isMobileQRMode = activeTab === "qr-scanner";
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="teacher-attendance-page">
       <TeacherSidebar 
@@ -894,8 +896,8 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
 
         {/* Main Content */}
         <main className="flex-1 p-3 sm:p-4 lg:p-8 pb-20 lg:pb-8">
-          {/* Page Title */}
-          <div className="relative overflow-hidden rounded-3xl mb-8">
+          {/* Page Title — hidden on mobile when QR scanner is active */}
+          <div className={`${isMobileQRMode ? "hidden lg:block" : ""} relative overflow-hidden rounded-3xl mb-8`}>
             <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-emerald-600">
               <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div>
             </div>
@@ -910,8 +912,8 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
             </div>
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-4 mb-8 overflow-x-auto pb-2">
+          {/* Tabs — hidden on mobile when QR scanner is active */}
+          <div className={`${isMobileQRMode ? "hidden lg:flex" : "flex"} gap-4 mb-8 overflow-x-auto pb-2`}>
             {ATTENDANCE_TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;

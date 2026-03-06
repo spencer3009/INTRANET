@@ -26,15 +26,16 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
   - Support session banner and demo mode indicator preserved
   - z-index: 100 (consistent across all portals)
 - **Tarjetas 2x2**: OwnerMetricCards and MetricCards now use grid-cols-2 on mobile
-- **Sidebar z-index fix**: All sidebars (Owner, Teacher, Parent, Student) use z-[201] to appear above header
-  - Overlay darkened to bg-black/30 for better visual separation
-  - Sidebar width increased to 280px for better readability
-- **Sidebar readability**: 
-  - Font size increased to 0.95rem (15.2px)
-  - Icons increased to 22px (from 20px)
-  - Padding increased to 12px 14px (from 10px 12px)
-  - Active state: font-weight 600
-- Testing: 100% passed (19/19)
+- **Sidebar z-index fix**: All sidebars use z-[201] to appear above header
+- **Sidebar readability**: Font size 0.95rem, icons 22px, padding 12px 14px
+
+#### Feature 3: Mobile QR Direct Access (P0) - COMPLETED
+- When accessing Attendance page with `?tab=qr-scanner` on mobile:
+  - Green "Asistencias" banner is hidden (hidden lg:block)
+  - Tab bar (Estudiantes/Profesores/QR/Reportes) is hidden (hidden lg:flex)
+  - QR scanner shows directly below header
+- Applied to both AttendancePage (Owner/Admin) and TeacherAttendancePage
+- On desktop: banner and tabs remain visible normally
 
 ### Previous Sessions (Summary)
 - Attendance Entry/Exit Module with QR
