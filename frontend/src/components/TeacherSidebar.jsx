@@ -41,11 +41,11 @@ export default function TeacherSidebar({
     <>
       {/* Mobile overlay - only covers content area, not sidebar */}
       {expanded && (
-        <div className="fixed inset-0 left-[280px] bg-black/10 z-[105] lg:hidden" onClick={onToggle} />
+        <div className="fixed inset-0 left-[280px] bg-black/30 z-[200] lg:hidden" onClick={onToggle} />
       )}
 
       <aside
-        className={`fixed top-0 h-full lg:h-screen z-[110] flex flex-col transition-all duration-300 shadow-2xl
+        className={`fixed top-0 h-full lg:h-screen z-[201] flex flex-col transition-all duration-300 shadow-2xl
           ${expanded ? "translate-x-0 w-[280px]" : "-translate-x-full w-[280px]"}
           lg:sticky lg:translate-x-0 lg:z-30 ${isExpanded ? "lg:w-[240px]" : "lg:w-16"}
         `}
@@ -97,9 +97,9 @@ export default function TeacherSidebar({
                 }`}
                 data-testid={`teacher-nav-${item.id}`} title={item.label}>
                 <span className={`flex items-center justify-center w-8 h-8 rounded-lg ${isActive ? "bg-sky-500/20" : ""}`}>
-                  <Icon className="w-5 h-5" />
+                  <Icon className="w-[22px] h-[22px]" />
                 </span>
-                {(expanded || isExpanded) && <span className="text-sm font-medium">{item.label}</span>}
+                {(expanded || isExpanded) && <span className="font-medium">{item.label}</span>}
               </button>
             );
           })}
@@ -107,12 +107,12 @@ export default function TeacherSidebar({
 
         <div className="border-t border-sky-400/15 p-2 space-y-1">
           <button onClick={handleProfileClick} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-300 hover:text-white hover:bg-white/10 transition-all" data-testid="teacher-nav-profile" title="Mi Perfil">
-            <span className="flex items-center justify-center w-8 h-8"><User className="w-5 h-5" /></span>
-            {(expanded || isExpanded) && <span className="text-sm font-medium">Mi Perfil</span>}
+            <span className="flex items-center justify-center w-8 h-8"><User className="w-[22px] h-[22px]" /></span>
+            {(expanded || isExpanded) && <span className="font-medium">Mi Perfil</span>}
           </button>
-          <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all" data-testid="teacher-logout" title="Cerrar Sesión">
-            <span className="flex items-center justify-center w-8 h-8"><LogOut className="w-5 h-5" /></span>
-            {(expanded || isExpanded) && <span className="text-sm font-medium">Cerrar Sesión</span>}
+          <button onClick={onLogout} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all" data-testid="teacher-logout" title="Cerrar Sesion">
+            <span className="flex items-center justify-center w-8 h-8"><LogOut className="w-[22px] h-[22px]" /></span>
+            {(expanded || isExpanded) && <span className="font-medium">Cerrar Sesion</span>}
           </button>
         </div>
       </aside>

@@ -64,7 +64,7 @@ const cards = [
 
 export default function MetricCards({ metrics }) {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" data-testid="metric-cards">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" data-testid="metric-cards">
       {cards.map((card, i) => {
         const Icon = card.icon;
         const value = metrics ? metrics[card.key] : "—";

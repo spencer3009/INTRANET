@@ -14,34 +14,37 @@
 }
 
 .sidebar.expanded {
-  width: 260px;
+  width: 280px;
 }
 
 .sidebar-link {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 10px 12px;
+  padding: 12px 14px;
   border-radius: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.6);
   transition: all 0.2s ease;
   cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
 }
 
 .sidebar-link:hover {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-link.active {
   color: #e1b82c;
-  background: rgba(225, 184, 44, 0.1);
+  background: rgba(225, 184, 44, 0.12);
+  font-weight: 600;
 }
 
 .sidebar-link .link-icon {
-  min-width: 24px;
+  min-width: 28px;
   display: flex;
   align-items: center;
   justify-content: center;

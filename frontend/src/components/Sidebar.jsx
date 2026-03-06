@@ -110,10 +110,10 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
     <>
       {/* Mobile overlay - only covers content area, not sidebar */}
       {expanded && (
-        <div className="fixed inset-0 left-[240px] bg-black/10 z-[35] lg:hidden" onClick={onToggle} />
+        <div className="fixed inset-0 left-[280px] bg-black/30 z-[200] lg:hidden" onClick={onToggle} />
       )}
       <aside
-        className={`sidebar fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 ${
+        className={`sidebar fixed lg:sticky top-0 h-screen z-[201] flex flex-col transition-all duration-300 ${
           isExpanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       data-testid="sidebar"
@@ -133,14 +133,14 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
           <Menu className="w-5 h-5 text-white/60" />
         </div>
         {isExpanded && (
-          <span className="ml-3 text-white font-bold text-sm tracking-wide whitespace-nowrap" style={{ fontFamily: 'Manrope, sans-serif' }}>
+          <span className="ml-3 text-white font-bold text-base tracking-wide whitespace-nowrap" style={{ fontFamily: 'Manrope, sans-serif' }}>
             {schoolName || "EDUNET"}
           </span>
         )}
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto custom-scroll">
+      <nav className="flex-1 py-4 px-2.5 space-y-1 overflow-y-auto custom-scroll">
         {navItems.map((item) => {
           const Icon = item.icon;
           const showBadge = item.hasBadge && item.id === "mensajeria" && unreadMessages > 0;
@@ -153,15 +153,15 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
               title={item.label}
             >
               <span className="link-icon relative">
-                <Icon className="w-5 h-5" />
+                <Icon className="w-[22px] h-[22px]" />
                 {showBadge && !isExpanded && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
                     {unreadMessages > 9 ? "9+" : unreadMessages}
                   </span>
                 )}
               </span>
               {isExpanded && (
-                <span className="text-sm font-medium flex-1 flex items-center justify-between">
+                <span className="font-medium flex-1 flex items-center justify-between">
                   {item.label}
                   {showBadge && (
                     <span className="ml-2 px-1.5 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] text-center">
@@ -184,8 +184,8 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
             data-testid="sidebar-settings"
             title="Ajustes"
           >
-            <span className="link-icon"><Settings className="w-5 h-5" /></span>
-            {isExpanded && <span className="text-sm font-medium">Ajustes</span>}
+            <span className="link-icon"><Settings className="w-[22px] h-[22px]" /></span>
+            {isExpanded && <span className="font-medium">Ajustes</span>}
           </button>
         </div>
       )}

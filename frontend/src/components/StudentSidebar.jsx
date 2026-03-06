@@ -70,10 +70,10 @@ export default function StudentSidebar({
     <>
       {/* Mobile overlay - only covers content area, not sidebar */}
       {expanded && (
-        <div className="fixed inset-0 left-[240px] bg-black/10 z-[35] lg:hidden" onClick={onToggle} />
+        <div className="fixed inset-0 left-[280px] bg-black/30 z-[200] lg:hidden" onClick={onToggle} />
       )}
       <aside
-      className={`student-sidebar fixed lg:sticky top-0 h-screen z-40 flex flex-col transition-all duration-300 ${
+      className={`student-sidebar fixed lg:sticky top-0 h-screen z-[201] flex flex-col transition-all duration-300 ${
         isExpanded ? "expanded translate-x-0" : "-translate-x-full lg:translate-x-0"
       }`}
       data-testid="student-sidebar"
@@ -125,7 +125,7 @@ export default function StudentSidebar({
       )}
 
       {/* Nav items */}
-      <nav className="flex-1 py-4 px-2 space-y-1 overflow-y-auto custom-scroll">
+      <nav className="flex-1 py-4 px-2.5 space-y-1 overflow-y-auto custom-scroll">
         {studentNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.id;
@@ -142,9 +142,9 @@ export default function StudentSidebar({
               title={item.label}
             >
               <span className={`flex items-center justify-center w-8 h-8 rounded-lg ${isActive ? "bg-cyan-500/20" : ""}`}>
-                <Icon className="w-5 h-5" />
+                <Icon className="w-[22px] h-[22px]" />
               </span>
-              {isExpanded && <span className="text-sm font-medium">{item.label}</span>}
+              {isExpanded && <span className="font-medium" style={{ fontSize: '0.95rem' }}>{item.label}</span>}
             </button>
           );
         })}
@@ -159,21 +159,21 @@ export default function StudentSidebar({
           title="Mi Perfil"
         >
           <span className="flex items-center justify-center w-8 h-8">
-            <User className="w-5 h-5" />
+            <User className="w-[22px] h-[22px]" />
           </span>
-          {isExpanded && <span className="text-sm font-medium">Mi Perfil</span>}
+          {isExpanded && <span className="font-medium" style={{ fontSize: '0.95rem' }}>Mi Perfil</span>}
         </button>
         
         <button
           onClick={onLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-400/70 hover:text-red-400 hover:bg-red-500/10 transition-all"
           data-testid="student-logout"
-          title="Cerrar Sesión"
+          title="Cerrar Sesion"
         >
           <span className="flex items-center justify-center w-8 h-8">
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-[22px] h-[22px]" />
           </span>
-          {isExpanded && <span className="text-sm font-medium">Cerrar Sesión</span>}
+          {isExpanded && <span className="font-medium" style={{ fontSize: '0.95rem' }}>Cerrar Sesion</span>}
         </button>
       </div>
     </aside>
