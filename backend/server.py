@@ -5553,11 +5553,11 @@ async def generate_student_template(
         top=Side(style='thin'), bottom=Side(style='thin')
     )
 
-    ws.merge_cells("A1:G1")
+    ws.merge_cells("A1:I1")
     ws["A1"] = f"Plantilla de Importacion de Estudiantes"
     ws["A1"].font = Font(name="Arial", bold=True, size=14, color="1B5E20")
 
-    ws.merge_cells("A2:G2")
+    ws.merge_cells("A2:I2")
     info_parts = []
     if nivel_name: info_parts.append(f"Nivel: {nivel_name}")
     if grado_name: info_parts.append(f"Grado: {grado_name}")
@@ -5569,17 +5569,17 @@ async def generate_student_template(
 
     # Instructions row
     instruction_font = Font(name="Arial", italic=True, size=9, color="666666")
-    ws.merge_cells("A3:G3")
+    ws.merge_cells("A3:I3")
     ws["A3"] = "Instrucciones: Complete los datos de los estudiantes en las filas inferiores y luego vuelva a subir este archivo en el sistema para importarlos automaticamente."
     ws["A3"].font = instruction_font
 
     # Auto-generated credentials note
     note_font = Font(name="Arial", italic=True, size=9, color="1565C0")
-    ws.merge_cells("A4:G4")
+    ws.merge_cells("A4:I4")
     ws["A4"] = "Nota: El usuario y contrasena del estudiante seran generados automaticamente por el sistema."
     ws["A4"].font = note_font
 
-    headers = ["Nombre", "Apellido", "DNI", "Celular", "Correo", "Direccion", "Observaciones"]
+    headers = ["Nombre", "Apellido", "DNI", "Cumpleanos", "Genero", "Celular", "Correo", "Direccion", "Observaciones"]
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=6, column=col, value=header)
         cell.fill = header_fill
@@ -5587,7 +5587,7 @@ async def generate_student_template(
         cell.alignment = Alignment(horizontal="center", vertical="center")
         cell.border = thin_border
 
-    col_widths = [20, 20, 15, 15, 30, 35, 30]
+    col_widths = [20, 20, 15, 15, 12, 15, 30, 35, 30]
     for i, w in enumerate(col_widths, 1):
         ws.column_dimensions[ws.cell(row=6, column=i).column_letter].width = w
 
@@ -5595,7 +5595,7 @@ async def generate_student_template(
     ws.freeze_panes = "A7"
 
     # Example row
-    example_data = ["Juan", "Perez", "78451236", "987654321", "juan@email.com", "Av. Lima 123", "---"]
+    example_data = ["Juan", "Perez", "78451236", "15/03/2010", "Masculino", "987654321", "juan@email.com", "Av. Lima 123", "---"]
     example_font = Font(name="Arial", italic=True, size=10, color="999999")
     for col, val in enumerate(example_data, 1):
         cell = ws.cell(row=7, column=col, value=val)
@@ -5603,7 +5603,7 @@ async def generate_student_template(
         cell.border = thin_border
 
     for row in range(8, 13):
-        for col in range(1, 8):
+        for col in range(1, 10):
             ws.cell(row=row, column=col).border = thin_border
 
     # ── Hidden metadata sheet for verification ──
@@ -5788,6 +5788,8 @@ async def import_students(
         "nombre": "name", "name": "name",
         "apellido": "last_name", "apellidos": "last_name", "last_name": "last_name",
         "dni": "dni", "documento": "dni",
+        "cumpleanos": "birthday", "cumpleaños": "birthday", "birthday": "birthday", "fecha_nacimiento": "birthday",
+        "genero": "gender", "género": "gender", "gender": "gender", "sexo": "gender",
         "celular": "phone", "telefono": "phone", "phone": "phone",
         "correo": "email", "email": "email",
         "direccion": "address", "address": "address",
@@ -5829,6 +5831,31 @@ async def import_students(
         phone = row.get("phone", "").strip()
         address = row.get("address", "").strip()
         notes = row.get("notes", "").strip()
+        birthday_raw = row.get("birthday", "").strip()
+        gender_raw = row.get("gender", "").strip().lower()
+
+        # Parse birthday
+        birthday = ""
+        if birthday_raw:
+            birthday_str = str(birthday_raw).strip()
+            for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%m/%d/%Y", "%d-%m-%Y"):
+                try:
+                    birthday = datetime.strptime(birthday_str, fmt).strftime("%Y-%m-%d")
+                    break
+                except (ValueError, TypeError):
+                    pass
+            if not birthday:
+                birthday = birthday_str
+
+        # Normalize gender
+        gender = ""
+        if gender_raw:
+            if gender_raw in ("masculino", "male", "m", "hombre"):
+                gender = "male"
+            elif gender_raw in ("femenino", "female", "f", "mujer"):
+                gender = "female"
+            else:
+                gender = gender_raw
 
         errors = []
         if not name:
@@ -5866,6 +5893,8 @@ async def import_students(
             "email": email or None,
             "phone": phone or None,
             "dni": dni or None,
+            "birthday": birthday or None,
+            "gender": gender or None,
             "address": address or None,
             "role": "student",
             "school_id": school_id,

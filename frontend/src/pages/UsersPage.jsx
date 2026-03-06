@@ -833,6 +833,23 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
               />
             </div>
 
+            {/* DNI */}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">DNI <span className="text-red-500">*</span></label>
+              <input
+                type="text"
+                value={form.dni}
+                onChange={(e) => {
+                  const value = e.target.value.replace(/\D/g, '').slice(0, 8);
+                  handleChange('dni', value);
+                }}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                placeholder="12345678"
+                maxLength={8}
+                data-testid="create-user-dni"
+              />
+            </div>
+
             {/* Phone */}
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-2">Celular / WhatsApp</label>
