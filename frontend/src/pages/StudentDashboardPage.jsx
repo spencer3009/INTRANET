@@ -7,9 +7,6 @@ import MessageCenter from "../components/MessageCenter";
 import MobileBottomNav from "../components/MobileBottomNav";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
-import NewsWidget from "../components/NewsWidget";
-import CalendarWidget from "../components/CalendarWidget";
-import SurveysWidget from "../components/SurveysWidget";
 import {
   BookOpen,
   ClipboardList,
@@ -763,13 +760,6 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
               {/* Calendar - Same data as Owner's Portal */}
               <MiniCalendar events={calendarEvents} />
             </div>
-          </div>
-
-          {/* Dashboard Widgets: Noticias, Calendario, Encuestas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 pb-20 lg:pb-6" data-testid="dashboard-widgets">
-            <NewsWidget />
-            <CalendarWidget events={calendarEvents} />
-            <SurveysWidget />
           </div>
         </main>
       </div>

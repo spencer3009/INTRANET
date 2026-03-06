@@ -3,13 +3,10 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AdminSidebar from "@/components/AdminSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
-import NewsWidget from "@/components/NewsWidget";
-import CalendarWidget from "@/components/CalendarWidget";
-import SurveysWidget from "@/components/SurveysWidget";
 import { 
   Users, GraduationCap, UserCog, UserCheck, BookOpen, 
   Calendar, TrendingUp, AlertCircle, Loader2, ArrowRight,
-  Clock, CheckCircle, XCircle, BarChart3
+  Clock, CheckCircle, XCircle, BarChart3, Newspaper, CalendarDays, ClipboardList
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -259,6 +256,63 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
                 />
               </div>
 
+              {/* Gestión Rápida: Noticias, Eventos, Encuestas */}
+              <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6" data-testid="dashboard-quick-actions">
+                <button
+                  onClick={() => navigateTo('/noticias')}
+                  className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-blue-300 hover:shadow-md transition-all text-left overflow-hidden"
+                  data-testid="quick-action-noticias"
+                >
+                  <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500 transition-colors">
+                      <Newspaper className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm sm:text-base">Noticias</p>
+                      <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Gestionar avisos</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors flex-shrink-0" />
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigateTo('/calendario')}
+                  className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-violet-300 hover:shadow-md transition-all text-left overflow-hidden"
+                  data-testid="quick-action-calendario"
+                >
+                  <div className="absolute top-0 left-0 w-full h-1 bg-violet-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0 group-hover:bg-violet-500 transition-colors">
+                      <CalendarDays className="w-5 h-5 text-violet-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm sm:text-base">Eventos</p>
+                      <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Calendario escolar</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigateTo('/encuestas')}
+                  className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-emerald-300 hover:shadow-md transition-all text-left overflow-hidden"
+                  data-testid="quick-action-encuestas"
+                >
+                  <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500 transition-colors">
+                      <ClipboardList className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm sm:text-base">Encuestas</p>
+                      <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Crear y gestionar</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors flex-shrink-0" />
+                  </div>
+                </button>
+              </div>
+
               {/* Content Grid */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Quick Actions */}
@@ -337,13 +391,6 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
                     </div>
                   )}
                 </div>
-              </div>
-
-              {/* Dashboard Widgets: Noticias, Calendario, Encuestas */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6" data-testid="dashboard-widgets">
-                <NewsWidget />
-                <CalendarWidget />
-                <SurveysWidget />
               </div>
             </>
           )}

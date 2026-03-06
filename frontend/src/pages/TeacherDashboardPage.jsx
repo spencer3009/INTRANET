@@ -8,9 +8,6 @@ import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
 import StudentHeader from "../components/StudentHeader";
 import TeacherFooter from "../components/TeacherFooter";
-import NewsWidget from "../components/NewsWidget";
-import CalendarWidget from "../components/CalendarWidget";
-import SurveysWidget from "../components/SurveysWidget";
 import {
   BookOpen,
   ClipboardList,
@@ -623,13 +620,6 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
               {/* Mini Calendar */}
               <MiniCalendar events={calendarEvents} />
             </div>
-          </div>
-
-          {/* Dashboard Widgets: Noticias, Calendario, Encuestas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6" data-testid="dashboard-widgets">
-            <NewsWidget />
-            <CalendarWidget events={calendarEvents} />
-            <SurveysWidget />
           </div>
 
           {/* Footer */}

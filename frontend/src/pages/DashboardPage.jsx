@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
@@ -13,15 +14,12 @@ import MiniCalendar from "@/components/MiniCalendar";
 import ProfileCard from "@/components/ProfileCard";
 import StudentChart from "@/components/StudentChart";
 import AttendanceAndNews from "@/components/AttendanceAndNews";
-import NewsWidget from "@/components/NewsWidget";
-import CalendarWidget from "@/components/CalendarWidget";
-import SurveysWidget from "@/components/SurveysWidget";
 import DemoBanner from "@/components/DemoBanner";
 import ReminderPopup from "@/components/ReminderPopup";
 import MessageCenter from "@/components/MessageCenter";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import SubscriptionCard from "@/components/SubscriptionCard";
-import { AlertTriangle, RefreshCw, CheckCircle, XCircle } from "lucide-react";
+import { AlertTriangle, RefreshCw, CheckCircle, XCircle, Newspaper, CalendarDays, ClipboardList, ArrowRight } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -108,6 +106,7 @@ function PermissionsFixer({ token, onFixed }) {
 }
 
 export default function DashboardPage({ user, token, onLogout, routeSubdomain }) {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [metrics, setMetrics] = useState(null);
   const [ownerStats, setOwnerStats] = useState(null);
@@ -233,6 +232,63 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
 
           {/* Subscription Card removed - now integrated into ProfileCard */}
 
+          {/* Gestión Rápida: Noticias, Eventos, Encuestas */}
+          <div className="grid grid-cols-3 gap-3 sm:gap-4 mt-6" data-testid="dashboard-quick-actions">
+            <button
+              onClick={() => navigate(subdomain ? `/${subdomain}/noticias` : '/noticias')}
+              className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-blue-300 hover:shadow-md transition-all text-left overflow-hidden"
+              data-testid="quick-action-noticias"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0 group-hover:bg-blue-500 transition-colors">
+                  <Newspaper className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800 text-sm sm:text-base">Noticias</p>
+                  <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Gestionar avisos</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-500 transition-colors flex-shrink-0" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate(subdomain ? `/${subdomain}/calendario` : '/calendario')}
+              className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-violet-300 hover:shadow-md transition-all text-left overflow-hidden"
+              data-testid="quick-action-calendario"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-violet-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-violet-100 flex items-center justify-center flex-shrink-0 group-hover:bg-violet-500 transition-colors">
+                  <CalendarDays className="w-5 h-5 text-violet-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800 text-sm sm:text-base">Eventos</p>
+                  <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Calendario escolar</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-violet-500 transition-colors flex-shrink-0" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => navigate(subdomain ? `/${subdomain}/encuestas` : '/encuestas')}
+              className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-emerald-300 hover:shadow-md transition-all text-left overflow-hidden"
+              data-testid="quick-action-encuestas"
+            >
+              <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500 transition-colors">
+                  <ClipboardList className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-slate-800 text-sm sm:text-base">Encuestas</p>
+                  <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Crear y gestionar</p>
+                </div>
+                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors flex-shrink-0" />
+              </div>
+            </button>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
             {/* Left column */}
             <div className="lg:col-span-8 space-y-6">
@@ -257,13 +313,6 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
               <EventsList events={calendarEvents.length > 0 ? calendarEvents : events} />
               <MiniCalendar events={calendarEvents} />
             </div>
-          </div>
-
-          {/* Dashboard Widgets: Noticias, Calendario, Encuestas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6" data-testid="dashboard-widgets">
-            <NewsWidget news={news} />
-            <CalendarWidget events={calendarEvents} />
-            <SurveysWidget />
           </div>
 
           {/* Footer */}

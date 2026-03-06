@@ -7,9 +7,6 @@ import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
-import NewsWidget from "../components/NewsWidget";
-import CalendarWidget from "../components/CalendarWidget";
-import SurveysWidget from "../components/SurveysWidget";
 import {
   BookOpen,
   ClipboardList,
@@ -942,13 +939,6 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
                 })()}
               </div>
             </div>
-          </div>
-
-          {/* Dashboard Widgets: Noticias, Calendario, Encuestas */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6 pb-20 lg:pb-6" data-testid="dashboard-widgets">
-            <NewsWidget />
-            <CalendarWidget events={calendarEvents} />
-            <SurveysWidget />
           </div>
         </main>
       </div>
