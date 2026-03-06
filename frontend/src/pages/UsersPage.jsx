@@ -1509,6 +1509,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // QR Modal states
   const [showQRModal, setShowQRModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [importModalStep, setImportModalStep] = useState("menu"); // "menu" | "upload" | "importing" | "result"
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importFile, setImportFile] = useState(null);
@@ -1545,6 +1546,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     localStorage.getItem(STUDENT_FILTER_KEYS.VIEW_MODE) || 'grouped'
   );
   const [studentStatusFilter, setStudentStatusFilter] = useState("");
+  const [studentFilterShift, setStudentFilterShift] = useState("");
   const [expandedLevels, setExpandedLevels] = useState(() => {
     try {
       const saved = localStorage.getItem(STUDENT_FILTER_KEYS.EXPANDED_LEVELS);
@@ -2085,41 +2087,6 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   </button>
                   {selectedRole === 'student' && (
                     <>
-                      <button
-                        onClick={() => {
-                          const params = new URLSearchParams();
-                          if (studentFilterLevel) params.set("nivel_id", studentFilterLevel);
-                          if (studentFilterGrade) params.set("grado_id", studentFilterGrade);
-                          if (studentFilterSection) params.set("seccion_id", studentFilterSection);
-                          const url = `${API}/students/import/template?${params.toString()}`;
-                          fetch(url, { headers: { Authorization: `Bearer ${token}` } })
-                            .then(r => {
-                              if (!r.ok) throw new Error("Error");
-                              return r.blob();
-                            })
-                            .then(blob => {
-                              const a = document.createElement("a");
-                              a.href = URL.createObjectURL(blob);
-                              a.download = "plantilla_estudiantes.xlsx";
-                              a.click();
-                              URL.revokeObjectURL(a.href);
-                            })
-                            .catch(() => toast.error("Error al descargar plantilla"));
-                        }}
-                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-semibold transition-all hover:shadow-lg"
-                        data-testid="download-template-btn"
-                      >
-                        <FileSpreadsheet className="w-5 h-5" />
-                        <span className="hidden sm:inline">Descargar Plantilla</span>
-                      </button>
-                      <button
-                        onClick={() => setShowImportModal(true)}
-                        className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-xl font-semibold transition-all hover:shadow-lg"
-                        data-testid="import-students-btn"
-                      >
-                        <FileUp className="w-5 h-5" />
-                        <span className="hidden sm:inline">Importar Archivo</span>
-                      </button>
                     </>
                   )}
                 </div>
@@ -2178,7 +2145,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             </div>
             
             {/* Filters row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               {/* Level filter */}
               <select
                 value={studentFilterLevel}
@@ -2190,7 +2157,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 text-sm font-medium"
                 data-testid="filter-level"
               >
-                <option value="">📚 Todos los niveles</option>
+                <option value="">Todos los niveles</option>
                 {levels.filter(l => l.activo).map(l => (
                   <option key={l.id} value={l.id}>{l.nombre}</option>
                 ))}
@@ -2207,7 +2174,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 disabled={!studentFilterLevel}
                 data-testid="filter-grade"
               >
-                <option value="">{studentFilterLevel ? "📖 Todos los grados" : "Primero selecciona nivel"}</option>
+                <option value="">{studentFilterLevel ? "Todos los grados" : "Primero selecciona nivel"}</option>
                 {filteredGradesForStudentFilter.filter(g => g.activo).map(g => (
                   <option key={g.id} value={g.id}>{g.nombre}</option>
                 ))}
@@ -2221,9 +2188,22 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 disabled={!studentFilterGrade}
                 data-testid="filter-section"
               >
-                <option value="">{studentFilterGrade ? "🏷️ Todas las secciones" : "Primero selecciona grado"}</option>
+                <option value="">{studentFilterGrade ? "Todas las secciones" : "Primero selecciona grado"}</option>
                 {filteredSectionsForStudentFilter.filter(s => s.activo).map(s => (
-                  <option key={s.id} value={s.id}>Sección {s.nombre}</option>
+                  <option key={s.id} value={s.id}>Seccion {s.nombre}</option>
+                ))}
+              </select>
+
+              {/* Shift/Turno filter */}
+              <select
+                value={studentFilterShift}
+                onChange={(e) => setStudentFilterShift(e.target.value)}
+                className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500/30 text-sm font-medium"
+                data-testid="filter-shift"
+              >
+                <option value="">Todos los turnos</option>
+                {shifts.filter(s => s.activo).map(s => (
+                  <option key={s.id} value={s.id}>{s.nombre}</option>
                 ))}
               </select>
             </div>
@@ -2294,6 +2274,38 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   </button>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            EXCEL IMPORT BLOCK - Visual block below filters for mass student import
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {selectedRole === 'student' && (
+          <div className="bg-white rounded-2xl border-2 border-emerald-200 p-6 mb-6 shadow-sm" data-testid="excel-import-block">
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              {/* Excel Icon */}
+              <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center flex-shrink-0 border-2 border-emerald-100">
+                <FileSpreadsheet className="w-10 h-10 text-emerald-600" />
+              </div>
+              {/* Text */}
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-lg font-bold text-slate-800" style={{ fontFamily: 'Manrope, sans-serif' }}>
+                  Importacion masiva de estudiantes
+                </h3>
+                <p className="text-sm text-slate-500 mt-0.5">
+                  Descarga la plantilla, completa los datos y sube el archivo para crear estudiantes automaticamente con QR.
+                </p>
+              </div>
+              {/* Button */}
+              <button
+                onClick={() => setShowImportModal(true)}
+                className="flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5 flex-shrink-0"
+                data-testid="manage-excel-btn"
+              >
+                <FileSpreadsheet className="w-5 h-5" />
+                Administrar archivo Excel
+              </button>
             </div>
           </div>
         )}
@@ -3924,169 +3936,203 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
       {/* ═══════════════ IMPORT MODAL ═══════════════ */}
       {showImportModal && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={() => { if (!importing) { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportShift(""); } }}>
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={() => { if (!importing) { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); } }}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="import-modal">
+            {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <FileUp className="w-5 h-5 text-blue-600" />
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Importar Estudiantes</h3>
-                  <p className="text-xs text-gray-500">Suba un archivo .xlsx, .xls o .csv</p>
+                  <h3 className="text-lg font-bold text-gray-900">Importar estudiantes desde Excel</h3>
+                  <p className="text-xs text-gray-500">Cree estudiantes en masa desde un archivo</p>
                 </div>
               </div>
               {!importing && (
-                <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportShift(""); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+                <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400" data-testid="import-modal-close">
                   <X className="w-5 h-5" />
                 </button>
               )}
             </div>
 
             <div className="p-5">
-              {!importResult && !importing && (
-                <>
-                  {/* Filter tags */}
+              {/* STEP: MENU */}
+              {importModalStep === "menu" && (
+                <div className="space-y-3">
                   {(studentFilterLevel || studentFilterGrade || studentFilterSection) && (
-                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
-                      <p className="text-xs font-semibold text-emerald-700 mb-1">Filtros seleccionados:</p>
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-1">
+                      <p className="text-xs font-semibold text-emerald-700 mb-1">Filtros academicos activos:</p>
                       <div className="flex flex-wrap gap-2">
-                        {studentFilterLevel && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">{levels.find(l => l.id === studentFilterLevel)?.nombre || "Nivel"}</span>}
-                        {studentFilterGrade && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">{grades.find(g => g.id === studentFilterGrade)?.nombre || "Grado"}</span>}
-                        {studentFilterSection && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Seccion: {sections.find(s => s.id === studentFilterSection)?.nombre || "?"}</span>}
+                        {studentFilterLevel && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{levels.find(l => l.id === studentFilterLevel)?.nombre}</span>}
+                        {studentFilterGrade && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{grades.find(g => g.id === studentFilterGrade)?.nombre}</span>}
+                        {studentFilterSection && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">Seccion {sections.find(s => s.id === studentFilterSection)?.nombre}</span>}
+                        {studentFilterShift && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{shifts.find(s => s.id === studentFilterShift)?.nombre}</span>}
                       </div>
                     </div>
                   )}
-
-                  {/* Shift selector */}
-                  {shifts.length > 0 && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Turno</label>
-                      <select
-                        value={importShift}
-                        onChange={e => setImportShift(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                        data-testid="import-shift-select"
-                      >
-                        <option value="">Sin turno</option>
-                        {shifts.filter(s => s.activo).map(s => (
-                          <option key={s.id} value={s.id}>{s.nombre} ({s.hora_inicio} - {s.hora_fin})</option>
-                        ))}
-                      </select>
+                  <button
+                    onClick={() => {
+                      if (!studentFilterLevel || !studentFilterGrade || !studentFilterSection) {
+                        toast.error("Debe seleccionar Nivel, Grado y Seccion antes de descargar la plantilla.");
+                        return;
+                      }
+                      const params = new URLSearchParams();
+                      params.set("nivel_id", studentFilterLevel);
+                      params.set("grado_id", studentFilterGrade);
+                      params.set("seccion_id", studentFilterSection);
+                      if (studentFilterShift) params.set("turno_id", studentFilterShift);
+                      const url = `${API}/students/import/template?${params.toString()}`;
+                      fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+                        .then(r => { if (!r.ok) throw new Error("Error"); return r.blob(); })
+                        .then(blob => {
+                          const a = document.createElement("a");
+                          a.href = URL.createObjectURL(blob);
+                          a.download = "plantilla_estudiantes.xlsx";
+                          a.click();
+                          URL.revokeObjectURL(a.href);
+                          toast.success("Plantilla descargada correctamente");
+                        })
+                        .catch(() => toast.error("Error al descargar plantilla"));
+                    }}
+                    className="w-full flex items-center gap-4 p-5 bg-emerald-50 border-2 border-emerald-200 rounded-2xl hover:bg-emerald-100 hover:border-emerald-300 transition-all group text-left"
+                    data-testid="download-template-btn"
+                  >
+                    <div className="w-14 h-14 bg-emerald-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                      <Download className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-emerald-800 text-base">Descargar plantilla</p>
+                      <p className="text-xs text-emerald-600 mt-0.5">Descarga el archivo Excel con las columnas necesarias</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                  </button>
+                  <button
+                    onClick={() => setImportModalStep("upload")}
+                    className="w-full flex items-center gap-4 p-5 bg-blue-50 border-2 border-blue-200 rounded-2xl hover:bg-blue-100 hover:border-blue-300 transition-all group text-left"
+                    data-testid="upload-file-option-btn"
+                  >
+                    <div className="w-14 h-14 bg-blue-500 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                      <FileUp className="w-7 h-7 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-blue-800 text-base">Cargar archivo</p>
+                      <p className="text-xs text-blue-600 mt-0.5">Suba el archivo completado para crear estudiantes</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-blue-400 flex-shrink-0" />
+                  </button>
+                  {!(studentFilterLevel && studentFilterGrade && studentFilterSection) && (
+                    <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-700">Debe seleccionar <span className="font-bold">Nivel, Grado y Seccion</span> en los filtros antes de descargar la plantilla.</p>
                     </div>
                   )}
+                </div>
+              )}
 
-                  {/* Drag & drop zone */}
+              {/* STEP: UPLOAD */}
+              {importModalStep === "upload" && !importing && !importResult && (
+                <div>
+                  <button onClick={() => { setImportModalStep("menu"); setImportFile(null); }} className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4 transition-colors" data-testid="import-back-btn">
+                    <ArrowLeft className="w-4 h-4" /> Volver
+                  </button>
+                  {!(studentFilterLevel && studentFilterGrade && studentFilterSection) && (
+                    <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl mb-4">
+                      <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-amber-700">Seleccione <span className="font-bold">Nivel, Grado y Seccion</span> en los filtros para asignar los estudiantes correctamente.</p>
+                    </div>
+                  )}
+                  {(studentFilterLevel || studentFilterGrade || studentFilterSection) && (
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 mb-4">
+                      <p className="text-xs font-semibold text-slate-600 mb-1.5">Los estudiantes se asignaran a:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {studentFilterLevel && <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">{levels.find(l => l.id === studentFilterLevel)?.nombre}</span>}
+                        {studentFilterGrade && <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">{grades.find(g => g.id === studentFilterGrade)?.nombre}</span>}
+                        {studentFilterSection && <span className="px-2.5 py-1 bg-violet-100 text-violet-700 text-xs font-medium rounded-full">Seccion {sections.find(s => s.id === studentFilterSection)?.nombre}</span>}
+                        {studentFilterShift && <span className="px-2.5 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">{shifts.find(s => s.id === studentFilterShift)?.nombre}</span>}
+                      </div>
+                    </div>
+                  )}
                   <div
-                    className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${importDragOver ? 'border-blue-500 bg-blue-50' : importFile ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200 hover:border-blue-400'}`}
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center transition-all ${importDragOver ? 'border-blue-500 bg-blue-50 scale-[1.02]' : importFile ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200 hover:border-blue-400'}`}
                     onDragOver={e => { e.preventDefault(); setImportDragOver(true); }}
                     onDragLeave={() => setImportDragOver(false)}
-                    onDrop={e => {
-                      e.preventDefault();
-                      setImportDragOver(false);
-                      const f = e.dataTransfer.files?.[0];
-                      if (f) {
-                        const ext = f.name.split('.').pop()?.toLowerCase();
-                        if (['xlsx', 'xls', 'csv'].includes(ext)) {
-                          setImportFile(f);
-                        } else {
-                          toast.error("Formato no soportado. Use .xlsx, .xls o .csv");
-                        }
-                      }
-                    }}
+                    onDrop={e => { e.preventDefault(); setImportDragOver(false); const f = e.dataTransfer.files?.[0]; if (f) { const ext = f.name.split('.').pop()?.toLowerCase(); if (['xlsx','xls','csv'].includes(ext)) setImportFile(f); else toast.error("Formato no soportado. Use .xlsx, .xls o .csv"); } }}
                     data-testid="import-drop-zone"
                   >
                     {importFile ? (
                       <div className="flex flex-col items-center gap-2">
-                        <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center">
-                          <CheckCircle2 className="w-7 h-7 text-emerald-600" />
-                        </div>
-                        <p className="text-emerald-700 font-semibold">{importFile.name}</p>
+                        <div className="w-16 h-16 bg-emerald-100 rounded-2xl flex items-center justify-center"><CheckCircle2 className="w-8 h-8 text-emerald-600" /></div>
+                        <p className="text-emerald-700 font-bold text-base">{importFile.name}</p>
                         <p className="text-xs text-emerald-500">{(importFile.size / 1024).toFixed(1)} KB</p>
-                        <button
-                          onClick={() => setImportFile(null)}
-                          className="text-xs text-red-500 hover:text-red-600 font-medium mt-1"
-                          data-testid="import-remove-file"
-                        >
-                          Quitar archivo
-                        </button>
+                        <button onClick={() => setImportFile(null)} className="text-xs text-red-500 hover:text-red-600 font-semibold mt-1 px-3 py-1 rounded-lg hover:bg-red-50 transition-colors" data-testid="import-remove-file">Quitar archivo</button>
                       </div>
                     ) : (
                       <>
-                        <FileSpreadsheet className={`w-12 h-12 mx-auto mb-3 ${importDragOver ? 'text-blue-500' : 'text-gray-300'}`} />
-                        <p className="text-gray-600 font-medium mb-1">
-                          {importDragOver ? 'Suelte el archivo aqui' : 'Arrastre o seleccione un archivo'}
-                        </p>
+                        <FileSpreadsheet className={`w-14 h-14 mx-auto mb-3 ${importDragOver ? 'text-blue-500' : 'text-gray-300'}`} />
+                        <p className="text-gray-600 font-semibold mb-1">{importDragOver ? 'Suelte el archivo aqui' : 'Arrastre o seleccione un archivo'}</p>
                         <p className="text-xs text-gray-400 mb-4">Formatos: .xlsx, .xls, .csv</p>
                         <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-2.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors" data-testid="import-file-input-label">
-                          <Upload className="w-4 h-4" />
-                          Seleccionar Archivo
-                          <input
-                            type="file"
-                            accept=".xlsx,.xls,.csv"
-                            className="hidden"
-                            data-testid="import-file-input"
-                            onChange={e => {
-                              const f = e.target.files?.[0];
-                              if (f) setImportFile(f);
-                              e.target.value = '';
-                            }}
-                          />
+                          <Upload className="w-4 h-4" /> Seleccionar Archivo
+                          <input type="file" accept=".xlsx,.xls,.csv" className="hidden" data-testid="import-file-input" onChange={e => { const f = e.target.files?.[0]; if (f) setImportFile(f); e.target.value = ''; }} />
                         </label>
                       </>
                     )}
                   </div>
-                  <p className="text-xs text-gray-400 mt-3 text-center">
-                    Descargue primero la plantilla, complete los datos y suba el archivo aqui.
-                  </p>
-                </>
-              )}
-
-              {importing && (
-                <div className="text-center py-10">
-                  <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-                  <p className="text-gray-700 font-semibold text-lg">Procesando estudiantes...</p>
-                  <p className="text-sm text-gray-400 mt-1">Esto puede tomar unos segundos</p>
                 </div>
               )}
 
+              {/* STEP: IMPORTING */}
+              {importing && (
+                <div className="text-center py-10">
+                  <div className="relative w-20 h-20 mx-auto mb-5">
+                    <div className="absolute inset-0 rounded-full border-4 border-slate-100"></div>
+                    <div className="absolute inset-0 rounded-full border-4 border-emerald-500 border-t-transparent animate-spin"></div>
+                    <div className="absolute inset-0 flex items-center justify-center"><FileSpreadsheet className="w-8 h-8 text-emerald-500" /></div>
+                  </div>
+                  <p className="text-gray-800 font-bold text-lg">Procesando estudiantes...</p>
+                  <p className="text-sm text-gray-400 mt-1">Creando cuentas, codigos y QR automaticamente</p>
+                  <div className="mt-5 mx-auto w-48 h-2 bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-500 rounded-full animate-pulse" style={{ width: '60%' }}></div></div>
+                </div>
+              )}
+
+              {/* STEP: RESULT */}
               {importResult && !importing && (
                 <div className="py-4">
                   {importResult.error ? (
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <AlertCircle className="w-8 h-8 text-red-500" />
-                      </div>
+                      <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-8 h-8 text-red-500" /></div>
                       <p className="text-red-600 font-semibold text-lg">{importResult.error}</p>
                     </div>
                   ) : (
                     <div className="text-center">
-                      <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle2 className="w-8 h-8 text-green-600" />
-                      </div>
+                      <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><CheckCircle2 className="w-8 h-8 text-green-600" /></div>
                       <p className="text-green-700 font-bold text-xl mb-4">Importacion Completada</p>
                       <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="bg-green-50 rounded-xl p-4">
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                           <p className="text-3xl font-bold text-green-600" data-testid="import-created-count">{importResult.created_count}</p>
-                          <p className="text-sm text-green-700">Importados</p>
+                          <p className="text-sm text-green-700 font-medium">importados correctamente</p>
                         </div>
-                        <div className="bg-amber-50 rounded-xl p-4">
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
                           <p className="text-3xl font-bold text-amber-600" data-testid="import-pending-count">{importResult.pending_count}</p>
-                          <p className="text-sm text-amber-700">Pendientes</p>
+                          <p className="text-sm text-amber-700 font-medium">con errores en Pendientes</p>
                         </div>
                       </div>
                       {importResult.pending_count > 0 && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
-                          <p className="text-sm font-semibold text-amber-700 mb-2">Registros con errores:</p>
-                          <div className="space-y-1 max-h-40 overflow-y-auto">
-                            {importResult.pending?.map((p, i) => (
-                              <div key={i} className="text-xs text-amber-600">
-                                <span className="font-medium">Fila {p.row}:</span> {p.name} — {p.errors?.join(", ")}
-                              </div>
-                            ))}
+                        <>
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left mb-4">
+                            <p className="text-sm font-semibold text-amber-700 mb-2">Registros con errores:</p>
+                            <div className="space-y-1 max-h-40 overflow-y-auto">
+                              {importResult.pending?.map((p, i) => (
+                                <div key={i} className="text-xs text-amber-600 flex gap-1"><span className="font-bold flex-shrink-0">Fila {p.row}:</span><span>{p.name} — {p.errors?.join(", ")}</span></div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                          <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportModalStep("menu"); setStudentStatusFilter("pending"); }} className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors" data-testid="view-pending-btn">
+                            <AlertTriangle className="w-4 h-4" /> Ver pendientes
+                          </button>
+                        </>
                       )}
                     </div>
                   )}
@@ -4094,43 +4140,32 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               )}
             </div>
 
+            {/* Footer */}
             <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
-              {!importing && !importResult && importFile && (
+              {importModalStep === "upload" && !importing && !importResult && importFile && (
                 <button
                   onClick={async () => {
-                    setImporting(true);
+                    setImporting(true); setImportModalStep("importing");
                     const formData = new FormData();
                     formData.append("file", importFile);
                     formData.append("nivel_id", studentFilterLevel || "");
                     formData.append("grado_id", studentFilterGrade || "");
                     formData.append("seccion_id", studentFilterSection || "");
-                    formData.append("turno_id", importShift || "");
+                    formData.append("turno_id", studentFilterShift || "");
                     try {
-                      const res = await axios.post(`${API}/students/import`, formData, {
-                        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
-                      });
-                      setImportResult(res.data);
-                      setImportFile(null);
-                      loadUsers();
-                    } catch (err) {
-                      setImportResult({ error: err.response?.data?.detail || "Error al importar" });
-                    } finally {
-                      setImporting(false);
-                    }
+                      const res = await axios.post(`${API}/students/import`, formData, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } });
+                      setImportResult(res.data); setImportFile(null); setImportModalStep("result"); loadUsers();
+                    } catch (err) { setImportResult({ error: err.response?.data?.detail || "Error al importar" }); setImportModalStep("result"); }
+                    finally { setImporting(false); }
                   }}
-                  className="px-6 py-2.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
+                  className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-2"
                   data-testid="import-submit-btn"
                 >
-                  <FileUp className="w-4 h-4" />
-                  Importar Estudiantes
+                  <FileUp className="w-4 h-4" /> Importar Estudiantes
                 </button>
               )}
               {!importing && (
-                <button
-                  onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportShift(""); }}
-                  className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-                  data-testid="import-close"
-                >
+                <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); }} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors" data-testid="import-close">
                   {importResult ? "Cerrar" : "Cancelar"}
                 </button>
               )}

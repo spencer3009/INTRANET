@@ -5563,9 +5563,15 @@ async def generate_student_template(
     ws["A2"].font = info_font
     ws["A2"].fill = info_fill
 
+    # Instructions row
+    instruction_font = Font(name="Arial", italic=True, size=9, color="666666")
+    ws.merge_cells("A3:G3")
+    ws["A3"] = "Instrucciones: Complete los datos de los estudiantes en las filas inferiores y luego vuelva a subir este archivo en el sistema para importarlos automaticamente."
+    ws["A3"].font = instruction_font
+
     headers = ["Nombre", "Apellido", "DNI", "Celular", "Correo", "Direccion", "Observaciones"]
     for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=4, column=col, value=header)
+        cell = ws.cell(row=5, column=col, value=header)
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -5573,9 +5579,17 @@ async def generate_student_template(
 
     col_widths = [20, 20, 15, 15, 30, 35, 30]
     for i, w in enumerate(col_widths, 1):
-        ws.column_dimensions[ws.cell(row=4, column=i).column_letter].width = w
+        ws.column_dimensions[ws.cell(row=5, column=i).column_letter].width = w
 
-    for row in range(5, 10):
+    # Example row
+    example_data = ["Juan", "Perez", "78451236", "987654321", "juan@email.com", "Av. Lima 123", "---"]
+    example_font = Font(name="Arial", italic=True, size=10, color="999999")
+    for col, val in enumerate(example_data, 1):
+        cell = ws.cell(row=6, column=col, value=val)
+        cell.font = example_font
+        cell.border = thin_border
+
+    for row in range(7, 12):
         for col in range(1, 8):
             ws.cell(row=row, column=col).border = thin_border
 
@@ -5712,6 +5726,11 @@ async def import_students(
         row = {normalize_key(k): v for k, v in raw_row.items() if k.strip()}
         name = row.get("name", "").strip()
         last_name = row.get("last_name", "").strip()
+
+        # Skip example row from template
+        if name.lower() == "juan" and last_name.lower() == "perez" and row.get("dni", "").strip() == "78451236":
+            continue
+
         dni = row.get("dni", "").strip()
         email = row.get("email", "").strip().lower()
         phone = row.get("phone", "").strip()
