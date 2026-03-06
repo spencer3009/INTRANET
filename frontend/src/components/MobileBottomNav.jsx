@@ -1,7 +1,7 @@
 import { Link, useParams, useLocation } from "react-router-dom";
 import {
   Home, Clock, ClipboardList, Wallet, MessageSquare,
-  BookOpen, Users, BarChart3, CalendarCheck
+  BookOpen, Users, BarChart3, CalendarCheck, ScanLine
 } from "lucide-react";
 
 const parentItems = [
@@ -17,7 +17,7 @@ const teacherItems = [
   { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/teacher/attendance" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/teacher/tasks" },
   { id: "cursos", label: "Cursos", icon: BookOpen, route: "/teacher/courses" },
-  { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/teacher/messages" },
+  { id: "qr", label: "Escanear QR", icon: ScanLine, route: "/teacher/attendance?tab=qr-scanner" },
 ];
 
 export default function MobileBottomNav({ role = "parent" }) {

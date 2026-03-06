@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import TeacherSidebar from "../components/TeacherSidebar";
 import MobileBottomNav from "../components/MobileBottomNav";
@@ -825,13 +825,22 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("students");
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "students");
   
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     loadSettings();
   }, []);
+
+  // Sync tab from URL param
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ATTENDANCE_TABS.some(t => t.id === tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
 
   const loadSettings = async () => {
     try {
