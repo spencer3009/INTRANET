@@ -5971,6 +5971,70 @@ async def activate_pending_student(student_id: str, current_user = Depends(get_c
         raise HTTPException(status_code=404, detail="Estudiante no encontrado")
     return {"message": "Estudiante activado correctamente"}
 
+@api_router.put("/students/pending/{student_id}/edit")
+async def edit_pending_student(student_id: str, request: Request, current_user = Depends(get_current_user)):
+    """Edit a pending student's data to fix import errors"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores")
+
+    body = await request.json()
+    allowed = {"name", "last_name", "dni", "email", "phone", "address", "birthday", "gender", "notes"}
+    updates = {k: v for k, v in body.items() if k in allowed}
+    if not updates:
+        raise HTTPException(status_code=400, detail="Sin campos para actualizar")
+
+    updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+    # Re-validate: check DNI/email uniqueness
+    new_errors = []
+    school_id = user["school_id"]
+    if "dni" in updates and updates["dni"]:
+        existing = await db.users.find_one(
+            {"school_id": school_id, "dni": updates["dni"], "id": {"$ne": student_id}}, {"_id": 0, "id": 1}
+        )
+        if existing:
+            new_errors.append(f"DNI {updates['dni']} ya existe")
+    if "email" in updates and updates["email"]:
+        existing = await db.users.find_one(
+            {"school_id": school_id, "email": updates["email"], "id": {"$ne": student_id}}, {"_id": 0, "id": 1}
+        )
+        if existing:
+            new_errors.append(f"Correo {updates['email']} ya existe")
+
+    if new_errors:
+        updates["import_errors"] = new_errors
+    else:
+        updates["import_errors"] = None
+        updates["import_status"] = "imported"
+        updates["student_status"] = "active"
+
+    result = await db.users.update_one(
+        {"id": student_id, "school_id": school_id, "role": "student"},
+        {"$set": updates}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    updated = await db.users.find_one({"id": student_id}, {"_id": 0, "password": 0})
+    return {"message": "Estudiante actualizado" + (" y activado" if not new_errors else ""), "student": updated, "errors": new_errors}
+
+@api_router.delete("/students/pending/{student_id}")
+async def delete_pending_student(student_id: str, current_user = Depends(get_current_user)):
+    """Delete a pending student"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    result = await db.users.delete_one(
+        {"id": student_id, "school_id": user["school_id"], "role": "student", "import_status": "pending"}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Estudiante pendiente no encontrado")
+    return {"message": "Estudiante eliminado"}
+
 # ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC SETTINGS - NIVELES EDUCATIVOS
 # ══════════════════════════════════════════════════════════════════════════════

@@ -1533,6 +1533,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [importDragOver, setImportDragOver] = useState(false);
   const [importShift, setImportShift] = useState("");
   const [importMismatchData, setImportMismatchData] = useState(null);
+  const [showPendingImports, setShowPendingImports] = useState(false);
+  const [pendingImports, setPendingImports] = useState([]);
+  const [loadingPendingImports, setLoadingPendingImports] = useState(false);
+  const [editingPendingId, setEditingPendingId] = useState(null);
+  const [editingPendingData, setEditingPendingData] = useState({});
   const [qrStudent, setQRStudent] = useState(null);
   
   // Photo upload modal
@@ -1664,6 +1669,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     
     fetchData();
   }, [token]);
+
+  const loadUsers = async () => {
+    try {
+      const res = await axios.get(`${API}/users`, { headers });
+      setUsers(res.data);
+    } catch (err) {
+      console.error("Error reloading users", err);
+    }
+  };
+
+  const loadPendingImports = async () => {
+    setLoadingPendingImports(true);
+    try {
+      const res = await axios.get(`${API}/students/pending`, { headers });
+      setPendingImports(res.data || []);
+    } catch (err) {
+      toast.error("Error al cargar pendientes");
+    } finally {
+      setLoadingPendingImports(false);
+    }
+  };
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -2320,14 +2346,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </p>
               </div>
               {/* Button */}
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5 flex-shrink-0"
-                data-testid="manage-excel-btn"
-              >
-                <FileSpreadsheet className="w-5 h-5" />
-                Administrar archivo Excel
-              </button>
+              <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="flex items-center gap-2.5 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  data-testid="manage-excel-btn"
+                >
+                  <FileSpreadsheet className="w-5 h-5" />
+                  Administrar archivo Excel
+                </button>
+                <button
+                  onClick={() => { setShowPendingImports(true); loadPendingImports(); }}
+                  className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg"
+                  data-testid="show-pending-imports-btn"
+                >
+                  <AlertTriangle className="w-4 h-4" />
+                  Pendientes
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -3956,6 +3992,177 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         onPhotoUpdated={handlePhotoUpdated}
       />
 
+      {/* ═══════════════ PENDING IMPORTS MODAL ═══════════════ */}
+      {showPendingImports && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={() => { setShowPendingImports(false); setEditingPendingId(null); }}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()} data-testid="pending-imports-modal">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-100 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Pendientes de Importacion</h3>
+                  <p className="text-xs text-gray-500">{pendingImports.length} registro{pendingImports.length !== 1 ? 's' : ''} con errores</p>
+                </div>
+              </div>
+              <button onClick={() => { setShowPendingImports(false); setEditingPendingId(null); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400" data-testid="close-pending-modal">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-5">
+              {loadingPendingImports ? (
+                <div className="text-center py-10">
+                  <Loader2 className="w-8 h-8 text-amber-500 animate-spin mx-auto mb-3" />
+                  <p className="text-gray-500">Cargando pendientes...</p>
+                </div>
+              ) : pendingImports.length === 0 ? (
+                <div className="text-center py-10">
+                  <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto mb-3" />
+                  <p className="text-gray-600 font-semibold">No hay registros pendientes</p>
+                  <p className="text-sm text-gray-400 mt-1">Todos los estudiantes fueron importados correctamente</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {pendingImports.map(student => (
+                    <div key={student.id} className="border border-amber-200 rounded-xl overflow-hidden bg-amber-50/50" data-testid={`pending-student-${student.id}`}>
+                      {/* Student header */}
+                      <div className="flex items-center justify-between p-4">
+                        <div className="flex-1">
+                          <p className="font-bold text-slate-800">{student.name} {student.last_name}</p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1">
+                            {student.dni && <span className="text-xs text-slate-500">DNI: {student.dni}</span>}
+                            {student.email && <span className="text-xs text-slate-500">{student.email}</span>}
+                            {student.student_code && <span className="text-xs text-slate-400">{student.student_code}</span>}
+                          </div>
+                          {student.import_errors && student.import_errors.length > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-2">
+                              {student.import_errors.map((err, i) => (
+                                <span key={i} className="px-2 py-0.5 bg-red-100 text-red-600 text-xs font-medium rounded-full">{err}</span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 ml-3">
+                          <button
+                            onClick={() => {
+                              if (editingPendingId === student.id) {
+                                setEditingPendingId(null);
+                              } else {
+                                setEditingPendingId(student.id);
+                                setEditingPendingData({
+                                  name: student.name || '',
+                                  last_name: student.last_name || '',
+                                  dni: student.dni || '',
+                                  email: student.email || '',
+                                  phone: student.phone || '',
+                                  birthday: student.birthday || '',
+                                  gender: student.gender || '',
+                                  address: student.address || '',
+                                });
+                              }
+                            }}
+                            className="p-2 rounded-lg bg-blue-100 text-blue-600 hover:bg-blue-200 transition-colors"
+                            data-testid={`edit-pending-${student.id}`}
+                            title="Editar"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                await axios.delete(`${API}/students/pending/${student.id}`, { headers });
+                                toast.success("Registro eliminado");
+                                loadPendingImports();
+                              } catch { toast.error("Error al eliminar"); }
+                            }}
+                            className="p-2 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors"
+                            data-testid={`delete-pending-${student.id}`}
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Inline edit form */}
+                      {editingPendingId === student.id && (
+                        <div className="border-t border-amber-200 p-4 bg-white">
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre</label>
+                              <input value={editingPendingData.name} onChange={e => setEditingPendingData(p => ({...p, name: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Apellido</label>
+                              <input value={editingPendingData.last_name} onChange={e => setEditingPendingData(p => ({...p, last_name: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">DNI</label>
+                              <input value={editingPendingData.dni} onChange={e => setEditingPendingData(p => ({...p, dni: e.target.value.replace(/\D/g,'').slice(0,8)}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" maxLength={8} />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Correo</label>
+                              <input value={editingPendingData.email} onChange={e => setEditingPendingData(p => ({...p, email: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Celular</label>
+                              <input value={editingPendingData.phone} onChange={e => setEditingPendingData(p => ({...p, phone: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Genero</label>
+                              <select value={editingPendingData.gender} onChange={e => setEditingPendingData(p => ({...p, gender: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20">
+                                <option value="">Seleccionar</option>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Femenino">Femenino</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Cumpleanos</label>
+                              <input type="date" value={editingPendingData.birthday} onChange={e => setEditingPendingData(p => ({...p, birthday: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-semibold text-slate-600 mb-1">Direccion</label>
+                              <input value={editingPendingData.address} onChange={e => setEditingPendingData(p => ({...p, address: e.target.value}))} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20" />
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => setEditingPendingId(null)} className="px-4 py-2 text-sm bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 font-medium">Cancelar</button>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const res = await axios.put(`${API}/students/pending/${student.id}/edit`, editingPendingData, { headers });
+                                  if (res.data.errors && res.data.errors.length > 0) {
+                                    toast.error(`Aun tiene errores: ${res.data.errors.join(', ')}`);
+                                  } else {
+                                    toast.success("Estudiante corregido y activado");
+                                  }
+                                  setEditingPendingId(null);
+                                  loadPendingImports();
+                                  loadUsers();
+                                } catch (err) { toast.error(err.response?.data?.detail || "Error al guardar"); }
+                              }}
+                              className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-semibold flex items-center gap-1.5"
+                              data-testid={`save-pending-${student.id}`}
+                            >
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                              Guardar y Activar
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {/* ═══════════════ IMPORT MODAL ═══════════════ */}
       {showImportModal && (
         <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={() => { if (!importing) { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); setImportMismatchData(null); } }}>
@@ -4229,7 +4436,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                               ))}
                             </div>
                           </div>
-                          <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportModalStep("menu"); setStudentStatusFilter("pending"); }} className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors" data-testid="view-pending-btn">
+                          <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportModalStep("menu"); setShowPendingImports(true); loadPendingImports(); }} className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-semibold transition-colors" data-testid="view-pending-btn">
                             <AlertTriangle className="w-4 h-4" /> Ver pendientes
                           </button>
                         </>
