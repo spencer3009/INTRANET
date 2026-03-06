@@ -10,6 +10,14 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 ### Session - March 6, 2026 (Fork 4 - Latest)
 
+#### Feature: Attendance Entry/Exit Architecture Preparation (P0) - COMPLETED
+- **Backend verificado:** Campos `entry_time`, `exit_time`, `total_minutes`, `method` ya existían y funcionan correctamente
+- **QR Scanner UX mejorada:** Muestra "Entrada registrada" / "Salida registrada" con badge de rol (Profesor/Estudiante), y "Total trabajado: Xh Ym" cuando hay salida
+- **Historial filtrado:** QR history se filtra por contexto (estudiantes/profesores) según sección de origen
+- **Reportes Profesores:** Nueva vista con filtros de fecha, tabla detallada por profesor, tarjetas resumen, y exportar PDF
+- **Compatibilidad:** Sin cambios en flujos existentes ni reportes actuales
+- Testing: 100% passed (10/10 backend, all UI verified - iteration_73.json)
+
 #### Feature: Attendance Module Redesign (P0) - COMPLETED
 - **New UI Layout:** 3 clear sections (Estudiantes, Profesores, Reportes) with sub-actions
   - Each section: "Escanear QR" + "Marcar Manual" buttons
