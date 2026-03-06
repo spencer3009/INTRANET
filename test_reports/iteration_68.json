@@ -74,7 +74,7 @@
 
   "should_main_agent_self_test": false,
 
-  "context_for_next_testing_agent": "Student import improvements fully implemented and tested. Key test data: level_id=023ca042-cb46-43aa-97e3-a5c9cd7a20ee (INICIAL), grade_id=6ef8ab18-41b2-45e7-b482-06a84d95c34d (3 años), section_id=11f50cbc-f5f6-422a-a989-87b2af6027f1 (A), shift_id=8e1f4e98-37fa-40e3-a49d-a4ac08179262 (Mañana). Template metadata verification works only for XLSX files (CSV has no metadata). The mismatch modal buttons: [data-testid='use-file-config-btn'] and [data-testid='cancel-mismatch-btn'].",
+  "context_for_next_testing_agent": "Student import improvements fully implemented and tested. Key test data: level_id=dashboard-portal-12 (INICIAL), grade_id=dashboard-portal-12 (3 años), section_id=dashboard-portal-12 (A), shift_id=dashboard-portal-12 (Mañana). Template metadata verification works only for XLSX files (CSV has no metadata). The mismatch modal buttons: [data-testid='use-file-config-btn'] and [data-testid='cancel-mismatch-btn'].",
 
   "rca_of_the_issue": "N/A - This was a feature implementation test, not a bug fix."
 }

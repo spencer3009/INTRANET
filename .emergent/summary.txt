@@ -1,56 +1,48 @@
 <analysis>**original_problem_statement:**
-The user initiated a series of significant feature enhancements for the EduNet platform.
+The user requested a series of major enhancements for the EduNet platform. Initially, this involved a UI overhaul for a consistent mobile experience and a Replicate Subjects feature.
 
-First, they requested a complete mobile UI overhaul to ensure a consistent, app-like experience across all user portals (Admin, Owner, Student, Parent, Teacher). This included:
-1.  Implementing a mobile bottom navigation bar for Admin, Owner, and Student portals, with specific icons tailored to different role groups.
-2.  Unifying the header design across all portals.
-3.  Standardizing dashboard card layouts to a 2-column grid on mobile.
-4.  Improving the legibility of sidebar menus with larger fonts and icons.
-5.  Fixing a  bug where the sidebar would appear behind the header on mobile.
-6.  A specific UI tweak to hide the header and tab bar on the QR scanner page when accessed from the mobile bottom navigation, providing a focused camera view.
+The focus then shifted to building a professional-grade system for mass-importing students from Excel/CSV files. This required a robust backend for file processing, student creation, and QR code generation, along with a user-friendly frontend interface. The user provided detailed specifications for this feature, including a redesign of the UI to place the import functionality in a more prominent position, advanced template generation with instructions and protected cells, and a sophisticated metadata validation system to prevent users from importing students into the wrong academic section. The system also needed to handle data normalization (e.g., for gender) and provide a Pending section for administrators to correct and re-process records that failed during import.
 
-Next, the user requested a Replicate Subjects feature to streamline academic setup. This allows an administrator to copy all subjects from one class section to another, first within the same grade, and then enhanced to support copying between different grades.
-
-The latest and largest request is to build a professional-grade system for mass-importing students from Excel/CSV files. This feature is intended to save administrators significant time by automating student creation, including the automatic generation of a unique student code and a corresponding QR code for the attendance system. The system must handle various file formats, manage errors gracefully by moving failed imports to a Pending section, and provide clear user feedback with template downloads and import summaries.
+The latest request is to overhaul the main dashboard for all user roles (Owner, Admin, Teacher, Student, Parent). The goal is to transform the dashboard into a central information hub by removing News, Calendar, and Surveys from the side navigation and displaying them as interactive widgets on the main page. The implementation is planned in two phases: first, building the UI with mock data, and second, creating the full backend CRUD functionality for these new modules.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
 The application is a full-stack FastAPI/React educational platform.
-- **Unified Mobile UI:** All portals (Admin, Owner, Parent, Teacher, Student) now feature a consistent mobile-app-like UI, including a standardized header, improved sidebar legibility, and a role-based mobile bottom navigation bar. The QR scanner page provides a focused, full-screen camera view on mobile.
-- **Subject Replication Feature:** A fully functional feature allows admins to replicate subjects between class sections, both within the same grade and across different grades, via an intuitive modal on the Subjects page.
-- **Mass Student Import (Backend):** The backend infrastructure for the student import feature is complete. This includes two new endpoints:
-    - : Generates and downloads a pre-filled Excel template based on the selected academic filters (Level, Grade, Section).
-    - : Handles the upload of a completed Excel/CSV file, processes each row to create a student, generates a unique student code and QR data, and segregates rows with errors.
-- **Dependencies:** The backend has been updated with  and  to handle Excel file processing.
+-   **Mass Student Import System:** A complete and robust feature for importing students from Excel files is fully functional.
+    -   **UI:** A dedicated Importación masiva block is present on the Users page, which opens a multi-step modal for downloading a template and uploading the completed file.
+    -   **Template Generation:** The backend generates a sophisticated Excel template () with protected cells for academic context (Level, Grade, Section, Turno), frozen headers, user instructions, and an example row.
+    -   **Metadata Verification:** A hidden sheet () is embedded in the template. Upon upload, the backend verifies this metadata against the user's current filters to prevent importing into the wrong section, prompting the user for confirmation if a mismatch is detected.
+    -   **Data Processing:** The import logic correctly parses new columns (Cumpleaños, Género) and intelligently normalizes gender inputs (e.g., 'f', 'mujer', 'FEMENINO' are all converted to Femenino).
+-   **Pending Imports Management:** A full UI and backend flow exists for managing students who failed the import process. Administrators can view, edit the incorrect data in a modal, and activate the students from a Pendientes de Importación view.
+-   **Form Enhancements:** The DNI field has been correctly added to the student creation form.
 
 **Last working item**:
--   Last item agent was working: Implementing the frontend for the **Mass Student Import** feature. The agent was editing  to build the user interface. It successfully added the Descargar Plantilla (Download Template) and Importar Archivo (Import File) buttons and created the basic structure for the import modal, including state management variables.
--   Status: IN PROGRESS
+-   Last item agent was working: The agent was beginning the implementation of the **Dashboard Redesign**. It explored the relevant dashboard and sidebar component files (, , , etc.) to understand the existing structure and plan the necessary changes for adding the new widgets.
+-   Status: NOT STARTED
 -   Agent Testing Done: N
 -   Which testing method agent to use? both
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Complete Frontend for Mass Student Import (P0)**
+-   **Issue 1: Implement Dashboard Widgets (Phase 1: UI) (P0)**
 -   **Issue 2: Fix and Verify Disappearing Student Selection (P1)**
 -   **Issue 3: Remove Hardcoded Data from Owner Dashboard (P2)**
 -   **Issue 4: Message Center Unread Count Discrepancy (P2)**
 
 **Issues Detail:**
--   **Issue 1: Complete Frontend for Mass Student Import (P0)**
-    -   **Attempted fixes:** The backend endpoints were created and successfully tested via . On the frontend,  was modified to include UI buttons and a skeleton for the .
+-   **Issue 1: Implement Dashboard Widgets (Phase 1: UI) (P0)**
+    -   **Attempted fixes:** The agent has reviewed the existing dashboard components to plan the implementation. No code has been written yet.
     -   **Next debug checklist:**
-        1.  Finalize the implementation of the  component inside .
-        2.  Implement the file drag-and-drop/selection logic.
-        3.  Connect the frontend to the  endpoint, ensuring the file and academic filter data (, , , ) are sent correctly.
-        4.  Develop the UI for the in-progress state (e.g., progress bar) and the final summary (e.g., X students imported, Y with errors).
-        5.  Implement the Pendientes (Pending) tab/view within the  to display and manage users that failed to import.
-        6.  Ensure newly imported students appear correctly in the main student list.
-    -   **Why fix this issue and what will be achieved with the fix?** This will complete a major, time-saving feature for school administrators, allowing them to onboard hundreds of students in minutes instead of manually.
-    -   **Status:** IN PROGRESS
+        1.  Create a reusable  component for News, Calendar, and Surveys.
+        2.  Identify all dashboard pages: , , , , .
+        3.  Modify each dashboard page to include the three new widgets, using mock/placeholder data for now.
+        4.  Ensure the layout is responsive (3 columns on desktop, 1 column on mobile).
+        5.  Remove the Noticias, Calendario, and Encuestas links from all relevant sidebar components (, , , etc.).
+    -   **Why fix this issue and what will be achieved with the fix?** This will complete the first phase of a major UX improvement, making the dashboard the central information hub for all users.
+    -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** both
+    -   **Should Test frontend/backend/both after fix?** Frontend
 
 -   **Issue 2: Fix and Verify Disappearing Student Selection (P1)**
     -   **Description:** Inherited from a previous fork. When selecting a student in the , their information card would immediately disappear. This needs to be manually tested to confirm if it was inadvertently resolved by other fixes.
@@ -59,7 +51,7 @@ The application is a full-stack FastAPI/React educational platform.
     -   **Should Test frontend/backend/both after fix?** Frontend
 
 -   **Issue 3: Remove Hardcoded Data from Owner Dashboard (P2)**
-    -   **Description:** Inherited issue. Components on the Owner's Dashboard (Asistencia del Mes, Noticias y Avisos) use static, hardcoded data instead of fetching from the API.
+    -   **Description:** Inherited issue. Components on the Owner's Dashboard (Asistencia del Mes, Noticias y Avisos) use static, hardcoded data. This will be partially addressed by the new Dashboard Widgets task.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
     -   **Should Test frontend/backend/both after fix?** Backend
@@ -71,44 +63,45 @@ The application is a full-stack FastAPI/React educational platform.
     -   **Should Test frontend/backend/both after fix?** Backend
 
 **In progress Task List**:
--   **Task 1: Mass Student Import from Excel (P0)**
-    -   **Where to resume:** Continue implementing the frontend logic in , focusing on the  component to handle file uploads, API calls, and displaying progress/results.
-    -   **What will be achieved with this?** A complete, robust system for bulk student registration.
-    -   **Status:** IN PROGRESS
+-   **Task 1: Dashboard Redesign (P0)**
+    -   **Where to resume:** Begin implementation by creating a shared widget component and integrating it into the  as a starting point.
+    -   **What will be achieved with this?** A modern, informative dashboard UI for all user roles that centralizes key information.
+    -   **Status:** NOT STARTED
     -   **Should Test frontend/backend/both after fix?** both
     -   **Blocked on something:** No.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Modularize :** (CRITICAL Tech Debt) This file is now well over 10,000 lines and urgently needs to be refactored into domain-specific FastAPI routers (e.g., , , ).
-    -   **P1: Implement Attendance Configuration (Phase 2):** Create a settings page for admins to configure attendance schedules to automatically mark students as  (Late).
+    -   **P0: Implement Dashboard Widgets (Phase 2: Backend):** Create database collections (, , ) and full CRUD API endpoints for managing the content of the new dashboard widgets.
+    -   **P0: Modularize :** (CRITICAL Tech Debt) This monolithic file is now over 10,000 lines and must be refactored into domain-specific FastAPI routers.
+    -   **P1: Implement Attendance Configuration (Phase 2):** Create a settings page for admins to configure attendance schedules.
 
 -   **Future Tasks:**
-    -   **P1:** Complete Parent Portal Feature Parity (remaining sections).
+    -   **P1:** Complete Parent Portal Feature Parity.
     -   **P1:** Build a Matrículas (Enrollments) module.
     -   **P1:** Enhance the Exams module with a Question Bank.
     -   **P2:** Implement Attendance Notifications (Phase 3) to parents.
     -   **P2:** Replace all  and  calls with a global custom modal.
 
 **Completed work in this session**
--   **Unified Mobile App Experience:**
-    -   Implemented  for Admin, Owner, and Student portals, ensuring consistent navigation.
-    -   Standardized the header design across all portals for a unified look.
-    -   Improved sidebar legibility with larger fonts, icons, and better spacing.
-    -   Fixed  conflict, ensuring the mobile sidebar opens correctly over the header.
-    -   Adjusted Owner/Admin dashboard card layout to a 2xN grid on mobile.
--   **Enhanced QR Scanner UI:**
-    -   Modified the attendance page to hide the header banner and tabs when the QR scanner is activated on mobile, creating a focused, app-like experience.
--   **Replicate Subjects Feature:**
-    -   Developed a backend endpoint () to copy subjects between sections.
-    -   Created a frontend modal on the Subjects page allowing users to replicate subjects from sections in the same grade or a different grade.
-    -   Updated button styling based on user feedback.
--   **Mass Student Import (Backend):**
-    -   Installed  and  for file processing.
-    -   Created and tested backend endpoints for downloading an Excel template () and importing students from a file (). The import logic handles new student creation, code/QR generation, and error segregation.
+-   **Mass Student Import Redesign & Feature Completion:**
+    -   UI/UX was completely overhauled per user specifications.
+    -   Implemented a robust, multi-step modal for file management.
+    -   **Template Protection:** The Excel template now contains locked cells for academic context to prevent user error.
+    -   **Metadata Verification:** A sophisticated system now embeds and verifies hidden metadata in the Excel file to prevent imports into incorrect sections.
+    -   **Data Normalization:** Backend now intelligently normalizes the Gender field from various user inputs and sends invalid entries to a pending queue.
+    -   Added Cumpleaños (Birthday) and Género (Gender) to the import template and backend processing logic.
+-   **Pending Imports Management System:**
+    -   A full-featured section was built to allow admins to view, edit, and activate students who failed the import process. This includes new backend endpoints and a complete frontend modal-based workflow.
+-   **Bug Fixes & Minor Enhancements:**
+    -   Added the missing DNI input field to the student creation form.
+    -   Made the Turno (Shift) filter mandatory for template downloads.
+    -   Corrected numerous backend bugs related to database collection names, field names (), and API response structures.
 
 **Earlier issues found/mentioned but not fixed**
--   The inherited issues (Hardcoded Owner Dashboard Data, Unread Message Count Discrepancy, Disappearing Student Selection) remain pending.
+-   Disappearing Student Selection in Payment Modal (P1)
+-   Hardcoded Data on Owner Dashboard (P2)
+-   Message Center Unread Count Discrepancy (P2)
 
 **Known issue recurrence from previous fork**
 -   **Hardcoded Owner Dashboard Data:** Recurrence count: 5+. Status: NOT STARTED.
@@ -118,16 +111,18 @@ The application is a full-stack FastAPI/React educational platform.
 
 
 **Key Technical Concepts**
--   **Bulk Data Processing (Backend):** Used  and  in FastAPI to read various spreadsheet formats (, , ), process data row-by-row, and perform bulk database insertions.
--   **Dynamic File Generation:** Created an endpoint that dynamically generates an  template file in memory using  and serves it for download.
--   **Robust API Design:** Implemented endpoints for complex operations like replication and bulk import, using clear Pydantic models and handling error states within the API response.
--   **Complex Frontend Modals:** Built multi-step, stateful modals with features like tabs () and file upload flows () directly within page components.
--   **Conditional UI Rendering:** Extensively used React state and  checks to alter the UI, such as hiding elements () or changing grid layouts () based on screen size or user action.
--   **CSS  Management:** Resolved UI stacking issues by carefully managing  values between the fixed header () and the slide-out mobile sidebars ().
+-   **Advanced Excel Generation ():** Generating complex  files with multiple sheets (one hidden), protected cells, frozen panes, and cell styling.
+-   **Data Integrity:** Embedding hidden metadata in a downloaded file and verifying it upon upload to ensure data consistency and prevent user errors.
+-   **Robust Data Normalization:** Creating flexible data ingestion pipelines that can handle and standardize varied user input during bulk operations.
+-   **Stateful Frontend Workflows:** Building complex multi-step modals and views () that manage different states like , , , .
 
 **key DB schema**
--   **collection :** The new import functionality heavily interacts with this collection. It creates new documents with , generates and saves a unique  (e.g., ), and populates  based on that code. It also associates the user with academic context IDs (, , ).
--   **collection :** The replication feature reads and writes to this collection, copying subject documents while assigning a new  to link them to the destination section.
+-   : Enhanced with , , and new fields  and .
+-   **New Collections (to be created):**
+    -   : {title, content, author_id, created_at}
+    -   : {title, description, start_time, end_time, type}
+    -   : {title, description, questions: [...], is_active, due_date}
+    -   : {survey_id, user_id, answers: [...]}
 
 **All files of reference**
 -   
@@ -137,57 +132,57 @@ The application is a full-stack FastAPI/React educational platform.
 -   
 -   
 -   
--   , , , 
 -   
 -   
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** The file has grown even larger and is now the highest-priority technical debt. It urgently needs to be broken into smaller, domain-specific routers.
--   ** (HIGH):** This component is becoming a god component, containing logic for user lists, filters, creation modals, and now the entire student import flow. The import functionality should be extracted into its own set of components and hooks.
--   ** (HIGH):** Although not modified in this session, this remains a very large and complex component that needs to be broken down.
+-   ** (CRITICAL):** This file is dangerously large and complex. It is the highest priority technical debt and should be addressed immediately after the dashboard UI is completed.
+-   ** (CRITICAL):** This component has become a god component exceeding 4,200 lines. It manages user lists, filters, the creation modal, the complex import modal, and the new pending imports view with its own edit modal. The logic for Pending Imports and Mass Import should be extracted into their own dedicated components and custom hooks.
 
 **key api endpoints**
--   **New:** 
--   **New:** 
--   **New:** 
+-   **Modified:**
+    -   : Heavily updated to generate a protected Excel file with hidden metadata and additional columns.
+    -   : Now validates file metadata, normalizes gender, processes more columns, and accepts  to resolve mismatches.
+-   **New:**
+    -   : Fetches all students with .
+    -   : Updates the data of a single pending student.
+    -   : Activates a corrected student, changing their status and clearing import errors.
 
 **Critical Info for New Agent**
--   **¡Habla en español!** You must communicate with the user in Spanish.
--   The current task is the **Mass Student Import** feature. The backend is complete and tested via curl. You must resume work on the frontend in  to finish the import modal and connect it to the API.
--   The user makes large, multi-step feature requests. Plan carefully and communicate the plan before starting.
--   The most critical technical debt is the monolithic  file. Propose refactoring this immediately after the current student import feature is completed and verified by the user.
+-   **¡Habla en español!** You MUST communicate with the user in Spanish.
+-   The new highest priority task is the **Dashboard Redesign**. Begin with **Phase 1: UI Implementation**. The goal is to add News, Calendar, and Survey widgets to ALL dashboards (Owner, Admin, Teacher, Student, Parent) using mock data and remove the corresponding links from the sidebars.
+-   The Student Import feature is complete, highly complex, and heavily tested. Do not modify it unless a specific bug is reported by the user.
+-   The technical debt in  and  is severe. Propose refactoring  as the next major task after the dashboard UI is delivered and approved.
 
 **documents and test reports created in this job**
+-   
 -   
 -   
 -    (updated multiple times)
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** Asks for a mass student import system via Excel, including automatic QR generation and error handling. **Status: IN PROGRESS.**
-9.  **User:** Wants to replicate subjects between different grades, not just sections. Also, change the Replicate button to green. **Status: COMPLETED.**
-8.  **User:** Requests a feature to replicate subjects from one class section to another to speed up setup. **Status: COMPLETED.**
-7.  **User:** On mobile, when clicking Scan QR, the page should only show the camera view, hiding the green header banner and tabs. **Status: COMPLETED.**
-6.  **User (new multi-part request):** Unify the entire system's UI to be app-like, including headers, dashboard cards, fixing sidebar z-index, and improving sidebar text legibility. **Status: COMPLETED.**
-5.  **User:** The payment concept should default to Select Concept, not pre-select Matricula. **Status: COMPLETED (from previous fork).**
-4.  **User:** I'm on production and configured the payment amounts, but when I go to register a payment, it shows 0. **Status: COMPLETED (from previous fork).**
-3.  **User (new multi-part request):**
-    -   The 4-icon mobile nav should be for teachers, admins, and owners.
-    -   Make admin/owner portals look like a mobile app.
-    -   The student portal should have the same mobile layout as the parent portal. **Status: COMPLETED.**
-2.  **User:** The bottom bar icons should only be: HOME, TASKS, COURSES, QR SCAN. Make them bigger and the text more noticeable. **Status: COMPLETED (from previous fork).**
-1.  **User:** In the teacher portal on mobile, change the Messages icon in the bottom bar to a QR Scan icon that links to the QR scanner. **Status: COMPLETED (from previous fork).**
+10. **User:** Requests a Pending section for students who fail import, where an admin can correct their data. **Status: COMPLETED.**
+9.  **User:** Asks how to handle import records with errors. **Status: COMPLETED.**
+8.  **User:** Requests intelligent normalization for the Gender field during import to accept variations like 'm', 'f', 'hombre', 'mujer', etc. **Status: COMPLETED.**
+7.  **User:** Requests adding Cumpleaños (Birthday) and Género (Gender) to the Excel template and DNI to the student creation form. **Status: COMPLETED.**
+6.  **User:** Reports the Turno (Shift) is not appearing in the downloaded template header. **Status: COMPLETED** (fixed by making Turno a mandatory filter).
+5.  **User:** Provides several improvements for the Excel template: add a note about auto-generated credentials, freeze headers, and replace the generic Excel icon. Also requests a robust template verification system to prevent imports into the wrong section using hidden metadata. **Status: COMPLETED.**
+4.  **User:** Provides detailed specs for a complete redesign of the student import flow, moving it from the header to a dedicated block below the filters, with a new modal and improved template. **Status: COMPLETED.**
+3.  **User:** Reports the import feature has bugs and is not working as expected. Provides a long list of detailed requirements for a professional-grade import system. **Status: COMPLETED.**
+2.  **User:** Confirms the scope for the new Dashboard Widgets task: they should appear on all portals (Owner, Admin, Teacher, Student, Parent), the backend should be created if it doesn't exist, and the implementation should start with the visual part using mock data. **Status: IN PROGRESS.**
+1.  **User:** Requests a major dashboard redesign: move Encuestas, Calendario, and Noticias from the sidebar into widgets on the main dashboard for all users. **Status: IN PROGRESS.**
 
 **Project Health Check:**
 -   **Broken**: No.
--   **Mocked**: The Asistencia del Mes and Noticias y Avisos components on the Owner's dashboard still use hardcoded, static data.
+-   **Mocked**: The original Asistencia del Mes and Noticias y Avisos components on the Owner's dashboard still use hardcoded data. This will be replaced by the new dashboard widget task.
 
 **3rd Party Integrations**
 -   Cloudinary (Image Storage)
--    (Data analysis and manipulation, for Excel/CSV reading)
--    (Python library to read/write Excel 2010 xlsx/xlsm files)
+-    (Data analysis and manipulation)
+-    (Python library to read/write Excel files)
 
 **Testing status**
--   **Testing agent used after significant changes**: YES
+-   **Testing agent used after significant changes**: YES. The agent was used extensively to verify the multi-faceted student import feature, including backend logic, frontend UI, and mismatch handling.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
 -   **Known regressions**: None.
@@ -207,5 +202,4 @@ The application is a full-stack FastAPI/React educational platform.
     -   **Password:** 
 
 **What agent forgot to execute**
--   The inherited issues from the previous fork (disappearing student selection, hardcoded dashboard data, message count discrepancy) have not been addressed as the agent correctly prioritized the user's active feature requests.
--   The critical P0 task, refactoring , has not been started. This should be the next major focus after the current feature is delivered.</analysis>
+-   The agent correctly prioritized the user's active, high-impact feature requests (Student Import System) over inherited, lower-priority issues and major refactoring tasks. Nothing was forgotten in the context of the active workflow. The pending technical debt ( refactor) and inherited bugs remain in the backlog.</analysis>
