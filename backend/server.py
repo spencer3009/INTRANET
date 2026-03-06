@@ -9956,9 +9956,9 @@ async def mark_attendance_entry(data: MarkEntryRequest, current_user=Depends(get
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No autorizado")
     school_id = user["school_id"]
-    today = data.date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = data.date or datetime.now(PERU_TZ).strftime("%Y-%m-%d")
     now_iso = datetime.now(timezone.utc).isoformat()
-    now_time = datetime.now(timezone.utc).strftime("%H:%M")
+    now_time = datetime.now(PERU_TZ).strftime("%H:%M")
 
     # Get student info for grade/section
     student = await db.users.find_one({"id": data.student_id, "school_id": school_id, "role": "student"}, {"_id": 0})
@@ -10450,7 +10450,7 @@ async def get_qr_attendance_history(
         raise HTTPException(status_code=403, detail="No autorizado")
     
     school_id = user["school_id"]
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = datetime.now(PERU_TZ).strftime("%Y-%m-%d")
     
     history = []
     
