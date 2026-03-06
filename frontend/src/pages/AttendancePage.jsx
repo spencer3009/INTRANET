@@ -1407,6 +1407,259 @@ function ReportsTab({ token, schoolId }) {
   );
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// TEACHER REPORTS TAB
+// ══════════════════════════════════════════════════════════════════════════════
+function TeacherReportsTab({ token }) {
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date();
+    date.setMonth(date.getMonth() - 1);
+    return date.toISOString().split("T")[0];
+  });
+  const [endDate, setEndDate] = useState(new Date().toISOString().split("T")[0]);
+  const [report, setReport] = useState(null);
+  const [loading, setLoading] = useState(false);
+  
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const loadReport = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ start_date: startDate, end_date: endDate });
+      const res = await axios.get(`${API}/attendance/reports/teachers?${params}`, { headers });
+      setReport(res.data);
+    } catch (err) {
+      console.error("Error loading teacher report:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const exportToPDF = () => {
+    if (!report) return;
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(18);
+    doc.setTextColor(88, 28, 135);
+    doc.text("Reporte de Asistencia de Profesores", pageWidth / 2, 20, { align: "center" });
+
+    doc.setFontSize(11);
+    doc.setTextColor(100, 100, 100);
+    const dateRange = `Período: ${new Date(startDate + 'T12:00:00').toLocaleDateString("es-PE")} - ${new Date(endDate + 'T12:00:00').toLocaleDateString("es-PE")}`;
+    doc.text(dateRange, pageWidth / 2, 28, { align: "center" });
+
+    if (report.report.length > 0) {
+      const tableData = report.report.map(item => [
+        item.teacher_name,
+        item.total_days,
+        item.present,
+        item.late,
+        item.absent,
+        item.justified,
+        `${item.attendance_rate}%`
+      ]);
+
+      autoTable(doc, {
+        startY: 40,
+        head: [['Profesor', 'Días', 'Presente', 'Tardanza', 'Ausente', 'Justificado', '% Asist.']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [124, 58, 237], textColor: 255, fontSize: 10, fontStyle: 'bold' },
+        bodyStyles: { fontSize: 9 },
+        columnStyles: {
+          0: { cellWidth: 50 },
+          1: { cellWidth: 18, halign: 'center' },
+          2: { cellWidth: 22, halign: 'center' },
+          3: { cellWidth: 22, halign: 'center' },
+          4: { cellWidth: 22, halign: 'center' },
+          5: { cellWidth: 26, halign: 'center' },
+          6: { cellWidth: 22, halign: 'center' }
+        },
+        alternateRowStyles: { fillColor: [248, 250, 252] }
+      });
+    }
+
+    const pageCount = doc.internal.getNumberOfPages();
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.text(`Generado el ${new Date().toLocaleDateString("es-PE")} - Página ${i} de ${pageCount}`, pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: "center" });
+    }
+
+    doc.save(`reporte_asistencia_profesores_${startDate}_${endDate}.pdf`);
+  };
+
+  const getStatusBadge = (status) => {
+    const styles = {
+      present: "bg-emerald-100 text-emerald-700",
+      late: "bg-amber-100 text-amber-700",
+      absent: "bg-red-100 text-red-700",
+      justified: "bg-blue-100 text-blue-700"
+    };
+    const labels = { present: "Presente", late: "Tardanza", absent: "Ausente", justified: "Justificado" };
+    return <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${styles[status] || "bg-slate-100 text-slate-500"}`}>{labels[status] || status}</span>;
+  };
+
+  return (
+    <div className="space-y-6" data-testid="teacher-reports-tab">
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-lg p-6">
+        <h3 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <Filter className="w-5 h-5 text-violet-600" />
+          Reporte de Asistencia de Profesores
+        </h3>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Desde</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+              data-testid="teacher-report-start-date" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Hasta</label>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+              data-testid="teacher-report-end-date" />
+          </div>
+          <div className="flex items-end">
+            <button onClick={loadReport} disabled={loading}
+              className="w-full px-6 py-3 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              data-testid="teacher-report-generate">
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <FileText className="w-5 h-5" />}
+              Generar Reporte
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Report results */}
+      {report && (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4" data-testid="teacher-report-summary">
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 text-center">
+              <p className="text-2xl font-bold text-slate-800">{report.summary.total_records}</p>
+              <p className="text-xs text-slate-500 font-medium">Total registros</p>
+            </div>
+            <div className="bg-emerald-50 rounded-2xl p-4 shadow-sm border border-emerald-200 text-center">
+              <p className="text-2xl font-bold text-emerald-700">{report.summary.present}</p>
+              <p className="text-xs text-emerald-600 font-medium">Presentes</p>
+            </div>
+            <div className="bg-amber-50 rounded-2xl p-4 shadow-sm border border-amber-200 text-center">
+              <p className="text-2xl font-bold text-amber-700">{report.summary.late}</p>
+              <p className="text-xs text-amber-600 font-medium">Tardanzas</p>
+            </div>
+            <div className="bg-red-50 rounded-2xl p-4 shadow-sm border border-red-200 text-center">
+              <p className="text-2xl font-bold text-red-700">{report.summary.absent}</p>
+              <p className="text-xs text-red-600 font-medium">Ausentes</p>
+            </div>
+            <div className="bg-blue-50 rounded-2xl p-4 shadow-sm border border-blue-200 text-center">
+              <p className="text-2xl font-bold text-blue-700">{report.summary.justified}</p>
+              <p className="text-xs text-blue-600 font-medium">Justificados</p>
+            </div>
+          </div>
+
+          {/* Table */}
+          <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <UserCheck className="w-5 h-5 text-violet-600" />
+                Detalle por Profesor ({report.report.length})
+              </h3>
+              <button onClick={exportToPDF}
+                className="px-4 py-2 bg-violet-100 text-violet-700 rounded-xl text-sm font-semibold hover:bg-violet-200 transition-colors flex items-center gap-2"
+                data-testid="teacher-report-export-pdf">
+                <Download className="w-4 h-4" /> Exportar PDF
+              </button>
+            </div>
+
+            {report.report.length === 0 ? (
+              <div className="p-12 text-center text-slate-400">
+                <FileText className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No hay registros de asistencia en este período</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Profesor</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase">Días</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-emerald-600 uppercase">Presente</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-amber-600 uppercase">Tardanza</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-red-600 uppercase">Ausente</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-blue-600 uppercase">Justificado</th>
+                      <th className="text-center px-3 py-3 text-xs font-bold text-slate-500 uppercase">% Asist.</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {report.report.map((t) => (
+                      <tr key={t.teacher_id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-3">
+                          <div className="flex items-center gap-3">
+                            {t.teacher_photo ? (
+                              <img src={t.teacher_photo} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                                {t.teacher_name?.charAt(0) || "P"}
+                              </div>
+                            )}
+                            <span className="font-medium text-slate-800 text-sm">{t.teacher_name}</span>
+                          </div>
+                        </td>
+                        <td className="text-center px-3 py-3 text-sm font-medium text-slate-600">{t.total_days}</td>
+                        <td className="text-center px-3 py-3"><span className="text-sm font-bold text-emerald-600">{t.present}</span></td>
+                        <td className="text-center px-3 py-3"><span className="text-sm font-bold text-amber-600">{t.late}</span></td>
+                        <td className="text-center px-3 py-3"><span className="text-sm font-bold text-red-600">{t.absent}</span></td>
+                        <td className="text-center px-3 py-3"><span className="text-sm font-bold text-blue-600">{t.justified}</span></td>
+                        <td className="text-center px-3 py-3">
+                          <span className={`text-sm font-bold ${t.attendance_rate >= 90 ? "text-emerald-600" : t.attendance_rate >= 70 ? "text-amber-600" : "text-red-600"}`}>
+                            {t.attendance_rate}%
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          {/* Recent records */}
+          {report.records && report.records.length > 0 && (
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200">
+                <h3 className="font-bold text-slate-800">Últimos Registros</h3>
+              </div>
+              <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
+                {report.records.slice(0, 20).map((r, idx) => {
+                  const teacher = report.report.find(t => t.teacher_id === r.user_id);
+                  return (
+                    <div key={idx} className="px-6 py-3 flex items-center gap-4 hover:bg-slate-50">
+                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-xs">
+                        {teacher?.teacher_name?.charAt(0) || "P"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-slate-800 text-sm truncate">{teacher?.teacher_name || r.user_id}</p>
+                        <p className="text-xs text-slate-400">{r.date} — {r.check_in_time || r.entry_time || ""}</p>
+                      </div>
+                      {getStatusBadge(r.status)}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
@@ -1614,14 +1867,28 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
                   <button
                     onClick={() => setActiveView("reports")}
                     className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-xl transition-all group"
-                    data-testid="btn-reports"
+                    data-testid="btn-reports-students"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-amber-100 group-hover:bg-amber-500 flex items-center justify-center transition-colors">
-                      <FileText className="w-5 h-5 text-amber-600 group-hover:text-white transition-colors" />
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 group-hover:bg-blue-500 flex items-center justify-center transition-colors">
+                      <Users className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="font-semibold text-slate-800 text-sm">Ver Reportes</p>
-                      <p className="text-xs text-slate-400">Consulta y descarga reportes de asistencia</p>
+                      <p className="font-semibold text-slate-800 text-sm">Reportes Estudiantes</p>
+                      <p className="text-xs text-slate-400">Asistencia por grado y sección</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                  </button>
+                  <button
+                    onClick={() => setActiveView("reports-teachers")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-xl transition-all group"
+                    data-testid="btn-reports-teachers"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-indigo-100 group-hover:bg-indigo-500 flex items-center justify-center transition-colors">
+                      <UserCheck className="w-5 h-5 text-indigo-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Reportes Profesores</p>
+                      <p className="text-xs text-slate-400">Asistencia de docentes</p>
                     </div>
                     <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
                   </button>
@@ -1667,6 +1934,10 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
           
           {activeView === "reports" && (
             <ReportsTab token={token} schoolId={user?.school_id} />
+          )}
+          
+          {activeView === "reports-teachers" && (
+            <TeacherReportsTab token={token} schoolId={user?.school_id} />
           )}
         </main>
       </div>
