@@ -10,6 +10,17 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 ### Session - March 6, 2026 (Fork 4 - Latest)
 
+#### Feature: Attendance Module Redesign (P0) - COMPLETED
+- **New UI Layout:** 3 clear sections (Estudiantes, Profesores, Reportes) with sub-actions
+  - Each section: "Escanear QR" + "Marcar Manual" buttons
+  - Shared smart QR scanner detects student vs teacher automatically
+  - Status legend with consistent colors: Presente (green), Tardanza (amber), Ausente (red), Justificado (blue), Pendiente (gray)
+- **QR Scanner:** Shows role badge ("Profesor" / "Estudiante") in scan results + history
+- **Backend:** QR history endpoint now returns both student AND teacher scan records with `role` field
+- **"Justificado" status** added to student attendance (was only for teachers before)
+- Back button returns to landing from any sub-view
+- Testing: 100% passed (7/7 backend, 14/14 frontend - iteration_72.json)
+
 #### Feature: Teacher QR Code System (P0) - COMPLETED
 - **Backend:** Auto-generates `qr_token` (type: `teacher_qr`) when creating a teacher via `POST /api/users`
 - **Startup Migration:** Generates QR tokens for all existing teachers without one (51 teachers migrated)
