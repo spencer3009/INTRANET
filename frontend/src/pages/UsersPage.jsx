@@ -15,6 +15,7 @@ import {
   FileSpreadsheet, Download, FileUp, CheckCircle2
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
+import TeacherQRCard from "@/components/TeacherQRCard";
 import PhotoUploadModal from "@/components/PhotoUploadModal";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
@@ -1539,6 +1540,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [editingPendingId, setEditingPendingId] = useState(null);
   const [editingPendingData, setEditingPendingData] = useState({});
   const [qrStudent, setQRStudent] = useState(null);
+  const [qrTeacher, setQRTeacher] = useState(null);
   
   // Photo upload modal
   const [photoModalUser, setPhotoModalUser] = useState(null);
@@ -2850,6 +2852,22 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   Ver QR
                 </button>
               )}
+              {selectedRole === 'teacher' && (
+                <button
+                  onClick={() => {
+                    setQRTeacher(u);
+                    setShowQRModal(true);
+                    setOpenMenuId(null);
+                  }}
+                  className="w-full px-4 py-3 text-left text-sm text-violet-600 hover:bg-violet-50 flex items-center gap-3 transition-colors"
+                  data-testid={`show-teacher-qr-${u.id}`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-violet-100 flex items-center justify-center">
+                    <QrCode className="w-4 h-4 text-violet-600" />
+                  </div>
+                  Ver QR
+                </button>
+              )}
               {/* Delete button - disabled for system users and protected users */}
               <button
                 onClick={() => !(u.is_system_user || u.is_protected || u.is_owner) && handleDeleteClick(u)}
@@ -3976,6 +3994,36 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             <div className="p-6">
               <StudentQRCard 
                 student={qrStudent}
+                schoolName={settings?.system_name || "EduNet"}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Modal for Teachers */}
+      {showQRModal && qrTeacher && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="teacher-qr-modal">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-violet-600" />
+                Código QR del Profesor
+              </h3>
+              <button
+                onClick={() => {
+                  setShowQRModal(false);
+                  setQRTeacher(null);
+                }}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                data-testid="teacher-qr-modal-close"
+              >
+                <X className="w-5 h-5 text-slate-500" />
+              </button>
+            </div>
+            <div className="p-6">
+              <TeacherQRCard 
+                teacher={qrTeacher}
                 schoolName={settings?.system_name || "EduNet"}
               />
             </div>

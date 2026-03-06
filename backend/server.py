@@ -5177,6 +5177,17 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["lugar_trabajo"] = data.lugar_trabajo
         new_user["telefono_trabajo"] = data.telefono_trabajo
     
+    # Generate QR token for teachers (same logic as students)
+    if data.role == "teacher":
+        qr_payload = {
+            "teacher_id": new_user["id"],
+            "school_id": school_id,
+            "issued_at": datetime.now(timezone.utc).isoformat(),
+            "type": "teacher_qr"
+        }
+        qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+        new_user["qr_token"] = qr_token
+    
     await db.users.insert_one(new_user)
     
     # Remove sensitive fields before returning
@@ -10079,10 +10090,11 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         })
     
     # Verify QR type
-    if qr_data.get("type") != "student_qr":
+    qr_type = qr_data.get("type")
+    if qr_type not in ("student_qr", "teacher_qr"):
         raise HTTPException(status_code=400, detail={
             "status": "error",
-            "message": "Este QR no es de un estudiante",
+            "message": "Este QR no es válido para asistencia",
             "code": "QR_WRONG_TYPE"
         })
     
@@ -10090,23 +10102,26 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     if qr_data.get("school_id") != school_id:
         raise HTTPException(status_code=403, detail={
             "status": "error",
-            "message": "Este estudiante no pertenece a tu institución",
+            "message": "Este usuario no pertenece a tu institución",
             "code": "SCHOOL_MISMATCH"
         })
     
-    student_id = qr_data.get("student_id")
+    # Determine if scanning a student or teacher
+    is_teacher_qr = qr_type == "teacher_qr"
+    scanned_user_id = qr_data.get("teacher_id") if is_teacher_qr else qr_data.get("student_id")
+    scanned_role = "teacher" if is_teacher_qr else "student"
     
-    # Get student info
-    student = await db.users.find_one(
-        {"id": student_id, "school_id": school_id, "role": "student"},
+    # Get user info
+    scanned_user = await db.users.find_one(
+        {"id": scanned_user_id, "school_id": school_id, "role": scanned_role},
         {"_id": 0, "password": 0}
     )
     
-    if not student:
+    if not scanned_user:
         raise HTTPException(status_code=404, detail={
             "status": "error",
-            "message": "Estudiante no encontrado",
-            "code": "STUDENT_NOT_FOUND"
+            "message": f"{'Profesor' if is_teacher_qr else 'Estudiante'} no encontrado",
+            "code": "USER_NOT_FOUND"
         })
     
     # Check if attendance already marked today
@@ -10115,64 +10130,72 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     now_time = now.strftime("%H:%M")
     now_iso = now.isoformat()
     
+    attendance_type = scanned_role  # "student" or "teacher"
+    
     # Check main attendances collection
     existing = await db.attendances.find_one({
-        "user_id": student_id,
+        "user_id": scanned_user_id,
         "date": today,
         "school_id": school_id,
-        "type": "student"
+        "type": attendance_type
     })
     
-    # Also check student_attendance (legacy QR collection) and sync if needed
-    existing_legacy = await db.student_attendance.find_one({
-        "student_id": student_id, "date": today, "school_id": school_id
-    })
-    if existing_legacy and not existing:
-        # Sync legacy record to main collection
-        await db.attendances.update_one(
-            {"school_id": school_id, "type": "student", "user_id": student_id, "date": today},
-            {
-                "$set": {
-                    "status": existing_legacy.get("status", "present"),
-                    "entry_time": existing_legacy.get("created_at"),
-                    "entry_method": "qr",
-                    "check_in_time": existing_legacy.get("check_in_time", ""),
-                    "method": "qr_scan",
-                    "recorded_by": existing_legacy.get("scanned_by", current_user["sub"]),
-                    "created_at": existing_legacy.get("created_at", now_iso)
-                },
-                "$setOnInsert": {
-                    "id": str(uuid.uuid4()),
-                    "school_id": school_id, "type": "student", "user_id": student_id,
-                    "grade_id": student.get("grado_id"), "section_id": student.get("seccion_id"),
-                    "date": today
-                }
-            },
-            upsert=True
-        )
-        existing = await db.attendances.find_one({
-            "user_id": student_id, "date": today, "school_id": school_id, "type": "student"
+    # Also check student_attendance (legacy QR collection) and sync if needed (students only)
+    if not is_teacher_qr:
+        existing_legacy = await db.student_attendance.find_one({
+            "student_id": scanned_user_id, "date": today, "school_id": school_id
         })
+        if existing_legacy and not existing:
+            await db.attendances.update_one(
+                {"school_id": school_id, "type": "student", "user_id": scanned_user_id, "date": today},
+                {
+                    "$set": {
+                        "status": existing_legacy.get("status", "present"),
+                        "entry_time": existing_legacy.get("created_at"),
+                        "entry_method": "qr",
+                        "check_in_time": existing_legacy.get("check_in_time", ""),
+                        "method": "qr_scan",
+                        "recorded_by": existing_legacy.get("scanned_by", current_user["sub"]),
+                        "created_at": existing_legacy.get("created_at", now_iso)
+                    },
+                    "$setOnInsert": {
+                        "id": str(uuid.uuid4()),
+                        "school_id": school_id, "type": "student", "user_id": scanned_user_id,
+                        "grade_id": scanned_user.get("grado_id"), "section_id": scanned_user.get("seccion_id"),
+                        "date": today
+                    }
+                },
+                upsert=True
+            )
+            existing = await db.attendances.find_one({
+                "user_id": scanned_user_id, "date": today, "school_id": school_id, "type": "student"
+            })
     
-    # Get grade and section names
-    grade = await db.grados.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
-    section = await db.secciones.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
-    if not grade:
-        grade = await db.grades.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
-    if not section:
-        section = await db.sections.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
-    
-    student_info = {
-        "id": student["id"],
-        "name": student.get("name", ""),
-        "last_name": student.get("last_name", ""),
-        "full_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
-        "photo_url": student.get("photo_url"),
-        "grade_name": grade.get("nombre") if grade else None,
-        "section_name": section.get("nombre") if section else None,
-        "grado_id": student.get("grado_id"),
-        "seccion_id": student.get("seccion_id")
+    # Build user info for response
+    user_info = {
+        "id": scanned_user["id"],
+        "name": scanned_user.get("name", ""),
+        "last_name": scanned_user.get("last_name", ""),
+        "full_name": f"{scanned_user.get('name', '')} {scanned_user.get('last_name', '')}".strip(),
+        "photo_url": scanned_user.get("photo_url"),
+        "role": scanned_role,
     }
+    
+    if not is_teacher_qr:
+        # Get grade and section names for students
+        grade = await db.grados.find_one({"id": scanned_user.get("grado_id")}, {"_id": 0, "nombre": 1})
+        section = await db.secciones.find_one({"id": scanned_user.get("seccion_id")}, {"_id": 0, "nombre": 1})
+        if not grade:
+            grade = await db.grades.find_one({"id": scanned_user.get("grado_id")}, {"_id": 0, "nombre": 1})
+        if not section:
+            section = await db.sections.find_one({"id": scanned_user.get("seccion_id")}, {"_id": 0, "nombre": 1})
+        user_info["grade_name"] = grade.get("nombre") if grade else None
+        user_info["section_name"] = section.get("nombre") if section else None
+        user_info["grado_id"] = scanned_user.get("grado_id")
+        user_info["seccion_id"] = scanned_user.get("seccion_id")
+    else:
+        user_info["grade_name"] = None
+        user_info["section_name"] = None
     
     mode = data.mode  # entry, exit, auto
     
@@ -10204,46 +10227,51 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     
     # Execute action
     if action == "entry":
-        await db.attendances.update_one(
-            {"school_id": school_id, "type": "student", "user_id": student_id, "date": today},
-            {
-                "$set": {
-                    "status": "present",
-                    "entry_time": now_iso,
-                    "entry_method": "qr",
-                    "check_in_time": now_time,
-                    "method": "qr_scan",
-                    "recorded_by": current_user["sub"],
-                    "updated_at": now_iso
-                },
-                "$setOnInsert": {
-                    "id": str(uuid.uuid4()),
-                    "school_id": school_id, "type": "student", "user_id": student_id,
-                    "grade_id": student.get("grado_id"), "section_id": student.get("seccion_id"),
-                    "date": today, "created_at": now_iso
-                }
+        entry_update = {
+            "$set": {
+                "status": "present",
+                "entry_time": now_iso,
+                "entry_method": "qr",
+                "check_in_time": now_time,
+                "method": "qr_scan",
+                "recorded_by": current_user["sub"],
+                "updated_at": now_iso
             },
-            upsert=True
-        )
-        # Also save to legacy collection
-        await db.student_attendance.update_one(
-            {"student_id": student_id, "date": today, "school_id": school_id},
-            {
-                "$set": {"status": "present", "check_in_time": now_time, "method": "qr_scan",
-                         "scanned_by": current_user["sub"], "created_at": now_iso,
-                         "grado_id": student.get("grado_id"), "seccion_id": student.get("seccion_id")},
-                "$setOnInsert": {"id": str(uuid.uuid4()), "student_id": student_id,
-                                 "school_id": school_id, "date": today}
-            },
-            upsert=True
-        )
+            "$setOnInsert": {
+                "id": str(uuid.uuid4()),
+                "school_id": school_id, "type": attendance_type, "user_id": scanned_user_id,
+                "date": today, "created_at": now_iso
+            }
+        }
+        if not is_teacher_qr:
+            entry_update["$setOnInsert"]["grade_id"] = scanned_user.get("grado_id")
+            entry_update["$setOnInsert"]["section_id"] = scanned_user.get("seccion_id")
         
-        logger.info(f"QR Entry: {student_info['full_name']} at {now_time}")
+        await db.attendances.update_one(
+            {"school_id": school_id, "type": attendance_type, "user_id": scanned_user_id, "date": today},
+            entry_update,
+            upsert=True
+        )
+        # Also save to legacy collection (students only)
+        if not is_teacher_qr:
+            await db.student_attendance.update_one(
+                {"student_id": scanned_user_id, "date": today, "school_id": school_id},
+                {
+                    "$set": {"status": "present", "check_in_time": now_time, "method": "qr_scan",
+                             "scanned_by": current_user["sub"], "created_at": now_iso,
+                             "grado_id": scanned_user.get("grado_id"), "seccion_id": scanned_user.get("seccion_id")},
+                    "$setOnInsert": {"id": str(uuid.uuid4()), "student_id": scanned_user_id,
+                                     "school_id": school_id, "date": today}
+                },
+                upsert=True
+            )
+        
+        logger.info(f"QR Entry ({scanned_role}): {user_info['full_name']} at {now_time}")
         return {
             "status": "success",
             "action": "entry",
-            "message": f"Entrada registrada para {student_info['full_name']}",
-            "student": student_info,
+            "message": f"Entrada registrada para {user_info['full_name']}",
+            "student": user_info,
             "attendance": {
                 "status": "present", "entry_time": now_time, "exit_time": None, "date": today
             }
@@ -10266,12 +10294,12 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         )
         
         entry_time_str = existing.get("check_in_time", "")
-        logger.info(f"QR Exit: {student_info['full_name']} at {now_time} (total: {total_minutes}min)")
+        logger.info(f"QR Exit ({scanned_role}): {user_info['full_name']} at {now_time} (total: {total_minutes}min)")
         return {
             "status": "success",
             "action": "exit",
-            "message": f"Salida registrada para {student_info['full_name']}",
-            "student": student_info,
+            "message": f"Salida registrada para {user_info['full_name']}",
+            "student": user_info,
             "attendance": {
                 "status": existing.get("status", "present"),
                 "entry_time": entry_time_str,
@@ -10294,8 +10322,8 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         return {
             "status": "already_marked",
             "action": "already_both",
-            "message": f"Ya se registró entrada y salida hoy para {student_info['full_name']}",
-            "student": student_info,
+            "message": f"Ya se registró entrada y salida hoy para {user_info['full_name']}",
+            "student": user_info,
             "attendance": {
                 "status": existing.get("status"),
                 "entry_time": entry_time_str,
@@ -10309,8 +10337,8 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         return {
             "status": "already_marked",
             "action": "already_entry",
-            "message": f"Entrada ya registrada para {student_info['full_name']}",
-            "student": student_info,
+            "message": f"Entrada ya registrada para {user_info['full_name']}",
+            "student": user_info,
             "attendance": {
                 "status": existing.get("status"),
                 "entry_time": existing.get("check_in_time", ""),
@@ -10323,8 +10351,8 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         return {
             "status": "already_marked",
             "action": "already_exit",
-            "message": f"Salida ya registrada para {student_info['full_name']}",
-            "student": student_info,
+            "message": f"Salida ya registrada para {user_info['full_name']}",
+            "student": user_info,
             "attendance": {
                 "status": existing.get("status"),
                 "entry_time": existing.get("check_in_time", ""),
@@ -10337,15 +10365,15 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         return {
             "status": "error",
             "action": "no_entry",
-            "message": f"No hay entrada registrada para {student_info['full_name']}. Debe registrar entrada primero.",
-            "student": student_info,
+            "message": f"No hay entrada registrada para {user_info['full_name']}. Debe registrar entrada primero.",
+            "student": user_info,
             "attendance": {"status": None, "entry_time": None, "exit_time": None, "date": today}
         }
 
 @api_router.post("/attendance/qr/generate")
-async def generate_qr_for_existing_students(current_user = Depends(get_current_user)):
+async def generate_qr_for_existing_users(current_user = Depends(get_current_user)):
     """
-    Generate QR tokens for existing students that don't have one.
+    Generate QR tokens for existing students and teachers that don't have one.
     Admin only endpoint.
     """
     user = await resolve_user_from_token(current_user)
@@ -10354,14 +10382,15 @@ async def generate_qr_for_existing_students(current_user = Depends(get_current_u
     
     school_id = user["school_id"]
     
-    # Find students without qr_token
+    updated_count = 0
+    
+    # Generate for students without qr_token
     students_without_qr = await db.users.find({
         "school_id": school_id,
         "role": "student",
         "qr_token": {"$exists": False}
     }).to_list(None)
     
-    updated_count = 0
     for student in students_without_qr:
         qr_payload = {
             "student_id": student["id"],
@@ -10370,16 +10399,38 @@ async def generate_qr_for_existing_students(current_user = Depends(get_current_u
             "type": "student_qr"
         }
         qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
-        
         await db.users.update_one(
             {"id": student["id"]},
             {"$set": {"qr_token": qr_token}}
         )
         updated_count += 1
     
+    # Generate for teachers without qr_token
+    teachers_without_qr = await db.users.find({
+        "school_id": school_id,
+        "role": "teacher",
+        "qr_token": {"$exists": False}
+    }).to_list(None)
+    
+    for teacher in teachers_without_qr:
+        qr_payload = {
+            "teacher_id": teacher["id"],
+            "school_id": school_id,
+            "issued_at": datetime.now(timezone.utc).isoformat(),
+            "type": "teacher_qr"
+        }
+        qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+        await db.users.update_one(
+            {"id": teacher["id"]},
+            {"$set": {"qr_token": qr_token}}
+        )
+        updated_count += 1
+    
     return {
-        "message": f"QR generados para {updated_count} estudiantes",
-        "updated_count": updated_count
+        "message": f"QR generados para {updated_count} usuarios ({len(students_without_qr)} estudiantes, {len(teachers_without_qr)} profesores)",
+        "updated_count": updated_count,
+        "students_updated": len(students_without_qr),
+        "teachers_updated": len(teachers_without_qr)
     }
 
 @api_router.get("/attendance/qr/history")
@@ -23209,6 +23260,28 @@ async def create_indexes():
             else:
                 exp_date = (datetime.now(timezone.utc) + timedelta(days=30)).isoformat()
             await db.schools.update_one({"id": school["id"]}, {"$set": {"expiration_date": exp_date}})
+        
+        # Generate QR tokens for teachers that don't have one
+        teachers_without_qr = await db.users.find({
+            "role": "teacher",
+            "qr_token": {"$exists": False}
+        }).to_list(None)
+        
+        for teacher in teachers_without_qr:
+            qr_payload = {
+                "teacher_id": teacher["id"],
+                "school_id": teacher.get("school_id", ""),
+                "issued_at": datetime.now(timezone.utc).isoformat(),
+                "type": "teacher_qr"
+            }
+            qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+            await db.users.update_one(
+                {"id": teacher["id"]},
+                {"$set": {"qr_token": qr_token}}
+            )
+        
+        if teachers_without_qr:
+            logging.info(f"Generated QR tokens for {len(teachers_without_qr)} teachers")
         
         logging.info("MongoDB indexes created successfully")
     except Exception as e:
