@@ -37,17 +37,14 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 - Applied to both AttendancePage and TeacherAttendancePage
 
 #### Feature 4: Replicate Subjects Between Sections (P0) - COMPLETED
-- **Backend**: New endpoint `POST /api/academic/subjects/replicate` 
+- **Backend**: Endpoint `POST /api/academic/subjects/replicate`
   - Copies subject names, colors, images from source to target section
   - Does NOT copy teachers, schedules, or students
-  - Skips subjects that already exist in target (case-insensitive name match)
-  - Generates unique codes with section suffix
-- **Frontend**: New "Replicar Asignaturas" button in empty section view
-  - Modal shows sibling sections (same grade) that have subjects
-  - Preview of subjects to be copied with color badges
-  - 3-step flow: Select source → Confirm → Done
-  - Warning shown if target already has subjects
-  - Auto-refreshes subject list after replication
+  - Skips duplicates (case-insensitive name match)
+- **Frontend**: Green "Replicar Asignaturas" button + modal with 2 modes:
+  - "Misma grado": shows sibling sections of same grade with subjects
+  - "Otro grado": shows sections from OTHER grades with subjects
+  - Preview of subjects, confirmation step, success/skip feedback
 
 ### Previous Sessions (Summary)
 - Attendance Entry/Exit Module with QR
