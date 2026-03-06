@@ -668,11 +668,23 @@ export default function QRScannerTab({ token, roleFilter }) {
                       </div>
                     )}
                     <div>
+                      {result.status === "success" && (
+                        <p className={`text-[11px] font-bold uppercase tracking-wider mb-0.5 ${
+                          result.action === "exit" ? "text-blue-500" : "text-emerald-500"
+                        }`}>
+                          {result.action === "exit" ? "Salida registrada" : "Entrada registrada"}
+                        </p>
+                      )}
+                      {result.status === "already_marked" && (
+                        <p className="text-[11px] font-bold uppercase tracking-wider mb-0.5 text-amber-500">
+                          Asistencia ya registrada
+                        </p>
+                      )}
                       <p className={`text-lg font-bold ${
                         result.status === "success" ? (result.action === "exit" ? "text-blue-700" : "text-emerald-700") :
                         result.status === "error" ? "text-red-700" : "text-amber-700"
                       }`} data-testid="scan-result-message">
-                        {result.message}
+                        {result.student?.full_name || result.message}
                       </p>
                     </div>
                   </div>
@@ -726,15 +738,23 @@ export default function QRScannerTab({ token, roleFilter }) {
                       </div>
                       <div className="w-px bg-slate-200" />
                       <div className="flex-1 text-center">
-                        <p className="text-xs text-slate-400 uppercase tracking-wide">Estado</p>
-                        <p className={`text-lg font-bold ${
-                          result.attendance?.status === "present" ? "text-emerald-600" :
-                          result.attendance?.status === "late" ? "text-amber-600" : "text-slate-400"
-                        }`} data-testid="scan-status">
-                          {result.attendance?.status === "present" ? "Presente" :
-                           result.attendance?.status === "late" ? "Tardanza" :
-                           result.attendance?.status === "absent" ? "Ausente" : "—"}
+                        <p className="text-xs text-slate-400 uppercase tracking-wide">
+                          {result.attendance?.total_minutes != null ? "Total trabajado" : "Estado"}
                         </p>
+                        {result.attendance?.total_minutes != null ? (
+                          <p className="text-lg font-bold text-indigo-600" data-testid="scan-total-time">
+                            {Math.floor(result.attendance.total_minutes / 60)}h {result.attendance.total_minutes % 60}m
+                          </p>
+                        ) : (
+                          <p className={`text-lg font-bold ${
+                            result.attendance?.status === "present" ? "text-emerald-600" :
+                            result.attendance?.status === "late" ? "text-amber-600" : "text-slate-400"
+                          }`} data-testid="scan-status">
+                            {result.attendance?.status === "present" ? "Presente" :
+                             result.attendance?.status === "late" ? "Tardanza" :
+                             result.attendance?.status === "absent" ? "Ausente" : "—"}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -829,7 +849,7 @@ export default function QRScannerTab({ token, roleFilter }) {
                     </span>
                   </div>
                   <p className="text-sm text-slate-500">
-                    {item.grade_name ? `${item.grade_name} - Sección ${item.section_name}` : "Docente"}
+                    {item.grade_name ? `${item.grade_name} - Sección ${item.section_name}` : (item.role === "teacher" ? "Docente" : "Estudiante")}
                   </p>
                 </div>
                 <div className="text-right">
