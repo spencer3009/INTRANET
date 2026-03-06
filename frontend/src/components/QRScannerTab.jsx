@@ -510,7 +510,7 @@ export default function QRScannerTab({ token }) {
                       <Camera className="w-12 h-12 text-violet-600" />
                     </div>
                     <h4 className="text-xl font-bold text-slate-800 mb-2">Cámara desactivada</h4>
-                    <p className="text-slate-500 mb-4">Activa la cámara para escanear códigos QR de estudiantes</p>
+                    <p className="text-slate-500 mb-4">Activa la cámara para escanear códigos QR de estudiantes y profesores</p>
                     
                     {/* Camera count indicator */}
                     {availableCameras.length > 0 && (
@@ -676,21 +676,36 @@ export default function QRScannerTab({ token }) {
                     </div>
                   </div>
                   
-                  {/* Student Info */}
+                  {/* User Info */}
                   <div className="p-4 bg-white rounded-xl" data-testid="scan-result-card">
                     <div className="flex items-center gap-4 mb-3">
                       {result.student?.photo_url ? (
                         <img src={result.student.photo_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-slate-200" />
                       ) : (
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white text-xl font-bold">
+                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold ${
+                          result.student?.role === "teacher" 
+                            ? "bg-gradient-to-br from-indigo-400 to-purple-500" 
+                            : "bg-gradient-to-br from-violet-400 to-purple-500"
+                        }`}>
                           {result.student?.name?.charAt(0) || "E"}
                         </div>
                       )}
                       <div>
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                            result.student?.role === "teacher"
+                              ? "bg-indigo-100 text-indigo-700"
+                              : "bg-blue-100 text-blue-700"
+                          }`} data-testid="scan-result-role">
+                            {result.student?.role === "teacher" ? "Profesor" : "Estudiante"}
+                          </span>
+                        </div>
                         <p className="text-xl font-bold text-slate-800">{result.student?.full_name}</p>
-                        <p className="text-slate-500">
-                          {result.student?.grade_name} - Sección {result.student?.section_name}
-                        </p>
+                        {result.student?.grade_name && (
+                          <p className="text-slate-500">
+                            {result.student?.grade_name} - Sección {result.student?.section_name}
+                          </p>
+                        )}
                       </div>
                     </div>
                     {/* Entry/Exit times */}
@@ -795,14 +810,25 @@ export default function QRScannerTab({ token }) {
                 {item.photo_url ? (
                   <img src={item.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-violet-400 to-purple-500 flex items-center justify-center text-white font-bold">
-                    {item.student_name?.charAt(0) || "E"}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                    item.role === "teacher" 
+                      ? "bg-gradient-to-br from-indigo-400 to-purple-500" 
+                      : "bg-gradient-to-br from-violet-400 to-purple-500"
+                  }`}>
+                    {item.student_name?.charAt(0) || item.name?.charAt(0) || "U"}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800 truncate">{item.student_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-slate-800 truncate">{item.student_name || item.name}</p>
+                    <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
+                      item.role === "teacher" ? "bg-indigo-100 text-indigo-600" : "bg-blue-100 text-blue-600"
+                    }`}>
+                      {item.role === "teacher" ? "Prof" : "Est"}
+                    </span>
+                  </div>
                   <p className="text-sm text-slate-500">
-                    {item.grade_name} - Sección {item.section_name}
+                    {item.grade_name ? `${item.grade_name} - Sección ${item.section_name}` : "Docente"}
                   </p>
                 </div>
                 <div className="text-right">

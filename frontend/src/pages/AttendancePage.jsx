@@ -16,26 +16,16 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-// Tab configurations
-const ATTENDANCE_TABS = [
-  { id: "students", label: "Estudiantes", icon: Users, description: "Asistencia de alumnos" },
-  { id: "teachers", label: "Profesores", icon: UserCheck, description: "Asistencia de docentes" },
-  { id: "qr-scanner", label: "Escanear QR", icon: QrCode, description: "Asistencia por código QR" },
-  { id: "reports", label: "Reportes", icon: FileText, description: "Reportes de asistencia" }
-];
-
 // Status configurations
 const STUDENT_STATUSES = [
   { id: "pending", label: "Pendiente", icon: Circle, color: "slate", bgColor: "bg-slate-100", textColor: "text-slate-500", borderColor: "border-slate-300" },
   { id: "present", label: "Presente", icon: CheckCircle2, color: "emerald", bgColor: "bg-emerald-100", textColor: "text-emerald-700", borderColor: "border-emerald-500" },
   { id: "late", label: "Tardanza", icon: Clock, color: "amber", bgColor: "bg-amber-100", textColor: "text-amber-700", borderColor: "border-amber-500" },
-  { id: "absent", label: "Ausente", icon: XCircle, color: "red", bgColor: "bg-red-100", textColor: "text-red-700", borderColor: "border-red-500" }
-];
-
-const TEACHER_STATUSES = [
-  ...STUDENT_STATUSES,
+  { id: "absent", label: "Ausente", icon: XCircle, color: "red", bgColor: "bg-red-100", textColor: "text-red-700", borderColor: "border-red-500" },
   { id: "justified", label: "Justificado", icon: AlertTriangle, color: "blue", bgColor: "bg-blue-100", textColor: "text-blue-700", borderColor: "border-blue-500" }
 ];
+
+const TEACHER_STATUSES = STUDENT_STATUSES;
 
 // Local storage keys for filter persistence
 const STORAGE_KEYS = {
@@ -1425,11 +1415,11 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "students");
+  const [activeView, setActiveView] = useState(searchParams.get("tab") || "home");
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
-    if (tabParam) setActiveTab(tabParam);
+    if (tabParam) setActiveView(tabParam);
   }, [searchParams]);
   
   const headers = { Authorization: `Bearer ${token}` };
@@ -1457,7 +1447,8 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
     );
   }
 
-  const isMobileQRMode = activeTab === "qr-scanner";
+  const isMobileQRMode = activeView === "qr-scanner";
+  const isSubView = activeView !== "home";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex" data-testid="attendance-page">
@@ -1500,49 +1491,180 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
             </div>
           </div>
 
-          {/* Tabs — hidden on mobile when QR scanner is active */}
-          <div className={`${isMobileQRMode ? "hidden lg:flex" : "flex"} gap-4 mb-8 overflow-x-auto pb-2`}>
-            {ATTENDANCE_TABS.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-3 px-6 py-4 rounded-2xl font-semibold transition-all whitespace-nowrap ${
-                    isActive 
-                      ? "bg-white shadow-lg text-teal-600 border-2 border-teal-200" 
-                      : "bg-white/50 text-slate-600 hover:bg-white hover:shadow border-2 border-transparent"
-                  }`}
-                  data-testid={`tab-${tab.id}`}
-                >
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? "bg-teal-100" : "bg-slate-100"}`}>
-                    <Icon className={`w-6 h-6 ${isActive ? "text-teal-600" : "text-slate-500"}`} />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-bold">{tab.label}</p>
-                    <p className="text-xs opacity-60">{tab.description}</p>
-                  </div>
-                  {isActive && <ChevronRight className="w-5 h-5 ml-2" />}
-                </button>
-              );
-            })}
-          </div>
+          {/* Back button when in sub-view */}
+          {isSubView && (
+            <button
+              onClick={() => setActiveView("home")}
+              className={`${isMobileQRMode ? "hidden lg:flex" : "flex"} items-center gap-2 mb-6 px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition-all font-medium text-sm shadow-sm`}
+              data-testid="back-to-home"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Volver al panel de asistencia
+            </button>
+          )}
 
-          {/* Tab content */}
-          {activeTab === "students" && (
+          {/* ─── HOME: Section Cards ─── */}
+          {activeView === "home" && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6" data-testid="attendance-home">
+              {/* SECTION 1: Estudiantes */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-students">
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <Users className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Estudiantes</h2>
+                      <p className="text-blue-200 text-sm">Asistencia de alumnos</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <button
+                    onClick={() => setActiveView("qr-scanner")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-blue-50 border-2 border-slate-200 hover:border-blue-300 rounded-xl transition-all group"
+                    data-testid="btn-students-qr"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-violet-100 group-hover:bg-violet-500 flex items-center justify-center transition-colors">
+                      <QrCode className="w-5 h-5 text-violet-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Escanear QR</p>
+                      <p className="text-xs text-slate-400">Registro automático con código QR</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                  </button>
+                  <button
+                    onClick={() => setActiveView("students")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-blue-50 border-2 border-slate-200 hover:border-blue-300 rounded-xl transition-all group"
+                    data-testid="btn-students-manual"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 group-hover:bg-blue-500 flex items-center justify-center transition-colors">
+                      <ClipboardCheck className="w-5 h-5 text-blue-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Marcar Manual</p>
+                      <p className="text-xs text-slate-400">Lista de alumnos con botones de estado</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-blue-500 transition-colors" />
+                  </button>
+                </div>
+              </div>
+
+              {/* SECTION 2: Profesores */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-teachers">
+                <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <UserCheck className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Profesores</h2>
+                      <p className="text-indigo-200 text-sm">Asistencia de docentes</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <button
+                    onClick={() => setActiveView("qr-scanner")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-indigo-50 border-2 border-slate-200 hover:border-indigo-300 rounded-xl transition-all group"
+                    data-testid="btn-teachers-qr"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-violet-100 group-hover:bg-violet-500 flex items-center justify-center transition-colors">
+                      <QrCode className="w-5 h-5 text-violet-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Escanear QR</p>
+                      <p className="text-xs text-slate-400">Registro automático con código QR</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                  </button>
+                  <button
+                    onClick={() => setActiveView("teachers")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-indigo-50 border-2 border-slate-200 hover:border-indigo-300 rounded-xl transition-all group"
+                    data-testid="btn-teachers-manual"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-indigo-100 group-hover:bg-indigo-500 flex items-center justify-center transition-colors">
+                      <ClipboardCheck className="w-5 h-5 text-indigo-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Marcar Manual</p>
+                      <p className="text-xs text-slate-400">Lista de docentes con botones de estado</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-indigo-500 transition-colors" />
+                  </button>
+                </div>
+              </div>
+
+              {/* SECTION 3: Reportes */}
+              <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-reports">
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Reportes</h2>
+                      <p className="text-amber-200 text-sm">Reportes de asistencia</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="p-5 space-y-3">
+                  <button
+                    onClick={() => setActiveView("reports")}
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-amber-50 border-2 border-slate-200 hover:border-amber-300 rounded-xl transition-all group"
+                    data-testid="btn-reports"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-amber-100 group-hover:bg-amber-500 flex items-center justify-center transition-colors">
+                      <FileText className="w-5 h-5 text-amber-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="text-left flex-1">
+                      <p className="font-semibold text-slate-800 text-sm">Ver Reportes</p>
+                      <p className="text-xs text-slate-400">Consulta y descarga reportes de asistencia</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-amber-500 transition-colors" />
+                  </button>
+                </div>
+
+                {/* Status legend */}
+                <div className="px-5 pb-5">
+                  <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Estados</p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-emerald-100 text-emerald-700 font-medium">
+                      <CheckCircle2 className="w-3 h-3" /> Presente
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700 font-medium">
+                      <Clock className="w-3 h-3" /> Tardanza
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-red-100 text-red-700 font-medium">
+                      <XCircle className="w-3 h-3" /> Ausente
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-blue-100 text-blue-700 font-medium">
+                      <AlertTriangle className="w-3 h-3" /> Justificado
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg bg-slate-100 text-slate-500 font-medium">
+                      <Circle className="w-3 h-3" /> Pendiente
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ─── SUB-VIEWS ─── */}
+          {activeView === "students" && (
             <StudentAttendanceTab token={token} schoolId={user?.school_id} />
           )}
           
-          {activeTab === "teachers" && (
+          {activeView === "teachers" && (
             <TeacherAttendanceTab token={token} schoolId={user?.school_id} />
           )}
           
-          {activeTab === "qr-scanner" && (
+          {activeView === "qr-scanner" && (
             <QRScannerTab token={token} schoolId={user?.school_id} />
           )}
           
-          {activeTab === "reports" && (
+          {activeView === "reports" && (
             <ReportsTab token={token} schoolId={user?.school_id} />
           )}
         </main>
