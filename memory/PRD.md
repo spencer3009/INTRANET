@@ -36,6 +36,19 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
   - QR scanner shows directly below header
 - Applied to both AttendancePage and TeacherAttendancePage
 
+#### Feature 6: Pendientes de Importacion (P0) - COMPLETED
+- **Backend**:
+  - `GET /api/students/pending` - Lists students with import_status=pending
+  - `PUT /api/students/pending/{id}/edit` - Edit pending student data, auto-validates DNI/email uniqueness, auto-activates if no errors remain
+  - `DELETE /api/students/pending/{id}` - Remove pending student
+- **Frontend**: 
+  - "Pendientes" button (amber) in Excel import block opens modal
+  - Modal shows all pending records with error badges (red), edit/delete buttons
+  - Inline edit form: Nombre, Apellido, DNI, Correo, Celular, Genero (select), Cumpleanos (date), Direccion
+  - "Guardar y Activar" auto-activates if errors fixed
+  - Empty state: "No hay registros pendientes"
+- **Testing**: Backend 100% (10/10), Frontend 100% (iteration_69.json)
+
 #### Feature 5: Mass Student Import from Excel/CSV (P0) - COMPLETED + ENHANCED
 - **Backend**: 
   - `GET /api/students/import/template` - Professional Excel template with:
