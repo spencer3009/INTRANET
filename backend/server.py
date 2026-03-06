@@ -5848,16 +5848,16 @@ async def import_students(
                 birthday = birthday_str
 
         # Normalize gender
+        errors = []
         gender = ""
         if gender_raw:
             if gender_raw in ("masculino", "male", "m", "hombre"):
-                gender = "male"
+                gender = "Masculino"
             elif gender_raw in ("femenino", "female", "f", "mujer"):
-                gender = "female"
+                gender = "Femenino"
             else:
-                gender = gender_raw
-
-        errors = []
+                gender = ""
+                errors.append("Genero no valido")
         if not name:
             errors.append("Nombre vacio")
         if not last_name:
