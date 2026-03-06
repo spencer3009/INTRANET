@@ -38,19 +38,20 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 #### Feature 5: Mass Student Import from Excel/CSV (P0) - COMPLETED
 - **Backend**: 
-  - `GET /api/students/import/template` - Downloads pre-formatted Excel template
-  - `POST /api/students/import` - Imports students from .xlsx/.xls/.csv files
-  - `GET /api/students/pending` - Lists students with import errors
-  - `PUT /api/students/pending/{id}/activate` - Activates fixed pending students
+  - `GET /api/students/import/template` - Downloads pre-formatted Excel template with instructions and example row
+  - `POST /api/students/import` - Imports students from .xlsx/.xls/.csv files, skips example row
   - Auto-generates student_code (STU-000001), QR token, username
-  - Error handling: duplicate DNI/email → marks as "pending"
-- **Frontend** (UsersPage.jsx):
-  - "Descargar Plantilla" button downloads template with active academic filters
-  - "Importar Archivo" button opens modal with drag-and-drop file zone
-  - Shift selector in modal, file preview with size, two-step import flow
-  - Import result summary: created count, pending count, error details
-  - "Pendientes" status filter to view students with import errors
-- **Testing**: Backend 100%, Frontend 95% (iteration_66.json)
+  - Error handling: duplicate DNI/email marks as "pending"
+- **Frontend** (UsersPage.jsx) - REDESIGNED:
+  - Removed import buttons from header banner
+  - Added visual "Excel import block" below academic filters with large icon + "Administrar archivo Excel" button
+  - 4 filter dropdowns: Nivel, Grado, Seccion, Turno
+  - Two-step modal: Menu (Descargar plantilla / Cargar archivo) → Upload with drag-drop
+  - Filter validation: must select Nivel+Grado+Seccion before downloading template
+  - Template includes instructions + example row (Juan Perez)
+  - Import results with "Ver pendientes" button
+  - Progress indicator during import
+- **Testing**: Backend 100% (6/6), Frontend 100% (iteration_67.json)
 
 #### Feature 4: Replicate Subjects Between Sections (P0) - COMPLETED
 - **Backend**: Endpoint `POST /api/academic/subjects/replicate`
