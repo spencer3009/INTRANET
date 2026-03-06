@@ -36,6 +36,22 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
   - QR scanner shows directly below header
 - Applied to both AttendancePage and TeacherAttendancePage
 
+#### Feature 5: Mass Student Import from Excel/CSV (P0) - COMPLETED
+- **Backend**: 
+  - `GET /api/students/import/template` - Downloads pre-formatted Excel template
+  - `POST /api/students/import` - Imports students from .xlsx/.xls/.csv files
+  - `GET /api/students/pending` - Lists students with import errors
+  - `PUT /api/students/pending/{id}/activate` - Activates fixed pending students
+  - Auto-generates student_code (STU-000001), QR token, username
+  - Error handling: duplicate DNI/email → marks as "pending"
+- **Frontend** (UsersPage.jsx):
+  - "Descargar Plantilla" button downloads template with active academic filters
+  - "Importar Archivo" button opens modal with drag-and-drop file zone
+  - Shift selector in modal, file preview with size, two-step import flow
+  - Import result summary: created count, pending count, error details
+  - "Pendientes" status filter to view students with import errors
+- **Testing**: Backend 100%, Frontend 95% (iteration_66.json)
+
 #### Feature 4: Replicate Subjects Between Sections (P0) - COMPLETED
 - **Backend**: Endpoint `POST /api/academic/subjects/replicate`
   - Copies subject names, colors, images from source to target section
@@ -63,12 +79,14 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 - Verify "Disappearing Student Selection" bug in PaymentFormModal
 - Attendance: Settings for schedule/lateness configuration
 - Parent Portal Feature Parity, Matriculas module
+- Exams module - Question Bank
 
 ### P2
 - Remove hardcoded data from Owner Dashboard ("Asistencia del Mes", "Noticias y Avisos")
 - Fix Message Center unread count discrepancy
 - Replace window.confirm/alert with custom modals
 - Refactor NewPaymentModal.jsx (1400+ lines)
+- Attendance Notifications to parents
 
 ## Key Technical Notes
 - **Header z-index**: 100 (via inline style)
