@@ -20,9 +20,12 @@ import cloudinary
 import cloudinary.utils
 import cloudinary.uploader
 import io
+import csv
 from cachetools import TTLCache
 import asyncio
 import unicodedata
+from openpyxl import Workbook, load_workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 # Google Drive imports
 from google.oauth2.credentials import Credentials
@@ -5493,6 +5496,339 @@ async def delete_user(user_id: str, current_user = Depends(get_current_user)):
     logger.info(f"User {user_id} ({target_role}) deleted with cascade cleanup by {user['id']}")
     
     return {"message": "Usuario eliminado correctamente junto con todos sus datos relacionados"}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STUDENT IMPORT - Excel/CSV mass import
+# ══════════════════════════════════════════════════════════════════════════════
+
+@api_router.get("/students/import/template")
+async def generate_student_template(
+    nivel_id: str = "",
+    grado_id: str = "",
+    seccion_id: str = "",
+    turno_id: str = "",
+    current_user = Depends(get_current_user)
+):
+    """Generate Excel template for student import"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden generar plantillas")
+
+    school_id = user["school_id"]
+
+    nivel_name = ""
+    grado_name = ""
+    seccion_name = ""
+    turno_name = ""
+
+    if nivel_id:
+        nivel = await db.levels.find_one({"id": nivel_id, "school_id": school_id}, {"_id": 0})
+        nivel_name = nivel.get("nombre", "") if nivel else ""
+    if grado_id:
+        grado = await db.grades.find_one({"id": grado_id, "school_id": school_id}, {"_id": 0})
+        grado_name = grado.get("nombre", "") if grado else ""
+    if seccion_id:
+        seccion = await db.sections.find_one({"id": seccion_id, "school_id": school_id}, {"_id": 0})
+        seccion_name = seccion.get("nombre", "") if seccion else ""
+    if turno_id:
+        turno = await db.turnos.find_one({"id": turno_id, "school_id": school_id}, {"_id": 0})
+        turno_name = turno.get("nombre", "") if turno else ""
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Estudiantes"
+
+    header_fill = PatternFill(start_color="1B5E20", end_color="1B5E20", fill_type="solid")
+    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=11)
+    info_fill = PatternFill(start_color="E8F5E9", end_color="E8F5E9", fill_type="solid")
+    info_font = Font(name="Arial", italic=True, size=10, color="2E7D32")
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+
+    ws.merge_cells("A1:G1")
+    ws["A1"] = f"Plantilla de Importacion de Estudiantes"
+    ws["A1"].font = Font(name="Arial", bold=True, size=14, color="1B5E20")
+
+    ws.merge_cells("A2:G2")
+    info_parts = []
+    if nivel_name: info_parts.append(f"Nivel: {nivel_name}")
+    if grado_name: info_parts.append(f"Grado: {grado_name}")
+    if seccion_name: info_parts.append(f"Seccion: {seccion_name}")
+    if turno_name: info_parts.append(f"Turno: {turno_name}")
+    ws["A2"] = " | ".join(info_parts) if info_parts else "Sin filtros seleccionados"
+    ws["A2"].font = info_font
+    ws["A2"].fill = info_fill
+
+    headers = ["Nombre", "Apellido", "DNI", "Celular", "Correo", "Direccion", "Observaciones"]
+    for col, header in enumerate(headers, 1):
+        cell = ws.cell(row=4, column=col, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    col_widths = [20, 20, 15, 15, 30, 35, 30]
+    for i, w in enumerate(col_widths, 1):
+        ws.column_dimensions[ws.cell(row=4, column=i).column_letter].width = w
+
+    for row in range(5, 10):
+        for col in range(1, 8):
+            ws.cell(row=row, column=col).border = thin_border
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    safe_nivel = nivel_name.replace(" ", "_") or "todos"
+    safe_grado = grado_name.replace(" ", "_") or "todos"
+    safe_seccion = seccion_name.replace(" ", "_") or "todas"
+    filename = f"plantilla_estudiantes_{safe_nivel}_{safe_grado}_{safe_seccion}.xlsx"
+
+    from starlette.responses import StreamingResponse
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@api_router.post("/students/import")
+async def import_students(
+    file: UploadFile = File(...),
+    nivel_id: str = Form(""),
+    grado_id: str = Form(""),
+    seccion_id: str = Form(""),
+    turno_id: str = Form(""),
+    current_user = Depends(get_current_user)
+):
+    """Import students from Excel or CSV file"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden importar estudiantes")
+
+    school_id = user["school_id"]
+    now = datetime.now(timezone.utc).isoformat()
+
+    ext = file.filename.lower().rsplit(".", 1)[-1] if file.filename else ""
+    if ext not in ("xlsx", "xls", "csv"):
+        raise HTTPException(status_code=400, detail="Formato no soportado. Use .xlsx, .xls o .csv")
+
+    content = await file.read()
+    rows = []
+
+    try:
+        if ext == "csv":
+            text = content.decode("utf-8-sig")
+            reader = csv.DictReader(io.StringIO(text))
+            for r in reader:
+                rows.append({k.strip(): (v.strip() if v else "") for k, v in r.items()})
+        elif ext == "xlsx":
+            wb = load_workbook(io.BytesIO(content), read_only=True)
+            ws = wb.active
+            all_rows = list(ws.iter_rows(values_only=True))
+            header_row_idx = None
+            for i, row in enumerate(all_rows):
+                if row and any(str(c or "").strip().lower() in ("nombre", "name") for c in row):
+                    header_row_idx = i
+                    break
+            if header_row_idx is None:
+                raise HTTPException(status_code=400, detail="No se encontro la fila de encabezados (Nombre, Apellido...)")
+            headers_raw = [str(c or "").strip() for c in all_rows[header_row_idx]]
+            for row in all_rows[header_row_idx + 1:]:
+                if not row or all(c is None or str(c).strip() == "" for c in row):
+                    continue
+                d = {}
+                for j, h in enumerate(headers_raw):
+                    d[h] = str(row[j]).strip() if j < len(row) and row[j] is not None else ""
+                rows.append(d)
+            wb.close()
+        elif ext == "xls":
+            import xlrd
+            book = xlrd.open_workbook(file_contents=content)
+            sheet = book.sheet_by_index(0)
+            header_row_idx = None
+            for i in range(min(10, sheet.nrows)):
+                vals = [str(sheet.cell_value(i, j)).strip() for j in range(sheet.ncols)]
+                if any(v.lower() in ("nombre", "name") for v in vals):
+                    header_row_idx = i
+                    break
+            if header_row_idx is None:
+                raise HTTPException(status_code=400, detail="No se encontro la fila de encabezados")
+            headers_raw = [str(sheet.cell_value(header_row_idx, j)).strip() for j in range(sheet.ncols)]
+            for i in range(header_row_idx + 1, sheet.nrows):
+                vals = [str(sheet.cell_value(i, j)).strip() for j in range(sheet.ncols)]
+                if all(v == "" for v in vals):
+                    continue
+                d = {}
+                for j, h in enumerate(headers_raw):
+                    d[h] = vals[j] if j < len(vals) else ""
+                rows.append(d)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error al leer archivo: {str(e)}")
+
+    if not rows:
+        raise HTTPException(status_code=400, detail="El archivo no contiene datos de estudiantes")
+
+    COL_MAP = {
+        "nombre": "name", "name": "name",
+        "apellido": "last_name", "apellidos": "last_name", "last_name": "last_name",
+        "dni": "dni", "documento": "dni",
+        "celular": "phone", "telefono": "phone", "phone": "phone",
+        "correo": "email", "email": "email",
+        "direccion": "address", "address": "address",
+        "observaciones": "notes", "notas": "notes", "notes": "notes",
+    }
+
+    def normalize_key(k):
+        k = k.lower().strip()
+        k = unicodedata.normalize("NFD", k)
+        k = "".join(c for c in k if unicodedata.category(c) != "Mn")
+        return COL_MAP.get(k, k)
+
+    created = []
+    pending = []
+
+    last_code = await db.users.find_one(
+        {"school_id": school_id, "student_code": {"$exists": True}},
+        sort=[("student_code", -1)],
+        projection={"student_code": 1, "_id": 0}
+    )
+    code_counter = 1
+    if last_code and last_code.get("student_code"):
+        try:
+            code_counter = int(last_code["student_code"].split("-")[1]) + 1
+        except (ValueError, IndexError):
+            pass
+
+    for idx, raw_row in enumerate(rows):
+        row = {normalize_key(k): v for k, v in raw_row.items() if k.strip()}
+        name = row.get("name", "").strip()
+        last_name = row.get("last_name", "").strip()
+        dni = row.get("dni", "").strip()
+        email = row.get("email", "").strip().lower()
+        phone = row.get("phone", "").strip()
+        address = row.get("address", "").strip()
+        notes = row.get("notes", "").strip()
+
+        errors = []
+        if not name:
+            errors.append("Nombre vacio")
+        if not last_name:
+            errors.append("Apellido vacio")
+
+        if dni:
+            existing_dni = await db.users.find_one({"school_id": school_id, "dni": dni}, {"_id": 0, "id": 1})
+            if existing_dni:
+                errors.append(f"DNI {dni} ya existe")
+
+        if email:
+            existing_email = await db.users.find_one({"school_id": school_id, "email": email}, {"_id": 0, "id": 1})
+            if existing_email:
+                errors.append(f"Correo {email} ya existe")
+
+        student_code = f"STU-{code_counter:06d}"
+        code_counter += 1
+
+        base_username = f"{name.lower().replace(' ', '')}.{last_name.lower().replace(' ', '')}" if name and last_name else f"est{idx}"
+        base_username = "".join(c for c in unicodedata.normalize("NFD", base_username) if unicodedata.category(c) != "Mn")
+        username = base_username
+        suffix = 1
+        while await db.users.find_one({"username": username, "school_id": school_id}):
+            username = f"{base_username}{suffix}"
+            suffix += 1
+
+        new_student = {
+            "id": str(uuid.uuid4()),
+            "username": username,
+            "password": hash_password(dni if dni else "123456"),
+            "name": name,
+            "last_name": last_name,
+            "email": email or None,
+            "phone": phone or None,
+            "dni": dni or None,
+            "address": address or None,
+            "role": "student",
+            "school_id": school_id,
+            "email_verified": True,
+            "nivel_id": nivel_id or None,
+            "grado_id": grado_id or None,
+            "seccion_id": seccion_id or None,
+            "turno_id": turno_id or None,
+            "student_code": student_code,
+            "student_status": "pending" if errors else "active",
+            "import_status": "pending" if errors else "imported",
+            "import_errors": errors if errors else None,
+            "import_notes": notes or None,
+            "created_at": now,
+            "updated_at": now,
+        }
+
+        qr_payload = {
+            "student_id": new_student["id"],
+            "school_id": school_id,
+            "issued_at": now,
+            "type": "student_qr"
+        }
+        new_student["qr_token"] = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+
+        if errors:
+            pending.append({"row": idx + 1, "name": f"{name} {last_name}", "errors": errors, "student_code": student_code})
+            new_student["student_status"] = "pending"
+        else:
+            new_student["student_status"] = "active"
+
+        await db.users.insert_one(new_student)
+        new_student.pop("_id", None)
+        new_student.pop("password", None)
+
+        if not errors:
+            created.append({"name": f"{name} {last_name}", "student_code": student_code})
+
+    logger.info(f"Student import: {len(created)} created, {len(pending)} pending by {user['id']}")
+
+    return {
+        "message": f"Importacion completada",
+        "created_count": len(created),
+        "pending_count": len(pending),
+        "created": created,
+        "pending": pending,
+    }
+
+@api_router.get("/students/pending")
+async def get_pending_students(current_user = Depends(get_current_user)):
+    """Get students with import errors"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    students = await db.users.find(
+        {"school_id": user["school_id"], "role": "student", "import_status": "pending"},
+        {"_id": 0, "password": 0}
+    ).to_list(500)
+    return students
+
+@api_router.put("/students/pending/{student_id}/activate")
+async def activate_pending_student(student_id: str, current_user = Depends(get_current_user)):
+    """Activate a pending student after fixing errors"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    result = await db.users.update_one(
+        {"id": student_id, "school_id": user["school_id"], "role": "student"},
+        {"$set": {"import_status": "imported", "student_status": "active", "import_errors": None, "updated_at": datetime.now(timezone.utc).isoformat()}}
+    )
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    return {"message": "Estudiante activado correctamente"}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # ACADEMIC SETTINGS - NIVELES EDUCATIVOS
@@ -22501,7 +22837,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://native-app-nav.preview.emergentagent.com",
+        "https://student-upload-tool.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,

@@ -11,7 +11,8 @@ import {
   MoreVertical, Pencil, Trash2, BookOpen, Sparkles, Search, UserCheck,
   Heart, Phone, FileText, Stethoscope, ShieldCheck, Key, RefreshCw, 
   ToggleLeft, ToggleRight, UserCog, Link2, AlertTriangle, QrCode,
-  ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail, UserX
+  ChevronDown, ChevronRight, LayoutGrid, List, Filter, Mail, UserX,
+  FileSpreadsheet, Download, FileUp, CheckCircle2
 } from "lucide-react";
 import StudentQRCard from "@/components/StudentQRCard";
 import PhotoUploadModal from "@/components/PhotoUploadModal";
@@ -1507,6 +1508,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   
   // QR Modal states
   const [showQRModal, setShowQRModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [importDragOver, setImportDragOver] = useState(false);
+  const [importShift, setImportShift] = useState("");
   const [qrStudent, setQRStudent] = useState(null);
   
   // Photo upload modal
@@ -2063,18 +2070,59 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
               </div>
               
-              {/* Add button - Hidden for system roles */}
+              {/* Add button + Import buttons for students */}
               {!roleConfig.hideAddButton && (
-                <button
-                  onClick={() => handleAddUser(selectedRole)}
-                  className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
-                  data-testid="add-user-circle-btn"
-                >
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
-                    <Plus className="w-5 h-5 text-white" />
-                  </div>
-                  <span>Agregar {roleConfig.labelSingular}</span>
-                </button>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => handleAddUser(selectedRole)}
+                    className="flex items-center gap-3 bg-white text-slate-800 px-6 py-3 rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5"
+                    data-testid="add-user-circle-btn"
+                  >
+                    <div className={`w-10 h-10 rounded-full bg-gradient-to-r ${roleConfig.gradientBg} flex items-center justify-center`}>
+                      <Plus className="w-5 h-5 text-white" />
+                    </div>
+                    <span className="hidden sm:inline">Agregar {roleConfig.labelSingular}</span>
+                  </button>
+                  {selectedRole === 'student' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          const params = new URLSearchParams();
+                          if (studentFilterLevel) params.set("nivel_id", studentFilterLevel);
+                          if (studentFilterGrade) params.set("grado_id", studentFilterGrade);
+                          if (studentFilterSection) params.set("seccion_id", studentFilterSection);
+                          const url = `${API}/students/import/template?${params.toString()}`;
+                          fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+                            .then(r => {
+                              if (!r.ok) throw new Error("Error");
+                              return r.blob();
+                            })
+                            .then(blob => {
+                              const a = document.createElement("a");
+                              a.href = URL.createObjectURL(blob);
+                              a.download = "plantilla_estudiantes.xlsx";
+                              a.click();
+                              URL.revokeObjectURL(a.href);
+                            })
+                            .catch(() => toast.error("Error al descargar plantilla"));
+                        }}
+                        className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-3 rounded-xl font-semibold transition-all hover:shadow-lg"
+                        data-testid="download-template-btn"
+                      >
+                        <FileSpreadsheet className="w-5 h-5" />
+                        <span className="hidden sm:inline">Descargar Plantilla</span>
+                      </button>
+                      <button
+                        onClick={() => setShowImportModal(true)}
+                        className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-3 rounded-xl font-semibold transition-all hover:shadow-lg"
+                        data-testid="import-students-btn"
+                      >
+                        <FileUp className="w-5 h-5" />
+                        <span className="hidden sm:inline">Importar Archivo</span>
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -3873,6 +3921,223 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         token={token}
         onPhotoUpdated={handlePhotoUpdated}
       />
+
+      {/* ═══════════════ IMPORT MODAL ═══════════════ */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={() => { if (!importing) { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportShift(""); } }}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="import-modal">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <FileUp className="w-5 h-5 text-blue-600" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Importar Estudiantes</h3>
+                  <p className="text-xs text-gray-500">Suba un archivo .xlsx, .xls o .csv</p>
+                </div>
+              </div>
+              {!importing && (
+                <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportShift(""); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            <div className="p-5">
+              {!importResult && !importing && (
+                <>
+                  {/* Filter tags */}
+                  {(studentFilterLevel || studentFilterGrade || studentFilterSection) && (
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-4">
+                      <p className="text-xs font-semibold text-emerald-700 mb-1">Filtros seleccionados:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {studentFilterLevel && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">{levels.find(l => l.id === studentFilterLevel)?.nombre || "Nivel"}</span>}
+                        {studentFilterGrade && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">{grades.find(g => g.id === studentFilterGrade)?.nombre || "Grado"}</span>}
+                        {studentFilterSection && <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 text-xs rounded-full">Seccion: {sections.find(s => s.id === studentFilterSection)?.nombre || "?"}</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Shift selector */}
+                  {shifts.length > 0 && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-semibold text-slate-700 mb-1.5">Turno</label>
+                      <select
+                        value={importShift}
+                        onChange={e => setImportShift(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        data-testid="import-shift-select"
+                      >
+                        <option value="">Sin turno</option>
+                        {shifts.filter(s => s.activo).map(s => (
+                          <option key={s.id} value={s.id}>{s.nombre} ({s.hora_inicio} - {s.hora_fin})</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Drag & drop zone */}
+                  <div
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${importDragOver ? 'border-blue-500 bg-blue-50' : importFile ? 'border-emerald-400 bg-emerald-50' : 'border-gray-200 hover:border-blue-400'}`}
+                    onDragOver={e => { e.preventDefault(); setImportDragOver(true); }}
+                    onDragLeave={() => setImportDragOver(false)}
+                    onDrop={e => {
+                      e.preventDefault();
+                      setImportDragOver(false);
+                      const f = e.dataTransfer.files?.[0];
+                      if (f) {
+                        const ext = f.name.split('.').pop()?.toLowerCase();
+                        if (['xlsx', 'xls', 'csv'].includes(ext)) {
+                          setImportFile(f);
+                        } else {
+                          toast.error("Formato no soportado. Use .xlsx, .xls o .csv");
+                        }
+                      }
+                    }}
+                    data-testid="import-drop-zone"
+                  >
+                    {importFile ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center">
+                          <CheckCircle2 className="w-7 h-7 text-emerald-600" />
+                        </div>
+                        <p className="text-emerald-700 font-semibold">{importFile.name}</p>
+                        <p className="text-xs text-emerald-500">{(importFile.size / 1024).toFixed(1)} KB</p>
+                        <button
+                          onClick={() => setImportFile(null)}
+                          className="text-xs text-red-500 hover:text-red-600 font-medium mt-1"
+                          data-testid="import-remove-file"
+                        >
+                          Quitar archivo
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <FileSpreadsheet className={`w-12 h-12 mx-auto mb-3 ${importDragOver ? 'text-blue-500' : 'text-gray-300'}`} />
+                        <p className="text-gray-600 font-medium mb-1">
+                          {importDragOver ? 'Suelte el archivo aqui' : 'Arrastre o seleccione un archivo'}
+                        </p>
+                        <p className="text-xs text-gray-400 mb-4">Formatos: .xlsx, .xls, .csv</p>
+                        <label className="cursor-pointer inline-flex items-center gap-2 px-6 py-2.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors" data-testid="import-file-input-label">
+                          <Upload className="w-4 h-4" />
+                          Seleccionar Archivo
+                          <input
+                            type="file"
+                            accept=".xlsx,.xls,.csv"
+                            className="hidden"
+                            data-testid="import-file-input"
+                            onChange={e => {
+                              const f = e.target.files?.[0];
+                              if (f) setImportFile(f);
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-400 mt-3 text-center">
+                    Descargue primero la plantilla, complete los datos y suba el archivo aqui.
+                  </p>
+                </>
+              )}
+
+              {importing && (
+                <div className="text-center py-10">
+                  <Loader2 className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-700 font-semibold text-lg">Procesando estudiantes...</p>
+                  <p className="text-sm text-gray-400 mt-1">Esto puede tomar unos segundos</p>
+                </div>
+              )}
+
+              {importResult && !importing && (
+                <div className="py-4">
+                  {importResult.error ? (
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <AlertCircle className="w-8 h-8 text-red-500" />
+                      </div>
+                      <p className="text-red-600 font-semibold text-lg">{importResult.error}</p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle2 className="w-8 h-8 text-green-600" />
+                      </div>
+                      <p className="text-green-700 font-bold text-xl mb-4">Importacion Completada</p>
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="bg-green-50 rounded-xl p-4">
+                          <p className="text-3xl font-bold text-green-600" data-testid="import-created-count">{importResult.created_count}</p>
+                          <p className="text-sm text-green-700">Importados</p>
+                        </div>
+                        <div className="bg-amber-50 rounded-xl p-4">
+                          <p className="text-3xl font-bold text-amber-600" data-testid="import-pending-count">{importResult.pending_count}</p>
+                          <p className="text-sm text-amber-700">Pendientes</p>
+                        </div>
+                      </div>
+                      {importResult.pending_count > 0 && (
+                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left">
+                          <p className="text-sm font-semibold text-amber-700 mb-2">Registros con errores:</p>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {importResult.pending?.map((p, i) => (
+                              <div key={i} className="text-xs text-amber-600">
+                                <span className="font-medium">Fila {p.row}:</span> {p.name} — {p.errors?.join(", ")}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 p-5 border-t border-gray-100">
+              {!importing && !importResult && importFile && (
+                <button
+                  onClick={async () => {
+                    setImporting(true);
+                    const formData = new FormData();
+                    formData.append("file", importFile);
+                    formData.append("nivel_id", studentFilterLevel || "");
+                    formData.append("grado_id", studentFilterGrade || "");
+                    formData.append("seccion_id", studentFilterSection || "");
+                    formData.append("turno_id", importShift || "");
+                    try {
+                      const res = await axios.post(`${API}/students/import`, formData, {
+                        headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
+                      });
+                      setImportResult(res.data);
+                      setImportFile(null);
+                      loadUsers();
+                    } catch (err) {
+                      setImportResult({ error: err.response?.data?.detail || "Error al importar" });
+                    } finally {
+                      setImporting(false);
+                    }
+                  }}
+                  className="px-6 py-2.5 bg-blue-500 text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors flex items-center gap-2"
+                  data-testid="import-submit-btn"
+                >
+                  <FileUp className="w-4 h-4" />
+                  Importar Estudiantes
+                </button>
+              )}
+              {!importing && (
+                <button
+                  onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportShift(""); }}
+                  className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+                  data-testid="import-close"
+                >
+                  {importResult ? "Cerrar" : "Cancelar"}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
