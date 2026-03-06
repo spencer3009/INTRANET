@@ -13,6 +13,9 @@ import MiniCalendar from "@/components/MiniCalendar";
 import ProfileCard from "@/components/ProfileCard";
 import StudentChart from "@/components/StudentChart";
 import AttendanceAndNews from "@/components/AttendanceAndNews";
+import NewsWidget from "@/components/NewsWidget";
+import CalendarWidget from "@/components/CalendarWidget";
+import SurveysWidget from "@/components/SurveysWidget";
 import DemoBanner from "@/components/DemoBanner";
 import ReminderPopup from "@/components/ReminderPopup";
 import MessageCenter from "@/components/MessageCenter";
@@ -254,6 +257,13 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
               <EventsList events={calendarEvents.length > 0 ? calendarEvents : events} />
               <MiniCalendar events={calendarEvents} />
             </div>
+          </div>
+
+          {/* Dashboard Widgets: Noticias, Calendario, Encuestas */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6" data-testid="dashboard-widgets">
+            <NewsWidget news={news} />
+            <CalendarWidget events={calendarEvents} />
+            <SurveysWidget />
           </div>
 
           {/* Footer */}

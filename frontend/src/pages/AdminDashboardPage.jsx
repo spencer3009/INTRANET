@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AdminSidebar from "@/components/AdminSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import NewsWidget from "@/components/NewsWidget";
+import CalendarWidget from "@/components/CalendarWidget";
+import SurveysWidget from "@/components/SurveysWidget";
 import { 
   Users, GraduationCap, UserCog, UserCheck, BookOpen, 
   Calendar, TrendingUp, AlertCircle, Loader2, ArrowRight,
@@ -334,6 +337,13 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Dashboard Widgets: Noticias, Calendario, Encuestas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6" data-testid="dashboard-widgets">
+                <NewsWidget />
+                <CalendarWidget />
+                <SurveysWidget />
               </div>
             </>
           )}

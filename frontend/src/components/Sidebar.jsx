@@ -4,7 +4,6 @@ import axios from "axios";
 import {
   Home,
   UserCog,
-  CalendarDays,
   Calendar,
   Settings,
   Menu,
@@ -13,9 +12,7 @@ import {
   Clock,
   MessageSquare,
   ClipboardCheck,
-  ClipboardList,
   AlertTriangle,
-  Newspaper,
   Landmark,
   UserCheck,
 } from "lucide-react";
@@ -33,10 +30,7 @@ const allNavItems = [
   { id: "asignacion-docente", label: "Asignación Docente", icon: UserCheck, route: "/asignacion-docente", section: "courses" },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios", section: "schedule" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
-  { id: "calendario", label: "Calendario", icon: CalendarDays, route: "/calendario" },
-  { id: "encuestas", label: "Encuestas", icon: ClipboardList, route: "/encuestas" },
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina" },
-  { id: "noticias", label: "Noticias", icon: Newspaper, route: "/noticias" },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad", section: "accounting" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
 ];
