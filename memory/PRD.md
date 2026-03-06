@@ -10,6 +10,15 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 ### Session - March 6, 2026 (Fork 4 - Latest)
 
+#### Feature: Teacher QR Code System (P0) - COMPLETED
+- **Backend:** Auto-generates `qr_token` (type: `teacher_qr`) when creating a teacher via `POST /api/users`
+- **Startup Migration:** Generates QR tokens for all existing teachers without one (51 teachers migrated)
+- **QR Scanner:** `POST /api/attendance/qr/scan` now accepts both `student_qr` and `teacher_qr` types for attendance
+- **QR Generate Endpoint:** `POST /api/attendance/qr/generate` now generates tokens for both students AND teachers
+- **Frontend:** TeacherQRCard component with school name, photo, "PROFESOR" label, QR code, Download/Print buttons
+- **Frontend:** "Ver QR" option in teacher 3-dot menu in UsersPage.jsx, opens dedicated modal
+- Testing: 100% passed (8/8 backend, 7/7 frontend - iteration_71.json)
+
 #### Feature: Dashboard Quick Action Buttons (P0) - COMPLETED
 - Added 3 prominent navigation buttons to Owner and Admin dashboards: **Noticias**, **Eventos**, **Encuestas**
 - Buttons placed prominently right below KPI cards (Owner) / stats grid (Admin)
