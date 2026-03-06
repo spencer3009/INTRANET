@@ -48,7 +48,7 @@ const CAMERA_ERROR_TYPES = {
   }
 };
 
-export default function QRScannerTab({ token }) {
+export default function QRScannerTab({ token, roleFilter }) {
   const [scanning, setScanning] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -257,7 +257,8 @@ export default function QRScannerTab({ token }) {
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
-      const res = await axios.get(`${API}/attendance/qr/history?limit=10`, { headers });
+      const roleParam = roleFilter ? `&role=${roleFilter}` : "";
+      const res = await axios.get(`${API}/attendance/qr/history?limit=10${roleParam}`, { headers });
       setHistory(res.data.history || []);
     } catch (err) {
       console.error("Error loading history:", err);

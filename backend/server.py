@@ -10436,10 +10436,12 @@ async def generate_qr_for_existing_users(current_user = Depends(get_current_user
 @api_router.get("/attendance/qr/history")
 async def get_qr_attendance_history(
     limit: int = 20,
+    role: Optional[str] = None,
     current_user = Depends(get_current_user)
 ):
     """
     Get recent QR attendance scan history for today (students + teachers).
+    Optional role filter: 'student' or 'teacher'.
     """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
@@ -10450,61 +10452,63 @@ async def get_qr_attendance_history(
     
     history = []
     
-    # Get student QR scans from legacy collection
-    student_records = await db.student_attendance.find({
-        "school_id": school_id,
-        "date": today,
-        "method": "qr_scan"
-    }).sort("created_at", -1).limit(limit).to_list(None)
+    # Get student QR scans (skip if filtering for teachers only)
+    if role != "teacher":
+        student_records = await db.student_attendance.find({
+            "school_id": school_id,
+            "date": today,
+            "method": "qr_scan"
+        }).sort("created_at", -1).limit(limit).to_list(None)
+        
+        for record in student_records:
+            student = await db.users.find_one(
+                {"id": record["student_id"]},
+                {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "grado_id": 1, "seccion_id": 1}
+            )
+            if student:
+                grade = await db.grados.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
+                section = await db.secciones.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
+                
+                history.append({
+                    "id": record.get("id"),
+                    "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+                    "name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+                    "photo_url": student.get("photo_url"),
+                    "grade_name": grade.get("nombre") if grade else None,
+                    "section_name": section.get("nombre") if section else None,
+                    "role": "student",
+                    "status": record.get("status"),
+                    "time": record.get("check_in_time"),
+                    "created_at": record.get("created_at")
+                })
     
-    for record in student_records:
-        student = await db.users.find_one(
-            {"id": record["student_id"]},
-            {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1, "grado_id": 1, "seccion_id": 1}
-        )
-        if student:
-            grade = await db.grados.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
-            section = await db.secciones.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
-            
-            history.append({
-                "id": record.get("id"),
-                "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
-                "name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
-                "photo_url": student.get("photo_url"),
-                "grade_name": grade.get("nombre") if grade else None,
-                "section_name": section.get("nombre") if section else None,
-                "role": "student",
-                "status": record.get("status"),
-                "time": record.get("check_in_time"),
-                "created_at": record.get("created_at")
-            })
-    
-    # Get teacher QR scans from main attendances collection
-    teacher_records = await db.attendances.find({
-        "school_id": school_id,
-        "date": today,
-        "type": "teacher",
-        "method": "qr_scan"
-    }).sort("created_at", -1).limit(limit).to_list(None)
-    
-    for record in teacher_records:
-        teacher = await db.users.find_one(
-            {"id": record["user_id"]},
-            {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1}
-        )
-        if teacher:
-            history.append({
-                "id": record.get("id"),
-                "student_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
-                "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
-                "photo_url": teacher.get("photo_url"),
-                "grade_name": None,
-                "section_name": None,
-                "role": "teacher",
-                "status": record.get("status"),
-                "time": record.get("check_in_time"),
-                "created_at": record.get("created_at")
-            })
+    # Get teacher QR scans (skip if filtering for students only)
+    if role != "student":
+        teacher_records = await db.attendances.find({
+            "school_id": school_id,
+            "date": today,
+            "type": "teacher",
+            "method": "qr_scan"
+        }).sort("created_at", -1).limit(limit).to_list(None)
+        
+        for record in teacher_records:
+            teacher = await db.users.find_one(
+                {"id": record["user_id"]},
+                {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1}
+            )
+            if teacher:
+                history.append({
+                    "id": record.get("id"),
+                    "student_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
+                    "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
+                    "photo_url": teacher.get("photo_url"),
+                    "grade_name": None,
+                    "section_name": None,
+                    "role": "teacher",
+                    "status": record.get("status"),
+                    "time": record.get("check_in_time"),
+                    "created_at": record.get("created_at")
+                })
     
     # Sort combined results by created_at descending
     history.sort(key=lambda x: x.get("created_at", ""), reverse=True)

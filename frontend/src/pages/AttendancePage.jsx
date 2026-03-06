@@ -1416,6 +1416,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState(searchParams.get("tab") || "home");
+  const [scanContext, setScanContext] = useState(null);
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
@@ -1521,7 +1522,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
                 </div>
                 <div className="p-5 space-y-3">
                   <button
-                    onClick={() => setActiveView("qr-scanner")}
+                    onClick={() => { setScanContext("student"); setActiveView("qr-scanner"); }}
                     className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-blue-50 border-2 border-slate-200 hover:border-blue-300 rounded-xl transition-all group"
                     data-testid="btn-students-qr"
                   >
@@ -1566,7 +1567,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
                 </div>
                 <div className="p-5 space-y-3">
                   <button
-                    onClick={() => setActiveView("qr-scanner")}
+                    onClick={() => { setScanContext("teacher"); setActiveView("qr-scanner"); }}
                     className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-indigo-50 border-2 border-slate-200 hover:border-indigo-300 rounded-xl transition-all group"
                     data-testid="btn-teachers-qr"
                   >
@@ -1661,7 +1662,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
           )}
           
           {activeView === "qr-scanner" && (
-            <QRScannerTab token={token} schoolId={user?.school_id} />
+            <QRScannerTab token={token} schoolId={user?.school_id} roleFilter={scanContext} />
           )}
           
           {activeView === "reports" && (
