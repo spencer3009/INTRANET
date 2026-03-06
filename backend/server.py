@@ -25,7 +25,7 @@ from cachetools import TTLCache
 import asyncio
 import unicodedata
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, Protection
 
 # Google Drive imports
 from google.oauth2.credentials import Credentials
@@ -5554,57 +5554,90 @@ async def generate_student_template(
     )
 
     ws.merge_cells("A1:I1")
-    ws["A1"] = f"Plantilla de Importacion de Estudiantes"
+    ws["A1"] = "Plantilla de Importacion de Estudiantes"
     ws["A1"].font = Font(name="Arial", bold=True, size=14, color="1B5E20")
 
-    ws.merge_cells("A2:I2")
-    info_parts = []
-    if nivel_name: info_parts.append(f"Nivel: {nivel_name}")
-    if grado_name: info_parts.append(f"Grado: {grado_name}")
-    if seccion_name: info_parts.append(f"Seccion: {seccion_name}")
-    if turno_name: info_parts.append(f"Turno: {turno_name}")
-    ws["A2"] = " | ".join(info_parts) if info_parts else "Sin filtros seleccionados"
-    ws["A2"].font = info_font
-    ws["A2"].fill = info_fill
+    # Row 2-3: Academic filter headers + values (locked/protected)
+    filter_header_fill = PatternFill(start_color="1B5E20", end_color="1B5E20", fill_type="solid")
+    filter_header_font = Font(name="Arial", bold=True, color="FFFFFF", size=10)
+    filter_labels = ["Nivel", "Grado", "Seccion", "Turno"]
+    for col, label in enumerate(filter_labels, 1):
+        cell = ws.cell(row=2, column=col, value=label)
+        cell.fill = filter_header_fill
+        cell.font = filter_header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+        cell.protection = Protection(locked=True)
 
-    # Instructions row
+    filter_value_fill = PatternFill(start_color="C8E6C9", end_color="C8E6C9", fill_type="solid")
+    filter_value_font = Font(name="Arial", bold=True, size=11, color="1B5E20")
+    filter_values = [nivel_name or "---", grado_name or "---", seccion_name or "---", turno_name or "---"]
+    for col, val in enumerate(filter_values, 1):
+        cell = ws.cell(row=3, column=col, value=val)
+        cell.fill = filter_value_fill
+        cell.font = filter_value_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+        cell.protection = Protection(locked=True)
+
+    # Row 5: Instructions
     instruction_font = Font(name="Arial", italic=True, size=9, color="666666")
-    ws.merge_cells("A3:I3")
-    ws["A3"] = "Instrucciones: Complete los datos de los estudiantes en las filas inferiores y luego vuelva a subir este archivo en el sistema para importarlos automaticamente."
-    ws["A3"].font = instruction_font
+    ws.merge_cells("A5:I5")
+    ws["A5"] = "Instrucciones: Complete los datos de los estudiantes en las filas inferiores y luego vuelva a subir este archivo en el sistema para importarlos automaticamente."
+    ws["A5"].font = instruction_font
 
-    # Auto-generated credentials note
+    # Row 6: Auto-generated credentials note
     note_font = Font(name="Arial", italic=True, size=9, color="1565C0")
-    ws.merge_cells("A4:I4")
-    ws["A4"] = "Nota: El usuario y contrasena del estudiante seran generados automaticamente por el sistema."
-    ws["A4"].font = note_font
+    ws.merge_cells("A6:I6")
+    ws["A6"] = "Nota: El usuario y contrasena del estudiante seran generados automaticamente por el sistema."
+    ws["A6"].font = note_font
 
-    headers = ["Nombre", "Apellido", "DNI", "Cumpleanos", "Genero", "Celular", "Correo", "Direccion", "Observaciones"]
-    for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=6, column=col, value=header)
+    # Row 8: Student column headers
+    student_headers = ["Nombre", "Apellido", "DNI", "Cumpleanos", "Genero", "Celular", "Correo", "Direccion", "Observaciones"]
+    for col, hdr in enumerate(student_headers, 1):
+        cell = ws.cell(row=8, column=col, value=hdr)
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center")
         cell.border = thin_border
 
-    col_widths = [20, 20, 15, 15, 12, 15, 30, 35, 30]
+    col_widths = [20, 20, 15, 15, 14, 15, 30, 35, 30]
     for i, w in enumerate(col_widths, 1):
-        ws.column_dimensions[ws.cell(row=6, column=i).column_letter].width = w
+        ws.column_dimensions[ws.cell(row=8, column=i).column_letter].width = w
 
-    # Freeze headers at row 6
-    ws.freeze_panes = "A7"
+    # Freeze at row 9 so headers always visible
+    ws.freeze_panes = "A9"
 
-    # Example row
+    # Row 9: Example row (unlocked)
     example_data = ["Juan", "Perez", "78451236", "15/03/2010", "Masculino", "987654321", "juan@email.com", "Av. Lima 123", "---"]
     example_font = Font(name="Arial", italic=True, size=10, color="999999")
     for col, val in enumerate(example_data, 1):
-        cell = ws.cell(row=7, column=col, value=val)
+        cell = ws.cell(row=9, column=col, value=val)
         cell.font = example_font
         cell.border = thin_border
+        cell.protection = Protection(locked=False)
 
-    for row in range(8, 13):
+    # Empty rows for student data (unlocked)
+    for row in range(10, 510):
         for col in range(1, 10):
-            ws.cell(row=row, column=col).border = thin_border
+            cell = ws.cell(row=row, column=col)
+            if row < 15:
+                cell.border = thin_border
+            cell.protection = Protection(locked=False)
+
+    # Lock rows 1-8 (title, filters, instructions, headers)
+    for row in range(1, 9):
+        for col in range(1, 10):
+            ws.cell(row=row, column=col).protection = Protection(locked=True)
+
+    # Apply sheet protection
+    from openpyxl.worksheet.protection import SheetProtection
+    ws.protection = SheetProtection(
+        sheet=True, objects=True, scenarios=True,
+        formatCells=False, formatColumns=False, formatRows=False,
+        insertRows=True, deleteRows=True,
+        selectLockedCells=True, selectUnlockedCells=False
+    )
 
     # ── Hidden metadata sheet for verification ──
     meta_ws = wb.create_sheet("edunet_metadata")
