@@ -1509,12 +1509,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // QR Modal states
   const [showQRModal, setShowQRModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [importModalStep, setImportModalStep] = useState("menu"); // "menu" | "upload" | "importing" | "result"
+  const [importModalStep, setImportModalStep] = useState("menu"); // "menu" | "upload" | "importing" | "result" | "mismatch"
   const [importResult, setImportResult] = useState(null);
   const [importing, setImporting] = useState(false);
   const [importFile, setImportFile] = useState(null);
   const [importDragOver, setImportDragOver] = useState(false);
   const [importShift, setImportShift] = useState("");
+  const [importMismatchData, setImportMismatchData] = useState(null);
   const [qrStudent, setQRStudent] = useState(null);
   
   // Photo upload modal
@@ -2285,8 +2286,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           <div className="bg-white rounded-2xl border-2 border-emerald-200 p-6 mb-6 shadow-sm" data-testid="excel-import-block">
             <div className="flex flex-col sm:flex-row items-center gap-5">
               {/* Excel Icon */}
-              <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center flex-shrink-0 border-2 border-emerald-100">
-                <FileSpreadsheet className="w-10 h-10 text-emerald-600" />
+              <div className="w-20 h-20 flex items-center justify-center flex-shrink-0">
+                <img
+                  src="https://customer-assets.emergentagent.com/job_f702b358-8cec-4800-9e06-2935dac5076e/artifacts/w8uzm629_istockphoto-2169383243-612x612.jpg"
+                  alt="Excel"
+                  className="w-20 h-20 object-contain"
+                />
               </div>
               {/* Text */}
               <div className="flex-1 text-center sm:text-left">
@@ -3936,7 +3941,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
       {/* ═══════════════ IMPORT MODAL ═══════════════ */}
       {showImportModal && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={() => { if (!importing) { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); } }}>
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={() => { if (!importing) { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); setImportMismatchData(null); } }}>
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="import-modal">
             {/* Header */}
@@ -3951,7 +3956,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
               </div>
               {!importing && (
-                <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400" data-testid="import-modal-close">
+                <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); setImportMismatchData(null); }} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400" data-testid="import-modal-close">
                   <X className="w-5 h-5" />
                 </button>
               )}
@@ -4083,6 +4088,84 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
               )}
 
+              {/* STEP: MISMATCH WARNING */}
+              {importModalStep === "mismatch" && importMismatchData && (
+                <div className="py-2">
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                      <AlertTriangle className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-slate-800">Archivo generado para otra configuracion</p>
+                      <p className="text-xs text-slate-500">La plantilla fue creada con filtros diferentes a los actuales</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                      <p className="text-xs font-bold text-amber-700 mb-2">Configuracion del archivo:</p>
+                      <div className="space-y-1">
+                        {importMismatchData.file_config.nivel_name && <p className="text-xs text-amber-600">Nivel: <span className="font-semibold">{importMismatchData.file_config.nivel_name}</span></p>}
+                        {importMismatchData.file_config.grado_name && <p className="text-xs text-amber-600">Grado: <span className="font-semibold">{importMismatchData.file_config.grado_name}</span></p>}
+                        {importMismatchData.file_config.seccion_name && <p className="text-xs text-amber-600">Seccion: <span className="font-semibold">{importMismatchData.file_config.seccion_name}</span></p>}
+                        {importMismatchData.file_config.turno_name && <p className="text-xs text-amber-600">Turno: <span className="font-semibold">{importMismatchData.file_config.turno_name}</span></p>}
+                        {importMismatchData.file_config.anio_escolar && <p className="text-xs text-amber-600">Ano escolar: <span className="font-semibold">{importMismatchData.file_config.anio_escolar}</span></p>}
+                      </div>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                      <p className="text-xs font-bold text-blue-700 mb-2">Filtros actuales:</p>
+                      <div className="space-y-1">
+                        {studentFilterLevel && <p className="text-xs text-blue-600">Nivel: <span className="font-semibold">{levels.find(l => l.id === studentFilterLevel)?.nombre}</span></p>}
+                        {studentFilterGrade && <p className="text-xs text-blue-600">Grado: <span className="font-semibold">{grades.find(g => g.id === studentFilterGrade)?.nombre}</span></p>}
+                        {studentFilterSection && <p className="text-xs text-blue-600">Seccion: <span className="font-semibold">{sections.find(s => s.id === studentFilterSection)?.nombre}</span></p>}
+                        {studentFilterShift && <p className="text-xs text-blue-600">Turno: <span className="font-semibold">{shifts.find(s => s.id === studentFilterShift)?.nombre}</span></p>}
+                      </div>
+                    </div>
+                  </div>
+
+                  {importMismatchData.year_mismatch && (
+                    <div className="bg-red-50 border border-red-200 rounded-xl p-3 mb-4">
+                      <p className="text-xs text-red-700">
+                        <span className="font-bold">Advertencia:</span> Este archivo fue generado para el ano escolar <span className="font-bold">{importMismatchData.file_config.anio_escolar}</span>. Actualmente el sistema esta en el ano escolar <span className="font-bold">{importMismatchData.current_config.anio_escolar}</span>.
+                      </p>
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2 mt-4">
+                    <button
+                      onClick={async () => {
+                        setImporting(true);
+                        setImportModalStep("importing");
+                        const formData = new FormData();
+                        formData.append("file", importFile);
+                        formData.append("nivel_id", importMismatchData.file_config.nivel_id || "");
+                        formData.append("grado_id", importMismatchData.file_config.grado_id || "");
+                        formData.append("seccion_id", importMismatchData.file_config.seccion_id || "");
+                        formData.append("turno_id", importMismatchData.file_config.turno_id || "");
+                        formData.append("use_file_config", "true");
+                        try {
+                          const res = await axios.post(`${API}/students/import`, formData, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } });
+                          setImportResult(res.data); setImportFile(null); setImportModalStep("result"); setImportMismatchData(null); loadUsers();
+                        } catch (err) { setImportResult({ error: err.response?.data?.detail || "Error al importar" }); setImportModalStep("result"); }
+                        finally { setImporting(false); }
+                      }}
+                      className="w-full px-5 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+                      data-testid="use-file-config-btn"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      Usar configuracion del archivo
+                    </button>
+                    <button
+                      onClick={() => { setImportModalStep("upload"); setImportMismatchData(null); }}
+                      className="w-full px-5 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+                      data-testid="cancel-mismatch-btn"
+                    >
+                      Cancelar importacion
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* STEP: IMPORTING */}
               {importing && (
                 <div className="text-center py-10">
@@ -4154,7 +4237,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     formData.append("turno_id", studentFilterShift || "");
                     try {
                       const res = await axios.post(`${API}/students/import`, formData, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } });
-                      setImportResult(res.data); setImportFile(null); setImportModalStep("result"); loadUsers();
+                      if (res.data.metadata_mismatch) {
+                        setImportMismatchData(res.data);
+                        setImportModalStep("mismatch");
+                        setImporting(false);
+                      } else {
+                        setImportResult(res.data); setImportFile(null); setImportModalStep("result"); loadUsers();
+                      }
                     } catch (err) { setImportResult({ error: err.response?.data?.detail || "Error al importar" }); setImportModalStep("result"); }
                     finally { setImporting(false); }
                   }}
@@ -4164,8 +4253,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <FileUp className="w-4 h-4" /> Importar Estudiantes
                 </button>
               )}
-              {!importing && (
-                <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); }} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors" data-testid="import-close">
+              {!importing && importModalStep !== "mismatch" && (
+                <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); setImportMismatchData(null); }} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors" data-testid="import-close">
                   {importResult ? "Cerrar" : "Cancelar"}
                 </button>
               )}

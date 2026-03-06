@@ -5524,17 +5524,21 @@ async def generate_student_template(
     turno_name = ""
 
     if nivel_id:
-        nivel = await db.levels.find_one({"id": nivel_id, "school_id": school_id}, {"_id": 0})
-        nivel_name = nivel.get("nombre", "") if nivel else ""
+        nivel = await db.academic_levels.find_one({"id": nivel_id, "school_id": school_id}, {"_id": 0})
+        nivel_name = nivel.get("nombre", nivel.get("name", "")) if nivel else ""
     if grado_id:
         grado = await db.grades.find_one({"id": grado_id, "school_id": school_id}, {"_id": 0})
-        grado_name = grado.get("nombre", "") if grado else ""
+        grado_name = grado.get("nombre", grado.get("name", "")) if grado else ""
     if seccion_id:
         seccion = await db.sections.find_one({"id": seccion_id, "school_id": school_id}, {"_id": 0})
-        seccion_name = seccion.get("nombre", "") if seccion else ""
+        seccion_name = seccion.get("nombre", seccion.get("name", "")) if seccion else ""
     if turno_id:
-        turno = await db.turnos.find_one({"id": turno_id, "school_id": school_id}, {"_id": 0})
-        turno_name = turno.get("nombre", "") if turno else ""
+        turno = await db.shifts.find_one({"id": turno_id, "school_id": school_id}, {"_id": 0})
+        turno_name = turno.get("nombre", turno.get("name", "")) if turno else ""
+
+    # Get active academic year
+    active_year = await db.academic_years.find_one({"school_id": school_id, "is_active": True}, {"_id": 0})
+    anio_escolar = str(active_year.get("year", "")) if active_year else str(datetime.now(timezone.utc).year)
 
     wb = Workbook()
     ws = wb.active
@@ -5569,9 +5573,15 @@ async def generate_student_template(
     ws["A3"] = "Instrucciones: Complete los datos de los estudiantes en las filas inferiores y luego vuelva a subir este archivo en el sistema para importarlos automaticamente."
     ws["A3"].font = instruction_font
 
+    # Auto-generated credentials note
+    note_font = Font(name="Arial", italic=True, size=9, color="1565C0")
+    ws.merge_cells("A4:G4")
+    ws["A4"] = "Nota: El usuario y contrasena del estudiante seran generados automaticamente por el sistema."
+    ws["A4"].font = note_font
+
     headers = ["Nombre", "Apellido", "DNI", "Celular", "Correo", "Direccion", "Observaciones"]
     for col, header in enumerate(headers, 1):
-        cell = ws.cell(row=5, column=col, value=header)
+        cell = ws.cell(row=6, column=col, value=header)
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center")
@@ -5579,19 +5589,35 @@ async def generate_student_template(
 
     col_widths = [20, 20, 15, 15, 30, 35, 30]
     for i, w in enumerate(col_widths, 1):
-        ws.column_dimensions[ws.cell(row=5, column=i).column_letter].width = w
+        ws.column_dimensions[ws.cell(row=6, column=i).column_letter].width = w
+
+    # Freeze headers at row 6
+    ws.freeze_panes = "A7"
 
     # Example row
     example_data = ["Juan", "Perez", "78451236", "987654321", "juan@email.com", "Av. Lima 123", "---"]
     example_font = Font(name="Arial", italic=True, size=10, color="999999")
     for col, val in enumerate(example_data, 1):
-        cell = ws.cell(row=6, column=col, value=val)
+        cell = ws.cell(row=7, column=col, value=val)
         cell.font = example_font
         cell.border = thin_border
 
-    for row in range(7, 12):
+    for row in range(8, 13):
         for col in range(1, 8):
             ws.cell(row=row, column=col).border = thin_border
+
+    # ── Hidden metadata sheet for verification ──
+    meta_ws = wb.create_sheet("edunet_metadata")
+    meta_ws.sheet_state = "hidden"
+    meta_keys = ["school_id", "nivel_id", "nivel_name", "grado_id", "grado_name",
+                 "seccion_id", "seccion_name", "turno_id", "turno_name",
+                 "anio_escolar", "fecha_generacion"]
+    meta_vals = [school_id, nivel_id, nivel_name, grado_id, grado_name,
+                 seccion_id, seccion_name, turno_id or "", turno_name,
+                 anio_escolar, datetime.now(timezone.utc).isoformat()]
+    for i, (k, v) in enumerate(zip(meta_keys, meta_vals), 1):
+        meta_ws.cell(row=i, column=1, value=k)
+        meta_ws.cell(row=i, column=2, value=v)
 
     buffer = io.BytesIO()
     wb.save(buffer)
@@ -5617,6 +5643,7 @@ async def import_students(
     grado_id: str = Form(""),
     seccion_id: str = Form(""),
     turno_id: str = Form(""),
+    use_file_config: str = Form("false"),
     current_user = Depends(get_current_user)
 ):
     """Import students from Excel or CSV file"""
@@ -5635,6 +5662,72 @@ async def import_students(
 
     content = await file.read()
     rows = []
+
+    # ── Metadata verification for xlsx files ──
+    file_metadata = {}
+    if ext == "xlsx":
+        try:
+            meta_wb = load_workbook(io.BytesIO(content), read_only=True)
+            if "edunet_metadata" in meta_wb.sheetnames:
+                meta_ws = meta_wb["edunet_metadata"]
+                for row in meta_ws.iter_rows(values_only=True):
+                    if row and row[0] and row[1] is not None:
+                        file_metadata[str(row[0]).strip()] = str(row[1]).strip()
+            meta_wb.close()
+        except Exception:
+            pass  # No metadata - old template or manual file
+
+    if file_metadata and use_file_config != "true":
+        mismatches = []
+        meta_nivel = file_metadata.get("nivel_id", "")
+        meta_grado = file_metadata.get("grado_id", "")
+        meta_seccion = file_metadata.get("seccion_id", "")
+        meta_turno = file_metadata.get("turno_id", "")
+        meta_school = file_metadata.get("school_id", "")
+        meta_year = file_metadata.get("anio_escolar", "")
+
+        if meta_school and meta_school != school_id:
+            mismatches.append("school_id")
+        if meta_nivel and nivel_id and meta_nivel != nivel_id:
+            mismatches.append("nivel")
+        if meta_grado and grado_id and meta_grado != grado_id:
+            mismatches.append("grado")
+        if meta_seccion and seccion_id and meta_seccion != seccion_id:
+            mismatches.append("seccion")
+        if meta_turno and turno_id and meta_turno != turno_id:
+            mismatches.append("turno")
+
+        # Check academic year
+        active_year_doc = await db.academic_years.find_one({"school_id": school_id, "is_active": True}, {"_id": 0})
+        current_year = str(active_year_doc.get("year", "")) if active_year_doc else str(datetime.now(timezone.utc).year)
+        year_mismatch = meta_year and current_year and meta_year != current_year
+
+        if mismatches or year_mismatch:
+            return {
+                "metadata_mismatch": True,
+                "file_config": {
+                    "nivel_id": meta_nivel, "nivel_name": file_metadata.get("nivel_name", ""),
+                    "grado_id": meta_grado, "grado_name": file_metadata.get("grado_name", ""),
+                    "seccion_id": meta_seccion, "seccion_name": file_metadata.get("seccion_name", ""),
+                    "turno_id": meta_turno, "turno_name": file_metadata.get("turno_name", ""),
+                    "anio_escolar": meta_year,
+                    "fecha_generacion": file_metadata.get("fecha_generacion", ""),
+                },
+                "current_config": {
+                    "nivel_id": nivel_id, "grado_id": grado_id,
+                    "seccion_id": seccion_id, "turno_id": turno_id,
+                    "anio_escolar": current_year,
+                },
+                "mismatches": mismatches,
+                "year_mismatch": year_mismatch,
+            }
+
+    # If use_file_config is true, override filters with file metadata
+    if use_file_config == "true" and file_metadata:
+        nivel_id = file_metadata.get("nivel_id", nivel_id)
+        grado_id = file_metadata.get("grado_id", grado_id)
+        seccion_id = file_metadata.get("seccion_id", seccion_id)
+        turno_id = file_metadata.get("turno_id", turno_id)
 
     try:
         if ext == "csv":
