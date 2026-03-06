@@ -8,7 +8,18 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 ## What's Been Implemented
 
-### Session - March 6, 2026 (Fork 3 - Latest)
+### Session - March 6, 2026 (Fork 4 - Latest)
+
+#### Feature: Dashboard Quick Action Buttons (P0) - COMPLETED
+- Added 3 prominent navigation buttons to Owner and Admin dashboards: **Noticias**, **Eventos**, **Encuestas**
+- Buttons placed prominently right below KPI cards (Owner) / stats grid (Admin)
+- Navigate to existing pages: `/noticias`, `/calendario`, `/encuestas`
+- Removed "Noticias", "Calendario", "Encuestas" links from Owner sidebar (`Sidebar.jsx`)
+- Each button has hover animation (colored top border slide-in) and icon color transition
+- Student, Teacher, Parent dashboards remain unchanged
+- Testing: 100% passed (18/18 tests - iteration_70.json)
+
+### Session - March 6, 2026 (Fork 3)
 
 #### Feature 1: Mobile Bottom Nav for ALL Portals (P0) - COMPLETED
 - Role-based mobile bottom navigation across all 5 portals:
@@ -50,38 +61,11 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 - **Testing**: Backend 100% (10/10), Frontend 100% (iteration_69.json)
 
 #### Feature 5: Mass Student Import from Excel/CSV (P0) - COMPLETED + ENHANCED
-- **Backend**: 
-  - `GET /api/students/import/template` - Professional Excel template with:
-    - Row 2: Shows Nivel, Grado, Seccion, Turno names
-    - Row 3: Instructions for filling data
-    - Row 4: Note about auto-generated username/password
-    - Row 6: Column headers (frozen for scrolling)
-    - Row 7: Example row (Juan Perez) - auto-skipped during import
-    - Hidden `edunet_metadata` sheet with school_id, filter IDs/names, anio_escolar, timestamp
-  - `POST /api/students/import` - Enhanced with:
-    - Metadata verification: reads hidden sheet, compares with current filters
-    - Returns `metadata_mismatch` response when filters don't match
-    - `use_file_config=true` option to override filters with file metadata
-    - Skips example row (Juan Perez) automatically
-  - Auto-generates student_code (STU-000001), QR token, username
-- **Frontend** (UsersPage.jsx):
-  - Visual Excel block below filters with Excel image icon + "Administrar archivo Excel" button
-  - 4 filter dropdowns: Nivel, Grado, Seccion, Turno
-  - Two-step modal: Menu (Descargar plantilla / Cargar archivo) → Upload
-  - Filter validation before template download
-  - Mismatch detection: shows comparison + "Usar configuracion del archivo" / "Cancelar"
-  - Progress indicator, result summary, "Ver pendientes" button
+- **Backend**: Professional Excel template with protected cells, hidden metadata, data normalization
+- **Frontend**: Multi-step modal for file management with mismatch detection
 - **Testing**: Backend 100% (9/9), Frontend 100% (iteration_68.json)
 
 #### Feature 4: Replicate Subjects Between Sections (P0) - COMPLETED
-- **Backend**: Endpoint `POST /api/academic/subjects/replicate`
-  - Copies subject names, colors, images from source to target section
-  - Does NOT copy teachers, schedules, or students
-  - Skips duplicates (case-insensitive name match)
-- **Frontend**: Green "Replicar Asignaturas" button + modal with 2 modes:
-  - "Misma grado": shows sibling sections of same grade with subjects
-  - "Otro grado": shows sections from OTHER grades with subjects
-  - Preview of subjects, confirmation step, success/skip feedback
 
 ### Previous Sessions (Summary)
 - Attendance Entry/Exit Module with QR
@@ -94,7 +78,8 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 ## Prioritized Backlog
 
 ### P0
-- Modularize `server.py` into FastAPI routers (CRITICAL tech debt - 22K+ lines)
+- Dashboard Widgets Phase 2: Backend CRUD for news, events, surveys collections
+- Modularize `server.py` into FastAPI routers (CRITICAL tech debt - 10K+ lines)
 
 ### P1
 - Verify "Disappearing Student Selection" bug in PaymentFormModal
