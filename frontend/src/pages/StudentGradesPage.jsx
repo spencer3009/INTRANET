@@ -4,6 +4,7 @@ import axios from "axios";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import MobileBottomNav from "../components/MobileBottomNav";
 import {
   BarChart3,
   Menu,
@@ -146,7 +147,7 @@ export default function StudentGradesPage({ user, token, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Page Title */}
           <div className="flex items-center gap-2 mb-6">
             <BarChart3 className="w-6 h-6 text-indigo-500" />
@@ -289,6 +290,7 @@ export default function StudentGradesPage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="student" />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import axios from "axios";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import MobileBottomNav from "../components/MobileBottomNav";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
 import {
@@ -283,7 +284,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
         />
 
         {/* Dashboard Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Quick Stats - Premium Glass Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {/* Mis Cursos - Premium Dark Gradient */}
@@ -765,6 +766,7 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="student" />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import ConfirmModal from "@/components/ConfirmModal";
 import { 
   BookMarked, GraduationCap, Calendar, Clock,
@@ -1622,7 +1623,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
       <Sidebar active="ajustes-academicos" onNavigate={() => {}} expanded={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} schoolName={schoolName} subdomain={subdomain} user={user} />
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain} />
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8">
           {!selectedCategory && (
             <div className="relative overflow-hidden rounded-3xl mb-8">
               <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600"><div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2"></div></div>
@@ -1665,6 +1666,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         type="success" 
         showCancel={false} 
       />
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import MobileBottomNav from "../components/MobileBottomNav";
 import QRScannerTab from "../components/QRScannerTab";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -1419,10 +1421,16 @@ function ReportsTab({ token, schoolId }) {
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════════════════════
 export default function AttendancePage({ user, token, subdomain, onLogout }) {
+  const [searchParams] = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("students");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "students");
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam) setActiveTab(tabParam);
+  }, [searchParams]);
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -1473,7 +1481,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8">
           {/* Page Title */}
           <div className="relative overflow-hidden rounded-3xl mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-teal-600 to-emerald-600">
@@ -1537,6 +1545,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
           )}
         </main>
       </div>
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

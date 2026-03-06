@@ -5,6 +5,7 @@ import axios from "axios";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import MobileBottomNav from "../components/MobileBottomNav";
 import {
   ClipboardList,
   Loader2,
@@ -146,7 +147,7 @@ export default function StudentTasksPage({ user, token, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Page Title */}
           <div className="flex items-center gap-2 mb-6">
             <ClipboardList className="w-6 h-6 text-amber-500" />
@@ -340,6 +341,7 @@ export default function StudentTasksPage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="student" />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import axios from "axios";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import Sidebar from "../components/Sidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import DashboardHeader from "../components/DashboardHeader";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import { 
@@ -865,7 +866,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
           subdomain={subdomain}
         />
 
-        <main className="flex-1 p-6 lg:p-10">
+        <main className="flex-1 p-3 sm:p-6 lg:p-10 pb-20 lg:pb-10">
           <div className="max-w-7xl mx-auto">
             
             {/* Page Header - Vibrant */}
@@ -1122,6 +1123,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         preselectedSection={selectedSection?.id}
         token={token}
       />
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

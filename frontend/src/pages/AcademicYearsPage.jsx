@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import DashboardHeader from "../components/DashboardHeader";
 import Sidebar from "../components/Sidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1291,7 +1292,7 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
           subdomain={subdomain}
         />
         
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8">
           <div className="max-w-5xl mx-auto">
             {selectedYear ? (
               // Detail View
@@ -1578,6 +1579,7 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
         variant="success"
         icon="power"
       />
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

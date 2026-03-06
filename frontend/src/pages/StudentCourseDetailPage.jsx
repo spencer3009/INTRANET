@@ -5,6 +5,7 @@ import StudentSidebar from "../components/StudentSidebar";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import MobileBottomNav from "../components/MobileBottomNav";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -4804,7 +4805,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
         </div>
 
         {/* Main Content Area */}
-        <main className="p-4 lg:p-6">
+        <main className="p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6">
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-10 h-10 text-cyan-500 animate-spin" />
@@ -4942,6 +4943,7 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
         openWithUser={directChatUser}
         onCloseChat={() => setDirectChatUser(null)}
       />
+      <MobileBottomNav role="student" />
     </div>
   );
 }

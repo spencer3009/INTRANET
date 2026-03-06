@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import MobileBottomNav from "../components/MobileBottomNav";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { 
   Newspaper, Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
@@ -1003,7 +1004,7 @@ export default function NewsPage({ user, token, subdomain, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8">
           {/* Page Title */}
           <div className="relative overflow-hidden rounded-3xl mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600">
@@ -1140,6 +1141,7 @@ export default function NewsPage({ user, token, subdomain, onLogout }) {
         }}
         news={viewingNews}
       />
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import MobileBottomNav from "../components/MobileBottomNav";
 import AccessDenied from "../components/AccessDenied";
 import { canAccessSection } from "../lib/permissions";
 import {
@@ -219,7 +220,7 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
       <Sidebar user={user} onLogout={onLogout} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} subdomain={subdomain} schoolName={schoolSettings?.system_name} />
       <div className="flex-1 flex flex-col min-w-0">
         <DashboardHeader user={user} onMenuClick={() => setSidebarOpen(!sidebarOpen)} logoUrl={schoolSettings?.logo_url} schoolName={schoolSettings?.system_name} />
-        <main className="flex-1 p-6 lg:p-8 space-y-6 max-w-[1400px] mx-auto w-full">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8 space-y-6 max-w-[1400px] mx-auto w-full">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -448,6 +449,7 @@ export default function MorososPage({ user, token, subdomain, onLogout }) {
         studentId={historyModal.studentId}
         token={token}
       />
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

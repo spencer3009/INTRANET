@@ -4,6 +4,7 @@ import axios from "axios";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import MobileBottomNav from "../components/MobileBottomNav";
 import {
   BookOpen,
   User,
@@ -96,7 +97,7 @@ export default function StudentCoursesPage({ user, token, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Search */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -225,6 +226,7 @@ export default function StudentCoursesPage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="student" />
     </div>
   );
 }

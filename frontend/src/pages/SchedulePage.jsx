@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import MobileBottomNav from "../components/MobileBottomNav";
 import ConfirmModal from "../components/ConfirmModal";
 import { 
   Calendar, Clock, Plus, Loader2, ArrowLeft, Settings, 
@@ -346,7 +347,7 @@ export default function SchedulePage({ user, token, onLogout }) {
           token={token}
         />
         
-        <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8 pb-20 lg:pb-8">
           {/* Header */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
@@ -679,6 +680,7 @@ export default function SchedulePage({ user, token, onLogout }) {
         confirmText="Eliminar"
         type="danger"
       />
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

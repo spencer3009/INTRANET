@@ -4,6 +4,7 @@ import axios from "axios";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import MobileBottomNav from "../components/MobileBottomNav";
 import {
   Calendar, Clock, User, Loader2, AlertCircle, GraduationCap,
   FileText, Timer, Archive, ChevronLeft, ChevronRight, Play,
@@ -319,7 +320,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
       <div className="flex-1 flex flex-col min-w-0">
         <StudentHeader user={user} onMenuClick={() => setSidebarExpanded(!sidebarExpanded)} onLogout={onLogout} logoUrl={logoUrl} schoolName={schoolName} subdomain={subdomain || user?.subdomain} token={token} />
 
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Page Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -484,6 +485,7 @@ export default function StudentExamSchedulePage({ user, token, onLogout }) {
       </div>
 
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="student" />
     </div>
   );
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from "recharts";
 import Sidebar from "../components/Sidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import DashboardHeader from "../components/DashboardHeader";
 import AccessDenied from "../components/AccessDenied";
 import { canAccessSection } from "../lib/permissions";
@@ -2315,7 +2316,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8">
           {/* Page header - Premium with icon */}
           <div className="mb-8">
             <div className="flex items-center gap-4 mb-2">
@@ -2507,6 +2508,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         variant="danger"
         icon="delete"
       />
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

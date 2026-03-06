@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import CarouselManager from "@/components/CarouselManager";
 import AccessDenied from "@/components/AccessDenied";
 import { canAccessSection } from "@/lib/permissions";
@@ -333,7 +334,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
           subdomain={subdomain}
         />
 
-        <main className="flex-1 overflow-y-auto custom-scroll p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto custom-scroll p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8">
           {/* Page Header */}
           <div className="relative overflow-hidden rounded-2xl mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-indigo-600 to-purple-600">
@@ -833,6 +834,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
           </form>
         </main>
       </div>
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

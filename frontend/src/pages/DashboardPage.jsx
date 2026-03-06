@@ -16,6 +16,7 @@ import AttendanceAndNews from "@/components/AttendanceAndNews";
 import DemoBanner from "@/components/DemoBanner";
 import ReminderPopup from "@/components/ReminderPopup";
 import MessageCenter from "@/components/MessageCenter";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import SubscriptionCard from "@/components/SubscriptionCard";
 import { AlertTriangle, RefreshCw, CheckCircle, XCircle } from "lucide-react";
 
@@ -214,7 +215,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
         {/* Intelligent Reminder Popup - shows important/urgent reminders */}
         <ReminderPopup token={token} />
 
-        <main className="flex-1 p-4 md:p-6 lg:p-8 overflow-y-auto custom-scroll" data-testid="dashboard-main">
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 pb-20 lg:pb-8 overflow-y-auto custom-scroll" data-testid="dashboard-main">
           {/* Permission error fixer */}
           {hasPermissionError && <PermissionsFixer token={token} onFixed={fetchData} />}
           
@@ -319,6 +320,7 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
 
       {/* Global Message Center - Floating Button + Drawer */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

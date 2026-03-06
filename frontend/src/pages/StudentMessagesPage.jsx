@@ -10,6 +10,7 @@ import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
+import MobileBottomNav from "../components/MobileBottomNav";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
   ChevronLeft, Paperclip, X, Clock, Loader2, Circle,
@@ -686,7 +687,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
         />
         
         {/* Main Content */}
-        <main className="flex-1 flex flex-col lg:flex-row">
+        <main className="flex-1 flex flex-col lg:flex-row pb-20 lg:pb-0">
           {/* Folders Sidebar */}
           <aside className="hidden lg:flex flex-col w-64 bg-white border-r border-gray-200 flex-shrink-0">
             <div className="p-4">
@@ -1049,6 +1050,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
         icon={AlertTriangle}
         loading={confirmLoading}
       />
+      <MobileBottomNav role="student" />
     </div>
   );
 }

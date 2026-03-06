@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import MobileBottomNav from "@/components/MobileBottomNav";
 import ConfirmModal from "@/components/ConfirmModal";
 import { 
   Users, UserPlus, ArrowLeft, Loader2, X, Camera, Upload,
@@ -3050,7 +3051,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           subdomain={subdomain}
         />
 
-        <main className="flex-1 overflow-y-auto custom-scroll">
+        <main className="flex-1 overflow-y-auto custom-scroll pb-20 lg:pb-0">
           {selectedRole ? renderUsersList() : renderRoleCards()}
         </main>
       </div>
@@ -3873,6 +3874,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         onPhotoUpdated={handlePhotoUpdated}
       />
 
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

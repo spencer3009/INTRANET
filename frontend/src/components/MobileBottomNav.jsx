@@ -1,15 +1,18 @@
 import { Link, useParams, useLocation } from "react-router-dom";
-import {
-  Home, Clock, ClipboardList, Wallet, MessageSquare,
-  BookOpen, Users, BarChart3, CalendarCheck, ScanLine
-} from "lucide-react";
+import { Home, ClipboardList, MessageSquare, BookOpen, ScanLine } from "lucide-react";
 
 const parentItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/parent" },
-  { id: "pagos", label: "Pagos", icon: Wallet, route: "/parent/payments" },
-  { id: "asistencia", label: "Asistencia", icon: Clock, route: "/parent/attendance" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/parent/tasks" },
+  { id: "cursos", label: "Cursos", icon: BookOpen, route: "/parent/courses" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/parent/messages" },
+];
+
+const studentItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/student" },
+  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/student/tasks" },
+  { id: "cursos", label: "Cursos", icon: BookOpen, route: "/student/courses" },
+  { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/student/messages" },
 ];
 
 const teacherItems = [
@@ -19,14 +22,38 @@ const teacherItems = [
   { id: "qr", label: "Escanear QR", icon: ScanLine, route: "/teacher/attendance?tab=qr-scanner" },
 ];
 
+const ownerItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
+  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/asignacion-docente" },
+  { id: "cursos", label: "Cursos", icon: BookOpen, route: "/asignaturas" },
+  { id: "qr", label: "Escanear QR", icon: ScanLine, route: "/asistencias?tab=qr-scanner" },
+];
+
+const adminItems = [
+  { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
+  { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/asignacion-docente" },
+  { id: "cursos", label: "Cursos", icon: BookOpen, route: "/asignaturas" },
+  { id: "qr", label: "Escanear QR", icon: ScanLine, route: "/asistencias?tab=qr-scanner" },
+];
+
+const itemsMap = {
+  parent: parentItems,
+  teacher: teacherItems,
+  owner: ownerItems,
+  admin: adminItems,
+  student: studentItems,
+};
+
 export default function MobileBottomNav({ role = "parent" }) {
   const { subdomain } = useParams();
   const location = useLocation();
-  const items = role === "teacher" ? teacherItems : parentItems;
+  const items = itemsMap[role] || parentItems;
 
   const isActive = (route) => {
-    const fullRoute = subdomain ? `/${subdomain}${route}` : route;
-    if (route.endsWith("/parent") || route.endsWith("/teacher")) {
+    const base = route.split("?")[0];
+    const fullRoute = subdomain ? `/${subdomain}${base}` : base;
+    const exactRoutes = ["/parent", "/teacher", "/student", "/dashboard", "/admin"];
+    if (exactRoutes.some(r => base === r)) {
       return location.pathname === fullRoute;
     }
     return location.pathname.startsWith(fullRoute);

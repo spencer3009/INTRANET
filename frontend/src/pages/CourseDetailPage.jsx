@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import axios from "axios";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import MobileBottomNav from "../components/MobileBottomNav";
 import TeacherSidebar from "../components/TeacherSidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import StudentHeader from "../components/StudentHeader";
@@ -9428,7 +9429,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         )}
 
         {/* Main Content */}
-        <main className="flex-1 px-6 lg:px-8 py-6">
+        <main className="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 lg:pb-6">
           {/* Hero Header - Hidden on full-width tabs */}
           {(() => {
             const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes"];
@@ -9553,6 +9554,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           }}
         />
       )}
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

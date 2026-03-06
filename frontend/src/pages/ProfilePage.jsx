@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
+import MobileBottomNav from "../components/MobileBottomNav";
 import {
   User, Mail, Phone, Camera, Save, Lock, Eye, EyeOff,
   Shield, Crown, CheckCircle, AlertCircle, Loader2, AtSign, Check, X,
@@ -252,7 +253,7 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8 overflow-auto">
+        <main className="flex-1 p-3 sm:p-6 lg:p-8 pb-20 lg:pb-8 overflow-auto">
           <div className="max-w-4xl mx-auto">
             {/* Profile Header */}
             <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 rounded-3xl p-8 mb-8 relative overflow-hidden">
@@ -638,6 +639,7 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
           </div>
         </main>
       </div>
+      <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
     </div>
   );
 }

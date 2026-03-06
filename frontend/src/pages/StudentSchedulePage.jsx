@@ -4,6 +4,7 @@ import axios from "axios";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
+import MobileBottomNav from "../components/MobileBottomNav";
 import {
   Clock,
   Calendar,
@@ -424,7 +425,7 @@ export default function StudentSchedulePage({ user, token, onLogout }) {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+        <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
           {/* Page Header - Shows grade and section from backend */}
           <div className="mb-6">
             <h1 className="text-xl md:text-2xl font-bold text-slate-800 flex items-center gap-3" data-testid="student-schedule-title">
@@ -550,6 +551,7 @@ export default function StudentSchedulePage({ user, token, onLogout }) {
 
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
+      <MobileBottomNav role="student" />
     </div>
   );
 }
