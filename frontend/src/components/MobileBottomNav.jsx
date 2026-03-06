@@ -14,7 +14,6 @@ const parentItems = [
 
 const teacherItems = [
   { id: "inicio", label: "Inicio", icon: Home, route: "/teacher" },
-  { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/teacher/attendance" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/teacher/tasks" },
   { id: "cursos", label: "Cursos", icon: BookOpen, route: "/teacher/courses" },
   { id: "qr", label: "Escanear QR", icon: ScanLine, route: "/teacher/attendance?tab=qr-scanner" },
@@ -35,7 +34,7 @@ export default function MobileBottomNav({ role = "parent" }) {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-slate-200 lg:hidden safe-bottom" data-testid="mobile-bottom-nav">
-      <div className="flex items-center justify-around h-[72px] px-1">
+      <div className="flex items-center justify-around h-[76px] px-2">
         {items.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.route);
@@ -45,12 +44,12 @@ export default function MobileBottomNav({ role = "parent" }) {
               key={item.id}
               to={href}
               className={`flex flex-col items-center justify-center flex-1 h-full gap-1 transition-colors no-underline touch-manipulation ${
-                active ? "text-emerald-600" : "text-slate-400"
+                active ? "text-emerald-600" : "text-slate-500"
               }`}
               data-testid={`mobile-nav-${item.id}`}
             >
-              <Icon className={`w-6 h-6 ${active ? "stroke-[2.5]" : ""}`} />
-              <span className="text-xs font-medium">{item.label}</span>
+              <Icon className={`w-7 h-7 ${active ? "stroke-[2.5]" : ""}`} />
+              <span className="text-[13px] font-semibold">{item.label}</span>
             </Link>
           );
         })}
