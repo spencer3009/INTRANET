@@ -8,42 +8,64 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 ## What's Been Implemented
 
-### Session - March 3, 2026 (Latest - Fork 2)
-- **BUG FIX: Parent Portal Attendance Times (P0)**: Fixed date filtering in `GET /api/parent/attendance` - added `start_date`/`end_date` query params. Previously mixed records from all months.
-- **UI: Calendar Split Design**: Calendar cells now show horizontal split: top half green (entry time), bottom half blue (exit time). Each half displays the corresponding time.
-- **FEATURE: Owner Reports Detail Modal**: Added eye icon button per student in the reports table. Clicking opens a side drawer with monthly calendar (split green/blue) showing entry/exit times. New endpoint: `GET /api/attendance/reports/student-detail`.
-- **FEATURE: PWA WebView Detection**: Detects WhatsApp/Facebook/Instagram/Samsung Internet WebView and shows a special screen guiding users to open in Chrome via `intent://` URL. Post-install shows progress bar + final instructions.
-- **FEATURE: Responsive Mobile-First (P0)**: Added bottom navigation bar for Parent Portal (Inicio/Asistencia/Tareas/Pagos/Mensajes) and Teacher Portal (Inicio/Asistencia/Tareas/Cursos/Mensajes). Sidebars converted to drawers on mobile. All pages updated with mobile padding (`p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6`). Bottom nav hidden on desktop.
+### Session - March 6, 2026 (Fork 3 - Latest)
+- **FEATURE: Mobile Bottom Nav for ALL Portals (P0)**: Implemented role-based mobile bottom navigation across all 5 portals:
+  - **Parent & Student**: Inicio | Tareas | Cursos | Mensajes
+  - **Owner, Admin & Teacher**: Inicio | Tareas | Cursos | Escanear QR
+  - Added MobileBottomNav to 28+ pages (Student: 10 pages, Owner/Admin: 18+ pages)
+  - Updated padding (`pb-20 lg:pb-6`) on all affected pages to prevent content overlap
+  - Added `useSearchParams` support to AttendancePage for QR scanner tab deep linking
+  - Nav is hidden on desktop (lg:hidden), visible on mobile only
+  - **Testing: 95% passed (21/22) - 1 skipped due to stale teacher credentials**
+
+### Session - March 3, 2026 (Fork 2)
+- **BUG FIX: Parent Portal Attendance Times (P0)**: Fixed date filtering
+- **UI: Calendar Split Design**: Entry/exit time display
+- **FEATURE: Owner Reports Detail Modal**: Student attendance detail drawer
+- **FEATURE: PWA WebView Detection**: Guides users to open in Chrome
+- **FEATURE: Responsive Mobile-First (P0)**: Initial bottom nav for Parent/Teacher portals
 
 ### Session - March 3, 2026 (Fork 1)
-- **ATTENDANCE ENTRY/EXIT MODULE (P0)**: Extended existing attendance system with entry_time, exit_time, entry_method, exit_method, total_minutes. New endpoints: `POST /api/attendance/mark-entry`, `POST /api/attendance/mark-exit`. Modified QR scan to support `mode` (auto/entry/exit). Frontend: Entry/Exit columns with buttons, mode selector in QR scanner, updated counters. Save endpoint changed from delete+insert to upsert to preserve entry/exit data. **100% tests passed.**
-- **BUG FIX: Course Visibility (P0)**: Fixed 8+ endpoints to use `subjects.section_id` instead of `academic_assignments`. Migrated 12 old subjects.
-- **BUG FIX: Edit Subject Modal**: Nivel/Grado/Sección pre-selected and locked when editing.
-- **UI: Grade/Section on course cards**: Added small text showing grade and section.
+- **ATTENDANCE ENTRY/EXIT MODULE (P0)**: Full entry/exit system with QR
+- **BUG FIX: Course Visibility (P0)**: Fixed 8+ endpoints
+- **BUG FIX: Edit Subject Modal**: Pre-selected values
 
 ### Previous Sessions
 - Photo Upload Modal, Grade Validation, Auto-Grade Creation, Smart Filtering, Subjects-to-Section Refactor
+- Autocomplete with images in Assign Teacher modal
+- Payments module overhaul (sync, fallbacks, case-insensitive queries)
+- Interest/discount calculations, Parent dashboard attendance card
 
 ## Prioritized Backlog
 
 ### P0
-- Verify "Disappearing Student Selection" bug in PaymentFormModal
 - Modularize `server.py` into FastAPI routers (CRITICAL tech debt - 22K+ lines)
 
 ### P1
-- Attendance: Settings for schedule/lateness configuration (P1 from spec)
+- Verify "Disappearing Student Selection" bug in PaymentFormModal
+- Attendance: Settings for schedule/lateness configuration
 - Apply Intelligent Filters to Parents View
-- Parent Portal Feature Parity, Matriculas, Notifications, Question Bank
+- Parent Portal Feature Parity, Matriculas module
 
 ### P2
-- Attendance: Parent notifications on entry/exit (P2 from spec)
-- Cache Invalidation, Replace window.confirm/alert, Hardcoded Dashboard, Message Center count
+- Remove hardcoded data from Owner Dashboard ("Asistencia del Mes", "Noticias y Avisos")
+- Fix Message Center unread count discrepancy
+- Attendance: Parent notifications on entry/exit
+- Replace window.confirm/alert with custom modals
+- Refactor NewPaymentModal.jsx (1400+ lines)
 
 ## Key Technical Notes
-- **Source of Truth for Student Courses**: `subjects.section_id` is canonical. `academic_assignments` = teacher linkage only.
-- **Attendance Entry/Exit**: Uses upsert in `attendances` collection. QR scan supports mode (auto/entry/exit). Save preserves entry/exit data.
+- **Source of Truth for Student Courses**: `subjects.section_id` is canonical
+- **Attendance Entry/Exit**: Uses upsert in `attendances` collection
+- **MobileBottomNav**: Role-based items in `/app/frontend/src/components/MobileBottomNav.jsx`
+- **Bottom Nav Routes**:
+  - Owner: /dashboard, /asignacion-docente, /asignaturas, /asistencias?tab=qr-scanner
+  - Student: /student, /student/tasks, /student/courses, /student/messages
+  - Parent: /parent, /parent/tasks, /parent/courses, /parent/messages
+  - Teacher: /teacher, /teacher/tasks, /teacher/courses, /teacher/attendance?tab=qr-scanner
 
 ## Test Credentials
 - **Owner (elroble)**: admin@elroble.edu / 1234abc8 / subdomain=elroble
 - **Student (Pepito)**: pepito@gmail.com / 1234abc8 / subdomain=elroble
 - **Parent (Miguel)**: miguel@gmail.com / 1234abc8 / subdomain=elroble
+- **Teacher (Jorge)**: jorge@gmail.com / 1234abc8 / subdomain=elroble
