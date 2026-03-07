@@ -5208,6 +5208,7 @@ class UpdateUserRequest(BaseModel):
     """Request to update an existing user"""
     name: Optional[str] = None
     last_name: Optional[str] = None
+    username: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None
     birthday: Optional[str] = None
@@ -5267,6 +5268,16 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
         update_data["name"] = data.name
     if data.last_name is not None:
         update_data["last_name"] = data.last_name
+    if data.username is not None:
+        # Check if username is already used by another user in the same school
+        existing_username = await db.users.find_one({
+            "username": data.username.lower(),
+            "school_id": user["school_id"],
+            "id": {"$ne": user_id}
+        })
+        if existing_username:
+            raise HTTPException(status_code=400, detail="Este nombre de usuario ya está en uso")
+        update_data["username"] = data.username.lower()
     if data.email is not None:
         # Check if email is already used by another user
         existing = await db.users.find_one({
