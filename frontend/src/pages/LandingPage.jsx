@@ -166,7 +166,7 @@ export default function LandingPage() {
                 {/* iMac image */}
                 <div className="relative">
                   <img 
-                    src="https://customer-assets.emergentagent.com/job_d0ea565a-5ab8-49d6-8b8e-5c0e85764ea0/artifacts/ya5deptw_Gemini_Generated_Image_soiqknsoiqknsoiq.webp"
+                    src="https://customer-assets.emergentagent.com/job_d0ea565a-5ab8-49d6-8b8e-5c0e85764ea0/artifacts/3qb8ccoe_image%20%282%29.webp"
                     alt="EduNet - Plataforma de gestión escolar"
                     className="w-full h-auto rounded-2xl shadow-2xl shadow-black/40"
                     data-testid="hero-dashboard-image"
