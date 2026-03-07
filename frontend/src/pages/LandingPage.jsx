@@ -158,97 +158,38 @@ export default function LandingPage() {
             </div>
 
             {/* Right - Dashboard Preview */}
-            <div className="flex-1 max-w-xl w-full">
+            <div className="flex-1 max-w-2xl w-full">
               <div className="relative">
                 {/* Glow effect */}
-                <div className="absolute -inset-4 bg-gradient-to-r from-[#1e40af]/50 via-[#7c3aed]/30 to-[#e1b82c]/30 rounded-3xl blur-2xl opacity-60" />
+                <div className="absolute -inset-6 bg-gradient-to-r from-[#1e40af]/40 via-[#7c3aed]/20 to-[#e1b82c]/20 rounded-[2rem] blur-3xl opacity-60" />
                 
-                {/* Main card */}
-                <div className="relative bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl rounded-3xl border border-white/10 p-6 shadow-2xl">
-                  {/* Browser bar */}
-                  <div className="flex items-center gap-2 mb-5">
-                    <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-red-400/80" />
-                      <div className="w-3 h-3 rounded-full bg-yellow-400/80" />
-                      <div className="w-3 h-3 rounded-full bg-green-400/80" />
-                    </div>
-                    <div className="flex-1 bg-white/5 rounded-lg px-4 py-1.5 mx-4">
-                      <span className="text-xs text-white/40">micolegio.edunet.pe/dashboard</span>
-                    </div>
-                  </div>
-
-                  {/* Dashboard content */}
-                  <div className="space-y-4">
-                    {/* Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e1b82c] to-amber-500 flex items-center justify-center">
-                          <GraduationCap className="w-5 h-5 text-[#0a0f1a]" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-white">Dashboard EduNet</p>
-                          <p className="text-xs text-white/40">Colegio San Martín</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-xs text-emerald-400">En línea</span>
-                      </div>
-                    </div>
-
-                    {/* Stats grid */}
-                    <div className="grid grid-cols-4 gap-3">
-                      <div className="bg-gradient-to-br from-blue-600/20 to-blue-600/5 rounded-xl p-3 border border-blue-500/20">
-                        <p className="text-2xl font-extrabold text-white">456</p>
-                        <p className="text-[10px] text-blue-300/60">Alumnos</p>
-                      </div>
-                      <div className="bg-gradient-to-br from-emerald-600/20 to-emerald-600/5 rounded-xl p-3 border border-emerald-500/20">
-                        <p className="text-2xl font-extrabold text-white">98%</p>
-                        <p className="text-[10px] text-emerald-300/60">Asistencia</p>
-                      </div>
-                      <div className="bg-gradient-to-br from-violet-600/20 to-violet-600/5 rounded-xl p-3 border border-violet-500/20">
-                        <p className="text-2xl font-extrabold text-white">15.2</p>
-                        <p className="text-[10px] text-violet-300/60">Promedio</p>
-                      </div>
-                      <div className="bg-gradient-to-br from-amber-600/20 to-amber-600/5 rounded-xl p-3 border border-amber-500/20">
-                        <p className="text-2xl font-extrabold text-white">24</p>
-                        <p className="text-[10px] text-amber-300/60">Docentes</p>
-                      </div>
-                    </div>
-
-                    {/* Mini chart placeholder */}
-                    <div className="bg-white/[0.03] rounded-xl p-4 border border-white/5">
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-white/60">Asistencia semanal</span>
-                        <span className="text-xs text-emerald-400">+2.5%</span>
-                      </div>
-                      <div className="flex items-end gap-1.5 h-12">
-                        {[65, 72, 68, 82, 75, 88, 92].map((h, i) => (
-                          <div key={i} className="flex-1 bg-gradient-to-t from-blue-500/40 to-blue-400/60 rounded-sm" style={{ height: `${h}%` }} />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Floating notification cards */}
-                <div className="absolute -left-8 top-20 bg-white/[0.08] backdrop-blur-xl rounded-2xl p-3 border border-white/10 shadow-xl animate-float">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                {/* iMac image */}
+                <div className="relative">
+                  <img 
+                    src="https://customer-assets.emergentagent.com/job_d0ea565a-5ab8-49d6-8b8e-5c0e85764ea0/artifacts/ya5deptw_Gemini_Generated_Image_soiqknsoiqknsoiq.webp"
+                    alt="EduNet - Plataforma de gestión escolar"
+                    className="w-full h-auto rounded-2xl shadow-2xl shadow-black/40"
+                    data-testid="hero-dashboard-image"
+                  />
+                  {/* Floating badges */}
+                  <div className="absolute -bottom-3 -left-3 bg-[#0a0f1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
                       <CheckCircle className="w-4 h-4 text-emerald-400" />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white">Asistencia registrada</p>
-                      <p className="text-[10px] text-white/40">3ero A — Hace 2 min</p>
+                      <p className="text-xs font-bold text-white">Panel en vivo</p>
+                      <p className="text-[10px] text-white/40">Datos en tiempo real</p>
                     </div>
                   </div>
-                </div>
-
-                <div className="absolute -right-6 bottom-24 bg-white/[0.08] backdrop-blur-xl rounded-2xl p-3 border border-white/10 shadow-xl animate-float-delayed">
-                  <div className="flex items-center gap-2 mb-1.5">
-                    {[1,2,3,4,5].map(i => <Star key={i} className="w-3 h-3 fill-[#e1b82c] text-[#e1b82c]" />)}
+                  <div className="absolute -top-3 -right-3 bg-[#0a0f1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl">
+                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                      <Star className="w-4 h-4 text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">4.9/5</p>
+                      <p className="text-[10px] text-white/40">Satisfacción</p>
+                    </div>
                   </div>
-                  <p className="text-[10px] font-bold text-white/70">4.9 de 120+ colegios</p>
                 </div>
               </div>
             </div>
