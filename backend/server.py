@@ -90,6 +90,17 @@ BASE_DOMAIN = os.environ.get('BASE_DOMAIN', 'edunet.pe')
 # Academic student filter - excludes pending students from all academic modules
 ACADEMIC_STUDENT_FILTER = {"student_status": {"$in": ["enrolled", "active"]}}
 
+# Extended filter that also includes pending students (used when school allows pending access)
+ACADEMIC_STUDENT_FILTER_WITH_PENDING = {"student_status": {"$in": ["enrolled", "active", "pending"]}}
+
+async def get_academic_filter(school_id: str) -> dict:
+    """Returns the appropriate student filter based on school configuration."""
+    if school_id:
+        school = await db.schools.find_one({"id": school_id}, {"_id": 0, "permitir_acceso_estudiantes_pendientes": 1})
+        if school and school.get("permitir_acceso_estudiantes_pendientes", False):
+            return ACADEMIC_STUDENT_FILTER_WITH_PENDING
+    return ACADEMIC_STUDENT_FILTER
+
 
 # Cloudinary configuration
 cloudinary.config(
@@ -992,14 +1003,17 @@ async def login(creds: UserLogin):
                             detail="El acceso está restringido por pagos pendientes. Comuníquese con la administración."
                         )
             
-            # Student status login restriction - only active students can login
+            # Student status login restriction - only active students can login (unless school allows pending)
             if user.get("role") == "student":
                 sstatus = user.get("student_status", "active")  # Default active for migrated users
                 if sstatus == "pending":
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Su matrícula aún no ha sido registrada. Por favor comuníquese con la administración del colegio."
-                    )
+                    # Check if school allows pending students to access
+                    allow_pending = school.get("permitir_acceso_estudiantes_pendientes", False) if school else False
+                    if not allow_pending:
+                        raise HTTPException(
+                            status_code=403,
+                            detail="Su matrícula aún no ha sido registrada. Por favor comuníquese con la administración del colegio."
+                        )
                 if sstatus == "withdrawn":
                     raise HTTPException(
                         status_code=403,
@@ -4828,6 +4842,7 @@ async def get_tenant_settings(current_user = Depends(require_section_access("set
     # Include school-level role settings
     settings["allow_admin_accounting"] = school.get("allow_admin_accounting", False)
     settings["restrict_grades_if_debt"] = school.get("restrict_grades_if_debt", False)
+    settings["permitir_acceso_estudiantes_pendientes"] = school.get("permitir_acceso_estudiantes_pendientes", False)
     
     return settings
 
@@ -4899,7 +4914,7 @@ async def update_role_settings(
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     
     # Update allowed fields only
-    allowed_fields = ["allow_admin_accounting", "restrict_grades_if_debt"]
+    allowed_fields = ["allow_admin_accounting", "restrict_grades_if_debt", "permitir_acceso_estudiantes_pendientes"]
     update_data = {}
     for field in allowed_fields:
         if field in data:
@@ -4913,14 +4928,15 @@ async def update_role_settings(
         )
     
     # Get updated school
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1, "restrict_grades_if_debt": 1})
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "allow_admin_accounting": 1, "restrict_grades_if_debt": 1, "permitir_acceso_estudiantes_pendientes": 1})
     
     logger.info(f"Role settings updated for school {school_id}: {update_data}")
     
     return {
         "message": "Configuración de roles actualizada",
         "allow_admin_accounting": school.get("allow_admin_accounting", False),
-        "restrict_grades_if_debt": school.get("restrict_grades_if_debt", False)
+        "restrict_grades_if_debt": school.get("restrict_grades_if_debt", False),
+        "permitir_acceso_estudiantes_pendientes": school.get("permitir_acceso_estudiantes_pendientes", False)
     }
 
 @api_router.get("/settings/public/{subdomain}")

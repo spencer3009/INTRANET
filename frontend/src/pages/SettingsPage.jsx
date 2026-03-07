@@ -11,7 +11,7 @@ import {
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
-  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield
+  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -43,6 +43,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   
   // Role settings state
   const [allowAdminAccounting, setAllowAdminAccounting] = useState(false);
+  const [allowPendingStudents, setAllowPendingStudents] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   
   // Google Drive states
@@ -65,6 +66,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         const res = await axios.get(`${API}/settings`, { headers });
         // Load role settings from response
         setAllowAdminAccounting(res.data.allow_admin_accounting || false);
+        setAllowPendingStudents(res.data.permitir_acceso_estudiantes_pendientes || false);
         setSettings({
           logo_url: res.data.logo_url || "",
           system_name: res.data.system_name || "",
@@ -264,6 +266,21 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.detail || "Error al actualizar configuración de roles");
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
+  const handleTogglePendingStudents = async () => {
+    setSavingRoles(true);
+    try {
+      const newValue = !allowPendingStudents;
+      await axios.put(`${API}/settings/roles`, { permitir_acceso_estudiantes_pendientes: newValue }, { headers });
+      setAllowPendingStudents(newValue);
+      setSuccess(newValue ? "Estudiantes pendientes ahora pueden acceder al sistema" : "Acceso de estudiantes pendientes deshabilitado");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar configuración");
     } finally {
       setSavingRoles(false);
     }
@@ -808,6 +825,39 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                       <span
                         className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
                           allowAdminAccounting ? 'translate-x-8' : 'translate-x-1'
+                        }`}
+                      />
+                      {savingRoles && (
+                        <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Pending Students Access Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-slate-200">
+                        <UserCheck className="w-5 h-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-800">Permitir acceso a estudiantes pendientes de pago</h3>
+                        <p className="text-sm text-slate-500">
+                          Si se activa, los estudiantes podrán acceder al sistema aunque no hayan pagado matrícula o primera pensión
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleTogglePendingStudents}
+                      disabled={savingRoles}
+                      className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                        allowPendingStudents ? 'bg-emerald-600' : 'bg-slate-300'
+                      } ${savingRoles ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      data-testid="toggle-pending-students"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                          allowPendingStudents ? 'translate-x-8' : 'translate-x-1'
                         }`}
                       />
                       {savingRoles && (
