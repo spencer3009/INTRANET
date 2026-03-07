@@ -54,6 +54,94 @@ export default function LandingPage() {
   }, []);
 
 
+
+function BenefitsVideoSection() {
+  const [playing, setPlaying] = useState(false);
+
+  return (
+    <section className="relative">
+      {/* Full-width video container */}
+      <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+        {!playing ? (
+          <>
+            {/* Thumbnail */}
+            <img
+              src="https://img.youtube.com/vi/JnGyq-ik60w/maxresdefault.jpg"
+              alt="Video EduNet"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            {/* Dark overlay */}
+            <div className="absolute inset-0 bg-black/50" />
+
+            {/* Content overlay */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-6">
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-5">
+                <Play className="w-3.5 h-3.5 text-white/70" />
+                <span className="text-xs font-bold text-white/70 uppercase tracking-wider">Beneficios de la plataforma</span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white text-center mb-4 max-w-3xl">
+                Descubre lo que EduNet puede hacer por tu colegio
+              </h2>
+              <p className="text-base sm:text-lg text-white/50 text-center max-w-xl mb-10">
+                Mira cómo nuestra plataforma transforma la gestión escolar
+              </p>
+
+              {/* Play button */}
+              <button
+                onClick={() => setPlaying(true)}
+                className="group relative"
+                data-testid="video-play-btn"
+              >
+                <div className="absolute inset-0 bg-white/20 rounded-full scale-100 group-hover:scale-125 transition-transform duration-500 blur-xl" />
+                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 shadow-2xl">
+                  <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white ml-1" />
+                </div>
+              </button>
+            </div>
+          </>
+        ) : (
+          <iframe
+            className="absolute inset-0 w-full h-full"
+            src="https://www.youtube.com/embed/JnGyq-ik60w?autoplay=1&rel=0"
+            title="Beneficios de EduNet"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            data-testid="benefits-video"
+          />
+        )}
+      </div>
+
+      {/* Benefits bar below video */}
+      <div className="bg-gradient-to-b from-[#070b14] to-[#0a0f1a] py-16 px-6">
+        <div className="max-w-5xl mx-auto">
+          <p className="text-center text-base text-white/40 mb-10 max-w-2xl mx-auto">
+            EduNet es una intranet moderna diseñada para digitalizar la gestión escolar. Con nuestra plataforma tu colegio podrá:
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-5">
+            {[
+              { icon: QrCode, text: "Asistencia con QR" },
+              { icon: Users, text: "Gestión de alumnos y profesores" },
+              { icon: BookOpen, text: "Tareas y calificaciones" },
+              { icon: MessageSquare, text: "Comunicados y notificaciones" },
+              { icon: BarChart3, text: "Reportes en tiempo real" },
+              { icon: Shield, text: "Todo centralizado" },
+              { icon: Monitor, text: "Celular, tablet o PC" },
+              { icon: GraduationCap, text: "Inicial, primaria y secundaria" },
+            ].map(({ icon: Icon, text }) => (
+              <div key={text} className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
+                  <Icon className="w-4 h-4 text-blue-400/70" />
+                </div>
+                <span className="text-xs text-white/50">{text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function PriceCalculator() {
   const [students, setStudents] = useState("");
   const numStudents = parseInt(students) || 0;
@@ -502,75 +590,9 @@ function PriceCalculator() {
 
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          BENEFITS - Video section
+          BENEFITS - Fullscreen Video section
       ═══════════════════════════════════════════════════════════════════════ */}
-      <section className="relative py-24 px-6 overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[350px] h-[350px] bg-blue-600/8 rounded-full blur-[120px]" />
-        <div className="absolute bottom-20 left-1/3 w-[300px] h-[300px] bg-[#e1b82c]/5 rounded-full blur-[100px]" />
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="text-center mb-14">
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500/10 to-violet-500/10 border border-white/10 px-4 py-2 rounded-full mb-6">
-              <Play className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Beneficios de la plataforma</span>
-            </div>
-            <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-5">
-              Conoce lo que <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">EduNet puede hacer</span>
-            </h2>
-            <p className="text-lg text-white/40 max-w-2xl mx-auto">
-              Descubre cómo EduNet puede transformar la gestión de tu colegio y facilitar el trabajo de directores, profesores y padres de familia.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-            {/* Left — Video */}
-            <div className="relative">
-              <div className="absolute -inset-3 bg-gradient-to-r from-blue-600/20 via-violet-500/10 to-[#e1b82c]/10 rounded-2xl blur-2xl opacity-50" />
-              <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/40">
-                <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-                  <iframe
-                    className="absolute inset-0 w-full h-full"
-                    src="https://www.youtube.com/embed/JnGyq-ik60w"
-                    title="Beneficios de EduNet"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    data-testid="benefits-video"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Right — Benefits list */}
-            <div>
-              <p className="text-base text-white/50 mb-6 leading-relaxed">
-                EduNet es una intranet moderna diseñada para digitalizar la gestión escolar.
-                Con nuestra plataforma tu colegio podrá:
-              </p>
-              <ul className="space-y-4 mb-8">
-                {[
-                  { icon: QrCode, text: "Controlar asistencia mediante códigos QR" },
-                  { icon: Users, text: "Gestionar alumnos, profesores y padres de familia" },
-                  { icon: BookOpen, text: "Registrar tareas y calificaciones fácilmente" },
-                  { icon: MessageSquare, text: "Enviar comunicados y notificaciones" },
-                  { icon: BarChart3, text: "Acceder a reportes académicos en tiempo real" },
-                  { icon: Shield, text: "Centralizar toda la información del colegio en un solo sistema" },
-                  { icon: Monitor, text: "Acceder desde celular, tablet o computadora" },
-                ].map(({ icon: Icon, text }) => (
-                  <li key={text} className="flex items-start gap-3 group">
-                    <div className="w-8 h-8 rounded-lg bg-white/[0.06] border border-white/10 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-blue-500/15 group-hover:border-blue-500/30 transition-colors">
-                      <Icon className="w-4 h-4 text-blue-400" />
-                    </div>
-                    <span className="text-sm text-white/60 leading-relaxed">{text}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="text-sm text-white/30 leading-relaxed">
-                EduNet está pensado para colegios de inicial, primaria y secundaria que buscan modernizar su gestión sin sistemas complicados ni costosos.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
+      <BenefitsVideoSection />
 
       {/* ═══════════════════════════════════════════════════════════════════════
           PRICING - Single clear model
