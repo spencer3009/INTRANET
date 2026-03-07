@@ -57,9 +57,10 @@ export default function LandingPage() {
 function PriceCalculator() {
   const [students, setStudents] = useState("");
   const numStudents = parseInt(students) || 0;
-  const hasInput = students.length > 0;
-  const belowMin = hasInput && numStudents < 80;
-  const monthlyPrice = numStudents >= 80 ? (numStudents * 0.70).toFixed(0) : null;
+  const hasInput = students.length > 0 && numStudents > 0;
+  const monthlyPrice = hasInput
+    ? (numStudents < 80 ? 50 : Math.round(numStudents * 0.70))
+    : null;
 
   return (
     <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-8 sm:p-10 backdrop-blur-sm">
@@ -79,11 +80,7 @@ function PriceCalculator() {
         value={students}
         onChange={(e) => setStudents(e.target.value)}
         placeholder="Ej: 200"
-        className={`w-full px-5 py-4 bg-white/[0.06] border rounded-xl text-white text-lg font-semibold placeholder:text-white/20 focus:outline-none transition-all mb-6 ${
-          belowMin
-            ? "border-orange-500/40 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20"
-            : "border-white/10 focus:border-[#e1b82c]/50 focus:ring-2 focus:ring-[#e1b82c]/20"
-        }`}
+        className="w-full px-5 py-4 bg-white/[0.06] border border-white/10 rounded-xl text-white text-lg font-semibold placeholder:text-white/20 focus:outline-none focus:border-[#e1b82c]/50 focus:ring-2 focus:ring-[#e1b82c]/20 transition-all mb-6"
         data-testid="calculator-input"
       />
 
@@ -96,24 +93,16 @@ function PriceCalculator() {
             <span className="text-5xl font-extrabold text-white" data-testid="calculator-result">S/{monthlyPrice}</span>
             <span className="text-base text-white/40 font-medium">/ mes</span>
           </div>
-          <p className="text-xs text-white/30 mt-3">Precio aplicado a partir del tercer mes de uso</p>
-        </div>
-      ) : belowMin ? (
-        <div className="text-center py-5 mb-6 rounded-xl bg-orange-500/5 border border-orange-500/15" data-testid="calculator-min-warning">
-          <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center mx-auto mb-2">
-            <Users className="w-4 h-4 text-orange-400" />
-          </div>
-          <p className="text-sm font-semibold text-orange-300/80">El cálculo aplica desde un mínimo de 80 alumnos</p>
-          <p className="text-xs text-white/25 mt-1">Ingresa 80 o más para ver tu precio estimado</p>
+          <p className="text-xs text-white/30 mt-3">Precio aplicable a partir del tercer mes de uso</p>
         </div>
       ) : (
         <div className="mb-6">
           <p className="text-xs text-white/40 uppercase tracking-wider font-bold mb-4 text-center">Ejemplos de precio</p>
           <div className="space-y-2.5">
             {[
+              { s: 50, p: 50 },
               { s: 80, p: 56 },
               { s: 200, p: 140 },
-              { s: 500, p: 350 },
             ].map((ex) => (
               <div key={ex.s} className="flex items-center justify-between py-2.5 px-4 rounded-lg bg-white/[0.03] border border-white/5">
                 <span className="text-sm text-white/50">{ex.s} alumnos</span>
@@ -129,7 +118,7 @@ function PriceCalculator() {
         <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
         <div>
           <p className="text-sm font-semibold text-white/70">Primeros 2 meses: Solo S/50</p>
-          <p className="text-xs text-white/30">Luego se aplica el precio por alumno.</p>
+          <p className="text-xs text-white/30">Luego el precio se calcula según la cantidad de alumnos.</p>
         </div>
       </div>
 
