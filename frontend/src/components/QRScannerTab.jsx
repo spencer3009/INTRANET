@@ -852,18 +852,23 @@ export default function QRScannerTab({ token, roleFilter }) {
                     {item.grade_name ? `${item.grade_name} - Sección ${item.section_name}` : (item.role === "teacher" ? "Docente" : "Estudiante")}
                   </p>
                 </div>
-                <div className="text-right">
-                  <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-center">
+                    <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">Entrada</p>
+                    <p className="text-base font-bold text-slate-800">{item.entry_time || item.time || "—"}</p>
+                  </div>
+                  {item.exit_time && (
+                    <>
+                      <span className="text-slate-300">→</span>
+                      <div className="text-center">
+                        <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">Salida</p>
+                        <p className="text-base font-bold text-blue-600">{item.exit_time}</p>
+                      </div>
+                    </>
+                  )}
+                  <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium ml-2">
                     ✓ Presente
                   </span>
-                  <p className="text-xs text-slate-500 mt-1">
-                    Entrada: {item.entry_time || item.time || "—"}
-                  </p>
-                  {item.exit_time && (
-                    <p className="text-xs text-blue-600 font-medium">
-                      Salida: {item.exit_time}
-                    </p>
-                  )}
                 </div>
               </div>
             ))}
