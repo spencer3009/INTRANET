@@ -8,7 +8,16 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 
 ## What's Been Implemented
 
-### Session - March 6, 2026 (Fork 4 - Latest)
+### Session - March 7, 2026 (Fork 5 - Latest)
+
+#### Bugfix: Timezone Mismatch in Attendance Entry/Exit (P0) - FIXED ✅
+- **Root Cause:** All `entry_time`/`exit_time` stored as UTC ISO strings, but `check_in_time` displayed UTC HH:MM. Display and comparison logic didn't convert to Peru timezone (UTC-5).
+- **Fix:** Created `to_peru_hhmm()` helper function that converts any UTC ISO string to Peru HH:MM format.
+- **Applied to:** `scan_qr_attendance`, `mark_attendance_entry`, `mark_attendance_exit`, `get_qr_attendance_history`, student dashboard, teacher attendance list, and student attendance list endpoints.
+- **Also fixed:** Date determination now uses `PERU_TZ` (critical when UTC date ≠ Peru date), `total_minutes` calculation handles timezone-naive entries.
+- **Testing:** 100% passed (11/11 backend tests - iteration_74.json)
+
+### Session - March 6, 2026 (Fork 4)
 
 #### Feature: Attendance Entry/Exit Architecture Preparation (P0) - COMPLETED
 - **Backend verificado:** Campos `entry_time`, `exit_time`, `total_minutes`, `method` ya existían y funcionan correctamente
