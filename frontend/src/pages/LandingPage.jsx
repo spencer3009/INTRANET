@@ -4,7 +4,7 @@ import {
   Shield, Users, BarChart3, Calendar, MessageSquare, BookOpen,
   ChevronRight, CheckCircle, Star, ArrowRight, GraduationCap,
   Lock, Zap, Globe, Phone, Mail, Clock, Award, TrendingUp,
-  ChevronDown, Sparkles, Play, ArrowUpRight, Check,
+  ChevronDown, Sparkles, Play, ArrowUpRight, Check, Calculator,
 } from "lucide-react";
 
 const stats = [
@@ -52,6 +52,85 @@ export default function LandingPage() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+
+function PriceCalculator() {
+  const [students, setStudents] = useState("");
+  const numStudents = parseInt(students) || 0;
+  const monthlyPrice = numStudents > 0 ? (numStudents * 0.70).toFixed(0) : null;
+
+  return (
+    <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-8 sm:p-10 backdrop-blur-sm">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="w-10 h-10 rounded-xl bg-[#e1b82c]/15 flex items-center justify-center">
+          <Calculator className="w-5 h-5 text-[#e1b82c]" />
+        </div>
+        <h3 className="text-lg font-bold text-white">Calcula tu precio</h3>
+      </div>
+      <p className="text-sm text-white/40 mb-8">Ingresa la cantidad de alumnos y mira tu precio mensual estimado.</p>
+
+      {/* Input */}
+      <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Cantidad de alumnos</label>
+      <input
+        type="number"
+        min="1"
+        value={students}
+        onChange={(e) => setStudents(e.target.value)}
+        placeholder="Ej: 200"
+        className="w-full px-5 py-4 bg-white/[0.06] border border-white/10 rounded-xl text-white text-lg font-semibold placeholder:text-white/20 focus:outline-none focus:border-[#e1b82c]/50 focus:ring-2 focus:ring-[#e1b82c]/20 transition-all mb-8"
+        data-testid="calculator-input"
+      />
+
+      {/* Result */}
+      {monthlyPrice !== null ? (
+        <div className="text-center py-6 mb-6 rounded-xl bg-gradient-to-br from-[#e1b82c]/10 to-amber-500/5 border border-[#e1b82c]/20">
+          <p className="text-xs text-white/40 uppercase tracking-wider font-bold mb-1">Tu precio estimado</p>
+          <p className="text-sm text-white/50 mb-3">{numStudents} alumnos</p>
+          <div className="flex items-baseline justify-center gap-2">
+            <span className="text-5xl font-extrabold text-white" data-testid="calculator-result">S/{monthlyPrice}</span>
+            <span className="text-base text-white/40 font-medium">/ mes</span>
+          </div>
+          <p className="text-xs text-white/30 mt-3">A partir del tercer mes de uso</p>
+        </div>
+      ) : (
+        <div className="mb-6">
+          <p className="text-xs text-white/40 uppercase tracking-wider font-bold mb-4 text-center">Ejemplos de precio</p>
+          <div className="space-y-2.5">
+            {[
+              { s: 100, p: 70 },
+              { s: 200, p: 140 },
+              { s: 500, p: 350 },
+            ].map((ex) => (
+              <div key={ex.s} className="flex items-center justify-between py-2.5 px-4 rounded-lg bg-white/[0.03] border border-white/5">
+                <span className="text-sm text-white/50">{ex.s} alumnos</span>
+                <span className="text-sm font-bold text-[#e1b82c]">S/{ex.p} / mes</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Promo note */}
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10 mb-8">
+        <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-white/70">Primeros 2 meses: Solo S/50</p>
+          <p className="text-xs text-white/30">Luego se aplica el precio por alumno.</p>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <Link
+        to="/register"
+        className="block text-center font-bold py-3.5 rounded-xl bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] hover:shadow-lg hover:shadow-[#e1b82c]/30 transition-all mb-3"
+        data-testid="calculator-cta"
+      >
+        Iniciar prueba
+      </Link>
+      <p className="text-center text-xs text-white/25">Sin contratos. Cancela cuando quieras.</p>
+    </div>
+  );
+}
 
   return (
     <div className="min-h-screen bg-[#0a0f1a] overflow-x-hidden" data-testid="landing-page">
@@ -425,7 +504,7 @@ export default function LandingPage() {
         <div className="absolute bottom-0 left-1/3 w-[400px] h-[400px] bg-[#e1b82c]/10 rounded-full blur-[120px]" />
         <div className="absolute top-20 right-1/4 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-[100px]" />
 
-        <div className="max-w-4xl mx-auto relative z-10">
+        <div className="max-w-6xl mx-auto relative z-10">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-white/10 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-amber-400" />
@@ -440,82 +519,63 @@ export default function LandingPage() {
             </p>
           </div>
 
-          {/* Main pricing card */}
-          <div className="relative max-w-lg mx-auto mb-14">
-            <div className="absolute -inset-[2px] bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400 rounded-2xl" />
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] text-[10px] font-extrabold uppercase tracking-widest px-5 py-1.5 rounded-full shadow-lg">
-              Sin contratos
-            </div>
-            <div className="relative rounded-2xl bg-[#0a0f1a] p-8 sm:p-10">
-              <h3 className="text-xl font-bold text-white mb-6">EduNet</h3>
-              
-              {/* Promotional price */}
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-5xl sm:text-6xl font-extrabold text-white">S/50</span>
-                <span className="text-base text-white/40 font-medium">/ mes</span>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            {/* LEFT — Pricing card */}
+            <div className="relative">
+              <div className="absolute -inset-[2px] bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400 rounded-2xl" />
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] text-[10px] font-extrabold uppercase tracking-widest px-5 py-1.5 rounded-full shadow-lg z-10">
+                Sin contratos
               </div>
-              <p className="text-sm text-[#e1b82c] font-semibold mb-6">Primeros 2 meses</p>
-
-              {/* Divider */}
-              <div className="border-t border-white/10 my-6" />
-
-              {/* Per-student price */}
-              <div className="flex items-baseline gap-2 mb-1">
-                <span className="text-3xl font-extrabold text-white">S/0.70</span>
-                <span className="text-sm text-white/40 font-medium">por alumno / mes</span>
-              </div>
-              <p className="text-sm text-white/40 mb-8">A partir del 3er mes</p>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-8">
-                {[
-                  "Asistencia con código QR",
-                  "Gestión de alumnos",
-                  "Gestión de profesores",
-                  "Comunicación con padres",
-                  "Tareas y calificaciones",
-                  "Reportes académicos",
-                  "Acceso desde celular y computadora",
-                  "Subdominio para el colegio",
-                  "Soporte técnico"
-                ].map((feat) => (
-                  <li key={feat} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-[#e1b82c]/20 flex items-center justify-center shrink-0">
-                      <Check className="w-3 h-3 text-[#e1b82c]" />
-                    </div>
-                    <span className="text-sm text-white/60">{feat}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Link 
-                to="/register" 
-                className="block text-center font-bold py-3.5 rounded-xl bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] hover:shadow-lg hover:shadow-[#e1b82c]/30 transition-all"
-                data-testid="pricing-cta"
-              >
-                Iniciar prueba
-              </Link>
-            </div>
-          </div>
-
-          {/* Pricing examples */}
-          <div className="max-w-2xl mx-auto">
-            <p className="text-center text-sm font-bold text-white/50 uppercase tracking-wider mb-5">Ejemplos de precio</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {[
-                { students: 100, price: 70 },
-                { students: 200, price: 140 },
-                { students: 500, price: 350 },
-              ].map((ex) => (
-                <div key={ex.students} className="bg-white/[0.04] border border-white/10 rounded-xl p-5 text-center hover:border-[#e1b82c]/30 transition-colors">
-                  <p className="text-2xl font-extrabold text-white">{ex.students}</p>
-                  <p className="text-xs text-white/40 mb-2">alumnos</p>
-                  <div className="border-t border-white/5 my-2" />
-                  <p className="text-xl font-bold text-[#e1b82c]">S/{ex.price}</p>
-                  <p className="text-xs text-white/40">al mes</p>
+              <div className="relative rounded-2xl bg-[#0a0f1a] p-8 sm:p-10">
+                <h3 className="text-xl font-bold text-white mb-6">EduNet</h3>
+                
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-5xl sm:text-6xl font-extrabold text-white">S/50</span>
+                  <span className="text-base text-white/40 font-medium">/ mes</span>
                 </div>
-              ))}
+                <p className="text-sm text-[#e1b82c] font-semibold mb-6">Primeros 2 meses</p>
+
+                <div className="border-t border-white/10 my-6" />
+
+                <div className="flex items-baseline gap-2 mb-1">
+                  <span className="text-3xl font-extrabold text-white">S/0.70</span>
+                  <span className="text-sm text-white/40 font-medium">por alumno / mes</span>
+                </div>
+                <p className="text-sm text-white/40 mb-8">A partir del 3er mes</p>
+
+                <ul className="space-y-3 mb-8">
+                  {[
+                    "Asistencia con código QR",
+                    "Gestión de alumnos",
+                    "Gestión de profesores",
+                    "Comunicación con padres",
+                    "Tareas y calificaciones",
+                    "Reportes académicos",
+                    "Acceso desde celular y computadora",
+                    "Subdominio para el colegio",
+                    "Soporte técnico"
+                  ].map((feat) => (
+                    <li key={feat} className="flex items-center gap-3">
+                      <div className="w-5 h-5 rounded-full bg-[#e1b82c]/20 flex items-center justify-center shrink-0">
+                        <Check className="w-3 h-3 text-[#e1b82c]" />
+                      </div>
+                      <span className="text-sm text-white/60">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Link 
+                  to="/register" 
+                  className="block text-center font-bold py-3.5 rounded-xl bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] hover:shadow-lg hover:shadow-[#e1b82c]/30 transition-all"
+                  data-testid="pricing-cta"
+                >
+                  Iniciar prueba
+                </Link>
+              </div>
             </div>
+
+            {/* RIGHT — Calculator */}
+            <PriceCalculator />
           </div>
         </div>
       </section>
