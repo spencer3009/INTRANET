@@ -856,7 +856,14 @@ export default function QRScannerTab({ token, roleFilter }) {
                   <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
                     ✓ Presente
                   </span>
-                  <p className="text-sm text-slate-500 mt-1">{item.time}</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Entrada: {item.entry_time || item.time || "—"}
+                  </p>
+                  {item.exit_time && (
+                    <p className="text-xs text-blue-600 font-medium">
+                      Salida: {item.exit_time}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

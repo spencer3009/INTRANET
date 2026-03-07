@@ -10452,6 +10452,16 @@ async def get_qr_attendance_history(
             "method": "qr_scan"
         }).sort("created_at", -1).limit(limit).to_list(None)
         
+        # Cross-reference with attendances collection for entry/exit times
+        student_ids_today = [r["student_id"] for r in student_records]
+        attendance_records = {}
+        if student_ids_today:
+            att_list = await db.attendances.find({
+                "school_id": school_id, "date": today, "type": "student",
+                "user_id": {"$in": student_ids_today}
+            }, {"_id": 0, "user_id": 1, "entry_time": 1, "exit_time": 1}).to_list(None)
+            attendance_records = {a["user_id"]: a for a in att_list}
+        
         for record in student_records:
             student = await db.users.find_one(
                 {"id": record["student_id"]},
@@ -10460,6 +10470,10 @@ async def get_qr_attendance_history(
             if student:
                 grade = await db.grados.find_one({"id": student.get("grado_id")}, {"_id": 0, "nombre": 1})
                 section = await db.secciones.find_one({"id": student.get("seccion_id")}, {"_id": 0, "nombre": 1})
+                
+                att = attendance_records.get(record["student_id"], {})
+                entry_t = to_peru_hhmm(att.get("entry_time")) or to_peru_hhmm(record.get("created_at")) or record.get("check_in_time")
+                exit_t = to_peru_hhmm(att.get("exit_time"))
                 
                 history.append({
                     "id": record.get("id"),
@@ -10470,7 +10484,9 @@ async def get_qr_attendance_history(
                     "section_name": section.get("nombre") if section else None,
                     "role": "student",
                     "status": record.get("status"),
-                    "time": to_peru_hhmm(record.get("created_at")) or record.get("check_in_time"),
+                    "time": entry_t,
+                    "entry_time": entry_t,
+                    "exit_time": exit_t,
                     "created_at": record.get("created_at")
                 })
     
@@ -10489,6 +10505,8 @@ async def get_qr_attendance_history(
                 {"_id": 0, "name": 1, "last_name": 1, "photo_url": 1}
             )
             if teacher:
+                entry_t = to_peru_hhmm(record.get("entry_time")) or record.get("check_in_time")
+                exit_t = to_peru_hhmm(record.get("exit_time"))
                 history.append({
                     "id": record.get("id"),
                     "student_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
@@ -10498,7 +10516,9 @@ async def get_qr_attendance_history(
                     "section_name": None,
                     "role": "teacher",
                     "status": record.get("status"),
-                    "time": to_peru_hhmm(record.get("entry_time")) or record.get("check_in_time"),
+                    "time": entry_t,
+                    "entry_time": entry_t,
+                    "exit_time": exit_t,
                     "created_at": record.get("created_at")
                 })
     

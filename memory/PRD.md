@@ -15,6 +15,7 @@ EduNet: Plataforma educativa para colegios peruanos. Full-stack: FastAPI + React
 - **Fix:** Created `to_peru_hhmm()` helper function that converts any UTC ISO string to Peru HH:MM format.
 - **Applied to:** `scan_qr_attendance`, `mark_attendance_entry`, `mark_attendance_exit`, `get_qr_attendance_history`, student dashboard, teacher attendance list, and student attendance list endpoints.
 - **Also fixed:** Date determination now uses `PERU_TZ` (critical when UTC date ≠ Peru date), `total_minutes` calculation handles timezone-naive entries.
+- **QR History Enhancement:** History endpoint now returns `entry_time` and `exit_time` fields; frontend updated to show both entry and exit times in scan history list.
 - **Testing:** 100% passed (11/11 backend tests - iteration_74.json)
 
 ### Session - March 6, 2026 (Fork 4)
