@@ -57,7 +57,9 @@ export default function LandingPage() {
 function PriceCalculator() {
   const [students, setStudents] = useState("");
   const numStudents = parseInt(students) || 0;
-  const monthlyPrice = numStudents > 0 ? (numStudents * 0.70).toFixed(0) : null;
+  const hasInput = students.length > 0;
+  const belowMin = hasInput && numStudents < 80;
+  const monthlyPrice = numStudents >= 80 ? (numStudents * 0.70).toFixed(0) : null;
 
   return (
     <div className="rounded-2xl bg-white/[0.04] border border-white/10 p-8 sm:p-10 backdrop-blur-sm">
@@ -67,7 +69,7 @@ function PriceCalculator() {
         </div>
         <h3 className="text-lg font-bold text-white">Calcula tu precio</h3>
       </div>
-      <p className="text-sm text-white/40 mb-8">Ingresa la cantidad de alumnos y mira tu precio mensual estimado.</p>
+      <p className="text-sm text-white/40 mb-8">Ingresa la cantidad de alumnos y calcula tu precio mensual.</p>
 
       {/* Input */}
       <label className="block text-xs font-semibold text-white/50 uppercase tracking-wider mb-2">Cantidad de alumnos</label>
@@ -77,27 +79,39 @@ function PriceCalculator() {
         value={students}
         onChange={(e) => setStudents(e.target.value)}
         placeholder="Ej: 200"
-        className="w-full px-5 py-4 bg-white/[0.06] border border-white/10 rounded-xl text-white text-lg font-semibold placeholder:text-white/20 focus:outline-none focus:border-[#e1b82c]/50 focus:ring-2 focus:ring-[#e1b82c]/20 transition-all mb-8"
+        className={`w-full px-5 py-4 bg-white/[0.06] border rounded-xl text-white text-lg font-semibold placeholder:text-white/20 focus:outline-none transition-all mb-6 ${
+          belowMin
+            ? "border-orange-500/40 focus:border-orange-500/60 focus:ring-2 focus:ring-orange-500/20"
+            : "border-white/10 focus:border-[#e1b82c]/50 focus:ring-2 focus:ring-[#e1b82c]/20"
+        }`}
         data-testid="calculator-input"
       />
 
-      {/* Result */}
+      {/* Result area */}
       {monthlyPrice !== null ? (
-        <div className="text-center py-6 mb-6 rounded-xl bg-gradient-to-br from-[#e1b82c]/10 to-amber-500/5 border border-[#e1b82c]/20">
+        <div className="text-center py-6 mb-6 rounded-xl bg-gradient-to-br from-[#e1b82c]/10 to-amber-500/5 border border-[#e1b82c]/20" data-testid="calculator-result-box">
           <p className="text-xs text-white/40 uppercase tracking-wider font-bold mb-1">Tu precio estimado</p>
           <p className="text-sm text-white/50 mb-3">{numStudents} alumnos</p>
           <div className="flex items-baseline justify-center gap-2">
             <span className="text-5xl font-extrabold text-white" data-testid="calculator-result">S/{monthlyPrice}</span>
             <span className="text-base text-white/40 font-medium">/ mes</span>
           </div>
-          <p className="text-xs text-white/30 mt-3">A partir del tercer mes de uso</p>
+          <p className="text-xs text-white/30 mt-3">Precio aplicado a partir del tercer mes de uso</p>
+        </div>
+      ) : belowMin ? (
+        <div className="text-center py-5 mb-6 rounded-xl bg-orange-500/5 border border-orange-500/15" data-testid="calculator-min-warning">
+          <div className="w-9 h-9 rounded-full bg-orange-500/15 flex items-center justify-center mx-auto mb-2">
+            <Users className="w-4 h-4 text-orange-400" />
+          </div>
+          <p className="text-sm font-semibold text-orange-300/80">El cálculo aplica desde un mínimo de 80 alumnos</p>
+          <p className="text-xs text-white/25 mt-1">Ingresa 80 o más para ver tu precio estimado</p>
         </div>
       ) : (
         <div className="mb-6">
           <p className="text-xs text-white/40 uppercase tracking-wider font-bold mb-4 text-center">Ejemplos de precio</p>
           <div className="space-y-2.5">
             {[
-              { s: 100, p: 70 },
+              { s: 80, p: 56 },
               { s: 200, p: 140 },
               { s: 500, p: 350 },
             ].map((ex) => (
