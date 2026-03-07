@@ -36,12 +36,6 @@ const testimonials = [
   { name: "Ana Flores Castillo", role: "Coordinadora Académica", school: "Colegio Santa Rosa, Trujillo", text: "Los reportes automáticos nos ahorran 15+ horas semanales. Calificaciones y asistencias ahora centralizadas.", stars: 5 },
 ];
 
-const plans = [
-  { name: "Básico", price: "Gratis", period: "Para empezar", desc: "Ideal para colegios pequeños.", features: ["Hasta 200 alumnos", "Comunicados y eventos", "Calendario escolar", "1 administrador", "Soporte por email"], cta: "Empezar gratis", popular: false },
-  { name: "Profesional", price: "S/. 149", period: "/mes", desc: "Herramientas completas.", features: ["Alumnos ilimitados", "Reportes avanzados", "Calificaciones y asistencia", "Roles personalizados", "Soporte prioritario", "Subdominio personalizado", "Integración WhatsApp"], cta: "Iniciar prueba", popular: true },
-  { name: "Enterprise", price: "Consultar", period: "", desc: "Para redes de colegios.", features: ["Multi-sede", "API personalizada", "Onboarding dedicado", "SLA garantizado", "Capacitación presencial", "Personalización completa", "Manager de cuenta"], cta: "Contactar", popular: false },
-];
-
 const faqs = [
   { q: "¿Cuánto tiempo toma implementar EduNet?", a: "La configuración inicial toma menos de 5 minutos. El onboarding completo se puede completar en 1-2 días hábiles." },
   { q: "¿Mis datos están seguros?", a: "Usamos encriptación AES-256, servidores con certificación SOC 2, y cumplimos con las normativas de protección de datos de Perú." },
@@ -425,66 +419,103 @@ export default function LandingPage() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════════════════
-          PRICING - Clean cards with highlight
+          PRICING - Single clear model
       ═══════════════════════════════════════════════════════════════════════ */}
       <section id="pricing" className="relative py-24 px-6 overflow-hidden">
         <div className="absolute bottom-0 left-1/3 w-[400px] h-[400px] bg-[#e1b82c]/10 rounded-full blur-[120px]" />
+        <div className="absolute top-20 right-1/4 w-[300px] h-[300px] bg-emerald-500/5 rounded-full blur-[100px]" />
 
-        <div className="max-w-6xl mx-auto relative z-10">
+        <div className="max-w-4xl mx-auto relative z-10">
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-white/10 px-4 py-2 rounded-full mb-6">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Planes</span>
+              <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Precios</span>
             </div>
             <h2 className="text-4xl sm:text-5xl font-extrabold text-white mb-5">
-              Un plan para <span className="bg-gradient-to-r from-[#e1b82c] to-amber-400 bg-clip-text text-transparent">cada colegio</span>
+              Un precio justo para <span className="bg-gradient-to-r from-[#e1b82c] to-amber-400 bg-clip-text text-transparent">cada colegio</span>
             </h2>
-            <p className="text-lg text-white/40">Sin contratos. Cancela cuando quieras.</p>
+            <p className="text-lg text-white/40 max-w-xl mx-auto">
+              Empieza por solo S/50 durante los primeros 2 meses.<br />
+              Luego paga solo S/0.70 por alumno al mes.
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {plans.map((p) => (
-              <div key={p.name} className={`relative rounded-2xl transition-all hover:-translate-y-2 ${p.popular ? "z-10" : ""}`}>
-                {p.popular && (
-                  <>
-                    <div className="absolute -inset-[2px] bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400 rounded-2xl" />
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] text-[10px] font-extrabold uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg">
-                      Más popular
-                    </div>
-                  </>
-                )}
-                <div className={`relative h-full rounded-2xl p-8 ${p.popular ? "bg-[#0a0f1a]" : "bg-white/[0.03] border border-white/5"}`}>
-                  <h3 className="text-lg font-bold text-white mb-2">{p.name}</h3>
-                  <div className="flex items-baseline gap-1 mb-2">
-                    <span className="text-4xl font-extrabold text-white">{p.price}</span>
-                    {p.period && <span className="text-sm text-white/40">{p.period}</span>}
-                  </div>
-                  <p className="text-sm text-white/40 mb-6">{p.desc}</p>
-                  
-                  <ul className="space-y-3 mb-8">
-                    {p.features.map((feat) => (
-                      <li key={feat} className="flex items-center gap-3">
-                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${p.popular ? "bg-[#e1b82c]/20" : "bg-emerald-500/20"}`}>
-                          <Check className={`w-3 h-3 ${p.popular ? "text-[#e1b82c]" : "text-emerald-400"}`} />
-                        </div>
-                        <span className="text-sm text-white/60">{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <Link 
-                    to="/register" 
-                    className={`block text-center font-bold py-3.5 rounded-xl transition-all ${
-                      p.popular 
-                        ? "bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] hover:shadow-lg hover:shadow-[#e1b82c]/30" 
-                        : "bg-white/5 text-white hover:bg-white/10 border border-white/10"
-                    }`}
-                  >
-                    {p.cta}
-                  </Link>
-                </div>
+          {/* Main pricing card */}
+          <div className="relative max-w-lg mx-auto mb-14">
+            <div className="absolute -inset-[2px] bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400 rounded-2xl" />
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] text-[10px] font-extrabold uppercase tracking-widest px-5 py-1.5 rounded-full shadow-lg">
+              Sin contratos
+            </div>
+            <div className="relative rounded-2xl bg-[#0a0f1a] p-8 sm:p-10">
+              <h3 className="text-xl font-bold text-white mb-6">EduNet</h3>
+              
+              {/* Promotional price */}
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-5xl sm:text-6xl font-extrabold text-white">S/50</span>
+                <span className="text-base text-white/40 font-medium">/ mes</span>
               </div>
-            ))}
+              <p className="text-sm text-[#e1b82c] font-semibold mb-6">Primeros 2 meses</p>
+
+              {/* Divider */}
+              <div className="border-t border-white/10 my-6" />
+
+              {/* Per-student price */}
+              <div className="flex items-baseline gap-2 mb-1">
+                <span className="text-3xl font-extrabold text-white">S/0.70</span>
+                <span className="text-sm text-white/40 font-medium">por alumno / mes</span>
+              </div>
+              <p className="text-sm text-white/40 mb-8">A partir del 3er mes</p>
+
+              {/* Features */}
+              <ul className="space-y-3 mb-8">
+                {[
+                  "Asistencia con código QR",
+                  "Gestión de alumnos",
+                  "Gestión de profesores",
+                  "Comunicación con padres",
+                  "Tareas y calificaciones",
+                  "Reportes académicos",
+                  "Acceso desde celular y computadora",
+                  "Subdominio para el colegio",
+                  "Soporte técnico"
+                ].map((feat) => (
+                  <li key={feat} className="flex items-center gap-3">
+                    <div className="w-5 h-5 rounded-full bg-[#e1b82c]/20 flex items-center justify-center shrink-0">
+                      <Check className="w-3 h-3 text-[#e1b82c]" />
+                    </div>
+                    <span className="text-sm text-white/60">{feat}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Link 
+                to="/register" 
+                className="block text-center font-bold py-3.5 rounded-xl bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] hover:shadow-lg hover:shadow-[#e1b82c]/30 transition-all"
+                data-testid="pricing-cta"
+              >
+                Iniciar prueba
+              </Link>
+            </div>
+          </div>
+
+          {/* Pricing examples */}
+          <div className="max-w-2xl mx-auto">
+            <p className="text-center text-sm font-bold text-white/50 uppercase tracking-wider mb-5">Ejemplos de precio</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {[
+                { students: 100, price: 70 },
+                { students: 200, price: 140 },
+                { students: 500, price: 350 },
+              ].map((ex) => (
+                <div key={ex.students} className="bg-white/[0.04] border border-white/10 rounded-xl p-5 text-center hover:border-[#e1b82c]/30 transition-colors">
+                  <p className="text-2xl font-extrabold text-white">{ex.students}</p>
+                  <p className="text-xs text-white/40 mb-2">alumnos</p>
+                  <div className="border-t border-white/5 my-2" />
+                  <p className="text-xl font-bold text-[#e1b82c]">S/{ex.price}</p>
+                  <p className="text-xs text-white/40">al mes</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
