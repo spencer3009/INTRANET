@@ -59,80 +59,98 @@ function BenefitsVideoSection() {
   const [playing, setPlaying] = useState(false);
 
   return (
-    <section className="relative">
-      {/* Full-width video container */}
-      <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-        {!playing ? (
-          <>
-            {/* Thumbnail */}
-            <img
-              src="https://img.youtube.com/vi/JnGyq-ik60w/maxresdefault.jpg"
-              alt="Video EduNet"
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-            {/* Dark overlay */}
-            <div className="absolute inset-0 bg-black/50" />
+    <section className="relative py-24 px-6 overflow-hidden">
+      <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-blue-600/8 rounded-full blur-[150px]" />
+      <div className="absolute bottom-1/4 right-1/3 w-[300px] h-[300px] bg-[#e1b82c]/5 rounded-full blur-[120px]" />
 
-            {/* Content overlay */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center z-10 px-6">
-              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-2 rounded-full mb-5">
-                <Play className="w-3.5 h-3.5 text-white/70" />
-                <span className="text-xs font-bold text-white/70 uppercase tracking-wider">Beneficios de la plataforma</span>
+      <div className="relative z-10 max-w-[950px] mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 bg-white/[0.06] border border-white/10 px-4 py-2 rounded-full mb-6">
+            <Play className="w-3.5 h-3.5 text-blue-400" />
+            <span className="text-xs font-bold text-white/60 uppercase tracking-wider">Beneficios de la plataforma</span>
+          </div>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white mb-4">
+            Descubre lo que <span className="bg-gradient-to-r from-blue-400 to-violet-400 bg-clip-text text-transparent">EduNet puede hacer</span>
+          </h2>
+          <p className="text-base sm:text-lg text-white/40 max-w-xl mx-auto">
+            Mira cómo nuestra plataforma transforma la gestión escolar
+          </p>
+        </div>
+
+        {/* Video container with border and mask */}
+        <div className="relative group">
+          {/* Glow behind */}
+          <div className="absolute -inset-4 bg-gradient-to-r from-blue-600/25 via-violet-500/15 to-[#e1b82c]/15 rounded-3xl blur-2xl opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+
+          {/* Outer border frame */}
+          <div className="relative rounded-2xl p-[2px] bg-gradient-to-br from-white/20 via-white/10 to-white/5">
+            <div className="rounded-[14px] overflow-hidden bg-[#0a0f1a]">
+              {/* Aspect ratio container */}
+              <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                {!playing ? (
+                  <>
+                    <img
+                      src="https://img.youtube.com/vi/JnGyq-ik60w/maxresdefault.jpg"
+                      alt="Video EduNet"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    {/* Dark gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30" />
+
+                    {/* Top bar mask (hides YouTube branding) */}
+                    <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#0a0f1a] to-transparent z-10" />
+                    {/* Bottom bar mask */}
+                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0f1a] to-transparent z-10" />
+
+                    {/* Play button */}
+                    <div className="absolute inset-0 flex items-center justify-center z-20">
+                      <button
+                        onClick={() => setPlaying(true)}
+                        className="group/btn relative"
+                        data-testid="video-play-btn"
+                      >
+                        <div className="absolute inset-0 bg-white/20 rounded-full scale-100 group-hover/btn:scale-150 transition-transform duration-700 blur-2xl" />
+                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/15 backdrop-blur-md border-2 border-white/30 flex items-center justify-center group-hover/btn:bg-white/25 group-hover/btn:border-white/50 group-hover/btn:scale-110 transition-all duration-300 shadow-2xl shadow-black/40">
+                          <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white ml-1" />
+                        </div>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <iframe
+                    className="absolute inset-0 w-full h-full"
+                    src="https://www.youtube.com/embed/JnGyq-ik60w?autoplay=1&rel=0&modestbranding=1&showinfo=0"
+                    title="Beneficios de EduNet"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    data-testid="benefits-video"
+                  />
+                )}
               </div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-white text-center mb-4 max-w-3xl">
-                Descubre lo que EduNet puede hacer por tu colegio
-              </h2>
-              <p className="text-base sm:text-lg text-white/50 text-center max-w-xl mb-10">
-                Mira cómo nuestra plataforma transforma la gestión escolar
-              </p>
-
-              {/* Play button */}
-              <button
-                onClick={() => setPlaying(true)}
-                className="group relative"
-                data-testid="video-play-btn"
-              >
-                <div className="absolute inset-0 bg-white/20 rounded-full scale-100 group-hover:scale-125 transition-transform duration-500 blur-xl" />
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/20 backdrop-blur-md border-2 border-white/40 flex items-center justify-center group-hover:bg-white/30 group-hover:scale-110 transition-all duration-300 shadow-2xl">
-                  <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white ml-1" />
-                </div>
-              </button>
             </div>
-          </>
-        ) : (
-          <iframe
-            className="absolute inset-0 w-full h-full"
-            src="https://www.youtube.com/embed/JnGyq-ik60w?autoplay=1&rel=0"
-            title="Beneficios de EduNet"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            data-testid="benefits-video"
-          />
-        )}
-      </div>
+          </div>
+        </div>
 
-      {/* Benefits bar below video */}
-      <div className="bg-gradient-to-b from-[#070b14] to-[#0a0f1a] py-16 px-6">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-center text-base text-white/40 mb-10 max-w-2xl mx-auto">
+        {/* Benefits grid below video */}
+        <div className="mt-14">
+          <p className="text-center text-sm text-white/40 mb-8 max-w-2xl mx-auto">
             EduNet es una intranet moderna diseñada para digitalizar la gestión escolar. Con nuestra plataforma tu colegio podrá:
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-5">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {[
               { icon: QrCode, text: "Asistencia con QR" },
               { icon: Users, text: "Gestión de alumnos y profesores" },
               { icon: BookOpen, text: "Tareas y calificaciones" },
-              { icon: MessageSquare, text: "Comunicados y notificaciones" },
+              { icon: MessageSquare, text: "Comunicados y avisos" },
               { icon: BarChart3, text: "Reportes en tiempo real" },
               { icon: Shield, text: "Todo centralizado" },
               { icon: Monitor, text: "Celular, tablet o PC" },
               { icon: GraduationCap, text: "Inicial, primaria y secundaria" },
             ].map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/[0.05] border border-white/10 flex items-center justify-center shrink-0">
-                  <Icon className="w-4 h-4 text-blue-400/70" />
-                </div>
-                <span className="text-xs text-white/50">{text}</span>
+              <div key={text} className="flex items-center gap-2.5 p-3 rounded-xl bg-white/[0.03] border border-white/5">
+                <Icon className="w-4 h-4 text-blue-400/60 shrink-0" />
+                <span className="text-xs text-white/45">{text}</span>
               </div>
             ))}
           </div>
