@@ -15,6 +15,17 @@ from datetime import datetime, timezone, timedelta
 
 # Peru timezone (UTC-5)
 PERU_TZ = timezone(timedelta(hours=-5))
+
+def to_peru_hhmm(iso_or_time_str):
+    """Convert any stored time value (ISO UTC string or HH:MM) to Peru HH:MM string.
+    Always prefer passing the ISO entry_time/exit_time field for accurate conversion."""
+    if not iso_or_time_str:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(iso_or_time_str))
+        return dt.astimezone(PERU_TZ).strftime("%H:%M")
+    except (ValueError, TypeError):
+        return str(iso_or_time_str)
 import jwt
 import bcrypt
 import re
@@ -3256,20 +3267,8 @@ async def get_teacher_attendance(
     # Map user_id to student_id for frontend compatibility and include entry/exit
     formatted_records = []
     for r in records:
-        entry_time_str = None
-        exit_time_str = None
-        if r.get("entry_time"):
-            try:
-                entry_time_str = datetime.fromisoformat(r["entry_time"]).strftime("%H:%M")
-            except Exception:
-                entry_time_str = r.get("check_in_time")
-        elif r.get("check_in_time"):
-            entry_time_str = r["check_in_time"]
-        if r.get("exit_time"):
-            try:
-                exit_time_str = datetime.fromisoformat(r["exit_time"]).strftime("%H:%M")
-            except Exception:
-                pass
+        entry_time_str = to_peru_hhmm(r.get("entry_time")) or r.get("check_in_time")
+        exit_time_str = to_peru_hhmm(r.get("exit_time"))
         formatted_records.append({
             "student_id": r.get("user_id", r.get("student_id")),
             "status": r.get("status"),
@@ -9467,18 +9466,8 @@ async def get_students_for_attendance(
         entry_time_str = None
         exit_time_str = None
         if attendance:
-            if attendance.get("entry_time"):
-                try:
-                    entry_time_str = datetime.fromisoformat(attendance["entry_time"]).strftime("%H:%M")
-                except Exception:
-                    entry_time_str = attendance.get("check_in_time")
-            elif attendance.get("check_in_time"):
-                entry_time_str = attendance["check_in_time"]
-            if attendance.get("exit_time"):
-                try:
-                    exit_time_str = datetime.fromisoformat(attendance["exit_time"]).strftime("%H:%M")
-                except Exception:
-                    pass
+            entry_time_str = to_peru_hhmm(attendance.get("entry_time")) or attendance.get("check_in_time")
+            exit_time_str = to_peru_hhmm(attendance.get("exit_time"))
         
         result.append({
             "id": s["id"],
@@ -10031,6 +10020,8 @@ async def mark_attendance_exit(data: MarkExitRequest, current_user=Depends(get_c
     total_minutes = None
     try:
         entry_dt = datetime.fromisoformat(existing["entry_time"])
+        if entry_dt.tzinfo is None:
+            entry_dt = entry_dt.replace(tzinfo=timezone.utc)
         exit_dt = datetime.now(timezone.utc)
         total_minutes = int((exit_dt - entry_dt).total_seconds() / 60)
     except Exception:
@@ -10283,6 +10274,8 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         total_minutes = None
         try:
             entry_dt = datetime.fromisoformat(existing["entry_time"])
+            if entry_dt.tzinfo is None:
+                entry_dt = entry_dt.replace(tzinfo=timezone.utc)
             total_minutes = int((now - entry_dt).total_seconds() / 60)
         except Exception:
             pass
@@ -10295,7 +10288,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             }}
         )
         
-        entry_time_str = existing.get("check_in_time", "")
+        entry_time_str = to_peru_hhmm(existing.get("entry_time")) or existing.get("check_in_time", "")
         logger.info(f"QR Exit ({scanned_role}): {user_info['full_name']} at {now_time} (total: {total_minutes}min)")
         return {
             "status": "success",
@@ -10312,14 +10305,8 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         }
     
     elif action == "already_both":
-        entry_time_str = existing.get("check_in_time", "")
-        exit_dt = existing.get("exit_time")
-        exit_time_str = ""
-        if exit_dt:
-            try:
-                exit_time_str = datetime.fromisoformat(exit_dt).astimezone(PERU_TZ).strftime("%H:%M")
-            except Exception:
-                exit_time_str = str(exit_dt)
+        entry_time_str = to_peru_hhmm(existing.get("entry_time")) or existing.get("check_in_time", "")
+        exit_time_str = to_peru_hhmm(existing.get("exit_time")) or ""
         
         return {
             "status": "already_marked",
@@ -10336,6 +10323,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         }
     
     elif action == "already_entry":
+        entry_time_str = to_peru_hhmm(existing.get("entry_time")) or existing.get("check_in_time", "")
         return {
             "status": "already_marked",
             "action": "already_entry",
@@ -10343,13 +10331,15 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             "student": user_info,
             "attendance": {
                 "status": existing.get("status"),
-                "entry_time": existing.get("check_in_time", ""),
+                "entry_time": entry_time_str,
                 "exit_time": None,
                 "date": today
             }
         }
     
     elif action == "already_exit":
+        entry_time_str = to_peru_hhmm(existing.get("entry_time")) or existing.get("check_in_time", "")
+        exit_time_str = to_peru_hhmm(existing.get("exit_time"))
         return {
             "status": "already_marked",
             "action": "already_exit",
@@ -10357,8 +10347,8 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             "student": user_info,
             "attendance": {
                 "status": existing.get("status"),
-                "entry_time": existing.get("check_in_time", ""),
-                "exit_time": datetime.fromisoformat(existing["exit_time"]).astimezone(PERU_TZ).strftime("%H:%M") if existing.get("exit_time") else None,
+                "entry_time": entry_time_str,
+                "exit_time": exit_time_str,
                 "date": today
             }
         }
@@ -10480,7 +10470,7 @@ async def get_qr_attendance_history(
                     "section_name": section.get("nombre") if section else None,
                     "role": "student",
                     "status": record.get("status"),
-                    "time": record.get("check_in_time"),
+                    "time": to_peru_hhmm(record.get("created_at")) or record.get("check_in_time"),
                     "created_at": record.get("created_at")
                 })
     
@@ -10508,7 +10498,7 @@ async def get_qr_attendance_history(
                     "section_name": None,
                     "role": "teacher",
                     "status": record.get("status"),
-                    "time": record.get("check_in_time"),
+                    "time": to_peru_hhmm(record.get("entry_time")) or record.get("check_in_time"),
                     "created_at": record.get("created_at")
                 })
     
@@ -22404,8 +22394,8 @@ async def get_parent_dashboard(
     task_percentage = round((tasks_submitted / total_tasks * 100) if total_tasks > 0 else 0)
     
     # Attendance summary (last 30 days)
-    thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    thirty_days_ago = (datetime.now(PERU_TZ) - timedelta(days=30)).strftime("%Y-%m-%d")
+    today_str = datetime.now(PERU_TZ).strftime("%Y-%m-%d")
     attendance_summary = {"present": 0, "absent": 0, "late": 0, "justified": 0}
     today_attendance = {"status": None, "entry_time": None, "exit_time": None}
     
@@ -22438,8 +22428,8 @@ async def get_parent_dashboard(
         # Check if this is today's record
         if date_key == today_str:
             today_attendance["status"] = record.get("status", "")
-            today_attendance["entry_time"] = record.get("time") or record.get("entry_time")
-            today_attendance["exit_time"] = record.get("exit_time")
+            today_attendance["entry_time"] = to_peru_hhmm(record.get("entry_time")) or record.get("time") or record.get("entry_time")
+            today_attendance["exit_time"] = to_peru_hhmm(record.get("exit_time"))
     
     for record in qr_attendance:
         date_key = record.get("date", "")
@@ -22455,8 +22445,8 @@ async def get_parent_dashboard(
         # Check if this is today's record (even if seen in other collection)
         if date_key == today_str and not today_attendance["status"]:
             today_attendance["status"] = record.get("status", "")
-            today_attendance["entry_time"] = record.get("entry_time")
-            today_attendance["exit_time"] = record.get("exit_time")
+            today_attendance["entry_time"] = to_peru_hhmm(record.get("entry_time")) or record.get("entry_time")
+            today_attendance["exit_time"] = to_peru_hhmm(record.get("exit_time"))
     
     # Recent announcements
     announcements = await db.institutional_messages.find({
@@ -23165,7 +23155,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://dashboard-portal-12.preview.emergentagent.com",
+        "https://timezone-entry-exit.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,
