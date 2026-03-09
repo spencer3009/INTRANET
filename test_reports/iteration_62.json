@@ -63,10 +63,10 @@
   },
 
   "test_credentials": {
-    "login_url": "https://timezone-entry-exit.preview.emergentagent.com/school/demosettings/login",
+    "login_url": "https://premium-ui-21.preview.emergentagent.com/school/demosettings/login",
     "email": "admin.settings@test.pe",
     "password": "1234abc8",
-    "academic_settings_url": "https://timezone-entry-exit.preview.emergentagent.com/demosettings/academic-settings"
+    "academic_settings_url": "https://premium-ui-21.preview.emergentagent.com/demosettings/academic-settings"
   },
 
   "seed_data_creation": "",

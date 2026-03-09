@@ -270,10 +270,10 @@ function PriceCalculator() {
             <Link to="/login" className="text-sm font-semibold text-white/70 hover:text-white transition-colors px-4 py-2.5" data-testid="landing-login-btn">
               Ingresar
             </Link>
-            <Link to="/register" className="group relative text-sm font-bold px-6 py-2.5 rounded-xl overflow-hidden" data-testid="landing-register-btn">
+            <a href="#hero-form" className="group relative text-sm font-bold px-6 py-2.5 rounded-xl overflow-hidden" data-testid="landing-register-btn">
               <div className="absolute inset-0 bg-gradient-to-r from-[#e1b82c] to-amber-400 transition-transform group-hover:scale-105" />
-              <span className="relative text-[#0a0f1a]">Crear cuenta</span>
-            </Link>
+              <span className="relative text-[#0a0f1a]">Solicitar demo</span>
+            </a>
           </div>
         </div>
       </nav>
@@ -312,19 +312,25 @@ function PriceCalculator() {
                 <br />tu colegio
               </h1>
 
-              <p className="text-lg sm:text-xl text-white/50 leading-relaxed mb-10 max-w-xl mx-auto lg:mx-0">
-                Conecta a toda tu comunidad educativa en un solo lugar. 
-                Comunicaciones, calificaciones, asistencia y más — todo seguro y fácil de usar.
-              </p>
+              {/* QR description */}
+              <div className="flex items-start gap-4 mb-10 max-w-xl mx-auto lg:mx-0">
+                <div className="shrink-0 mt-1">
+                  <QrCode className="w-12 h-12 text-[#e1b82c]/80" />
+                </div>
+                <p className="text-base sm:text-lg text-white/50 leading-relaxed">
+                  Controla la asistencia de tus alumnos con códigos QR en segundos.
+                  <br />Escanea desde el celular y registra entradas automáticamente.
+                </p>
+              </div>
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">
-                <Link to="/register" className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold text-base overflow-hidden" data-testid="hero-register-btn">
+                <a href="#hero-form" className="group relative inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl font-bold text-base overflow-hidden" data-testid="hero-register-btn">
                   <div className="absolute inset-0 bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400" />
                   <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-[#e1b82c] opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="relative text-[#0a0f1a]">Crear mi cuenta gratis</span>
+                  <span className="relative text-[#0a0f1a]">Solicitar demo</span>
                   <ArrowRight className="relative w-5 h-5 text-[#0a0f1a] group-hover:translate-x-1 transition-transform" />
-                </Link>
+                </a>
                 <Link to="/login" className="group inline-flex items-center justify-center gap-3 bg-white/[0.05] border border-white/10 text-white font-semibold px-8 py-4 rounded-2xl text-base transition-all hover:bg-white/10 hover:border-white/20 backdrop-blur-sm" data-testid="hero-login-btn">
                   <Play className="w-5 h-5 fill-white/50" />
                   Ingresar a mi Intranet
@@ -339,37 +345,93 @@ function PriceCalculator() {
               </div>
             </div>
 
-            {/* Right - Dashboard Preview */}
+            {/* Right - Device Mockups + Registration Form */}
             <div className="flex-1 max-w-2xl w-full">
               <div className="relative">
                 {/* Glow effect */}
                 <div className="absolute -inset-6 bg-gradient-to-r from-[#1e40af]/40 via-[#7c3aed]/20 to-[#e1b82c]/20 rounded-[2rem] blur-3xl opacity-60" />
                 
-                {/* iMac image */}
-                <div className="relative">
-                  <img 
-                    src="https://customer-assets.emergentagent.com/job_d0ea565a-5ab8-49d6-8b8e-5c0e85764ea0/artifacts/3qb8ccoe_image%20%282%29.webp"
-                    alt="EduNet - Plataforma de gestión escolar"
-                    className="w-full h-auto rounded-2xl shadow-2xl shadow-black/40"
-                    data-testid="hero-dashboard-image"
-                  />
-                  {/* Floating badges */}
-                  <div className="absolute -bottom-3 -left-3 bg-[#0a0f1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                      <CheckCircle className="w-4 h-4 text-emerald-400" />
+                <div className="relative flex items-start">
+                  {/* Device mockups - laptop + phone */}
+                  <div className="relative flex-shrink-0 w-[50%]">
+                    {/* Laptop mockup */}
+                    <div className="relative">
+                      <img 
+                        src="https://customer-assets.emergentagent.com/job_d0ea565a-5ab8-49d6-8b8e-5c0e85764ea0/artifacts/3qb8ccoe_image%20%282%29.webp"
+                        alt="EduNet Dashboard"
+                        className="w-full h-auto rounded-xl shadow-2xl shadow-black/40"
+                        data-testid="hero-dashboard-image"
+                      />
                     </div>
-                    <div>
-                      <p className="text-xs font-bold text-white">Panel en vivo</p>
-                      <p className="text-[10px] text-white/40">Datos en tiempo real</p>
+                    
+                    {/* Phone mockup - overlapping */}
+                    <div className="absolute -bottom-6 -left-6 w-[48%] z-10">
+                      <div className="relative bg-black rounded-[1.6rem] p-[5px] shadow-2xl shadow-black/60 border border-white/10">
+                        {/* Phone notch */}
+                        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[40%] h-[14px] bg-black rounded-b-xl z-20" />
+                        {/* Phone screen */}
+                        <div className="rounded-[1.3rem] overflow-hidden bg-gradient-to-b from-[#1a1f3a] to-[#0d1225]">
+                          <div className="p-2.5 pt-5">
+                            <p className="text-[6px] text-white/60 text-center font-semibold mb-0.5">Escanea para Marcar</p>
+                            <p className="text-[8px] text-white text-center font-bold mb-1.5">Asistencia</p>
+                            {/* QR placeholder */}
+                            <div className="mx-auto w-[75%] aspect-square bg-white rounded-md flex items-center justify-center mb-1.5">
+                              <QrCode className="w-[55%] h-[55%] text-[#0a0f1a]" />
+                            </div>
+                            <div className="flex justify-center gap-1.5 mt-1">
+                              <div className="bg-emerald-500/20 rounded-full px-1.5 py-0.5">
+                                <p className="text-[5px] text-emerald-400 font-bold">34</p>
+                              </div>
+                              <div className="bg-blue-500/20 rounded-full px-1.5 py-0.5">
+                                <p className="text-[5px] text-blue-400 font-bold">11</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  <div className="absolute -top-3 -right-3 bg-[#0a0f1a]/90 backdrop-blur-xl border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3 shadow-xl">
-                    <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
-                      <Star className="w-4 h-4 text-amber-400" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-bold text-white">4.9/5</p>
-                      <p className="text-[10px] text-white/40">Satisfacción</p>
+
+                  {/* Registration Form Card */}
+                  <div id="hero-form" className="relative flex-1 -ml-6 mt-2 z-20" data-testid="hero-demo-form">
+                    <div className="bg-[#111827]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-5 shadow-2xl">
+                      <h3 className="text-base font-bold text-white mb-0.5">
+                        Prueba EduNet <span className="text-[#e1b82c]">en tu colegio</span>
+                      </h3>
+                      <p className="text-[11px] text-white/40 mb-4">Crea tu intranet escolar en minutos.</p>
+                      
+                      <div className="space-y-2.5">
+                        <input
+                          type="text"
+                          placeholder="Nombre del colegio"
+                          className="w-full px-3.5 py-2.5 bg-white/[0.06] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#e1b82c]/50 transition-colors"
+                          data-testid="demo-school-name"
+                        />
+                        <div className="flex gap-2">
+                          <div className="flex items-center gap-1 bg-white/[0.06] border border-white/10 rounded-xl px-2.5 py-2.5 shrink-0">
+                            <span className="text-xs text-white/60 font-medium">PE +51</span>
+                          </div>
+                          <input
+                            type="tel"
+                            placeholder="987 654 321"
+                            className="flex-1 px-3.5 py-2.5 bg-white/[0.06] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#e1b82c]/50 transition-colors"
+                            data-testid="demo-phone"
+                          />
+                        </div>
+                        <input
+                          type="email"
+                          placeholder="Correo electrónico"
+                          className="w-full px-3.5 py-2.5 bg-white/[0.06] border border-white/10 rounded-xl text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#e1b82c]/50 transition-colors"
+                          data-testid="demo-email"
+                        />
+                      </div>
+                      
+                      <button
+                        className="w-full mt-3.5 py-3 rounded-xl bg-gradient-to-r from-[#e1b82c] to-amber-400 text-[#0a0f1a] font-extrabold text-sm uppercase tracking-wider hover:shadow-lg hover:shadow-[#e1b82c]/30 transition-all"
+                        data-testid="demo-submit-btn"
+                      >
+                        Probar EduNet
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -778,7 +840,7 @@ function PriceCalculator() {
             <Link to="/register" className="group relative inline-flex items-center justify-center gap-2 px-10 py-4 rounded-2xl font-bold text-base overflow-hidden" data-testid="cta-register-btn">
               <div className="absolute inset-0 bg-gradient-to-r from-[#e1b82c] via-amber-400 to-orange-400" />
               <div className="absolute inset-0 bg-gradient-to-r from-amber-400 to-[#e1b82c] opacity-0 group-hover:opacity-100 transition-opacity" />
-              <span className="relative text-[#0a0f1a]">Crear mi cuenta gratis</span>
+              <span className="relative text-[#0a0f1a]">Solicitar demo</span>
               <ArrowRight className="relative w-5 h-5 text-[#0a0f1a] group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link to="/login" className="inline-flex items-center justify-center gap-2 border-2 border-white/20 text-white font-semibold px-10 py-4 rounded-2xl text-base hover:bg-white/10 hover:border-white/30 transition-all" data-testid="cta-login-btn">
