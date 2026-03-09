@@ -9022,17 +9022,11 @@ function LiveClassesTabContent({ subjectId, token, user }) {
 
   return (
     <div data-testid="live-classes-tab">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Video className="w-5 h-5 text-sky-500" /> Clases en Vivo
-          </h2>
-          <p className="text-sm text-slate-500">Clases virtuales por Google Meet o Zoom</p>
-        </div>
+      {/* Header - only show Programar button */}
+      <div className="flex items-center justify-end mb-6">
         {isTeacherOrAdmin && (
-          <button onClick={() => { setEditData(null); setShowForm(true); }} data-testid="tab-create-class-btn" className="flex items-center gap-2 px-4 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold rounded-xl transition-colors">
-            <Plus className="w-4 h-4" /> Programar
+          <button onClick={() => { setEditData(null); setShowForm(true); }} data-testid="tab-create-class-btn" className="flex items-center gap-2 px-5 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold rounded-xl transition-colors">
+            <Plus className="w-4 h-4" /> Programar Clase
           </button>
         )}
       </div>
@@ -9703,7 +9697,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         <main className="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 lg:pb-6">
           {/* Hero Header - Hidden on full-width tabs */}
           {(() => {
-            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes"];
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes", "clases-en-vivo"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             if (!isFullWidth) {
               // Use different header for teacher vs owner
@@ -9756,7 +9750,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           
           {/* 3-Column Layout - Hide sidebars for full-width tabs */}
           {(() => {
-            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes"];
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes", "clases-en-vivo"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             return (
               <div className={`mt-6 grid grid-cols-1 gap-6 items-start ${
