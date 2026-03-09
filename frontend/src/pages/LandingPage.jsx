@@ -6,6 +6,7 @@ import {
   Lock, Zap, Globe, Phone, Mail, Clock, Award, TrendingUp,
   Sparkles, Play, Check, Calculator, QrCode, Monitor,
   LayoutDashboard, DollarSign, Smartphone, FileText,
+  ClipboardList, PenSquare, Ban, Calendar, Send, FolderOpen,
 } from "lucide-react";
 
 const stats = [
@@ -19,9 +20,17 @@ const features = [
   { icon: LayoutDashboard, title: "Panel Principal Inteligente", desc: "Dashboard en tiempo real con avisos, actividades, eventos, tareas y notificaciones. Cada usuario ve información personalizada según su rol.", color: "from-blue-500 to-cyan-400" },
   { icon: Users, title: "Gestión Completa de Usuarios", desc: "Administra estudiantes, profesores, padres, coordinadores y administradores. Cada usuario tiene acceso con permisos específicos.", color: "from-violet-500 to-purple-400" },
   { icon: GraduationCap, title: "Gestión Académica", desc: "Organiza niveles, grados, secciones, asignaturas, asignación de profesores y horarios. Todo conectado para facilitar la administración.", color: "from-amber-500 to-yellow-400" },
-  { icon: QrCode, title: "Asistencia con Código QR", desc: "Control de asistencia diaria con código QR. Registro de entrada y salida con hora exacta, visible para padres en tiempo real.", color: "from-rose-500 to-pink-400" },
-  { icon: DollarSign, title: "Control de Pagos", desc: "Gestión completa de pagos, control de morosos, historial de cobros y estado de cuentas. Información financiera organizada para la dirección.", color: "from-orange-500 to-amber-400" },
-  { icon: MessageSquare, title: "Comunicación Interna", desc: "Mensajes entre profesores y padres, comunicaciones institucionales y notificaciones automáticas.", color: "from-teal-500 to-cyan-400" },
+  { icon: ClipboardList, title: "Sistema de Tareas", desc: "Profesores publican tareas con archivos adjuntos y fecha de entrega. Los alumnos entregan digitalmente y los padres pueden visualizarlas.", color: "from-teal-500 to-emerald-400" },
+  { icon: PenSquare, title: "Sistema de Evaluaciones", desc: "Crea exámenes con preguntas de selección múltiple, evaluaciones digitales, resultados automáticos e historial completo.", color: "from-rose-500 to-pink-400" },
+  { icon: BarChart3, title: "Registro de Calificaciones", desc: "Registro de notas por curso, cálculo automático de promedios, historial académico con acceso para padres y estudiantes.", color: "from-blue-600 to-indigo-400" },
+  { icon: QrCode, title: "Asistencia con Código QR", desc: "Cada alumno tiene su código QR. Escaneo rápido desde el celular, registro automático de ingreso y salida, reportes diarios e historial.", color: "from-violet-600 to-purple-400" },
+  { icon: DollarSign, title: "Zona de Finanzas", desc: "Gestiona matrículas, pensiones, control de pagos, historial financiero, morosidad y reportes económicos por estudiante.", color: "from-green-500 to-lime-400" },
+  { icon: Ban, title: "Control de Acceso por Pagos", desc: "Si un alumno no ha pagado, el sistema limita su acceso. Al regularizar el pago, recupera acceso completo automáticamente.", color: "from-red-500 to-rose-400" },
+  { icon: Calendar, title: "Calendario Escolar", desc: "Calendario centralizado con actividades, exámenes, eventos institucionales, reuniones y fechas importantes según el rol del usuario.", color: "from-orange-500 to-amber-400" },
+  { icon: Send, title: "Noticias y Comunicados", desc: "Publica anuncios institucionales, comunicados para padres, noticias del colegio e información sobre actividades.", color: "from-pink-500 to-fuchsia-400" },
+  { icon: BarChart3, title: "Encuestas", desc: "Crea encuestas, recibe respuestas de padres y estudiantes, analiza resultados y mejora los procesos educativos.", color: "from-cyan-500 to-teal-400" },
+  { icon: FolderOpen, title: "Biblioteca de Archivos", desc: "Los profesores comparten documentos, material de estudio, guías y recursos educativos para los estudiantes.", color: "from-purple-500 to-violet-400" },
+  { icon: MessageSquare, title: "Comunicación Interna", desc: "Mensajes entre profesores y padres, comunicaciones institucionales y notificaciones automáticas.", color: "from-blue-500 to-sky-400" },
   { icon: Smartphone, title: "Acceso desde Celular", desc: "Compatible con celulares, interfaz optimizada para móvil, instalación como aplicación. Acceso desde cualquier lugar.", color: "from-green-500 to-emerald-400" },
   { icon: FileText, title: "Boletas de Notas Automáticas", desc: "Genera boletas individuales, promedios por curso, consolidados por grado y sección. Exporta reportes académicos de forma rápida y profesional.", color: "from-blue-600 to-indigo-400" },
   { icon: TrendingUp, title: "Reportes y Estadísticas", desc: "Reportes de asistencia, rendimiento académico, estadísticas por curso y grado. Seguimiento del progreso para detectar problemas a tiempo.", color: "from-amber-600 to-yellow-400" },
@@ -544,6 +553,66 @@ export default function LandingPage() {
           <p className="text-xs text-blue-200/30 mt-6 sm:mt-10">Sin tarjeta de crédito · Sin contratos · Cancela cuando quieras</p>
         </div>
       </section>
+
+      {/* ═══════════════ FOOTER ═══════════════ */}
+      <footer className="relative bg-[#060a14] border-t border-white/5">
+        <div className="max-w-7xl mx-auto px-6 py-16">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#e1b82c] to-amber-500 flex items-center justify-center">
+                  <GraduationCap className="w-5 h-5 text-[#0a0f1a]" />
+                </div>
+                <span className="text-xl font-extrabold text-white">EduNet</span>
+              </div>
+              <p className="text-sm text-white/40 leading-relaxed">La plataforma de intranet escolar más confiable de Perú.</p>
+            </div>
+
+            {/* Producto */}
+            <div>
+              <h4 className="text-xs font-bold text-white/70 uppercase tracking-wider mb-4">Producto</h4>
+              <ul className="space-y-3">
+                <li><a href="#features" className="text-sm text-white/40 hover:text-white/70 transition-colors">Funcionalidades</a></li>
+                <li><a href="#pricing" className="text-sm text-white/40 hover:text-white/70 transition-colors">Planes y precios</a></li>
+                <li><a href="#features" className="text-sm text-white/40 hover:text-white/70 transition-colors">Seguridad</a></li>
+              </ul>
+            </div>
+
+            {/* Soporte */}
+            <div>
+              <h4 className="text-xs font-bold text-white/70 uppercase tracking-wider mb-4">Soporte</h4>
+              <ul className="space-y-3">
+                <li><a href="https://wa.me/51992021294" target="_blank" rel="noopener noreferrer" className="text-sm text-white/40 hover:text-white/70 transition-colors">Centro de ayuda</a></li>
+                <li><a href="https://wa.me/51992021294" target="_blank" rel="noopener noreferrer" className="text-sm text-white/40 hover:text-white/70 transition-colors">Contacto</a></li>
+                <li><span className="text-sm text-white/40">Estado del servicio</span></li>
+              </ul>
+            </div>
+
+            {/* Legal */}
+            <div>
+              <h4 className="text-xs font-bold text-white/70 uppercase tracking-wider mb-4">Legal</h4>
+              <ul className="space-y-3">
+                <li><span className="text-sm text-white/40">Términos de servicio</span></li>
+                <li><span className="text-sm text-white/40">Privacidad</span></li>
+                <li><span className="text-sm text-white/40">Protección de datos</span></li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="border-t border-white/5 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="text-sm text-white/30">EduNet © 2026 — Todos los derechos reservados. Lima, Perú.</p>
+            <div className="flex items-center gap-4">
+              <a href="mailto:contacto@edunet.pe" className="text-white/30 hover:text-white/60 transition-colors">
+                <Mail className="w-5 h-5" />
+              </a>
+              <a href="https://wa.me/51992021294" target="_blank" rel="noopener noreferrer" className="text-white/30 hover:text-white/60 transition-colors">
+                <Phone className="w-5 h-5" />
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
 
       {/* ═══════════════ ANIMATIONS ═══════════════ */}
       <style>{`
