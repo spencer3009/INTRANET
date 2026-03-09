@@ -13,7 +13,8 @@ import {
   GraduationCap,
   Clock,
   Trophy,
-  Calendar
+  Calendar,
+  Video
 } from "lucide-react";
 
 // Student navigation items - simplified menu
@@ -25,6 +26,7 @@ const studentNavItems = [
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/student/tasks" },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy, route: "/student/grades" },
   { id: "asistencia", label: "Asistencia", icon: Clock, route: "/student/attendance" },
+  { id: "clases-en-vivo", label: "Clases en Vivo", icon: Video, route: "/student/live-classes" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/student/messages" },
 ];
 

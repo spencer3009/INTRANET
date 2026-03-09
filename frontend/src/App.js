@@ -61,6 +61,8 @@ import ExamAttemptPage from "@/pages/ExamAttemptPage";
 import ExamResultPage from "@/pages/ExamResultPage";
 import StudentExamSchedulePage from "@/pages/StudentExamSchedulePage";
 import StudentMessagesPage from "@/pages/StudentMessagesPage";
+import TeacherLiveClassesPage from "@/pages/TeacherLiveClassesPage";
+import StudentLiveClassesPage from "@/pages/StudentLiveClassesPage";
 // Parent Portal imports
 import ParentDashboardPage from "@/pages/ParentDashboardPage";
 import ParentTasksPage from "@/pages/ParentTasksPage";
@@ -582,6 +584,14 @@ function App() {
             }
           />
           <Route
+            path="/student/live-classes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <StudentLiveClassesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/student/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
@@ -660,6 +670,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherMessagesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/live-classes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherLiveClassesPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1102,6 +1120,14 @@ function App() {
             }
           />
           <Route
+            path="/:subdomain/student/live-classes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <StudentLiveClassesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/:subdomain/student/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
@@ -1196,6 +1222,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherMessagesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/teacher/live-classes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherLiveClassesPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {
   Home, BookOpen, Users, ClipboardList, BarChart3,
-  CalendarCheck, MessageSquare, User, LogOut, PenTool, X
+  CalendarCheck, MessageSquare, User, LogOut, PenTool, X, Video
 } from "lucide-react";
 
 const teacherNavItems = [
@@ -12,6 +12,7 @@ const teacherNavItems = [
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/teacher/tasks" },
   { id: "notas", label: "Notas", icon: BarChart3, route: "/teacher/grades" },
   { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/teacher/attendance" },
+  { id: "clases-en-vivo", label: "Clases en Vivo", icon: Video, route: "/teacher/live-classes" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/teacher/messages" },
 ];
 
