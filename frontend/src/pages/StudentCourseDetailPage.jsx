@@ -25,7 +25,7 @@ import {
   Quote, Code, Link as LinkIcon, Highlighter,
   Heading1, Heading2, Heading3, HardDrive, Cloud,
   ClipboardList, MessagesSquare, Mail, Inbox, SendHorizontal,
-  Reply, Trash2, Star, Archive, Phone
+  Reply, Trash2, Star, Archive, Phone, Video
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -4831,13 +4831,22 @@ export default function StudentCourseDetailPage({ user, token, onLogout, isParen
                     { id: "mensajes", label: "MENSAJES", icon: Mail, color: "from-indigo-500 to-purple-500", count: messageStats?.unread || 0, isUnread: true },
                     { id: "recordatorios", label: "RECORDATORIOS", icon: Bell, color: "from-amber-500 to-orange-500", count: reminders?.length || 0 },
                     { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, color: "from-yellow-500 to-amber-500" },
+                    { id: "clases-en-vivo", label: "CLASES EN VIVO", icon: Video, color: "from-sky-500 to-cyan-500", isNavLink: true },
                   ].map((item) => {
                     const Icon = item.icon;
                     const isActive = activeTab === item.id;
                     return (
                       <button
                         key={item.id}
-                        onClick={() => setActiveTab(item.id)}
+                        onClick={() => {
+                          if (item.isNavLink) {
+                            const base = subdomain ? `/${subdomain}` : '';
+                            const role = isParent ? 'student' : 'student';
+                            navigate(`${base}/${role}/live-classes`);
+                          } else {
+                            setActiveTab(item.id);
+                          }
+                        }}
                         className={`flex flex-col items-center gap-2 group transition-all duration-300 ${isActive ? 'scale-110' : ''}`}
                         data-testid={`menu-${item.id}`}
                       >
