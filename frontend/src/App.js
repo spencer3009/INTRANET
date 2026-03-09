@@ -54,6 +54,7 @@ import AdminExamsPage from "@/pages/AdminExamsPage";
 import AdminSettingsPage from "@/pages/AdminSettingsPage";
 import AdminBrandingPage from "@/pages/AdminBrandingPage";
 import AdminAnnouncementsPage from "@/pages/AdminAnnouncementsPage";
+import AdminLiveClassesPage from "@/pages/AdminLiveClassesPage";
 import AdminMessagesPage from "@/pages/AdminMessagesPage";
 import AdminRolesPage from "@/pages/AdminRolesPage";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -911,6 +912,14 @@ function App() {
           <Route
             path="/:subdomain/admin/exam-schedule"
             element={<Navigate to="../horarios" replace />}
+          />
+          <Route
+            path="/:subdomain/admin/live-classes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AdminLiveClassesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
           />
           <Route
             path="/:subdomain/admin/settings"

@@ -23241,20 +23241,30 @@ def compute_class_status(date_str: str, start_time: str, end_time: str) -> str:
 
 @api_router.post("/live-classes")
 async def create_live_class(data: LiveClassCreate, current_user=Depends(get_current_user)):
-    """Create a new live class. Teacher only."""
+    """Create a new live class. Teacher or admin."""
     user = await resolve_user_from_token(current_user)
-    if not user or user.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="Solo profesores pueden crear clases en vivo")
+    allowed_roles = ("teacher", "owner", "admin", "director", "coordinator")
+    if not user or user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para crear clases en vivo")
     school_id = user.get("school_id")
-    # Verify teacher is assigned to this subject+section
-    assignment = await db.academic_assignments.find_one({
-        "school_id": school_id,
-        "teacher_id": user["id"],
-        "subject_id": data.subject_id,
-        "section_id": data.section_id
-    })
-    if not assignment:
-        raise HTTPException(status_code=403, detail="No tienes asignación para este curso/sección")
+    # Verify assignment exists for this subject+section (skip for admins)
+    if user.get("role") == "teacher":
+        assignment = await db.academic_assignments.find_one({
+            "school_id": school_id,
+            "teacher_id": user["id"],
+            "subject_id": data.subject_id,
+            "section_id": data.section_id
+        })
+        if not assignment:
+            raise HTTPException(status_code=403, detail="No tienes asignación para este curso/sección")
+    else:
+        assignment = await db.academic_assignments.find_one({
+            "school_id": school_id,
+            "subject_id": data.subject_id,
+            "section_id": data.section_id
+        })
+        if not assignment:
+            raise HTTPException(status_code=404, detail="No existe asignación para este curso/sección")
     # Validate times
     try:
         start_dt = datetime.strptime(data.start_time, "%H:%M")
@@ -23273,7 +23283,7 @@ async def create_live_class(data: LiveClassCreate, current_user=Depends(get_curr
         "description": (data.description or "").strip(),
         "subject_id": data.subject_id,
         "section_id": data.section_id,
-        "teacher_id": user["id"],
+        "teacher_id": assignment.get("teacher_id", user["id"]),
         "date": data.date,
         "start_time": data.start_time,
         "end_time": data.end_time,
@@ -23353,12 +23363,16 @@ async def get_live_class_detail(class_id: str, current_user=Depends(get_current_
 
 @api_router.put("/live-classes/{class_id}")
 async def update_live_class(class_id: str, data: LiveClassUpdate, current_user=Depends(get_current_user)):
-    """Update a live class. Teacher owner only."""
+    """Update a live class. Teacher owner or admin."""
     user = await resolve_user_from_token(current_user)
-    if not user or user.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="Solo profesores pueden editar clases")
+    allowed_roles = ("teacher", "owner", "admin", "director", "coordinator")
+    if not user or user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para editar clases")
     school_id = user.get("school_id")
-    lc = await db.live_classes.find_one({"id": class_id, "school_id": school_id, "teacher_id": user["id"]})
+    query = {"id": class_id, "school_id": school_id}
+    if user.get("role") == "teacher":
+        query["teacher_id"] = user["id"]
+    lc = await db.live_classes.find_one(query)
     if not lc:
         raise HTTPException(status_code=404, detail="Clase no encontrada o no eres el profesor asignado")
     update_fields = {}
@@ -23382,12 +23396,16 @@ async def update_live_class(class_id: str, data: LiveClassUpdate, current_user=D
 
 @api_router.delete("/live-classes/{class_id}")
 async def delete_live_class(class_id: str, current_user=Depends(get_current_user)):
-    """Delete a live class. Teacher owner only."""
+    """Delete a live class. Teacher owner or admin."""
     user = await resolve_user_from_token(current_user)
-    if not user or user.get("role") != "teacher":
-        raise HTTPException(status_code=403, detail="Solo profesores pueden eliminar clases")
+    allowed_roles = ("teacher", "owner", "admin", "director", "coordinator")
+    if not user or user.get("role") not in allowed_roles:
+        raise HTTPException(status_code=403, detail="No tienes permisos para eliminar clases")
     school_id = user.get("school_id")
-    result = await db.live_classes.delete_one({"id": class_id, "school_id": school_id, "teacher_id": user["id"]})
+    query = {"id": class_id, "school_id": school_id}
+    if user.get("role") == "teacher":
+        query["teacher_id"] = user["id"]
+    result = await db.live_classes.delete_one(query)
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Clase no encontrada")
     await db.live_class_attendance.delete_many({"class_id": class_id})

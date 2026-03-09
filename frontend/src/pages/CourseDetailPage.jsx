@@ -29,7 +29,8 @@ import {
   ChevronDown, ChevronUp, User, GraduationCap,
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
-  Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy
+  Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy,
+  Video, Link as LinkIcon, ExternalLink
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -65,6 +66,7 @@ const TABS = [
   { id: "mensajes", label: "Mensajes", icon: Mail },
   { id: "recordatorios", label: "Recordatorios", icon: Bell },
   { id: "calificaciones", label: "Calificaciones", icon: Trophy },
+  { id: "clases-en-vivo", label: "Clases en Vivo", icon: Video },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -337,6 +339,7 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
     { id: "mensajes", label: "MENSAJES", icon: Mail, gradient: "from-purple-600 to-violet-500", borderColor: "border-purple-300", iconBg: "bg-purple-500" },
     { id: "recordatorios", label: "RECORDATORIOS", icon: Bell, gradient: "from-orange-500 to-amber-500", borderColor: "border-orange-300", iconBg: "bg-orange-500" },
     { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, gradient: "from-amber-500 to-yellow-500", borderColor: "border-amber-300", iconBg: "bg-amber-500" },
+    { id: "clases-en-vivo", label: "CLASES EN VIVO", icon: Video, gradient: "from-sky-500 to-cyan-500", borderColor: "border-sky-300", iconBg: "bg-sky-500" },
   ];
 
   return (
@@ -8952,6 +8955,272 @@ function RemindersTabContent({ subjectId, token, userRole }) {
   );
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════════
+// LIVE CLASSES TAB CONTENT
+// ══════════════════════════════════════════════════════════════════════════════
+function LiveClassesTabContent({ subjectId, token, user }) {
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editData, setEditData] = useState(null);
+  const [expandedId, setExpandedId] = useState(null);
+  const [attendance, setAttendance] = useState({});
+  const headers = { Authorization: `Bearer ${token}` };
+  const isTeacherOrAdmin = ["teacher", "owner", "admin", "director", "coordinator"].includes(user?.role);
+
+  const fetchClasses = useCallback(async () => {
+    try {
+      const { data } = await axios.get(`${API}/live-classes`, { headers });
+      const filtered = (data.classes || []).filter(c => c.subject_id === subjectId);
+      setClasses(filtered);
+    } catch { /* ignore */ }
+    setLoading(false);
+  }, [subjectId, token]);
+
+  useEffect(() => { fetchClasses(); }, [fetchClasses]);
+
+  const fetchAttendance = async (classId) => {
+    try {
+      const { data } = await axios.get(`${API}/live-classes/${classId}/attendance`, { headers });
+      setAttendance(prev => ({ ...prev, [classId]: data.attendance || [] }));
+    } catch { /* ignore */ }
+  };
+
+  const handleSave = async (form) => {
+    if (editData) {
+      await axios.put(`${API}/live-classes/${editData.id}`, form, { headers });
+    } else {
+      await axios.post(`${API}/live-classes`, form, { headers });
+    }
+    setEditData(null);
+    setShowForm(false);
+    fetchClasses();
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("¿Eliminar esta clase en vivo?")) return;
+    await axios.delete(`${API}/live-classes/${id}`, { headers });
+    fetchClasses();
+  };
+
+  const handleJoin = async (cls) => {
+    try {
+      const { data } = await axios.post(`${API}/live-classes/${cls.id}/join`, {}, { headers });
+      window.open(data.meeting_link, "_blank");
+      fetchClasses();
+    } catch (err) {
+      alert(err.response?.data?.detail || "Error al unirse");
+    }
+  };
+
+  const platformLabel = (p) => ({ meet: "Google Meet", zoom: "Zoom", otro: "Enlace externo" }[p] || p);
+  const platformColor = (p) => ({ meet: "bg-green-50 text-green-700", zoom: "bg-blue-50 text-blue-700", otro: "bg-slate-50 text-slate-600" }[p] || "bg-slate-50 text-slate-600");
+  const statusBadge = (s) => ({ scheduled: { label: "Programada", cls: "bg-blue-100 text-blue-700" }, active: { label: "En vivo", cls: "bg-emerald-100 text-emerald-700 animate-pulse" }, finished: { label: "Finalizada", cls: "bg-slate-100 text-slate-500" } }[s] || { label: s, cls: "bg-slate-100 text-slate-500" });
+
+  if (loading) return <div className="flex items-center justify-center py-16 text-slate-400"><Loader2 className="w-5 h-5 animate-spin mr-2" />Cargando clases...</div>;
+
+  return (
+    <div data-testid="live-classes-tab">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+            <Video className="w-5 h-5 text-sky-500" /> Clases en Vivo
+          </h2>
+          <p className="text-sm text-slate-500">Clases virtuales por Google Meet o Zoom</p>
+        </div>
+        {isTeacherOrAdmin && (
+          <button onClick={() => { setEditData(null); setShowForm(true); }} data-testid="tab-create-class-btn" className="flex items-center gap-2 px-4 py-2.5 bg-sky-500 hover:bg-sky-600 text-white text-sm font-bold rounded-xl transition-colors">
+            <Plus className="w-4 h-4" /> Programar
+          </button>
+        )}
+      </div>
+
+      {classes.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-2xl border border-slate-100">
+          <Video className="w-14 h-14 text-slate-200 mx-auto mb-3" />
+          <p className="text-base font-semibold text-slate-500 mb-1">No hay clases programadas</p>
+          <p className="text-sm text-slate-400">{isTeacherOrAdmin ? "Programa una clase virtual para tus alumnos" : "Cuando el profesor programe clases virtuales, aparecerán aquí"}</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {classes.map(cls => {
+            const sb = statusBadge(cls.status);
+            const isExpanded = expandedId === cls.id;
+            return (
+              <div key={cls.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-shadow hover:shadow-md ${cls.status === "active" ? "border-emerald-200 ring-1 ring-emerald-50" : "border-slate-100"}`} data-testid={`lc-card-${cls.id}`}>
+                <div className="p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-1.5">
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${sb.cls}`}>{sb.label}</span>
+                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${platformColor(cls.platform)}`}>{platformLabel(cls.platform)}</span>
+                      </div>
+                      <h3 className="text-base font-bold text-slate-800">{cls.title}</h3>
+                      <p className="text-sm text-slate-500 mt-0.5">Prof. {cls.teacher_name} — {cls.section_name}</p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-semibold text-slate-700 flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 text-slate-400" />{cls.date}</p>
+                      <p className="text-sm text-slate-500 flex items-center gap-1.5 mt-0.5"><Clock className="w-3.5 h-3.5 text-slate-400" />{cls.start_time} - {cls.end_time}</p>
+                    </div>
+                  </div>
+                  {cls.description && <p className="text-sm text-slate-400 mt-2">{cls.description}</p>}
+                  <div className="flex items-center gap-3 mt-3 pt-3 border-t border-slate-50">
+                    <span className="text-xs text-slate-400 flex items-center gap-1"><Users className="w-3.5 h-3.5" />{cls.attendance_count || 0} asistentes</span>
+                    {cls.status !== "finished" && (
+                      <a href={cls.meeting_link} target="_blank" rel="noopener noreferrer" className="text-xs text-sky-600 hover:text-sky-700 font-medium flex items-center gap-1 ml-auto"><ExternalLink className="w-3.5 h-3.5" />Abrir enlace</a>
+                    )}
+                    {isTeacherOrAdmin && (
+                      <div className="flex items-center gap-1.5 ml-auto">
+                        <button onClick={() => { setExpandedId(isExpanded ? null : cls.id); if (!isExpanded) fetchAttendance(cls.id); }} className="text-xs text-slate-500 hover:text-slate-700 px-2 py-1 rounded-lg hover:bg-slate-50" data-testid={`lc-toggle-${cls.id}`}>
+                          <Users className="w-3.5 h-3.5 inline mr-1" />Asistencia
+                        </button>
+                        <button onClick={() => { setEditData(cls); setShowForm(true); }} className="text-xs text-slate-500 hover:text-blue-600 px-2 py-1 rounded-lg hover:bg-blue-50"><Edit3 className="w-3.5 h-3.5" /></button>
+                        <button onClick={() => handleDelete(cls.id)} className="text-xs text-slate-500 hover:text-red-600 px-2 py-1 rounded-lg hover:bg-red-50"><Trash2 className="w-3.5 h-3.5" /></button>
+                      </div>
+                    )}
+                    {user?.role === "student" && cls.status === "active" && (
+                      <button onClick={() => handleJoin(cls)} className="ml-auto px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold rounded-xl flex items-center gap-1.5" data-testid={`lc-join-${cls.id}`}><ExternalLink className="w-3.5 h-3.5" />Entrar</button>
+                    )}
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="border-t border-slate-100 p-4 bg-slate-50/50">
+                    <p className="text-sm font-semibold text-slate-600 mb-2">Asistencia en vivo</p>
+                    {(attendance[cls.id] || []).length === 0 ? (
+                      <p className="text-sm text-slate-400">Aún no hay alumnos conectados.</p>
+                    ) : (
+                      <div className="space-y-1.5">
+                        {(attendance[cls.id] || []).map(r => (
+                          <div key={r.id} className="flex items-center gap-3 bg-white px-3 py-2 rounded-xl">
+                            <div className="w-7 h-7 rounded-full bg-sky-100 flex items-center justify-center text-sky-600 text-xs font-bold">{(r.student_name || "A")[0]}</div>
+                            <span className="text-sm font-medium text-slate-700 flex-1">{r.student_name}</span>
+                            <span className="text-xs text-slate-400">{r.join_time}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Inline form modal */}
+      {showForm && (
+        <LiveClassInlineForm
+          editData={editData}
+          subjectId={subjectId}
+          token={token}
+          onSave={handleSave}
+          onClose={() => { setShowForm(false); setEditData(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function LiveClassInlineForm({ editData, subjectId, token, onSave, onClose }) {
+  const [form, setForm] = useState({
+    title: editData?.title || "",
+    description: editData?.description || "",
+    date: editData?.date || "",
+    start_time: editData?.start_time || "",
+    end_time: editData?.end_time || "",
+    meeting_link: editData?.meeting_link || "",
+    platform: editData?.platform || "meet",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [sectionId, setSectionId] = useState(editData?.section_id || "");
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    if (!editData && subjectId) {
+      (async () => {
+        try {
+          const { data } = await axios.get(`${API}/academic/assignments`, { headers });
+          const assignment = data?.find(a => a.subject_id === subjectId);
+          if (assignment) setSectionId(assignment.section_id);
+        } catch { /* ignore */ }
+      })();
+    }
+  }, [subjectId, editData]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.title || !form.date || !form.start_time || !form.end_time || !form.meeting_link) {
+      setError("Completa todos los campos obligatorios"); return;
+    }
+    if (form.start_time >= form.end_time) {
+      setError("La hora de inicio debe ser menor que la de fin"); return;
+    }
+    setSaving(true); setError("");
+    try {
+      await onSave({ ...form, subject_id: subjectId, section_id: sectionId });
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()} data-testid="lc-inline-form">
+        <div className="flex items-center justify-between p-5 border-b">
+          <h2 className="text-lg font-bold text-slate-800">{editData ? "Editar Clase" : "Programar Clase en Vivo"}</h2>
+          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg"><X className="w-5 h-5" /></button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && <div className="p-3 bg-red-50 text-red-700 text-sm rounded-xl flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" />{error}</div>}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Título *</label>
+            <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 outline-none" placeholder="Ej: Clase de repaso" data-testid="lc-form-title" />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Fecha *</label>
+              <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 outline-none" data-testid="lc-form-date" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Inicio *</label>
+              <input type="time" value={form.start_time} onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 outline-none" data-testid="lc-form-start" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-1">Fin *</label>
+              <input type="time" value={form.end_time} onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))} className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 outline-none" data-testid="lc-form-end" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Plataforma</label>
+            <div className="flex gap-2">
+              {[{ id: "meet", label: "Google Meet" }, { id: "zoom", label: "Zoom" }, { id: "otro", label: "Otro" }].map(p => (
+                <button key={p.id} type="button" onClick={() => setForm(f => ({ ...f, platform: p.id }))} className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${form.platform === p.id ? "bg-sky-50 text-sky-700 border-sky-300" : "bg-white text-slate-500 border-slate-200 hover:bg-slate-50"}`}>{p.label}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Enlace de la reunión *</label>
+            <input value={form.meeting_link} onChange={e => setForm(f => ({ ...f, meeting_link: e.target.value }))} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 outline-none" placeholder="https://meet.google.com/abc-defg-hij" data-testid="lc-form-link" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">Descripción (opcional)</label>
+            <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-sky-500/20 focus:border-sky-400 outline-none resize-none" placeholder="Temas a tratar..." data-testid="lc-form-desc" />
+          </div>
+          <button type="submit" disabled={saving} className="w-full py-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2" data-testid="lc-form-save">
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+            {editData ? "Guardar cambios" : "Programar clase"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
 // ══════════════════════════════════════════════════════════════════════════════
 // MAIN PAGE COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
@@ -9286,6 +9555,8 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         return <RemindersTabContent subjectId={subjectId} token={token} userRole={user?.role} />;
       case "calificaciones":
         return <GradesContent grades={grades} />;
+      case "clases-en-vivo":
+        return <LiveClassesTabContent subjectId={subjectId} token={token} user={user} />;
       default:
         return <DashboardContent subjectId={subjectId} token={token} user={user} />;
     }
