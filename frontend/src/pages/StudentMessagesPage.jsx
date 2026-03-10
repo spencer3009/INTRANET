@@ -17,7 +17,7 @@ import {
   Edit3, Reply, MailOpen, AlertCircle, AlertTriangle,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
-  Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore
+  Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore, Megaphone
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -553,6 +553,13 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   }, [activeFolder]);
   
   const handleSelectMessage = (msg) => {
+    if (msg.message_type === "broadcast") {
+      setSelectedMessage({ ...msg, message_type: "broadcast" });
+      setMobileView("message");
+      axios.post(`${API}/api/broadcast/${msg.id}/read`, {}, { headers }).catch(() => {});
+      setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
+      return;
+    }
     loadMessage(msg.id);
     setMobileView("message");
   };
@@ -798,12 +805,16 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                     key={msg.id}
                     onClick={() => handleSelectMessage(msg)}
                     className={`w-full p-4 border-b border-gray-100 text-left transition-all hover:bg-gray-50 ${
-                      selectedMessage?.id === msg.id ? "bg-indigo-50" : ""
-                    } ${!msg.is_read ? "bg-blue-50/50" : ""}`}
+                      selectedMessage?.id === msg.id ? (msg.message_type === "broadcast" ? "bg-amber-50" : "bg-indigo-50") : ""
+                    } ${!msg.is_read ? (msg.message_type === "broadcast" ? "bg-amber-50/30" : "bg-blue-50/50") : ""}`}
                     data-testid={`message-${msg.id}`}
                   >
                     <div className="flex items-start gap-3">
-                      {activeFolder === "sent" ? (
+                      {msg.message_type === "broadcast" ? (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white flex-shrink-0">
+                          <Megaphone className="w-5 h-5" />
+                        </div>
+                      ) : activeFolder === "sent" ? (
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                           {msg.recipients?.[0]?.name?.charAt(0) || "?"}
                         </div>
@@ -817,12 +828,17 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
-                            {activeFolder === "sent" 
-                              ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
-                              : msg.sender?.name || "Remitente desconocido"
-                            }
-                          </p>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {msg.message_type === "broadcast" && (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase flex-shrink-0">Comunicado</span>
+                            )}
+                            <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
+                              {activeFolder === "sent" 
+                                ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
+                                : msg.sender?.name || "Remitente desconocido"
+                              }
+                            </p>
+                          </div>
                           <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(msg.created_at)}</span>
                         </div>
                         <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-gray-800" : "text-gray-600"}`}>
@@ -832,7 +848,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                       </div>
                       
                       <div className="flex flex-col items-center gap-1">
-                        {!msg.is_read && <Circle className="w-2 h-2 fill-blue-500 text-blue-500" />}
+                        {!msg.is_read && <Circle className={`w-2 h-2 ${msg.message_type === "broadcast" ? "fill-amber-500 text-amber-500" : "fill-blue-500 text-blue-500"}`} />}
                         {msg.has_attachments && <Paperclip className="w-3 h-3 text-gray-400" />}
                       </div>
                     </div>
@@ -855,7 +871,32 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
           
           {/* Message Detail */}
           <div className={`flex-1 flex flex-col bg-white ${mobileView === "list" ? "hidden lg:flex" : "flex"}`}>
-            {selectedMessage ? (
+            {selectedMessage?.message_type === "broadcast" ? (
+              <>
+                <div className="p-6 border-b border-gray-100">
+                  <button onClick={() => { setSelectedMessage(null); setMobileView("list"); }} className="lg:hidden flex items-center gap-2 text-gray-600 mb-4">
+                    <ChevronLeft className="w-5 h-5" />Volver
+                  </button>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-lg uppercase flex items-center gap-1">
+                      <Megaphone className="w-3.5 h-3.5" /> Comunicado Institucional
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedMessage.subject}</h2>
+                  <div className="flex items-center gap-4 mt-4">
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white"><Megaphone className="w-6 h-6" /></div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{selectedMessage.sender?.name}</p>
+                      <p className="text-sm text-gray-500">Comunicado institucional</p>
+                    </div>
+                    <p className="text-sm text-gray-500">{new Date(selectedMessage.created_at).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}</p>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: selectedMessage.body }} />
+                </div>
+              </>
+            ) : selectedMessage ? (
               <>
                 {/* Message Header */}
                 <div className="p-6 border-b border-gray-100">

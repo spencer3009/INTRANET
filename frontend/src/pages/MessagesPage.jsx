@@ -629,8 +629,12 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   }, [activeFolder]);
 
   const handleSelectMessage = (msg) => {
-    loadMessage(msg.id);
-    setMobileView("message");
+    if (msg.message_type === "broadcast") {
+      handleSelectBroadcast(msg);
+    } else {
+      loadMessage(msg.id);
+      setMobileView("message");
+    }
   };
 
   const handleArchive = async (messageId) => {
@@ -909,12 +913,16 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                     key={msg.id}
                     onClick={() => handleSelectMessage(msg)}
                     className={`w-full p-4 border-b border-gray-100 text-left transition-all hover:bg-gray-50 ${
-                      selectedMessage?.id === msg.id ? "bg-indigo-50" : ""
-                    } ${!msg.is_read ? "bg-blue-50/50" : ""}`}
+                      selectedMessage?.id === msg.id ? (msg.message_type === "broadcast" ? "bg-amber-50" : "bg-indigo-50") : ""
+                    } ${!msg.is_read ? (msg.message_type === "broadcast" ? "bg-amber-50/30" : "bg-blue-50/50") : ""}`}
                     data-testid={`message-${msg.id}`}
                   >
                     <div className="flex items-start gap-3">
-                      {activeFolder === "sent" ? (
+                      {msg.message_type === "broadcast" ? (
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white flex-shrink-0">
+                          <Megaphone className="w-5 h-5" />
+                        </div>
+                      ) : activeFolder === "sent" ? (
                         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
                           {msg.recipients?.[0]?.name?.charAt(0) || "?"}
                         </div>
@@ -928,12 +936,17 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
-                            {activeFolder === "sent"
-                              ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
-                              : msg.sender?.name || "Remitente desconocido"
-                            }
-                          </p>
+                          <div className="flex items-center gap-2 min-w-0">
+                            {msg.message_type === "broadcast" && (
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase flex-shrink-0">Comunicado</span>
+                            )}
+                            <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
+                              {activeFolder === "sent"
+                                ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
+                                : msg.sender?.name || "Remitente desconocido"
+                              }
+                            </p>
+                          </div>
                           <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(msg.created_at)}</span>
                         </div>
                         <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-gray-800" : "text-gray-600"}`}>
@@ -943,7 +956,7 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                       </div>
 
                       <div className="flex flex-col items-center gap-1">
-                        {!msg.is_read && <Circle className="w-2 h-2 fill-blue-500 text-blue-500" />}
+                        {!msg.is_read && <Circle className={`w-2 h-2 ${msg.message_type === "broadcast" ? "fill-amber-500 text-amber-500" : "fill-blue-500 text-blue-500"}`} />}
                         {msg.has_attachments && <Paperclip className="w-3 h-3 text-gray-400" />}
                       </div>
                     </div>

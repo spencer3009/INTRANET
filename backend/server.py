@@ -20297,14 +20297,14 @@ async def get_inbox(
     limit: int = 20,
     current_user = Depends(get_current_user)
 ):
-    """Get inbox messages for current user"""
+    """Get inbox messages for current user (includes broadcast messages)"""
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
     
     skip = (page - 1) * limit
     
-    # Find messages where user is recipient and not deleted
+    # Find regular messages where user is recipient and not deleted
     pipeline = [
         {"$match": {
             "recipients.user_id": user["id"],
@@ -20317,13 +20317,29 @@ async def get_inbox(
     
     messages = await db.internal_mail.aggregate(pipeline).to_list(limit)
     
-    # Get total count
-    total = await db.internal_mail.count_documents({
+    # Get total count of regular messages
+    total_regular = await db.internal_mail.count_documents({
         "recipients.user_id": user["id"],
         "recipients.is_deleted": {"$ne": True}
     })
     
-    # Enrich with sender info and recipient status
+    # Get broadcast messages for this user
+    broadcast_receivers = await db.broadcast_receivers.find(
+        {"user_id": user["id"], "school_id": user.get("school_id")},
+        {"_id": 0}
+    ).to_list(None)
+    
+    broadcast_map = {r["message_id"]: r for r in broadcast_receivers}
+    broadcast_ids = list(broadcast_map.keys())
+    
+    broadcasts = []
+    if broadcast_ids:
+        broadcasts = await db.broadcast_messages.find(
+            {"id": {"$in": broadcast_ids}, "status": "active"},
+            {"_id": 0}
+        ).sort("created_at", -1).to_list(None)
+    
+    # Enrich regular messages
     enriched = []
     for msg in messages:
         sender = await db.users.find_one({"id": msg["sender_id"]}, {"_id": 0, "password": 0})
@@ -20349,8 +20365,40 @@ async def get_inbox(
             "is_archived": recipient_entry.get("is_archived", False),
             "has_attachments": len(msg.get("attachments", [])) > 0,
             "attachments": msg.get("attachments", []),
-            "recipient_count": len(msg.get("recipients", []))
+            "recipient_count": len(msg.get("recipients", [])),
+            "message_type": "normal"
         })
+    
+    # Add broadcast messages to the list
+    for b in broadcasts:
+        recv = broadcast_map.get(b["id"], {})
+        enriched.append({
+            "id": b["id"],
+            "subject": b["subject"],
+            "body_preview": b["body"][:150] + "..." if len(b["body"]) > 150 else b["body"],
+            "body": b["body"],
+            "sender": {
+                "id": b.get("sender_id"),
+                "name": b.get("sender_name", "Propietario"),
+                "email": "",
+                "photo_url": b.get("sender_photo"),
+                "role": b.get("sender_role", "owner")
+            },
+            "created_at": b["created_at"],
+            "is_read": recv.get("read_at") is not None,
+            "is_starred": False,
+            "is_archived": False,
+            "has_attachments": False,
+            "attachments": [],
+            "recipient_count": b.get("total_recipients", 0),
+            "message_type": "broadcast",
+            "target_roles": b.get("target_roles", [])
+        })
+    
+    # Sort all by date descending
+    enriched.sort(key=lambda x: x["created_at"], reverse=True)
+    
+    total = total_regular + len(broadcasts)
     
     return {
         "messages": enriched,
