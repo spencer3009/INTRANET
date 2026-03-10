@@ -17926,7 +17926,11 @@ async def mark_broadcast_read(broadcast_id: str, current_user=Depends(get_curren
     return {"message": "Comunicado marcado como leído"}
 
 @api_router.get("/broadcast/sent")
-async def get_sent_broadcasts(current_user=Depends(get_current_user)):
+async def get_sent_broadcasts(
+    page: int = 1,
+    limit: int = 50,
+    current_user=Depends(get_current_user)
+):
     """Get broadcasts sent by the current user (owner/admin) with read stats"""
     user = await resolve_user_from_token(current_user)
     if not user:
@@ -17937,12 +17941,14 @@ async def get_sent_broadcasts(current_user=Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="No tienes permiso")
     
     school_id = user.get("school_id")
+    skip = (page - 1) * limit
+    total = await db.broadcast_messages.count_documents({"school_id": school_id, "status": "active"})
     broadcasts = await db.broadcast_messages.find(
         {"school_id": school_id, "status": "active"},
         {"_id": 0}
-    ).sort("created_at", -1).to_list(50)
+    ).sort("created_at", -1).skip(skip).limit(limit).to_list(limit)
     
-    return {"broadcasts": broadcasts}
+    return {"broadcasts": broadcasts, "total": total, "page": page, "pages": (total + limit - 1) // limit if total > 0 else 1}
 
 @api_router.get("/broadcast/{broadcast_id}/stats")
 async def get_broadcast_stats(broadcast_id: str, current_user=Depends(get_current_user)):
@@ -20294,7 +20300,7 @@ class InternalMailReply(BaseModel):
 @api_router.get("/internal-mail/inbox")
 async def get_inbox(
     page: int = 1,
-    limit: int = 20,
+    limit: int = 50,
     current_user = Depends(get_current_user)
 ):
     """Get inbox messages for current user (includes broadcast messages)"""
@@ -20411,7 +20417,7 @@ async def get_inbox(
 @api_router.get("/internal-mail/sent")
 async def get_sent(
     page: int = 1,
-    limit: int = 20,
+    limit: int = 50,
     current_user = Depends(get_current_user)
 ):
     """Get sent messages for current user"""
@@ -20487,7 +20493,7 @@ async def get_unread(current_user = Depends(get_current_user)):
 @api_router.get("/internal-mail/archived")
 async def get_archived(
     page: int = 1,
-    limit: int = 20,
+    limit: int = 50,
     current_user = Depends(get_current_user)
 ):
     """Get archived messages (both received and sent)"""
@@ -20585,7 +20591,7 @@ async def get_archived(
 @api_router.get("/internal-mail/trash")
 async def get_trash(
     page: int = 1,
-    limit: int = 20,
+    limit: int = 50,
     current_user = Depends(get_current_user)
 ):
     """Get deleted/trash messages (both received and sent)"""
@@ -23811,7 +23817,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://clases-vivo-demo.preview.emergentagent.com",
+        "https://mensaje-unificado.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com",
     allow_credentials=True,

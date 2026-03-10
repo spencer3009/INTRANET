@@ -11,6 +11,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import Sidebar from "../components/Sidebar";
 import MobileBottomNav from "../components/MobileBottomNav";
 import DashboardHeader from "../components/DashboardHeader";
+import MessagePagination from "../components/MessagePagination";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
   ChevronLeft, Paperclip, X, Loader2, Circle,
@@ -535,6 +536,9 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
 
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, messageId: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMessages, setTotalMessages] = useState(0);
 
   // Broadcast state
   const [broadcastMessages, setBroadcastMessages] = useState([]);
@@ -574,14 +578,16 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
     }
   };
 
-  const loadMessages = async (folder) => {
+  const loadMessages = async (folder, page = 1) => {
     if (folder === "broadcasts") {
       setLoading(true);
       try {
-        // If can broadcast (owner/admin), show sent broadcasts; otherwise show inbox
         const endpoint = canBroadcast ? `${API}/api/broadcast/sent` : `${API}/api/broadcast/inbox`;
-        const res = await axios.get(endpoint, { headers });
+        const res = await axios.get(`${endpoint}?page=${page}&limit=50`, { headers });
         setBroadcastMessages(res.data.broadcasts || []);
+        setTotalMessages(res.data.total || res.data.broadcasts?.length || 0);
+        setTotalPages(res.data.pages || 1);
+        setCurrentPage(page);
       } catch (err) {
         console.error("Error loading broadcasts:", err);
         setBroadcastMessages([]);
@@ -592,8 +598,11 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
     }
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/internal-mail/${folder}`, { headers });
+      const res = await axios.get(`${API}/api/internal-mail/${folder}?page=${page}&limit=50`, { headers });
       setMessages(res.data.messages || []);
+      setTotalMessages(res.data.total || 0);
+      setTotalPages(res.data.pages || 1);
+      setCurrentPage(page);
     } catch (err) {
       console.error("Error loading messages:", err);
       setMessages([]);
@@ -623,10 +632,11 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   }, [token]);
 
   useEffect(() => {
-    loadMessages(activeFolder);
+    loadMessages(activeFolder, 1);
     setSelectedMessage(null);
     setSelectedBroadcast(null);
     setBroadcastStats(null);
+    setCurrentPage(1);
   }, [activeFolder]);
 
   const handleSelectMessage = (msg) => {
@@ -965,6 +975,14 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                 })
               )}
             </div>
+
+            {/* Pagination */}
+            <MessagePagination
+              page={currentPage}
+              totalPages={totalPages}
+              totalMessages={totalMessages}
+              onPageChange={(p) => loadMessages(activeFolder, p)}
+            />
 
             {/* Mobile Compose */}
             <div className="lg:hidden p-4 border-t bg-white">

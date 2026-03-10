@@ -11,6 +11,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MobileBottomNav from "../components/MobileBottomNav";
+import MessagePagination from "../components/MessagePagination";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
   ChevronLeft, Paperclip, X, Clock, Loader2, Circle,
@@ -485,6 +486,9 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   // Confirm modal state
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, messageId: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMessages, setTotalMessages] = useState(0);
   
   const headers = { Authorization: `Bearer ${token}` };
   
@@ -519,11 +523,14 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
     }
   };
   
-  const loadMessages = async (folder) => {
+  const loadMessages = async (folder, page = 1) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/internal-mail/${folder}`, { headers });
+      const res = await axios.get(`${API}/api/internal-mail/${folder}?page=${page}&limit=50`, { headers });
       setMessages(res.data.messages || []);
+      setTotalMessages(res.data.total || 0);
+      setTotalPages(res.data.pages || 1);
+      setCurrentPage(page);
     } catch (err) {
       console.error("Error loading messages:", err);
       setMessages([]);
@@ -549,8 +556,9 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   }, [token]);
   
   useEffect(() => {
-    loadMessages(activeFolder);
+    loadMessages(activeFolder, 1);
     setSelectedMessage(null);
+    setCurrentPage(1);
   }, [activeFolder]);
   
   const handleSelectMessage = (msg) => {
@@ -858,6 +866,8 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
               )}
             </div>
             
+            <MessagePagination page={currentPage} totalPages={totalPages} totalMessages={totalMessages} onPageChange={(p) => loadMessages(activeFolder, p)} />
+
             {/* Mobile Compose Button */}
             <div className="lg:hidden p-4 border-t bg-white">
               <button

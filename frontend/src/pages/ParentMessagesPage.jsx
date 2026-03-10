@@ -12,6 +12,7 @@ import Placeholder from "@tiptap/extension-placeholder";
 import MobileBottomNav from "../components/MobileBottomNav";
 import ParentSidebar from "../components/ParentSidebar";
 import StudentHeader from "../components/StudentHeader";
+import MessagePagination from "../components/MessagePagination";
 import {
   Mail, Inbox, Send, Archive, Trash2, Search, Plus,
   ChevronLeft, Paperclip, X, Clock, Loader2, Circle,
@@ -201,6 +202,9 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
   const [selectedChild, setSelectedChild] = useState(null);
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, messageId: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMessages, setTotalMessages] = useState(0);
 
   const headers = { Authorization: `Bearer ${token}` };
   const schoolName = settings?.system_name || user?.school_name || "Portal Padres";
@@ -221,9 +225,15 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
     try { const res = await axios.get(`${API}/api/internal-mail/stats`, { headers }); setStats(res.data); } catch (err) { console.error("Error loading stats:", err); }
   };
 
-  const loadMessages = async (folder) => {
+  const loadMessages = async (folder, page = 1) => {
     setLoading(true);
-    try { const res = await axios.get(`${API}/api/internal-mail/${folder}`, { headers }); setMessages(res.data.messages || []); } catch (err) { console.error("Error loading messages:", err); setMessages([]); } finally { setLoading(false); }
+    try {
+      const res = await axios.get(`${API}/api/internal-mail/${folder}?page=${page}&limit=50`, { headers });
+      setMessages(res.data.messages || []);
+      setTotalMessages(res.data.total || 0);
+      setTotalPages(res.data.pages || 1);
+      setCurrentPage(page);
+    } catch (err) { console.error("Error loading messages:", err); setMessages([]); } finally { setLoading(false); }
   };
 
   const loadMessage = async (messageId) => {
@@ -256,7 +266,7 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
     init();
   }, [token]);
 
-  useEffect(() => { loadMessages(activeFolder); setSelectedMessage(null); }, [activeFolder]);
+  useEffect(() => { loadMessages(activeFolder, 1); setSelectedMessage(null); setCurrentPage(1); }, [activeFolder]);
 
   const handleChildChange = async (newChild) => {
     if (!newChild || newChild.id === selectedChild?.id) return;
@@ -395,6 +405,7 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
                 })
               )}
             </div>
+            <MessagePagination page={currentPage} totalPages={totalPages} totalMessages={totalMessages} onPageChange={(p) => loadMessages(activeFolder, p)} />
             <div className="lg:hidden p-4 border-t bg-white">
               <button onClick={() => { setReplyTo(null); setShowCompose(true); }} className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl flex items-center justify-center gap-2"><Plus className="w-5 h-5" />Redactar</button>
             </div>
