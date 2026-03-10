@@ -493,10 +493,10 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
   const currentSubdomain = subdomain || user?.subdomain;
   
   const folders = [
-    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread, gradient: "from-blue-500 to-cyan-500" },
-    { id: "sent", label: "Enviados", icon: Send, count: stats.sent, gradient: "from-violet-500 to-purple-500" },
-    { id: "archived", label: "Archivados", icon: Archive, count: stats.archived, gradient: "from-amber-500 to-orange-500" },
-    { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash, gradient: "from-slate-500 to-gray-600" },
+    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, badge: stats.unread, gradient: "from-blue-500 to-cyan-500" },
+    { id: "sent", label: "Enviados", icon: Send, gradient: "from-violet-500 to-purple-500" },
+    { id: "archived", label: "Archivados", icon: Archive, gradient: "from-amber-500 to-orange-500" },
+    { id: "trash", label: "Papelera", icon: Trash2, gradient: "from-slate-500 to-gray-600" },
   ];
   
   const loadSettings = async () => {
@@ -555,7 +555,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
     if (msg.message_type === "broadcast") {
       setSelectedMessage({ ...msg, message_type: "broadcast" });
       setMobileView("message");
-      axios.post(`${API}/api/broadcast/${msg.id}/read`, {}, { headers }).catch(() => {});
+      axios.post(`${API}/api/broadcast/${msg.id}/read`, {}, { headers }).then(() => loadStats()).catch(() => {});
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
       return;
     }
@@ -761,11 +761,6 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
                     {folder.badge > 0 && (
                       <span className="px-2.5 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg">
                         {folder.badge}
-                      </span>
-                    )}
-                    {folder.count > 0 && !folder.badge && (
-                      <span className={`text-sm ${activeFolder === folder.id ? "text-white/80" : "text-slate-400"}`}>
-                        {folder.count}
                       </span>
                     )}
                   </button>

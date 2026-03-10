@@ -20750,8 +20750,14 @@ async def get_mail_stats(current_user = Depends(get_current_user)):
     trash_result = await db.internal_mail.aggregate(trash_pipeline).to_list(1)
     trash = trash_result[0]["count"] if trash_result else 0
     
+    # Also count unread broadcasts
+    broadcast_unread = await db.broadcast_receivers.count_documents({
+        "user_id": user_id,
+        "read_at": None
+    })
+    
     return {
-        "unread": unread,
+        "unread": unread + broadcast_unread,
         "inbox": inbox,
         "sent": sent,
         "archived": archived,

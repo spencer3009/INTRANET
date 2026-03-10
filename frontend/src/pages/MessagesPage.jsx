@@ -549,11 +549,11 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   const logoUrl = settings?.logo_url;
 
   const folders = [
-    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread },
-    { id: "sent", label: "Enviados", icon: Send, count: stats.sent },
+    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, badge: stats.unread },
+    { id: "sent", label: "Enviados", icon: Send },
     { id: "broadcasts", label: "Comunicados", icon: Megaphone },
-    { id: "archived", label: "Archivados", icon: Archive, count: stats.archived },
-    { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash },
+    { id: "archived", label: "Archivados", icon: Archive },
+    { id: "trash", label: "Papelera", icon: Trash2 },
   ];
 
   const loadSettings = async () => {
@@ -797,9 +797,6 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                   <span className="flex-1 text-left font-medium">{folder.label}</span>
                   {folder.badge > 0 && (
                     <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">{folder.badge}</span>
-                  )}
-                  {folder.count > 0 && !folder.badge && (
-                    <span className="text-sm text-gray-400">{folder.count}</span>
                   )}
                 </button>
               ))}

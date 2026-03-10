@@ -494,10 +494,10 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
   const subdomain = user?.subdomain;
   
   const folders = [
-    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread },
-    { id: "sent", label: "Enviados", icon: Send, count: stats.sent },
-    { id: "archived", label: "Archivados", icon: Archive, count: stats.archived },
-    { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash },
+    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, badge: stats.unread },
+    { id: "sent", label: "Enviados", icon: Send },
+    { id: "archived", label: "Archivados", icon: Archive },
+    { id: "trash", label: "Papelera", icon: Trash2 },
   ];
   
   // Load school settings
@@ -556,7 +556,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
     if (msg.message_type === "broadcast") {
       setSelectedMessage({ ...msg, message_type: "broadcast" });
       setMobileView("message");
-      axios.post(`${API}/api/broadcast/${msg.id}/read`, {}, { headers }).catch(() => {});
+      axios.post(`${API}/api/broadcast/${msg.id}/read`, {}, { headers }).then(() => loadStats()).catch(() => {});
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
       return;
     }
@@ -726,9 +726,6 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                     <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">
                       {folder.badge}
                     </span>
-                  )}
-                  {folder.count > 0 && !folder.badge && (
-                    <span className="text-sm text-gray-400">{folder.count}</span>
                   )}
                 </button>
               ))}

@@ -207,10 +207,10 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
   const logoUrl = settings?.logo_url;
 
   const folders = [
-    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread },
-    { id: "sent", label: "Enviados", icon: Send, count: stats.sent },
-    { id: "archived", label: "Archivados", icon: Archive, count: stats.archived },
-    { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash },
+    { id: "inbox", label: "Bandeja de entrada", icon: Inbox, badge: stats.unread },
+    { id: "sent", label: "Enviados", icon: Send },
+    { id: "archived", label: "Archivados", icon: Archive },
+    { id: "trash", label: "Papelera", icon: Trash2 },
   ];
 
   const loadSettings = async () => {
@@ -261,7 +261,7 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
     if (msg.message_type === "broadcast") {
       setSelectedMessage({ ...msg, message_type: "broadcast" });
       setMobileView("message");
-      axios.post(`${API}/api/broadcast/${msg.id}/read`, {}, { headers }).catch(() => {});
+      axios.post(`${API}/api/broadcast/${msg.id}/read`, {}, { headers }).then(() => loadStats()).catch(() => {});
       setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, is_read: true } : m));
       return;
     }
@@ -332,7 +332,6 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
                 <button key={folder.id} onClick={() => setActiveFolder(folder.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${activeFolder === folder.id ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-100"}`} data-testid={`folder-${folder.id}`}>
                   <folder.icon className="w-5 h-5" /><span className="flex-1 text-left font-medium">{folder.label}</span>
                   {folder.badge > 0 && <span className="px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">{folder.badge}</span>}
-                  {folder.count > 0 && !folder.badge && <span className="text-sm text-gray-400">{folder.count}</span>}
                 </button>
               ))}
               {activeFolder === "trash" && stats.trash > 0 && (
