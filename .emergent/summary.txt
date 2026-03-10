@@ -1,102 +1,94 @@
 <analysis>**original_problem_statement:**
-The user requested a series of major enhancements for the EduNet platform. Initially, this involved a UI overhaul for a consistent mobile experience and a Replicate Subjects feature.
+The user's session began with a critical issue: the forked environment had reverted to an old version of the landing page, losing significant work that was live in production. The first priority was to restore  to match the production version.
 
-The focus then shifted to building a professional-grade system for mass-importing students from Excel/CSV files. This required a robust backend for file processing, student creation, and QR code generation, along with a user-friendly frontend interface. The user provided detailed specifications for this feature, including a redesign of the UI to place the import functionality in a more prominent position, advanced template generation with instructions and protected cells, and a sophisticated metadata validation system to prevent users from importing students into the wrong academic section. The system also needed to handle data normalization (e.g., for gender) and provide a Pending section for administrators to correct and re-process records that failed during import.
-
-The latest request is to overhaul the main dashboard for all user roles (Owner, Admin, Teacher, Student, Parent). The goal is to transform the dashboard into a central information hub by removing News, Calendar, and Surveys from the side navigation and displaying them as interactive widgets on the main page. The implementation is planned in two phases: first, building the UI with mock data, and second, creating the full backend CRUD functionality for these new modules.
+After the restoration, the user provided detailed Product Requirements Documents (PRDs) for two major new features:
+1.  **Live Classes Module:** A new module for teachers to schedule virtual classes using external links (Meet/Zoom), and for students to join them. The system should automatically track attendance when a student joins. The feature needed to be integrated for Teacher, Student, Parent, Admin, and Owner roles.
+2.  **Massive Broadcast Communication System:** An extension of the existing messaging system to allow Admins/Owners to send high-priority, impossible-to-ignore announcements to entire user groups (e.g., all teachers, all students). This includes a mandatory pop-up on login, banners, and read-receipt tracking.
 
 **User's preferred language**: Spanish
 
 **what currently exists?**
-The application is a full-stack FastAPI/React educational platform.
--   **Mass Student Import System:** A complete and robust feature for importing students from Excel files is fully functional.
-    -   **UI:** A dedicated Importación masiva block is present on the Users page, which opens a multi-step modal for downloading a template and uploading the completed file.
-    -   **Template Generation:** The backend generates a sophisticated Excel template () with protected cells for academic context (Level, Grade, Section, Turno), frozen headers, user instructions, and an example row.
-    -   **Metadata Verification:** A hidden sheet () is embedded in the template. Upon upload, the backend verifies this metadata against the user's current filters to prevent importing into the wrong section, prompting the user for confirmation if a mismatch is detected.
-    -   **Data Processing:** The import logic correctly parses new columns (Cumpleaños, Género) and intelligently normalizes gender inputs (e.g., 'f', 'mujer', 'FEMENINO' are all converted to Femenino).
--   **Pending Imports Management:** A full UI and backend flow exists for managing students who failed the import process. Administrators can view, edit the incorrect data in a modal, and activate the students from a Pendientes de Importación view.
--   **Form Enhancements:** The DNI field has been correctly added to the student creation form.
+- A full-stack FastAPI/React educational platform.
+- The public  has been completely rebuilt to match the live production version, resolving the initial data loss issue.
+- A new Live Classes module has been fully implemented.
+    - **Backend:**  was updated with new Pydantic models (, ) and a full suite of API endpoints for creating, viewing, updating, deleting, and joining live classes, with role-based access for different users.
+    - **Frontend:**
+        - Dedicated pages were created for each role: , , and .
+        - The module is accessible via sidebars for Teachers, Students, and Admins.
+        - The module is integrated directly into the course view:
+            - As a full-width CLASES EN VIVO tab for Admins and Teachers ().
+            - As a round icon button for Students and Parents that navigates to their live classes page ().
 
 **Last working item**:
--   Last item agent was working: The agent was beginning the implementation of the **Dashboard Redesign**. It explored the relevant dashboard and sidebar component files (, , , etc.) to understand the existing structure and plan the necessary changes for adding the new widgets.
--   Status: NOT STARTED
--   Agent Testing Done: N
--   Which testing method agent to use? both
+-   Last item agent was working: The agent was implementing the user's request to add a consistent navigation menu (a bar with round icon buttons) to the course detail view for ALL user roles (Student, Parent, Teacher, Admin, Owner), including a button for Clases en Vivo. The agent had previously added this for students/parents and was verifying it for teachers/admins. The user provided a new large feature request immediately after, indicating the Live Classes UI work was likely satisfactory.
+-   Status: USER VERIFICATION PENDING
+-   Agent Testing Done: Y (via screenshots)
+-   Which testing method agent to use? screenshot tool
 -   User Testing Done: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Implement Dashboard Widgets (Phase 1: UI) (P0)**
--   **Issue 2: Fix and Verify Disappearing Student Selection (P1)**
--   **Issue 3: Remove Hardcoded Data from Owner Dashboard (P2)**
--   **Issue 4: Message Center Unread Count Discrepancy (P2)**
+-   **Issue 1: Fix and Verify Disappearing Student Selection (P1)**
+-   **Issue 2: Remove Hardcoded Data from Owner Dashboard (P2)**
+-   **Issue 3: Message Center Unread Count Discrepancy (P2)**
 
 **Issues Detail:**
--   **Issue 1: Implement Dashboard Widgets (Phase 1: UI) (P0)**
-    -   **Attempted fixes:** The agent has reviewed the existing dashboard components to plan the implementation. No code has been written yet.
+-   **Issue 1: Fix and Verify Disappearing Student Selection (P1)**
+    -   **Description:** Inherited issue. When selecting a student in the , their information card reportedly disappears immediately. This has not been tested or addressed.
     -   **Next debug checklist:**
-        1.  Create a reusable  component for News, Calendar, and Surveys.
-        2.  Identify all dashboard pages: , , , , .
-        3.  Modify each dashboard page to include the three new widgets, using mock/placeholder data for now.
-        4.  Ensure the layout is responsive (3 columns on desktop, 1 column on mobile).
-        5.  Remove the Noticias, Calendario, and Encuestas links from all relevant sidebar components (, , , etc.).
-    -   **Why fix this issue and what will be achieved with the fix?** This will complete the first phase of a major UX improvement, making the dashboard the central information hub for all users.
+        1.  Navigate to the payments section.
+        2.  Open the .
+        3.  Select a student and observe the UI.
+        4.  Inspect  to debug state handling.
+    -   **Why fix this issue and what will be achieved with the fix?** Restores core functionality in the payment module.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** N
     -   **Should Test frontend/backend/both after fix?** Frontend
-
--   **Issue 2: Fix and Verify Disappearing Student Selection (P1)**
-    -   **Description:** Inherited from a previous fork. When selecting a student in the , their information card would immediately disappear. This needs to be manually tested to confirm if it was inadvertently resolved by other fixes.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** N
-    -   **Should Test frontend/backend/both after fix?** Frontend
-
--   **Issue 3: Remove Hardcoded Data from Owner Dashboard (P2)**
-    -   **Description:** Inherited issue. Components on the Owner's Dashboard (Asistencia del Mes, Noticias y Avisos) use static, hardcoded data. This will be partially addressed by the new Dashboard Widgets task.
+-   **Issue 2: Remove Hardcoded Data from Owner Dashboard (P2)**
+    -   **Description:** Inherited issue. Components on the Owner's Dashboard use static data.
+    -   **Next debug checklist:**
+        1.  Identify hardcoded data in .
+        2.  Implement backend endpoints to provide dynamic data.
+        3.  Replace static data with API calls.
+    -   **Why fix this issue and what will be achieved with the fix?** Makes the dashboard a useful, dynamic tool.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** Backend
-
--   **Issue 4: Message Center Unread Count Discrepancy (P2)**
-    -   **Description:** Inherited issue. The dashboard widget's unread message count does not match the actual number of unread messages in the message center.
+    -   **Should Test frontend/backend/both after fix?** Both
+-   **Issue 3: Message Center Unread Count Discrepancy (P2)**
+    -   **Description:** Inherited issue. The unread message count on the dashboard widget does not match the message center.
+    -   **Next debug checklist:**
+        1.  Compare count logic in the dashboard widget vs. the message center page.
+        2.  Verify the backend endpoint for unread counts.
+    -   **Why fix this issue and what will be achieved with the fix?** Ensures users have accurate notifications.
     -   **Status:** NOT STARTED
     -   **Is recurring issue?** Y
-    -   **Should Test frontend/backend/both after fix?** Backend
+    -   **Should Test frontend/backend/both after fix?** Both
 
 **In progress Task List**:
--   **Task 1: Dashboard Redesign (P0)**
-    -   **Where to resume:** Begin implementation by creating a shared widget component and integrating it into the  as a starting point.
-    -   **What will be achieved with this?** A modern, informative dashboard UI for all user roles that centralizes key information.
-    -   **Status:** NOT STARTED
-    -   **Should Test frontend/backend/both after fix?** both
-    -   **Blocked on something:** No.
+None.
 
 **Upcoming and Future Tasks**
 -   **Upcoming Tasks:**
-    -   **P0: Implement Dashboard Widgets (Phase 2: Backend):** Create database collections (, , ) and full CRUD API endpoints for managing the content of the new dashboard widgets.
-    -   **P0: Modularize :** (CRITICAL Tech Debt) This monolithic file is now over 10,000 lines and must be refactored into domain-specific FastAPI routers.
+    -   **P0: Implement Massive Broadcast Communication System:** This is the latest user request with a detailed PRD. The goal is to extend the existing message module to allow admins to send high-priority announcements that trigger mandatory pop-ups and banners for recipients.
+    -   **P0: Modularize :** (CRITICAL Tech Debt) Refactor the monolithic file into domain-specific FastAPI routers.
+    -   **P1: Implement Dashboard Widgets (Phase 2: Backend):** Create DB collections and CRUD APIs for dashboard modules (, , ).
     -   **P1: Implement Attendance Configuration (Phase 2):** Create a settings page for admins to configure attendance schedules.
 
 -   **Future Tasks:**
     -   **P1:** Complete Parent Portal Feature Parity.
     -   **P1:** Build a Matrículas (Enrollments) module.
     -   **P1:** Enhance the Exams module with a Question Bank.
-    -   **P2:** Implement Attendance Notifications (Phase 3) to parents.
     -   **P2:** Replace all  and  calls with a global custom modal.
 
 **Completed work in this session**
--   **Mass Student Import Redesign & Feature Completion:**
-    -   UI/UX was completely overhauled per user specifications.
-    -   Implemented a robust, multi-step modal for file management.
-    -   **Template Protection:** The Excel template now contains locked cells for academic context to prevent user error.
-    -   **Metadata Verification:** A sophisticated system now embeds and verifies hidden metadata in the Excel file to prevent imports into incorrect sections.
-    -   **Data Normalization:** Backend now intelligently normalizes the Gender field from various user inputs and sends invalid entries to a pending queue.
-    -   Added Cumpleaños (Birthday) and Género (Gender) to the import template and backend processing logic.
--   **Pending Imports Management System:**
-    -   A full-featured section was built to allow admins to view, edit, and activate students who failed the import process. This includes new backend endpoints and a complete frontend modal-based workflow.
--   **Bug Fixes & Minor Enhancements:**
-    -   Added the missing DNI input field to the student creation form.
-    -   Made the Turno (Shift) filter mandatory for template downloads.
-    -   Corrected numerous backend bugs related to database collection names, field names (), and API response structures.
+-   **Landing Page Restoration:** Fully restored  to match the production version after discovering the forked environment was out of sync. This included rebuilding the hero section, an 18-card features grid, and the footer.
+-   **Live Classes Module (Full Implementation):** A complete module was built from scratch.
+    -   **Backend ():** Added new database models (, ) and a full suite of API endpoints with role-based access for CRUD operations and student attendance tracking.
+    -   **Frontend:**
+        -   Created role-specific pages: , , .
+        -   Integrated links into , , and .
+        -   Added a full-width CLASES EN VIVO tab to  for Teachers/Admins.
+        -   Added a round icon button to  for Students/Parents.
+    -   **Testing:** Passed a full suite of backend and frontend tests via the testing agent.
 
 **Earlier issues found/mentioned but not fixed**
 -   Disappearing Student Selection in Payment Modal (P1)
@@ -111,18 +103,17 @@ The application is a full-stack FastAPI/React educational platform.
 
 
 **Key Technical Concepts**
--   **Advanced Excel Generation ():** Generating complex  files with multiple sheets (one hidden), protected cells, frozen panes, and cell styling.
--   **Data Integrity:** Embedding hidden metadata in a downloaded file and verifying it upon upload to ensure data consistency and prevent user errors.
--   **Robust Data Normalization:** Creating flexible data ingestion pipelines that can handle and standardize varied user input during bulk operations.
--   **Stateful Frontend Workflows:** Building complex multi-step modals and views () that manage different states like , , , .
+-   **Code Restoration from Production:** The agent had to inspect a live production URL, extract its HTML, and rewrite the  component to match it, recovering from an out-of-sync fork.
+-   **Full-Stack Module Implementation:** Built the Live Classes module from scratch, including schema design (Pydantic models), backend API endpoints with role-based authorization (FastAPI), and multiple frontend pages and components (React).
+-   **Role-Based UI/UX:** Integrated the new module into various parts of the app with different UI patterns (sidebars, full-page tabs, icon buttons) based on the user's role (, , , , ).
+-   **Conditional Layout Rendering:** Modified  to render a full-width layout for specific tabs by adding the tab's ID to a  array.
 
 **key DB schema**
--   : Enhanced with , , and new fields  and .
--   **New Collections (to be created):**
-    -   : {title, content, author_id, created_at}
-    -   : {title, description, start_time, end_time, type}
-    -   : {title, description, questions: [...], is_active, due_date}
-    -   : {survey_id, user_id, answers: [...]}
+-   **:** 
+-   **:** 
+
+**changes in tech stack**
+-   None.
 
 **All files of reference**
 -   
@@ -134,72 +125,69 @@ The application is a full-stack FastAPI/React educational platform.
 -   
 -   
 -   
+-   
+-   
 
 **Areas that need refactoring**:
--   ** (CRITICAL):** This file is dangerously large and complex. It is the highest priority technical debt and should be addressed immediately after the dashboard UI is completed.
--   ** (CRITICAL):** This component has become a god component exceeding 4,200 lines. It manages user lists, filters, the creation modal, the complex import modal, and the new pending imports view with its own edit modal. The logic for Pending Imports and Mass Import should be extracted into their own dedicated components and custom hooks.
+-   ** (CRITICAL):** This monolithic file is a major source of technical debt and needs to be broken down into smaller, domain-specific router files.
+-   ** (CRITICAL):** This component is extremely large (over 4,000 lines) and complex and should be refactored.
+-   **Unused Widget Components:** The , , and  components are still present but unused.
 
 **key api endpoints**
+-   **New Live Classes endpoints:**
+    -   : Create a live class.
+    -   : Get all classes for a school.
+    -   : Get classes for a specific course.
+    -   : Update a class.
+    -   : Delete a class.
+    -   : Student joins a class and registers attendance.
+    -   : Get live attendance for a class.
 -   **Modified:**
-    -   : Heavily updated to generate a protected Excel file with hidden metadata and additional columns.
-    -   : Now validates file metadata, normalizes gender, processes more columns, and accepts  to resolve mismatches.
--   **New:**
-    -   : Fetches all students with .
-    -   : Updates the data of a single pending student.
-    -   : Activates a corrected student, changing their status and clearing import errors.
+    -   The  route guard in  was updated to include the  role.
 
 **Critical Info for New Agent**
 -   **¡Habla en español!** You MUST communicate with the user in Spanish.
--   The new highest priority task is the **Dashboard Redesign**. Begin with **Phase 1: UI Implementation**. The goal is to add News, Calendar, and Survey widgets to ALL dashboards (Owner, Admin, Teacher, Student, Parent) using mock data and remove the corresponding links from the sidebars.
--   The Student Import feature is complete, highly complex, and heavily tested. Do not modify it unless a specific bug is reported by the user.
--   The technical debt in  and  is severe. Propose refactoring  as the next major task after the dashboard UI is delivered and approved.
+-   The session started by fixing a major discrepancy where the fork's code was much older than production. The  is now in sync.
+-   The user's next priority is a large new feature: a **Massive Broadcast Communication System**. A detailed PRD has been provided. This should be the first task.
+-   The Live Classes module was fully implemented and tested with the testing agent, passing all tests.
+-   Pay attention to the critical refactoring tasks (, ) and inherited backlog issues.
 
 **documents and test reports created in this job**
 -   
--   
--   
--    (updated multiple times)
+-    (updated with Live Classes and Broadcast System requirements)
 
 **Last 10 User Messages and any pending HUMAN messages**
-10. **User:** Requests a Pending section for students who fail import, where an admin can correct their data. **Status: COMPLETED.**
-9.  **User:** Asks how to handle import records with errors. **Status: COMPLETED.**
-8.  **User:** Requests intelligent normalization for the Gender field during import to accept variations like 'm', 'f', 'hombre', 'mujer', etc. **Status: COMPLETED.**
-7.  **User:** Requests adding Cumpleaños (Birthday) and Género (Gender) to the Excel template and DNI to the student creation form. **Status: COMPLETED.**
-6.  **User:** Reports the Turno (Shift) is not appearing in the downloaded template header. **Status: COMPLETED** (fixed by making Turno a mandatory filter).
-5.  **User:** Provides several improvements for the Excel template: add a note about auto-generated credentials, freeze headers, and replace the generic Excel icon. Also requests a robust template verification system to prevent imports into the wrong section using hidden metadata. **Status: COMPLETED.**
-4.  **User:** Provides detailed specs for a complete redesign of the student import flow, moving it from the header to a dedicated block below the filters, with a new modal and improved template. **Status: COMPLETED.**
-3.  **User:** Reports the import feature has bugs and is not working as expected. Provides a long list of detailed requirements for a professional-grade import system. **Status: COMPLETED.**
-2.  **User:** Confirms the scope for the new Dashboard Widgets task: they should appear on all portals (Owner, Admin, Teacher, Student, Parent), the backend should be created if it doesn't exist, and the implementation should start with the visual part using mock data. **Status: IN PROGRESS.**
-1.  **User:** Requests a major dashboard redesign: move Encuestas, Calendario, and Noticias from the sidebar into widgets on the main dashboard for all users. **Status: IN PROGRESS.**
+1.  **User:** Asks why the fork lost so much work compared to production. **Status: Addressed.**
+2.  **User:** Provides PRD for Live Classes module. **Status: COMPLETED.**
+3.  **User:** Asks how an admin can access/manage live classes. **Status: COMPLETED.**
+4.  **User:** Specifies that admins/owners/teachers should manage classes from within the course view via a tab. **Status: COMPLETED.**
+5.  **User:** Requests the Live Classes tab content to be full-width, without the header or side columns. **Status: COMPLETED.**
+6.  **User:** Requests a round icon button for Clases en Vivo in the student and parent portals. **Status: COMPLETED.**
+7.  **User:** Clarifies that the same round-icon menu bar should be used for ALL roles (parent, owner, admin, teacher). **Status: USER VERIFICATION PENDING.**
+8.  **User:** Provides PRD for Massive Broadcast Communication System. **Status: NOT STARTED.**
 
 **Project Health Check:**
--   **Broken**: No.
--   **Mocked**: The original Asistencia del Mes and Noticias y Avisos components on the Owner's dashboard still use hardcoded data. This will be replaced by the new dashboard widget task.
+-   **Broken**: None.
+-   **Mocked**: Data on the Owner's dashboard (Asistencia del Mes, Noticias y Avisos) is still hardcoded.
 
 **3rd Party Integrations**
 -   Cloudinary (Image Storage)
--    (Data analysis and manipulation)
--    (Python library to read/write Excel files)
+-    (Data analysis)
+-    (Excel file handling)
+-    (Timezone handling)
 
 **Testing status**
--   **Testing agent used after significant changes**: YES. The agent was used extensively to verify the multi-faceted student import feature, including backend logic, frontend UI, and mismatch handling.
+-   **Testing agent used after significant changes**: YES, for the Live Classes module. It passed 100%.
 -   **Troubleshoot agent used after agent stuck in loop**: NO
 -   **Test files created**: None.
--   **Known regressions**: None.
+-   **Known regressions**: None identified in this session.
 
 **Credentials to test flow:**
 -   **School Owner / Admin:**
     -   **Subdomain:** 
     -   **Email:** 
     -   **Password:** 
--   **Parent:**
-    -   **Subdomain:** 
-    -   **Email:** 
-    -   **Password:** 
--   **Teacher:**
-    -   **Subdomain:** 
-    -   **Email:** 
-    -   **Password:** 
 
 **What agent forgot to execute**
--   The agent correctly prioritized the user's active, high-impact feature requests (Student Import System) over inherited, lower-priority issues and major refactoring tasks. Nothing was forgotten in the context of the active workflow. The pending technical debt ( refactor) and inherited bugs remain in the backlog.</analysis>
+-   The agent did not delete the unused widget components (, , ) from .
+-   The three inherited issues (disappearing student selection, hardcoded dashboard, message count discrepancy) remain unaddressed.</analysis>
