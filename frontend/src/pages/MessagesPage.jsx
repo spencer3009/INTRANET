@@ -551,7 +551,7 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   const folders = [
     { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread },
     { id: "sent", label: "Enviados", icon: Send, count: stats.sent },
-    { id: "broadcasts", label: "Comunicados", icon: Megaphone, count: broadcastMessages.length },
+    { id: "broadcasts", label: "Comunicados", icon: Megaphone },
     { id: "archived", label: "Archivados", icon: Archive, count: stats.archived },
     { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash },
   ];
