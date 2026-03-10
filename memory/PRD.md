@@ -1,85 +1,70 @@
 # EduNet - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-EduNet es una plataforma de intranet escolar (SaaS) para colegios en Perú. Incluye gestión de usuarios, asistencia con QR, pagos, calificaciones, tareas, comunicación interna, y más.
+EduNet is a full-stack educational intranet platform (React + FastAPI + MongoDB) for schools in Peru. It provides modules for managing users, courses, grades, attendance, payments, messaging, live classes, and more. The platform supports multiple roles: Owner, Admin, Teacher, Student, and Parent.
 
-## Architecture
-- **Frontend**: React + Tailwind CSS + Shadcn UI
-- **Backend**: FastAPI (Python) with MongoDB (Motor async)
-- **Database**: MongoDB (`test_database`)
-- **Timezone**: America/Lima (UTC-5)
-- **3rd Party**: Cloudinary (images), pandas + openpyxl (reports)
+## Core Architecture
+- **Frontend:** React 18 + Tailwind CSS + Shadcn/UI + TipTap Editor
+- **Backend:** FastAPI (Python) + MongoDB
+- **Auth:** JWT-based authentication with role-based access
+- **3rd Party:** Cloudinary (images), Google Drive integration, pandas/openpyxl for reports
+
+## Credentials
+- Owner: admin@elroble.edu / 1234abc8 (subdomain: elroble)
 
 ## What's Been Implemented
 
-### Core Modules (Pre-existing)
-- Auth (JWT), User CRUD, School Config, Roles & Permissions
-- Attendance with QR scanning
-- Academic management (grades, sections, subjects, assignments)
-- Payments module
-- Tasks/assignments, Exams, Grades/report cards
-- Internal messaging
-- Parent portal
-- Landing page (edunet.pe)
+### Completed Features
+1. **Landing Page** - Full production-matching landing page with hero, 18-feature grid, footer
+2. **Live Classes Module** - Full CRUD for virtual classes with Meet/Zoom links, attendance tracking, role-based views (Teacher/Student/Admin pages), sidebar integration, course detail integration
+3. **Massive Broadcast Communication System** (March 2026)
+   - Permission system: Owner always has broadcast permission, Admin configurable via settings
+   - Settings toggle: "Comunicados Institucionales" section in Settings page for owner
+   - Compose modal enhancement: Broadcast toggle with role checkboxes (Profesores, Alumnos, Padres, Administradores)
+   - Recipient count preview before sending
+   - Background job for creating receiver records
+   - Comunicados folder in Messages page with special COMUNICADO tag styling
+   - Broadcast detail view with read statistics (Enviados/Leidos/Pendientes)
+   - Mandatory popup (BroadcastPopup) on all dashboards for unread broadcasts
+   - Dashboard banner (BroadcastBanner) for unread broadcasts
+   - NotificationBell integration showing broadcast count
+   - Broadcast inbox for receivers with read/unread status
 
-### Session: 2026-03-09 - Landing Page Sync + Live Classes Module
+### API Endpoints - Broadcast Module
+- `GET /api/broadcast/permission` - Check broadcast permission
+- `GET /api/broadcast/recipients-count` - Get recipient counts by role
+- `POST /api/broadcast/send` - Send broadcast (background task)
+- `GET /api/broadcast/sent` - Get sent broadcasts with stats
+- `GET /api/broadcast/unread` - Get unread broadcasts for user
+- `POST /api/broadcast/{id}/read` - Mark broadcast as read
+- `GET /api/broadcast/{id}/stats` - Get read statistics
+- `GET /api/broadcast/inbox` - Get broadcast inbox for receivers
 
-#### Landing Page Sync (Completed)
-- Rebuilt landing page to match production (edunet.pe)
-- 18 feature cards, footer, hero with phone mockup + registration form
-- All CTAs point to WhatsApp, proper section order
-
-#### Clases en Vivo Module (NEW - Completed)
-**Backend Endpoints:**
-- `POST /api/live-classes` - Create live class (teacher only)
-- `GET /api/live-classes` - List with role-based filtering
-- `GET /api/live-classes/{id}` - Detail
-- `PUT /api/live-classes/{id}` - Update (teacher owner)
-- `DELETE /api/live-classes/{id}` - Delete (teacher owner)
-- `POST /api/live-classes/{id}/join` - Student joins + records attendance
-- `GET /api/live-classes/{id}/attendance` - Attendance list
-
-**Frontend:**
-- `TeacherLiveClassesPage.jsx` - Full CRUD, attendance panel
-- `StudentLiveClassesPage.jsx` - View + join classes
-- Sidebar navigation added for both roles
-
-**DB Collections:**
-- `live_classes`: id, school_id, title, description, subject_id, section_id, teacher_id, date, start_time, end_time, meeting_link, platform, status
-- `live_class_attendance`: id, school_id, class_id, student_id, status, join_time
-
-**Testing:** 100% passed (22/22 backend, all frontend verified)
+### DB Collections - Broadcast Module
+- `broadcast_messages`: id, school_id, subject, body, target_roles, sender_id, sender_name, sender_role, sender_photo, total_recipients, read_count, message_type, priority, status, created_at
+- `broadcast_receivers`: id, message_id, user_id, school_id, read_at, created_at
 
 ## Prioritized Backlog
 
-### P1 - Bugs
+### P0 (Critical)
+- Modularize server.py into domain-specific routers (tech debt)
+
+### P1 (High)
 - Fix disappearing student selection in PaymentFormModal
-- Message Center unread count discrepancy
+- Remove hardcoded data from Owner Dashboard (recurring issue)
+- Fix Message Center unread count discrepancy (recurring issue)
+- Dashboard Widgets Phase 2 (news, events, surveys CRUD)
+- Attendance Configuration Phase 2
 
-### P1 - Features
-- Remove hardcoded data from Owner Dashboard (recurring 5+ times)
-- Dashboard widgets Phase 2 (news, events, surveys CRUD)
-- Attendance configuration (schedules)
-
-### P2 - Tech Debt
-- Modularize server.py into domain routers (CRITICAL)
-- Refactor UsersPage.jsx (4000+ lines)
-- Delete unused widget components
-
-### P2 - Features
-- Parent Portal parity
-- Matrículas module
-- Exam question bank
+### P2 (Medium)
+- Complete Parent Portal feature parity
+- Build "Matriculas" (Enrollments) module
+- Enhance Exams module with Question Bank
 - Replace window.confirm/alert with custom modals
+- Refactor UsersPage.jsx (4000+ lines)
+- Delete unused widget components (NewsWidget, CalendarWidget, SurveyWidget)
 
-### P3 - Live Classes Enhancements (Future)
-- Class recordings
-- Class history reports
-- Automatic reminders
-- Calendar integration
-
-## Test Credentials
-- Owner: admin@elroble.edu / 1234abc8 (subdomain: elroble)
-- Teacher Jorge: jorge@gmail.com / 1234abc8 (subdomain: demosettings)
-- Teacher Julia: julia@gmail.com / 1234abc8 (subdomain: demosettings)
-- Student Carlos: carlos234@gmail.com / 1234abc8 (subdomain: demosettings)
+## Known Issues
+- Owner Dashboard has hardcoded "Asistencia del Mes" and "Noticias y Avisos" data
+- Message Center unread count may not match dashboard widget count
+- PaymentFormModal student selection reportedly disappears after selection
