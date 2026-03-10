@@ -838,13 +838,15 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
                     <p className="text-sm text-slate-400">Esta carpeta está vacía</p>
                   </div>
                 ) : (
-                  filteredMessages.map((msg, index) => (
+                  filteredMessages.map((msg, index) => {
+                    const isRead = activeFolder === "sent" || activeFolder === "trash" || msg.is_read;
+                    return (
                     <button
                       key={msg.id}
                       onClick={() => handleSelectMessage(msg)}
                       className={`w-full p-4 border-b border-slate-100 text-left transition-all hover:bg-slate-50 ${
                         selectedMessage?.id === msg.id ? (msg.message_type === "broadcast" ? "bg-amber-50 border-l-4 border-l-amber-500" : "bg-indigo-50 border-l-4 border-l-indigo-500") : ""
-                      } ${!msg.is_read ? (msg.message_type === "broadcast" ? "bg-amber-50/30" : "bg-blue-50/50") : ""}`}
+                      } ${!isRead ? (msg.message_type === "broadcast" ? "bg-amber-50/30" : "bg-blue-50/50") : ""}`}
                       style={{ animationDelay: `${index * 30}ms` }}
                       data-testid={`message-${msg.id}`}
                     >
@@ -871,7 +873,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
                               {msg.message_type === "broadcast" && (
                                 <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase flex-shrink-0">Comunicado</span>
                               )}
-                              <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-slate-900" : "font-medium text-slate-700"}`}>
+                              <p className={`text-sm truncate ${!isRead ? "font-bold text-slate-900" : "font-normal text-slate-700"}`}>
                                 {activeFolder === "sent" 
                                   ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
                                   : msg.sender?.name || "Remitente desconocido"
@@ -880,19 +882,20 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
                             </div>
                             <span className="text-xs text-slate-400 whitespace-nowrap font-medium">{formatDate(msg.created_at)}</span>
                           </div>
-                          <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-slate-800" : "text-slate-600"}`}>
+                          <p className={`text-sm truncate ${!isRead ? "font-semibold text-slate-800" : "font-normal text-slate-600"}`}>
                             {msg.subject}
                           </p>
-                          <p className={`text-xs truncate mt-1 ${!msg.is_read ? "font-medium text-slate-500" : "text-slate-400"}`}>{stripHtml(msg.body_preview)}</p>
+                          <p className={`text-xs truncate mt-1 ${!isRead ? "font-medium text-slate-500" : "font-normal text-slate-400"}`}>{stripHtml(msg.body_preview)}</p>
                         </div>
                         
                         <div className="flex flex-col items-center gap-1.5">
-                          {!msg.is_read && <Circle className={`w-2.5 h-2.5 ${msg.message_type === "broadcast" ? "fill-amber-500 text-amber-500" : "fill-blue-500 text-blue-500"}`} />}
+                          {!isRead && <Circle className={`w-2.5 h-2.5 ${msg.message_type === "broadcast" ? "fill-amber-500 text-amber-500" : "fill-blue-500 text-blue-500"}`} />}
                           {msg.has_attachments && <Paperclip className="w-3.5 h-3.5 text-slate-400" />}
                         </div>
                       </div>
                     </button>
-                  ))
+                    );
+                  })
                 )}
               </div>
               

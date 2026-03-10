@@ -798,13 +798,15 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                   <p className="text-sm">Esta carpeta está vacía</p>
                 </div>
               ) : (
-                filteredMessages.map(msg => (
+                filteredMessages.map(msg => {
+                  const isRead = activeFolder === "sent" || activeFolder === "trash" || msg.is_read;
+                  return (
                   <button
                     key={msg.id}
                     onClick={() => handleSelectMessage(msg)}
                     className={`w-full p-4 border-b border-gray-100 text-left transition-all hover:bg-gray-50 ${
                       selectedMessage?.id === msg.id ? (msg.message_type === "broadcast" ? "bg-amber-50" : "bg-indigo-50") : ""
-                    } ${!msg.is_read ? (msg.message_type === "broadcast" ? "bg-amber-50/30" : "bg-blue-50/50") : ""}`}
+                    } ${!isRead ? (msg.message_type === "broadcast" ? "bg-amber-50/30" : "bg-blue-50/50") : ""}`}
                     data-testid={`message-${msg.id}`}
                   >
                     <div className="flex items-start gap-3">
@@ -830,7 +832,7 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                             {msg.message_type === "broadcast" && (
                               <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase flex-shrink-0">Comunicado</span>
                             )}
-                            <p className={`text-sm truncate ${!msg.is_read ? "font-bold text-gray-900" : "font-medium text-gray-700"}`}>
+                            <p className={`text-sm truncate ${!isRead ? "font-bold text-gray-900" : "font-normal text-gray-700"}`}>
                               {activeFolder === "sent" 
                                 ? (msg.recipients?.map(r => r.name).join(", ") || "Sin destinatarios")
                                 : msg.sender?.name || "Remitente desconocido"
@@ -839,19 +841,20 @@ export default function StudentMessagesPage({ user, token, onLogout }) {
                           </div>
                           <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(msg.created_at)}</span>
                         </div>
-                        <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-gray-800" : "text-gray-600"}`}>
+                        <p className={`text-sm truncate ${!isRead ? "font-semibold text-gray-800" : "font-normal text-gray-600"}`}>
                           {msg.subject}
                         </p>
-                        <p className={`text-xs truncate mt-0.5 ${!msg.is_read ? "font-medium text-gray-500" : "text-gray-400"}`}>{stripHtml(msg.body_preview)}</p>
+                        <p className={`text-xs truncate mt-0.5 ${!isRead ? "font-medium text-gray-500" : "font-normal text-gray-400"}`}>{stripHtml(msg.body_preview)}</p>
                       </div>
                       
                       <div className="flex flex-col items-center gap-1">
-                        {!msg.is_read && <Circle className={`w-2 h-2 ${msg.message_type === "broadcast" ? "fill-amber-500 text-amber-500" : "fill-blue-500 text-blue-500"}`} />}
+                        {!isRead && <Circle className={`w-2 h-2 ${msg.message_type === "broadcast" ? "fill-amber-500 text-amber-500" : "fill-blue-500 text-blue-500"}`} />}
                         {msg.has_attachments && <Paperclip className="w-3 h-3 text-gray-400" />}
                       </div>
                     </div>
                   </button>
-                ))
+                  );
+                })
               )}
             </div>
             
