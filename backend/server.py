@@ -20801,6 +20801,15 @@ async def get_message(message_id: str, current_user = Depends(get_current_user))
         {"_id": 0, "id": 1, "name": 1, "email": 1, "photo_url": 1, "role": 1}
     ).to_list(100)
     
+    # Build read stats for sender
+    read_stats = None
+    if is_sender:
+        all_recipients = msg.get("recipients", [])
+        total = len(all_recipients)
+        read_count = sum(1 for r in all_recipients if r.get("is_read"))
+        pending = total - read_count
+        read_stats = {"total": total, "read": read_count, "pending": pending}
+    
     return {
         "id": msg["id"],
         "subject": msg["subject"],
@@ -20819,7 +20828,8 @@ async def get_message(message_id: str, current_user = Depends(get_current_user))
         "is_starred": recipient_entry.get("is_starred", False) if recipient_entry else False,
         "is_archived": recipient_entry.get("is_archived", False) if recipient_entry else False,
         "thread_id": msg.get("thread_id"),
-        "reply_to_id": msg.get("reply_to_id")
+        "reply_to_id": msg.get("reply_to_id"),
+        "read_stats": read_stats
     }
 
 # Send new message

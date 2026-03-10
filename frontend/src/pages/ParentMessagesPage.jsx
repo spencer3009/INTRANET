@@ -438,6 +438,13 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
                     <div className="text-right"><p className="text-sm text-gray-500">{new Date(selectedMessage.created_at).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" })}</p></div>
                   </div>
                   {selectedMessage.recipients?.length > 0 && <div className="mt-3 flex items-center gap-2 text-sm text-gray-500"><span>Para:</span><span>{selectedMessage.recipients.map(r => r.name).join(", ")}</span></div>}
+                  {selectedMessage.read_stats && (
+                    <div className="mt-4 grid grid-cols-3 gap-3" data-testid="message-read-stats">
+                      <div className="bg-slate-50 rounded-xl p-3 text-center"><p className="text-2xl font-bold text-slate-700">{selectedMessage.read_stats.total}</p><p className="text-xs text-slate-500">Enviados</p></div>
+                      <div className="bg-emerald-50 rounded-xl p-3 text-center"><p className="text-2xl font-bold text-emerald-600">{selectedMessage.read_stats.read}</p><p className="text-xs text-emerald-600">Leidos</p></div>
+                      <div className="bg-amber-50 rounded-xl p-3 text-center"><p className="text-2xl font-bold text-amber-600">{selectedMessage.read_stats.pending}</p><p className="text-xs text-amber-600">Pendientes</p></div>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 overflow-y-auto p-6">
                   <div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: selectedMessage.body }} />
