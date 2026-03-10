@@ -17798,7 +17798,7 @@ async def get_broadcast_recipients_count(
         count = await db.users.count_documents({
             "school_id": school_id,
             "role": role,
-            "status": {"$in": ["active", "verified"]}
+            "is_active": {"$ne": False}
         })
         counts[role] = count
     
@@ -17830,7 +17830,7 @@ async def send_broadcast(data: BroadcastCreate, background_tasks: BackgroundTask
     
     # Get recipient count
     recipients = await db.users.find(
-        {"school_id": school_id, "role": {"$in": data.target_roles}, "status": {"$in": ["active", "verified"]}},
+        {"school_id": school_id, "role": {"$in": data.target_roles}, "is_active": {"$ne": False}},
         {"_id": 0, "id": 1}
     ).to_list(None)
     
