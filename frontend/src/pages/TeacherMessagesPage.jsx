@@ -535,6 +535,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
     try {
       const res = await axios.get(`${API}/api/internal-mail/${messageId}`, { headers });
       setSelectedMessage(res.data);
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, is_read: true } : m));
       loadStats();
     } catch (err) {
       console.error("Error loading message:", err);
@@ -882,7 +883,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
                           <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-slate-800" : "text-slate-600"}`}>
                             {msg.subject}
                           </p>
-                          <p className="text-xs text-slate-400 truncate mt-1">{stripHtml(msg.body_preview)}</p>
+                          <p className={`text-xs truncate mt-1 ${!msg.is_read ? "font-medium text-slate-500" : "text-slate-400"}`}>{stripHtml(msg.body_preview)}</p>
                         </div>
                         
                         <div className="flex flex-col items-center gap-1.5">

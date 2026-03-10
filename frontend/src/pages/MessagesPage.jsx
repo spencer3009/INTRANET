@@ -606,6 +606,8 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
     try {
       const res = await axios.get(`${API}/api/internal-mail/${messageId}`, { headers });
       setSelectedMessage(res.data);
+      // Immediately update local list to show as read
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, is_read: true } : m));
       loadStats();
     } catch (err) {
       console.error("Error loading message:", err);
@@ -615,7 +617,6 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   useEffect(() => {
     loadStats();
     loadSettings();
-    // Check broadcast permission
     axios.get(`${API}/api/broadcast/permission`, { headers })
       .then(res => setCanBroadcast(res.data.can_send_broadcast || false))
       .catch(() => setCanBroadcast(false));
@@ -879,11 +880,11 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                           <div className="flex items-center justify-between gap-2">
                             <div className="flex items-center gap-2 min-w-0">
                               <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase flex-shrink-0">Comunicado</span>
-                              <p className="text-sm font-bold text-gray-900 truncate">{b.sender_name || "Propietario"}</p>
+                              <p className={`text-sm truncate ${b.is_read === false ? "font-bold text-gray-900" : "font-normal text-gray-700"}`}>{b.sender_name || "Propietario"}</p>
                             </div>
                             <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(b.created_at)}</span>
                           </div>
-                          <p className="text-sm font-semibold text-gray-800 truncate">{b.subject}</p>
+                          <p className={`text-sm truncate ${b.is_read === false ? "font-semibold text-gray-800" : "font-normal text-gray-600"}`}>{b.subject}</p>
                           {canBroadcast && (
                             <div className="flex items-center gap-2 mt-1">
                               <span className="text-xs text-gray-400">{b.total_recipients} destinatarios</span>
@@ -949,7 +950,7 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                         <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-gray-800" : "text-gray-600"}`}>
                           {msg.subject}
                         </p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{stripHtml(msg.body_preview)}</p>
+                        <p className={`text-xs truncate mt-0.5 ${!msg.is_read ? "font-medium text-gray-500" : "text-gray-400"}`}>{stripHtml(msg.body_preview)}</p>
                       </div>
 
                       <div className="flex flex-col items-center gap-1">

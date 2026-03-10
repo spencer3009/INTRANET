@@ -227,7 +227,14 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
   };
 
   const loadMessage = async (messageId) => {
-    try { const res = await axios.get(`${API}/api/internal-mail/${messageId}`, { headers }); setSelectedMessage(res.data); loadStats(); } catch (err) { console.error("Error loading message:", err); }
+    try {
+      const res = await axios.get(`${API}/api/internal-mail/${messageId}`, { headers });
+      setSelectedMessage(res.data);
+      setMessages(prev => prev.map(m => m.id === messageId ? { ...m, is_read: true } : m));
+      loadStats();
+    } catch (err) {
+      console.error("Error loading message:", err);
+    }
   };
 
   useEffect(() => {
@@ -377,7 +384,7 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
                           <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(msg.created_at)}</span>
                         </div>
                         <p className={`text-sm truncate ${!msg.is_read ? "font-semibold text-gray-800" : "text-gray-600"}`}>{msg.subject}</p>
-                        <p className="text-xs text-gray-400 truncate mt-0.5">{stripHtml(msg.body_preview)}</p>
+                        <p className={`text-xs truncate mt-0.5 ${!msg.is_read ? "font-medium text-gray-500" : "text-gray-400"}`}>{stripHtml(msg.body_preview)}</p>
                       </div>
                       <div className="flex flex-col items-center gap-1">{!msg.is_read && <Circle className={`w-2 h-2 ${msg.message_type === "broadcast" ? "fill-amber-500 text-amber-500" : "fill-blue-500 text-blue-500"}`} />}{msg.has_attachments && <Paperclip className="w-3 h-3 text-gray-400" />}</div>
                     </div>
