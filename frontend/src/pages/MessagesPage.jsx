@@ -229,7 +229,7 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
           body: bodyContent,
           target_roles: selectedBroadcastRoles
         }, { headers });
-        onSent?.();
+        onSent?.(true); // true = was broadcast
         onClose();
       } catch (err) {
         setError(err.response?.data?.detail || "Error al enviar el comunicado");
@@ -255,7 +255,7 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
           recipient_ids: recipients.map(r => r.id)
         }, { headers });
       }
-      onSent?.();
+      onSent?.(false); // false = regular message
       onClose();
     } catch (err) {
       setError(err.response?.data?.detail || "Error al enviar el mensaje");
@@ -1148,7 +1148,14 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
         isOpen={showCompose}
         onClose={() => { setShowCompose(false); setReplyTo(null); }}
         token={token}
-        onSent={() => { loadMessages(activeFolder); loadStats(); }}
+        onSent={(wasBroadcast) => {
+          if (wasBroadcast) {
+            setActiveFolder("broadcasts");
+          } else {
+            loadMessages(activeFolder);
+          }
+          loadStats();
+        }}
         replyTo={replyTo}
         user={user}
       />
