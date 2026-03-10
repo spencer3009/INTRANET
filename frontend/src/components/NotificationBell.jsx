@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import {
   Bell, X, Calendar, FileText, BookOpen, AlertCircle,
   Clock, ChevronRight, Eye, Loader2, Sparkles, PenTool,
-  FolderOpen, MessageSquare, CheckCircle, CheckCheck, ExternalLink, Wifi, WifiOff
+  FolderOpen, MessageSquare, CheckCircle, CheckCheck, ExternalLink, Wifi, WifiOff,
+  Megaphone
 } from "lucide-react";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
 
@@ -213,6 +214,7 @@ export default function NotificationBell({ token }) {
   const [notifications, setNotifications] = useState({ important: [], upcoming: [], new: [], total_count: 0 });
   const [generalNotifications, setGeneralNotifications] = useState({ notifications: [], unread_count: 0 });
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadBroadcasts, setUnreadBroadcasts] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
@@ -268,14 +270,16 @@ export default function NotificationBell({ token }) {
     if (!token) return;
     setLoading(true);
     try {
-      const [remindersRes, generalRes, messagesRes] = await Promise.all([
+      const [remindersRes, generalRes, messagesRes, broadcastRes] = await Promise.all([
         axios.get(`${API}/notifications/reminders`, { headers }),
         axios.get(`${API}/notifications/all`, { headers }).catch(() => ({ data: { notifications: [], unread_count: 0 } })),
-        axios.get(`${API}/internal-mail/stats`, { headers }).catch(() => ({ data: { unread: 0 } }))
+        axios.get(`${API}/internal-mail/stats`, { headers }).catch(() => ({ data: { unread: 0 } })),
+        axios.get(`${API}/broadcast/unread`, { headers }).catch(() => ({ data: { count: 0 } }))
       ]);
       setNotifications(remindersRes.data);
       setGeneralNotifications(generalRes.data);
       setUnreadMessages(messagesRes.data.unread || 0);
+      setUnreadBroadcasts(broadcastRes.data.count || 0);
     } catch (err) {
       console.error("Error loading notifications:", err);
     } finally {
@@ -353,7 +357,7 @@ export default function NotificationBell({ token }) {
 
   const handleReminderClick = (reminder) => setSelectedReminder(reminder);
 
-  const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0) + unreadMessages;
+  const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0) + unreadMessages + unreadBroadcasts;
   const hasNotifications = totalCount > 0;
 
   return (
@@ -427,6 +431,25 @@ export default function NotificationBell({ token }) {
                 <p className="text-xs text-indigo-600">Haz clic para ver tu bandeja de entrada</p>
               </div>
               <ChevronRight className="w-4 h-4 text-indigo-400" />
+            </div>
+          )}
+
+          {/* Broadcast notifications */}
+          {unreadBroadcasts > 0 && (
+            <div
+              className="flex items-center gap-3 px-4 py-3 bg-amber-50 border-b border-amber-100 hover:bg-amber-100 transition-colors cursor-pointer"
+              data-testid="unread-broadcasts-link"
+            >
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                <Megaphone className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-900">
+                  {unreadBroadcasts} comunicado{unreadBroadcasts !== 1 ? "s" : ""} institucional{unreadBroadcasts !== 1 ? "es" : ""}
+                </p>
+                <p className="text-xs text-amber-600">Comunicados pendientes de lectura</p>
+              </div>
+              <ChevronRight className="w-4 h-4 text-amber-400" />
             </div>
           )}
 

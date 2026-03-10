@@ -17,7 +17,8 @@ import {
   Edit3, Reply, MailOpen, AlertCircle, AlertTriangle,
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
-  Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore
+  Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore,
+  Megaphone, Users, CheckSquare, Square
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -87,7 +88,7 @@ function EditorToolbar({ editor }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // COMPOSE MODAL
 // ══════════════════════════════════════════════════════════════════════════════
-function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
+function ComposeModal({ isOpen, onClose, token, onSent, replyTo, user }) {
   const [recipients, setRecipients] = useState([]);
   const [subject, setSubject] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,7 +98,21 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
   const [error, setError] = useState("");
   const [showRecipientDropdown, setShowRecipientDropdown] = useState(false);
 
+  // Broadcast state
+  const [canBroadcast, setCanBroadcast] = useState(false);
+  const [isBroadcast, setIsBroadcast] = useState(false);
+  const [broadcastRoles, setBroadcastRoles] = useState({ teacher: false, student: false, parent: false, admin: false });
+  const [recipientCounts, setRecipientCounts] = useState({ teacher: 0, student: 0, parent: 0, admin: 0 });
+  const [loadingCounts, setLoadingCounts] = useState(false);
+
   const headers = { Authorization: `Bearer ${token}` };
+
+  const BROADCAST_ROLE_LABELS = {
+    teacher: "Profesores",
+    student: "Alumnos",
+    parent: "Padres",
+    admin: "Administradores"
+  };
 
   const editor = useEditor({
     extensions: [
@@ -114,6 +129,37 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
     },
   });
 
+  // Check broadcast permission on open
+  useEffect(() => {
+    if (!isOpen || !token) return;
+    const checkPermission = async () => {
+      try {
+        const res = await axios.get(`${API}/api/broadcast/permission`, { headers });
+        setCanBroadcast(res.data.can_send_broadcast || false);
+      } catch {
+        setCanBroadcast(false);
+      }
+    };
+    checkPermission();
+  }, [isOpen, token]);
+
+  // Load recipient counts when broadcast mode enabled
+  useEffect(() => {
+    if (!isBroadcast || !token) return;
+    const loadCounts = async () => {
+      setLoadingCounts(true);
+      try {
+        const res = await axios.get(`${API}/api/broadcast/recipients-count`, { headers });
+        setRecipientCounts(res.data.counts || {});
+      } catch (err) {
+        console.error("Error loading counts:", err);
+      } finally {
+        setLoadingCounts(false);
+      }
+    };
+    loadCounts();
+  }, [isBroadcast, token]);
+
   useEffect(() => {
     if (replyTo) {
       setSubject(replyTo.subject.startsWith("Re:") ? replyTo.subject : `Re: ${replyTo.subject}`);
@@ -124,6 +170,8 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
     }
     if (editor) editor.commands.setContent("");
     setError("");
+    setIsBroadcast(false);
+    setBroadcastRoles({ teacher: false, student: false, parent: false, admin: false });
   }, [replyTo, isOpen, editor]);
 
   const searchContacts = async (query) => {
@@ -158,12 +206,41 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
 
   const removeRecipient = (id) => setRecipients(recipients.filter(r => r.id !== id));
 
+  const toggleBroadcastRole = (role) => {
+    setBroadcastRoles(prev => ({ ...prev, [role]: !prev[role] }));
+  };
+
+  const selectedBroadcastRoles = Object.entries(broadcastRoles).filter(([, v]) => v).map(([k]) => k);
+  const broadcastTotal = selectedBroadcastRoles.reduce((sum, r) => sum + (recipientCounts[r] || 0), 0);
+
   const handleSend = async () => {
-    if (recipients.length === 0) return setError("Selecciona al menos un destinatario");
     if (!subject.trim()) return setError("El asunto es requerido");
     const bodyContent = editor?.getHTML() || "";
     const bodyText = editor?.getText() || "";
     if (!bodyText.trim()) return setError("El mensaje no puede estar vacio");
+
+    // Broadcast mode
+    if (isBroadcast && selectedBroadcastRoles.length > 0) {
+      setSending(true);
+      setError("");
+      try {
+        await axios.post(`${API}/api/broadcast/send`, {
+          subject: subject.trim(),
+          body: bodyContent,
+          target_roles: selectedBroadcastRoles
+        }, { headers });
+        onSent?.();
+        onClose();
+      } catch (err) {
+        setError(err.response?.data?.detail || "Error al enviar el comunicado");
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+
+    // Normal message mode
+    if (recipients.length === 0) return setError("Selecciona al menos un destinatario");
 
     setSending(true);
     setError("");
@@ -193,13 +270,17 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
     <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        <div className={`${isBroadcast && selectedBroadcastRoles.length > 0 ? 'bg-gradient-to-r from-amber-500 to-orange-500' : 'bg-gradient-to-r from-indigo-600 to-purple-600'} px-6 py-4 flex items-center justify-between flex-shrink-0 transition-colors`}>
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-              <Edit3 className="w-5 h-5 text-white" />
+              {isBroadcast && selectedBroadcastRoles.length > 0 ? (
+                <Megaphone className="w-5 h-5 text-white" />
+              ) : (
+                <Edit3 className="w-5 h-5 text-white" />
+              )}
             </div>
             <h2 className="text-lg font-semibold text-white">
-              {replyTo ? "Responder mensaje" : "Nuevo mensaje"}
+              {isBroadcast && selectedBroadcastRoles.length > 0 ? "Comunicado Institucional" : replyTo ? "Responder mensaje" : "Nuevo mensaje"}
             </h2>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-white/20 rounded-lg transition-colors">
@@ -214,61 +295,137 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Para:</label>
-            <div className="relative">
-              <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[48px]">
-                {recipients.map(r => (
-                  <span key={r.id} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
-                    {r.name}
-                    <button onClick={() => removeRecipient(r.id)} className="hover:text-indigo-900"><X className="w-3 h-3" /></button>
-                  </span>
-                ))}
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => { setSearchQuery(e.target.value); setShowRecipientDropdown(true); }}
-                  onFocus={() => setShowRecipientDropdown(true)}
-                  placeholder={recipients.length === 0 ? "Buscar destinatarios..." : ""}
-                  className="flex-1 min-w-[150px] bg-transparent focus:outline-none text-sm"
-                  data-testid="compose-recipient-search"
-                />
+          {/* Para: field (hidden when broadcast is active with roles selected) */}
+          {!(isBroadcast && selectedBroadcastRoles.length > 0) && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Para:</label>
+              <div className="relative">
+                <div className="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[48px]">
+                  {recipients.map(r => (
+                    <span key={r.id} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-sm">
+                      {r.name}
+                      <button onClick={() => removeRecipient(r.id)} className="hover:text-indigo-900"><X className="w-3 h-3" /></button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => { setSearchQuery(e.target.value); setShowRecipientDropdown(true); }}
+                    onFocus={() => setShowRecipientDropdown(true)}
+                    placeholder={recipients.length === 0 ? "Buscar destinatarios..." : ""}
+                    className="flex-1 min-w-[150px] bg-transparent focus:outline-none text-sm"
+                    data-testid="compose-recipient-search"
+                  />
+                </div>
+
+                {showRecipientDropdown && (searchResults.length > 0 || searching) && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                    {searching ? (
+                      <div className="p-3 text-center text-gray-500"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
+                    ) : (
+                      searchResults.map(contact => {
+                        const fullName = contact.last_name
+                          ? `${contact.name || contact.first_name || ''} ${contact.last_name}`.trim()
+                          : contact.name || contact.first_name || '';
+                        return (
+                          <button
+                            key={contact.id}
+                            onClick={() => addRecipient(contact)}
+                            className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
+                          >
+                            {contact.photo_url ? (
+                              <img src={contact.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
+                                {fullName?.charAt(0)}
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-800 truncate">{fullName}</p>
+                              <p className="text-xs text-gray-500">{ROLE_LABELS[contact.role] || contact.role}</p>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Broadcast Section - Only visible for authorized users */}
+          {canBroadcast && !replyTo && (
+            <div className="border border-amber-200 bg-amber-50/50 rounded-xl p-4" data-testid="broadcast-section">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-amber-600" />
+                  <span className="text-sm font-semibold text-amber-800">Comunicado Institucional</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsBroadcast(!isBroadcast)}
+                  className={`relative w-11 h-6 rounded-full transition-colors ${isBroadcast ? 'bg-amber-500' : 'bg-gray-300'}`}
+                  data-testid="broadcast-toggle"
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${isBroadcast ? 'translate-x-5' : ''}`} />
+                </button>
               </div>
 
-              {showRecipientDropdown && (searchResults.length > 0 || searching) && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
-                  {searching ? (
-                    <div className="p-3 text-center text-gray-500"><Loader2 className="w-4 h-4 animate-spin mx-auto" /></div>
-                  ) : (
-                    searchResults.map(contact => {
-                      const fullName = contact.last_name
-                        ? `${contact.name || contact.first_name || ''} ${contact.last_name}`.trim()
-                        : contact.name || contact.first_name || '';
-                      return (
-                        <button
-                          key={contact.id}
-                          onClick={() => addRecipient(contact)}
-                          className="w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors text-left"
-                        >
-                          {contact.photo_url ? (
-                            <img src={contact.photo_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+              {isBroadcast && (
+                <div className="space-y-3 mt-3 pt-3 border-t border-amber-200">
+                  <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Destinatarios del comunicado</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(BROADCAST_ROLE_LABELS).map(([role, label]) => (
+                      <button
+                        key={role}
+                        type="button"
+                        onClick={() => toggleBroadcastRole(role)}
+                        className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border-2 transition-all text-left ${
+                          broadcastRoles[role]
+                            ? 'border-amber-500 bg-amber-100 text-amber-800'
+                            : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                        }`}
+                        data-testid={`broadcast-role-${role}`}
+                      >
+                        {broadcastRoles[role] ? (
+                          <CheckSquare className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                        ) : (
+                          <Square className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium">{label}</p>
+                          {loadingCounts ? (
+                            <Loader2 className="w-3 h-3 animate-spin text-gray-400" />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white text-sm font-bold">
-                              {fullName?.charAt(0)}
-                            </div>
+                            <p className="text-xs text-gray-400">{recipientCounts[role] || 0} usuarios</p>
                           )}
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-800 truncate">{fullName}</p>
-                            <p className="text-xs text-gray-500">{ROLE_LABELS[contact.role] || contact.role}</p>
-                          </div>
-                        </button>
-                      );
-                    })
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Recipient preview */}
+                  {selectedBroadcastRoles.length > 0 && (
+                    <div className="bg-white border border-amber-200 rounded-lg p-3 mt-2" data-testid="broadcast-preview">
+                      <p className="text-xs font-semibold text-gray-600 mb-2">Este comunicado sera enviado a:</p>
+                      {selectedBroadcastRoles.map(role => (
+                        <p key={role} className="text-sm text-amber-700 flex items-center gap-1.5">
+                          <CheckSquare className="w-3.5 h-3.5" />
+                          {recipientCounts[role] || 0} {BROADCAST_ROLE_LABELS[role]?.toLowerCase()}
+                        </p>
+                      ))}
+                      <div className="mt-2 pt-2 border-t border-gray-100">
+                        <p className="text-sm font-bold text-gray-800">
+                          Total destinatarios: {broadcastTotal.toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
                   )}
                 </div>
               )}
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">Asunto:</label>
@@ -300,11 +457,11 @@ function ComposeModal({ isOpen, onClose, token, onSent, replyTo }) {
             <button
               onClick={handleSend}
               disabled={sending}
-              className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-lg flex items-center gap-2 transition-all disabled:opacity-50"
+              className={`px-6 py-2 ${isBroadcast && selectedBroadcastRoles.length > 0 ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600' : 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700'} text-white font-semibold rounded-lg flex items-center gap-2 transition-all disabled:opacity-50`}
               data-testid="compose-send-btn"
             >
-              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-              Enviar
+              {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : isBroadcast && selectedBroadcastRoles.length > 0 ? <Megaphone className="w-4 h-4" /> : <Send className="w-4 h-4" />}
+              {isBroadcast && selectedBroadcastRoles.length > 0 ? "Enviar Comunicado" : "Enviar"}
             </button>
           </div>
         </div>
@@ -379,6 +536,13 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, messageId: null });
   const [confirmLoading, setConfirmLoading] = useState(false);
 
+  // Broadcast state
+  const [broadcastMessages, setBroadcastMessages] = useState([]);
+  const [selectedBroadcast, setSelectedBroadcast] = useState(null);
+  const [broadcastStats, setBroadcastStats] = useState(null);
+  const [broadcastStatsLoading, setBroadcastStatsLoading] = useState(false);
+  const [canBroadcast, setCanBroadcast] = useState(false);
+
   const headers = { Authorization: `Bearer ${token}` };
 
   const schoolName = settings?.system_name || user?.school_name || "Mi Colegio";
@@ -387,6 +551,7 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   const folders = [
     { id: "inbox", label: "Bandeja de entrada", icon: Inbox, count: stats.inbox, badge: stats.unread },
     { id: "sent", label: "Enviados", icon: Send, count: stats.sent },
+    { id: "broadcasts", label: "Comunicados", icon: Megaphone, count: broadcastMessages.length },
     { id: "archived", label: "Archivados", icon: Archive, count: stats.archived },
     { id: "trash", label: "Papelera", icon: Trash2, count: stats.trash },
   ];
@@ -410,6 +575,21 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   };
 
   const loadMessages = async (folder) => {
+    if (folder === "broadcasts") {
+      setLoading(true);
+      try {
+        // If can broadcast (owner/admin), show sent broadcasts; otherwise show inbox
+        const endpoint = canBroadcast ? `${API}/api/broadcast/sent` : `${API}/api/broadcast/inbox`;
+        const res = await axios.get(endpoint, { headers });
+        setBroadcastMessages(res.data.broadcasts || []);
+      } catch (err) {
+        console.error("Error loading broadcasts:", err);
+        setBroadcastMessages([]);
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
     setLoading(true);
     try {
       const res = await axios.get(`${API}/api/internal-mail/${folder}`, { headers });
@@ -435,11 +615,17 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
   useEffect(() => {
     loadStats();
     loadSettings();
+    // Check broadcast permission
+    axios.get(`${API}/api/broadcast/permission`, { headers })
+      .then(res => setCanBroadcast(res.data.can_send_broadcast || false))
+      .catch(() => setCanBroadcast(false));
   }, [token]);
 
   useEffect(() => {
     loadMessages(activeFolder);
     setSelectedMessage(null);
+    setSelectedBroadcast(null);
+    setBroadcastStats(null);
   }, [activeFolder]);
 
   const handleSelectMessage = (msg) => {
@@ -510,6 +696,33 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
     if (selectedMessage) {
       setReplyTo(selectedMessage);
       setShowCompose(true);
+    }
+  };
+
+  const handleSelectBroadcast = async (broadcast) => {
+    setSelectedBroadcast(broadcast);
+    setSelectedMessage(null);
+    setMobileView("message");
+    // If sender, load stats
+    if (canBroadcast) {
+      setBroadcastStatsLoading(true);
+      try {
+        const res = await axios.get(`${API}/api/broadcast/${broadcast.id}/stats`, { headers });
+        setBroadcastStats(res.data);
+      } catch (err) {
+        console.error("Error loading stats:", err);
+        setBroadcastStats(null);
+      } finally {
+        setBroadcastStatsLoading(false);
+      }
+    } else {
+      // Mark as read for receiver
+      try {
+        await axios.post(`${API}/api/broadcast/${broadcast.id}/read`, {}, { headers });
+        setBroadcastMessages(prev => prev.map(b => b.id === broadcast.id ? { ...b, is_read: true } : b));
+      } catch (err) {
+        console.error("Error marking broadcast read:", err);
+      }
     }
   };
 
@@ -640,6 +853,50 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
                 <div className="flex items-center justify-center h-full">
                   <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
                 </div>
+              ) : activeFolder === "broadcasts" ? (
+                broadcastMessages.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8">
+                    <Megaphone className="w-16 h-16 mb-4 opacity-50" />
+                    <p className="text-lg font-medium">No hay comunicados</p>
+                    <p className="text-sm">Los comunicados institucionales apareceran aqui</p>
+                  </div>
+                ) : (
+                  broadcastMessages.map(b => (
+                    <button
+                      key={b.id}
+                      onClick={() => handleSelectBroadcast(b)}
+                      className={`w-full p-4 border-b border-gray-100 text-left transition-all hover:bg-amber-50/50 ${
+                        selectedBroadcast?.id === b.id ? "bg-amber-50" : ""
+                      } ${b.is_read === false ? "bg-amber-50/30" : ""}`}
+                      data-testid={`broadcast-${b.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white flex-shrink-0">
+                          <Megaphone className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-bold rounded uppercase flex-shrink-0">Comunicado</span>
+                              <p className="text-sm font-bold text-gray-900 truncate">{b.sender_name || "Propietario"}</p>
+                            </div>
+                            <span className="text-xs text-gray-400 whitespace-nowrap">{formatDate(b.created_at)}</span>
+                          </div>
+                          <p className="text-sm font-semibold text-gray-800 truncate">{b.subject}</p>
+                          {canBroadcast && (
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-400">{b.total_recipients} destinatarios</span>
+                              <span className="text-xs text-emerald-600">{b.read_count || 0} leidos</span>
+                            </div>
+                          )}
+                        </div>
+                        {b.is_read === false && (
+                          <Circle className="w-2 h-2 fill-amber-500 text-amber-500 flex-shrink-0 mt-2" />
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )
               ) : filteredMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-400 p-8">
                   <Mail className="w-16 h-16 mb-4 opacity-50" />
@@ -709,7 +966,77 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
 
           {/* Message Detail */}
           <div className={`flex-1 flex flex-col bg-white ${mobileView === "list" ? "hidden lg:flex" : "flex"}`}>
-            {selectedMessage ? (
+            {selectedBroadcast ? (
+              <>
+                <div className="p-6 border-b border-gray-100">
+                  <button
+                    onClick={() => { setSelectedBroadcast(null); setMobileView("list"); }}
+                    className="lg:hidden flex items-center gap-2 text-gray-600 mb-4"
+                  >
+                    <ChevronLeft className="w-5 h-5" />Volver
+                  </button>
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-bold rounded-lg uppercase flex items-center gap-1">
+                      <Megaphone className="w-3.5 h-3.5" /> Comunicado Institucional
+                    </span>
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-900">{selectedBroadcast.subject}</h2>
+
+                  <div className="flex items-center gap-4 mt-4">
+                    {selectedBroadcast.sender_photo ? (
+                      <img src={selectedBroadcast.sender_photo} alt="" className="w-12 h-12 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-lg font-bold">
+                        <Megaphone className="w-6 h-6" />
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">{selectedBroadcast.sender_name}</p>
+                      <p className="text-sm text-gray-500 capitalize">
+                        Enviado a: {selectedBroadcast.target_roles?.map(r => 
+                          r === "teacher" ? "Profesores" : r === "student" ? "Alumnos" : r === "parent" ? "Padres" : "Administradores"
+                        ).join(", ")}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">
+                        {new Date(selectedBroadcast.created_at).toLocaleDateString("es-PE", {
+                          weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit"
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Stats for sender */}
+                  {canBroadcast && broadcastStats && (
+                    <div className="mt-4 grid grid-cols-3 gap-3" data-testid="broadcast-stats">
+                      <div className="bg-slate-50 rounded-xl p-3 text-center">
+                        <p className="text-2xl font-bold text-slate-700">{broadcastStats.total}</p>
+                        <p className="text-xs text-slate-500">Enviados</p>
+                      </div>
+                      <div className="bg-emerald-50 rounded-xl p-3 text-center">
+                        <p className="text-2xl font-bold text-emerald-600">{broadcastStats.read}</p>
+                        <p className="text-xs text-emerald-600">Leidos</p>
+                      </div>
+                      <div className="bg-amber-50 rounded-xl p-3 text-center">
+                        <p className="text-2xl font-bold text-amber-600">{broadcastStats.pending}</p>
+                        <p className="text-xs text-amber-600">Pendientes</p>
+                      </div>
+                    </div>
+                  )}
+                  {canBroadcast && broadcastStatsLoading && (
+                    <div className="mt-4 flex items-center justify-center py-4">
+                      <Loader2 className="w-5 h-5 text-amber-500 animate-spin" />
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6">
+                  <div className="prose prose-sm max-w-none text-gray-700" dangerouslySetInnerHTML={{ __html: selectedBroadcast.body }} />
+                </div>
+              </>
+            ) : selectedMessage ? (
               <>
                 <div className="p-6 border-b border-gray-100">
                   <button
@@ -823,6 +1150,7 @@ export default function MessagesPage({ user, token, subdomain, onLogout }) {
         token={token}
         onSent={() => { loadMessages(activeFolder); loadStats(); }}
         replyTo={replyTo}
+        user={user}
       />
 
       <ConfirmModal

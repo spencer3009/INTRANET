@@ -7,6 +7,8 @@ import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
+import BroadcastPopup from "../components/BroadcastPopup";
+import BroadcastBanner from "../components/BroadcastBanner";
 import {
   BookOpen,
   ClipboardList,
@@ -291,7 +293,10 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           profilePath="/parent/profile"
         />
 
+        <BroadcastPopup token={token} />
+
         <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
+          <BroadcastBanner token={token} />
           {/* Read-only info banner */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-6 flex items-center gap-3" data-testid="parent-dashboard-banner">
             <Eye className="w-5 h-5 text-emerald-600 shrink-0" />

@@ -8,6 +8,8 @@ import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
 import StudentHeader from "../components/StudentHeader";
 import TeacherFooter from "../components/TeacherFooter";
+import BroadcastPopup from "../components/BroadcastPopup";
+import BroadcastBanner from "../components/BroadcastBanner";
 import {
   BookOpen,
   ClipboardList,
@@ -247,7 +249,9 @@ export default function TeacherDashboardPage({ user, token, onLogout }) {
         />
 
         {/* Dashboard Content */}
+        <BroadcastPopup token={token} />
         <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
+          <BroadcastBanner token={token} />
           {/* Quick Stats - Premium Glass Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {/* Mis Cursos - Premium Emerald Gradient */}

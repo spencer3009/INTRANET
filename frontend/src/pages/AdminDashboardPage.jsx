@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import AdminSidebar from "@/components/AdminSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import BroadcastPopup from "@/components/BroadcastPopup";
+import BroadcastBanner from "@/components/BroadcastBanner";
 import { 
   Users, GraduationCap, UserCog, UserCheck, BookOpen, 
   Calendar, TrendingUp, AlertCircle, Loader2, ArrowRight,
@@ -188,8 +190,11 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
           subdomain={subdomain}
         />
 
+        <BroadcastPopup token={token} />
+
         {/* Content */}
         <div className="flex-1 p-4 lg:p-6 overflow-y-auto">
+          <BroadcastBanner token={token} />
           {/* Welcome Banner */}
           <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 mb-6 text-white">
             <div className="flex items-center justify-between">

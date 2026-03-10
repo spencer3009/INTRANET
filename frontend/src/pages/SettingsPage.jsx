@@ -11,7 +11,7 @@ import {
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
-  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck
+  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -44,6 +44,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   // Role settings state
   const [allowAdminAccounting, setAllowAdminAccounting] = useState(false);
   const [allowPendingStudents, setAllowPendingStudents] = useState(false);
+  const [allowAdminBroadcast, setAllowAdminBroadcast] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   
   // Google Drive states
@@ -67,6 +68,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         // Load role settings from response
         setAllowAdminAccounting(res.data.allow_admin_accounting || false);
         setAllowPendingStudents(res.data.permitir_acceso_estudiantes_pendientes || false);
+        setAllowAdminBroadcast(res.data.allow_admin_broadcast || false);
         setSettings({
           logo_url: res.data.logo_url || "",
           system_name: res.data.system_name || "",
@@ -278,6 +280,21 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       await axios.put(`${API}/settings/roles`, { permitir_acceso_estudiantes_pendientes: newValue }, { headers });
       setAllowPendingStudents(newValue);
       setSuccess(newValue ? "Estudiantes pendientes ahora pueden acceder al sistema" : "Acceso de estudiantes pendientes deshabilitado");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar configuración");
+    } finally {
+      setSavingRoles(false);
+    }
+  };
+
+  const handleToggleAdminBroadcast = async () => {
+    setSavingRoles(true);
+    try {
+      const newValue = !allowAdminBroadcast;
+      await axios.put(`${API}/settings/roles`, { allow_admin_broadcast: newValue }, { headers });
+      setAllowAdminBroadcast(newValue);
+      setSuccess(newValue ? "Administradores ahora pueden enviar comunicados institucionales" : "Solo el propietario puede enviar comunicados");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(err.response?.data?.detail || "Error al actualizar configuración");
@@ -788,6 +805,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
 
             {/* Role Settings Section - Only for owner */}
             {(user?.role === "owner" || user?.is_owner) && (
+              <>
               <section className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm mt-8" data-testid="role-settings-section">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center">
@@ -873,6 +891,47 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   </p>
                 </div>
               </section>
+
+              {/* Broadcast Settings Section */}
+              <section className="mt-8" data-testid="broadcast-settings-section">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                  <h2 className="text-lg font-bold text-slate-800 mb-1">Comunicados Institucionales</h2>
+                  <p className="text-sm text-slate-500 mb-6">Configura quién puede enviar comunicados masivos a toda la comunidad educativa</p>
+                  
+                  <div className="flex items-center justify-between p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-amber-200">
+                        <Megaphone className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-800">Permitir que los administradores envien comunicados institucionales</h3>
+                        <p className="text-sm text-slate-500">
+                          Si se desactiva, solo el propietario podra enviar comunicados masivos
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleToggleAdminBroadcast}
+                      disabled={savingRoles}
+                      className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 ${
+                        allowAdminBroadcast ? 'bg-amber-500' : 'bg-slate-300'
+                      } ${savingRoles ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      data-testid="toggle-admin-broadcast"
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                          allowAdminBroadcast ? 'translate-x-8' : 'translate-x-1'
+                        }`}
+                      />
+                      {savingRoles && (
+                        <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </section>
+              </>
             )}
 
             {/* Carousel Manager - Only for owners/super admins */}

@@ -7,6 +7,8 @@ import MessageCenter from "../components/MessageCenter";
 import MobileBottomNav from "../components/MobileBottomNav";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
+import BroadcastPopup from "../components/BroadcastPopup";
+import BroadcastBanner from "../components/BroadcastBanner";
 import {
   BookOpen,
   ClipboardList,
@@ -284,7 +286,9 @@ export default function StudentDashboardPage({ user, token, onLogout }) {
         />
 
         {/* Dashboard Content */}
+        <BroadcastPopup token={token} />
         <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">
+          <BroadcastBanner token={token} />
           {/* Quick Stats - Premium Glass Cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {/* Mis Cursos - Premium Dark Gradient */}

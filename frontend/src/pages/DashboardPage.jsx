@@ -16,6 +16,8 @@ import StudentChart from "@/components/StudentChart";
 import AttendanceAndNews from "@/components/AttendanceAndNews";
 import DemoBanner from "@/components/DemoBanner";
 import ReminderPopup from "@/components/ReminderPopup";
+import BroadcastPopup from "@/components/BroadcastPopup";
+import BroadcastBanner from "@/components/BroadcastBanner";
 import MessageCenter from "@/components/MessageCenter";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import SubscriptionCard from "@/components/SubscriptionCard";
@@ -216,10 +218,16 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
 
         {/* Intelligent Reminder Popup - shows important/urgent reminders */}
         <ReminderPopup token={token} />
+        
+        {/* Broadcast Popup - mandatory for unread broadcasts */}
+        <BroadcastPopup token={token} />
 
         <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 pb-20 lg:pb-8 overflow-y-auto custom-scroll" data-testid="dashboard-main">
           {/* Permission error fixer */}
           {hasPermissionError && <PermissionsFixer token={token} onFixed={fetchData} />}
+          
+          {/* Broadcast Banner */}
+          <BroadcastBanner token={token} />
           
           <DemoBanner token={token} onDemoDeleted={fetchData} />
           
