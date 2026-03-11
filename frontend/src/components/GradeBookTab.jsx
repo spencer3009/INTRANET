@@ -426,7 +426,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
 
       {/* ── EXCEL TABLE ── */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", overflow: "hidden" }}>
-        <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "calc(100vh - 240px)" }}>
+        <div style={{ overflowX: "auto" }}>
           <table style={S.table} data-testid="grade-table">
             <thead>
               {/* ROW 1: Top header */}
