@@ -172,78 +172,24 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query(None)
 
 @app.get("/api/health")
 async def health_check():
-    """Diagnostic endpoint to verify DB connectivity and find correct database"""
-    from routes.core import db_name as resolved_db_name, _raw_db_name, client as mongo_client, mongo_url
-    from urllib.parse import urlparse, parse_qs
+    """Diagnostic endpoint to verify DB connectivity"""
+    from routes.core import db_name as resolved_db_name, _raw_db_name, client as mongo_client
     
-    # Redact password from URL for display
-    parsed = urlparse(mongo_url)
-    safe_url = mongo_url.replace(parsed.password, "***") if parsed.password else mongo_url
+    checks = {"api": "ok", "db_name_configured": _raw_db_name, "db_name_used": db.name}
     
-    checks = {
-        "api": "ok",
-        "database": "unknown",
-        "db_name_used": db.name,
-        "db_name_raw": _raw_db_name,
-        "mongo_url_redacted": safe_url,
-    }
-    
-    # Try current database
     try:
-        await db.users.count_documents({})
+        await db.command("ping")
+        user_count = await db.users.count_documents({})
+        school_count = await db.schools.count_documents({})
         checks["database"] = "ok"
-        checks["users_count"] = await db.users.count_documents({})
-        return checks
+        checks["users_count"] = user_count
+        checks["schools_count"] = school_count
     except Exception as e:
-        checks["database"] = f"error: {str(e)[:150]}"
-    
-    # Try to list all databases user can access
-    try:
-        db_list = await mongo_client.list_database_names()
-        checks["available_databases"] = db_list
-    except Exception as e:
-        checks["list_databases_error"] = str(e)[:150]
-    
-    # Try default database from connection string
-    try:
-        default_db = mongo_client.get_default_database()
-        checks["default_database"] = default_db.name
-        cnt = await default_db.users.count_documents({})
-        checks["default_db_works"] = True
-        checks["default_db_users"] = cnt
-    except Exception as e:
-        checks["default_db_error"] = str(e)[:150]
-    
-    # Try multiple alternative database names
-    alternatives = set()
-    raw = _raw_db_name
-    app_name = "school-portal-152"
-    alternatives.add(raw)  # original from URL
-    alternatives.add(f"{app_name}_database")
-    alternatives.add(f"{app_name}-database")
-    alternatives.add(f"{app_name}_db")
-    alternatives.add(f"{app_name}")
-    alternatives.add("database")
-    alternatives.add("test_database")
-    # Also try authSource if present
-    qs = parse_qs(parsed.query)
-    if 'authSource' in qs:
-        alternatives.add(qs['authSource'][0])
-        checks["auth_source"] = qs['authSource'][0]
-    
-    alternatives.discard(db.name)  # skip already-tried
-    
-    working = []
-    for alt in sorted(alternatives):
+        checks["database"] = f"error: {str(e)[:200]}"
         try:
-            alt_db = mongo_client[alt]
-            cnt = await alt_db.users.count_documents({})
-            working.append({"name": alt, "users": cnt})
+            checks["available_databases"] = await mongo_client.list_database_names()
         except Exception:
             pass
-    
-    checks["working_alternatives"] = working if working else "none_found"
-    checks["tried_alternatives"] = sorted(alternatives)
     
     return checks
 

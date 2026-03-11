@@ -30,25 +30,51 @@ ROOT_DIR = Path(__file__).parent.parent
 load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
-client = AsyncIOMotorClient(mongo_url)
 
-# Resolve database: prefer the default database from MONGO_URL connection string
-# Motor's get_default_database() extracts the DB from the URL path
-from urllib.parse import urlparse
-_parsed_mongo = urlparse(mongo_url)
-_db_from_url = _parsed_mongo.path.lstrip('/').split('?')[0] if _parsed_mongo.path and _parsed_mongo.path != '/' else None
-_raw_db_name = _db_from_url or os.environ.get('DB_NAME', 'database')
+# Discover the correct database name BEFORE creating the async client
+# This runs once at import time to find a database with the 'users' collection
+import pymongo as _pymongo
+from urllib.parse import urlparse as _urlparse
 
-# Use get_default_database if URL has a DB path, otherwise use DB_NAME
+_raw_db_name = os.environ.get('DB_NAME', 'database')
+db_name = _raw_db_name
+
 try:
-    db = client.get_default_database()
-    db_name = db.name
+    _sync_client = _pymongo.MongoClient(mongo_url, serverSelectionTimeoutMS=5000)
+    # Test if configured DB works
+    _test_ok = False
+    try:
+        _sync_client[db_name].command("ping")
+        _sync_client[db_name].users.count_documents({})
+        _test_ok = True
+    except Exception:
+        pass
+    
+    if not _test_ok:
+        # List available databases and find one with 'users' collection
+        try:
+            _available = _sync_client.list_database_names()
+            for _candidate in _available:
+                if _candidate in ('admin', 'local', 'config'):
+                    continue
+                try:
+                    _cols = _sync_client[_candidate].list_collection_names()
+                    if 'users' in _cols:
+                        _count = _sync_client[_candidate].users.count_documents({})
+                        if _count > 0:
+                            db_name = _candidate
+                            break
+                except Exception:
+                    continue
+        except Exception:
+            pass
+    
+    _sync_client.close()
 except Exception:
-    # Fallback: try multiple names
-    db_name = os.environ.get('DB_NAME', 'database')
-    if db_name == 'test_database':
-        db_name = 'database'
-    db = client[db_name]
+    pass
+
+client = AsyncIOMotorClient(mongo_url)
+db = client[db_name]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'edunet-saas-secret-key-2026-dev-only')
 JWT_ALGORITHM = "HS256"
