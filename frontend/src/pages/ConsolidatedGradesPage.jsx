@@ -164,7 +164,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         .cns-btn-pr { background:#f5f5f5; color:#333; }
         .cns-btn-pr:hover { background:#ddd; }
 
-        .cns-sheet { background:#fff; border:2px solid #888; overflow:auto; max-height:calc(100vh - 160px); position:relative; border-radius:2px; }
+        .cns-sheet { background:#fff; border:2px solid #888; overflow-x:auto; position:relative; border-radius:2px; }
         .cns-tbl { border-collapse:collapse; font-size:12px; width:100%; table-layout:auto; }
         .cns-tbl th, .cns-tbl td { border:1px solid #999; padding:4px 6px; text-align:center; vertical-align:middle; }
 
