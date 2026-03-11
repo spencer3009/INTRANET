@@ -50,8 +50,8 @@
   "test_credentials": {
     "email": "admin@elroble.edu",
     "password": "1234abc8",
-    "login_url": "https://mensaje-unificado.preview.emergentagent.com/login",
-    "accounting_url": "https://mensaje-unificado.preview.emergentagent.com/elroble/contabilidad"
+    "login_url": "https://registro-auxiliar.preview.emergentagent.com/login",
+    "accounting_url": "https://registro-auxiliar.preview.emergentagent.com/elroble/contabilidad"
   },
 
   "seed_data_creation": "Created 2 test payments via API for student Pepito Peres Rios (Matricula S/300, Mensualidad S/350) - these remain in the system for demo purposes",

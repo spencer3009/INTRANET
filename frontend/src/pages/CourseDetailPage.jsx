@@ -339,7 +339,6 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
     { id: "foro", label: "FORO", icon: MessageCircle, gradient: "from-green-500 to-emerald-400", borderColor: "border-green-300", iconBg: "bg-green-500" },
     { id: "mensajes", label: "MENSAJES", icon: Mail, gradient: "from-purple-600 to-violet-500", borderColor: "border-purple-300", iconBg: "bg-purple-500" },
     { id: "recordatorios", label: "RECORDATORIOS", icon: Bell, gradient: "from-orange-500 to-amber-500", borderColor: "border-orange-300", iconBg: "bg-orange-500" },
-    { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, gradient: "from-amber-500 to-yellow-500", borderColor: "border-amber-300", iconBg: "bg-amber-500" },
     { id: "registro-auxiliar", label: "REGISTRO AUXILIAR", icon: ClipboardList, gradient: "from-indigo-600 to-indigo-500", borderColor: "border-indigo-300", iconBg: "bg-indigo-500" },
     { id: "clases-en-vivo", label: "CLASES EN VIVO", icon: Video, gradient: "from-sky-500 to-cyan-500", borderColor: "border-sky-300", iconBg: "bg-sky-500" },
   ];
