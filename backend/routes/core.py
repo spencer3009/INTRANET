@@ -51,9 +51,11 @@ try:
         pass
     
     if not _test_ok:
-        # List available databases and find one with 'users' collection
+        # List available databases and find the one with most users
         try:
             _available = _sync_client.list_database_names()
+            _best_db = None
+            _best_count = 0
             for _candidate in _available:
                 if _candidate in ('admin', 'local', 'config'):
                     continue
@@ -61,11 +63,13 @@ try:
                     _cols = _sync_client[_candidate].list_collection_names()
                     if 'users' in _cols:
                         _count = _sync_client[_candidate].users.count_documents({})
-                        if _count > 0:
-                            db_name = _candidate
-                            break
+                        if _count > _best_count:
+                            _best_count = _count
+                            _best_db = _candidate
                 except Exception:
                     continue
+            if _best_db:
+                db_name = _best_db
         except Exception:
             pass
     
