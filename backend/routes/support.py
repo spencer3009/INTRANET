@@ -58,8 +58,11 @@ async def support_overview(user=Depends(require_support_admin)):
     """Dashboard overview: global metrics for support admin"""
     total_schools = await db.schools.count_documents({})
     
-    # Schools assigned to this support user
-    assignments = await db.user_school_roles.count_documents({"user_id": user["id"]})
+    # Global admin sees all schools
+    if user.get("role") == "system_admin_global":
+        assignments = total_schools
+    else:
+        assignments = await db.user_school_roles.count_documents({"user_id": user["id"]})
     
     # Total users globally
     total_users = await db.users.count_documents({})
@@ -80,25 +83,29 @@ async def support_overview(user=Depends(require_support_admin)):
 
 @router.get("/schools")
 async def support_schools(user=Depends(require_support_admin)):
-    """List all schools assigned to the support user via user_school_roles"""
-    # Get assignments
-    assignments_cursor = db.user_school_roles.find(
-        {"user_id": user["id"]}, {"_id": 0}
-    )
-    assignments = await assignments_cursor.to_list(length=500)
-    
-    if not assignments:
-        return []
-    
-    school_ids = [a["school_id"] for a in assignments]
-    assignment_map = {a["school_id"]: a for a in assignments}
-    
-    # Fetch school details
-    schools_cursor = db.schools.find(
-        {"id": {"$in": school_ids}},
-        {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1, "pricing_override": 1}
-    )
-    schools = await schools_cursor.to_list(length=500)
+    """List schools for support user. Global admins see ALL schools."""
+    # Global support admin sees all schools automatically
+    if user.get("role") == "system_admin_global":
+        schools_cursor = db.schools.find(
+            {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1, "pricing_override": 1}
+        )
+        schools = await schools_cursor.to_list(length=500)
+    else:
+        # Non-global support: filter by assignments
+        assignments_cursor = db.user_school_roles.find(
+            {"user_id": user["id"]}, {"_id": 0}
+        )
+        assignments = await assignments_cursor.to_list(length=500)
+        
+        if not assignments:
+            return []
+        
+        school_ids = [a["school_id"] for a in assignments]
+        schools_cursor = db.schools.find(
+            {"id": {"$in": school_ids}},
+            {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1, "pricing_override": 1}
+        )
+        schools = await schools_cursor.to_list(length=500)
     
     # Get global pricing config
     global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
