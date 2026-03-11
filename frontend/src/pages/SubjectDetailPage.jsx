@@ -15,13 +15,13 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 // Tab configuration
 const COURSE_TABS = [
-  { id: "tablero", label: "Tablero", icon: LayoutDashboard },
-  { id: "tareas", label: "Tareas", icon: ClipboardList },
-  { id: "material", label: "Material", icon: FolderOpen },
-  { id: "examenes", label: "Exámenes", icon: FlaskConical },
-  { id: "foro", label: "Foro", icon: MessageCircle },
-  { id: "envivo", label: "En Vivo", icon: Video },
-  { id: "calificaciones", label: "Calificaciones", icon: Trophy },
+  { id: "tablero", label: "TABLERO", icon: LayoutDashboard, gradient: "from-slate-800 to-slate-700", borderColor: "border-cyan-400" },
+  { id: "tareas", label: "TAREAS", icon: ClipboardList, gradient: "from-blue-600 to-blue-500", borderColor: "border-blue-300" },
+  { id: "material", label: "MATERIAL", icon: FolderOpen, gradient: "from-teal-500 to-emerald-500", borderColor: "border-teal-300" },
+  { id: "examenes", label: "EXÁMENES", icon: FlaskConical, gradient: "from-rose-500 to-pink-500", borderColor: "border-rose-300" },
+  { id: "foro", label: "FORO", icon: MessageCircle, gradient: "from-green-500 to-emerald-400", borderColor: "border-green-300" },
+  { id: "envivo", label: "EN VIVO", icon: Video, gradient: "from-sky-500 to-cyan-500", borderColor: "border-sky-300" },
+  { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, gradient: "from-amber-500 to-yellow-500", borderColor: "border-amber-300" },
 ];
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -137,8 +137,8 @@ function CourseHeader({ subject, level, grade, section, period, onBack, onEdit }
 // ══════════════════════════════════════════════════════════════════════════════
 function CourseTabs({ activeTab, onTabChange, color }) {
   return (
-    <div className="bg-white rounded-2xl p-2 shadow-sm mb-6">
-      <div className="flex items-center gap-1 overflow-x-auto">
+    <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6 mb-6">
+      <div className="flex items-center justify-between gap-8 px-4">
         {COURSE_TABS.map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -147,15 +147,26 @@ function CourseTabs({ activeTab, onTabChange, color }) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold transition-all duration-300 whitespace-nowrap ${
-                isActive 
-                  ? "text-white shadow-lg" 
-                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-              }`}
-              style={isActive ? { background: `linear-gradient(135deg, ${color}, ${color}CC)` } : {}}
+              className="flex flex-col items-center gap-2 group flex-1"
+              data-testid={`tab-${tab.id}`}
             >
-              <Icon className="w-4 h-4" />
-              {tab.label}
+              <div 
+                className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 transform ${
+                  isActive 
+                    ? `bg-gradient-to-br ${tab.gradient} shadow-xl scale-110 border-4 ${tab.borderColor}` 
+                    : `bg-gradient-to-br ${tab.gradient} shadow-md hover:scale-105 border-2 border-transparent`
+                }`}
+                style={{
+                  boxShadow: isActive ? `0 8px 25px -5px rgba(0,0,0,0.3)` : `0 4px 15px -3px rgba(0,0,0,0.2)`
+                }}
+              >
+                <Icon className="w-7 h-7 text-white" strokeWidth={1.5} />
+              </div>
+              <span className={`text-[10px] font-bold tracking-wider transition-colors ${
+                isActive ? "text-slate-800" : "text-slate-500 group-hover:text-slate-700"
+              }`}>
+                {tab.label}
+              </span>
             </button>
           );
         })}

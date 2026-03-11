@@ -32,13 +32,13 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 // Tabs for students (read-only)
 const STUDENT_TABS = [
-  { id: "tablero", label: "Tablero", icon: LayoutDashboard },
-  { id: "tareas", label: "Tareas", icon: FileText },
-  { id: "material", label: "Material", icon: FolderOpen },
-  { id: "examenes", label: "Exámenes", icon: FlaskConical },
-  { id: "foro", label: "Foro", icon: MessageCircle },
-  { id: "mensajes", label: "Mensajes", icon: Mail },
-  { id: "calificaciones", label: "Calificaciones", icon: Trophy },
+  { id: "tablero", label: "TABLERO", icon: LayoutDashboard, gradient: "from-slate-800 to-slate-700", borderColor: "border-cyan-400" },
+  { id: "tareas", label: "TAREAS", icon: FileText, gradient: "from-blue-600 to-blue-500", borderColor: "border-blue-300" },
+  { id: "material", label: "MATERIAL", icon: FolderOpen, gradient: "from-teal-500 to-emerald-500", borderColor: "border-teal-300" },
+  { id: "examenes", label: "EXÁMENES", icon: FlaskConical, gradient: "from-rose-500 to-pink-500", borderColor: "border-rose-300" },
+  { id: "foro", label: "FORO", icon: MessageCircle, gradient: "from-green-500 to-emerald-400", borderColor: "border-green-300" },
+  { id: "mensajes", label: "MENSAJES", icon: Mail, gradient: "from-purple-600 to-violet-500", borderColor: "border-purple-300" },
+  { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, gradient: "from-amber-500 to-yellow-500", borderColor: "border-amber-300" },
 ];
 
 // Empty State Component
@@ -94,11 +94,11 @@ function CourseHeader({ subject, teacher, onBack }) {
   );
 }
 
-// Tabs Component
+// Tabs Component - Colorful oval icons
 function CourseTabs({ activeTab, onTabChange, messageStats }) {
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-2">
-      <div className="flex items-center gap-1 overflow-x-auto">
+    <div className="bg-white rounded-3xl shadow-lg border border-gray-100 p-6">
+      <div className="flex items-center justify-between gap-8 px-4">
         {STUDENT_TABS.map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -108,22 +108,31 @@ function CourseTabs({ activeTab, onTabChange, messageStats }) {
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
-                isActive
-                  ? "bg-cyan-500 text-white shadow-md"
-                  : "text-slate-600 hover:bg-slate-100"
-              }`}
+              className="flex flex-col items-center gap-2 group flex-1"
               data-testid={`tab-${tab.id}`}
             >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-              {unreadCount > 0 && (
-                <span className={`px-1.5 py-0.5 text-xs font-bold rounded-full ${
-                  isActive ? "bg-white/30 text-white" : "bg-red-500 text-white"
-                }`}>
-                  {unreadCount}
-                </span>
-              )}
+              <div 
+                className={`relative w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 transform ${
+                  isActive 
+                    ? `bg-gradient-to-br ${tab.gradient} shadow-xl scale-110 border-4 ${tab.borderColor}` 
+                    : `bg-gradient-to-br ${tab.gradient} shadow-md hover:scale-105 border-2 border-transparent`
+                }`}
+                style={{
+                  boxShadow: isActive ? `0 8px 25px -5px rgba(0,0,0,0.3)` : `0 4px 15px -3px rgba(0,0,0,0.2)`
+                }}
+              >
+                <Icon className="w-7 h-7 text-white" strokeWidth={1.5} />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[22px] h-[22px] px-1 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center shadow-lg border-2 border-white">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </div>
+              <span className={`text-[10px] font-bold tracking-wider transition-colors ${
+                isActive ? "text-slate-800" : "text-slate-500 group-hover:text-slate-700"
+              }`}>
+                {tab.label}
+              </span>
             </button>
           );
         })}
