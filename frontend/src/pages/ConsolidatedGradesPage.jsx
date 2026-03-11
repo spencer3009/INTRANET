@@ -146,16 +146,22 @@ export default function ConsolidatedGradesPage({ user, token }) {
         .cns-ih-ctx-val { text-align:left!important; font-size:9px; color:#111; }
 
         /* === COLUMN HEADERS === */
-        .cns-hdr-asig { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; color:#1a1a1a; text-align:center!important; }
+        .cns-hdr-asig { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; color:#1a1a1a; text-align:center!important; vertical-align:bottom!important; }
         .cns-hdr-num { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; }
         .cns-hdr-name { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; text-align:center!important; }
 
-        /* Area column headers (UPPERCASE area names) */
-        .cns-hdr-area { background:#B4C6E7!important; font-weight:bold!important; font-size:8px!important; color:#111; text-transform:uppercase; writing-mode:horizontal-tb; white-space:normal; word-break:break-word; min-width:42px; max-width:60px; }
-        /* Sub-subject column headers (mixed case) */
-        .cns-hdr-subj { background:#D9E1F2!important; font-weight:600!important; font-size:8px!important; color:#222; white-space:normal; word-break:break-word; min-width:42px; max-width:60px; }
+        /* Vertical text for subject/area/summary headers */
+        .cns-hdr-vert { height:160px; width:32px; min-width:32px; max-width:32px; padding:4px 2px!important; vertical-align:bottom!important; }
+        .cns-hdr-vert .cns-vtext { writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap; font-size:9px; display:inline-block; text-align:left; line-height:1.1; }
+        /* Area column headers (bold) */
+        .cns-hdr-area { background:#B4C6E7!important; }
+        .cns-hdr-area .cns-vtext { font-weight:bold; color:#111; text-transform:uppercase; }
+        /* Sub-subject column headers */
+        .cns-hdr-subj { background:#D9E1F2!important; }
+        .cns-hdr-subj .cns-vtext { font-weight:500; color:#222; }
         /* Summary column headers */
-        .cns-hdr-summ { background:#E2EFDA!important; font-weight:bold!important; font-size:7px!important; color:#222; white-space:pre-line; min-width:48px; max-width:65px; }
+        .cns-hdr-summ { background:#E2EFDA!important; }
+        .cns-hdr-summ .cns-vtext { font-weight:bold; color:#222; }
 
         /* === FROZEN COLUMNS === */
         .cns-fn { position:sticky; z-index:2; }
@@ -164,7 +170,8 @@ export default function ConsolidatedGradesPage({ user, token }) {
         thead .cns-fn { z-index:4; }
 
         /* === DATA ROWS === */
-        .cns-dr td { font-size:9px; padding:2px 3px; }
+        .cns-dr td { font-size:9px; padding:2px 2px; }
+        .cns-dr td.cns-dcol { width:32px; min-width:32px; max-width:32px; }
         .cns-dr:nth-child(odd) { background:#fff; }
         .cns-dr:nth-child(even) { background:#f7f8fa; }
         .cns-dr:nth-child(odd) .cns-fn { background:#fff; }
@@ -306,19 +313,23 @@ export default function ConsolidatedGradesPage({ user, token }) {
 
               {/* ROW 6: ASIGNATURAS header + all subject headers (rowSpan=2) + summary headers (rowSpan=2) */}
               <tr>
-                <th colSpan={3} rowSpan={1} className="cns-hdr-asig cns-fn cns-fn-num" style={{left:0, minWidth:228}}>ASIGNATURAS</th>
+                <th colSpan={3} rowSpan={1} className="cns-hdr-asig cns-fn cns-fn-num" style={{left:0, minWidth:228, verticalAlign:"bottom"}}>
+                  <span className="cns-vtext" style={{writingMode:"vertical-rl", transform:"rotate(180deg)", display:"inline-block", fontWeight:"bold", fontSize:10}}>ASIGNATURAS</span>
+                </th>
                 {allColumns.map((col) => (
                   <th
                     key={col.id}
                     rowSpan={2}
-                    className={isAreaColumn(col) ? "cns-hdr-area" : "cns-hdr-subj"}
+                    className={`cns-hdr-vert ${isAreaColumn(col) ? "cns-hdr-area" : "cns-hdr-subj"}`}
                     title={col.name}
                   >
-                    {col.name}
+                    <span className="cns-vtext">{col.name}</span>
                   </th>
                 ))}
                 {summaryHeaders.map((sh) => (
-                  <th key={sh.key} rowSpan={2} className="cns-hdr-summ">{sh.label}</th>
+                  <th key={sh.key} rowSpan={2} className="cns-hdr-vert cns-hdr-summ">
+                    <span className="cns-vtext">{sh.label.replace("\n", " ")}</span>
+                  </th>
                 ))}
               </tr>
               {/* ROW 7: N° + APELLIDOS Y NOMBRES */}
@@ -336,19 +347,19 @@ export default function ConsolidatedGradesPage({ user, token }) {
                   {allColumns.map((col) => {
                     const val = student.grades[col.id];
                     const isFail = val !== null && val !== undefined && val < 11;
-                    const cls = [isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-area" : ""].filter(Boolean).join(" ");
+                    const cls = ["cns-dcol", isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-area" : ""].filter(Boolean).join(" ");
                     return <td key={col.id} className={cls}>{val ?? ""}</td>;
                   })}
-                  <td className="cns-summ-cell">{student.conducta ?? ""}</td>
-                  <td className="cns-prom-cell">{student.promedio != null ? student.promedio.toFixed(2) : ""}</td>
-                  <td className="cns-summ-cell">{student.puntaje ?? ""}</td>
-                  <td className="cns-summ-cell">{student.n_desaprobados || ""}</td>
-                  <td className="cns-summ-cell">{student.orden_merito ?? ""}</td>
-                  <td className="cns-summ-cell">{student.tercio ?? ""}</td>
-                  <td className="cns-summ-cell">{student.tardanza_injustificada ?? ""}</td>
-                  <td className="cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
-                  <td className="cns-summ-cell">{student.falta_injustificada ?? ""}</td>
-                  <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.conducta ?? ""}</td>
+                  <td className="cns-dcol cns-prom-cell">{student.promedio != null ? student.promedio.toFixed(2) : ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.puntaje ?? ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.n_desaprobados || ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.orden_merito ?? ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.tercio ?? ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.tardanza_injustificada ?? ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.falta_injustificada ?? ""}</td>
+                  <td className="cns-dcol cns-summ-cell">{student.falta_justificada ?? ""}</td>
                 </tr>
               ))}
 
