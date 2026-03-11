@@ -1,70 +1,121 @@
 # EduNet - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-EduNet is a full-stack educational intranet platform (React + FastAPI + MongoDB) for schools in Peru. It provides modules for managing users, courses, grades, attendance, payments, messaging, live classes, and more. The platform supports multiple roles: Owner, Admin, Teacher, Student, and Parent.
+Build a comprehensive Educational Intranet Platform (EduNet) for schools in Peru. Multi-tenant SaaS with role-based access for owners, admins, teachers, students, and parents.
 
-## Core Architecture
-- **Frontend:** React 18 + Tailwind CSS + Shadcn/UI + TipTap Editor
-- **Backend:** FastAPI (Python) + MongoDB
-- **Auth:** JWT-based authentication with role-based access
-- **3rd Party:** Cloudinary (images), Google Drive integration, pandas/openpyxl for reports
+## Core Requirements
+- Multi-tenant architecture with subdomains per school
+- Role-based access control (RBAC) with 8 roles
+- Messaging system with broadcasts, read receipts, pagination
+- Academic management (levels, grades, sections, subjects, schedules)
+- Attendance tracking with QR codes
+- Online exams with question banks
+- Accounting/payments module
+- Parent portal
+- Student portal
+- Course feed with posts, tasks, submissions
 
-## Credentials
-- Owner: admin@elroble.edu / 1234abc8 (subdomain: elroble)
+## Architecture
+- **Backend**: FastAPI + MongoDB (Motor async driver)
+- **Frontend**: React + Tailwind CSS + Shadcn UI
+- **Database**: MongoDB
+- **File Storage**: Cloudinary
+- **Auth**: JWT tokens
 
 ## What's Been Implemented
 
-### Completed Features
-1. **Landing Page** - Full production-matching landing page with hero, 18-feature grid, footer
-2. **Live Classes Module** - Full CRUD for virtual classes with Meet/Zoom links, attendance tracking, role-based views (Teacher/Student/Admin pages), sidebar integration, course detail integration
-3. **Massive Broadcast Communication System** (March 2026)
-   - Permission system: Owner always has broadcast permission, Admin configurable via settings
-   - Settings toggle: "Comunicados Institucionales" section in Settings page for owner
-   - Compose modal enhancement: Broadcast toggle with role checkboxes (Profesores, Alumnos, Padres, Administradores)
-   - Recipient count preview before sending
-   - Background job for creating receiver records
-   - Comunicados folder in Messages page with special COMUNICADO tag styling
-   - Broadcast detail view with read statistics (Enviados/Leidos/Pendientes)
-   - Mandatory popup (BroadcastPopup) on all dashboards for unread broadcasts
-   - Dashboard banner (BroadcastBanner) for unread broadcasts
-   - NotificationBell integration showing broadcast count
-   - Broadcast inbox for receivers with read/unread status
+### Completed (March 2026)
+- [x] Full multi-tenant system with subdomains
+- [x] Authentication (register, login, email verification)
+- [x] RBAC with 8 roles + section permissions
+- [x] Owner/Admin dashboard with metrics
+- [x] User management + bulk student import (Excel)
+- [x] Academic structure (levels, grades, sections, shifts, years, periods)
+- [x] Schedule management (settings, breaks, entries)
+- [x] Attendance module (student, teacher, QR)
+- [x] Course feed (posts, tasks, submissions, comments, likes)
+- [x] Messaging system (internal mail, legacy messages)
+- [x] Broadcast communication system (mass announcements)
+- [x] Read receipts for all messages
+- [x] Pagination (6 per page) across all message pages
+- [x] Online exams with questions and attempts
+- [x] Google Drive integration for exams
+- [x] Accounting module (payments, expenses, debtors)
+- [x] Calendar, surveys, discipline, news modules
+- [x] Parent portal
+- [x] Student portal
+- [x] Live classes module
+- [x] Notification system (WebSocket)
+- [x] Demo mode with restricted access
+- [x] **server.py modularized** into 24 domain-specific router files
 
-### API Endpoints - Broadcast Module
-- `GET /api/broadcast/permission` - Check broadcast permission
-- `GET /api/broadcast/recipients-count` - Get recipient counts by role
-- `POST /api/broadcast/send` - Send broadcast (background task)
-- `GET /api/broadcast/sent` - Get sent broadcasts with stats
-- `GET /api/broadcast/unread` - Get unread broadcasts for user
-- `POST /api/broadcast/{id}/read` - Mark broadcast as read
-- `GET /api/broadcast/{id}/stats` - Get read statistics
-- `GET /api/broadcast/inbox` - Get broadcast inbox for receivers
+### Backend Modularization (March 11, 2026)
+server.py (24K lines) split into:
+- `routes/core.py` - Shared dependencies, auth, RBAC, helpers
+- `routes/auth.py` - Authentication + school creation
+- `routes/dashboard.py` - Dashboard metrics
+- `routes/student_portal.py` - Student portal endpoints
+- `routes/teacher_portal.py` - Teacher portal
+- `routes/admin_portal.py` - Admin management
+- `routes/system.py` - System/seed/demo
+- `routes/settings.py` - Tenant settings
+- `routes/users.py` - User CRUD + import
+- `routes/academic.py` - Academic structure + assignments
+- `routes/schedule.py` - Schedule management
+- `routes/messages_legacy.py` - Legacy messaging
+- `routes/attendance.py` - Attendance module
+- `routes/calendar.py` - Calendar events
+- `routes/surveys.py` - Surveys
+- `routes/discipline.py` - Discipline reports
+- `routes/news.py` - News module
+- `routes/accounting.py` - Accounting/payments
+- `routes/subjects.py` - Subjects
+- `routes/courses.py` - Course feed + notifications
+- `routes/messaging.py` - Internal mail system
+- `routes/broadcast.py` - Broadcast communications
+- `routes/exams.py` - Online exams + Google Drive
+- `routes/parent_portal.py` - Parent portal
+- `routes/live_classes.py` - Live classes
 
-### DB Collections - Broadcast Module
-- `broadcast_messages`: id, school_id, subject, body, target_roles, sender_id, sender_name, sender_role, sender_photo, total_recipients, read_count, message_type, priority, status, created_at
-- `broadcast_receivers`: id, message_id, user_id, school_id, read_at, created_at
+## Pending Issues (Prioritized)
 
-## Prioritized Backlog
+### P1 - High Priority
+- [ ] Fix disappearing student selection in PaymentFormModal
+- [ ] Refactor 4 duplicated message pages into single component
+- [ ] Message center unread count discrepancy (dashboard vs message center)
 
-### P0 (Critical)
-- Modularize server.py into domain-specific routers (tech debt)
+### P2 - Medium Priority
+- [ ] Remove hardcoded data from Owner Dashboard (recurring 5+ times)
+- [ ] Dashboard Widgets Phase 2: CRUD for news, events, surveys
 
-### P1 (High)
-- Fix disappearing student selection in PaymentFormModal
-- Remove hardcoded data from Owner Dashboard (recurring issue)
-- Fix Message Center unread count discrepancy (recurring issue)
-- Dashboard Widgets Phase 2 (news, events, surveys CRUD)
-- Attendance Configuration Phase 2
+### P3 - Backlog
+- [ ] Matrículas (Enrollments) module
+- [ ] Exam Question Bank enhancements
+- [ ] Replace window.confirm/alert with custom modals
+- [ ] Refactor UsersPage.jsx (4000+ lines)
+- [ ] Complete Parent Portal feature parity
 
-### P2 (Medium)
-- Complete Parent Portal feature parity
-- Build "Matriculas" (Enrollments) module
-- Enhance Exams module with Question Bank
-- Replace window.confirm/alert with custom modals
-- Refactor UsersPage.jsx (4000+ lines)
-- Delete unused widget components (NewsWidget, CalendarWidget, SurveyWidget)
+## Key Database Collections
+- `schools`, `users`, `user_school_roles`
+- `academic_levels`, `academic_grades`, `academic_sections`
+- `academic_years`, `academic_periods`, `academic_shifts`
+- `academic_assignments`, `subjects`
+- `course_posts`, `task_submissions`
+- `internal_mail`, `internal_messages`
+- `broadcast_messages`, `broadcast_message_status`
+- `attendances`, `student_attendance`
+- `online_exams`, `exam_questions`, `exam_attempts`
+- `payments`, `expenses`, `payment_concepts`
+- `calendar_events`, `surveys`, `discipline_reports`, `news`
+- `notifications`, `live_classes`
 
-## Known Issues
-- Owner Dashboard has hardcoded "Asistencia del Mes" and "Noticias y Avisos" data
-- Message Center unread count may not match dashboard widget count
-- PaymentFormModal student selection reportedly disappears after selection
+## Test Credentials
+- **Subdomain**: elroble
+- **Email**: admin@elroble.edu
+- **Password**: 1234abc8
+- **Role**: owner
+
+## 3rd Party Integrations
+- Cloudinary (image/file storage)
+- Google Drive (exam file management)
+- pandas + openpyxl (data analysis, Excel handling)

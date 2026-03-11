@@ -228,7 +228,7 @@ export default function ParentMessagesPage({ user, token, onLogout }) {
   const loadMessages = async (folder, page = 1) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/api/internal-mail/${folder}?page=${page}&limit=50`, { headers });
+      const res = await axios.get(`${API}/api/internal-mail/${folder}?page=${page}&limit=6`, { headers });
       setMessages(res.data.messages || []);
       setTotalMessages(res.data.total || 0);
       setTotalPages(res.data.pages || 1);

@@ -1,59 +1,93 @@
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
+import { useState } from "react";
 
-const PER_PAGE = 50;
+const PER_PAGE = 6;
 
-export default function MessagePagination({ page, totalPages, totalMessages, onPageChange }) {
-  if (totalPages <= 1) return null;
+export default function MessagePagination({ page = 1, totalPages = 1, totalMessages = 0, onPageChange }) {
+  const [inputPage, setInputPage] = useState(page);
 
-  const start = (page - 1) * PER_PAGE + 1;
-  const end = Math.min(page * PER_PAGE, totalMessages);
+  const start = totalMessages > 0 ? (page - 1) * PER_PAGE + 1 : 0;
+  const end = totalMessages > 0 ? Math.min(page * PER_PAGE, totalMessages) : 0;
+
+  const handleInputChange = (e) => {
+    const val = e.target.value;
+    if (val === "") { setInputPage(""); return; }
+    const num = parseInt(val);
+    if (!isNaN(num)) setInputPage(num);
+  };
+
+  const handleInputSubmit = (e) => {
+    if (e.key === "Enter") {
+      const num = parseInt(inputPage);
+      if (!isNaN(num) && num >= 1 && num <= totalPages) {
+        onPageChange(num);
+      } else {
+        setInputPage(page);
+      }
+    }
+  };
+
+  // Sync input when page changes externally
+  if (typeof inputPage === "number" && inputPage !== page) {
+    setInputPage(page);
+  }
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/50 flex-shrink-0" data-testid="message-pagination">
-      <p className="text-xs text-gray-500">
-        <span className="font-medium text-gray-700">{start}</span> a <span className="font-medium text-gray-700">{end}</span> de <span className="font-medium text-gray-700">{totalMessages.toLocaleString()}</span>
-      </p>
-      <div className="flex items-center gap-1">
-        <button
-          onClick={() => onPageChange(1)}
-          disabled={page === 1}
-          className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          title="Primera"
-          data-testid="pagination-first"
-        >
-          <ChevronsLeft className="w-4 h-4 text-gray-600" />
-        </button>
-        <button
-          onClick={() => onPageChange(page - 1)}
-          disabled={page === 1}
-          className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          title="Anterior"
-          data-testid="pagination-prev"
-        >
-          <ChevronLeft className="w-4 h-4 text-gray-600" />
-        </button>
-        <span className="px-3 py-1 text-sm font-medium text-gray-700">
-          {page} <span className="text-gray-400 hidden sm:inline">/ {totalPages}</span>
-        </span>
-        <button
-          onClick={() => onPageChange(page + 1)}
-          disabled={page === totalPages}
-          className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          title="Siguiente"
-          data-testid="pagination-next"
-        >
-          <ChevronRight className="w-4 h-4 text-gray-600" />
-        </button>
-        <button
-          onClick={() => onPageChange(totalPages)}
-          disabled={page === totalPages}
-          className="p-1.5 rounded-lg hover:bg-gray-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          title="Ultima"
-          data-testid="pagination-last"
-        >
-          <ChevronsRight className="w-4 h-4 text-gray-600" />
-        </button>
-      </div>
+    <div className="flex items-center justify-center gap-3 px-4 py-2.5 border-t border-gray-200 bg-slate-800 flex-shrink-0" data-testid="message-pagination">
+      <button
+        onClick={() => onPageChange(1)}
+        disabled={page <= 1}
+        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        title="Primera"
+        data-testid="pagination-first"
+      >
+        <ChevronsLeft className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => onPageChange(page - 1)}
+        disabled={page <= 1}
+        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        title="Anterior"
+        data-testid="pagination-prev"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+
+      <span className="text-sm text-gray-300 select-none whitespace-nowrap">
+        {totalMessages > 0
+          ? `Mensajes ${start} a ${end} de ${totalMessages.toLocaleString()}`
+          : "El buzon esta vacio"
+        }
+      </span>
+
+      <input
+        type="text"
+        value={inputPage}
+        onChange={handleInputChange}
+        onKeyDown={handleInputSubmit}
+        onBlur={() => setInputPage(page)}
+        className="w-10 h-8 text-center text-sm font-medium text-gray-200 bg-transparent border border-gray-500 rounded focus:outline-none focus:border-blue-400"
+        data-testid="pagination-input"
+      />
+
+      <button
+        onClick={() => onPageChange(page + 1)}
+        disabled={page >= totalPages}
+        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        title="Siguiente"
+        data-testid="pagination-next"
+      >
+        <ChevronRight className="w-5 h-5" />
+      </button>
+      <button
+        onClick={() => onPageChange(totalPages)}
+        disabled={page >= totalPages}
+        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        title="Ultima"
+        data-testid="pagination-last"
+      >
+        <ChevronsRight className="w-5 h-5" />
+      </button>
     </div>
   );
 }
