@@ -49,7 +49,7 @@ Build a comprehensive Educational Intranet Platform (EduNet) for schools in Peru
 - [x] Demo mode with restricted access
 - [x] **server.py modularized** into 24 domain-specific router files
 - [x] **Registro Auxiliar (GradeBookPage)**: Excel-like grade entry with grouped headers, sub-columns, weighted averages, auto-save
-- [x] **Consolidado de Notas**: Faithful replica of Excel format with institutional header, academic context, subject columns (with area grouping support), frozen columns, summary calculations (PROMEDIO, PUNTAJE, ORDEN DE MÉRITO, TERCIO), footer statistics, and Excel export. Tested 100% (backend 15/15, frontend 100%).
+- [x] **Consolidado de Notas**: Faithful replica of Excel format with institutional header, academic context, subject columns (with area grouping support), frozen columns, summary calculations (PROMEDIO, PUNTAJE, ORDEN DE MÉRITO, TERCIO), footer statistics, Excel export, and vertical subject headers for compact professional layout.
 
 ### Backend Modularization (March 11, 2026)
 server.py (24K lines) split into:
