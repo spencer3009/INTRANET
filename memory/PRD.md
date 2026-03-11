@@ -48,6 +48,8 @@ Build a comprehensive Educational Intranet Platform (EduNet) for schools in Peru
 - [x] Notification system (WebSocket)
 - [x] Demo mode with restricted access
 - [x] **server.py modularized** into 24 domain-specific router files
+- [x] **Registro Auxiliar (GradeBookPage)**: Excel-like grade entry with grouped headers, sub-columns, weighted averages, auto-save
+- [x] **Consolidado de Notas**: Faithful replica of Excel format with institutional header, academic context, subject columns (with area grouping support), frozen columns, summary calculations (PROMEDIO, PUNTAJE, ORDEN DE MÉRITO, TERCIO), footer statistics, and Excel export. Tested 100% (backend 15/15, frontend 100%).
 
 ### Backend Modularization (March 11, 2026)
 server.py (24K lines) split into:
@@ -79,10 +81,14 @@ server.py (24K lines) split into:
 
 ## Pending Issues (Prioritized)
 
+### P0 - Critical
+- [ ] Configure area groupings for subjects (area_name field) to enable full area-grouped headers in Consolidado
+  
 ### P1 - High Priority
 - [ ] Fix disappearing student selection in PaymentFormModal
 - [ ] Refactor 4 duplicated message pages into single component
 - [ ] Message center unread count discrepancy (dashboard vs message center)
+- [ ] Gradebook Enhancements: export PDF/Excel, Lock/Close Period, admin override
 
 ### P2 - Medium Priority
 - [ ] Remove hardcoded data from Owner Dashboard (recurring 5+ times)
@@ -100,7 +106,8 @@ server.py (24K lines) split into:
 - `schools`, `users`, `user_school_roles`
 - `academic_levels`, `academic_grades`, `academic_sections`
 - `academic_years`, `academic_periods`, `academic_shifts`
-- `academic_assignments`, `subjects`
+- `academic_assignments`, `subjects` (now supports `area_name`, `area_order` for area grouping)
+- `student_grades` (nested sub-grade structure + final_grade)
 - `course_posts`, `task_submissions`
 - `internal_mail`, `internal_messages`
 - `broadcast_messages`, `broadcast_message_status`
@@ -109,6 +116,12 @@ server.py (24K lines) split into:
 - `payments`, `expenses`, `payment_concepts`
 - `calendar_events`, `surveys`, `discipline_reports`, `news`
 - `notifications`, `live_classes`
+
+## Key API Endpoints (Grading Module)
+- `GET /api/grades/register/{course_id}/{subject_id}/{period}` - Registro Auxiliar data
+- `POST /api/grades/save` - Save detailed sub-grades
+- `GET /api/grades/consolidated-report/{section_id}/{period_id}` - Consolidated report data
+- `GET /api/grades/consolidated-report/{section_id}/{period_id}/export/excel` - Excel export
 
 ## Test Credentials
 - **Subdomain**: elroble
