@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Crown, Shield, ShieldCheck, ShieldAlert, ShieldOff, Clock, CalendarDays, CalendarClock, CreditCard, X, Loader2, CheckCircle2 } from "lucide-react";
 
 function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
@@ -249,7 +250,7 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
     </div>
 
     {/* Payment Modal */}
-    {showPayModal && (
+    {showPayModal && createPortal(
       <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4" style={{ zIndex: 9999 }} onClick={() => setShowPayModal(false)}>
         <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()} data-testid="payment-modal">
           <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 text-white rounded-t-2xl">
@@ -281,15 +282,32 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">Numero de operacion <span className="text-red-500">*</span></label>
-              <input type="text" value={operationCode} onChange={(e) => setOperationCode(e.target.value)} placeholder="Ingresa el numero de operacion" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400" data-testid="operation-code-input" required />
+              <input
+                type="text"
+                inputMode="numeric"
+                maxLength={8}
+                value={operationCode}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/\D/g, "");
+                  if (val.length <= 8) setOperationCode(val);
+                }}
+                placeholder="Ej: 12345678"
+                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400 ${operationCode && operationCode.length !== 8 ? "border-red-300" : "border-slate-300"}`}
+                data-testid="operation-code-input"
+                required
+              />
+              {operationCode && operationCode.length !== 8 && (
+                <p className="text-[10px] text-red-500 mt-0.5">Debe tener exactamente 8 digitos ({operationCode.length}/8)</p>
+              )}
             </div>
-            <button onClick={handleSubmitPayment} disabled={submitting || !operationCode.trim()} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-bold hover:bg-violet-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed" data-testid="confirm-payment-btn">
+            <button onClick={handleSubmitPayment} disabled={submitting || operationCode.length !== 8} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-bold hover:bg-violet-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed" data-testid="confirm-payment-btn">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Ya realice el pago
             </button>
           </div>
         </div>
-      </div>
+      </div>,
+      document.body
     )}
     </>
   );

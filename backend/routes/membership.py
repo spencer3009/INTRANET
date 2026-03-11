@@ -40,6 +40,9 @@ async def request_payment(req: PaymentRequest, current_user=Depends(get_current_
     if not req.operation_code.strip():
         raise HTTPException(status_code=400, detail="El numero de operacion es obligatorio")
 
+    if not req.operation_code.strip().isdigit() or len(req.operation_code.strip()) != 8:
+        raise HTTPException(status_code=400, detail="El numero de operacion debe tener exactamente 8 digitos")
+
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
     if not school:
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
