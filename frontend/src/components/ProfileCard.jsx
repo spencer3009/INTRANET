@@ -222,7 +222,10 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
           ) : (
             <button
               onClick={() => setShowPayModal(true)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-colors"
+              style={{ backgroundColor: "#8E2DC0" }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#7A26A6"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#8E2DC0"}
               data-testid="pay-renewal-btn"
             >
               <img src="/yape_logo.png" alt="Yape" className="w-5 h-5 rounded" />
