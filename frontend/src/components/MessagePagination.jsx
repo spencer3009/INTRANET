@@ -33,11 +33,11 @@ export default function MessagePagination({ page = 1, totalPages = 1, totalMessa
   }
 
   return (
-    <div className="flex items-center justify-center gap-3 px-4 py-2.5 border-t border-gray-200 bg-slate-800 flex-shrink-0" data-testid="message-pagination">
+    <div className="flex items-center justify-center gap-3 px-4 py-2.5 border-t border-gray-200 bg-gray-100 flex-shrink-0" data-testid="message-pagination">
       <button
         onClick={() => onPageChange(1)}
         disabled={page <= 1}
-        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         title="Primera"
         data-testid="pagination-first"
       >
@@ -46,14 +46,14 @@ export default function MessagePagination({ page = 1, totalPages = 1, totalMessa
       <button
         onClick={() => onPageChange(page - 1)}
         disabled={page <= 1}
-        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         title="Anterior"
         data-testid="pagination-prev"
       >
         <ChevronLeft className="w-5 h-5" />
       </button>
 
-      <span className="text-sm text-gray-300 select-none whitespace-nowrap">
+      <span className="text-sm text-gray-500 select-none whitespace-nowrap">
         {totalMessages > 0
           ? `Mensajes ${start} a ${end} de ${totalMessages.toLocaleString()}`
           : "El buzon esta vacio"
@@ -66,14 +66,14 @@ export default function MessagePagination({ page = 1, totalPages = 1, totalMessa
         onChange={handleInputChange}
         onKeyDown={handleInputSubmit}
         onBlur={() => setInputPage(page)}
-        className="w-10 h-8 text-center text-sm font-medium text-gray-200 bg-transparent border border-gray-500 rounded focus:outline-none focus:border-blue-400"
+        className="w-10 h-8 text-center text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded focus:outline-none focus:border-blue-400"
         data-testid="pagination-input"
       />
 
       <button
         onClick={() => onPageChange(page + 1)}
         disabled={page >= totalPages}
-        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         title="Siguiente"
         data-testid="pagination-next"
       >
@@ -82,7 +82,7 @@ export default function MessagePagination({ page = 1, totalPages = 1, totalMessa
       <button
         onClick={() => onPageChange(totalPages)}
         disabled={page >= totalPages}
-        className="p-1 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
         title="Ultima"
         data-testid="pagination-last"
       >
