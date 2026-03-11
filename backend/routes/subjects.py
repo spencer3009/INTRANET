@@ -62,7 +62,9 @@ class SubjectCreate(BaseModel):
     weekly_hours: int = 1
     color: str = "#3B82F6"
     status: str = "active"
-    image_url: Optional[str] = None  # Subject cover image
+    image_url: Optional[str] = None
+    area_name: Optional[str] = None
+    area_order: Optional[int] = None
 
 class SubjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -74,7 +76,9 @@ class SubjectUpdate(BaseModel):
     weekly_hours: Optional[int] = None
     color: Optional[str] = None
     status: Optional[str] = None
-    image_url: Optional[str] = None  # Subject cover image
+    image_url: Optional[str] = None
+    area_name: Optional[str] = None
+    area_order: Optional[int] = None
 
 class SubjectTeacherAssign(BaseModel):
     teacher_ids: List[str]
@@ -279,6 +283,8 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
         "color": data.color,
         "status": data.status,
         "image_url": data.image_url,
+        "area_name": data.area_name.strip().upper() if data.area_name else None,
+        "area_order": data.area_order,
         "created_at": now,
         "updated_at": now
     }

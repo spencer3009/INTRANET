@@ -86,7 +86,7 @@
     "admin_email": "admin@elroble.edu",
     "admin_password": "1234abc8",
     "school_subdomain": "elroble",
-    "login_url": "https://registro-auxiliar.preview.emergentagent.com/school/elroble/login"
+    "login_url": "https://academic-summary.preview.emergentagent.com/school/elroble/login"
   },
 
   "seed_data_creation": "None - used existing school data",

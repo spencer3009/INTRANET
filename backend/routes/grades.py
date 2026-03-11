@@ -565,7 +565,472 @@ async def get_consolidated(section_id: str, period_id: str, current_user=Depends
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# EXPORT CONSOLIDATED (Excel)
+# CONSOLIDATED REPORT (Replica fiel del Excel)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/grades/consolidated-report/{section_id}/{period_id}")
+async def get_consolidated_report(section_id: str, period_id: str, current_user=Depends(get_current_user)):
+    """
+    Returns the full consolidated report data matching the Excel format exactly.
+    Includes: school info, section/period info, subjects grouped by area,
+    student grades, computed columns, and summary statistics.
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    school_id = user.get("school_id")
+
+    # Get school info
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "subdomain": 1})
+    school_name = school.get("name", "") if school else ""
+
+    # Get section info
+    section = await db.sections.find_one({"id": section_id}, {"_id": 0})
+    if not section:
+        raise HTTPException(status_code=404, detail="Seccion no encontrada")
+    grade_id = section.get("grado_id")
+
+    # Get grade info
+    grade_doc = await db.grades.find_one({"id": grade_id}, {"_id": 0, "nombre": 1, "nivel_id": 1})
+    grade_name = grade_doc.get("nombre", "") if grade_doc else ""
+    level_id = grade_doc.get("nivel_id") if grade_doc else None
+
+    # Get level info
+    level_doc = await db.academic_levels.find_one({"id": level_id}, {"_id": 0, "nombre": 1}) if level_id else None
+    level_name = level_doc.get("nombre", "") if level_doc else ""
+
+    # Get period info
+    period = await db.academic_periods.find_one({"id": period_id}, {"_id": 0, "nombre": 1})
+    period_name = period.get("nombre", "") if period else ""
+
+    # Get academic year
+    year_doc = await db.academic_years.find_one({"school_id": school_id}, {"_id": 0, "year": 1})
+    school_year = year_doc.get("year", datetime.now().year) if year_doc else datetime.now().year
+
+    # Get tutor for this section
+    tutor_assignment = await db.academic_assignments.find_one(
+        {"school_id": school_id, "section_id": section_id, "role": "tutor", "status": "activo"},
+        {"_id": 0, "teacher_id": 1}
+    )
+    tutor_name = ""
+    if tutor_assignment:
+        tutor = await db.users.find_one({"id": tutor_assignment["teacher_id"]}, {"_id": 0, "name": 1, "last_name": 1})
+        if tutor:
+            tutor_name = f"{tutor.get('last_name', '')}, {tutor.get('name', '')}".strip(", ")
+
+    # Get all subjects for this section
+    subjects = await db.subjects.find(
+        {"school_id": school_id, "section_id": section_id, "status": {"$ne": "inactive"}},
+        {"_id": 0, "id": 1, "name": 1, "code": 1, "area_name": 1, "area_order": 1}
+    ).sort("name", 1).to_list(100)
+
+    if not subjects:
+        subjects = await db.subjects.find(
+            {"school_id": school_id, "grade_id": grade_id, "status": {"$ne": "inactive"}},
+            {"_id": 0, "id": 1, "name": 1, "code": 1, "area_name": 1, "area_order": 1}
+        ).sort("name", 1).to_list(100)
+
+    # Build column structure: group subjects by area
+    # Columns: each has {id, name, type: 'area'|'subject', area_name, subjects_in_area}
+    columns = []
+    area_groups = {}
+    standalone = []
+
+    for s in subjects:
+        area = s.get("area_name")
+        if area:
+            if area not in area_groups:
+                area_groups[area] = {
+                    "area_name": area,
+                    "area_order": s.get("area_order", 999),
+                    "subjects": []
+                }
+            area_groups[area]["subjects"].append(s)
+        else:
+            standalone.append(s)
+
+    # Sort area groups by area_order, then alphabetically
+    sorted_areas = sorted(area_groups.values(), key=lambda a: (a["area_order"], a["area_name"]))
+
+    for area_group in sorted_areas:
+        # Add area column (computed average)
+        columns.append({
+            "id": f"area_{area_group['area_name']}",
+            "name": area_group["area_name"],
+            "type": "area",
+            "subject_ids": [s["id"] for s in area_group["subjects"]]
+        })
+        # Add sub-subject columns
+        for s in area_group["subjects"]:
+            columns.append({
+                "id": s["id"],
+                "name": s["name"],
+                "type": "subject",
+                "area_name": area_group["area_name"]
+            })
+
+    # Add standalone subjects
+    for s in standalone:
+        columns.append({
+            "id": s["id"],
+            "name": s["name"],
+            "type": "subject",
+            "area_name": None
+        })
+
+    subject_ids = [s["id"] for s in subjects]
+
+    # Get students
+    student_filter = {
+        "school_id": school_id,
+        "role": "student",
+        "student_status": {"$in": ["enrolled", "active"]},
+        "seccion_id": section_id,
+    }
+    students = await db.users.find(
+        student_filter,
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+    ).sort([("last_name", 1), ("name", 1)]).to_list(200)
+
+    if not students:
+        student_filter["section_id"] = student_filter.pop("seccion_id")
+        students = await db.users.find(
+            student_filter,
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).sort([("last_name", 1), ("name", 1)]).to_list(200)
+
+    # Get all grades
+    all_grades = await db.student_grades.find(
+        {"school_id": school_id, "section_id": section_id, "period_id": period_id, "subject_id": {"$in": subject_ids}},
+        {"_id": 0, "student_id": 1, "subject_id": 1, "final_grade": 1}
+    ).to_list(10000)
+
+    grades_lookup = {}
+    for g in all_grades:
+        sid = g["student_id"]
+        if sid not in grades_lookup:
+            grades_lookup[sid] = {}
+        grades_lookup[sid][g["subject_id"]] = g.get("final_grade")
+
+    # Build student rows with computed fields
+    student_rows = []
+    for i, student in enumerate(students):
+        student_grades = grades_lookup.get(student["id"], {})
+        row = {
+            "number": i + 1,
+            "student_id": student["id"],
+            "student_name": f"{student.get('last_name', '')} {student.get('name', '')}".strip(),
+            "grades": {},
+            "conducta": None,
+            "promedio": None,
+            "puntaje": None,
+            "n_desaprobados": 0,
+            "orden_merito": None,
+            "tercio": None,
+            "tardanza_injustificada": None,
+            "tardanza_justificada": None,
+            "falta_injustificada": None,
+            "falta_justificada": None,
+        }
+
+        all_subject_grades = []
+        desaprobados = 0
+
+        for col in columns:
+            if col["type"] == "area":
+                # Compute area average from sub-subjects
+                sub_grades = [student_grades.get(sid) for sid in col["subject_ids"]]
+                valid = [g for g in sub_grades if g is not None]
+                area_avg = round(sum(valid) / len(valid), 0) if valid else None
+                row["grades"][col["id"]] = int(area_avg) if area_avg is not None else None
+            elif col["type"] == "subject":
+                grade_val = student_grades.get(col["id"])
+                if grade_val is not None:
+                    grade_val = round(grade_val)
+                row["grades"][col["id"]] = int(grade_val) if grade_val is not None else None
+                if grade_val is not None:
+                    all_subject_grades.append(grade_val)
+                    if grade_val < 11:
+                        desaprobados += 1
+
+        # Compute summary fields
+        if all_subject_grades:
+            promedio = round(sum(all_subject_grades) / len(all_subject_grades), 2)
+            row["promedio"] = promedio
+            row["puntaje"] = int(round(sum(all_subject_grades)))
+        row["n_desaprobados"] = desaprobados
+
+        student_rows.append(row)
+
+    # Compute ranking (ORDEN DE MÉRITO) by puntaje descending
+    ranked = sorted(
+        [s for s in student_rows if s["puntaje"] is not None],
+        key=lambda x: (-x["puntaje"], x["student_name"])
+    )
+    total_ranked = len(ranked)
+    for rank_idx, s in enumerate(ranked):
+        s["orden_merito"] = rank_idx + 1
+        # Compute TERCIO
+        if total_ranked > 0:
+            tercio_pos = (rank_idx + 1) / total_ranked
+            if tercio_pos <= 1/3:
+                s["tercio"] = "SUP"
+            elif tercio_pos <= 2/3:
+                s["tercio"] = "MED"
+            else:
+                s["tercio"] = "INF"
+
+    # Compute summary statistics per subject column
+    summary_stats = {}
+    for col in columns:
+        col_grades = []
+        for row in student_rows:
+            val = row["grades"].get(col["id"])
+            if val is not None:
+                col_grades.append(val)
+
+        aprobados = sum(1 for g in col_grades if g >= 11)
+        desaprobados = sum(1 for g in col_grades if g < 11)
+        total = len(col_grades)
+
+        summary_stats[col["id"]] = {
+            "promedio": round(sum(col_grades) / len(col_grades), 1) if col_grades else None,
+            "aprobados": aprobados if total > 0 else None,
+            "desaprobados": desaprobados if total > 0 else None,
+            "pct_aprobados": round(aprobados / total * 100) if total > 0 else None,
+            "pct_desaprobados": round(desaprobados / total * 100) if total > 0 else None,
+            "nota_maxima": max(col_grades) if col_grades else None,
+            "nota_minima": min(col_grades) if col_grades else None,
+        }
+
+    # Build section display name
+    section_display = f"{grade_name} {section.get('nombre', '')} {level_name}".strip()
+
+    return {
+        "school_name": school_name,
+        "system_name": "CUBICOL Intranet",
+        "title": f"CONSOLIDADO DE NOTAS - {school_year}",
+        "section_display": section_display,
+        "period_name": period_name,
+        "tutor_name": tutor_name,
+        "school_year": school_year,
+        "columns": columns,
+        "students": student_rows,
+        "summary_stats": summary_stats,
+        "total_students": len(students),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EXPORT CONSOLIDATED REPORT (Excel - Replica fiel)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/grades/consolidated-report/{section_id}/{period_id}/export/excel")
+async def export_consolidated_report_excel(section_id: str, period_id: str, current_user=Depends(get_current_user)):
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from openpyxl.utils import get_column_letter
+    from fastapi.responses import StreamingResponse
+    import io
+
+    data = await get_consolidated_report(section_id, period_id, current_user)
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Consolidado"
+
+    # Styles
+    thin_side = Side(style="thin")
+    thin_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+    center = Alignment(horizontal="center", vertical="center", wrap_text=True)
+    left_align = Alignment(horizontal="left", vertical="center", wrap_text=True)
+    header_fill = PatternFill(start_color="D9E1F2", end_color="D9E1F2", fill_type="solid")
+    area_fill = PatternFill(start_color="B4C6E7", end_color="B4C6E7", fill_type="solid")
+    summary_fill = PatternFill(start_color="E2EFDA", end_color="E2EFDA", fill_type="solid")
+
+    columns = data["columns"]
+    # Fixed columns: N°(A), APELLIDOS Y NOMBRES(B-C merged conceptually, using B with wide width)
+    # Subject columns start at D
+    subject_start_col = 4  # D
+    total_cols = subject_start_col + len(columns) - 1 + 9  # +9 for summary cols
+
+    # Row 1: School name
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=11)
+    ws.cell(row=1, column=1, value=data["school_name"].upper()).font = Font(bold=True, size=11)
+    ws.cell(row=1, column=12, value="Fecha:").font = Font(bold=True, size=9)
+    ws.cell(row=1, column=14, value=datetime.now().strftime("%d/%m/%Y")).font = Font(size=9)
+
+    # Row 2: System name
+    ws.merge_cells(start_row=2, start_column=1, end_row=2, end_column=11)
+    ws.cell(row=2, column=1, value=data["system_name"]).font = Font(bold=True, size=10)
+    ws.cell(row=2, column=12, value="Hora:").font = Font(bold=True, size=9)
+    ws.cell(row=2, column=14, value=datetime.now().strftime("%H:%M:%S")).font = Font(size=9)
+
+    # Row 3-4: Title
+    ws.merge_cells(start_row=3, start_column=1, end_row=4, end_column=15)
+    ws.cell(row=3, column=1, value=data["title"]).font = Font(bold=True, size=12)
+    ws.cell(row=3, column=1).alignment = center
+
+    # Row 5: Context
+    ws.cell(row=5, column=1, value="Salón:").font = Font(bold=True, size=9)
+    ws.cell(row=5, column=3, value=data["section_display"]).font = Font(size=9)
+    ws.cell(row=5, column=4, value="Periodo:").font = Font(bold=True, size=9)
+    ws.cell(row=5, column=6, value=data["period_name"]).font = Font(size=9)
+    ws.cell(row=5, column=9, value="Tutor:").font = Font(bold=True, size=9)
+    ws.cell(row=5, column=11, value=data["tutor_name"]).font = Font(size=9)
+
+    # Row 6: Area headers + subject headers
+    # First merge A6:C6 for "ASIGNATURAS"
+    ws.merge_cells(start_row=6, start_column=1, end_row=6, end_column=3)
+    cell = ws.cell(row=6, column=1, value="ASIGNATURAS")
+    cell.font = Font(bold=True, size=9)
+    cell.fill = header_fill
+    cell.alignment = center
+    cell.border = thin_border
+
+    col_idx = subject_start_col
+    for c in columns:
+        cell = ws.cell(row=6, column=col_idx, value=c["name"])
+        cell.font = Font(bold=True, size=8)
+        cell.alignment = center
+        cell.border = thin_border
+        if c["type"] == "area":
+            cell.fill = area_fill
+        else:
+            cell.fill = header_fill
+        # Merge vertically with row 7
+        ws.merge_cells(start_row=6, start_column=col_idx, end_row=7, end_column=col_idx)
+        col_idx += 1
+
+    # Summary column headers
+    summary_headers = ["CONDUCTA", "PROMEDIO", "PUNTAJE", "N° DESAPROBADOS", "ORDEN DE MÉRITO", "TERCIO",
+                       "Tardanza Injustificada", "Tardanza Justificada", "Falta Injustificada", "Falta Justificada"]
+    for h in summary_headers:
+        cell = ws.cell(row=6, column=col_idx, value=h)
+        cell.font = Font(bold=True, size=7)
+        cell.alignment = center
+        cell.border = thin_border
+        cell.fill = summary_fill
+        ws.merge_cells(start_row=6, start_column=col_idx, end_row=7, end_column=col_idx)
+        col_idx += 1
+
+    # Row 7: N° and APELLIDOS Y NOMBRES
+    cell = ws.cell(row=7, column=1, value="N°")
+    cell.font = Font(bold=True, size=9)
+    cell.alignment = center
+    cell.border = thin_border
+    cell.fill = header_fill
+
+    ws.merge_cells(start_row=7, start_column=2, end_row=7, end_column=3)
+    cell = ws.cell(row=7, column=2, value="APELLIDOS Y NOMBRES")
+    cell.font = Font(bold=True, size=9)
+    cell.alignment = center
+    cell.border = thin_border
+    cell.fill = header_fill
+
+    # Student data rows
+    data_start_row = 8
+    for row_idx, student in enumerate(data["students"]):
+        r = data_start_row + row_idx
+        ws.cell(row=r, column=1, value=student["number"]).border = thin_border
+        ws.cell(row=r, column=1).alignment = center
+
+        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
+        ws.cell(row=r, column=2, value=student["student_name"]).border = thin_border
+        ws.cell(row=r, column=3).border = thin_border
+
+        col_idx = subject_start_col
+        for c in columns:
+            val = student["grades"].get(c["id"])
+            cell = ws.cell(row=r, column=col_idx, value=val if val is not None else "")
+            cell.alignment = center
+            cell.border = thin_border
+            if val is not None and val < 11:
+                cell.font = Font(color="FF0000")
+            col_idx += 1
+
+        # Summary columns
+        ws.cell(row=r, column=col_idx, value=student.get("conducta", "")).border = thin_border
+        ws.cell(row=r, column=col_idx).alignment = center
+        col_idx += 1
+
+        cell = ws.cell(row=r, column=col_idx, value=student.get("promedio"))
+        cell.border = thin_border
+        cell.alignment = center
+        cell.font = Font(bold=True)
+        col_idx += 1
+
+        ws.cell(row=r, column=col_idx, value=student.get("puntaje")).border = thin_border
+        ws.cell(row=r, column=col_idx).alignment = center
+        col_idx += 1
+
+        ws.cell(row=r, column=col_idx, value=student.get("n_desaprobados") or "").border = thin_border
+        ws.cell(row=r, column=col_idx).alignment = center
+        col_idx += 1
+
+        ws.cell(row=r, column=col_idx, value=student.get("orden_merito")).border = thin_border
+        ws.cell(row=r, column=col_idx).alignment = center
+        col_idx += 1
+
+        ws.cell(row=r, column=col_idx, value=student.get("tercio", "")).border = thin_border
+        ws.cell(row=r, column=col_idx).alignment = center
+        col_idx += 1
+
+        for field in ["tardanza_injustificada", "tardanza_justificada", "falta_injustificada", "falta_justificada"]:
+            ws.cell(row=r, column=col_idx, value=student.get(field, "")).border = thin_border
+            ws.cell(row=r, column=col_idx).alignment = center
+            col_idx += 1
+
+    # Summary footer rows
+    footer_start = data_start_row + len(data["students"]) + 1
+    summary_labels = [
+        "Promedio del curso: ",
+        "N° de alumnos Aprobados: ",
+        "N° de alumnos Desaprobados: ",
+        "% de alumnos Aprobados: ",
+        "% de alumnos Desaprobados: ",
+        "Nota Máxima: ",
+        "Nota Mínima: ",
+    ]
+    summary_keys = ["promedio", "aprobados", "desaprobados", "pct_aprobados", "pct_desaprobados", "nota_maxima", "nota_minima"]
+
+    for label_idx, (label, key) in enumerate(zip(summary_labels, summary_keys)):
+        r = footer_start + label_idx
+        ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
+        ws.cell(row=r, column=2, value=label).font = Font(bold=True, size=8)
+        ws.cell(row=r, column=2).border = thin_border
+
+        col_idx = subject_start_col
+        for c in columns:
+            stats = data["summary_stats"].get(c["id"], {})
+            val = stats.get(key)
+            cell = ws.cell(row=r, column=col_idx, value=val if val is not None else "")
+            cell.alignment = center
+            cell.border = thin_border
+            cell.font = Font(size=8)
+            col_idx += 1
+
+    # Column widths
+    ws.column_dimensions["A"].width = 4
+    ws.column_dimensions["B"].width = 13
+    ws.column_dimensions["C"].width = 27
+    for i in range(subject_start_col, col_idx + 1):
+        ws.column_dimensions[get_column_letter(i)].width = 6
+
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = f"consolidado_{data['section_display']}_{data['period_name']}.xlsx"
+    return StreamingResponse(
+        output,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.spreadsheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EXPORT CONSOLIDATED (Excel) - Legacy
 # ══════════════════════════════════════════════════════════════════════════════
 
 @router.get("/grades/consolidated/{section_id}/{period_id}/export/excel")

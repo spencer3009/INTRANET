@@ -1,83 +1,57 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Loader2, Download, Trophy, ArrowUpDown, FileSpreadsheet } from "lucide-react";
+import { Loader2, FileSpreadsheet, FileText, Printer } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-function getGradeColor(val) {
-  if (val === null || val === undefined) return "";
-  if (val < 10) return "bg-red-100 text-red-700";
-  if (val <= 13) return "bg-yellow-50 text-yellow-700";
-  return "bg-green-50 text-green-700";
-}
-
-function getFinalColor(val) {
-  if (val === null || val === undefined) return "text-gray-400";
-  if (val < 10) return "bg-red-500 text-white font-bold";
-  if (val <= 13) return "bg-yellow-400 text-yellow-900 font-bold";
-  return "bg-green-500 text-white font-bold";
-}
-
-function getRankBadge(rank) {
-  if (!rank) return null;
-  if (rank === 1) return "bg-yellow-400 text-yellow-900";
-  if (rank === 2) return "bg-gray-300 text-gray-700";
-  if (rank === 3) return "bg-amber-600 text-white";
-  return "bg-gray-100 text-gray-600";
-}
-
 export default function ConsolidatedGradesPage({ user, token }) {
+  const [levels, setLevels] = useState([]);
+  const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
   const [periods, setPeriods] = useState([]);
-  const [grades, setGrades] = useState([]);
-  const [levels, setLevels] = useState([]);
   const [selectedLevel, setSelectedLevel] = useState("");
   const [selectedGrade, setSelectedGrade] = useState("");
   const [selectedSection, setSelectedSection] = useState("");
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [sortBy, setSortBy] = useState("name"); // 'name' | 'average' | 'rank'
-  const [sortDir, setSortDir] = useState("asc");
+  const tableRef = useRef(null);
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Load academic structure
   useEffect(() => {
-    const loadStructure = async () => {
+    const load = async () => {
       try {
-        const [levelsRes, gradesRes, sectionsRes, periodsRes] = await Promise.all([
+        const [lRes, gRes, sRes, pRes] = await Promise.all([
           axios.get(`${API}/api/academic/levels`, { headers }),
           axios.get(`${API}/api/academic/grades`, { headers }),
           axios.get(`${API}/api/academic/sections`, { headers }),
           axios.get(`${API}/api/academic/periods`, { headers }),
         ]);
-        setLevels(levelsRes.data || []);
-        setGrades(gradesRes.data || []);
-        setSections(sectionsRes.data || []);
-        setPeriods(periodsRes.data || []);
-
-        if (periodsRes.data?.length > 0) {
-          const active = periodsRes.data.find(p => p.activo) || periodsRes.data[0];
+        setLevels(lRes.data || []);
+        setGrades(gRes.data || []);
+        setSections(sRes.data || []);
+        setPeriods(pRes.data || []);
+        if (pRes.data?.length > 0) {
+          const active = pRes.data.find((p) => p.activo) || pRes.data[0];
           setSelectedPeriod(active.id);
         }
       } catch (err) {
         console.error("Error loading structure:", err);
       }
     };
-    loadStructure();
+    load();
   }, []);
 
-  const filteredGrades = selectedLevel ? grades.filter(g => g.nivel_id === selectedLevel) : [];
-  const filteredSections = selectedGrade ? sections.filter(s => s.grado_id === selectedGrade) : [];
+  const filteredGrades = selectedLevel ? grades.filter((g) => g.nivel_id === selectedLevel) : [];
+  const filteredSections = selectedGrade ? sections.filter((s) => s.grado_id === selectedGrade) : [];
 
-  // Load consolidated when section + period selected
   useEffect(() => {
     if (!selectedSection || !selectedPeriod) return;
-    const loadConsolidated = async () => {
+    const loadReport = async () => {
       setLoading(true);
       try {
         const res = await axios.get(
-          `${API}/api/grades/consolidated/${selectedSection}/${selectedPeriod}`,
+          `${API}/api/grades/consolidated-report/${selectedSection}/${selectedPeriod}`,
           { headers }
         );
         setData(res.data);
@@ -87,220 +61,327 @@ export default function ConsolidatedGradesPage({ user, token }) {
         setLoading(false);
       }
     };
-    loadConsolidated();
+    loadReport();
   }, [selectedSection, selectedPeriod]);
-
-  const handleSort = (field) => {
-    if (sortBy === field) {
-      setSortDir(d => d === "asc" ? "desc" : "asc");
-    } else {
-      setSortBy(field);
-      setSortDir(field === "average" || field === "rank" ? "asc" : "asc");
-    }
-  };
-
-  const sortedStudents = data?.students ? [...data.students].sort((a, b) => {
-    let cmp = 0;
-    if (sortBy === "name") cmp = a.student_name.localeCompare(b.student_name);
-    else if (sortBy === "average") cmp = (a.average || 0) - (b.average || 0);
-    else if (sortBy === "rank") cmp = (a.rank || 999) - (b.rank || 999);
-    return sortDir === "desc" ? -cmp : cmp;
-  }) : [];
 
   const handleExportExcel = async () => {
     try {
       const res = await axios.get(
-        `${API}/api/grades/consolidated/${selectedSection}/${selectedPeriod}/export/excel`,
+        `${API}/api/grades/consolidated-report/${selectedSection}/${selectedPeriod}/export/excel`,
         { headers, responseType: "blob" }
       );
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.download = `consolidado_${data?.grade_name}_${data?.section_name}_${data?.period_name}.xlsx`;
+      link.download = `consolidado_${data?.section_display}_${data?.period_name}.xlsx`;
       link.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert("Error al exportar");
+      console.error("Error exporting:", err);
     }
   };
 
+  const handlePrint = () => window.print();
+
+  // Build flat column list for the table
+  // In the Excel, all subjects (areas + sub-subjects) are at the same header level
+  const allColumns = data?.columns || [];
+
+  const summaryHeaders = [
+    { key: "conducta", label: "CONDUCTA" },
+    { key: "promedio", label: "PROMEDIO" },
+    { key: "puntaje", label: "PUNTAJE" },
+    { key: "n_desaprobados", label: "N\u00b0 DESAPROBADOS" },
+    { key: "orden_merito", label: "ORDEN DE\nM\u00c9RITO" },
+    { key: "tercio", label: "TERCIO" },
+    { key: "tardanza_injustificada", label: "Tardanza\nInjustificada" },
+    { key: "tardanza_justificada", label: "Tardanza\nJustificada" },
+    { key: "falta_injustificada", label: "Falta\nInjustificada" },
+    { key: "falta_justificada", label: "Falta\nJustificada" },
+  ];
+
+  const summaryFooterRows = [
+    { label: "Promedio del curso:", key: "promedio" },
+    { label: "N\u00b0 de alumnos Aprobados:", key: "aprobados" },
+    { label: "N\u00b0 de alumnos Desaprobados:", key: "desaprobados" },
+    { label: "% de alumnos Aprobados:", key: "pct_aprobados" },
+    { label: "% de alumnos Desaprobados:", key: "pct_desaprobados" },
+    { label: "Nota M\u00e1xima:", key: "nota_maxima" },
+    { label: "Nota M\u00ednima:", key: "nota_minima" },
+  ];
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("es-PE", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const timeStr = now.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  // Detect if this column is an "area" type (should be styled differently)
+  const isAreaColumn = (col) => col.type === "area";
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6" data-testid="consolidated-grades">
-      <div className="max-w-[1400px] mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Consolidado de Notas</h1>
-              <p className="text-sm text-gray-500 mt-1">Vista consolidada de todas las asignaturas del aula</p>
-            </div>
-            {data && (
-              <button
-                onClick={handleExportExcel}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                data-testid="export-excel-btn"
-              >
-                <FileSpreadsheet className="w-4 h-4" /> Exportar Excel
-              </button>
-            )}
-          </div>
+    <div className="cns-page" data-testid="consolidated-grades">
+      <style>{`
+        .cns-page { background:#e8e8e8; min-height:100vh; padding:10px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        .cns-filters { background:#fff; border:1px solid #aaa; padding:8px 12px; margin-bottom:8px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; }
+        .cns-filters label { font-size:10px; font-weight:700; color:#333; display:block; margin-bottom:1px; text-transform:uppercase; letter-spacing:0.3px; }
+        .cns-filters select { padding:4px 6px; border:1px solid #999; font-size:11px; min-width:140px; background:#fff; }
+        .cns-export { margin-left:auto; display:flex; gap:6px; }
+        .cns-export button { padding:5px 12px; font-size:11px; font-weight:700; border:1px solid #666; cursor:pointer; display:flex; align-items:center; gap:4px; border-radius:2px; }
+        .cns-btn-xl { background:#217346; color:#fff; border-color:#217346!important; }
+        .cns-btn-xl:hover { background:#1a5c38; }
+        .cns-btn-pr { background:#f5f5f5; color:#333; }
+        .cns-btn-pr:hover { background:#ddd; }
 
-          {/* Filters */}
-          <div className="flex flex-wrap items-end gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Nivel</label>
-              <select
-                value={selectedLevel}
-                onChange={e => { setSelectedLevel(e.target.value); setSelectedGrade(""); setSelectedSection(""); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white min-w-[160px]"
-                data-testid="level-selector"
-              >
-                <option value="">Seleccionar nivel</option>
-                {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Grado</label>
-              <select
-                value={selectedGrade}
-                onChange={e => { setSelectedGrade(e.target.value); setSelectedSection(""); }}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white min-w-[160px]"
-                data-testid="grade-selector"
-              >
-                <option value="">Seleccionar grado</option>
-                {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Seccion</label>
-              <select
-                value={selectedSection}
-                onChange={e => setSelectedSection(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white min-w-[120px]"
-                data-testid="section-selector"
-              >
-                <option value="">Seleccionar</option>
-                {filteredSections.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Periodo</label>
-              <select
-                value={selectedPeriod}
-                onChange={e => setSelectedPeriod(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white min-w-[160px]"
-                data-testid="period-selector"
-              >
-                {periods.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-              </select>
-            </div>
-          </div>
+        .cns-sheet { background:#fff; border:2px solid #666; overflow:auto; max-height:calc(100vh - 90px); position:relative; }
+        .cns-tbl { border-collapse:collapse; font-size:9px; width:max-content; min-width:100%; }
+        .cns-tbl th, .cns-tbl td { border:1px solid #777; padding:2px 3px; text-align:center; vertical-align:middle; }
+
+        /* === INSTITUTIONAL HEADER (no borders) === */
+        .cns-tbl .ih td { border:none; padding:1px 4px; }
+        .cns-ih-school { text-align:left!important; font-weight:bold; font-size:11px; color:#1a1a1a; }
+        .cns-ih-system { text-align:left!important; font-weight:bold; font-size:10px; color:#333; }
+        .cns-ih-label { text-align:right!important; font-size:9px; font-weight:bold; color:#444; }
+        .cns-ih-val { text-align:left!important; font-size:9px; color:#222; }
+        .cns-ih-title { text-align:center!important; font-weight:bold; font-size:13px; color:#000; padding:5px 4px!important; letter-spacing:0.5px; }
+        .cns-ih-ctx-lbl { text-align:left!important; font-weight:bold; font-size:9px; color:#333; }
+        .cns-ih-ctx-val { text-align:left!important; font-size:9px; color:#111; }
+
+        /* === COLUMN HEADERS === */
+        .cns-hdr-asig { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; color:#1a1a1a; text-align:center!important; }
+        .cns-hdr-num { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; }
+        .cns-hdr-name { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; text-align:center!important; }
+
+        /* Area column headers (UPPERCASE area names) */
+        .cns-hdr-area { background:#B4C6E7!important; font-weight:bold!important; font-size:8px!important; color:#111; text-transform:uppercase; writing-mode:horizontal-tb; white-space:normal; word-break:break-word; min-width:42px; max-width:60px; }
+        /* Sub-subject column headers (mixed case) */
+        .cns-hdr-subj { background:#D9E1F2!important; font-weight:600!important; font-size:8px!important; color:#222; white-space:normal; word-break:break-word; min-width:42px; max-width:60px; }
+        /* Summary column headers */
+        .cns-hdr-summ { background:#E2EFDA!important; font-weight:bold!important; font-size:7px!important; color:#222; white-space:pre-line; min-width:48px; max-width:65px; }
+
+        /* === FROZEN COLUMNS === */
+        .cns-fn { position:sticky; z-index:2; }
+        .cns-fn-num { left:0; min-width:28px; width:28px; max-width:28px; background:inherit; }
+        .cns-fn-name { left:28px; min-width:200px; text-align:left!important; padding-left:5px!important; background:inherit; }
+        thead .cns-fn { z-index:4; }
+
+        /* === DATA ROWS === */
+        .cns-dr td { font-size:9px; padding:2px 3px; }
+        .cns-dr:nth-child(odd) { background:#fff; }
+        .cns-dr:nth-child(even) { background:#f7f8fa; }
+        .cns-dr:nth-child(odd) .cns-fn { background:#fff; }
+        .cns-dr:nth-child(even) .cns-fn { background:#f7f8fa; }
+        .cns-dr:hover { background:#eef3ff; }
+        .cns-dr:hover .cns-fn { background:#eef3ff; }
+        .cns-grade-fail { color:#cc0000; font-weight:bold; }
+        .cns-grade-area { font-weight:bold; background:#edf1fa; }
+        .cns-summ-cell { background:#f0f4e8; font-weight:600; }
+        .cns-prom-cell { background:#e3ebd5; font-weight:bold; }
+
+        /* === FOOTER ROWS === */
+        .cns-fr td { font-size:8px; background:#f9f9f0; padding:1px 3px; }
+        .cns-fr-lbl { text-align:left!important; font-weight:bold; padding-left:5px!important; white-space:nowrap; }
+
+        /* === EMPTY & LOADING === */
+        .cns-loading { display:flex; align-items:center; justify-content:center; padding:60px; color:#666; font-size:13px; gap:8px; }
+        .cns-empty { text-align:center; padding:80px 20px; color:#999; }
+
+        /* === PRINT === */
+        @media print {
+          .cns-filters, .cns-export { display:none!important; }
+          .cns-page { padding:0; background:#fff; }
+          .cns-sheet { border:none; max-height:none; overflow:visible; }
+          .cns-tbl th, .cns-tbl td { font-size:7px; padding:1px 1px; }
+          .cns-fn { position:static!important; }
+        }
+      `}</style>
+
+      {/* === FILTER BAR === */}
+      <div className="cns-filters" data-testid="consolidated-filters">
+        <div>
+          <label>Nivel</label>
+          <select value={selectedLevel} onChange={(e) => { setSelectedLevel(e.target.value); setSelectedGrade(""); setSelectedSection(""); setData(null); }} data-testid="level-selector">
+            <option value="">Seleccionar</option>
+            {levels.map((l) => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+          </select>
         </div>
-
-        {/* Content */}
-        {loading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
-            <span className="ml-3 text-gray-500">Cargando consolidado...</span>
-          </div>
-        ) : !data ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-16 text-center">
-            <Trophy className="w-16 h-16 mx-auto text-gray-300 mb-4" />
-            <p className="text-lg text-gray-400">Selecciona un nivel, grado y seccion para ver el consolidado</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            {/* Info bar */}
-            <div className="flex items-center justify-between px-6 py-3 bg-slate-800 text-white">
-              <span className="font-semibold">{data.grade_name} "{data.section_name}" - {data.period_name}</span>
-              <span className="text-sm text-slate-300">{data.students?.length || 0} alumnos | {data.subjects?.length || 0} asignaturas</span>
-            </div>
-
-            {/* Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse" data-testid="consolidated-table">
-                <thead>
-                  <tr className="bg-slate-700 text-white">
-                    <th className="sticky left-0 z-20 bg-slate-700 px-3 py-3 text-center text-xs font-semibold w-12 border-r border-slate-600 cursor-pointer" onClick={() => handleSort("rank")}>
-                      <div className="flex items-center justify-center gap-1">
-                        # {sortBy === "rank" && <ArrowUpDown className="w-3 h-3" />}
-                      </div>
-                    </th>
-                    <th className="sticky left-12 z-20 bg-slate-700 px-4 py-3 text-left text-xs font-semibold min-w-[220px] border-r border-slate-600 cursor-pointer" onClick={() => handleSort("name")}>
-                      <div className="flex items-center gap-1">
-                        Apellidos y Nombres {sortBy === "name" && <ArrowUpDown className="w-3 h-3" />}
-                      </div>
-                    </th>
-                    {data.subjects?.map(s => (
-                      <th key={s.id} className="px-2 py-3 text-center text-xs font-semibold min-w-[100px] border-r border-slate-600">
-                        <div className="truncate" title={s.name}>{s.name}</div>
-                      </th>
-                    ))}
-                    <th className="px-3 py-3 text-center text-xs font-bold min-w-[80px] bg-slate-900 cursor-pointer" onClick={() => handleSort("average")}>
-                      <div className="flex items-center justify-center gap-1">
-                        PROM. {sortBy === "average" && <ArrowUpDown className="w-3 h-3" />}
-                      </div>
-                    </th>
-                    <th className="px-3 py-3 text-center text-xs font-bold min-w-[60px] bg-slate-900">
-                      PUESTO
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedStudents.map((student, idx) => (
-                    <tr key={student.student_id} className={`${idx % 2 === 0 ? "bg-white" : "bg-gray-50"} hover:bg-indigo-50/50 transition-colors`}>
-                      <td className="sticky left-0 z-10 bg-inherit px-3 py-2 text-center text-sm text-gray-500 border-r border-gray-200 font-medium">
-                        {student.number}
-                      </td>
-                      <td className="sticky left-12 z-10 bg-inherit px-4 py-2 text-sm text-gray-900 font-medium border-r border-gray-200 whitespace-nowrap">
-                        {student.student_name}
-                      </td>
-                      {data.subjects?.map(s => {
-                        const grade = student.grades[s.id];
-                        return (
-                          <td key={s.id} className={`px-2 py-2 text-center text-sm font-medium border-r border-gray-200 ${getGradeColor(grade)}`}>
-                            {grade !== null && grade !== undefined ? grade : "-"}
-                          </td>
-                        );
-                      })}
-                      <td className={`px-2 py-2 text-center text-sm rounded-sm ${getFinalColor(student.average)}`}>
-                        {student.average ?? "-"}
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        {student.rank ? (
-                          <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full text-xs font-bold ${getRankBadge(student.rank)}`}>
-                            {student.rank}
-                          </span>
-                        ) : "-"}
-                      </td>
-                    </tr>
-                  ))}
-                  {sortedStudents.length === 0 && (
-                    <tr>
-                      <td colSpan={100} className="px-4 py-12 text-center text-gray-400">
-                        No hay datos disponibles para este periodo
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Color legend */}
-            <div className="flex items-center justify-end gap-4 px-6 py-3 border-t border-gray-200 bg-gray-50">
-              <span className="flex items-center gap-1.5 text-xs">
-                <span className="w-3 h-3 rounded bg-red-400" /> 0-9
-              </span>
-              <span className="flex items-center gap-1.5 text-xs">
-                <span className="w-3 h-3 rounded bg-yellow-400" /> 10-13
-              </span>
-              <span className="flex items-center gap-1.5 text-xs">
-                <span className="w-3 h-3 rounded bg-green-400" /> 14-20
-              </span>
-            </div>
+        <div>
+          <label>Grado</label>
+          <select value={selectedGrade} onChange={(e) => { setSelectedGrade(e.target.value); setSelectedSection(""); setData(null); }} data-testid="grade-selector">
+            <option value="">Seleccionar</option>
+            {filteredGrades.map((g) => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+          </select>
+        </div>
+        <div>
+          <label>Secci&oacute;n</label>
+          <select value={selectedSection} onChange={(e) => { setSelectedSection(e.target.value); setData(null); }} data-testid="section-selector">
+            <option value="">Seleccionar</option>
+            {filteredSections.map((s) => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
+        </div>
+        <div>
+          <label>Periodo</label>
+          <select value={selectedPeriod} onChange={(e) => setSelectedPeriod(e.target.value)} data-testid="period-selector">
+            <option value="">Seleccionar</option>
+            {periods.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </select>
+        </div>
+        {data && (
+          <div className="cns-export">
+            <button className="cns-btn-xl" onClick={handleExportExcel} data-testid="export-excel-btn"><FileSpreadsheet size={13} /> Excel</button>
+            <button className="cns-btn-pr" onClick={handlePrint} data-testid="print-btn"><Printer size={13} /> Imprimir</button>
           </div>
         )}
       </div>
+
+      {/* === CONTENT === */}
+      {loading ? (
+        <div className="cns-loading"><Loader2 className="w-5 h-5 animate-spin" /> Cargando consolidado...</div>
+      ) : !data ? (
+        <div className="cns-empty">
+          <FileText size={44} style={{ margin: "0 auto 10px", opacity: 0.25 }} />
+          <p style={{ fontSize: 13 }}>Selecciona nivel, grado y secci&oacute;n para ver el consolidado</p>
+        </div>
+      ) : (
+        <div className="cns-sheet" ref={tableRef}>
+          <table className="cns-tbl" data-testid="consolidated-table">
+            <thead>
+              {/* ROW 1: School name + Fecha */}
+              <tr className="ih">
+                <td colSpan={3} className="cns-ih-school cns-fn cns-fn-num" style={{left:0, minWidth:228}}>{data.school_name?.toUpperCase()}</td>
+                {allColumns.length > 4 ? (
+                  <>
+                    <td colSpan={allColumns.length - 4}></td>
+                    <td className="cns-ih-label" colSpan={2}>Fecha:</td>
+                    <td className="cns-ih-val" colSpan={2}>{dateStr}</td>
+                    {summaryHeaders.length > 0 && <td colSpan={summaryHeaders.length}></td>}
+                  </>
+                ) : (
+                  <>
+                    <td colSpan={allColumns.length + summaryHeaders.length - 2}></td>
+                    <td className="cns-ih-label">Fecha:</td>
+                    <td className="cns-ih-val">{dateStr}</td>
+                  </>
+                )}
+              </tr>
+              {/* ROW 2: System name + Hora */}
+              <tr className="ih">
+                <td colSpan={3} className="cns-ih-system cns-fn cns-fn-num" style={{left:0, minWidth:228}}>{data.system_name}</td>
+                {allColumns.length > 4 ? (
+                  <>
+                    <td colSpan={allColumns.length - 4}></td>
+                    <td className="cns-ih-label" colSpan={2}>Hora:</td>
+                    <td className="cns-ih-val" colSpan={2}>{timeStr}</td>
+                    {summaryHeaders.length > 0 && <td colSpan={summaryHeaders.length}></td>}
+                  </>
+                ) : (
+                  <>
+                    <td colSpan={allColumns.length + summaryHeaders.length - 2}></td>
+                    <td className="cns-ih-label">Hora:</td>
+                    <td className="cns-ih-val">{timeStr}</td>
+                  </>
+                )}
+              </tr>
+              {/* ROW 3-4: Title */}
+              <tr className="ih">
+                <td colSpan={3 + allColumns.length + summaryHeaders.length} className="cns-ih-title">{data.title}</td>
+              </tr>
+              {/* ROW 5: Salon, Periodo, Tutor */}
+              <tr className="ih">
+                <td className="cns-ih-ctx-lbl cns-fn cns-fn-num" style={{left:0}}>Sal&oacute;n:</td>
+                <td colSpan={2} className="cns-ih-ctx-val cns-fn cns-fn-name" style={{left:28}}>{data.section_display}</td>
+                <td className="cns-ih-ctx-lbl" colSpan={1}>Periodo:</td>
+                <td className="cns-ih-ctx-val" colSpan={2}>{data.period_name}</td>
+                {allColumns.length > 5 ? (
+                  <>
+                    <td colSpan={allColumns.length - 5}></td>
+                    <td className="cns-ih-ctx-lbl" colSpan={1}>Tutor:</td>
+                    <td className="cns-ih-ctx-val" colSpan={summaryHeaders.length + 1}>{data.tutor_name || "Sin asignar"}</td>
+                  </>
+                ) : (
+                  <>
+                    <td className="cns-ih-ctx-lbl">Tutor:</td>
+                    <td className="cns-ih-ctx-val" colSpan={allColumns.length + summaryHeaders.length - 5}>{data.tutor_name || "Sin asignar"}</td>
+                  </>
+                )}
+              </tr>
+
+              {/* ROW 6: ASIGNATURAS header + all subject headers (rowSpan=2) + summary headers (rowSpan=2) */}
+              <tr>
+                <th colSpan={3} rowSpan={1} className="cns-hdr-asig cns-fn cns-fn-num" style={{left:0, minWidth:228}}>ASIGNATURAS</th>
+                {allColumns.map((col) => (
+                  <th
+                    key={col.id}
+                    rowSpan={2}
+                    className={isAreaColumn(col) ? "cns-hdr-area" : "cns-hdr-subj"}
+                    title={col.name}
+                  >
+                    {col.name}
+                  </th>
+                ))}
+                {summaryHeaders.map((sh) => (
+                  <th key={sh.key} rowSpan={2} className="cns-hdr-summ">{sh.label}</th>
+                ))}
+              </tr>
+              {/* ROW 7: N° + APELLIDOS Y NOMBRES */}
+              <tr>
+                <th className="cns-hdr-num cns-fn cns-fn-num">N&deg;</th>
+                <th colSpan={2} className="cns-hdr-name cns-fn cns-fn-name">APELLIDOS Y NOMBRES</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Student data rows */}
+              {data.students?.map((student) => (
+                <tr key={student.student_id} className="cns-dr" data-testid={`student-row-${student.number}`}>
+                  <td className="cns-fn cns-fn-num">{student.number}</td>
+                  <td colSpan={2} className="cns-fn cns-fn-name">{student.student_name}</td>
+                  {allColumns.map((col) => {
+                    const val = student.grades[col.id];
+                    const isFail = val !== null && val !== undefined && val < 11;
+                    const cls = [isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-area" : ""].filter(Boolean).join(" ");
+                    return <td key={col.id} className={cls}>{val ?? ""}</td>;
+                  })}
+                  <td className="cns-summ-cell">{student.conducta ?? ""}</td>
+                  <td className="cns-prom-cell">{student.promedio != null ? student.promedio.toFixed(2) : ""}</td>
+                  <td className="cns-summ-cell">{student.puntaje ?? ""}</td>
+                  <td className="cns-summ-cell">{student.n_desaprobados || ""}</td>
+                  <td className="cns-summ-cell">{student.orden_merito ?? ""}</td>
+                  <td className="cns-summ-cell">{student.tercio ?? ""}</td>
+                  <td className="cns-summ-cell">{student.tardanza_injustificada ?? ""}</td>
+                  <td className="cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
+                  <td className="cns-summ-cell">{student.falta_injustificada ?? ""}</td>
+                  <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
+                </tr>
+              ))}
+
+              {data.students?.length === 0 && (
+                <tr>
+                  <td colSpan={3 + allColumns.length + summaryHeaders.length} style={{ padding: 30, color: "#999", fontSize: 12 }}>
+                    No hay alumnos registrados en esta secci&oacute;n
+                  </td>
+                </tr>
+              )}
+
+              {/* Spacer */}
+              {data.students?.length > 0 && (
+                <tr><td colSpan={3 + allColumns.length + summaryHeaders.length} style={{height:4, border:"none", background:"#fff"}}></td></tr>
+              )}
+
+              {/* Summary footer rows */}
+              {data.students?.length > 0 && summaryFooterRows.map((fr) => (
+                <tr key={fr.key} className="cns-fr">
+                  <td className="cns-fn cns-fn-num"></td>
+                  <td colSpan={2} className="cns-fr-lbl cns-fn cns-fn-name">{fr.label}</td>
+                  {allColumns.map((col) => {
+                    const stats = data.summary_stats?.[col.id];
+                    const val = stats?.[fr.key];
+                    return <td key={col.id}>{val != null ? val : ""}</td>;
+                  })}
+                  {summaryHeaders.map((sh) => <td key={sh.key}></td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
