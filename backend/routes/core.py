@@ -51,25 +51,45 @@ try:
         pass
     
     if not _test_ok:
-        # List available databases and find the one with most users
+        # List available databases and find the correct one
+        # Prefer DB matching the original DB_NAME suffix (e.g., "test_database")
         try:
             _available = _sync_client.list_database_names()
-            _best_db = None
-            _best_count = 0
-            for _candidate in _available:
-                if _candidate in ('admin', 'local', 'config'):
-                    continue
-                try:
-                    _cols = _sync_client[_candidate].list_collection_names()
-                    if 'users' in _cols:
-                        _count = _sync_client[_candidate].users.count_documents({})
-                        if _count > _best_count:
-                            _best_count = _count
-                            _best_db = _candidate
-                except Exception:
-                    continue
-            if _best_db:
-                db_name = _best_db
+            _candidates = [d for d in _available if d not in ('admin', 'local', 'config')]
+            
+            # Extract original suffix from DB_NAME (e.g., "test_database" from "school-portal-152-test_database")
+            _original_suffix = _raw_db_name
+            for _prefix in ['school-portal-152-', 'school-portal-152_']:
+                if _raw_db_name.startswith(_prefix):
+                    _original_suffix = _raw_db_name[len(_prefix):]
+                    break
+            
+            # Priority 1: DB whose name ends with the original suffix
+            for _candidate in _candidates:
+                if _candidate.endswith(_original_suffix):
+                    try:
+                        _cols = _sync_client[_candidate].list_collection_names()
+                        if 'users' in _cols:
+                            db_name = _candidate
+                            break
+                    except Exception:
+                        continue
+            else:
+                # Priority 2: DB with most users
+                _best_db = None
+                _best_count = 0
+                for _candidate in _candidates:
+                    try:
+                        _cols = _sync_client[_candidate].list_collection_names()
+                        if 'users' in _cols:
+                            _count = _sync_client[_candidate].users.count_documents({})
+                            if _count > _best_count:
+                                _best_count = _count
+                                _best_db = _candidate
+                    except Exception:
+                        continue
+                if _best_db:
+                    db_name = _best_db
         except Exception:
             pass
     
