@@ -306,10 +306,11 @@ async def get_grades(
     levels_cache = {}
     for grade in grades:
         # Get level info
-        if grade["nivel_id"] not in levels_cache:
-            level = await db.academic_levels.find_one({"id": grade["nivel_id"]}, {"_id": 0, "nombre": 1})
-            levels_cache[grade["nivel_id"]] = level["nombre"] if level else "Sin nivel"
-        grade["nivel_nombre"] = levels_cache[grade["nivel_id"]]
+        nivel_id = grade.get("nivel_id")
+        if nivel_id and nivel_id not in levels_cache:
+            level = await db.academic_levels.find_one({"id": nivel_id}, {"_id": 0, "nombre": 1})
+            levels_cache[nivel_id] = level["nombre"] if level else "Sin nivel"
+        grade["nivel_nombre"] = levels_cache.get(nivel_id, "Sin nivel")
         
         # Get section count
         section_count = await db.sections.count_documents({
