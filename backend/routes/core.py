@@ -31,7 +31,14 @@ load_dotenv(ROOT_DIR / '.env')
 
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+
+# Extract DB name from MONGO_URL path if present (production),
+# otherwise fall back to DB_NAME env var (local dev)
+from urllib.parse import urlparse
+_parsed_mongo = urlparse(mongo_url)
+_db_from_url = _parsed_mongo.path.lstrip('/').split('?')[0] if _parsed_mongo.path and _parsed_mongo.path != '/' else None
+db_name = _db_from_url or os.environ.get('DB_NAME', 'database')
+db = client[db_name]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'edunet-saas-secret-key-2026-dev-only')
 JWT_ALGORITHM = "HS256"
