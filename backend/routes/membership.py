@@ -5,7 +5,6 @@ Handles: Owner payment requests, Support renewal confirmation
 
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from typing import Optional
 from datetime import datetime, timezone, timedelta
 import uuid
 
@@ -19,7 +18,7 @@ router = APIRouter(prefix="/api/membership", tags=["membership"])
 # ══════════════════════════════════════════════════════════════════════════════
 
 class PaymentRequest(BaseModel):
-    operation_code: Optional[str] = None
+    operation_code: str
     payment_method: str = "yape"
 
 
@@ -37,6 +36,9 @@ async def request_payment(req: PaymentRequest, current_user=Depends(get_current_
     school_id = user.get("school_id")
     if not school_id:
         raise HTTPException(status_code=400, detail="No pertenece a ningun colegio")
+
+    if not req.operation_code.strip():
+        raise HTTPException(status_code=400, detail="El numero de operacion es obligatorio")
 
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
     if not school:

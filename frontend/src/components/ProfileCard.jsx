@@ -250,40 +250,40 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
 
     {/* Payment Modal */}
     {showPayModal && (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowPayModal(false)}>
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()} data-testid="payment-modal">
-          <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-5 text-white">
+      <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4" style={{ zIndex: 9999 }} onClick={() => setShowPayModal(false)}>
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()} data-testid="payment-modal">
+          <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 text-white rounded-t-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-bold">Renovar plan EduNet</h2>
-                <p className="text-violet-200 text-sm mt-1">Pago manual con Yape o Plin</p>
+                <h2 className="text-base font-bold">Renovar plan EduNet</h2>
+                <p className="text-violet-200 text-xs">Pago manual con Yape o Plin</p>
               </div>
               <button onClick={() => setShowPayModal(false)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
-          <div className="px-6 py-5 space-y-5">
-            <div className="bg-slate-50 rounded-xl p-4 text-center border border-slate-200">
-              <p className="text-sm text-slate-500 mb-1">Monto a pagar</p>
-              <p className="text-3xl font-extrabold text-slate-800" data-testid="payment-amount">S/ {p?.calculated_price?.toFixed(2) || "0.00"}</p>
-              <p className="text-xs text-slate-400 mt-1">Plan mensual</p>
+          <div className="px-4 py-3 space-y-3">
+            <div className="bg-slate-50 rounded-lg px-3 py-2 text-center border border-slate-200">
+              <p className="text-xs text-slate-500">Monto a pagar</p>
+              <p className="text-2xl font-extrabold text-slate-800" data-testid="payment-amount">S/ {p?.calculated_price?.toFixed(2) || "0.00"}</p>
+              <p className="text-[10px] text-slate-400">Plan mensual</p>
             </div>
-            <p className="text-sm text-slate-600 text-center">
+            <p className="text-xs text-slate-600 text-center">
               Escanea el codigo QR con <strong>Yape</strong> para realizar tu pago.
             </p>
             <div className="flex justify-center">
-              <div className="rounded-xl border-2 border-violet-500 bg-violet-50 p-4 text-center max-w-xs w-full">
-                <div className="bg-white rounded-lg p-2 border">
+              <div className="rounded-lg border-2 border-violet-500 bg-violet-50 p-2 text-center w-48">
+                <div className="bg-white rounded-md p-1 border">
                   <img src="/yape_qr.jpeg" alt="QR Yape" className="w-full h-auto object-contain mx-auto" />
                 </div>
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Codigo de operacion (opcional)</label>
-              <input type="text" value={operationCode} onChange={(e) => setOperationCode(e.target.value)} placeholder="Ingresa el codigo de tu transferencia" className="w-full px-4 py-2.5 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400" data-testid="operation-code-input" />
+              <label className="block text-xs font-semibold text-slate-700 mb-1">Numero de operacion <span className="text-red-500">*</span></label>
+              <input type="text" value={operationCode} onChange={(e) => setOperationCode(e.target.value)} placeholder="Ingresa el numero de operacion" className="w-full px-3 py-2 border border-slate-300 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400" data-testid="operation-code-input" required />
             </div>
-            <button onClick={handleSubmitPayment} disabled={submitting} className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-violet-600 text-white rounded-xl text-sm font-bold hover:bg-violet-700 transition-colors disabled:opacity-60" data-testid="confirm-payment-btn">
+            <button onClick={handleSubmitPayment} disabled={submitting || !operationCode.trim()} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-bold hover:bg-violet-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed" data-testid="confirm-payment-btn">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
               Ya realice el pago
             </button>
