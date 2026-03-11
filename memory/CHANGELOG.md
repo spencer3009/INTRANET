@@ -2,11 +2,24 @@
 
 ## March 11, 2026 - Fork 5
 
+### Major Feature: Registro Auxiliar Excel-Format Rebuild - COMPLETED
+- Completely rebuilt GradeBookTab.jsx to match exact Excel format provided by client
+- Backend updated with 17 sub-grade fields (act_co, act_re, rf_r1-r5, comp_c1-c2, part_p1-p6, exam_mensual, exam_bimestral)
+- 4-row grouped header: CRITERIOS DE EVALUACIÓN → Percentages (10%,25%,5%,25%,15%,20%) → Category names → Sub-columns
+- Auto-calculated PROMEDIO for each criterion group
+- Weighted PROM. BIMESTRAL = Actitudinal×10% + RevFichas×25% + Competencia×5% + Participaciones×25% + ExamenMensual×15% + ExamenBimestral×20%
+- Sticky N° and Name columns during horizontal scroll
+- Period lock/unlock, auto-save, Save/Close buttons
+- Testing: 100% (Backend 16/16, Frontend all features verified)
+
+### Bug Fix: Datos académicos no visibles - COMPLETED
+- 42 registros de student_grades estaban insertados en colección grades (grados académicos) por error
+- Limpieza de DB y protección defensiva con .get("nivel_id") en academic.py
+- Limpieza de campos obsoletos del schema antiguo en student_grades
+
 ### UI Fix: Gradebook Sidebar & Tab Cleanup - COMPLETED
-- Hid left/right sidebars when "REGISTRO AUXILIAR" tab is active (full-width layout for gradebook)
-- Removed old "CALIFICACIONES" tab from course navigation (replaced by new Gradebook)
-- Updated `onViewStudents`/`onViewGrades` hero header callbacks to navigate to `registro-auxiliar`
-- Files modified: `CourseDetailPage.jsx`
+- Hid left/right sidebars when "REGISTRO AUXILIAR" tab is active
+- Removed old "CALIFICACIONES" tab from course navigation
 
 ## March 6, 2026 - Fork 4 (Enhancement)
 
