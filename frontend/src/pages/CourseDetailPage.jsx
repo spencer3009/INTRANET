@@ -10,6 +10,7 @@ import StudentHeader from "../components/StudentHeader";
 import CourseRemindersPanel from "../components/CourseRemindersPanel";
 import MessageCenter from "../components/MessageCenter";
 import InternalMailPage, { ComposeModal as InternalMailComposeModal } from "./InternalMailPage";
+import GradeBookTab from "../components/GradeBookTab";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import { useEditor, EditorContent } from "@tiptap/react";
@@ -30,7 +31,7 @@ import {
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
   Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy,
-  Video, Link as LinkIcon, ExternalLink
+  Video, Link as LinkIcon, ExternalLink, ClipboardList
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -339,6 +340,7 @@ function TeacherColorfulTabs({ activeTab, onTabChange, unreadMessages = 0, unrea
     { id: "mensajes", label: "MENSAJES", icon: Mail, gradient: "from-purple-600 to-violet-500", borderColor: "border-purple-300", iconBg: "bg-purple-500" },
     { id: "recordatorios", label: "RECORDATORIOS", icon: Bell, gradient: "from-orange-500 to-amber-500", borderColor: "border-orange-300", iconBg: "bg-orange-500" },
     { id: "calificaciones", label: "CALIFICACIONES", icon: Trophy, gradient: "from-amber-500 to-yellow-500", borderColor: "border-amber-300", iconBg: "bg-amber-500" },
+    { id: "registro-auxiliar", label: "REGISTRO AUXILIAR", icon: ClipboardList, gradient: "from-indigo-600 to-indigo-500", borderColor: "border-indigo-300", iconBg: "bg-indigo-500" },
     { id: "clases-en-vivo", label: "CLASES EN VIVO", icon: Video, gradient: "from-sky-500 to-cyan-500", borderColor: "border-sky-300", iconBg: "bg-sky-500" },
   ];
 
@@ -9549,6 +9551,8 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         return <RemindersTabContent subjectId={subjectId} token={token} userRole={user?.role} />;
       case "calificaciones":
         return <GradesContent grades={grades} />;
+      case "registro-auxiliar":
+        return <GradeBookTab subjectId={subjectId} sectionId={subject?.section_id} token={token} user={user} />;
       case "clases-en-vivo":
         return <LiveClassesTabContent subjectId={subjectId} token={token} user={user} />;
       default:

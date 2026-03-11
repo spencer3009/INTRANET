@@ -26,6 +26,7 @@ import MorososPage from "@/pages/MorososPage";
 import CourseDetailPage from "@/pages/CourseDetailPage";
 import ProfilePage from "@/pages/ProfilePage";
 import TeacherAssignmentsPage from "@/pages/TeacherAssignmentsPage";
+import ConsolidatedGradesPage from "@/pages/ConsolidatedGradesPage";
 import StudentDashboardPage from "@/pages/StudentDashboardPage";
 import StudentCoursesPage from "@/pages/StudentCoursesPage";
 import StudentCourseDetailPage from "@/pages/StudentCourseDetailPage";
@@ -1457,6 +1458,24 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherAssignmentsPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Consolidated Grades Page */}
+          <Route
+            path="/:subdomain/consolidado-notas"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ConsolidatedGradesPage user={user} token={token} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/consolidado-notas"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ConsolidatedGradesPage user={user} token={token} />
               </ProtectedRoute>
             }
           />
