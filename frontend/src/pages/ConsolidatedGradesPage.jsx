@@ -153,39 +153,39 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         <main className="flex-1 overflow-y-auto custom-scroll pb-20 lg:pb-0">
           <div className="cns-page">
       <style>{`
-        .cns-page { background:#F8FAFC; padding:10px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
-        .cns-filters { background:#fff; border:1px solid #aaa; padding:8px 12px; margin-bottom:8px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; }
-        .cns-filters label { font-size:10px; font-weight:700; color:#333; display:block; margin-bottom:1px; text-transform:uppercase; letter-spacing:0.3px; }
-        .cns-filters select { padding:4px 6px; border:1px solid #999; font-size:11px; min-width:140px; background:#fff; }
-        .cns-export { margin-left:auto; display:flex; gap:6px; }
-        .cns-export button { padding:5px 12px; font-size:11px; font-weight:700; border:1px solid #666; cursor:pointer; display:flex; align-items:center; gap:4px; border-radius:2px; }
+        .cns-page { background:#F8FAFC; padding:12px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        .cns-filters { background:#fff; border:1px solid #bbb; padding:10px 16px; margin-bottom:10px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; border-radius:4px; }
+        .cns-filters label { font-size:12px; font-weight:700; color:#333; display:block; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.3px; }
+        .cns-filters select { padding:6px 10px; border:1px solid #999; font-size:13px; min-width:150px; background:#fff; border-radius:3px; }
+        .cns-export { margin-left:auto; display:flex; gap:8px; }
+        .cns-export button { padding:7px 16px; font-size:13px; font-weight:700; border:1px solid #666; cursor:pointer; display:flex; align-items:center; gap:5px; border-radius:3px; }
         .cns-btn-xl { background:#217346; color:#fff; border-color:#217346!important; }
         .cns-btn-xl:hover { background:#1a5c38; }
         .cns-btn-pr { background:#f5f5f5; color:#333; }
         .cns-btn-pr:hover { background:#ddd; }
 
-        .cns-sheet { background:#fff; border:2px solid #666; overflow:auto; max-height:calc(100vh - 160px); position:relative; }
-        .cns-tbl { border-collapse:collapse; font-size:9px; table-layout:auto; }
-        .cns-tbl th, .cns-tbl td { border:1px solid #777; padding:2px 3px; text-align:center; vertical-align:middle; }
+        .cns-sheet { background:#fff; border:2px solid #888; overflow:auto; max-height:calc(100vh - 160px); position:relative; border-radius:2px; }
+        .cns-tbl { border-collapse:collapse; font-size:12px; width:100%; table-layout:auto; }
+        .cns-tbl th, .cns-tbl td { border:1px solid #999; padding:4px 6px; text-align:center; vertical-align:middle; }
 
         /* === INSTITUTIONAL HEADER (no borders) === */
-        .cns-tbl .ih td { border:none; padding:1px 4px; }
-        .cns-ih-school { text-align:left!important; font-weight:bold; font-size:11px; color:#1a1a1a; }
-        .cns-ih-system { text-align:left!important; font-weight:bold; font-size:10px; color:#333; }
-        .cns-ih-label { text-align:right!important; font-size:9px; font-weight:bold; color:#444; }
-        .cns-ih-val { text-align:left!important; font-size:9px; color:#222; }
-        .cns-ih-title { text-align:center!important; font-weight:bold; font-size:13px; color:#000; padding:5px 4px!important; letter-spacing:0.5px; text-decoration:underline; }
-        .cns-ih-ctx-lbl { text-align:left!important; font-weight:bold; font-size:9px; color:#333; }
-        .cns-ih-ctx-val { text-align:left!important; font-size:9px; color:#111; }
+        .cns-tbl .ih td { border:none; padding:3px 8px; }
+        .cns-ih-school { text-align:left!important; font-weight:bold; font-size:14px; color:#1a1a1a; }
+        .cns-ih-system { text-align:left!important; font-weight:bold; font-size:13px; color:#444; }
+        .cns-ih-label { text-align:right!important; font-size:12px; font-weight:bold; color:#444; }
+        .cns-ih-val { text-align:left!important; font-size:12px; color:#222; }
+        .cns-ih-title { text-align:center!important; font-weight:bold; font-size:16px; color:#000; padding:8px 4px!important; letter-spacing:0.5px; text-decoration:underline; }
+        .cns-ih-ctx-lbl { text-align:left!important; font-weight:bold; font-size:12px; color:#333; }
+        .cns-ih-ctx-val { text-align:left!important; font-size:12px; color:#111; }
 
         /* === COLUMN HEADERS === */
-        .cns-hdr-asig { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; color:#1a1a1a; text-align:center!important; vertical-align:bottom!important; }
-        .cns-hdr-num { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; }
-        .cns-hdr-name { background:#D9E1F2!important; font-weight:bold!important; font-size:9px!important; text-align:center!important; }
+        .cns-hdr-asig { background:#D9E1F2!important; font-weight:bold!important; font-size:12px!important; color:#1a1a1a; text-align:center!important; vertical-align:bottom!important; }
+        .cns-hdr-num { background:#D9E1F2!important; font-weight:bold!important; font-size:12px!important; }
+        .cns-hdr-name { background:#D9E1F2!important; font-weight:bold!important; font-size:12px!important; text-align:center!important; }
 
         /* Vertical text for subject/area/summary headers */
-        .cns-hdr-vert { height:160px; width:32px; min-width:32px; max-width:32px; padding:4px 2px!important; vertical-align:bottom!important; }
-        .cns-hdr-vert .cns-vtext { writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap; font-size:9px; display:inline-block; text-align:left; line-height:1.1; }
+        .cns-hdr-vert { height:170px; padding:6px 3px!important; vertical-align:bottom!important; }
+        .cns-hdr-vert .cns-vtext { writing-mode:vertical-rl; transform:rotate(180deg); white-space:nowrap; font-size:12px; display:inline-block; text-align:left; line-height:1.2; }
         /* Area column headers (bold) */
         .cns-hdr-area { background:#B4C6E7!important; }
         .cns-hdr-area .cns-vtext { font-weight:bold; color:#111; text-transform:uppercase; }
@@ -198,38 +198,38 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
 
         /* === FROZEN COLUMNS === */
         .cns-fn { position:sticky; z-index:2; }
-        .cns-fn-num { left:0; min-width:24px; width:24px; max-width:24px; background:inherit; }
-        .cns-fn-name { left:24px; width:auto; min-width:180px; max-width:280px; text-align:left!important; padding-left:5px!important; background:inherit; white-space:nowrap; }
+        .cns-fn-num { left:0; width:36px; min-width:36px; max-width:36px; background:inherit; }
+        .cns-fn-name { left:36px; text-align:left!important; padding-left:8px!important; background:inherit; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         thead .cns-fn { z-index:4; }
 
         /* === DATA ROWS === */
-        .cns-dr td { font-size:9px; padding:2px 2px; }
-        .cns-dr td.cns-dcol { width:32px; min-width:32px; max-width:32px; }
+        .cns-dr td { font-size:12px; padding:4px 5px; }
         .cns-dr:nth-child(odd) { background:#fff; }
-        .cns-dr:nth-child(even) { background:#f7f8fa; }
+        .cns-dr:nth-child(even) { background:#f5f7fa; }
         .cns-dr:nth-child(odd) .cns-fn { background:#fff; }
-        .cns-dr:nth-child(even) .cns-fn { background:#f7f8fa; }
-        .cns-dr:hover { background:#eef3ff; }
-        .cns-dr:hover .cns-fn { background:#eef3ff; }
+        .cns-dr:nth-child(even) .cns-fn { background:#f5f7fa; }
+        .cns-dr:hover { background:#e8eeff; }
+        .cns-dr:hover .cns-fn { background:#e8eeff; }
         .cns-grade-fail { color:#cc0000; font-weight:bold; }
         .cns-grade-area { font-weight:bold; background:#edf1fa; }
         .cns-summ-cell { background:#f0f4e8; font-weight:600; }
         .cns-prom-cell { background:#e3ebd5; font-weight:bold; }
 
         /* === FOOTER ROWS === */
-        .cns-fr td { font-size:8px; background:#f9f9f0; padding:1px 3px; }
-        .cns-fr-lbl { text-align:left!important; font-weight:bold; padding-left:5px!important; white-space:nowrap; }
+        .cns-fr td { font-size:11px; background:#f9f9f0; padding:3px 5px; }
+        .cns-fr-lbl { text-align:left!important; font-weight:bold; padding-left:8px!important; white-space:nowrap; }
 
         /* === EMPTY & LOADING === */
-        .cns-loading { display:flex; align-items:center; justify-content:center; padding:60px; color:#666; font-size:13px; gap:8px; }
-        .cns-empty { text-align:center; padding:80px 20px; color:#999; }
+        .cns-loading { display:flex; align-items:center; justify-content:center; padding:80px; color:#666; font-size:15px; gap:10px; }
+        .cns-empty { text-align:center; padding:100px 20px; color:#999; }
 
         /* === PRINT === */
         @media print {
           .cns-filters, .cns-export { display:none!important; }
           .cns-page { padding:0; background:#fff; }
           .cns-sheet { border:none; max-height:none; overflow:visible; }
-          .cns-tbl th, .cns-tbl td { font-size:7px; padding:1px 1px; }
+          .cns-tbl { table-layout:auto; }
+          .cns-tbl th, .cns-tbl td { font-size:9px; padding:2px 2px; }
           .cns-fn { position:static!important; }
         }
       `}</style>
@@ -346,8 +346,8 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
 
               {/* ROW 6: ASIGNATURAS header + all subject headers (rowSpan=2) + summary headers (rowSpan=2) */}
               <tr>
-                <th colSpan={3} rowSpan={1} className="cns-hdr-asig cns-fn cns-fn-num" style={{left:0, minWidth:228, verticalAlign:"bottom"}}>
-                  <span className="cns-vtext" style={{writingMode:"vertical-rl", transform:"rotate(180deg)", display:"inline-block", fontWeight:"bold", fontSize:10}}>ASIGNATURAS</span>
+                <th colSpan={3} rowSpan={1} className="cns-hdr-asig cns-fn" style={{left:0, minWidth:228, verticalAlign:"bottom", position:"sticky", zIndex:4}}>
+                  <span className="cns-vtext" style={{writingMode:"vertical-rl", transform:"rotate(180deg)", display:"inline-block", fontWeight:"bold", fontSize:13}}>ASIGNATURAS</span>
                 </th>
                 {allColumns.map((col) => (
                   <th
@@ -380,19 +380,19 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
                   {allColumns.map((col) => {
                     const val = student.grades[col.id];
                     const isFail = val !== null && val !== undefined && val < 11;
-                    const cls = ["cns-dcol", isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-area" : ""].filter(Boolean).join(" ");
+                    const cls = [isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-area" : ""].filter(Boolean).join(" ");
                     return <td key={col.id} className={cls}>{val ?? ""}</td>;
                   })}
-                  <td className="cns-dcol cns-summ-cell">{student.conducta ?? ""}</td>
-                  <td className="cns-dcol cns-prom-cell">{student.promedio != null ? student.promedio.toFixed(2) : ""}</td>
-                  <td className="cns-dcol cns-summ-cell">{student.puntaje ?? ""}</td>
-                  <td className="cns-dcol cns-summ-cell">{student.n_desaprobados || ""}</td>
-                  <td className="cns-dcol cns-summ-cell">{student.orden_merito ?? ""}</td>
-                  <td className="cns-dcol cns-summ-cell">{student.tercio ?? ""}</td>
-                  <td className="cns-dcol cns-summ-cell">{student.tardanza_injustificada ?? ""}</td>
-                  <td className="cns-dcol cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
-                  <td className="cns-dcol cns-summ-cell">{student.falta_injustificada ?? ""}</td>
-                  <td className="cns-dcol cns-summ-cell">{student.falta_justificada ?? ""}</td>
+                  <td className="cns-summ-cell">{student.conducta ?? ""}</td>
+                  <td className="cns-prom-cell">{student.promedio != null ? student.promedio.toFixed(2) : ""}</td>
+                  <td className="cns-summ-cell">{student.puntaje ?? ""}</td>
+                  <td className="cns-summ-cell">{student.n_desaprobados || ""}</td>
+                  <td className="cns-summ-cell">{student.orden_merito ?? ""}</td>
+                  <td className="cns-summ-cell">{student.tercio ?? ""}</td>
+                  <td className="cns-summ-cell">{student.tardanza_injustificada ?? ""}</td>
+                  <td className="cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
+                  <td className="cns-summ-cell">{student.falta_injustificada ?? ""}</td>
+                  <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
                 </tr>
               ))}
 
