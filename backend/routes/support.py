@@ -107,6 +107,14 @@ async def support_schools(user=Depends(require_support_admin)):
         )
         schools = await schools_cursor.to_list(length=500)
     
+    # Build assignment map for role info
+    if user.get("role") == "system_admin_global":
+        assignment_map = {}
+    else:
+        assignments_cursor2 = db.user_school_roles.find({"user_id": user["id"]}, {"_id": 0})
+        assignments2 = await assignments_cursor2.to_list(length=500)
+        assignment_map = {a["school_id"]: a for a in assignments2}
+    
     # Get global pricing config
     global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
     if not global_pricing:
