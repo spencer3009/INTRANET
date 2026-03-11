@@ -673,7 +673,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
     );
   });
 
-  const totalMessages = stats.inbox + stats.sent + stats.archived;
+  const totalStatsMessages = stats.inbox + stats.sent + stats.archived;
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50/30 flex" data-testid="teacher-messages-page">
@@ -722,7 +722,7 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
               
               <div className="flex flex-wrap gap-3">
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-3 text-center border border-white/20">
-                  <p className="text-2xl font-bold">{totalMessages}</p>
+                  <p className="text-2xl font-bold">{totalStatsMessages}</p>
                   <p className="text-white/80 text-xs">Total</p>
                 </div>
                 <div className="bg-white/10 backdrop-blur-sm rounded-2xl px-5 py-3 text-center border border-white/20">
