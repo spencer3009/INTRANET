@@ -270,21 +270,14 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
               <p className="text-xs text-slate-400 mt-1">Plan mensual</p>
             </div>
             <p className="text-sm text-slate-600 text-center">
-              Escanea el codigo QR con <strong>Yape</strong> o <strong>Plin</strong> para realizar tu pago.
+              Escanea el codigo QR con <strong>Yape</strong> para realizar tu pago.
             </p>
-            <div className="flex gap-3">
-              <button onClick={() => setPaymentMethod("yape")} className={`flex-1 rounded-xl border-2 p-3 text-center transition-all ${paymentMethod === "yape" ? "border-violet-500 bg-violet-50" : "border-slate-200 hover:border-slate-300"}`} data-testid="select-yape">
-                <p className="text-sm font-bold text-violet-700 mb-2">Yape</p>
+            <div className="flex justify-center">
+              <div className="rounded-xl border-2 border-violet-500 bg-violet-50 p-4 text-center max-w-xs w-full">
                 <div className="bg-white rounded-lg p-2 border">
-                  <img src="/yape_qr.jpeg" alt="QR Yape" className="w-full h-auto max-h-48 object-contain mx-auto" />
+                  <img src="/yape_qr.jpeg" alt="QR Yape" className="w-full h-auto object-contain mx-auto" />
                 </div>
-              </button>
-              <button onClick={() => setPaymentMethod("plin")} className={`flex-1 rounded-xl border-2 p-3 text-center transition-all ${paymentMethod === "plin" ? "border-green-500 bg-green-50" : "border-slate-200 hover:border-slate-300"}`} data-testid="select-plin">
-                <p className="text-sm font-bold text-green-700 mb-2">Plin</p>
-                <div className="bg-white rounded-lg p-2 border flex items-center justify-center h-48">
-                  <p className="text-xs text-slate-400">QR Plin pendiente</p>
-                </div>
-              </button>
+              </div>
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1.5">Codigo de operacion (opcional)</label>
