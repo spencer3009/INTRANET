@@ -173,24 +173,51 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query(None)
 @app.get("/api/health")
 async def health_check():
     """Diagnostic endpoint to verify DB connectivity and environment"""
-    from routes.core import db_name as resolved_db_name
-    checks = {"api": "ok", "database": "unknown", "env": {}}
+    from routes.core import db_name as resolved_db_name, _raw_db_name
+    checks = {"api": "ok", "database": "unknown"}
     try:
         result = await db.command("ping")
         checks["database"] = "ok" if result.get("ok") == 1 else "error"
-        checks["db_name"] = db.name
-        checks["db_name_source"] = "MONGO_URL" if resolved_db_name == db.name else "DB_NAME env"
+        checks["db_name_used"] = db.name
+        checks["db_name_raw"] = _raw_db_name
         user_count = await db.users.count_documents({})
         checks["users_count"] = user_count
         school_count = await db.schools.count_documents({})
         checks["schools_count"] = school_count
     except Exception as e:
-        checks["database"] = f"error: {type(e).__name__}: {str(e)[:300]}"
+        checks["database"] = f"error: {type(e).__name__}: {str(e)[:200]}"
+        checks["db_name_used"] = db.name
+        checks["db_name_raw"] = _raw_db_name
+        # Try alternative DB names to find the correct one
+        alt_names = set()
+        raw = _raw_db_name
+        if '-test_database' in raw:
+            alt_names.add(raw.replace('-test_database', '_database'))
+            alt_names.add(raw.replace('-test_database', '-database'))
+        if raw.startswith('school-portal-'):
+            prefix = raw.split('-test_database')[0] if '-test_database' in raw else raw.rsplit('-', 1)[0] if '-' in raw else raw
+            alt_names.add(f"{prefix}_database")
+            alt_names.add(f"{prefix}-database")
+        alt_names.discard(db.name)
+        
+        working_db = None
+        for alt in alt_names:
+            try:
+                alt_db = client[alt]
+                r = await alt_db.command("ping")
+                cnt = await alt_db.users.count_documents({})
+                working_db = {"name": alt, "users": cnt}
+                break
+            except Exception:
+                continue
+        if working_db:
+            checks["working_alternative_db"] = working_db
     
-    checks["env"]["JWT_SECRET_SET"] = bool(os.environ.get("JWT_SECRET"))
-    checks["env"]["MONGO_URL_SET"] = bool(os.environ.get("MONGO_URL"))
-    checks["env"]["DB_NAME"] = os.environ.get("DB_NAME", "not_set")
-    
+    checks["env"] = {
+        "JWT_SECRET_SET": bool(os.environ.get("JWT_SECRET")),
+        "MONGO_URL_SET": bool(os.environ.get("MONGO_URL")),
+        "DB_NAME_ENV": os.environ.get("DB_NAME", "not_set"),
+    }
     return checks
 
 # ══════════════════════════════════════════════════════════════════════════════
