@@ -32,23 +32,23 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 
-# Resolve the correct database name
-# In production, Emergent may set DB_NAME to "school-portal-152-test_database"
-# but the provisioned DB with permissions is "school-portal-152_database"
+# Resolve database: prefer the default database from MONGO_URL connection string
+# Motor's get_default_database() extracts the DB from the URL path
 from urllib.parse import urlparse
 _parsed_mongo = urlparse(mongo_url)
 _db_from_url = _parsed_mongo.path.lstrip('/').split('?')[0] if _parsed_mongo.path and _parsed_mongo.path != '/' else None
 _raw_db_name = _db_from_url or os.environ.get('DB_NAME', 'database')
 
-# Fix production DB name: replace "-test_database" with "_database"
-if '-test_database' in _raw_db_name:
-    db_name = _raw_db_name.replace('-test_database', '_database')
-elif _raw_db_name == 'test_database':
-    db_name = 'database'
-else:
-    db_name = _raw_db_name
-
-db = client[db_name]
+# Use get_default_database if URL has a DB path, otherwise use DB_NAME
+try:
+    db = client.get_default_database()
+    db_name = db.name
+except Exception:
+    # Fallback: try multiple names
+    db_name = os.environ.get('DB_NAME', 'database')
+    if db_name == 'test_database':
+        db_name = 'database'
+    db = client[db_name]
 
 JWT_SECRET = os.environ.get('JWT_SECRET', 'edunet-saas-secret-key-2026-dev-only')
 JWT_ALGORITHM = "HS256"

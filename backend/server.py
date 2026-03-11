@@ -172,52 +172,79 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query(None)
 
 @app.get("/api/health")
 async def health_check():
-    """Diagnostic endpoint to verify DB connectivity and environment"""
-    from routes.core import db_name as resolved_db_name, _raw_db_name
-    checks = {"api": "ok", "database": "unknown"}
-    try:
-        result = await db.command("ping")
-        checks["database"] = "ok" if result.get("ok") == 1 else "error"
-        checks["db_name_used"] = db.name
-        checks["db_name_raw"] = _raw_db_name
-        user_count = await db.users.count_documents({})
-        checks["users_count"] = user_count
-        school_count = await db.schools.count_documents({})
-        checks["schools_count"] = school_count
-    except Exception as e:
-        checks["database"] = f"error: {type(e).__name__}: {str(e)[:200]}"
-        checks["db_name_used"] = db.name
-        checks["db_name_raw"] = _raw_db_name
-        # Try alternative DB names to find the correct one
-        alt_names = set()
-        raw = _raw_db_name
-        if '-test_database' in raw:
-            alt_names.add(raw.replace('-test_database', '_database'))
-            alt_names.add(raw.replace('-test_database', '-database'))
-        if raw.startswith('school-portal-'):
-            prefix = raw.split('-test_database')[0] if '-test_database' in raw else raw.rsplit('-', 1)[0] if '-' in raw else raw
-            alt_names.add(f"{prefix}_database")
-            alt_names.add(f"{prefix}-database")
-        alt_names.discard(db.name)
-        
-        working_db = None
-        for alt in alt_names:
-            try:
-                alt_db = client[alt]
-                r = await alt_db.command("ping")
-                cnt = await alt_db.users.count_documents({})
-                working_db = {"name": alt, "users": cnt}
-                break
-            except Exception:
-                continue
-        if working_db:
-            checks["working_alternative_db"] = working_db
+    """Diagnostic endpoint to verify DB connectivity and find correct database"""
+    from routes.core import db_name as resolved_db_name, _raw_db_name, client as mongo_client, mongo_url
+    from urllib.parse import urlparse, parse_qs
     
-    checks["env"] = {
-        "JWT_SECRET_SET": bool(os.environ.get("JWT_SECRET")),
-        "MONGO_URL_SET": bool(os.environ.get("MONGO_URL")),
-        "DB_NAME_ENV": os.environ.get("DB_NAME", "not_set"),
+    # Redact password from URL for display
+    parsed = urlparse(mongo_url)
+    safe_url = mongo_url.replace(parsed.password, "***") if parsed.password else mongo_url
+    
+    checks = {
+        "api": "ok",
+        "database": "unknown",
+        "db_name_used": db.name,
+        "db_name_raw": _raw_db_name,
+        "mongo_url_redacted": safe_url,
     }
+    
+    # Try current database
+    try:
+        await db.users.count_documents({})
+        checks["database"] = "ok"
+        checks["users_count"] = await db.users.count_documents({})
+        return checks
+    except Exception as e:
+        checks["database"] = f"error: {str(e)[:150]}"
+    
+    # Try to list all databases user can access
+    try:
+        db_list = await mongo_client.list_database_names()
+        checks["available_databases"] = db_list
+    except Exception as e:
+        checks["list_databases_error"] = str(e)[:150]
+    
+    # Try default database from connection string
+    try:
+        default_db = mongo_client.get_default_database()
+        checks["default_database"] = default_db.name
+        cnt = await default_db.users.count_documents({})
+        checks["default_db_works"] = True
+        checks["default_db_users"] = cnt
+    except Exception as e:
+        checks["default_db_error"] = str(e)[:150]
+    
+    # Try multiple alternative database names
+    alternatives = set()
+    raw = _raw_db_name
+    app_name = "school-portal-152"
+    alternatives.add(raw)  # original from URL
+    alternatives.add(f"{app_name}_database")
+    alternatives.add(f"{app_name}-database")
+    alternatives.add(f"{app_name}_db")
+    alternatives.add(f"{app_name}")
+    alternatives.add("database")
+    alternatives.add("test_database")
+    # Also try authSource if present
+    qs = parse_qs(parsed.query)
+    if 'authSource' in qs:
+        alternatives.add(qs['authSource'][0])
+        checks["auth_source"] = qs['authSource'][0]
+    
+    alternatives.discard(db.name)  # skip already-tried
+    
+    working = []
+    for alt in sorted(alternatives):
+        try:
+            alt_db = mongo_client[alt]
+            cnt = await alt_db.users.count_documents({})
+            working.append({"name": alt, "users": cnt})
+        except Exception:
+            pass
+    
+    checks["working_alternatives"] = working if working else "none_found"
+    checks["tried_alternatives"] = sorted(alternatives)
+    
     return checks
 
 # ══════════════════════════════════════════════════════════════════════════════
