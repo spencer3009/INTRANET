@@ -66,7 +66,6 @@ const TABS = [
   { id: "foro", label: "Foro", icon: MessageCircle },
   { id: "mensajes", label: "Mensajes", icon: Mail },
   { id: "recordatorios", label: "Recordatorios", icon: Bell },
-  { id: "calificaciones", label: "Calificaciones", icon: Trophy },
   { id: "clases-en-vivo", label: "Clases en Vivo", icon: Video },
 ];
 
@@ -9548,8 +9547,6 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         return <InternalMailPage user={user} token={token} />;
       case "recordatorios":
         return <RemindersTabContent subjectId={subjectId} token={token} userRole={user?.role} />;
-      case "calificaciones":
-        return <GradesContent grades={grades} />;
       case "registro-auxiliar":
         return <GradeBookTab subjectId={subjectId} sectionId={subject?.section_id} token={token} user={user} />;
       case "clases-en-vivo":
@@ -9700,7 +9697,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
         <main className="flex-1 px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-20 lg:pb-6">
           {/* Hero Header - Hidden on full-width tabs */}
           {(() => {
-            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes", "clases-en-vivo"];
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "registro-auxiliar", "mensajes", "clases-en-vivo"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             if (!isFullWidth) {
               // Use different header for teacher vs owner
@@ -9720,8 +9717,8 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
                   grade={gradeName}
                   academicPeriod={academicPeriodName}
                   onEdit={() => {}}
-                  onViewStudents={() => setActiveTab("calificaciones")}
-                  onViewGrades={() => setActiveTab("calificaciones")}
+                  onViewStudents={() => setActiveTab("registro-auxiliar")}
+                  onViewGrades={() => setActiveTab("registro-auxiliar")}
                   onBack={() => navigate(getBackRoute())}
                 />
               );
@@ -9749,7 +9746,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           
           {/* 3-Column Layout - Hide sidebars for full-width tabs */}
           {(() => {
-            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "calificaciones", "mensajes", "clases-en-vivo"];
+            const fullWidthTabs = ["examenes", "tareas", "foro", "material", "recordatorios", "registro-auxiliar", "mensajes", "clases-en-vivo"];
             const isFullWidth = fullWidthTabs.includes(activeTab);
             return (
               <div className={`mt-6 grid grid-cols-1 gap-6 items-start ${

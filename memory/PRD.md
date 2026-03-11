@@ -87,6 +87,7 @@ server.py (24K lines) split into:
 ### P2 - Medium Priority
 - [ ] Remove hardcoded data from Owner Dashboard (recurring 5+ times)
 - [ ] Dashboard Widgets Phase 2: CRUD for news, events, surveys
+- [ ] Gradebook Enhancements: export PDF/Excel, Lock/Close Period, admin override
 
 ### P3 - Backlog
 - [ ] Matrículas (Enrollments) module

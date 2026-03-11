@@ -1,5 +1,13 @@
 # EduNet - Changelog
 
+## March 11, 2026 - Fork 5
+
+### UI Fix: Gradebook Sidebar & Tab Cleanup - COMPLETED
+- Hid left/right sidebars when "REGISTRO AUXILIAR" tab is active (full-width layout for gradebook)
+- Removed old "CALIFICACIONES" tab from course navigation (replaced by new Gradebook)
+- Updated `onViewStudents`/`onViewGrades` hero header callbacks to navigate to `registro-auxiliar`
+- Files modified: `CourseDetailPage.jsx`
+
 ## March 6, 2026 - Fork 4 (Enhancement)
 
 ### Enhancement: Excel Template & Metadata Verification System - COMPLETED
