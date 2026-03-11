@@ -1467,7 +1467,7 @@ function App() {
             path="/:subdomain/consolidado-notas"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ConsolidatedGradesPage user={user} token={token} />
+                <ConsolidatedGradesPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1475,7 +1475,7 @@ function App() {
             path="/consolidado-notas"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ConsolidatedGradesPage user={user} token={token} />
+                <ConsolidatedGradesPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

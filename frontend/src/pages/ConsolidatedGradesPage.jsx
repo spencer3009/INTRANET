@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { Loader2, FileSpreadsheet, FileText, Printer } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import DashboardHeader from "@/components/DashboardHeader";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function ConsolidatedGradesPage({ user, token }) {
+export default function ConsolidatedGradesPage({ user, token, onLogout }) {
   const [levels, setLevels] = useState([]);
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
@@ -15,22 +17,26 @@ export default function ConsolidatedGradesPage({ user, token }) {
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [settings, setSettings] = useState(null);
   const tableRef = useRef(null);
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [lRes, gRes, sRes, pRes] = await Promise.all([
+        const [lRes, gRes, sRes, pRes, settingsRes] = await Promise.all([
           axios.get(`${API}/api/academic/levels`, { headers }),
           axios.get(`${API}/api/academic/grades`, { headers }),
           axios.get(`${API}/api/academic/sections`, { headers }),
           axios.get(`${API}/api/academic/periods`, { headers }),
+          axios.get(`${API}/api/settings`, { headers }).catch(() => ({ data: null })),
         ]);
         setLevels(lRes.data || []);
         setGrades(gRes.data || []);
         setSections(sRes.data || []);
         setPeriods(pRes.data || []);
+        if (settingsRes.data) setSettings(settingsRes.data);
         if (pRes.data?.length > 0) {
           const active = pRes.data.find((p) => p.activo) || pRes.data[0];
           setSelectedPeriod(active.id);
@@ -117,10 +123,37 @@ export default function ConsolidatedGradesPage({ user, token }) {
   // Detect if this column is an "area" type (should be styled differently)
   const isAreaColumn = (col) => col.type === "area";
 
+  const schoolName = settings?.system_name || user?.name || "Mi Colegio";
+  const logoUrl = settings?.logo_url;
+  const subdomain = user?.subdomain;
+
   return (
-    <div className="cns-page" data-testid="consolidated-grades">
+    <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="consolidated-grades">
+      <Sidebar
+        active="consolidado-notas"
+        onNavigate={() => {}}
+        expanded={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onLogout={onLogout}
+        schoolName={schoolName}
+        subdomain={subdomain}
+        user={user}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          logoUrl={logoUrl}
+          schoolName={schoolName}
+          subdomain={subdomain}
+        />
+
+        <main className="flex-1 overflow-y-auto custom-scroll pb-20 lg:pb-0">
+          <div className="cns-page">
       <style>{`
-        .cns-page { background:#e8e8e8; min-height:100vh; padding:10px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        .cns-page { background:#F8FAFC; padding:10px; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
         .cns-filters { background:#fff; border:1px solid #aaa; padding:8px 12px; margin-bottom:8px; display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; }
         .cns-filters label { font-size:10px; font-weight:700; color:#333; display:block; margin-bottom:1px; text-transform:uppercase; letter-spacing:0.3px; }
         .cns-filters select { padding:4px 6px; border:1px solid #999; font-size:11px; min-width:140px; background:#fff; }
@@ -131,8 +164,8 @@ export default function ConsolidatedGradesPage({ user, token }) {
         .cns-btn-pr { background:#f5f5f5; color:#333; }
         .cns-btn-pr:hover { background:#ddd; }
 
-        .cns-sheet { background:#fff; border:2px solid #666; overflow:auto; max-height:calc(100vh - 90px); position:relative; }
-        .cns-tbl { border-collapse:collapse; font-size:9px; width:max-content; min-width:100%; }
+        .cns-sheet { background:#fff; border:2px solid #666; overflow:auto; max-height:calc(100vh - 160px); position:relative; }
+        .cns-tbl { border-collapse:collapse; font-size:9px; table-layout:auto; }
         .cns-tbl th, .cns-tbl td { border:1px solid #777; padding:2px 3px; text-align:center; vertical-align:middle; }
 
         /* === INSTITUTIONAL HEADER (no borders) === */
@@ -141,7 +174,7 @@ export default function ConsolidatedGradesPage({ user, token }) {
         .cns-ih-system { text-align:left!important; font-weight:bold; font-size:10px; color:#333; }
         .cns-ih-label { text-align:right!important; font-size:9px; font-weight:bold; color:#444; }
         .cns-ih-val { text-align:left!important; font-size:9px; color:#222; }
-        .cns-ih-title { text-align:center!important; font-weight:bold; font-size:13px; color:#000; padding:5px 4px!important; letter-spacing:0.5px; }
+        .cns-ih-title { text-align:center!important; font-weight:bold; font-size:13px; color:#000; padding:5px 4px!important; letter-spacing:0.5px; text-decoration:underline; }
         .cns-ih-ctx-lbl { text-align:left!important; font-weight:bold; font-size:9px; color:#333; }
         .cns-ih-ctx-val { text-align:left!important; font-size:9px; color:#111; }
 
@@ -165,8 +198,8 @@ export default function ConsolidatedGradesPage({ user, token }) {
 
         /* === FROZEN COLUMNS === */
         .cns-fn { position:sticky; z-index:2; }
-        .cns-fn-num { left:0; min-width:28px; width:28px; max-width:28px; background:inherit; }
-        .cns-fn-name { left:28px; min-width:200px; text-align:left!important; padding-left:5px!important; background:inherit; }
+        .cns-fn-num { left:0; min-width:24px; width:24px; max-width:24px; background:inherit; }
+        .cns-fn-name { left:24px; width:auto; min-width:180px; max-width:280px; text-align:left!important; padding-left:5px!important; background:inherit; white-space:nowrap; }
         thead .cns-fn { z-index:4; }
 
         /* === DATA ROWS === */
@@ -393,6 +426,9 @@ export default function ConsolidatedGradesPage({ user, token }) {
           </table>
         </div>
       )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
