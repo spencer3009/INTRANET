@@ -172,24 +172,44 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query(None)
 
 @app.get("/api/health")
 async def health_check():
-    """Diagnostic endpoint to verify DB connectivity"""
+    """Diagnostic endpoint - shows all available databases and their contents"""
     from routes.core import db_name as resolved_db_name, _raw_db_name, client as mongo_client
     
     checks = {"api": "ok", "db_name_configured": _raw_db_name, "db_name_used": db.name}
     
     try:
-        await db.command("ping")
         user_count = await db.users.count_documents({})
         school_count = await db.schools.count_documents({})
         checks["database"] = "ok"
         checks["users_count"] = user_count
         checks["schools_count"] = school_count
     except Exception as e:
-        checks["database"] = f"error: {str(e)[:200]}"
-        try:
-            checks["available_databases"] = await mongo_client.list_database_names()
-        except Exception:
-            pass
+        checks["database"] = f"error: {str(e)[:150]}"
+    
+    # Show ALL available databases with details
+    try:
+        all_dbs = await mongo_client.list_database_names()
+        db_details = []
+        for d in all_dbs:
+            if d in ('admin', 'local', 'config'):
+                continue
+            info = {"name": d}
+            try:
+                tmp = mongo_client[d]
+                info["collections"] = await tmp.list_collection_names()
+                if "users" in info["collections"]:
+                    info["users"] = await tmp.users.count_documents({})
+                if "schools" in info["collections"]:
+                    info["schools"] = await tmp.schools.count_documents({})
+                    # Show school names to identify the right DB
+                    schools = await tmp.schools.find({}, {"_id": 0, "name": 1, "subdomain": 1}).to_list(10)
+                    info["school_names"] = [s.get("name", "?") for s in schools]
+            except Exception as e:
+                info["error"] = str(e)[:100]
+            db_details.append(info)
+        checks["all_databases"] = db_details
+    except Exception:
+        pass
     
     return checks
 
