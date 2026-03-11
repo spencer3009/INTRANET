@@ -225,7 +225,7 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
               className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 transition-colors"
               data-testid="pay-renewal-btn"
             >
-              <CreditCard className="w-3.5 h-3.5" />
+              <img src="/yape_logo.png" alt="Yape" className="w-5 h-5 rounded" />
               Pagar renovacion
             </button>
           )}
