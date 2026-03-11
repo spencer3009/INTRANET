@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { 
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
-  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag
+  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -165,6 +165,17 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error");
+    }
+  };
+
+  const handleRenewMembership = async (schoolId, schoolName) => {
+    if (!window.confirm(`Renovar membresia de "${schoolName}" por 30 dias?`)) return;
+    try {
+      const res = await axios.post(`${API}/support/renew-membership`, { school_id: schoolId }, { headers });
+      toast.success(res.data.message || "Membresia renovada");
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al renovar");
     }
   };
 
@@ -536,6 +547,14 @@ export default function SupportSchoolsPage({ token, onLogin }) {
 
                 {/* Actions */}
                 <div className="flex gap-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleRenewMembership(school.id, school.name || school.subdomain); }}
+                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-semibold hover:bg-violet-700 transition-colors whitespace-nowrap"
+                    data-testid={`renew-membership-${school.subdomain}`}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Renovar
+                  </button>
                   <button
                     onClick={() => handleSwitch(school.id)}
                     disabled={switching === school.id}

@@ -45,6 +45,7 @@ from routes.exams import router as exams_router
 from routes.parent_portal import router as parent_portal_router
 from routes.live_classes import router as live_classes_router
 from routes.grades import router as grades_router
+from routes.membership import router as membership_router
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -133,6 +134,7 @@ app.include_router(exams_router)
 app.include_router(parent_portal_router)
 app.include_router(live_classes_router)
 app.include_router(grades_router)
+app.include_router(membership_router)
 app.include_router(support_router)
 
 # ══════════════════════════════════════════════════════════════════════════════

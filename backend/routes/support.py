@@ -7,7 +7,7 @@ Only accessible by users with role 'system_admin_global'
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import Optional
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import uuid
 import bcrypt
 
@@ -243,6 +243,74 @@ async def update_school_expiration(req: UpdateExpirationRequest, user=Depends(re
         }}
     )
     return {"message": "Fecha de vencimiento actualizada"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MEMBERSHIP RENEWAL (Support confirms payment and renews)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class RenewMembershipRequest(BaseModel):
+    school_id: str
+
+@router.post("/renew-membership")
+async def renew_membership(req: RenewMembershipRequest, user=Depends(require_support_admin)):
+    """Support confirms payment and renews the school's membership for 30 days"""
+    school = await db.schools.find_one({"id": req.school_id}, {"_id": 0})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    now = datetime.now(timezone.utc)
+    new_expiration = (now + timedelta(days=30)).isoformat()
+
+    await db.schools.update_one(
+        {"id": req.school_id},
+        {"$set": {
+            "expiration_date": new_expiration,
+            "subscription_status": "active",
+            "last_renewal_date": now.isoformat(),
+            "updated_at": now.isoformat(),
+        }}
+    )
+
+    # Resolve any pending payment request
+    await db.payment_requests.update_many(
+        {"school_id": req.school_id, "status": "processing"},
+        {"$set": {
+            "status": "confirmed",
+            "resolved_at": now.isoformat(),
+            "resolved_by": user["id"],
+            "resolved_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+            "updated_at": now.isoformat(),
+        }}
+    )
+
+    # Log the renewal
+    renewal_log = {
+        "id": str(uuid.uuid4()),
+        "school_id": req.school_id,
+        "school_name": school.get("name", ""),
+        "action": "membership_renewal",
+        "support_user_id": user["id"],
+        "support_user_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "new_expiration": new_expiration,
+        "created_at": now.isoformat(),
+    }
+    await db.renewal_logs.insert_one(renewal_log)
+
+    return {
+        "message": "Membresia renovada exitosamente",
+        "new_expiration": new_expiration,
+    }
+
+
+@router.get("/payment-requests")
+async def get_payment_requests(user=Depends(require_support_admin)):
+    """Get all pending payment requests for support review"""
+    requests = await db.payment_requests.find(
+        {},
+        {"_id": 0}
+    ).sort("created_at", -1).to_list(100)
+    return requests
 
 
 # ══════════════════════════════════════════════════════════════════════════════
