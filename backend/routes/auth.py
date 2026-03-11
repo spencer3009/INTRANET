@@ -181,148 +181,197 @@ async def login(creds: UserLogin):
       - If system_admin_global: return is_support_global flag for redirect to /support
     Accepts email OR username for login.
     """
-    identifier = creds.email.lower().strip()
-    
-    # First, check for global support user (priority over school-specific users)
-    global_support = await db.users.find_one({
-        "email": identifier,
-        "role": "system_admin_global"
-    })
-    
-    if global_support and verify_password(creds.password, global_support["password"]):
-        # Global support user login
-        token = create_token(
-            global_support["id"], global_support["email"], global_support["name"],
-            global_support["role"], None, None, True
-        )
+    try:
+        identifier = creds.email.lower().strip()
+        logger.info(f"[LOGIN] Attempt for: {identifier}")
+        
+        # First, check for global support user (priority over school-specific users)
+        try:
+            global_support = await db.users.find_one({
+                "email": identifier,
+                "role": "system_admin_global"
+            })
+        except Exception as db_err:
+            logger.error(f"[LOGIN] Database error on global support lookup: {db_err}")
+            raise HTTPException(status_code=503, detail="Error de conexion a la base de datos. Intente mas tarde.")
+        
+        if global_support:
+            try:
+                pwd_ok = verify_password(creds.password, global_support.get("password", ""))
+            except Exception as pwd_err:
+                logger.error(f"[LOGIN] Password verification error for support user: {pwd_err}")
+                pwd_ok = False
+            
+            if pwd_ok:
+                logger.info(f"[LOGIN] Global support login OK: {identifier}")
+                token = create_token(
+                    global_support["id"], global_support["email"], global_support["name"],
+                    global_support["role"], None, None, True
+                )
+                return {
+                    "token": token,
+                    "user": {
+                        "id": global_support["id"],
+                        "email": global_support["email"],
+                        "username": global_support.get("username"),
+                        "name": global_support["name"],
+                        "last_name": global_support.get("last_name", ""),
+                        "role": global_support["role"],
+                        "school_id": None,
+                        "subdomain": None,
+                        "email_verified": True,
+                        "is_owner": False,
+                        "is_super_admin": False,
+                        "is_protected": True,
+                        "is_demo_user": False,
+                        "is_support_global": True,
+                        "photo_url": global_support.get("photo_url"),
+                        "phone": global_support.get("phone"),
+                        "permissions": {
+                            "role": "system_admin_global",
+                            "is_owner": False,
+                            "is_admin": False,
+                            "is_support_global": True,
+                            "sections": {}
+                        }
+                    },
+                    "redirect_to_subdomain": False,
+                    "redirect_url": None,
+                    "redirect_to_support": True
+                }
+        
+        # Standard user login (exclude global support user from results)
+        try:
+            user = await db.users.find_one({
+                "$or": [
+                    {"email": identifier},
+                    {"username": identifier}
+                ],
+                "role": {"$ne": "system_admin_global"}
+            })
+        except Exception as db_err:
+            logger.error(f"[LOGIN] Database error on user lookup: {db_err}")
+            raise HTTPException(status_code=503, detail="Error de conexion a la base de datos. Intente mas tarde.")
+        
+        if not user:
+            logger.info(f"[LOGIN] User not found: {identifier}")
+            raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        
+        try:
+            pwd_valid = verify_password(creds.password, user.get("password", ""))
+        except Exception as pwd_err:
+            logger.error(f"[LOGIN] Password verification error for {identifier}: {pwd_err}")
+            raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        
+        if not pwd_valid:
+            logger.info(f"[LOGIN] Invalid password for: {identifier}")
+            raise HTTPException(status_code=401, detail="Credenciales inválidas")
+        
+        logger.info(f"[LOGIN] Password OK for: {identifier}, role: {user.get('role')}")
+        
+        # Get school info if user has one
+        subdomain = None
+        school_id = user.get("school_id")
+        
+        if school_id:
+            try:
+                school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+            except Exception as db_err:
+                logger.error(f"[LOGIN] DB error fetching school {school_id}: {db_err}")
+                school = None
+            
+            if school and school.get("subdomain"):
+                subdomain = school.get("subdomain")
+                
+                # Check debt-based access restriction for students and parents
+                try:
+                    if school.get("restrict_grades_if_debt", False) and user.get("role") in ("student", "parent"):
+                        student_id = user["id"]
+                        if user["role"] == "parent":
+                            linked = await db.users.find_one({"school_id": school_id, "role": "student", "parent_id": user["id"]}, {"_id": 0, "id": 1})
+                            if not linked:
+                                linked = await db.users.find_one({"school_id": school_id, "role": "student", "parent_email": user.get("email")}, {"_id": 0, "id": 1})
+                            student_id = linked["id"] if linked else None
+                        
+                        if student_id:
+                            pending_count = await db.payments.count_documents({
+                                "student_id": student_id, "school_id": school_id,
+                                "payment_status": "pending"
+                            })
+                            if pending_count > 0:
+                                raise HTTPException(
+                                    status_code=403,
+                                    detail="El acceso está restringido por pagos pendientes. Comuníquese con la administración."
+                                )
+                except HTTPException:
+                    raise
+                except Exception as debt_err:
+                    logger.error(f"[LOGIN] Error checking debt restrictions: {debt_err}")
+                
+                # Student status login restriction
+                if user.get("role") == "student":
+                    sstatus = user.get("student_status", "active")
+                    if sstatus == "pending":
+                        allow_pending = school.get("permitir_acceso_estudiantes_pendientes", False) if school else False
+                        if not allow_pending:
+                            raise HTTPException(
+                                status_code=403,
+                                detail="Su matrícula aún no ha sido registrada. Por favor comuníquese con la administración del colegio."
+                            )
+                    if sstatus == "withdrawn":
+                        raise HTTPException(
+                            status_code=403,
+                            detail="Tu cuenta de estudiante está en estado retirado. Comunícate con la administración."
+                        )
+            else:
+                school_id = None
+
+        try:
+            token = create_token(
+                user["id"], user["email"], user["name"], user["role"],
+                school_id, subdomain, user.get("email_verified", False)
+            )
+        except Exception as token_err:
+            logger.error(f"[LOGIN] Token creation error: {token_err}")
+            raise HTTPException(status_code=500, detail="Error al generar sesion. Contacte soporte.")
+        
+        # Get RBAC permissions for the user
+        try:
+            permissions = await get_user_permissions(user, school_id)
+        except Exception as perm_err:
+            logger.error(f"[LOGIN] Permissions error: {perm_err}")
+            permissions = {"role": user.get("role"), "is_owner": user.get("is_owner", False), "is_admin": False, "sections": {}}
+
+        logger.info(f"[LOGIN] Success for: {identifier}, subdomain: {subdomain}")
+        
         return {
             "token": token,
             "user": {
-                "id": global_support["id"],
-                "email": global_support["email"],
-                "username": global_support.get("username"),
-                "name": global_support["name"],
-                "last_name": global_support.get("last_name", ""),
-                "role": global_support["role"],
-                "school_id": None,
-                "subdomain": None,
-                "email_verified": True,
-                "is_owner": False,
-                "is_super_admin": False,
-                "is_protected": True,
-                "is_demo_user": False,
-                "is_support_global": True,
-                "photo_url": global_support.get("photo_url"),
-                "phone": global_support.get("phone"),
-                "permissions": {
-                    "role": "system_admin_global",
-                    "is_owner": False,
-                    "is_admin": False,
-                    "is_support_global": True,
-                    "sections": {}
-                }
+                "id": user["id"],
+                "email": user["email"],
+                "username": user.get("username"),
+                "name": user["name"],
+                "last_name": user.get("last_name", ""),
+                "role": user["role"],
+                "school_id": school_id,
+                "subdomain": subdomain,
+                "email_verified": user.get("email_verified", False),
+                "is_owner": user.get("is_owner", False),
+                "is_super_admin": user.get("is_super_admin", False),
+                "is_protected": user.get("is_protected", False),
+                "is_demo_user": user.get("is_demo_user", False),
+                "photo_url": user.get("photo_url"),
+                "phone": user.get("phone"),
+                "permissions": permissions
             },
-            "redirect_to_subdomain": False,
-            "redirect_url": None,
-            "redirect_to_support": True
+            "redirect_to_subdomain": subdomain is not None,
+            "redirect_url": f"https://{subdomain}.{BASE_DOMAIN}" if subdomain else None
         }
-    
-    # Standard user login (exclude global support user from results)
-    user = await db.users.find_one({
-        "$or": [
-            {"email": identifier},
-            {"username": identifier}
-        ],
-        "role": {"$ne": "system_admin_global"}
-    })
-    
-    if not user or not verify_password(creds.password, user["password"]):
-        raise HTTPException(status_code=401, detail="Credenciales inválidas")
-    
-    # Get school info if user has one
-    subdomain = None
-    school_id = user.get("school_id")
-    
-    if school_id:
-        school = await db.schools.find_one({"id": school_id}, {"_id": 0})
-        if school and school.get("subdomain"):
-            # Only set subdomain if school has one (completed onboarding)
-            subdomain = school.get("subdomain")
-            
-            # Check debt-based access restriction for students and parents
-            if school.get("restrict_grades_if_debt", False) and user.get("role") in ("student", "parent"):
-                student_id = user["id"]
-                if user["role"] == "parent":
-                    # Find linked student
-                    linked = await db.users.find_one({"school_id": school_id, "role": "student", "parent_id": user["id"]}, {"_id": 0, "id": 1})
-                    if not linked:
-                        linked = await db.users.find_one({"school_id": school_id, "role": "student", "parent_email": user.get("email")}, {"_id": 0, "id": 1})
-                    student_id = linked["id"] if linked else None
-                
-                if student_id:
-                    pending_count = await db.payments.count_documents({
-                        "student_id": student_id, "school_id": school_id,
-                        "payment_status": "pending"
-                    })
-                    if pending_count > 0:
-                        raise HTTPException(
-                            status_code=403,
-                            detail="El acceso está restringido por pagos pendientes. Comuníquese con la administración."
-                        )
-            
-            # Student status login restriction - only active students can login (unless school allows pending)
-            if user.get("role") == "student":
-                sstatus = user.get("student_status", "active")  # Default active for migrated users
-                if sstatus == "pending":
-                    # Check if school allows pending students to access
-                    allow_pending = school.get("permitir_acceso_estudiantes_pendientes", False) if school else False
-                    if not allow_pending:
-                        raise HTTPException(
-                            status_code=403,
-                            detail="Su matrícula aún no ha sido registrada. Por favor comuníquese con la administración del colegio."
-                        )
-                if sstatus == "withdrawn":
-                    raise HTTPException(
-                        status_code=403,
-                        detail="Tu cuenta de estudiante está en estado retirado. Comunícate con la administración."
-                    )
-        else:
-            # Legacy user with school but no subdomain - treat as not onboarded
-            # Clear school_id from response so frontend knows to redirect to onboarding
-            school_id = None
-
-    token = create_token(
-        user["id"], user["email"], user["name"], user["role"],
-        school_id, subdomain, user.get("email_verified", False)
-    )
-    
-    # Get RBAC permissions for the user
-    permissions = await get_user_permissions(user, school_id)
-
-    return {
-        "token": token,
-        "user": {
-            "id": user["id"],
-            "email": user["email"],
-            "username": user.get("username"),
-            "name": user["name"],
-            "last_name": user.get("last_name", ""),
-            "role": user["role"],
-            "school_id": school_id,
-            "subdomain": subdomain,
-            "email_verified": user.get("email_verified", False),
-            "is_owner": user.get("is_owner", False),
-            "is_super_admin": user.get("is_super_admin", False),
-            "is_protected": user.get("is_protected", False),
-            "is_demo_user": user.get("is_demo_user", False),
-            "photo_url": user.get("photo_url"),
-            "phone": user.get("phone"),
-            "permissions": permissions
-        },
-        # SHOPIFY RULE: If user has subdomain, tell frontend to redirect
-        "redirect_to_subdomain": subdomain is not None,
-        "redirect_url": f"https://{subdomain}.{BASE_DOMAIN}" if subdomain else None
-    }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"[LOGIN] Unexpected error for {creds.email}: {type(e).__name__}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error interno del servidor: {type(e).__name__}")
 
 @router.get("/auth/me")
 async def get_me(current_user=Depends(get_current_user)):

@@ -167,6 +167,32 @@ async def websocket_notifications(websocket: WebSocket, token: str = Query(None)
         ws_manager.disconnect(websocket, user_id)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# HEALTH CHECK
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.get("/api/health")
+async def health_check():
+    """Diagnostic endpoint to verify DB connectivity and environment"""
+    checks = {"api": "ok", "database": "unknown", "env": {}}
+    try:
+        # Test DB connectivity
+        result = await db.command("ping")
+        checks["database"] = "ok" if result.get("ok") == 1 else "error"
+        checks["db_name"] = db.name
+        user_count = await db.users.count_documents({})
+        checks["users_count"] = user_count
+        school_count = await db.schools.count_documents({})
+        checks["schools_count"] = school_count
+    except Exception as e:
+        checks["database"] = f"error: {type(e).__name__}: {str(e)[:200]}"
+    
+    checks["env"]["JWT_SECRET_SET"] = bool(os.environ.get("JWT_SECRET"))
+    checks["env"]["MONGO_URL_SET"] = bool(os.environ.get("MONGO_URL"))
+    checks["env"]["DB_NAME"] = os.environ.get("DB_NAME", "not_set")
+    
+    return checks
+
+# ══════════════════════════════════════════════════════════════════════════════
 # STARTUP & SHUTDOWN
 # ══════════════════════════════════════════════════════════════════════════════
 
