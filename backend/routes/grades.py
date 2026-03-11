@@ -30,12 +30,36 @@ router = APIRouter(prefix="/api")
 
 class GradeEntry(BaseModel):
     student_id: str
-    attitude_grade: Optional[float] = None
-    worksheets_grade: Optional[float] = None
-    competency_grade: Optional[float] = None
-    participation_grade: Optional[float] = None
-    monthly_exam_grade: Optional[float] = None
-    bimestral_exam_grade: Optional[float] = None
+    # Actitudinal sub-fields
+    act_co: Optional[float] = None
+    act_re: Optional[float] = None
+    # Revisión de Fichas sub-fields
+    rf_r1: Optional[float] = None
+    rf_r2: Optional[float] = None
+    rf_r3: Optional[float] = None
+    rf_r4: Optional[float] = None
+    rf_r5: Optional[float] = None
+    # Competencia sub-fields
+    comp_c1: Optional[float] = None
+    comp_c2: Optional[float] = None
+    # Participaciones sub-fields
+    part_p1: Optional[float] = None
+    part_p2: Optional[float] = None
+    part_p3: Optional[float] = None
+    part_exp: Optional[float] = None
+    part_tg: Optional[float] = None
+    part_p: Optional[float] = None
+    # Single-column fields
+    exam_mensual: Optional[float] = None
+    exam_bimestral: Optional[float] = None
+
+GRADE_SUB_FIELDS = [
+    "act_co", "act_re",
+    "rf_r1", "rf_r2", "rf_r3", "rf_r4", "rf_r5",
+    "comp_c1", "comp_c2",
+    "part_p1", "part_p2", "part_p3", "part_exp", "part_tg", "part_p",
+    "exam_mensual", "exam_bimestral",
+]
 
 class GradeSaveRequest(BaseModel):
     subject_id: str
@@ -60,26 +84,41 @@ class LockRequest(BaseModel):
 # HELPER: Calculate final grade
 # ══════════════════════════════════════════════════════════════════════════════
 
+def _avg(values):
+    """Calculate average of non-None values. Returns None if all are None."""
+    nums = [v for v in values if v is not None]
+    if not nums:
+        return None
+    return round(sum(nums) / len(nums), 1)
+
 def calculate_final_grade(grade: dict, config: dict) -> Optional[float]:
-    fields = [
-        ("attitude_grade", config.get("attitude_weight", 0.10)),
-        ("worksheets_grade", config.get("worksheets_weight", 0.25)),
-        ("competency_grade", config.get("competency_weight", 0.05)),
-        ("participation_grade", config.get("participation_weight", 0.25)),
-        ("monthly_exam_grade", config.get("monthly_exam_weight", 0.15)),
-        ("bimestral_exam_grade", config.get("bimestral_exam_weight", 0.20)),
+    """Calculate final bimestral grade from sub-fields using weighted averages."""
+    # Calculate category averages from sub-fields
+    act_avg = _avg([grade.get("act_co"), grade.get("act_re")])
+    rf_avg = _avg([grade.get("rf_r1"), grade.get("rf_r2"), grade.get("rf_r3"), grade.get("rf_r4"), grade.get("rf_r5")])
+    comp_avg = _avg([grade.get("comp_c1"), grade.get("comp_c2")])
+    part_avg = _avg([grade.get("part_p1"), grade.get("part_p2"), grade.get("part_p3"), grade.get("part_exp"), grade.get("part_tg"), grade.get("part_p")])
+    exam_mens = grade.get("exam_mensual")
+    exam_bim = grade.get("exam_bimestral")
+
+    weighted = [
+        (act_avg, config.get("attitude_weight", 0.10)),
+        (rf_avg, config.get("worksheets_weight", 0.25)),
+        (comp_avg, config.get("competency_weight", 0.05)),
+        (part_avg, config.get("participation_weight", 0.25)),
+        (exam_mens, config.get("monthly_exam_weight", 0.15)),
+        (exam_bim, config.get("bimestral_exam_weight", 0.20)),
     ]
+
     total = 0.0
     total_weight = 0.0
-    for field, weight in fields:
-        val = grade.get(field)
+    for val, weight in weighted:
         if val is not None:
             total += val * weight
             total_weight += weight
     if total_weight == 0:
         return None
-    # Scale to full weight if some grades missing
-    result = total / total_weight * 1.0 if total_weight < 1.0 else total
+    result = total / total_weight if total_weight < 1.0 else total
     return round(result, 1)
 
 
@@ -229,12 +268,28 @@ async def get_grade_register(subject_id: str, section_id: str, period_id: str, c
             "number": i + 1,
             "student_id": student["id"],
             "student_name": f"{student.get('last_name', '')} {student.get('name', '')}".strip(),
-            "attitude_grade": g.get("attitude_grade"),
-            "worksheets_grade": g.get("worksheets_grade"),
-            "competency_grade": g.get("competency_grade"),
-            "participation_grade": g.get("participation_grade"),
-            "monthly_exam_grade": g.get("monthly_exam_grade"),
-            "bimestral_exam_grade": g.get("bimestral_exam_grade"),
+            # Actitudinal
+            "act_co": g.get("act_co"),
+            "act_re": g.get("act_re"),
+            # Revisión Fichas
+            "rf_r1": g.get("rf_r1"),
+            "rf_r2": g.get("rf_r2"),
+            "rf_r3": g.get("rf_r3"),
+            "rf_r4": g.get("rf_r4"),
+            "rf_r5": g.get("rf_r5"),
+            # Competencia
+            "comp_c1": g.get("comp_c1"),
+            "comp_c2": g.get("comp_c2"),
+            # Participaciones
+            "part_p1": g.get("part_p1"),
+            "part_p2": g.get("part_p2"),
+            "part_p3": g.get("part_p3"),
+            "part_exp": g.get("part_exp"),
+            "part_tg": g.get("part_tg"),
+            "part_p": g.get("part_p"),
+            # Exámenes
+            "exam_mensual": g.get("exam_mensual"),
+            "exam_bimestral": g.get("exam_bimestral"),
             "final_grade": g.get("final_grade"),
         }
         student_grades.append(entry)
@@ -300,14 +355,9 @@ async def save_grades(data: GradeSaveRequest, current_user=Depends(get_current_u
 
     saved_count = 0
     for entry in data.grades:
-        grade_data = {
-            "attitude_grade": entry.attitude_grade,
-            "worksheets_grade": entry.worksheets_grade,
-            "competency_grade": entry.competency_grade,
-            "participation_grade": entry.participation_grade,
-            "monthly_exam_grade": entry.monthly_exam_grade,
-            "bimestral_exam_grade": entry.bimestral_exam_grade,
-        }
+        grade_data = {}
+        for field in GRADE_SUB_FIELDS:
+            grade_data[field] = getattr(entry, field, None)
 
         # Validate grades are 0-20
         for field, val in grade_data.items():
