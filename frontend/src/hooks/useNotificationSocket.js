@@ -13,10 +13,10 @@ export function useNotificationSocket(token, onNotification) {
   const connect = useCallback(() => {
     if (!token) return;
 
-    // Build WebSocket URL from the backend URL
-    const backendUrl = process.env.REACT_APP_BACKEND_URL || "";
-    const wsProtocol = backendUrl.startsWith("https") ? "wss" : "ws";
-    const wsHost = backendUrl.replace(/^https?:\/\//, "");
+    // Build WebSocket URL from the backend URL or current location
+    const backendUrl = process.env.REACT_APP_BACKEND_URL || window.location.origin;
+    const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+    const wsHost = backendUrl.replace(/^https?:\/\//, "") || window.location.host;
     const wsUrl = `${wsProtocol}://${wsHost}/api/ws/notifications?token=${token}`;
 
     try {
