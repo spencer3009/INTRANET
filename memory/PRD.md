@@ -48,9 +48,10 @@ Build a comprehensive Educational Intranet Platform (EduNet) for schools in Peru
 - [x] Notification system (WebSocket)
 - [x] Demo mode with restricted access
 - [x] **server.py modularized** into 24 domain-specific router files
-- [x] **Registro Auxiliar (GradeBookPage)**: Excel-like grade entry with grouped headers, sub-columns, weighted averages, auto-save
+- [x] **Membership Renewal System**: Manual payment via Yape/Plin with QR codes. Owner submits payment request from dashboard, support confirms renewal (+30 days) from support panel. Includes audit logging, duplicate prevention, and role-based access control.
 - [x] **Consolidado de Notas**: Faithful replica of Excel format with institutional header, academic context, subject columns (with area grouping support), frozen columns, summary calculations (PROMEDIO, PUNTAJE, ORDEN DE MÉRITO, TERCIO), footer statistics, Excel export, vertical subject headers for compact layout, and integrated into main intranet layout with Sidebar and DashboardHeader.
 
+- [x] **Registro Auxiliar (GradeBookPage)**: Excel-like grade entry with grouped headers, sub-columns, weighted averages, auto-save
 ### Backend Modularization (March 11, 2026)
 server.py (24K lines) split into:
 - `routes/core.py` - Shared dependencies, auth, RBAC, helpers
