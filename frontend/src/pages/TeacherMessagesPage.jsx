@@ -20,7 +20,7 @@ import {
   Bold, Italic, Underline as UnderlineIcon, Strikethrough,
   List, ListOrdered, AlignLeft, AlignCenter, AlignRight,
   Link as LinkIcon, Highlighter, Undo, Redo, ArchiveRestore,
-  MessageSquare, Star, Sparkles, Megaphone
+  MessageSquare, Star, Sparkles, Megaphone, Forward, Flag, ReplyAll
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -950,55 +950,52 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
                 </>
               ) : selectedMessage ? (
                 <>
-                  {/* Message Header */}
+                {/* Toolbar de acciones */}
+                <div className="flex items-center gap-1 px-4 py-2 border-b border-gray-200 bg-gray-50 flex-shrink-0">
+                  <button
+                    onClick={() => { setSelectedMessage(null); setMobileView("list"); }}
+                    className="lg:hidden p-2 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors mr-1"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button onClick={handleReply} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors" title="Responder" data-testid="reply-btn">
+                    <Reply className="w-4 h-4" /><span className="hidden sm:inline">Responder</span>
+                  </button>
+                  <button onClick={handleReply} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors" title="Responder a todos" data-testid="reply-all-btn">
+                    <ReplyAll className="w-4 h-4" /><span className="hidden sm:inline">Responder a todos</span>
+                  </button>
+                  <button onClick={() => { setReplyTo({...selectedMessage, forwardMode: true}); setShowCompose(true); }} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors" title="Reenviar" data-testid="forward-btn">
+                    <Forward className="w-4 h-4" /><span className="hidden sm:inline">Reenviar</span>
+                  </button>
+                  <div className="w-px h-6 bg-gray-300 mx-1" />
+                  {activeFolder === "trash" ? (
+                    <>
+                      <button onClick={() => handleRestore(selectedMessage.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Restaurar" data-testid="restore-btn">
+                        <ArchiveRestore className="w-4 h-4" /><span className="hidden sm:inline">Restaurar</span>
+                      </button>
+                      <button onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Eliminar" data-testid="delete-permanent-btn">
+                        <AlertTriangle className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span>
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => handleDelete(selectedMessage.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Eliminar" data-testid="delete-btn">
+                        <Trash2 className="w-4 h-4" /><span className="hidden sm:inline">Eliminar</span>
+                      </button>
+                      <button onClick={() => handleArchive(selectedMessage.id)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors" title="Archivar" data-testid="archive-btn">
+                        <Archive className="w-4 h-4" /><span className="hidden sm:inline">Archivar</span>
+                      </button>
+                    </>
+                  )}
+                  <div className="w-px h-6 bg-gray-300 mx-1" />
+                  <button onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)} className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 rounded-lg transition-colors" title={selectedMessage.is_read ? "Marcar como no leido" : "Marcar como leido"} data-testid="mark-read-btn">
+                    <Flag className="w-4 h-4" /><span className="hidden sm:inline">Marcar</span>
+                  </button>
+                </div>
+
                   <div className="p-6 border-b border-slate-100 flex-shrink-0">
-                    <button
-                      onClick={() => { setSelectedMessage(null); setMobileView("list"); }}
-                      className="lg:hidden flex items-center gap-2 text-slate-600 mb-4 hover:text-slate-800"
-                    >
-                      <ChevronLeft className="w-5 h-5" />
-                      <span className="font-medium">Volver</span>
-                    </button>
-                    
                     <div className="flex items-start justify-between gap-4">
                       <h2 className="text-xl font-bold text-slate-900">{selectedMessage.subject}</h2>
-                      <div className="flex items-center gap-2">
-                        {activeFolder === "trash" ? (
-                          <>
-                            <button
-                              onClick={() => handleRestore(selectedMessage.id)}
-                              className="p-2.5 hover:bg-emerald-50 text-emerald-600 rounded-xl transition-colors"
-                              title="Restaurar"
-                            >
-                              <ArchiveRestore className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
-                              className="p-2.5 hover:bg-red-50 text-red-600 rounded-xl transition-colors"
-                              title="Eliminar permanentemente"
-                            >
-                              <AlertTriangle className="w-5 h-5" />
-                            </button>
-                          </>
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => handleArchive(selectedMessage.id)}
-                              className="p-2.5 hover:bg-amber-50 text-amber-600 rounded-xl transition-colors"
-                              title="Archivar"
-                            >
-                              <Archive className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(selectedMessage.id)}
-                              className="p-2.5 hover:bg-red-50 text-red-600 rounded-xl transition-colors"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="w-5 h-5" />
-                            </button>
-                          </>
-                        )}
-                      </div>
                     </div>
                     
                     {/* Sender info */}
@@ -1079,48 +1076,6 @@ export default function TeacherMessagesPage({ user, token, onLogout }) {
                           ))}
                         </div>
                       </div>
-                    )}
-                  </div>
-                  
-                  {/* Action Buttons */}
-                  <div className="p-5 border-t border-slate-100 bg-slate-50 flex items-center gap-3 flex-shrink-0">
-                    {activeFolder === "trash" ? (
-                      <>
-                        <button
-                          onClick={() => handleRestore(selectedMessage.id)}
-                          className="flex-1 py-3.5 px-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg"
-                          data-testid="restore-btn"
-                        >
-                          <ArchiveRestore className="w-5 h-5" />
-                          Restaurar
-                        </button>
-                        <button
-                          onClick={() => showDeletePermanentlyConfirm(selectedMessage.id)}
-                          className="py-3.5 px-6 bg-red-100 hover:bg-red-200 text-red-600 font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all"
-                          data-testid="delete-permanent-btn"
-                        >
-                          <AlertTriangle className="w-5 h-5" />
-                          Eliminar
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={handleReply}
-                          className="flex-1 py-3.5 px-4 bg-gradient-to-r from-indigo-500 to-violet-500 hover:from-indigo-600 hover:to-violet-600 text-white font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/30"
-                          data-testid="reply-btn"
-                        >
-                          <Reply className="w-5 h-5" />
-                          Responder
-                        </button>
-                        <button
-                          onClick={() => handleToggleRead(selectedMessage.id, !selectedMessage.is_read)}
-                          className="py-3.5 px-6 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-2xl flex items-center justify-center gap-2 transition-all"
-                        >
-                          {selectedMessage.is_read ? <MailOpen className="w-5 h-5" /> : <Mail className="w-5 h-5" />}
-                          {selectedMessage.is_read ? "No leído" : "Leído"}
-                        </button>
-                      </>
                     )}
                   </div>
                 </>
