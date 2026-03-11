@@ -223,9 +223,9 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
             <button
               onClick={() => setShowPayModal(true)}
               className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-colors"
-              style={{ backgroundColor: "#3C1053" }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#2D0C3F"}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#3C1053"}
+              style={{ backgroundColor: "#7B1FA2" }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6A1B8A"}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#7B1FA2"}
               data-testid="pay-renewal-btn"
             >
               <img src="/yape_logo.png" alt="Yape" className="w-7 h-7 rounded" />
