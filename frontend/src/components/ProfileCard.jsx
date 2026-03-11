@@ -228,8 +228,8 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
               onMouseLeave={(e) => e.currentTarget.style.backgroundColor = "#7B1FA2"}
               data-testid="pay-renewal-btn"
             >
-              <img src="/yape_logo.png" alt="Yape" className="w-7 h-7 rounded" />
-              Pagar renovacion
+              <img src="/yape_logo.png" alt="Yape" className="w-9 h-9 rounded" />
+              <span className="text-sm">Pagar renovacion</span>
             </button>
           )}
         </div>
