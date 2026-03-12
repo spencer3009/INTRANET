@@ -97,7 +97,6 @@ export default function SupportLayout({ user, token, onLogout }) {
             >
               <item.icon className="w-[18px] h-[18px]" />
               <span>{item.label}</span>
-              {({ isActive }) => isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
             </NavLink>
           ))}
         </nav>

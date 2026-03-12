@@ -40,7 +40,7 @@ Spanish (all communication must be in Spanish)
 ## Pending Issues
 1. ~~Payment Modal Too Tall (P0)~~ ✅ FIXED
 2. ~~Mobile Sidebar Overlay in Support Panel (P0)~~ ✅ FIXED (12 Mar 2026)
-3. "X" Button to De-assign School Does Not Work (P0) - IN PROGRESS
+3. ~~"X" Button to De-assign School Does Not Work (P0)~~ ✅ FIXED (12 Mar 2026)
 4. Double Scrollbar in Registro Auxiliar (P1) - NOT STARTED
 5. Disappearing Student Selection in PaymentFormModal (P2)
 6. Hardcoded Data on Owner Dashboard (P2)
