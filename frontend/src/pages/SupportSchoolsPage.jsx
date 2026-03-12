@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { 
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
-  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw
+  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -101,6 +101,21 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al remover acceso");
+    }
+  };
+
+  const handleDeleteSchool = async (schoolId, schoolName) => {
+    const confirmed = window.prompt(`Para eliminar "${schoolName}" permanentemente, escribe ELIMINAR:`);
+    if (confirmed !== "ELIMINAR") {
+      if (confirmed !== null) toast.error("Debes escribir ELIMINAR exactamente");
+      return;
+    }
+    try {
+      const res = await axios.delete(`${API}/support/delete-school/${schoolId}`, { headers });
+      toast.success(res.data.message);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al eliminar colegio");
     }
   };
 
@@ -572,8 +587,17 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     onClick={() => handleUnassign(school.id)}
                     className="px-3 py-2.5 border border-red-200 text-red-500 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
                     data-testid={`unassign-school-${school.subdomain}`}
+                    title="Quitar asignacion"
                   >
                     <X className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeleteSchool(school.id, school.name || school.subdomain)}
+                    className="px-3 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors"
+                    data-testid={`delete-school-${school.subdomain}`}
+                    title="Eliminar colegio permanentemente"
+                  >
+                    <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>

@@ -83,37 +83,42 @@ async def support_overview(user=Depends(require_support_admin)):
 
 @router.get("/schools")
 async def support_schools(user=Depends(require_support_admin)):
-    """List schools for support user. Global admins see ALL schools."""
-    # Global support admin sees all schools automatically
-    if user.get("role") == "system_admin_global":
-        schools_cursor = db.schools.find(
-            {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1, "pricing_override": 1}
-        )
-        schools = await schools_cursor.to_list(length=500)
-    else:
-        # Non-global support: filter by assignments
-        assignments_cursor = db.user_school_roles.find(
-            {"user_id": user["id"]}, {"_id": 0}
-        )
-        assignments = await assignments_cursor.to_list(length=500)
-        
-        if not assignments:
-            return []
-        
-        school_ids = [a["school_id"] for a in assignments]
-        schools_cursor = db.schools.find(
-            {"id": {"$in": school_ids}},
-            {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1, "pricing_override": 1}
-        )
-        schools = await schools_cursor.to_list(length=500)
+    """List schools for support user. Global admins get auto-assigned to all schools."""
     
-    # Build assignment map for role info
     if user.get("role") == "system_admin_global":
-        assignment_map = {}
-    else:
-        assignments_cursor2 = db.user_school_roles.find({"user_id": user["id"]}, {"_id": 0})
-        assignments2 = await assignments_cursor2.to_list(length=500)
-        assignment_map = {a["school_id"]: a for a in assignments2}
+        # Auto-assign global admin to all schools that aren't assigned yet
+        all_schools = await db.schools.find({}, {"_id": 0, "id": 1}).to_list(500)
+        all_school_ids = {s["id"] for s in all_schools}
+        
+        existing = await db.user_school_roles.find(
+            {"user_id": user["id"]}, {"_id": 0, "school_id": 1}
+        ).to_list(500)
+        existing_ids = {e["school_id"] for e in existing}
+        
+        missing = all_school_ids - existing_ids
+        if missing:
+            await db.user_school_roles.insert_many([
+                {"user_id": user["id"], "school_id": sid, "role": "support", "auto_assigned": True}
+                for sid in missing
+            ])
+    
+    # Now get schools from user_school_roles (works for both global and non-global)
+    assignments_cursor = db.user_school_roles.find(
+        {"user_id": user["id"]}, {"_id": 0}
+    )
+    assignments = await assignments_cursor.to_list(length=500)
+    
+    if not assignments:
+        return []
+    
+    school_ids = [a["school_id"] for a in assignments]
+    assignment_map = {a["school_id"]: a for a in assignments}
+    
+    schools_cursor = db.schools.find(
+        {"id": {"$in": school_ids}},
+        {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1, "pricing_override": 1}
+    )
+    schools = await schools_cursor.to_list(length=500)
     
     # Get global pricing config
     global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
@@ -231,12 +236,68 @@ async def assign_school(req: SwitchSchoolRequest, user=Depends(require_support_a
 @router.delete("/unassign-school/{school_id}")
 async def unassign_school(school_id: str, user=Depends(require_support_admin)):
     """Remove school assignment from support user"""
+    # Global admins see all schools automatically, but may also have manual assignments
     result = await db.user_school_roles.delete_one(
         {"user_id": user["id"], "school_id": school_id}
     )
-    if result.deleted_count == 0:
+    # For global admins, also check if there's a general assignment
+    if result.deleted_count == 0 and user.get("role") == "system_admin_global":
+        # Try removing any assignment for this school by this user's email
+        result2 = await db.user_school_roles.delete_one({"school_id": school_id, "user_email": user.get("email")})
+        if result2.deleted_count == 0:
+            # For global admin, just return success since they see all schools anyway
+            return {"message": "Acceso removido (admin global)"}
+    elif result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Asignacion no encontrada")
     return {"message": "Acceso removido"}
+
+
+@router.delete("/delete-school/{school_id}")
+async def delete_school(school_id: str, user=Depends(require_support_admin)):
+    """Permanently delete a school and all its related data"""
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo administradores globales pueden eliminar colegios")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "name": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    # Delete all related data
+    deleted_counts = {}
+    collections_to_clean = [
+        ("users", {"school_id": school_id}),
+        ("subjects", {"school_id": school_id}),
+        ("sections", {"school_id": school_id}),
+        ("grades", {"school_id": school_id}),
+        ("attendance", {"school_id": school_id}),
+        ("payments", {"school_id": school_id}),
+        ("course_posts", {"school_id": school_id}),
+        ("course_activities", {"school_id": school_id}),
+        ("internal_mail", {"school_id": school_id}),
+        ("user_school_roles", {"school_id": school_id}),
+        ("academic_years", {"school_id": school_id}),
+        ("payment_requests", {"school_id": school_id}),
+        ("news", {"school_id": school_id}),
+        ("events", {"school_id": school_id}),
+        ("surveys", {"school_id": school_id}),
+    ]
+    
+    for collection_name, query in collections_to_clean:
+        try:
+            result = await db[collection_name].delete_many(query)
+            if result.deleted_count > 0:
+                deleted_counts[collection_name] = result.deleted_count
+        except Exception:
+            pass
+    
+    # Delete the school itself
+    await db.schools.delete_one({"id": school_id})
+    deleted_counts["schools"] = 1
+    
+    return {
+        "message": f"Colegio '{school.get('name', school_id)}' eliminado permanentemente",
+        "deleted": deleted_counts
+    }
 
 
 class UpdateExpirationRequest(BaseModel):
@@ -725,3 +786,94 @@ async def ensure_global_support_user():
     )
     
     return user_id
+
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FINANZAS - Financial overview
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/finances")
+async def support_finances(user=Depends(require_support_admin)):
+    """Get financial overview: monthly earnings from school subscriptions"""
+    now = datetime.now(timezone.utc)
+    
+    # Get all schools with pricing
+    schools = await db.schools.find(
+        {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1,
+             "expiration_date": 1, "pricing_override": 1}
+    ).to_list(500)
+    
+    # Get global pricing
+    pricing_doc = await db.support_settings.find_one({"type": "global_pricing"}, {"_id": 0})
+    base_price = 100  # default
+    if pricing_doc:
+        base_price = pricing_doc.get("base_price_per_student", 100)
+    
+    # Get confirmed payment requests
+    confirmed_payments = await db.payment_requests.find(
+        {"status": "confirmed"}, {"_id": 0}
+    ).to_list(1000)
+    
+    # Build monthly earnings for last 12 months
+    monthly_data = []
+    for i in range(11, -1, -1):
+        month_date = now - timedelta(days=30 * i)
+        month_key = month_date.strftime("%Y-%m")
+        month_label = month_date.strftime("%b %Y")
+        
+        # Count payments confirmed in this month
+        month_total = 0
+        month_count = 0
+        for p in confirmed_payments:
+            p_date = p.get("confirmed_at") or p.get("created_at") or p.get("date", "")
+            if isinstance(p_date, str) and p_date.startswith(month_key):
+                month_total += p.get("amount", 0)
+                month_count += 1
+            elif isinstance(p_date, datetime) and p_date.strftime("%Y-%m") == month_key:
+                month_total += p.get("amount", 0)
+                month_count += 1
+        
+        monthly_data.append({
+            "month": month_key,
+            "label": month_label,
+            "total": round(month_total, 2),
+            "payments": month_count
+        })
+    
+    # Current month summary
+    current_month = now.strftime("%Y-%m")
+    current_earnings = sum(m["total"] for m in monthly_data if m["month"] == current_month)
+    current_payments = sum(m["payments"] for m in monthly_data if m["month"] == current_month)
+    
+    # Total all time
+    total_all_time = sum(p.get("amount", 0) for p in confirmed_payments)
+    
+    # Active schools (with valid expiration)
+    active_count = 0
+    for s in schools:
+        exp = s.get("expiration_date")
+        if exp:
+            try:
+                if isinstance(exp, str):
+                    exp_dt = datetime.fromisoformat(exp.replace("Z", "+00:00"))
+                else:
+                    exp_dt = exp
+                if exp_dt > now:
+                    active_count += 1
+            except Exception:
+                pass
+    
+    return {
+        "monthly_data": monthly_data,
+        "current_month": {
+            "label": now.strftime("%B %Y"),
+            "earnings": round(current_earnings, 2),
+            "payments": current_payments
+        },
+        "total_all_time": round(total_all_time, 2),
+        "total_confirmed_payments": len(confirmed_payments),
+        "active_schools": active_count,
+        "total_schools": len(schools),
+        "base_price": base_price
+    }

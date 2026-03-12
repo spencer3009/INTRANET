@@ -2,12 +2,13 @@ import { useState } from "react";
 import { NavLink, useNavigate, Outlet } from "react-router-dom";
 import { 
   LayoutDashboard, School, User, LogOut, Menu, X, 
-  Headset, ChevronRight, Shield, DollarSign
+  Headset, ChevronRight, Shield, DollarSign, BarChart3
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/support", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/support/schools", icon: School, label: "Colegios" },
+  { to: "/support/finances", icon: BarChart3, label: "Finanzas" },
   { to: "/support/pricing", icon: DollarSign, label: "Precios" },
   { to: "/support/profile", icon: User, label: "Mi Perfil" },
 ];
@@ -33,9 +34,9 @@ export default function SupportLayout({ user, token, onLogout }) {
 
   return (
     <div className="min-h-screen bg-[#f0f4f8] flex" data-testid="support-layout">
-      {/* Mobile overlay - behind sidebar */}
+      {/* Mobile overlay - only covers content area, not sidebar */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 left-[260px] bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
