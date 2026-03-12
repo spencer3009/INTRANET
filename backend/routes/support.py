@@ -349,17 +349,37 @@ async def update_school_expiration(req: UpdateExpirationRequest, user=Depends(re
 
 class RenewMembershipRequest(BaseModel):
     school_id: str
+    operation_code: str
 
 @router.post("/renew-membership")
 async def renew_membership(req: RenewMembershipRequest, user=Depends(require_support_admin)):
-    """Support confirms payment and renews the school's membership for 30 days"""
+    """Support confirms payment by matching the operation code the client submitted"""
     school = await db.schools.find_one({"id": req.school_id}, {"_id": 0})
     if not school:
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
 
+    # Validate operation code format
+    code = req.operation_code.strip()
+    if not code.isdigit() or len(code) != 8:
+        raise HTTPException(status_code=400, detail="El codigo de operacion debe tener exactamente 8 digitos")
+
+    # Find pending payment request for this school
+    pending = await db.payment_requests.find_one(
+        {"school_id": req.school_id, "status": "processing"},
+        {"_id": 0}
+    )
+    if not pending:
+        raise HTTPException(status_code=404, detail="No hay solicitud de pago pendiente para este colegio")
+
+    # Compare operation codes
+    if pending.get("operation_code", "").strip() != code:
+        raise HTTPException(status_code=400, detail="El codigo de operacion no coincide con el enviado por el cliente")
+
     now = datetime.now(timezone.utc)
     new_expiration = (now + timedelta(days=30)).isoformat()
+    amount = pending.get("amount", 0)
 
+    # Renew the school membership
     await db.schools.update_one(
         {"id": req.school_id},
         {"$set": {
@@ -370,9 +390,9 @@ async def renew_membership(req: RenewMembershipRequest, user=Depends(require_sup
         }}
     )
 
-    # Resolve any pending payment request
-    await db.payment_requests.update_many(
-        {"school_id": req.school_id, "status": "processing"},
+    # Confirm the payment request
+    await db.payment_requests.update_one(
+        {"id": pending["id"]},
         {"$set": {
             "status": "confirmed",
             "resolved_at": now.isoformat(),
@@ -390,14 +410,36 @@ async def renew_membership(req: RenewMembershipRequest, user=Depends(require_sup
         "action": "membership_renewal",
         "support_user_id": user["id"],
         "support_user_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "operation_code": code,
+        "amount": amount,
+        "payment_method": pending.get("payment_method", "yape"),
         "new_expiration": new_expiration,
         "created_at": now.isoformat(),
     }
     await db.renewal_logs.insert_one(renewal_log)
 
+    # Register finance entry (income)
+    finance_entry = {
+        "id": str(uuid.uuid4()),
+        "type": "income",
+        "school_id": req.school_id,
+        "school_name": school.get("name", school.get("subdomain", "")),
+        "amount": amount,
+        "description": f"Renovacion mensual - {school.get('name', school.get('subdomain', ''))}",
+        "payment_method": pending.get("payment_method", "yape"),
+        "operation_code": code,
+        "payment_request_id": pending["id"],
+        "confirmed_by": user["id"],
+        "confirmed_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "confirmed_at": now.isoformat(),
+        "created_at": now.isoformat(),
+    }
+    await db.finance_entries.insert_one(finance_entry)
+
     return {
         "message": "Membresia renovada exitosamente",
         "new_expiration": new_expiration,
+        "amount": amount,
     }
 
 
@@ -817,22 +859,20 @@ async def ensure_global_support_user():
 
 @router.get("/finances")
 async def support_finances(user=Depends(require_support_admin)):
-    """Get financial overview: monthly earnings from school subscriptions"""
+    """Get financial overview: monthly earnings from confirmed renewals"""
     now = datetime.now(timezone.utc)
     
-    # Get all schools with pricing
+    # Get all schools
     schools = await db.schools.find(
-        {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1,
-             "expiration_date": 1, "pricing_override": 1}
+        {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "expiration_date": 1}
     ).to_list(500)
     
-    # Get global pricing
-    pricing_doc = await db.support_settings.find_one({"type": "global_pricing"}, {"_id": 0})
-    base_price = 100  # default
-    if pricing_doc:
-        base_price = pricing_doc.get("base_price_per_student", 100)
+    # Get all finance entries (confirmed payments)
+    finance_entries = await db.finance_entries.find(
+        {"type": "income"}, {"_id": 0}
+    ).sort("confirmed_at", -1).to_list(1000)
     
-    # Get confirmed payment requests
+    # Also include legacy confirmed payment_requests for backwards compatibility
     confirmed_payments = await db.payment_requests.find(
         {"status": "confirmed"}, {"_id": 0}
     ).to_list(1000)
@@ -844,16 +884,17 @@ async def support_finances(user=Depends(require_support_admin)):
         month_key = month_date.strftime("%Y-%m")
         month_label = month_date.strftime("%b %Y")
         
-        # Count payments confirmed in this month
         month_total = 0
         month_count = 0
-        for p in confirmed_payments:
-            p_date = p.get("confirmed_at") or p.get("created_at") or p.get("date", "")
-            if isinstance(p_date, str) and p_date.startswith(month_key):
-                month_total += p.get("amount", 0)
+        
+        # Count from finance_entries
+        for e in finance_entries:
+            e_date = e.get("confirmed_at", e.get("created_at", ""))
+            if isinstance(e_date, str) and e_date.startswith(month_key):
+                month_total += e.get("amount", 0)
                 month_count += 1
-            elif isinstance(p_date, datetime) and p_date.strftime("%Y-%m") == month_key:
-                month_total += p.get("amount", 0)
+            elif isinstance(e_date, datetime) and e_date.strftime("%Y-%m") == month_key:
+                month_total += e.get("amount", 0)
                 month_count += 1
         
         monthly_data.append({
@@ -868,8 +909,8 @@ async def support_finances(user=Depends(require_support_admin)):
     current_earnings = sum(m["total"] for m in monthly_data if m["month"] == current_month)
     current_payments = sum(m["payments"] for m in monthly_data if m["month"] == current_month)
     
-    # Total all time
-    total_all_time = sum(p.get("amount", 0) for p in confirmed_payments)
+    # Total all time from finance_entries
+    total_all_time = sum(e.get("amount", 0) for e in finance_entries)
     
     # Active schools (with valid expiration)
     active_count = 0
@@ -886,6 +927,19 @@ async def support_finances(user=Depends(require_support_admin)):
             except Exception:
                 pass
     
+    # Recent transactions for the table
+    recent_transactions = []
+    for e in finance_entries[:20]:
+        recent_transactions.append({
+            "id": e.get("id"),
+            "school_name": e.get("school_name", ""),
+            "amount": e.get("amount", 0),
+            "payment_method": e.get("payment_method", ""),
+            "operation_code": e.get("operation_code", ""),
+            "confirmed_by_name": e.get("confirmed_by_name", ""),
+            "confirmed_at": e.get("confirmed_at", e.get("created_at", "")),
+        })
+    
     return {
         "monthly_data": monthly_data,
         "current_month": {
@@ -894,8 +948,8 @@ async def support_finances(user=Depends(require_support_admin)):
             "payments": current_payments
         },
         "total_all_time": round(total_all_time, 2),
-        "total_confirmed_payments": len(confirmed_payments),
+        "total_confirmed_payments": len(finance_entries),
         "active_schools": active_count,
         "total_schools": len(schools),
-        "base_price": base_price
+        "recent_transactions": recent_transactions
     }

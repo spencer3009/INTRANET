@@ -24,6 +24,9 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [editingPricing, setEditingPricing] = useState(null);
   const [pricingForm, setPricingForm] = useState({ base_monthly_fee: "", per_student_fee: "", per_student_from_month: "", discount_notes: "" });
   const [pricingInfo, setPricingInfo] = useState({});
+  const [renewModal, setRenewModal] = useState(null); // { schoolId, schoolName, price }
+  const [renewCode, setRenewCode] = useState("");
+  const [renewing, setRenewing] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -184,13 +187,32 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   };
 
   const handleRenewMembership = async (schoolId, schoolName) => {
-    if (!window.confirm(`Renovar membresia de "${schoolName}" por 30 dias?`)) return;
+    // Find the school to get its price
+    const school = mySchools.find(s => s.id === schoolId);
+    setRenewModal({ schoolId, schoolName, price: school?.calculated_price || 0 });
+    setRenewCode("");
+  };
+
+  const handleConfirmRenewal = async () => {
+    if (!renewModal) return;
+    if (renewCode.length !== 8 || !/^\d{8}$/.test(renewCode)) {
+      toast.error("El codigo debe tener exactamente 8 digitos");
+      return;
+    }
+    setRenewing(true);
     try {
-      const res = await axios.post(`${API}/support/renew-membership`, { school_id: schoolId }, { headers });
+      const res = await axios.post(`${API}/support/renew-membership`, {
+        school_id: renewModal.schoolId,
+        operation_code: renewCode
+      }, { headers });
       toast.success(res.data.message || "Membresia renovada");
+      setRenewModal(null);
+      setRenewCode("");
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al renovar");
+    } finally {
+      setRenewing(false);
     }
   };
 
@@ -603,6 +625,89 @@ export default function SupportSchoolsPage({ token, onLogin }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Renewal Modal */}
+      {renewModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="renew-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="renew-modal">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-bold text-base">Renovar Membresia</h3>
+                <p className="text-white/70 text-xs mt-0.5">Verificacion de pago Yape/Plin</p>
+              </div>
+              <button
+                onClick={() => setRenewModal(null)}
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                data-testid="renew-modal-close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* School info */}
+              <div className="bg-slate-50 rounded-xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                  <School className="w-5 h-5 text-violet-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800 text-sm">{renewModal.schoolName}</p>
+                  <p className="text-xs text-slate-500">Monto: <span className="font-bold text-emerald-600">S/ {renewModal.price.toFixed(2)}</span></p>
+                </div>
+              </div>
+
+              {/* Operation code input */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Numero de operacion <span className="text-red-500">*</span>
+                </label>
+                <p className="text-xs text-slate-400 mb-2">
+                  Ingresa el codigo de 8 digitos que el cliente envio con su pago
+                </p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={renewCode}
+                  onChange={(e) => setRenewCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                  placeholder="Ej: 12345678"
+                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-center text-2xl font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-all"
+                  data-testid="renew-operation-code-input"
+                  autoFocus
+                />
+                <p className={`text-xs mt-1.5 text-right font-medium ${renewCode.length === 8 ? "text-emerald-500" : "text-slate-400"}`}>
+                  {renewCode.length}/8 digitos
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => setRenewModal(null)}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+                  data-testid="renew-modal-cancel"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleConfirmRenewal}
+                  disabled={renewCode.length !== 8 || renewing}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="renew-modal-confirm"
+                >
+                  {renewing ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4" />
+                  )}
+                  Confirmar Renovacion
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
