@@ -58,9 +58,12 @@ async def support_overview(user=Depends(require_support_admin)):
     """Dashboard overview: global metrics for support admin"""
     total_schools = await db.schools.count_documents({})
     
-    # Global admin sees all schools
+    # Global admin sees all schools (minus unassigned)
     if user.get("role") == "system_admin_global":
-        assignments = total_schools
+        unassigned_count = await db.user_school_roles.count_documents(
+            {"user_id": user["id"], "unassigned": True}
+        )
+        assignments = total_schools - unassigned_count
     else:
         assignments = await db.user_school_roles.count_documents({"user_id": user["id"]})
     
@@ -87,11 +90,12 @@ async def support_schools(user=Depends(require_support_admin)):
     
     if user.get("role") == "system_admin_global":
         # Auto-assign global admin to all schools that aren't assigned yet
+        # But skip schools that were explicitly unassigned by the admin
         all_schools = await db.schools.find({}, {"_id": 0, "id": 1}).to_list(500)
         all_school_ids = {s["id"] for s in all_schools}
         
         existing = await db.user_school_roles.find(
-            {"user_id": user["id"]}, {"_id": 0, "school_id": 1}
+            {"user_id": user["id"]}, {"_id": 0, "school_id": 1, "unassigned": 1}
         ).to_list(500)
         existing_ids = {e["school_id"] for e in existing}
         
@@ -102,9 +106,9 @@ async def support_schools(user=Depends(require_support_admin)):
                 for sid in missing
             ])
     
-    # Now get schools from user_school_roles (works for both global and non-global)
+    # Now get schools from user_school_roles, excluding explicitly unassigned ones
     assignments_cursor = db.user_school_roles.find(
-        {"user_id": user["id"]}, {"_id": 0}
+        {"user_id": user["id"], "unassigned": {"$ne": True}}, {"_id": 0}
     )
     assignments = await assignments_cursor.to_list(length=500)
     
@@ -194,9 +198,9 @@ async def support_all_schools(user=Depends(require_support_admin)):
     )
     schools = await schools_cursor.to_list(length=1000)
     
-    # Get current assignments
+    # Get current assignments (only active ones, not unassigned)
     assignments_cursor = db.user_school_roles.find(
-        {"user_id": user["id"]}, {"_id": 0, "school_id": 1}
+        {"user_id": user["id"], "unassigned": {"$ne": True}}, {"_id": 0, "school_id": 1}
     )
     assignments = await assignments_cursor.to_list(length=1000)
     assigned_ids = {a["school_id"] for a in assignments}
@@ -218,6 +222,13 @@ async def assign_school(req: SwitchSchoolRequest, user=Depends(require_support_a
         {"user_id": user["id"], "school_id": req.school_id}
     )
     if existing:
+        if existing.get("unassigned"):
+            # Re-assign a previously unassigned school
+            await db.user_school_roles.update_one(
+                {"user_id": user["id"], "school_id": req.school_id},
+                {"$unset": {"unassigned": "", "unassigned_at": ""}}
+            )
+            return {"message": f"Acceso reasignado a {school.get('name', school.get('subdomain'))}"}
         raise HTTPException(status_code=400, detail="Ya tienes acceso a este colegio")
     
     await db.user_school_roles.insert_one({
@@ -236,20 +247,31 @@ async def assign_school(req: SwitchSchoolRequest, user=Depends(require_support_a
 @router.delete("/unassign-school/{school_id}")
 async def unassign_school(school_id: str, user=Depends(require_support_admin)):
     """Remove school assignment from support user"""
-    # Global admins see all schools automatically, but may also have manual assignments
-    result = await db.user_school_roles.delete_one(
-        {"user_id": user["id"], "school_id": school_id}
-    )
-    # For global admins, also check if there's a general assignment
-    if result.deleted_count == 0 and user.get("role") == "system_admin_global":
-        # Try removing any assignment for this school by this user's email
-        result2 = await db.user_school_roles.delete_one({"school_id": school_id, "user_email": user.get("email")})
-        if result2.deleted_count == 0:
-            # For global admin, just return success since they see all schools anyway
-            return {"message": "Acceso removido (admin global)"}
-    elif result.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Asignacion no encontrada")
-    return {"message": "Acceso removido"}
+    if user.get("role") == "system_admin_global":
+        # For global admins, mark as explicitly unassigned instead of deleting
+        # This prevents the auto-assign logic from re-creating the entry
+        result = await db.user_school_roles.update_one(
+            {"user_id": user["id"], "school_id": school_id},
+            {"$set": {"unassigned": True, "unassigned_at": now_iso()}}
+        )
+        if result.matched_count == 0:
+            # Entry doesn't exist yet, create it as unassigned
+            await db.user_school_roles.insert_one({
+                "user_id": user["id"],
+                "school_id": school_id,
+                "role": "support",
+                "auto_assigned": True,
+                "unassigned": True,
+                "unassigned_at": now_iso()
+            })
+        return {"message": "Acceso removido"}
+    else:
+        result = await db.user_school_roles.delete_one(
+            {"user_id": user["id"], "school_id": school_id}
+        )
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Asignacion no encontrada")
+        return {"message": "Acceso removido"}
 
 
 @router.delete("/delete-school/{school_id}")

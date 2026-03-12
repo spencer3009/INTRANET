@@ -1,0 +1,83 @@
+{
+  "summary": "Support Panel School Unassign Feature - All tests passed. The X button correctly removes schools from the support admin's view by marking them as 'unassigned: true' instead of deleting. Re-assignment works correctly.",
+
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "Console", "issues": ["Minor React warning: 'Functions are not valid as a React child' - not blocking functionality"]}
+    ]
+  },
+
+  "passed_tests": [
+    "Support login with spencer3009@gmail.com / Socios3009",
+    "GET /api/support/schools returns list of assigned schools",
+    "DELETE /api/support/unassign-school/{school_id} marks school as unassigned",
+    "After unassigning, GET /api/support/schools does NOT include the unassigned school",
+    "GET /api/support/all-schools shows unassigned school with is_assigned=false",
+    "POST /api/support/assign-school re-assigns a previously unassigned school",
+    "After re-assigning, school appears back in the list",
+    "GET /api/support/overview shows correct count of assigned schools",
+    "Auto-assign logic does NOT re-create explicitly unassigned schools",
+    "Frontend: X button on school card removes school from view",
+    "Frontend: Toast shows 'Acceso removido' after unassign",
+    "Frontend: Unassigned school appears in 'Asignar Colegio' modal",
+    "Frontend: Re-assign button works and school reappears"
+  ],
+
+  "test_report_links": [
+    "/app/backend/tests/test_support_school_unassign.py",
+    "/app/test_reports/pytest/pytest_support_school_unassign.xml"
+  ],
+
+  "action_items": [],
+
+  "critical_code_review_comments": [],
+
+  "updated_files": [
+    "/app/backend/tests/test_support_school_unassign.py"
+  ],
+
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% (all UI elements verified)"
+  },
+
+  "test_credentials": {
+    "support": {
+      "email": "spencer3009@gmail.com",
+      "password": "Socios3009",
+      "login_url": "https://edunet-preview.preview.emergentagent.com/login",
+      "role": "system_admin_global"
+    }
+  },
+
+  "seed_data_creation": "None - used existing schools: 'Colegio El Roble' and 'demosettings'",
+
+  "retest_needed": false,
+
+  "should_main_agent_self_test": false,
+
+  "context_for_next_testing_agent": "School unassign/reassign feature fully working. The fix marks records as 'unassigned: true' instead of deleting them, which prevents auto-assign logic from re-creating entries. Test file created at /app/backend/tests/test_support_school_unassign.py for regression testing.",
+
+  "verified_fix_details": {
+    "issue_description": "X button on school cards should de-assign (remove) a school from the user's view without being re-added by auto-assign logic",
+    "fix_applied": "unassign_school endpoint sets 'unassigned: true' on user_school_roles record instead of deleting",
+    "verification": [
+      "Backend: 11/11 pytest tests passed",
+      "Frontend: X button removes school card from view",
+      "Frontend: School appears in 'Asignar Colegio' modal with is_assigned=false",
+      "Frontend: Re-assign works correctly and school reappears"
+    ]
+  },
+
+  "schools_in_database": [
+    {"name": "Colegio El Roble", "subdomain": "elroble"},
+    {"name": "demosettings", "subdomain": "demosettings"}
+  ]
+}
