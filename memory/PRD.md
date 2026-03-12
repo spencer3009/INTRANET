@@ -42,10 +42,11 @@ Spanish (all communication must be in Spanish)
 2. ~~Mobile Sidebar Overlay in Support Panel (P0)~~ ✅ FIXED (12 Mar 2026)
 3. ~~"X" Button to De-assign School Does Not Work (P0)~~ ✅ FIXED (12 Mar 2026)
 4. ~~Renovar Button - No Operation Code Validation (P1)~~ ✅ FIXED (12 Mar 2026)
-5. Double Scrollbar in Registro Auxiliar (P1) - NOT STARTED
-6. Disappearing Student Selection in PaymentFormModal (P2)
-7. Hardcoded Data on Owner Dashboard (P2)
-8. Message Center Unread Count Discrepancy (P2)
+5. ~~Consolidado Empty State UX (P1)~~ ✅ FIXED (12 Mar 2026)
+6. Double Scrollbar in Registro Auxiliar (P1) - NOT STARTED
+7. Disappearing Student Selection in PaymentFormModal (P2)
+8. Hardcoded Data on Owner Dashboard (P2)
+9. Message Center Unread Count Discrepancy (P2)
 
 ## Upcoming Tasks
 - P0: Recover production database (Emergent support)

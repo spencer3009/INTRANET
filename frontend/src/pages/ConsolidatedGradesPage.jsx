@@ -127,6 +127,9 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
   const logoUrl = settings?.logo_url;
   const subdomain = user?.subdomain;
 
+  const hasStudents = data?.students?.length > 0;
+  const PLACEHOLDER_ROWS = 30;
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="consolidated-grades">
       <Sidebar
@@ -223,6 +226,20 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
         .cns-loading { display:flex; align-items:center; justify-content:center; padding:80px; color:#666; font-size:15px; gap:10px; }
         .cns-empty { text-align:center; padding:100px 20px; color:#999; }
 
+        /* === PLACEHOLDER ROWS (no students) === */
+        .cns-placeholder td { color:#ccc; font-size:11px; background:#fafafa; }
+        .cns-placeholder:nth-child(odd) td { background:#fafafa; }
+        .cns-placeholder:nth-child(even) td { background:#f5f5f5; }
+        .cns-placeholder .cns-fn { background:inherit; }
+        .cns-placeholder:nth-child(odd) .cns-fn { background:#fafafa; }
+        .cns-placeholder:nth-child(even) .cns-fn { background:#f5f5f5; }
+
+        /* === NO-STUDENTS WARNING === */
+        .cns-warning { background:#FFFBEB; border:1px solid #F59E0B; border-radius:8px; padding:14px 20px; margin-bottom:12px; display:flex; align-items:center; gap:12px; }
+        .cns-warning-icon { width:36px; height:36px; border-radius:50%; background:#FEF3C7; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+        .cns-warning-text { font-size:13px; color:#92400E; line-height:1.5; }
+        .cns-warning-text strong { font-weight:700; display:block; font-size:13px; color:#78350F; }
+
         /* === PRINT === */
         @media print {
           .cns-filters, .cns-export { display:none!important; }
@@ -265,7 +282,7 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
           </select>
         </div>
         {data && (
-          <div className="cns-export">
+          <div className="cns-export" data-testid="export-buttons">
             <button className="cns-btn-xl" onClick={handleExportExcel} data-testid="export-excel-btn"><FileSpreadsheet size={13} /> Excel</button>
             <button className="cns-btn-pr" onClick={handlePrint} data-testid="print-btn"><Printer size={13} /> Imprimir</button>
           </div>
@@ -281,6 +298,20 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
           <p style={{ fontSize: 13 }}>Selecciona nivel, grado y secci&oacute;n para ver el consolidado</p>
         </div>
       ) : (
+        <>
+          {/* Warning banner when no students */}
+          {data && !hasStudents && (
+            <div className="cns-warning" data-testid="no-students-warning">
+              <div className="cns-warning-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
+              <div className="cns-warning-text">
+                <strong>No hay alumnos registrados en esta seccion.</strong>
+                Registre alumnos para generar el consolidado de notas.
+              </div>
+            </div>
+          )}
+
         <div className="cns-sheet" ref={tableRef}>
           <table className="cns-tbl" data-testid="consolidated-table">
             <thead>
@@ -372,59 +403,68 @@ export default function ConsolidatedGradesPage({ user, token, onLogout }) {
               </tr>
             </thead>
             <tbody>
-              {/* Student data rows */}
-              {data.students?.map((student) => (
-                <tr key={student.student_id} className="cns-dr" data-testid={`student-row-${student.number}`}>
-                  <td className="cns-fn cns-fn-num">{student.number}</td>
-                  <td colSpan={2} className="cns-fn cns-fn-name">{student.student_name}</td>
-                  {allColumns.map((col) => {
-                    const val = student.grades[col.id];
-                    const isFail = val !== null && val !== undefined && val < 11;
-                    const cls = [isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-area" : ""].filter(Boolean).join(" ");
-                    return <td key={col.id} className={cls}>{val ?? ""}</td>;
-                  })}
-                  <td className="cns-summ-cell">{student.conducta ?? ""}</td>
-                  <td className="cns-prom-cell">{student.promedio != null ? student.promedio.toFixed(2) : ""}</td>
-                  <td className="cns-summ-cell">{student.puntaje ?? ""}</td>
-                  <td className="cns-summ-cell">{student.n_desaprobados || ""}</td>
-                  <td className="cns-summ-cell">{student.orden_merito ?? ""}</td>
-                  <td className="cns-summ-cell">{student.tercio ?? ""}</td>
-                  <td className="cns-summ-cell">{student.tardanza_injustificada ?? ""}</td>
-                  <td className="cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
-                  <td className="cns-summ-cell">{student.falta_injustificada ?? ""}</td>
-                  <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
-                </tr>
-              ))}
+              {/* Student data rows OR placeholder rows */}
+              {hasStudents ? (
+                <>
+                  {data.students.map((student) => (
+                    <tr key={student.student_id} className="cns-dr" data-testid={`student-row-${student.number}`}>
+                      <td className="cns-fn cns-fn-num">{student.number}</td>
+                      <td colSpan={2} className="cns-fn cns-fn-name">{student.student_name}</td>
+                      {allColumns.map((col) => {
+                        const val = student.grades[col.id];
+                        const isFail = val !== null && val !== undefined && val < 11;
+                        const cls = [isFail ? "cns-grade-fail" : "", isAreaColumn(col) ? "cns-grade-area" : ""].filter(Boolean).join(" ");
+                        return <td key={col.id} className={cls}>{val ?? ""}</td>;
+                      })}
+                      <td className="cns-summ-cell">{student.conducta ?? ""}</td>
+                      <td className="cns-prom-cell">{student.promedio != null ? student.promedio.toFixed(2) : ""}</td>
+                      <td className="cns-summ-cell">{student.puntaje ?? ""}</td>
+                      <td className="cns-summ-cell">{student.n_desaprobados || ""}</td>
+                      <td className="cns-summ-cell">{student.orden_merito ?? ""}</td>
+                      <td className="cns-summ-cell">{student.tercio ?? ""}</td>
+                      <td className="cns-summ-cell">{student.tardanza_injustificada ?? ""}</td>
+                      <td className="cns-summ-cell">{student.tardanza_justificada ?? ""}</td>
+                      <td className="cns-summ-cell">{student.falta_injustificada ?? ""}</td>
+                      <td className="cns-summ-cell">{student.falta_justificada ?? ""}</td>
+                    </tr>
+                  ))}
 
-              {data.students?.length === 0 && (
-                <tr>
-                  <td colSpan={3 + allColumns.length + summaryHeaders.length} style={{ padding: 30, color: "#999", fontSize: 12 }}>
-                    No hay alumnos registrados en esta secci&oacute;n
-                  </td>
-                </tr>
+                  {/* Spacer */}
+                  <tr><td colSpan={3 + allColumns.length + summaryHeaders.length} style={{height:4, border:"none", background:"#fff"}}></td></tr>
+
+                  {/* Summary footer rows */}
+                  {summaryFooterRows.map((fr) => (
+                    <tr key={fr.key} className="cns-fr">
+                      <td className="cns-fn cns-fn-num"></td>
+                      <td colSpan={2} className="cns-fr-lbl cns-fn cns-fn-name">{fr.label}</td>
+                      {allColumns.map((col) => {
+                        const stats = data.summary_stats?.[col.id];
+                        const val = stats?.[fr.key];
+                        return <td key={col.id}>{val != null ? val : ""}</td>;
+                      })}
+                      {summaryHeaders.map((sh) => <td key={sh.key}></td>)}
+                    </tr>
+                  ))}
+                </>
+              ) : (
+                /* 30 placeholder rows when no students */
+                Array.from({ length: PLACEHOLDER_ROWS }, (_, i) => (
+                  <tr key={`ph-${i}`} className="cns-placeholder" data-testid={`placeholder-row-${i + 1}`}>
+                    <td className="cns-fn cns-fn-num">{i + 1}</td>
+                    <td colSpan={2} className="cns-fn cns-fn-name" style={{color:"#ddd"}}>&mdash;</td>
+                    {allColumns.map((col) => (
+                      <td key={col.id}>&mdash;</td>
+                    ))}
+                    {summaryHeaders.map((sh) => (
+                      <td key={sh.key}>&mdash;</td>
+                    ))}
+                  </tr>
+                ))
               )}
-
-              {/* Spacer */}
-              {data.students?.length > 0 && (
-                <tr><td colSpan={3 + allColumns.length + summaryHeaders.length} style={{height:4, border:"none", background:"#fff"}}></td></tr>
-              )}
-
-              {/* Summary footer rows */}
-              {data.students?.length > 0 && summaryFooterRows.map((fr) => (
-                <tr key={fr.key} className="cns-fr">
-                  <td className="cns-fn cns-fn-num"></td>
-                  <td colSpan={2} className="cns-fr-lbl cns-fn cns-fn-name">{fr.label}</td>
-                  {allColumns.map((col) => {
-                    const stats = data.summary_stats?.[col.id];
-                    const val = stats?.[fr.key];
-                    return <td key={col.id}>{val != null ? val : ""}</td>;
-                  })}
-                  {summaryHeaders.map((sh) => <td key={sh.key}></td>)}
-                </tr>
-              ))}
             </tbody>
           </table>
         </div>
+        </>
       )}
           </div>
         </main>
