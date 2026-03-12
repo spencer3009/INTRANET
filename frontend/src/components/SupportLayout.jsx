@@ -33,14 +33,14 @@ export default function SupportLayout({ user, token, onLogout }) {
 
   return (
     <div className="min-h-screen bg-[#f0f4f8] flex" data-testid="support-layout">
-      {/* Mobile overlay */}
+      {/* Mobile overlay - behind sidebar */}
       {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/40 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-0 bg-black/40 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside className={`
-        fixed lg:sticky top-0 left-0 z-50 h-screen w-[260px] 
+        fixed lg:sticky top-0 left-0 z-[999] h-screen w-[260px] 
         bg-[#0a1628] text-white flex flex-col
         transition-transform duration-300 ease-in-out
         ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
