@@ -366,6 +366,8 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
 
   const isLocked = status !== "open";
   const isAdmin = ["owner", "admin", "director"].includes(user?.role);
+  const hasStudents = students.length > 0;
+  const PLACEHOLDER_COUNT = 30;
 
   if (loading) {
     return (
@@ -424,6 +426,19 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
         </div>
       </div>
 
+      {/* ── WARNING BANNER (no students) ── */}
+      {!loading && !hasStudents && selectedPeriod && (
+        <div style={{ background: "#FFFBEB", border: "1px solid #F59E0B", borderRadius: 8, padding: "14px 20px", display: "flex", alignItems: "center", gap: 12 }} data-testid="no-students-warning">
+          <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#FEF3C7", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <AlertTriangle size={18} style={{ color: "#D97706" }} />
+          </div>
+          <div style={{ fontSize: 13, color: "#92400E", lineHeight: 1.5 }}>
+            <strong style={{ display: "block", fontWeight: 700, fontSize: 13, color: "#78350F" }}>No hay alumnos registrados en esta seccion.</strong>
+            El registro auxiliar se activara automaticamente cuando existan alumnos matriculados.
+          </div>
+        </div>
+      )}
+
       {/* ── EXCEL TABLE ── */}
       <div style={{ background: "#fff", borderRadius: 12, border: "1px solid #e5e7eb", overflow: "hidden" }}>
         <div style={{ overflowX: "auto" }}>
@@ -470,13 +485,7 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
               </tr>
             </thead>
             <tbody>
-              {students.length === 0 ? (
-                <tr>
-                  <td colSpan={totalSubCols + 3} style={{ padding: 40, textAlign: "center", color: "#94a3b8" }}>
-                    No hay alumnos registrados en esta sección
-                  </td>
-                </tr>
-              ) : students.map((student, idx) => {
+              {hasStudents ? students.map((student, idx) => {
                 const rowBg = idx % 2 === 0 ? "#FFFFFF" : "#FAFAFA";
                 const final = calcFinal(student);
                 return (
@@ -514,7 +523,29 @@ export default function GradeBookTab({ subjectId, sectionId, token, user }) {
                     </td>
                   </tr>
                 );
-              })}
+              }) : (
+                /* 30 placeholder rows */
+                Array.from({ length: PLACEHOLDER_COUNT }, (_, i) => {
+                  const rowBg = i % 2 === 0 ? "#FAFAFA" : "#F5F5F5";
+                  return (
+                    <tr key={`ph-${i}`} style={{ background: rowBg }} data-testid={`placeholder-row-${i + 1}`}>
+                      <td style={{ ...S.tdNum, ...S.stickyNum, background: rowBg, color: "#ccc" }}>{i + 1}</td>
+                      <td style={{ ...S.tdName, ...S.stickyName, background: rowBg, color: "#ddd" }}>&mdash;</td>
+                      {CRITERIA.map(c => (
+                        <React.Fragment key={`ph-${i}-${c.id}`}>
+                          {c.subs.map(sub => (
+                            <td key={sub.key} style={{ ...S.tdInput, background: rowBg, color: "#ddd", padding: "6px 0", fontSize: 11 }}>&mdash;</td>
+                          ))}
+                          {!c.noAvg && (
+                            <td key={`${c.id}_avg_ph`} style={{ ...S.tdAvg, background: rowBg, color: "#ccc" }}>&mdash;</td>
+                          )}
+                        </React.Fragment>
+                      ))}
+                      <td style={{ ...S.tdFinal, background: rowBg, color: "#ccc" }}>&mdash;</td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
