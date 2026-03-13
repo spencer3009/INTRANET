@@ -166,15 +166,13 @@ async def support_schools(user=Depends(require_support_admin)):
         )
         per_student_applies = eff_mode != "flat_fee" and months_active >= eff_from_month
         
-        # Check if payment exists for this school (any payment in current active period)
-        payment_exists = await db.finance_entries.find_one(
-            {"school_id": sid, "type": "income"},
-            {"_id": 1},
-            sort=[("confirmed_at", -1)]
+        # Check if payment exists for this school (any payment ever)
+        payment_count = await db.finance_entries.count_documents(
+            {"school_id": sid, "type": "income"}
         )
         
         # A school needs payment if it has NO finance entries at all
-        missing_payment = payment_exists is None
+        missing_payment = payment_count == 0
         
         assignment = assignment_map.get(sid, {})
         result.append({
