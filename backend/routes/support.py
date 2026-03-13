@@ -970,7 +970,7 @@ class CreateSchoolFromSupport(BaseModel):
 async def support_create_school(data: CreateSchoolFromSupport, user=Depends(require_support_admin)):
     """Create a new school + owner account from the support panel"""
     import re
-    from .core import RESERVED_SUBDOMAINS, BASE_DOMAIN, create_system_support_user, seed_demo_data_for_school
+    from .core import RESERVED_SUBDOMAINS, BASE_DOMAIN
 
     subdomain = data.subdomain.lower().strip()
 
@@ -1029,18 +1029,6 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
         "updated_at": now.isoformat(),
     }
     await db.schools.insert_one(school_doc)
-
-    # Create system support user for the school
-    try:
-        await create_system_support_user(db, school_id)
-    except Exception:
-        pass
-
-    # Seed demo data
-    try:
-        await seed_demo_data_for_school(db, school_id, owner_id)
-    except Exception:
-        pass
 
     return {
         "message": f"Colegio '{data.school_name}' creado exitosamente",
