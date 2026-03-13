@@ -32,7 +32,7 @@ export default function SupportFinancesPage({ token }) {
         <StatCard icon={DollarSign} label="Ganancia este mes" value={`S/ ${data.current_month.earnings.toFixed(2)}`} sub={`${data.current_month.payments} pagos`} color="emerald" />
         <StatCard icon={TrendingUp} label="Total acumulado" value={`S/ ${data.total_all_time.toFixed(2)}`} sub={`${data.total_confirmed_payments} pagos confirmados`} color="blue" />
         <StatCard icon={School} label="Colegios activos" value={data.active_schools} sub={`de ${data.total_schools} totales`} color="violet" />
-        <StatCard icon={CreditCard} label="Precio base" value={`S/ ${data.base_price}`} sub="por estudiante/mes" color="amber" />
+        <StatCard icon={CreditCard} label="Precio base" value={`S/ ${data.base_price ?? "—"}`} sub="por estudiante/mes" color="amber" />
       </div>
 
       {/* Monthly Chart */}

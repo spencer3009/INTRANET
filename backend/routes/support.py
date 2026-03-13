@@ -965,6 +965,7 @@ class CreateSchoolFromSupport(BaseModel):
     owner_name: str = Field(..., min_length=2)
     owner_email: str = Field(..., min_length=5)
     owner_password: str = Field(..., min_length=6)
+    amount: float = Field(default=0, ge=0)
 
 @router.post("/create-school")
 async def support_create_school(data: CreateSchoolFromSupport, user=Depends(require_support_admin)):
@@ -1029,6 +1030,24 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
         "updated_at": now.isoformat(),
     }
     await db.schools.insert_one(school_doc)
+
+    # Register finance entry (first payment)
+    if data.amount > 0:
+        finance_entry = {
+            "id": str(uuid.uuid4()),
+            "type": "income",
+            "school_id": school_id,
+            "school_name": data.school_name.strip(),
+            "amount": data.amount,
+            "description": f"Pago inicial - {data.school_name.strip()}",
+            "payment_method": "efectivo",
+            "operation_code": "",
+            "confirmed_by": user["id"],
+            "confirmed_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+            "confirmed_at": now.isoformat(),
+            "created_at": now.isoformat(),
+        }
+        await db.finance_entries.insert_one(finance_entry)
 
     return {
         "message": f"Colegio '{data.school_name}' creado exitosamente",

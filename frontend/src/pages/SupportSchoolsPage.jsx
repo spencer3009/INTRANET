@@ -29,7 +29,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [renewCode, setRenewCode] = useState("");
   const [renewing, setRenewing] = useState(false);
   const [showCreateSchool, setShowCreateSchool] = useState(false);
-  const [createForm, setCreateForm] = useState({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "" });
+  const [createForm, setCreateForm] = useState({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "", amount: "" });
   const [creating, setCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -233,10 +233,13 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     }
     setCreating(true);
     try {
-      const res = await axios.post(`${API}/support/create-school`, createForm, { headers });
+      const res = await axios.post(`${API}/support/create-school`, {
+        ...createForm,
+        amount: parseFloat(createForm.amount) || 0
+      }, { headers });
       toast.success(res.data.message || "Colegio creado");
       setShowCreateSchool(false);
-      setCreateForm({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "" });
+      setCreateForm({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "", amount: "" });
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al crear colegio");
@@ -710,6 +713,19 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       />
                       <span className="px-3 py-2.5 bg-slate-100 border border-l-0 border-slate-200 rounded-r-xl text-xs text-slate-500 whitespace-nowrap">.edunet.pe</span>
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Pago mensual (S/)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={createForm.amount}
+                      onChange={e => setCreateForm(f => ({ ...f, amount: e.target.value }))}
+                      placeholder="Ej: 150.00"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                      data-testid="create-school-amount"
+                    />
                   </div>
                 </div>
               </div>
