@@ -955,6 +955,77 @@ async def support_finances(user=Depends(require_support_admin)):
     }
 
 
+
+@router.get("/finances/transactions")
+async def support_finance_transactions(
+    filter_type: str = "month",
+    month: str = None,
+    date: str = None,
+    date_from: str = None,
+    date_to: str = None,
+    user=Depends(require_support_admin)
+):
+    """Get filtered finance transactions. filter_type: month | day | range | year"""
+    now = datetime.now(timezone.utc)
+
+    # Build date filter
+    if filter_type == "day" and date:
+        # Single day: date = "2026-03-13"
+        start = date
+        end = date + "T23:59:59"
+        label = date
+    elif filter_type == "range" and date_from and date_to:
+        start = date_from
+        end = date_to + "T23:59:59"
+        label = f"{date_from} - {date_to}"
+    elif filter_type == "year":
+        year = str(now.year)
+        start = f"{year}-01-01"
+        end = f"{year}-12-31T23:59:59"
+        label = f"Año {year}"
+    else:
+        # Default: month
+        target = month or now.strftime("%Y-%m")
+        start = f"{target}-01"
+        # End of month
+        y, m = int(target[:4]), int(target[5:7])
+        if m == 12:
+            end = f"{y+1}-01-01"
+        else:
+            end = f"{y}-{m+1:02d}-01"
+        label = target
+
+    # Query finance_entries
+    query = {
+        "type": "income",
+        "confirmed_at": {"$gte": start, "$lt": end}
+    }
+    entries = await db.finance_entries.find(query, {"_id": 0}).sort("confirmed_at", -1).to_list(500)
+
+    transactions = []
+    total = 0
+    for e in entries:
+        total += e.get("amount", 0)
+        transactions.append({
+            "id": e.get("id"),
+            "school_name": e.get("school_name", ""),
+            "amount": e.get("amount", 0),
+            "description": e.get("description", ""),
+            "payment_method": e.get("payment_method", ""),
+            "operation_code": e.get("operation_code", ""),
+            "confirmed_by_name": e.get("confirmed_by_name", ""),
+            "confirmed_at": e.get("confirmed_at", e.get("created_at", "")),
+        })
+
+    return {
+        "filter_type": filter_type,
+        "label": label,
+        "total": round(total, 2),
+        "count": len(transactions),
+        "transactions": transactions,
+    }
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # CREATE SCHOOL FROM SUPPORT
 # ══════════════════════════════════════════════════════════════════════════════
