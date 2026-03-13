@@ -965,7 +965,6 @@ class CreateSchoolFromSupport(BaseModel):
     owner_name: str = Field(..., min_length=2)
     owner_email: str = Field(..., min_length=5)
     owner_password: str = Field(..., min_length=6)
-    amount: float = Field(default=0, ge=0)
 
 @router.post("/create-school")
 async def support_create_school(data: CreateSchoolFromSupport, user=Depends(require_support_admin)):
@@ -1031,14 +1030,20 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
     }
     await db.schools.insert_one(school_doc)
 
+    # Get global pricing to register the first payment
+    global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
+    if not global_pricing:
+        global_pricing = {"base_monthly_fee": 50.0}
+    amount = global_pricing.get("base_monthly_fee", 0)
+
     # Register finance entry (first payment)
-    if data.amount > 0:
+    if amount > 0:
         finance_entry = {
             "id": str(uuid.uuid4()),
             "type": "income",
             "school_id": school_id,
             "school_name": data.school_name.strip(),
-            "amount": data.amount,
+            "amount": amount,
             "description": f"Pago inicial - {data.school_name.strip()}",
             "payment_method": "efectivo",
             "operation_code": "",

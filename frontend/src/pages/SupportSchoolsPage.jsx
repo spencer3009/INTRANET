@@ -29,9 +29,10 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [renewCode, setRenewCode] = useState("");
   const [renewing, setRenewing] = useState(false);
   const [showCreateSchool, setShowCreateSchool] = useState(false);
-  const [createForm, setCreateForm] = useState({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "", amount: "" });
+  const [createForm, setCreateForm] = useState({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "" });
   const [creating, setCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [globalPrice, setGlobalPrice] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -221,6 +222,14 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     }
   };
 
+  const openCreateModal = async () => {
+    setShowCreateSchool(true);
+    try {
+      const res = await axios.get(`${API}/support/pricing`, { headers });
+      setGlobalPrice(res.data.base_monthly_fee ?? 0);
+    } catch { setGlobalPrice(0); }
+  };
+
   const handleCreateSchool = async () => {
     const { school_name, subdomain, owner_name, owner_email, owner_password } = createForm;
     if (!school_name || !subdomain || !owner_name || !owner_email || !owner_password) {
@@ -233,13 +242,10 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     }
     setCreating(true);
     try {
-      const res = await axios.post(`${API}/support/create-school`, {
-        ...createForm,
-        amount: parseFloat(createForm.amount) || 0
-      }, { headers });
+      const res = await axios.post(`${API}/support/create-school`, createForm, { headers });
       toast.success(res.data.message || "Colegio creado");
       setShowCreateSchool(false);
-      setCreateForm({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "", amount: "" });
+      setCreateForm({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "" });
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al crear colegio");
@@ -290,7 +296,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowCreateSchool(true)}
+            onClick={() => openCreateModal()}
             data-testid="create-school-btn"
             className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors shadow-sm"
           >
@@ -715,17 +721,11 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Pago mensual (S/)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={createForm.amount}
-                      onChange={e => setCreateForm(f => ({ ...f, amount: e.target.value }))}
-                      placeholder="Ej: 150.00"
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
-                      data-testid="create-school-amount"
-                    />
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Pago mensual</label>
+                    <div className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold" data-testid="create-school-amount">
+                      S/ {globalPrice !== null ? globalPrice.toFixed(2) : "..."}
+                      <span className="text-xs font-normal text-slate-400 ml-2">(segun configuracion de Precios)</span>
+                    </div>
                   </div>
                 </div>
               </div>
