@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { DollarSign, TrendingUp, School, BarChart3, Loader2, Calendar, CalendarRange, CalendarDays, Filter, FileText } from "lucide-react";
+import { DollarSign, TrendingUp, School, BarChart3, Loader2, Calendar, CalendarRange, CalendarDays, Filter, FileText, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -15,13 +16,15 @@ export default function SupportFinancesPage({ token }) {
   const [txLoading, setTxLoading] = useState(false);
   const headers = { Authorization: `Bearer ${token}` };
 
-  useEffect(() => {
+  const loadSummary = () => {
     fetch(`${API}/api/support/finances`, { headers })
       .then(r => r.json())
       .then(setSummary)
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [token]);
+  };
+
+  useEffect(() => { loadSummary(); }, [token]);
 
   const fetchTransactions = useCallback(async () => {
     setTxLoading(true);
@@ -37,6 +40,16 @@ export default function SupportFinancesPage({ token }) {
   }, [filterType, filterMonth, filterDate, filterFrom, filterTo, token]);
 
   useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
+
+  const handleDeletePayment = async (entryId) => {
+    if (!window.confirm("¿Eliminar este pago? Esta accion no se puede deshacer.")) return;
+    try {
+      await fetch(`${API}/api/support/finances/${entryId}`, { method: "DELETE", headers });
+      toast.success("Pago eliminado");
+      fetchTransactions();
+      loadSummary();
+    } catch { toast.error("Error al eliminar"); }
+  };
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-emerald-500" /></div>;
   if (!summary) return <div className="text-center py-12 text-slate-500">Error al cargar datos financieros</div>;
@@ -200,6 +213,7 @@ export default function SupportFinancesPage({ token }) {
                   <th className="px-5 py-2.5 font-medium">Cod. Operacion</th>
                   <th className="px-5 py-2.5 font-medium">Confirmado por</th>
                   <th className="px-5 py-2.5 font-medium text-right">Monto</th>
+                  <th className="px-3 py-2.5 font-medium w-10"></th>
                 </tr>
               </thead>
               <tbody>
@@ -218,6 +232,16 @@ export default function SupportFinancesPage({ token }) {
                     <td className="px-5 py-2.5 text-slate-500 font-mono text-xs">{tx.operation_code || "—"}</td>
                     <td className="px-5 py-2.5 text-slate-500 text-xs">{tx.confirmed_by_name || "—"}</td>
                     <td className="px-5 py-2.5 text-right font-bold text-emerald-600">S/ {tx.amount.toFixed(2)}</td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        onClick={() => handleDeletePayment(tx.id)}
+                        className="p-1 text-slate-300 hover:text-red-500 transition-colors"
+                        title="Eliminar pago"
+                        data-testid={`delete-tx-${tx.id}`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>

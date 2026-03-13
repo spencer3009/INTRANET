@@ -299,6 +299,8 @@ async def delete_school(school_id: str, user=Depends(require_support_admin)):
         ("user_school_roles", {"school_id": school_id}),
         ("academic_years", {"school_id": school_id}),
         ("payment_requests", {"school_id": school_id}),
+        ("finance_entries", {"school_id": school_id}),
+        ("renewal_logs", {"school_id": school_id}),
         ("news", {"school_id": school_id}),
         ("events", {"school_id": school_id}),
         ("surveys", {"school_id": school_id}),
@@ -856,6 +858,16 @@ async def ensure_global_support_user():
 # ══════════════════════════════════════════════════════════════════════════════
 # FINANZAS - Financial overview
 # ══════════════════════════════════════════════════════════════════════════════
+
+@router.delete("/finances/{entry_id}")
+async def delete_finance_entry(entry_id: str, user=Depends(require_support_admin)):
+    """Delete a single finance entry"""
+    result = await db.finance_entries.delete_one({"id": entry_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    return {"message": "Pago eliminado"}
+
+
 
 @router.get("/finances")
 async def support_finances(user=Depends(require_support_admin)):
