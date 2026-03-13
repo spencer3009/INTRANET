@@ -303,77 +303,15 @@ export default function SupportSchoolsPage({ token, onLogin }) {
             <Building2 className="w-4 h-4" />
             Crear Colegio
           </button>
-          <button
-            onClick={() => setShowAssign(!showAssign)}
-            data-testid="assign-school-btn"
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Asignar Colegio
-          </button>
         </div>
       </div>
-
-      {/* Assign modal */}
-      {showAssign && (
-        <div className="bg-white rounded-2xl border border-slate-200 shadow-lg p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-slate-800">Asignar Nuevo Colegio</h3>
-            <button onClick={() => setShowAssign(false)} className="p-1 hover:bg-slate-100 rounded-lg">
-              <X className="w-4 h-4 text-slate-400" />
-            </button>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar colegio..."
-              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
-              data-testid="search-schools-input"
-            />
-          </div>
-          <div className="max-h-64 overflow-y-auto space-y-2">
-            {unassignedSchools.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center py-4">
-                {search ? "No se encontraron colegios" : "Todos los colegios ya estan asignados"}
-              </p>
-            ) : (
-              unassignedSchools.map(school => (
-                <div key={school.id} className="flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <School className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-700 truncate">{school.name || school.subdomain}</p>
-                      <p className="text-xs text-slate-400">{school.subdomain}.edunet.pe</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleAssign(school.id)}
-                    disabled={assigning === school.id}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-emerald-600 bg-emerald-50 rounded-lg hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                  >
-                    {assigning === school.id ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Plus className="w-3 h-3" />
-                    )}
-                    Asignar
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
 
       {/* School cards */}
       {mySchools.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
           <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <h3 className="font-semibold text-slate-600 mb-1">Sin colegios asignados</h3>
-          <p className="text-sm text-slate-400">Usa el boton "Asignar Colegio" para agregar acceso a un colegio.</p>
+          <p className="text-sm text-slate-400">Usa el boton "Crear Colegio" para registrar un nuevo colegio.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -652,14 +590,6 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       <LogIn className="w-4 h-4" />
                     )}
                     Entrar
-                  </button>
-                  <button
-                    onClick={() => handleUnassign(school.id)}
-                    className="px-3 py-2.5 border border-red-200 text-red-500 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors"
-                    data-testid={`unassign-school-${school.subdomain}`}
-                    title="Quitar asignacion"
-                  >
-                    <X className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeleteSchool(school.id, school.name || school.subdomain)}
