@@ -953,3 +953,99 @@ async def support_finances(user=Depends(require_support_admin)):
         "total_schools": len(schools),
         "recent_transactions": recent_transactions
     }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# CREATE SCHOOL FROM SUPPORT
+# ══════════════════════════════════════════════════════════════════════════════
+
+class CreateSchoolFromSupport(BaseModel):
+    school_name: str = Field(..., min_length=3)
+    subdomain: str = Field(..., min_length=3)
+    owner_name: str = Field(..., min_length=2)
+    owner_email: str = Field(..., min_length=5)
+    owner_password: str = Field(..., min_length=6)
+
+@router.post("/create-school")
+async def support_create_school(data: CreateSchoolFromSupport, user=Depends(require_support_admin)):
+    """Create a new school + owner account from the support panel"""
+    import re
+    from .core import RESERVED_SUBDOMAINS, BASE_DOMAIN, create_system_support_user, seed_demo_data_for_school
+
+    subdomain = data.subdomain.lower().strip()
+
+    # Validate subdomain format
+    if not re.match(r'^[a-z0-9]{3,}$', subdomain):
+        raise HTTPException(status_code=400, detail="El subdominio solo puede contener letras minusculas y numeros (min 3 caracteres)")
+
+    if subdomain in RESERVED_SUBDOMAINS:
+        raise HTTPException(status_code=400, detail="Este subdominio esta reservado")
+
+    # Check subdomain availability
+    existing = await db.schools.find_one({"subdomain": subdomain})
+    if existing:
+        raise HTTPException(status_code=400, detail="Este subdominio ya esta en uso")
+
+    # Check if owner email already exists
+    existing_user = await db.users.find_one({"email": data.owner_email.lower().strip()})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Ya existe un usuario con este email")
+
+    now = datetime.now(timezone.utc)
+    school_id = str(uuid.uuid4())
+    owner_id = str(uuid.uuid4())
+    full_domain = f"{subdomain}.{BASE_DOMAIN}"
+
+    # Create the owner user
+    owner_doc = {
+        "id": owner_id,
+        "name": data.owner_name.strip(),
+        "email": data.owner_email.lower().strip(),
+        "password": hash_password(data.owner_password),
+        "role": "owner",
+        "school_id": school_id,
+        "subdomain": subdomain,
+        "is_owner": True,
+        "is_super_admin": True,
+        "is_protected": True,
+        "email_verified": True,
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+    }
+    await db.users.insert_one(owner_doc)
+
+    # Create the school
+    school_doc = {
+        "id": school_id,
+        "name": data.school_name.strip(),
+        "school_name": data.school_name.strip(),
+        "subdomain": subdomain,
+        "full_domain": full_domain,
+        "status": "active",
+        "owner_user_id": owner_id,
+        "subscription_status": "active",
+        "expiration_date": (now + timedelta(days=30)).isoformat(),
+        "created_at": now.isoformat(),
+        "updated_at": now.isoformat(),
+    }
+    await db.schools.insert_one(school_doc)
+
+    # Create system support user for the school
+    try:
+        await create_system_support_user(db, school_id)
+    except Exception:
+        pass
+
+    # Seed demo data
+    try:
+        await seed_demo_data_for_school(db, school_id, owner_id)
+    except Exception:
+        pass
+
+    return {
+        "message": f"Colegio '{data.school_name}' creado exitosamente",
+        "school_id": school_id,
+        "subdomain": subdomain,
+        "full_domain": full_domain,
+        "owner_email": data.owner_email.lower().strip(),
+    }

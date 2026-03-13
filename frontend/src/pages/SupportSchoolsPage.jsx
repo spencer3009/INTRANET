@@ -5,7 +5,8 @@ import { toast } from "sonner";
 import { 
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
-  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2
+  ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2,
+  Eye, EyeOff
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -27,6 +28,10 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [renewModal, setRenewModal] = useState(null); // { schoolId, schoolName, price }
   const [renewCode, setRenewCode] = useState("");
   const [renewing, setRenewing] = useState(false);
+  const [showCreateSchool, setShowCreateSchool] = useState(false);
+  const [createForm, setCreateForm] = useState({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "" });
+  const [creating, setCreating] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -216,6 +221,30 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     }
   };
 
+  const handleCreateSchool = async () => {
+    const { school_name, subdomain, owner_name, owner_email, owner_password } = createForm;
+    if (!school_name || !subdomain || !owner_name || !owner_email || !owner_password) {
+      toast.error("Todos los campos son obligatorios");
+      return;
+    }
+    if (owner_password.length < 6) {
+      toast.error("La contrasena debe tener al menos 6 caracteres");
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await axios.post(`${API}/support/create-school`, createForm, { headers });
+      toast.success(res.data.message || "Colegio creado");
+      setShowCreateSchool(false);
+      setCreateForm({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "" });
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al crear colegio");
+    } finally {
+      setCreating(false);
+    }
+  };
+
   const formatDate = (iso) => {
     if (!iso) return "";
     return new Date(iso).toLocaleDateString("es-PE", { 
@@ -256,14 +285,24 @@ export default function SupportSchoolsPage({ token, onLogin }) {
             {mySchools.length} colegio{mySchools.length !== 1 ? "s" : ""} asignado{mySchools.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <button
-          onClick={() => setShowAssign(!showAssign)}
-          data-testid="assign-school-btn"
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Asignar Colegio
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowCreateSchool(true)}
+            data-testid="create-school-btn"
+            className="flex items-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors shadow-sm"
+          >
+            <Building2 className="w-4 h-4" />
+            Crear Colegio
+          </button>
+          <button
+            onClick={() => setShowAssign(!showAssign)}
+            data-testid="assign-school-btn"
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Asignar Colegio
+          </button>
+        </div>
       </div>
 
       {/* Assign modal */}
@@ -625,6 +664,126 @@ export default function SupportSchoolsPage({ token, onLogin }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Create School Modal */}
+      {showCreateSchool && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="create-school-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" data-testid="create-school-modal">
+            <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-bold text-base">Crear Nuevo Colegio</h3>
+                <p className="text-white/70 text-xs mt-0.5">Crea la cuenta del colegio y su propietario</p>
+              </div>
+              <button onClick={() => setShowCreateSchool(false)} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* School info section */}
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Datos del Colegio</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre del Colegio</label>
+                    <input
+                      type="text"
+                      value={createForm.school_name}
+                      onChange={e => setCreateForm(f => ({ ...f, school_name: e.target.value }))}
+                      placeholder="Ej: I.E.P. Los Andes"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                      data-testid="create-school-name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Subdominio</label>
+                    <div className="flex items-center">
+                      <input
+                        type="text"
+                        value={createForm.subdomain}
+                        onChange={e => setCreateForm(f => ({ ...f, subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, "") }))}
+                        placeholder="losandes"
+                        className="flex-1 px-3 py-2.5 border border-slate-200 rounded-l-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                        data-testid="create-school-subdomain"
+                      />
+                      <span className="px-3 py-2.5 bg-slate-100 border border-l-0 border-slate-200 rounded-r-xl text-xs text-slate-500 whitespace-nowrap">.edunet.pe</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Owner info section */}
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Datos del Propietario</p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre completo</label>
+                    <input
+                      type="text"
+                      value={createForm.owner_name}
+                      onChange={e => setCreateForm(f => ({ ...f, owner_name: e.target.value }))}
+                      placeholder="Ej: Juan Perez"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                      data-testid="create-owner-name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Email del propietario</label>
+                    <input
+                      type="email"
+                      value={createForm.owner_email}
+                      onChange={e => setCreateForm(f => ({ ...f, owner_email: e.target.value }))}
+                      placeholder="director@colegio.pe"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                      data-testid="create-owner-email"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Contrasena temporal</label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={createForm.owner_password}
+                        onChange={e => setCreateForm(f => ({ ...f, owner_password: e.target.value }))}
+                        placeholder="Minimo 6 caracteres"
+                        className="w-full px-3 py-2.5 pr-10 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                        data-testid="create-owner-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowCreateSchool(false)}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+                  data-testid="create-school-cancel"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleCreateSchool}
+                  disabled={creating || !createForm.school_name || !createForm.subdomain || !createForm.owner_name || !createForm.owner_email || !createForm.owner_password}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="create-school-submit"
+                >
+                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
+                  Crear Colegio
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

@@ -13,6 +13,7 @@ Spanish (all communication must be in Spanish)
 4. **Multi-tenant Architecture** - Subdomain-based school isolation
 5. **Role-Based Access** - Owner, Admin, Teacher, Student, Parent, Support roles
 6. **Support Panel** - Global admin can manage all schools
+7. **Create School from Support** - Support can create new school + owner account directly
 
 ## Architecture
 - **Frontend:** React + Shadcn/UI + TailwindCSS
