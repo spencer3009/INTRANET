@@ -33,6 +33,9 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [creating, setCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [globalPrice, setGlobalPrice] = useState(null);
+  const [payModal, setPayModal] = useState(null);
+  const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [paying, setPaying] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -127,6 +130,24 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       toast.error(err.response?.data?.detail || "Error al eliminar colegio");
     }
   };
+
+  const handleRegisterPayment = async () => {
+    if (!payModal || !payDate) return;
+    setPaying(true);
+    try {
+      const res = await axios.post(`${API}/support/register-payment`, {
+        school_id: payModal.schoolId,
+        amount: payModal.amount,
+        payment_date: payDate,
+      }, { headers });
+      toast.success(res.data.message || "Pago registrado");
+      setPayModal(null);
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al registrar pago");
+    } finally { setPaying(false); }
+  };
+
 
   const handleSaveExpiration = async (schoolId) => {
     if (!newExpDate) return;
@@ -591,6 +612,16 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     )}
                     Entrar
                   </button>
+                  {school.missing_payment && (
+                    <button
+                      onClick={() => { setPayModal({ schoolId: school.id, schoolName: school.name || school.subdomain, amount: school.calculated_price, baseCharge: school.base_charge, studentCharge: school.student_charge, studentCount: school.student_count }); setPayDate(new Date().toISOString().slice(0, 10)); }}
+                      className="flex items-center gap-1.5 px-3 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors"
+                      data-testid={`pay-school-${school.subdomain}`}
+                    >
+                      <DollarSign className="w-4 h-4" />
+                      Pagar
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDeleteSchool(school.id, school.name || school.subdomain)}
                     className="px-3 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors"
@@ -726,6 +757,76 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 >
                   {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Building2 className="w-4 h-4" />}
                   Crear Colegio
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Pay Modal (restoration) */}
+      {payModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="pay-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="pay-modal">
+            <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-bold text-base">Registrar Pago</h3>
+                <p className="text-white/70 text-xs mt-0.5">Restauracion de pago eliminado</p>
+              </div>
+              <button onClick={() => setPayModal(null)} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              {/* School info */}
+              <div className="bg-slate-50 rounded-xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-100 flex items-center justify-center">
+                  <School className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800 text-sm">{payModal.schoolName}</p>
+                  <p className="text-lg font-bold text-emerald-600">S/ {payModal.amount.toFixed(2)}</p>
+                </div>
+              </div>
+
+              {/* Price breakdown */}
+              <div className="bg-slate-50 rounded-xl p-3 text-xs text-slate-500 space-y-1">
+                <div className="flex justify-between"><span>Cargo base</span><span className="font-medium text-slate-700">S/ {payModal.baseCharge?.toFixed(2) ?? "0.00"}</span></div>
+                {payModal.studentCharge > 0 && (
+                  <div className="flex justify-between"><span>Cargo por alumnos ({payModal.studentCount})</span><span className="font-medium text-slate-700">S/ {payModal.studentCharge.toFixed(2)}</span></div>
+                )}
+                <div className="flex justify-between border-t border-slate-200 pt-1 mt-1"><span className="font-semibold text-slate-700">Total</span><span className="font-bold text-emerald-600">S/ {payModal.amount.toFixed(2)}</span></div>
+              </div>
+
+              {/* Date selector */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-2">Fecha del pago</label>
+                <input
+                  type="date"
+                  value={payDate}
+                  onChange={e => setPayDate(e.target.value)}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400"
+                  data-testid="pay-date-input"
+                />
+                <p className="text-[10px] text-slate-400 mt-1">Selecciona la fecha correspondiente al pago. Puede ser de un mes anterior.</p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => setPayModal(null)}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleRegisterPayment}
+                  disabled={paying || !payDate}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="pay-modal-confirm"
+                >
+                  {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <DollarSign className="w-4 h-4" />}
+                  Registrar Pago
                 </button>
               </div>
             </div>

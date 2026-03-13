@@ -166,6 +166,14 @@ async def support_schools(user=Depends(require_support_admin)):
         )
         per_student_applies = eff_mode != "flat_fee" and months_active >= eff_from_month
         
+        # Check if payment exists for current billing period
+        current_period = now.strftime("%Y-%m")
+        payment_exists = await db.finance_entries.find_one(
+            {"school_id": sid, "type": "income",
+             "confirmed_at": {"$gte": f"{current_period}-01", "$lt": f"{current_period}-32"}},
+            {"_id": 1}
+        )
+        
         assignment = assignment_map.get(sid, {})
         result.append({
             **school,
@@ -182,7 +190,8 @@ async def support_schools(user=Depends(require_support_admin)):
             "per_student_fee": eff_student_fee,
             "per_student_from_month": eff_from_month,
             "flat_fee": eff_flat,
-            "per_student_applies": per_student_applies
+            "per_student_applies": per_student_applies,
+            "missing_payment": payment_exists is None,
         })
     
     # Sort by name
@@ -866,6 +875,43 @@ async def delete_finance_entry(entry_id: str, user=Depends(require_support_admin
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
     return {"message": "Pago eliminado"}
+
+
+class RegisterPaymentRequest(BaseModel):
+    school_id: str
+    amount: float
+    payment_date: str  # ISO date string e.g. "2026-03-13"
+
+@router.post("/register-payment")
+async def register_manual_payment(data: RegisterPaymentRequest, user=Depends(require_support_admin)):
+    """Register a restoration payment for a school (when payment was accidentally deleted)"""
+    school = await db.schools.find_one({"id": data.school_id}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    now = datetime.now(timezone.utc)
+    school_name = school.get("name", school.get("subdomain", ""))
+
+    finance_entry = {
+        "id": str(uuid.uuid4()),
+        "type": "income",
+        "school_id": data.school_id,
+        "school_name": school_name,
+        "amount": data.amount,
+        "description": f"Restauracion de pago - {school_name}",
+        "payment_method": "restauracion",
+        "operation_code": "",
+        "payment_origin": "soporte",
+        "payment_type": "restauracion",
+        "confirmed_by": user["id"],
+        "confirmed_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "confirmed_at": data.payment_date + "T12:00:00",
+        "created_at": now.isoformat(),
+    }
+    await db.finance_entries.insert_one(finance_entry)
+
+    return {"message": f"Pago registrado para {school_name}", "amount": data.amount}
+
 
 
 
