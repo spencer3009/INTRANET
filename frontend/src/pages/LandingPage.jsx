@@ -69,6 +69,9 @@ const WA_DEMO_URL = "https://wa.me/51992021294?text=Hola%2C%20quiero%20solicitar
 export default function LandingPage() {
   const [openFaq, setOpenFaq] = useState(null);
   const [scrolled, setScrolled] = useState(false);
+  const [leadName, setLeadName] = useState("");
+  const [leadPhone, setLeadPhone] = useState("");
+  const [leadEmail, setLeadEmail] = useState("");
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -222,7 +225,11 @@ export default function LandingPage() {
                     data-testid="hero-lead-form"
                     className="w-full sm:w-[340px] rounded-2xl p-5 sm:p-6 border"
                     style={{ background: "rgba(10,10,20,0.75)", backdropFilter: "blur(12px)", borderColor: "rgba(255,255,255,0.05)", boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}
-                    onSubmit={(e) => { e.preventDefault(); window.open(WA_DEMO_URL, "_blank"); }}
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const msg = `Nuevo lead interesado en EduNet:%0A%0ANombre: ${encodeURIComponent(leadName)}%0ATeléfono: +51 ${encodeURIComponent(leadPhone)}%0AEmail: ${encodeURIComponent(leadEmail)}`;
+                      window.open(`https://wa.me/51991359021?text=${msg}`, "_blank");
+                    }}
                   >
                     <h3 className="text-xl font-extrabold text-white mb-1">
                       Prueba EduNet <span className="text-[#e1b82c]">en tu colegio</span>
@@ -235,6 +242,8 @@ export default function LandingPage() {
                         placeholder="Nombre del colegio"
                         className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/25 focus:bg-white/[0.08] transition-all"
                         type="text"
+                        value={leadName}
+                        onChange={(e) => setLeadName(e.target.value)}
                       />
                       <div className="flex bg-white/[0.06] border border-white/10 rounded-xl overflow-hidden focus-within:border-white/25 focus-within:bg-white/[0.08] transition-all">
                         <div className="flex items-center gap-1.5 px-3 border-r border-white/10 shrink-0">
@@ -249,6 +258,8 @@ export default function LandingPage() {
                           placeholder="987 654 321"
                           className="w-full bg-transparent px-3 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none"
                           type="tel"
+                          value={leadPhone}
+                          onChange={(e) => setLeadPhone(e.target.value.replace(/\D/g, ""))}
                         />
                       </div>
                       <input
@@ -257,6 +268,8 @@ export default function LandingPage() {
                         placeholder="Correo electrónico"
                         className="w-full bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-white/25 focus:bg-white/[0.08] transition-all"
                         type="email"
+                        value={leadEmail}
+                        onChange={(e) => setLeadEmail(e.target.value)}
                       />
                     </div>
                     <button

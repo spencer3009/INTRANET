@@ -1,66 +1,71 @@
-# EduNet - Academic Management System PRD
+# EduNet - PRD (Product Requirements Document)
 
 ## Original Problem Statement
-Build a comprehensive academic management system named "EduNet" with core academic features, administrative and billing functionalities for schools in Peru.
-
-## User Language
-Spanish (all communication must be in Spanish)
-
-## Core Features Implemented
-1. **Registro Auxiliar (Gradebook)** - Excel-like grade entry sheet
-2. **Consolidado de Notas** - Pixel-perfect replica of school's official consolidated report
-3. **Manual Membership Renewal** - Yape QR payment flow with support verification
-4. **Multi-tenant Architecture** - Subdomain-based school isolation
-5. **Role-Based Access** - Owner, Admin, Teacher, Student, Parent, Support roles
-6. **Support Panel** - Global admin can manage all schools
-7. **Create School from Support** - Support can create new school + owner account directly
+EduNet is a comprehensive academic management system (intranet escolar) for schools in Peru. It includes:
+- Registro Auxiliar (Gradebook)
+- Consolidado de Notas (Grade Report)
+- Membership renewal system
+- Support Panel for managing schools and finances
+- Landing page for lead generation
+- Role-based dashboards (Owner, Teacher, Parent, Support)
 
 ## Architecture
-- **Frontend:** React + Shadcn/UI + TailwindCSS
-- **Backend:** FastAPI (Python)
-- **Database:** MongoDB (Motor async driver)
-- **Auth:** JWT-based
-- **Domain:** edunet.pe with subdomain routing
-
-## Key Technical Decisions
-- **DB Auto-Discovery:** Production MongoDB uses different DB names than configured. Code auto-discovers the correct database at startup using pymongo sync client.
-- **CORS:** Supports `*.edunet.pe`, `*.emergentagent.com`, `*.emergent.host`
-- **Payment Modal:** Uses `createPortal(document.body)` to render above all z-indexes
-- **Support Global Access:** `system_admin_global` users see ALL schools without manual assignment
-
-## Production Credentials
-- **Support:** spencer3009@gmail.com / Socios3009 (system_admin_global)
-- **Owner (preview):** admin@elroble.edu / 1234abc8
-
-## Current Production Status
-- **CRITICAL:** Production database with real school data (iepexploradores, elroble, laspalmeras) is MISSING from available MongoDB databases
-- **Action Required:** Contact Emergent support to recover old database from `edunet-gradebook` deployment
-- MongoDB cluster: `customer-apps.mmyrwf.mongodb.net`
-- Available DBs: `edunet-gradebook-edunet` (test), `edunet-gradebook-test_database` (preview data)
-
-## Pending Issues
-1. ~~Payment Modal Too Tall (P0)~~ ✅ FIXED
-2. ~~Mobile Sidebar Overlay in Support Panel (P0)~~ ✅ FIXED (12 Mar 2026)
-3. ~~"X" Button to De-assign School Does Not Work (P0)~~ ✅ FIXED (12 Mar 2026)
-4. ~~Renovar Button - No Operation Code Validation (P1)~~ ✅ FIXED (12 Mar 2026)
-5. ~~Consolidado Empty State UX (P1)~~ ✅ FIXED (12 Mar 2026)
-6. ~~Registro Auxiliar Empty State UX (P1)~~ ✅ FIXED (12 Mar 2026)
-7. Double Scrollbar in Registro Auxiliar (P1) - NOT STARTED
-7. Disappearing Student Selection in PaymentFormModal (P2)
-8. Hardcoded Data on Owner Dashboard (P2)
-9. Message Center Unread Count Discrepancy (P2)
-
-## Upcoming Tasks
-- P0: Recover production database (Emergent support)
-- P1: Refactor Message Pages (4 duplicated → 1 component)
-- P1: Gradebook export to PDF/Excel
-- P1: Lock/Close Period feature
-- P1: Dashboard Widgets Phase 2 (news, events, surveys)
+- **Frontend:** React + Tailwind + Shadcn/UI
+- **Backend:** FastAPI + MongoDB
+- **3rd Party:** Cloudinary (images), pandas, openpyxl, recharts
 
 ## Key Files
-- `/app/backend/routes/core.py` - DB connection with auto-discovery
-- `/app/backend/routes/auth.py` - Login with error handling
-- `/app/backend/routes/support.py` - Support panel routes
-- `/app/backend/routes/membership.py` - Payment renewal
-- `/app/frontend/src/components/ProfileCard.jsx` - Payment modal
-- `/app/backend/server.py` - Health check endpoint
+- `/app/frontend/src/pages/LandingPage.jsx` - Landing page with lead form
+- `/app/backend/routes/academic.py` - Academic endpoints
+- `/app/backend/routes/support.py` - Support panel endpoints
+- `/app/backend/routes/core.py` - DB auto-discovery
+- `/app/backend/routes/system.py` - System/Cloudinary endpoints
+
+## What's Been Implemented
+
+### Landing Page (March 2026)
+- [x] Video section replaced with Google Drive iframe
+- [x] Lead form sends data to WhatsApp +51991359021 (Nombre, Telefono, Email)
+
+### Support Panel
+- [x] Finance page with advanced filters (year, month, day, date range)
+- [x] Delete individual payments
+- [x] Create school from support panel (auto-registers creation fee)
+- [x] School deletion purges financial records
+- [x] Membership renewal with 8-digit transaction code
+- [x] Conditional "Pagar" button for missing payments
+
+### Academic
+- [x] Placeholder rows for empty sections (Consolidado, Gradebook)
+- [x] Replicar Asignaturas feature (conditional visibility)
+
+### Bug Fixes
+- [x] Mobile sidebar z-index fix
+- [x] Cloudinary signature fix (missing import os)
+
+## Pending Issues
+| Priority | Issue | Status |
+|----------|-------|--------|
+| P0 | Subject list inconsistency (Asignaturas page vs Asignar Docente modal) | IN PROGRESS |
+| P0 | Production database missing (BLOCKED on Emergent support) | BLOCKED |
+| P1 | Double scrollbar in Registro Auxiliar | NOT STARTED |
+| P2 | Disappearing student selection in PaymentFormModal | NOT STARTED |
+| P2 | Hardcoded data on Owner Dashboard (recurring 7+) | NOT STARTED |
+| P2 | Message Center unread count discrepancy (recurring 7+) | NOT STARTED |
+
+## Upcoming Tasks
+- P0: Refactor Message Pages (consolidate 4 duplicated pages)
+- P1: Gradebook Enhancements (PDF/Excel export, Lock/Close Period)
+- P1: Dashboard Widgets Phase 2 (news, events, surveys APIs)
+
+## Future/Backlog
+- Complete Parent Portal Feature Parity
+- Build "Matriculas" (Enrollments) module
+- Enhance Exams module with Question Bank
+- Replace window.confirm/alert with custom modals
+- "Replicar Año Académico" feature
+- Break down UsersPage.jsx into smaller components
+
+## Credentials
+- **Owner:** subdomain=elroble, email=Iep.exploradores@gmail.com, pwd=1234abc8
+- **Support:** email=spencer3009@gmail.com, pwd=Socios3009
