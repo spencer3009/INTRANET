@@ -227,7 +227,7 @@ export default function LandingPage() {
                     style={{ background: "rgba(10,10,20,0.75)", backdropFilter: "blur(12px)", borderColor: "rgba(255,255,255,0.05)", boxShadow: "0 20px 60px rgba(0,0,0,0.6)" }}
                     onSubmit={(e) => {
                       e.preventDefault();
-                      const msg = `Nuevo lead interesado en EduNet:%0A%0ANombre: ${encodeURIComponent(leadName)}%0ATeléfono: +51 ${encodeURIComponent(leadPhone)}%0AEmail: ${encodeURIComponent(leadEmail)}`;
+                      const msg = `Hola, deseo más información.%0A%0ANombre: ${encodeURIComponent(leadName)}%0ATeléfono: +51 ${encodeURIComponent(leadPhone)}%0AEmail: ${encodeURIComponent(leadEmail)}`;
                       window.open(`https://wa.me/51992021294?text=${msg}`, "_blank");
                     }}
                   >
