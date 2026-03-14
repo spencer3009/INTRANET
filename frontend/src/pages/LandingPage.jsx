@@ -228,7 +228,7 @@ export default function LandingPage() {
                     onSubmit={(e) => {
                       e.preventDefault();
                       const msg = `Nuevo lead interesado en EduNet:%0A%0ANombre: ${encodeURIComponent(leadName)}%0ATeléfono: +51 ${encodeURIComponent(leadPhone)}%0AEmail: ${encodeURIComponent(leadEmail)}`;
-                      window.open(`https://wa.me/51991359021?text=${msg}`, "_blank");
+                      window.open(`https://wa.me/51992021294?text=${msg}`, "_blank");
                     }}
                   >
                     <h3 className="text-xl font-extrabold text-white mb-1">
