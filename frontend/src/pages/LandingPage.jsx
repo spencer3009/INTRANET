@@ -645,8 +645,6 @@ export default function LandingPage() {
 
 
 function BenefitsVideoSection() {
-  const [playing, setPlaying] = useState(false);
-
   return (
     <section className="relative py-24 px-6 overflow-hidden">
       <div className="absolute top-1/3 left-1/4 w-[400px] h-[400px] bg-blue-600/8 rounded-full blur-[150px]" />
@@ -671,35 +669,15 @@ function BenefitsVideoSection() {
           <div className="relative rounded-2xl p-[2px] bg-gradient-to-br from-white/20 via-white/10 to-white/5">
             <div className="rounded-[14px] overflow-hidden bg-[#0a0f1a]">
               <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
-                {!playing ? (
-                  <>
-                    <img
-                      src="https://customer-assets.emergentagent.com/job_4cbc4c11-6f79-4a12-b40a-227b88aff89d/artifacts/6aqotx5i_image%20%282%29.webp"
-                      alt="Video EduNet - Plataforma en escritorio y móvil"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/30" />
-                    <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-[#0a0f1a] to-transparent z-10" />
-                    <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-[#0a0f1a] to-transparent z-10" />
-                    <div className="absolute inset-0 flex items-center justify-center z-20">
-                      <button onClick={() => setPlaying(true)} className="group/btn relative" data-testid="video-play-btn">
-                        <div className="absolute inset-0 bg-white/20 rounded-full scale-100 group-hover/btn:scale-150 transition-transform duration-700 blur-2xl" />
-                        <div className="relative w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-white/15 backdrop-blur-md border-2 border-white/30 flex items-center justify-center group-hover/btn:bg-white/25 group-hover/btn:border-white/50 group-hover/btn:scale-110 transition-all duration-300 shadow-2xl shadow-black/40">
-                          <Play className="w-8 h-8 sm:w-10 sm:h-10 text-white fill-white ml-1" />
-                        </div>
-                      </button>
-                    </div>
-                  </>
-                ) : (
-                  <iframe
-                    className="absolute inset-0 w-full h-full"
-                    src="https://www.youtube.com/embed/JnGyq-ik60w?autoplay=1&rel=0&modestbranding=1&showinfo=0"
-                    title="Beneficios de EduNet"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    data-testid="benefits-video"
-                  />
-                )}
+                <iframe
+                  className="absolute inset-0 w-full h-full"
+                  src="https://drive.google.com/file/d/1B002NcX26jWP6OGVL1--034r-IOTLVr9/preview"
+                  title="Presentación EduNet"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                  frameBorder="0"
+                  data-testid="benefits-video"
+                />
               </div>
             </div>
           </div>
