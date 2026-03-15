@@ -1094,6 +1094,8 @@ class CreateSchoolFromSupport(BaseModel):
     owner_name: str = Field(..., min_length=2)
     owner_email: str = Field(..., min_length=5)
     owner_password: str = Field(..., min_length=6)
+    owner_ruc: Optional[str] = ""
+    owner_whatsapp: Optional[str] = ""
 
 
 class UpdateOwnerRequest(BaseModel):
@@ -1223,6 +1225,8 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
         "name": data.owner_name.strip(),
         "email": data.owner_email.lower().strip(),
         "password": hash_password(data.owner_password),
+        "ruc": (data.owner_ruc or "").strip(),
+        "whatsapp": (data.owner_whatsapp or "").strip(),
         "role": "owner",
         "school_id": school_id,
         "subdomain": subdomain,

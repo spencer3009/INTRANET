@@ -29,7 +29,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [renewCode, setRenewCode] = useState("");
   const [renewing, setRenewing] = useState(false);
   const [showCreateSchool, setShowCreateSchool] = useState(false);
-  const [createForm, setCreateForm] = useState({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "" });
+  const [createForm, setCreateForm] = useState({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "", owner_ruc: "", owner_whatsapp: "" });
   const [creating, setCreating] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [globalPrice, setGlobalPrice] = useState(null);
@@ -310,7 +310,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       const res = await axios.post(`${API}/support/create-school`, createForm, { headers });
       toast.success(res.data.message || "Colegio creado");
       setShowCreateSchool(false);
-      setCreateForm({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "" });
+      setCreateForm({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "", owner_ruc: "", owner_whatsapp: "" });
       fetchData();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al crear colegio");
@@ -788,6 +788,29 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">RUC</label>
+                    <input
+                      type="text"
+                      value={createForm.owner_ruc}
+                      onChange={e => setCreateForm(f => ({ ...f, owner_ruc: e.target.value.replace(/\D/g, "").slice(0, 11) }))}
+                      placeholder="Ej: 20123456789"
+                      maxLength={11}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                      data-testid="create-owner-ruc"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp</label>
+                    <input
+                      type="tel"
+                      value={createForm.owner_whatsapp}
+                      onChange={e => setCreateForm(f => ({ ...f, owner_whatsapp: e.target.value }))}
+                      placeholder="Ej: 987654321"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                      data-testid="create-owner-whatsapp"
+                    />
                   </div>
                 </div>
               </div>
