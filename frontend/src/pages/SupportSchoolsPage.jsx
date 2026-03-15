@@ -6,7 +6,7 @@ import {
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
   ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2,
-  Eye, EyeOff
+  Eye, EyeOff, UserCircle, Save, Phone, Mail
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -36,6 +36,12 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [payModal, setPayModal] = useState(null);
   const [payDate, setPayDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [paying, setPaying] = useState(false);
+  const [ownerModal, setOwnerModal] = useState(null); // { schoolId, schoolName }
+  const [ownerData, setOwnerData] = useState(null);
+  const [ownerForm, setOwnerForm] = useState({ name: "", last_name: "", email: "", phone: "" });
+  const [ownerEditing, setOwnerEditing] = useState(false);
+  const [ownerSaving, setOwnerSaving] = useState(false);
+  const [ownerLoading, setOwnerLoading] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -146,6 +152,43 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al registrar pago");
     } finally { setPaying(false); }
+  };
+
+  const handleOpenOwner = async (school) => {
+    setOwnerModal({ schoolId: school.id, schoolName: school.name || school.subdomain });
+    setOwnerEditing(false);
+    setOwnerData(null);
+    setOwnerLoading(true);
+    try {
+      const res = await axios.get(`${API}/support/school-owner/${school.id}`, { headers });
+      setOwnerData(res.data);
+      setOwnerForm({
+        name: res.data.name || "",
+        last_name: res.data.last_name || "",
+        email: res.data.email || "",
+        phone: res.data.phone || "",
+      });
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "No se pudo cargar datos del titular");
+      setOwnerModal(null);
+    } finally {
+      setOwnerLoading(false);
+    }
+  };
+
+  const handleSaveOwner = async () => {
+    if (!ownerModal) return;
+    setOwnerSaving(true);
+    try {
+      const res = await axios.put(`${API}/support/school-owner/${ownerModal.schoolId}`, ownerForm, { headers });
+      toast.success(res.data.message || "Datos actualizados");
+      setOwnerData(res.data.owner);
+      setOwnerEditing(false);
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al actualizar");
+    } finally {
+      setOwnerSaving(false);
+    }
   };
 
 
@@ -357,6 +400,14 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     <h3 className="font-semibold text-slate-800 truncate">{school.name || school.subdomain}</h3>
                     <p className="text-xs text-slate-400">{school.subdomain}.edunet.pe</p>
                   </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleOpenOwner(school); }}
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors flex-shrink-0"
+                    title="Ver datos del titular"
+                    data-testid={`owner-btn-${school.subdomain}`}
+                  >
+                    <UserCircle className="w-5 h-5" />
+                  </button>
                 </div>
 
                 {/* Stats */}
@@ -912,6 +963,161 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   Confirmar Renovacion
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Owner/Titular Modal */}
+      {ownerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="owner-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="owner-modal">
+            <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-bold text-base">Titular de la Cuenta</h3>
+                <p className="text-white/70 text-xs mt-0.5">{ownerModal.schoolName}</p>
+              </div>
+              <button
+                onClick={() => { setOwnerModal(null); setOwnerEditing(false); }}
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                data-testid="owner-modal-close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {ownerLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
+                </div>
+              ) : ownerData ? (
+                <>
+                  {!ownerEditing ? (
+                    /* View mode */
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 bg-slate-50 rounded-xl p-4">
+                        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                          <UserCircle className="w-7 h-7 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-800" data-testid="owner-display-name">
+                            {ownerData.name} {ownerData.last_name}
+                          </p>
+                          <p className="text-xs text-slate-400">Propietario</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-xl">
+                          <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-slate-400 font-medium">Email</p>
+                            <p className="text-sm text-slate-700 truncate" data-testid="owner-display-email">{ownerData.email || "No registrado"}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-xl">
+                          <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-slate-400 font-medium">Telefono</p>
+                            <p className="text-sm text-slate-700" data-testid="owner-display-phone">{ownerData.phone || "No registrado"}</p>
+                          </div>
+                        </div>
+                        {ownerData.created_at && (
+                          <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-xl">
+                            <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                            <div>
+                              <p className="text-[10px] text-slate-400 font-medium">Registrado</p>
+                              <p className="text-sm text-slate-700">{formatDate(ownerData.created_at)}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => setOwnerEditing(true)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors mt-2"
+                        data-testid="owner-edit-btn"
+                      >
+                        <Pencil className="w-4 h-4" />
+                        Editar datos
+                      </button>
+                    </div>
+                  ) : (
+                    /* Edit mode */
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre</label>
+                        <input
+                          type="text"
+                          value={ownerForm.name}
+                          onChange={(e) => setOwnerForm(f => ({ ...f, name: e.target.value }))}
+                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                          data-testid="owner-edit-name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Apellido</label>
+                        <input
+                          type="text"
+                          value={ownerForm.last_name}
+                          onChange={(e) => setOwnerForm(f => ({ ...f, last_name: e.target.value }))}
+                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                          data-testid="owner-edit-lastname"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Email</label>
+                        <input
+                          type="email"
+                          value={ownerForm.email}
+                          onChange={(e) => setOwnerForm(f => ({ ...f, email: e.target.value }))}
+                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                          data-testid="owner-edit-email"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Telefono</label>
+                        <input
+                          type="tel"
+                          value={ownerForm.phone}
+                          onChange={(e) => setOwnerForm(f => ({ ...f, phone: e.target.value }))}
+                          placeholder="Ej: 987654321"
+                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                          data-testid="owner-edit-phone"
+                        />
+                      </div>
+
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={() => {
+                            setOwnerEditing(false);
+                            setOwnerForm({
+                              name: ownerData.name || "",
+                              last_name: ownerData.last_name || "",
+                              email: ownerData.email || "",
+                              phone: ownerData.phone || "",
+                            });
+                          }}
+                          className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+                          data-testid="owner-edit-cancel"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          onClick={handleSaveOwner}
+                          disabled={ownerSaving}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                          data-testid="owner-edit-save"
+                        >
+                          {ownerSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                          Guardar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : null}
             </div>
           </div>
         </div>

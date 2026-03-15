@@ -1095,6 +1095,93 @@ class CreateSchoolFromSupport(BaseModel):
     owner_email: str = Field(..., min_length=5)
     owner_password: str = Field(..., min_length=6)
 
+
+class UpdateOwnerRequest(BaseModel):
+    name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+@router.get("/school-owner/{school_id}")
+async def get_school_owner(school_id: str, user=Depends(require_support_admin)):
+    """Get the owner/titular data for a school"""
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "owner_user_id": 1, "name": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    owner_id = school.get("owner_user_id")
+    if not owner_id:
+        # Fallback: find the owner user by school_id + role
+        owner = await db.users.find_one(
+            {"school_id": school_id, "role": "owner"},
+            {"_id": 0, "password": 0}
+        )
+    else:
+        owner = await db.users.find_one({"id": owner_id}, {"_id": 0, "password": 0})
+
+    if not owner:
+        raise HTTPException(status_code=404, detail="No se encontro el titular de este colegio")
+
+    return {
+        "id": owner.get("id"),
+        "name": owner.get("name", ""),
+        "last_name": owner.get("last_name", ""),
+        "email": owner.get("email", ""),
+        "phone": owner.get("phone", ""),
+        "created_at": owner.get("created_at", ""),
+    }
+
+
+@router.put("/school-owner/{school_id}")
+async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Depends(require_support_admin)):
+    """Update the owner/titular data for a school"""
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "owner_user_id": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    owner_id = school.get("owner_user_id")
+    if not owner_id:
+        owner = await db.users.find_one({"school_id": school_id, "role": "owner"}, {"_id": 0, "id": 1})
+        if not owner:
+            raise HTTPException(status_code=404, detail="No se encontro el titular de este colegio")
+        owner_id = owner["id"]
+
+    update_fields = {}
+    if data.name is not None:
+        update_fields["name"] = data.name.strip()
+    if data.last_name is not None:
+        update_fields["last_name"] = data.last_name.strip()
+    if data.email is not None:
+        existing = await db.users.find_one(
+            {"email": data.email.lower().strip(), "id": {"$ne": owner_id}},
+            {"_id": 0, "id": 1}
+        )
+        if existing:
+            raise HTTPException(status_code=400, detail="Este correo ya esta en uso por otro usuario")
+        update_fields["email"] = data.email.lower().strip()
+    if data.phone is not None:
+        update_fields["phone"] = data.phone.strip()
+
+    if not update_fields:
+        raise HTTPException(status_code=400, detail="No hay campos para actualizar")
+
+    update_fields["updated_at"] = now_iso()
+    await db.users.update_one({"id": owner_id}, {"$set": update_fields})
+
+    updated = await db.users.find_one({"id": owner_id}, {"_id": 0, "password": 0})
+    return {
+        "message": "Datos del titular actualizados",
+        "owner": {
+            "id": updated.get("id"),
+            "name": updated.get("name", ""),
+            "last_name": updated.get("last_name", ""),
+            "email": updated.get("email", ""),
+            "phone": updated.get("phone", ""),
+            "created_at": updated.get("created_at", ""),
+        }
+    }
+
 @router.post("/create-school")
 async def support_create_school(data: CreateSchoolFromSupport, user=Depends(require_support_admin)):
     """Create a new school + owner account from the support panel"""
