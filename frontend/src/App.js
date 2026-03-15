@@ -78,6 +78,10 @@ import ParentCourseDetailPage from "@/pages/ParentCourseDetailPage";
 import ParentPaymentsPage from "@/pages/ParentPaymentsPage";
 import { Toaster } from "sonner";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
+import SubscriptionProvider, { useSubscription } from "@/contexts/SubscriptionContext";
+import SubscriptionBanner from "@/components/SubscriptionBanner";
+import SuspendedScreen from "@/components/SuspendedScreen";
+import PaymentBlockModal from "@/components/PaymentBlockModal";
 // Support Panel imports
 import SupportLayout from "@/components/SupportLayout";
 import SupportDashboardPage from "@/pages/SupportDashboardPage";
@@ -238,6 +242,39 @@ function SchoolDashboardRoute({ user, token, onLogout }) {
   }
   
   return <DashboardPage user={user} token={token} onLogout={onLogout} routeSubdomain={subdomain} />;
+}
+
+// Subscription Guard - wraps school content and enforces subscription states
+function SubscriptionGuard({ token, user, children }) {
+  const ctx = useSubscription();
+  const [showPayModal, setShowPayModal] = useState(false);
+
+  // Support users bypass all restrictions
+  const isSupportUser = user?.role === "system_admin_global" || user?.original_role === "system_admin_global";
+  if (isSupportUser) return children;
+
+  // While loading, show content
+  if (!ctx || ctx.loading || !ctx.sub) return children;
+
+  const { plan_estado } = ctx.sub;
+
+  // SUSPENDIDO - full block
+  if (plan_estado === "SUSPENDIDO") {
+    return <SuspendedScreen token={token} />;
+  }
+
+  // PAGO_OBLIGATORIO - show modal over content
+  if (plan_estado === "PAGO_OBLIGATORIO") {
+    return (
+      <>
+        {children}
+        <PaymentBlockModal token={token} onClose={() => ctx.refresh()} />
+      </>
+    );
+  }
+
+  // Other states (AVISO, RESTRICCION, VERIFICACION, ACTIVO) just show content
+  return children;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

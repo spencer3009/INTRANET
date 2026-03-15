@@ -20,6 +20,10 @@ import BroadcastPopup from "@/components/BroadcastPopup";
 import MessageCenter from "@/components/MessageCenter";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import SubscriptionCard from "@/components/SubscriptionCard";
+import SubscriptionProvider, { useSubscription } from "@/contexts/SubscriptionContext";
+import SubscriptionBanner from "@/components/SubscriptionBanner";
+import SuspendedScreen from "@/components/SuspendedScreen";
+import PaymentBlockModal from "@/components/PaymentBlockModal";
 import { AlertTriangle, RefreshCw, CheckCircle, XCircle, Newspaper, CalendarDays, ClipboardList, ArrowRight } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -183,12 +187,44 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
     fetchData();
   }, [fetchData]);
 
-  // Get display values from settings or user
+  // Get display values from settings or user (now in DashboardInner)
+
+  return (
+    <SubscriptionProvider token={token}>
+      <DashboardInner
+        user={user} token={token} onLogout={onLogout} routeSubdomain={routeSubdomain}
+        navigate={navigate} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen}
+        metrics={metrics} ownerStats={ownerStats} monthlyPayments={monthlyPayments}
+        events={events} calendarEvents={calendarEvents} news={news} enrollment={enrollment}
+        settings={settings} banners={banners} activeSection={activeSection}
+        setActiveSection={setActiveSection} hasPermissionError={hasPermissionError} fetchData={fetchData}
+      />
+    </SubscriptionProvider>
+  );
+}
+
+function DashboardInner({
+  user, token, onLogout, routeSubdomain, navigate,
+  sidebarOpen, setSidebarOpen, metrics, ownerStats, monthlyPayments,
+  events, calendarEvents, news, enrollment, settings, banners,
+  activeSection, setActiveSection, hasPermissionError, fetchData,
+}) {
+  const subCtx = useSubscription();
+  const [showPayModal, setShowPayModal] = useState(false);
+
+  const subdomain = routeSubdomain || user?.subdomain;
   const schoolName = settings?.system_name || user?.name || "EduNet";
   const logoUrl = settings?.logo_url;
   const systemEmail = settings?.system_email || "";
   const whatsapp = settings?.whatsapp || "";
   const websiteUrl = settings?.website_url || "";
+
+  const isSupportUser = user?.role === "system_admin_global" || user?.original_role === "system_admin_global";
+
+  // SUSPENDIDO - full block (not for support users)
+  if (!isSupportUser && subCtx?.sub?.plan_estado === "SUSPENDIDO") {
+    return <SuspendedScreen token={token} />;
+  }
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="dashboard-container">
@@ -214,6 +250,17 @@ export default function DashboardPage({ user, token, onLogout, routeSubdomain })
           subdomain={subdomain}
           token={token}
         />
+
+        {/* Subscription Warning Banner */}
+        <SubscriptionBanner onPayClick={() => setShowPayModal(true)} />
+
+        {/* Payment Obligation Modal */}
+        {!isSupportUser && subCtx?.sub?.plan_estado === "PAGO_OBLIGATORIO" && (
+          <PaymentBlockModal token={token} onClose={() => subCtx.refresh()} />
+        )}
+        {showPayModal && !["PAGO_OBLIGATORIO", "SUSPENDIDO"].includes(subCtx?.sub?.plan_estado) && (
+          <PaymentBlockModal token={token} onClose={() => { setShowPayModal(false); subCtx?.refresh(); }} />
+        )}
 
         {/* Intelligent Reminder Popup - shows important/urgent reminders */}
         <ReminderPopup token={token} />

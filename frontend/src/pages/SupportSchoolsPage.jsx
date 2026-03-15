@@ -505,6 +505,44 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   )}
                 </div>
 
+                {/* Subscription Status */}
+                <div className={`rounded-xl p-2.5 flex items-center justify-between ${
+                  school.plan_estado === "ACTIVO" ? "bg-emerald-50 border border-emerald-200" :
+                  school.plan_estado === "AVISO_VENCIMIENTO" ? "bg-amber-50 border border-amber-200" :
+                  school.plan_estado === "RESTRICCION_PARCIAL" ? "bg-orange-50 border border-orange-200" :
+                  school.plan_estado === "PAGO_OBLIGATORIO" ? "bg-red-50 border border-red-200" :
+                  school.plan_estado === "PAGO_EN_VERIFICACION" ? "bg-blue-50 border border-blue-200" :
+                  school.plan_estado === "SUSPENDIDO" ? "bg-slate-100 border border-slate-300" :
+                  "bg-emerald-50 border border-emerald-200"
+                }`} data-testid={`sub-status-${school.subdomain}`}>
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${
+                      school.plan_estado === "ACTIVO" ? "bg-emerald-500" :
+                      school.plan_estado === "AVISO_VENCIMIENTO" ? "bg-amber-500" :
+                      school.plan_estado === "RESTRICCION_PARCIAL" ? "bg-orange-500" :
+                      school.plan_estado === "PAGO_OBLIGATORIO" ? "bg-red-500" :
+                      school.plan_estado === "PAGO_EN_VERIFICACION" ? "bg-blue-500 animate-pulse" :
+                      school.plan_estado === "SUSPENDIDO" ? "bg-slate-500" :
+                      "bg-emerald-500"
+                    }`} />
+                    <span className="text-xs font-bold text-slate-700">
+                      {school.plan_estado === "ACTIVO" ? "Activo" :
+                       school.plan_estado === "AVISO_VENCIMIENTO" ? "Vencido" :
+                       school.plan_estado === "RESTRICCION_PARCIAL" ? "Restringido" :
+                       school.plan_estado === "PAGO_OBLIGATORIO" ? "Pago obligatorio" :
+                       school.plan_estado === "PAGO_EN_VERIFICACION" ? "Pago en verificacion" :
+                       school.plan_estado === "SUSPENDIDO" ? "Suspendido" :
+                       "Activo"}
+                    </span>
+                    {school.dias_vencido > 0 && (
+                      <span className="text-[10px] text-red-600 font-semibold">({school.dias_vencido}d vencido)</span>
+                    )}
+                  </div>
+                  {school.has_pending_payment && (
+                    <span className="text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full animate-pulse">Pago pendiente</span>
+                  )}
+                </div>
+
                 {/* Pricing Summary */}
                 <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 rounded-xl p-3 space-y-2" onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center justify-between">

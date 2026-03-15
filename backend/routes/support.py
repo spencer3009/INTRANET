@@ -120,7 +120,7 @@ async def support_schools(user=Depends(require_support_admin)):
     
     schools_cursor = db.schools.find(
         {"id": {"$in": school_ids}},
-        {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "logo_url": 1, "pricing_override": 1}
+        {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1}
     )
     schools = await schools_cursor.to_list(length=500)
     
@@ -174,9 +174,21 @@ async def support_schools(user=Depends(require_support_admin)):
         # A school needs payment if it has NO finance entries at all
         missing_payment = payment_count == 0
         
+        # Calculate plan state
+        from .subscription import calculate_plan_state
+        plan_estado, dias_vencido = await calculate_plan_state(school)
+        
+        # Check for pending payment requests
+        pending_payment = await db.payment_requests.find_one(
+            {"school_id": sid, "status": "processing"}, {"_id": 0, "id": 1}
+        )
+        
         assignment = assignment_map.get(sid, {})
         result.append({
             **school,
+            "plan_estado": plan_estado,
+            "dias_vencido": dias_vencido,
+            "has_pending_payment": bool(pending_payment),
             "role_in_school": assignment.get("role_in_school", "system_admin"),
             "is_system_assignment": assignment.get("is_system_assignment", True),
             "student_count": student_count,
@@ -395,7 +407,10 @@ async def renew_membership(req: RenewMembershipRequest, user=Depends(require_sup
         {"id": req.school_id},
         {"$set": {
             "expiration_date": new_expiration,
+            "fecha_vencimiento": new_expiration,
             "subscription_status": "active",
+            "plan_estado": "ACTIVO",
+            "dias_vencido": 0,
             "last_renewal_date": now.isoformat(),
             "updated_at": now.isoformat(),
         }}
