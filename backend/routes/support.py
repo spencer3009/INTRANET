@@ -1127,7 +1127,7 @@ async def get_school_owner(school_id: str, user=Depends(require_support_admin)):
     return {
         "id": owner.get("id"),
         "name": owner.get("name", ""),
-        "school_display_name": owner.get("school_display_name", ""),
+        "school_display_name": owner.get("school_display_name", "") or school.get("name", ""),
         "email": owner.get("email", ""),
         "ruc": owner.get("ruc", ""),
         "whatsapp": owner.get("whatsapp", ""),
