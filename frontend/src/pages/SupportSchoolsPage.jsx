@@ -181,6 +181,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     setOwnerEditing(false);
     setOwnerData(null);
     setOwnerLoading(true);
+    setOwnerShowPwd(false);
     try {
       const res = await axios.get(`${API}/support/school-owner/${school.id}`, { headers });
       setOwnerData(res.data);
@@ -1085,10 +1086,22 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-xl">
-                          <Eye className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                          <button
+                            onClick={() => setOwnerShowPwd(!ownerShowPwd)}
+                            className="text-amber-500 hover:text-amber-700 transition-colors flex-shrink-0"
+                            data-testid="owner-view-toggle-pwd"
+                          >
+                            {ownerShowPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
                           <div className="min-w-0 flex-1">
                             <p className="text-[10px] text-amber-500 font-medium">Contrasena actual</p>
-                            <p className="text-sm text-slate-700 font-mono" data-testid="owner-display-password">{ownerData.plain_password || "No disponible"}</p>
+                            {ownerData.plain_password ? (
+                              <p className="text-sm text-slate-700 font-mono" data-testid="owner-display-password">
+                                {ownerShowPwd ? ownerData.plain_password : "••••••••"}
+                              </p>
+                            ) : (
+                              <p className="text-sm text-slate-400 italic" data-testid="owner-display-password">No disponible (asigne una nueva)</p>
+                            )}
                           </div>
                         </div>
                         {ownerData.created_at && (
