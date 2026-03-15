@@ -709,7 +709,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Datos del Colegio</p>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre del Colegio</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre del Colegio <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       value={createForm.school_name}
@@ -720,7 +720,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Subdominio</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Subdominio <span className="text-red-500">*</span></label>
                     <div className="flex items-center">
                       <input
                         type="text"
@@ -748,7 +748,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Datos del Propietario</p>
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre completo</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre completo <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       value={createForm.owner_name}
@@ -759,7 +759,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Email del propietario</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Email del propietario <span className="text-red-500">*</span></label>
                     <input
                       type="email"
                       value={createForm.owner_email}
@@ -770,7 +770,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">Contrasena temporal</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">Contrasena temporal <span className="text-red-500">*</span></label>
                     <div className="relative">
                       <input
                         type={showPassword ? "text" : "password"}
@@ -790,7 +790,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">RUC</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">RUC <span className="text-red-500">*</span></label>
                     <input
                       type="text"
                       value={createForm.owner_ruc}
@@ -802,7 +802,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp</label>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp <span className="text-red-500">*</span></label>
                     <input
                       type="tel"
                       value={createForm.owner_whatsapp}
