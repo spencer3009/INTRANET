@@ -771,14 +771,19 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp <span className="text-red-500">*</span></label>
-                    <input
-                      type="tel"
-                      value={createForm.owner_whatsapp}
-                      onChange={e => setCreateForm(f => ({ ...f, owner_whatsapp: e.target.value }))}
-                      placeholder="Ej: 987654321"
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
-                      data-testid="create-owner-whatsapp"
-                    />
+                    <div className="flex items-center">
+                      <span className="px-3 py-2.5 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-sm text-slate-500 whitespace-nowrap">+51</span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        value={createForm.owner_whatsapp}
+                        onChange={e => setCreateForm(f => ({ ...f, owner_whatsapp: e.target.value.replace(/\D/g, "").slice(0, 9) }))}
+                        maxLength={9}
+                        placeholder="999 999 999"
+                        className="flex-1 px-3 py-2.5 border border-slate-200 rounded-r-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                        data-testid="create-owner-whatsapp"
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Pago mensual</label>
@@ -1171,14 +1176,19 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                       </div>
                       <div>
                         <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp</label>
-                        <input
-                          type="tel"
-                          value={ownerForm.whatsapp}
-                          onChange={(e) => setOwnerForm(f => ({ ...f, whatsapp: e.target.value }))}
-                          placeholder="Ej: 987654321"
-                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-                          data-testid="owner-edit-whatsapp"
-                        />
+                        <div className="flex items-center">
+                          <span className="px-3 py-2.5 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-sm text-slate-500 whitespace-nowrap">+51</span>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            value={ownerForm.whatsapp}
+                            onChange={(e) => setOwnerForm(f => ({ ...f, whatsapp: e.target.value.replace(/\D/g, "").slice(0, 9) }))}
+                            maxLength={9}
+                            placeholder="999 999 999"
+                            className="flex-1 px-3 py-2.5 border border-slate-200 rounded-r-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                            data-testid="owner-edit-whatsapp"
+                          />
+                        </div>
                       </div>
 
                       {/* Password field with strength indicator */}
