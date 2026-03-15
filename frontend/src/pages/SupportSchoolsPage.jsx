@@ -758,6 +758,29 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     </div>
                   </div>
                   <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">RUC <span className="text-red-500">*</span></label>
+                    <input
+                      type="text"
+                      value={createForm.owner_ruc}
+                      onChange={e => setCreateForm(f => ({ ...f, owner_ruc: e.target.value.replace(/\D/g, "").slice(0, 11) }))}
+                      placeholder="Ej: 20123456789"
+                      maxLength={11}
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                      data-testid="create-owner-ruc"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp <span className="text-red-500">*</span></label>
+                    <input
+                      type="tel"
+                      value={createForm.owner_whatsapp}
+                      onChange={e => setCreateForm(f => ({ ...f, owner_whatsapp: e.target.value }))}
+                      placeholder="Ej: 987654321"
+                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                      data-testid="create-owner-whatsapp"
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1">Pago mensual</label>
                     <div className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 font-semibold" data-testid="create-school-amount">
                       S/ {globalPrice !== null ? globalPrice.toFixed(2) : "..."}
@@ -812,29 +835,6 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">RUC <span className="text-red-500">*</span></label>
-                    <input
-                      type="text"
-                      value={createForm.owner_ruc}
-                      onChange={e => setCreateForm(f => ({ ...f, owner_ruc: e.target.value.replace(/\D/g, "").slice(0, 11) }))}
-                      placeholder="Ej: 20123456789"
-                      maxLength={11}
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
-                      data-testid="create-owner-ruc"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp <span className="text-red-500">*</span></label>
-                    <input
-                      type="tel"
-                      value={createForm.owner_whatsapp}
-                      onChange={e => setCreateForm(f => ({ ...f, owner_whatsapp: e.target.value }))}
-                      placeholder="Ej: 987654321"
-                      className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
-                      data-testid="create-owner-whatsapp"
-                    />
                   </div>
                 </div>
               </div>
