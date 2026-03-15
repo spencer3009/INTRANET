@@ -190,7 +190,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
         school_display_name: res.data.school_display_name || "",
         email: res.data.email || "",
         ruc: res.data.ruc || "",
-        whatsapp: res.data.whatsapp || "",
+        whatsapp: (res.data.whatsapp || "").replace("+51", ""),
         password: res.data.plain_password || "",
       });
     } catch (err) {
@@ -1245,7 +1245,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                               school_display_name: ownerData.school_display_name || "",
                               email: ownerData.email || "",
                               ruc: ownerData.ruc || "",
-                              whatsapp: ownerData.whatsapp || "",
+                              whatsapp: (ownerData.whatsapp || "").replace("+51", ""),
                               password: ownerData.plain_password || "",
                             });
                           }}

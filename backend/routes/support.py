@@ -1169,7 +1169,8 @@ async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Dep
     if data.ruc is not None:
         update_fields["ruc"] = data.ruc.strip()
     if data.whatsapp is not None:
-        update_fields["whatsapp"] = data.whatsapp.strip()
+        digits = data.whatsapp.strip().replace("+51", "")
+        update_fields["whatsapp"] = "+51" + digits
     if data.password is not None and data.password.strip():
         if len(data.password) < 6:
             raise HTTPException(status_code=400, detail="La contrasena debe tener al menos 6 caracteres")
@@ -1235,7 +1236,7 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
         "password": hash_password(data.owner_password),
         "plain_password": data.owner_password,
         "ruc": (data.owner_ruc or "").strip(),
-        "whatsapp": (data.owner_whatsapp or "").strip(),
+        "whatsapp": "+51" + (data.owner_whatsapp or "").strip().replace("+51", ""),
         "role": "owner",
         "school_id": school_id,
         "subdomain": subdomain,
