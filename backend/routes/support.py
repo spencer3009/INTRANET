@@ -1104,6 +1104,7 @@ class UpdateOwnerRequest(BaseModel):
     email: Optional[str] = None
     ruc: Optional[str] = None
     whatsapp: Optional[str] = None
+    password: Optional[str] = None
 
 
 @router.get("/school-owner/{school_id}")
@@ -1168,6 +1169,10 @@ async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Dep
         update_fields["ruc"] = data.ruc.strip()
     if data.whatsapp is not None:
         update_fields["whatsapp"] = data.whatsapp.strip()
+    if data.password is not None and data.password.strip():
+        if len(data.password) < 6:
+            raise HTTPException(status_code=400, detail="La contrasena debe tener al menos 6 caracteres")
+        update_fields["password"] = hash_password(data.password)
 
     if not update_fields:
         raise HTTPException(status_code=400, detail="No hay campos para actualizar")

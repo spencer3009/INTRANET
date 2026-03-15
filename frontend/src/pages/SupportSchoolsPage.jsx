@@ -38,10 +38,32 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [paying, setPaying] = useState(false);
   const [ownerModal, setOwnerModal] = useState(null); // { schoolId, schoolName }
   const [ownerData, setOwnerData] = useState(null);
-  const [ownerForm, setOwnerForm] = useState({ name: "", school_display_name: "", email: "", ruc: "", whatsapp: "" });
+  const [ownerForm, setOwnerForm] = useState({ name: "", school_display_name: "", email: "", ruc: "", whatsapp: "", password: "" });
   const [ownerEditing, setOwnerEditing] = useState(false);
   const [ownerSaving, setOwnerSaving] = useState(false);
   const [ownerLoading, setOwnerLoading] = useState(false);
+  const [ownerShowPwd, setOwnerShowPwd] = useState(false);
+
+  const getPasswordStrength = (pwd) => {
+    if (!pwd) return null;
+    let score = 0;
+    if (pwd.length >= 6) score++;
+    if (pwd.length >= 10) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    if (score <= 2) return { label: "Debil", color: "bg-red-500", text: "text-red-600", pct: 33 };
+    if (score <= 3) return { label: "Media", color: "bg-yellow-500", text: "text-yellow-600", pct: 66 };
+    return { label: "Fuerte", color: "bg-emerald-500", text: "text-emerald-600", pct: 100 };
+  };
+
+  const generatePassword = () => {
+    const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%&*";
+    let pwd = "";
+    for (let i = 0; i < 12; i++) pwd += chars[Math.floor(Math.random() * chars.length)];
+    setOwnerForm(f => ({ ...f, password: pwd }));
+    setOwnerShowPwd(true);
+  };
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -168,6 +190,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
         email: res.data.email || "",
         ruc: res.data.ruc || "",
         whatsapp: res.data.whatsapp || "",
+        password: "",
       });
     } catch (err) {
       toast.error(err.response?.data?.detail || "No se pudo cargar datos del titular");
@@ -995,7 +1018,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       {/* Owner/Titular Modal */}
       {ownerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="owner-modal-overlay">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="owner-modal">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 max-h-[90vh] flex flex-col overflow-hidden" data-testid="owner-modal">
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
               <div>
                 <h3 className="text-white font-bold text-base">Titular de la Cuenta</h3>
@@ -1010,7 +1033,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               {ownerLoading ? (
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className="w-6 h-6 text-blue-500 animate-spin" />
@@ -1138,6 +1161,51 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                         />
                       </div>
 
+                      {/* Password field with strength indicator */}
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Contrasena</label>
+                        <div className="relative">
+                          <input
+                            type={ownerShowPwd ? "text" : "password"}
+                            value={ownerForm.password}
+                            onChange={(e) => setOwnerForm(f => ({ ...f, password: e.target.value }))}
+                            placeholder="Dejar vacio para no cambiar"
+                            className="w-full px-3 py-2.5 pr-20 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                            data-testid="owner-edit-password"
+                          />
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => setOwnerShowPwd(!ownerShowPwd)}
+                              className="p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                              title={ownerShowPwd ? "Ocultar" : "Mostrar"}
+                            >
+                              {ownerShowPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={generatePassword}
+                              className="p-1 text-slate-400 hover:text-blue-600 transition-colors"
+                              title="Generar clave segura"
+                              data-testid="owner-generate-pwd"
+                            >
+                              <RefreshCw className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        {ownerForm.password && (() => {
+                          const s = getPasswordStrength(ownerForm.password);
+                          return s ? (
+                            <div className="mt-1.5 space-y-1">
+                              <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                                <div className={`h-full ${s.color} rounded-full transition-all duration-300`} style={{ width: `${s.pct}%` }} />
+                              </div>
+                              <p className={`text-[10px] font-semibold ${s.text}`}>{s.label}</p>
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+
                       <div className="flex gap-3 pt-2">
                         <button
                           onClick={() => {
@@ -1148,6 +1216,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                               email: ownerData.email || "",
                               ruc: ownerData.ruc || "",
                               whatsapp: ownerData.whatsapp || "",
+                              password: "",
                             });
                           }}
                           className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
