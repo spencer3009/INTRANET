@@ -120,12 +120,6 @@ function LoginForm({ onLogin }) {
               )}
             </button>
           </form>
-          <p className="text-center text-sm text-slate-500 mt-6">
-            No tienes cuenta?{" "}
-            <Link to="/register" className="font-semibold text-[#001f4b] hover:underline" data-testid="login-register-link">
-              Crea una gratis
-            </Link>
-          </p>
         </div>
 
         <div className="flex items-center justify-center gap-2 mt-6 text-white/40">
