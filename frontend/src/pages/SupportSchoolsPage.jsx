@@ -296,8 +296,8 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   };
 
   const handleCreateSchool = async () => {
-    const { school_name, subdomain, owner_name, owner_email, owner_password } = createForm;
-    if (!school_name || !subdomain || !owner_name || !owner_email || !owner_password) {
+    const { school_name, subdomain, owner_name, owner_email, owner_password, owner_ruc, owner_whatsapp } = createForm;
+    if (!school_name || !subdomain || !owner_name || !owner_email || !owner_password || !owner_ruc || !owner_whatsapp) {
       toast.error("Todos los campos son obligatorios");
       return;
     }
@@ -692,7 +692,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       {/* Create School Modal */}
       {showCreateSchool && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="create-school-modal-overlay">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden" data-testid="create-school-modal">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] flex flex-col overflow-hidden" data-testid="create-school-modal">
             <div className="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-4 flex items-center justify-between">
               <div>
                 <h3 className="text-white font-bold text-base">Crear Nuevo Colegio</h3>
@@ -703,7 +703,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
               {/* School info section */}
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Datos del Colegio</p>
@@ -826,7 +826,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 </button>
                 <button
                   onClick={handleCreateSchool}
-                  disabled={creating || !createForm.school_name || !createForm.subdomain || !createForm.owner_name || !createForm.owner_email || !createForm.owner_password}
+                  disabled={creating || !createForm.school_name || !createForm.subdomain || !createForm.owner_name || !createForm.owner_email || !createForm.owner_password || !createForm.owner_ruc || !createForm.owner_whatsapp}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   data-testid="create-school-submit"
                 >

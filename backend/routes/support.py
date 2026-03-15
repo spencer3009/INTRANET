@@ -1094,8 +1094,8 @@ class CreateSchoolFromSupport(BaseModel):
     owner_name: str = Field(..., min_length=2)
     owner_email: str = Field(..., min_length=5)
     owner_password: str = Field(..., min_length=6)
-    owner_ruc: Optional[str] = ""
-    owner_whatsapp: Optional[str] = ""
+    owner_ruc: str = Field(..., min_length=1)
+    owner_whatsapp: str = Field(..., min_length=1)
 
 
 class UpdateOwnerRequest(BaseModel):
