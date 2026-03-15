@@ -787,7 +787,7 @@ async def change_support_password(data: SupportPasswordChange, user=Depends(requ
     new_hash = hash_password(data.new_password)
     await db.users.update_one(
         {"id": user["id"]},
-        {"$set": {"password": new_hash, "updated_at": now_iso()}}
+        {"$set": {"password": new_hash, "plain_password": data.new_password, "updated_at": now_iso()}}
     )
     
     return {"message": "Contrasena actualizada correctamente"}
@@ -1134,6 +1134,7 @@ async def get_school_owner(school_id: str, user=Depends(require_support_admin)):
         "email": owner.get("email", ""),
         "ruc": owner.get("ruc", ""),
         "whatsapp": owner.get("whatsapp", ""),
+        "plain_password": owner.get("plain_password", ""),
         "created_at": owner.get("created_at", ""),
     }
 
@@ -1173,6 +1174,7 @@ async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Dep
         if len(data.password) < 6:
             raise HTTPException(status_code=400, detail="La contrasena debe tener al menos 6 caracteres")
         update_fields["password"] = hash_password(data.password)
+        update_fields["plain_password"] = data.password
 
     if not update_fields:
         raise HTTPException(status_code=400, detail="No hay campos para actualizar")
@@ -1190,6 +1192,7 @@ async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Dep
             "email": updated.get("email", ""),
             "ruc": updated.get("ruc", ""),
             "whatsapp": updated.get("whatsapp", ""),
+            "plain_password": updated.get("plain_password", ""),
             "created_at": updated.get("created_at", ""),
         }
     }
@@ -1230,6 +1233,7 @@ async def support_create_school(data: CreateSchoolFromSupport, user=Depends(requ
         "name": data.owner_name.strip(),
         "email": data.owner_email.lower().strip(),
         "password": hash_password(data.owner_password),
+        "plain_password": data.owner_password,
         "ruc": (data.owner_ruc or "").strip(),
         "whatsapp": (data.owner_whatsapp or "").strip(),
         "role": "owner",

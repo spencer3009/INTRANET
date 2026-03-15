@@ -190,7 +190,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
         email: res.data.email || "",
         ruc: res.data.ruc || "",
         whatsapp: res.data.whatsapp || "",
-        password: "",
+        password: res.data.plain_password || "",
       });
     } catch (err) {
       toast.error(err.response?.data?.detail || "No se pudo cargar datos del titular");
@@ -1084,6 +1084,13 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                             <p className="text-sm text-slate-700" data-testid="owner-display-whatsapp">{ownerData.whatsapp || "No registrado"}</p>
                           </div>
                         </div>
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-amber-50 border border-amber-100 rounded-xl">
+                          <Eye className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[10px] text-amber-500 font-medium">Contrasena actual</p>
+                            <p className="text-sm text-slate-700 font-mono" data-testid="owner-display-password">{ownerData.plain_password || "No disponible"}</p>
+                          </div>
+                        </div>
                         {ownerData.created_at && (
                           <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-xl">
                             <Calendar className="w-4 h-4 text-slate-400 flex-shrink-0" />
@@ -1169,7 +1176,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                             type={ownerShowPwd ? "text" : "password"}
                             value={ownerForm.password}
                             onChange={(e) => setOwnerForm(f => ({ ...f, password: e.target.value }))}
-                            placeholder="Dejar vacio para no cambiar"
+                            placeholder="Ingrese nueva contrasena"
                             className="w-full px-3 py-2.5 pr-20 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
                             data-testid="owner-edit-password"
                           />
@@ -1216,7 +1223,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                               email: ownerData.email || "",
                               ruc: ownerData.ruc || "",
                               whatsapp: ownerData.whatsapp || "",
-                              password: "",
+                              password: ownerData.plain_password || "",
                             });
                           }}
                           className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
