@@ -38,7 +38,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [paying, setPaying] = useState(false);
   const [ownerModal, setOwnerModal] = useState(null); // { schoolId, schoolName }
   const [ownerData, setOwnerData] = useState(null);
-  const [ownerForm, setOwnerForm] = useState({ name: "", last_name: "", email: "", phone: "" });
+  const [ownerForm, setOwnerForm] = useState({ name: "", school_display_name: "", email: "", ruc: "", whatsapp: "" });
   const [ownerEditing, setOwnerEditing] = useState(false);
   const [ownerSaving, setOwnerSaving] = useState(false);
   const [ownerLoading, setOwnerLoading] = useState(false);
@@ -164,9 +164,10 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       setOwnerData(res.data);
       setOwnerForm({
         name: res.data.name || "",
-        last_name: res.data.last_name || "",
+        school_display_name: res.data.school_display_name || "",
         email: res.data.email || "",
-        phone: res.data.phone || "",
+        ruc: res.data.ruc || "",
+        whatsapp: res.data.whatsapp || "",
       });
     } catch (err) {
       toast.error(err.response?.data?.detail || "No se pudo cargar datos del titular");
@@ -1002,13 +1003,20 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                         </div>
                         <div>
                           <p className="font-bold text-slate-800" data-testid="owner-display-name">
-                            {ownerData.name} {ownerData.last_name}
+                            {ownerData.name}
                           </p>
                           <p className="text-xs text-slate-400">Propietario</p>
                         </div>
                       </div>
 
                       <div className="space-y-2.5">
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-xl">
+                          <School className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-slate-400 font-medium">Nombre del Colegio</p>
+                            <p className="text-sm text-slate-700 truncate" data-testid="owner-display-school">{ownerData.school_display_name || "No registrado"}</p>
+                          </div>
+                        </div>
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-xl">
                           <Mail className="w-4 h-4 text-slate-400 flex-shrink-0" />
                           <div className="min-w-0">
@@ -1017,10 +1025,17 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                           </div>
                         </div>
                         <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-xl">
+                          <Tag className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                          <div className="min-w-0">
+                            <p className="text-[10px] text-slate-400 font-medium">RUC</p>
+                            <p className="text-sm text-slate-700" data-testid="owner-display-ruc">{ownerData.ruc || "No registrado"}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-50 rounded-xl">
                           <Phone className="w-4 h-4 text-slate-400 flex-shrink-0" />
                           <div className="min-w-0">
-                            <p className="text-[10px] text-slate-400 font-medium">Telefono</p>
-                            <p className="text-sm text-slate-700" data-testid="owner-display-phone">{ownerData.phone || "No registrado"}</p>
+                            <p className="text-[10px] text-slate-400 font-medium">WhatsApp</p>
+                            <p className="text-sm text-slate-700" data-testid="owner-display-whatsapp">{ownerData.whatsapp || "No registrado"}</p>
                           </div>
                         </div>
                         {ownerData.created_at && (
@@ -1057,13 +1072,13 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Apellido</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">Nombre del Colegio</label>
                         <input
                           type="text"
-                          value={ownerForm.last_name}
-                          onChange={(e) => setOwnerForm(f => ({ ...f, last_name: e.target.value }))}
+                          value={ownerForm.school_display_name}
+                          onChange={(e) => setOwnerForm(f => ({ ...f, school_display_name: e.target.value }))}
                           className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-                          data-testid="owner-edit-lastname"
+                          data-testid="owner-edit-school"
                         />
                       </div>
                       <div>
@@ -1077,14 +1092,26 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-slate-600 mb-1">Telefono</label>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">RUC</label>
+                        <input
+                          type="text"
+                          value={ownerForm.ruc}
+                          onChange={(e) => setOwnerForm(f => ({ ...f, ruc: e.target.value }))}
+                          placeholder="Ej: 20123456789"
+                          maxLength={11}
+                          className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
+                          data-testid="owner-edit-ruc"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-slate-600 mb-1">WhatsApp</label>
                         <input
                           type="tel"
-                          value={ownerForm.phone}
-                          onChange={(e) => setOwnerForm(f => ({ ...f, phone: e.target.value }))}
+                          value={ownerForm.whatsapp}
+                          onChange={(e) => setOwnerForm(f => ({ ...f, whatsapp: e.target.value }))}
                           placeholder="Ej: 987654321"
                           className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400"
-                          data-testid="owner-edit-phone"
+                          data-testid="owner-edit-whatsapp"
                         />
                       </div>
 
@@ -1094,9 +1121,10 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                             setOwnerEditing(false);
                             setOwnerForm({
                               name: ownerData.name || "",
-                              last_name: ownerData.last_name || "",
+                              school_display_name: ownerData.school_display_name || "",
                               email: ownerData.email || "",
-                              phone: ownerData.phone || "",
+                              ruc: ownerData.ruc || "",
+                              whatsapp: ownerData.whatsapp || "",
                             });
                           }}
                           className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"

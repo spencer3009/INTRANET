@@ -1098,9 +1098,10 @@ class CreateSchoolFromSupport(BaseModel):
 
 class UpdateOwnerRequest(BaseModel):
     name: Optional[str] = None
-    last_name: Optional[str] = None
+    school_display_name: Optional[str] = None
     email: Optional[str] = None
-    phone: Optional[str] = None
+    ruc: Optional[str] = None
+    whatsapp: Optional[str] = None
 
 
 @router.get("/school-owner/{school_id}")
@@ -1126,9 +1127,10 @@ async def get_school_owner(school_id: str, user=Depends(require_support_admin)):
     return {
         "id": owner.get("id"),
         "name": owner.get("name", ""),
-        "last_name": owner.get("last_name", ""),
+        "school_display_name": owner.get("school_display_name", ""),
         "email": owner.get("email", ""),
-        "phone": owner.get("phone", ""),
+        "ruc": owner.get("ruc", ""),
+        "whatsapp": owner.get("whatsapp", ""),
         "created_at": owner.get("created_at", ""),
     }
 
@@ -1150,8 +1152,8 @@ async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Dep
     update_fields = {}
     if data.name is not None:
         update_fields["name"] = data.name.strip()
-    if data.last_name is not None:
-        update_fields["last_name"] = data.last_name.strip()
+    if data.school_display_name is not None:
+        update_fields["school_display_name"] = data.school_display_name.strip()
     if data.email is not None:
         existing = await db.users.find_one(
             {"email": data.email.lower().strip(), "id": {"$ne": owner_id}},
@@ -1160,8 +1162,10 @@ async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Dep
         if existing:
             raise HTTPException(status_code=400, detail="Este correo ya esta en uso por otro usuario")
         update_fields["email"] = data.email.lower().strip()
-    if data.phone is not None:
-        update_fields["phone"] = data.phone.strip()
+    if data.ruc is not None:
+        update_fields["ruc"] = data.ruc.strip()
+    if data.whatsapp is not None:
+        update_fields["whatsapp"] = data.whatsapp.strip()
 
     if not update_fields:
         raise HTTPException(status_code=400, detail="No hay campos para actualizar")
@@ -1175,9 +1179,10 @@ async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Dep
         "owner": {
             "id": updated.get("id"),
             "name": updated.get("name", ""),
-            "last_name": updated.get("last_name", ""),
+            "school_display_name": updated.get("school_display_name", ""),
             "email": updated.get("email", ""),
-            "phone": updated.get("phone", ""),
+            "ruc": updated.get("ruc", ""),
+            "whatsapp": updated.get("whatsapp", ""),
             "created_at": updated.get("created_at", ""),
         }
     }
