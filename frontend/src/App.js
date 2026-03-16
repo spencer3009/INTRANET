@@ -275,13 +275,38 @@ function SubscriptionGuard({ token, user, children }) {
   return children;
 }
 
-// Global fixed subscription banner - renders independently at the top of the viewport
+// Global subscription overlay - shows banner, auto-modal for PAGO_OBLIGATORIO, and SuspendedScreen
 function GlobalSubscriptionOverlay({ token, user }) {
-  // Only render for logged-in school users (not support, not public pages)
   if (!token || !user?.school_id) return null;
   const isSupportUser = user?.role === "system_admin_global" || user?.original_role === "system_admin_global";
   if (isSupportUser) return null;
 
+  return <SubscriptionEnforcer token={token} />;
+}
+
+function SubscriptionEnforcer({ token }) {
+  const ctx = useSubscription();
+
+  if (!ctx || ctx.loading || !ctx.sub) return null;
+
+  const { plan_estado } = ctx.sub;
+
+  // SUSPENDIDO - full block
+  if (plan_estado === "SUSPENDIDO") {
+    return <SuspendedScreen token={token} />;
+  }
+
+  // PAGO_OBLIGATORIO - banner + mandatory modal (no X)
+  if (plan_estado === "PAGO_OBLIGATORIO") {
+    return (
+      <>
+        <SubscriptionBanner />
+        <PaymentBlockModal token={token} forceLock onClose={() => ctx.refresh()} />
+      </>
+    );
+  }
+
+  // AVISO / RESTRICCION_PARCIAL - just the banner
   return <SubscriptionBanner />;
 }
 
