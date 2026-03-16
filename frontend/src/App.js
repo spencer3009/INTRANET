@@ -297,13 +297,9 @@ function SubscriptionEnforcer({ token }) {
 
   const { plan_estado } = ctx.sub;
 
-  // SUSPENDIDO - full block
-  if (plan_estado === "SUSPENDIDO") {
-    return <SuspendedScreen token={token} />;
-  }
-
-  // PAGO_OBLIGATORIO - banner + mandatory modal (no X)
-  if (plan_estado === "PAGO_OBLIGATORIO") {
+  // SUSPENDIDO or PAGO_OBLIGATORIO - banner + mandatory modal (non-dismissible)
+  // Owner/admin can log in but must see the payment modal they cannot close
+  if (plan_estado === "SUSPENDIDO" || plan_estado === "PAGO_OBLIGATORIO") {
     return (
       <>
         <SubscriptionBanner />
