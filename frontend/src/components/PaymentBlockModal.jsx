@@ -167,6 +167,16 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
               >
                 Necesitas ayuda? Contactar soporte
               </a>
+
+              {isObligatory && (
+                <button
+                  onClick={() => { localStorage.removeItem("token"); localStorage.removeItem("user"); window.location.href = "/"; }}
+                  className="block w-full text-center text-xs text-slate-400 hover:text-slate-600 mt-1 transition-colors"
+                  data-testid="block-modal-logout"
+                >
+                  Cerrar sesion
+                </button>
+              )}
             </>
           ) : (
             <div className="text-center py-6">
