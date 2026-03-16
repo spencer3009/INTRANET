@@ -19,7 +19,7 @@ export default function SubscriptionBanner({ onPayClick }) {
 
   return (
     <div
-      className="sticky top-0 z-40 bg-red-50 border-b-2 border-red-300 px-4 py-3"
+      className="z-40 bg-red-50 border border-red-200 rounded-xl mx-4 mt-3 mb-1 px-4 py-3"
       data-testid="subscription-banner"
     >
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
