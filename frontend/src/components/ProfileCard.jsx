@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Crown, Shield, ShieldCheck, ShieldAlert, ShieldOff, Clock, CalendarDays, CalendarClock, CreditCard, X, Loader2, CheckCircle2 } from "lucide-react";
+import PaymentBlockModal from "./PaymentBlockModal";
 
 function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
   const getInitials = (name) => {
@@ -69,9 +70,6 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
 
   const [school, setSchool] = useState(null);
   const [showPayModal, setShowPayModal] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("yape");
-  const [operationCode, setOperationCode] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [pendingRequest, setPendingRequest] = useState(null);
 
   useEffect(() => {
@@ -87,28 +85,6 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
       .then(d => { if (d.pending_request) setPendingRequest(d.pending_request); })
       .catch(() => {});
   }, [token, showSub]);
-
-  const handleSubmitPayment = async () => {
-    setSubmitting(true);
-    try {
-      const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
-      const res = await fetch(`${API}/membership/request-payment`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ payment_method: paymentMethod, operation_code: operationCode }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setPendingRequest(data);
-        setShowPayModal(false);
-        setOperationCode("");
-      } else {
-        const err = await res.json();
-        alert(err.detail || "Error al enviar solicitud");
-      }
-    } catch (e) { alert("Error de conexion"); }
-    finally { setSubmitting(false); }
-  };
 
   const subState = school ? getSubState(school.expiration_date) : null;
   const p = school?.pricing;
@@ -250,64 +226,11 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
     </div>
 
     {/* Payment Modal */}
-    {showPayModal && createPortal(
-      <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4" style={{ zIndex: 9999 }} onClick={() => setShowPayModal(false)}>
-        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()} data-testid="payment-modal">
-          <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-4 py-3 text-white rounded-t-2xl">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold">Renovar plan EduNet</h2>
-                <p className="text-violet-200 text-xs">Pago manual con Yape o Plin</p>
-              </div>
-              <button onClick={() => setShowPayModal(false)} className="p-1 hover:bg-white/20 rounded-lg transition-colors">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </div>
-          <div className="px-4 py-3 space-y-3">
-            <div className="bg-slate-50 rounded-lg px-3 py-2 text-center border border-slate-200">
-              <p className="text-xs text-slate-500">Monto a pagar</p>
-              <p className="text-2xl font-extrabold text-slate-800" data-testid="payment-amount">S/ {p?.calculated_price?.toFixed(2) || "0.00"}</p>
-              <p className="text-[10px] text-slate-400">Plan mensual</p>
-            </div>
-            <p className="text-xs text-slate-600 text-center">
-              Escanea el codigo QR con <strong>Yape</strong> para realizar tu pago.
-            </p>
-            <div className="flex justify-center">
-              <div className="rounded-lg border-2 border-violet-500 bg-violet-50 p-2 text-center w-48">
-                <div className="bg-white rounded-md p-1 border">
-                  <img src="/yape_qr.jpeg" alt="QR Yape" className="w-full h-auto object-contain mx-auto" />
-                </div>
-              </div>
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Numero de operacion <span className="text-red-500">*</span></label>
-              <input
-                type="text"
-                inputMode="numeric"
-                maxLength={8}
-                value={operationCode}
-                onChange={(e) => {
-                  const val = e.target.value.replace(/\D/g, "");
-                  if (val.length <= 8) setOperationCode(val);
-                }}
-                placeholder="Ej: 12345678"
-                className={`w-full px-3 py-2 border rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-violet-400 ${operationCode && operationCode.length !== 8 ? "border-red-300" : "border-slate-300"}`}
-                data-testid="operation-code-input"
-                required
-              />
-              {operationCode && operationCode.length !== 8 && (
-                <p className="text-[10px] text-red-500 mt-0.5">Debe tener exactamente 8 digitos ({operationCode.length}/8)</p>
-              )}
-            </div>
-            <button onClick={handleSubmitPayment} disabled={submitting || operationCode.length !== 8} className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-violet-600 text-white rounded-xl text-xs font-bold hover:bg-violet-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed" data-testid="confirm-payment-btn">
-              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
-              Ya realice el pago
-            </button>
-          </div>
-        </div>
-      </div>,
-      document.body
+    {showPayModal && (
+      <PaymentBlockModal
+        token={token}
+        onClose={() => setShowPayModal(false)}
+      />
     )}
     </>
   );

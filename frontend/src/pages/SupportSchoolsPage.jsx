@@ -8,7 +8,6 @@ import {
   ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2,
   Eye, EyeOff, UserCircle, Save, Phone, Mail
 } from "lucide-react";
-import PaymentBlockModal from "../components/PaymentBlockModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -284,13 +283,6 @@ export default function SupportSchoolsPage({ token, onLogin }) {
 
   const handleRenewMembership = async (schoolId, schoolName) => {
     const school = mySchools.find(s => s.id === schoolId);
-    // Fetch QR config for the modal
-    let qrConfig = {};
-    try {
-      const res = await axios.get(`${API}/subscription/qr-config`, { headers });
-      qrConfig = res.data;
-    } catch {}
-    // Fetch pending payment to show client's operation code
     let pendingPayment = null;
     try {
       const res = await axios.get(`${API}/support/payment-requests`, { headers });
@@ -299,15 +291,12 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     setRenewModal({
       schoolId,
       schoolName,
-      schoolData: {
-        plan_estado: school?.plan_estado || "AVISO_VENCIMIENTO",
-        dias_vencido: school?.dias_vencido || 0,
-        monto_plan: school?.calculated_price || 0,
-        qr_pago_url: qrConfig.qr_pago_url || "",
-        yape_number: qrConfig.yape_number || "",
-      },
+      price: school?.calculated_price || 0,
       clientCode: pendingPayment?.operation_code || "",
+      paymentMethod: pendingPayment?.payment_method || "",
+      paymentDate: pendingPayment?.created_at || "",
     });
+    setRenewCode(pendingPayment?.operation_code || "");
   };
 
   const handleConfirmRenewal = async () => {
@@ -998,13 +987,66 @@ export default function SupportSchoolsPage({ token, onLogin }) {
         </div>
       )}
 
-      {/* Renewal Modal - uses the same PaymentBlockModal */}
+      {/* Renewal Modal */}
       {renewModal && (
-        <PaymentBlockModal
-          token={token}
-          schoolData={renewModal.schoolData}
-          onClose={() => { setRenewModal(null); loadSchools(); }}
-        />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="renew-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="renew-modal">
+            <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-bold text-base">Renovar Membresia</h3>
+                <p className="text-white/70 text-xs mt-0.5">Verificacion de pago Yape/Plin</p>
+              </div>
+              <button
+                onClick={() => setRenewModal(null)}
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                data-testid="renew-modal-close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div className="bg-slate-50 rounded-xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
+                  <School className="w-5 h-5 text-violet-600" />
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-800 text-sm">{renewModal.schoolName}</p>
+                  <p className="text-xs text-slate-500">Monto: <span className="font-bold text-emerald-600">S/ {renewModal.price.toFixed(2)}</span></p>
+                </div>
+              </div>
+              {renewModal.clientCode ? (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Codigo enviado por el cliente</label>
+                  <div className="w-full px-4 py-3 bg-violet-50 border-2 border-violet-300 rounded-xl text-center text-2xl font-bold tracking-[0.3em] text-violet-700">
+                    {renewModal.clientCode}
+                  </div>
+                  <p className="text-xs mt-1.5 text-slate-400">Verifica que este codigo coincida con tu registro de Yape</p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Numero de operacion <span className="text-red-500">*</span></label>
+                  <p className="text-xs text-slate-400 mb-2">No hay pago pendiente. Ingresa el codigo manualmente.</p>
+                  <input
+                    type="text" inputMode="numeric" maxLength={8} value={renewCode}
+                    onChange={(e) => setRenewCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="Ej: 12345678"
+                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-center text-2xl font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-all"
+                    data-testid="renew-operation-code-input" autoFocus
+                  />
+                  <p className={`text-xs mt-1.5 text-right font-medium ${renewCode.length === 8 ? "text-emerald-500" : "text-slate-400"}`}>{renewCode.length}/8 digitos</p>
+                </div>
+              )}
+              <div className="flex gap-3 pt-1">
+                <button onClick={() => setRenewModal(null)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors" data-testid="renew-modal-cancel">Cancelar</button>
+                <button onClick={handleConfirmRenewal} disabled={renewCode.length !== 8 || renewing}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" data-testid="renew-modal-confirm">
+                  {renewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                  Confirmar Renovacion
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Owner/Titular Modal */}
