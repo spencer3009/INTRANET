@@ -101,7 +101,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
         <div className="px-4 py-3 space-y-3">
           {!success ? (
             <>
-              <p className="text-xs text-slate-600 text-center">
+              <p className="text-sm text-slate-600 text-center">
                 {isObligatory
                   ? "Su acceso a los modulos esta restringido. Registre su pago para continuar."
                   : "Para continuar utilizando la plataforma EDU.NET debe registrar su pago mensual."}
@@ -131,12 +131,12 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
               )}
 
               <div className="bg-slate-50 rounded-lg px-3 py-2 text-center border">
-                <p className="text-[10px] text-slate-400">Monto a pagar</p>
-                <p className="text-xl font-extrabold text-slate-800">S/ {sub.monto_plan?.toFixed(2)}</p>
+                <p className="text-xs text-slate-400">Monto a pagar</p>
+                <p className="text-2xl font-extrabold text-slate-800">S/ {sub.monto_plan?.toFixed(2)}</p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Numero de operacion (8 digitos)</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Numero de operacion (8 digitos)</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -144,7 +144,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
                   value={operationCode}
                   onChange={(e) => setOperationCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                   placeholder="Ej: 12345678"
-                  className="w-full px-3 py-1.5 border-2 border-slate-200 rounded-lg text-center text-sm font-bold tracking-[0.15em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-lg text-center text-base font-bold tracking-[0.15em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
                   data-testid="block-modal-operation-code"
                 />
               </div>
@@ -163,7 +163,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
                 href="https://wa.me/51992021294?text=Hola,%20necesito%20ayuda%20con%20mi%20pago%20de%20EduNet"
                 target="_blank"
                 rel="noreferrer"
-                className="block text-center text-xs text-violet-600 hover:text-violet-800 font-medium transition-colors"
+                className="block text-center text-sm text-violet-600 hover:text-violet-800 font-medium transition-colors"
               >
                 Necesitas ayuda? Contactar soporte
               </a>
@@ -171,7 +171,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
               {isObligatory && (
                 <button
                   onClick={() => { localStorage.removeItem("token"); localStorage.removeItem("user"); window.location.href = "/"; }}
-                  className="block w-full text-center text-[11px] text-slate-400 hover:text-slate-600 transition-colors"
+                  className="block w-full text-center text-xs text-slate-400 hover:text-slate-600 transition-colors"
                   data-testid="block-modal-logout"
                 >
                   Cerrar sesion
