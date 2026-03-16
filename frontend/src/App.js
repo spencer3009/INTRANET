@@ -282,11 +282,7 @@ function GlobalSubscriptionOverlay({ token, user }) {
   const isSupportUser = user?.role === "system_admin_global" || user?.original_role === "system_admin_global";
   if (isSupportUser) return null;
 
-  return (
-    <SubscriptionProvider token={token}>
-      <SubscriptionBanner />
-    </SubscriptionProvider>
-  );
+  return <SubscriptionBanner />;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -402,6 +398,7 @@ function App() {
     <TenantContext.Provider value={tenantValue}>
       <DemoModeProvider user={user}>
         <BrowserRouter>
+          <SubscriptionProvider token={token}>
           <ShopifyRedirect user={user} environment={environment} />
           <GlobalSubscriptionOverlay token={token} user={user} />
         
@@ -1797,6 +1794,7 @@ function App() {
           ════════════════════════════════════════════════════════════════════ */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+          </SubscriptionProvider>
       </BrowserRouter>
       </DemoModeProvider>
       <Toaster position="top-right" richColors closeButton />
