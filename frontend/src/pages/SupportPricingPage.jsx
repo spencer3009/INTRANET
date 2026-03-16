@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { DollarSign, Save, Settings2, Users, Calendar, ToggleLeft, ToggleRight, Zap } from "lucide-react";
+import { DollarSign, Save, Settings2, Users, Calendar, ToggleLeft, ToggleRight, Zap, QrCode, Phone, Upload, Loader2, Trash2, Image } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -15,6 +15,11 @@ export default function SupportPricingPage({ token }) {
   const headers = { Authorization: `Bearer ${token}` };
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [qrUrl, setQrUrl] = useState("");
+  const [yapeNumber, setYapeNumber] = useState("");
+  const [qrLoading, setQrLoading] = useState(true);
+  const [qrSaving, setQrSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     billing_mode: "base_plus_student",
     base_monthly_fee: 50,
@@ -36,6 +41,15 @@ export default function SupportPricingPage({ token }) {
       })
       .catch(() => toast.error("Error al cargar configuracion"))
       .finally(() => setLoading(false));
+
+    // Load QR config
+    axios.get(`${API}/subscription/qr-config`, { headers })
+      .then(r => {
+        setQrUrl(r.data.qr_pago_url || "");
+        setYapeNumber(r.data.yape_number || "");
+      })
+      .catch(() => {})
+      .finally(() => setQrLoading(false));
   }, []);
 
   const handleSave = async () => {
@@ -47,6 +61,47 @@ export default function SupportPricingPage({ token }) {
       toast.error(err.response?.data?.detail || "Error al guardar");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleQrUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      // Get Cloudinary signature
+      const sigRes = await axios.get(`${API}/cloudinary/signature`, { headers, params: { folder: "edunet/qr" } });
+      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
+      // Upload to Cloudinary
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("signature", signature);
+      fd.append("timestamp", timestamp);
+      fd.append("api_key", api_key);
+      fd.append("folder", folder);
+      const uploadRes = await axios.post(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, fd);
+      const url = uploadRes.data.secure_url;
+      setQrUrl(url);
+      // Save immediately
+      await axios.put(`${API}/subscription/qr-config`, { qr_pago_url: url, yape_number: yapeNumber }, { headers });
+      toast.success("QR actualizado");
+    } catch (err) {
+      toast.error("Error al subir imagen");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleSaveQrConfig = async () => {
+    setQrSaving(true);
+    try {
+      await axios.put(`${API}/subscription/qr-config`, { qr_pago_url: qrUrl, yape_number: yapeNumber }, { headers });
+      toast.success("Configuracion de pago guardada");
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al guardar");
+    } finally {
+      setQrSaving(false);
     }
   };
 
@@ -239,6 +294,109 @@ export default function SupportPricingPage({ token }) {
           >
             {saving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
             Guardar configuracion
+          </button>
+        </div>
+      </div>
+
+      {/* QR Payment Configuration */}
+      <div className="mt-8 bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm" data-testid="qr-config-section">
+        <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
+          <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+            <QrCode className="w-4 h-4 text-violet-500" />
+            Configuracion de QR de Pago
+          </h2>
+          <p className="text-xs text-slate-400 mt-0.5">Este QR se mostrara en el modal de pago cuando un colegio tenga suscripcion vencida</p>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* QR Preview + Upload */}
+          <div className="flex flex-col sm:flex-row gap-6 items-start">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-48 h-48 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl flex items-center justify-center overflow-hidden">
+                {qrUrl ? (
+                  <img src={qrUrl} alt="QR Yape" className="w-full h-full object-contain p-2" data-testid="qr-preview" />
+                ) : (
+                  <div className="text-center p-4">
+                    <Image className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                    <p className="text-xs text-slate-400">Sin QR configurado</p>
+                  </div>
+                )}
+              </div>
+              <label className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold cursor-pointer transition-all ${
+                uploading ? "bg-slate-100 text-slate-400" : "bg-violet-600 text-white hover:bg-violet-700"
+              }`}>
+                {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                {uploading ? "Subiendo..." : qrUrl ? "Cambiar QR" : "Subir QR"}
+                <input type="file" accept="image/*" className="hidden" onChange={handleQrUpload} disabled={uploading} data-testid="qr-upload-input" />
+              </label>
+              {qrUrl && (
+                <button
+                  onClick={async () => {
+                    setQrUrl("");
+                    try {
+                      await axios.put(`${API}/subscription/qr-config`, { qr_pago_url: "", yape_number: yapeNumber }, { headers });
+                      toast.success("QR eliminado");
+                    } catch { toast.error("Error al eliminar QR"); }
+                  }}
+                  className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                  data-testid="delete-qr-btn"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Eliminar QR
+                </button>
+              )}
+            </div>
+
+            <div className="flex-1 space-y-4 w-full">
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                  <Phone className="w-4 h-4 text-emerald-500" />
+                  Numero de Yape
+                </label>
+                <div className="flex items-center">
+                  <span className="px-3 py-3 bg-slate-100 border border-r-0 border-slate-200 rounded-l-xl text-sm text-slate-500">+51</span>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={9}
+                    value={yapeNumber.replace("+51", "")}
+                    onChange={(e) => setYapeNumber(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                    placeholder="999 999 999"
+                    className="flex-1 px-4 py-3 border border-slate-200 rounded-r-xl text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
+                    data-testid="yape-number-input"
+                  />
+                </div>
+                <p className="text-xs text-slate-400 mt-1.5">Este numero se mostrara junto al QR en el modal de pago</p>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 mb-2">
+                  <QrCode className="w-4 h-4 text-blue-500" />
+                  URL del QR (opcional)
+                </label>
+                <input
+                  type="url"
+                  value={qrUrl}
+                  onChange={(e) => setQrUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-blue-300 transition-all"
+                  data-testid="qr-url-input"
+                />
+                <p className="text-xs text-slate-400 mt-1.5">Se llena automaticamente al subir imagen, o puedes pegar una URL directamente</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-50 border-t border-slate-200 px-6 py-4 flex justify-end">
+          <button
+            onClick={handleSaveQrConfig}
+            disabled={qrSaving}
+            className="px-6 py-2.5 bg-[#001f4b] text-white font-semibold text-sm rounded-xl hover:bg-[#0a3068] transition-all disabled:opacity-50 flex items-center gap-2"
+            data-testid="save-qr-btn"
+          >
+            {qrSaving ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Save className="w-4 h-4" />}
+            Guardar configuracion de pago
           </button>
         </div>
       </div>
