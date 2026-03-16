@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { AlertTriangle, CreditCard, Info, X } from "lucide-react";
 import { useSubscription } from "../contexts/SubscriptionContext";
+import PaymentBlockModal from "./PaymentBlockModal";
 
-export default function SubscriptionBanner({ onPayClick }) {
+export default function SubscriptionBanner() {
   const ctx = useSubscription();
   const [hidden, setHidden] = useState(false);
+  const [showPayModal, setShowPayModal] = useState(false);
 
   if (hidden || !ctx || !ctx.sub) return null;
 
@@ -17,56 +19,57 @@ export default function SubscriptionBanner({ onPayClick }) {
     ? new Date(fecha_vencimiento).toLocaleDateString("es-PE", { day: "numeric", month: "long", year: "numeric" })
     : "";
 
-  return (
-    <div
-      className="z-40 bg-red-50 border border-red-200 rounded-xl mx-4 mt-3 mb-1 px-4 py-3"
-      data-testid="subscription-banner"
-    >
-      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-3">
-        {/* Icon + Text */}
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <AlertTriangle className="w-4 h-4 text-red-600" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-red-800" data-testid="banner-title">
-              Se requiere un nuevo pago de suscripcion
-              <span className="font-normal text-red-600"> — La plataforma no puede continuar funcionando sin renovar el plan.</span>
-            </p>
-            <p className="text-xs text-red-600/80 mt-0.5">
-              {fmtDate && <>Vencio el {fmtDate}. </>}
-              {dias_vencido > 0 && <>{dias_vencido} dia{dias_vencido > 1 ? "s" : ""} vencido. </>}
-              {monto_plan > 0 && <>Monto pendiente: <span className="font-bold">S/ {monto_plan.toFixed(2)}</span></>}
-            </p>
-          </div>
-        </div>
+  const token = localStorage.getItem("token") || "";
 
-        {/* Buttons */}
-        <div className="flex items-center gap-2 flex-shrink-0 ml-11 sm:ml-0">
-          <button
-            onClick={() => setHidden(true)}
-            className="px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-colors"
-            data-testid="banner-hide-btn"
-          >
-            Ocultar
-          </button>
-          <button
-            className="px-3 py-1.5 text-xs font-medium text-red-700 bg-red-100 hover:bg-red-200 rounded-lg transition-colors"
-            data-testid="banner-info-btn"
-            onClick={onPayClick}
-          >
-            Mas informacion
-          </button>
-          <button
-            onClick={onPayClick}
-            className="px-4 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1.5"
-            data-testid="banner-pay-btn"
-          >
-            <CreditCard className="w-3.5 h-3.5" />
-            Pagar ahora
-          </button>
+  return (
+    <>
+      <div
+        className="fixed top-0 left-0 right-0 z-[100] bg-red-50 border-b border-red-200 px-4 py-2.5 shadow-sm"
+        data-testid="subscription-banner"
+      >
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            <div className="w-7 h-7 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-red-800" data-testid="banner-title">
+                Se requiere un nuevo pago de suscripcion
+                <span className="font-normal text-red-600"> — La plataforma no puede continuar funcionando sin renovar el plan.</span>
+              </p>
+              <p className="text-xs text-red-600/80 mt-0.5">
+                {fmtDate && <>Vencio el {fmtDate}. </>}
+                {dias_vencido > 0 && <>{dias_vencido} dia{dias_vencido > 1 ? "s" : ""} vencido. </>}
+                {monto_plan > 0 && <>Monto pendiente: <span className="font-bold">S/ {monto_plan.toFixed(2)}</span></>}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 flex-shrink-0 ml-10 sm:ml-0">
+            <button
+              onClick={() => setHidden(true)}
+              className="px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-colors"
+              data-testid="banner-hide-btn"
+            >
+              Ocultar
+            </button>
+            <button
+              onClick={() => setShowPayModal(true)}
+              className="px-4 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1.5"
+              data-testid="banner-pay-btn"
+            >
+              <CreditCard className="w-3.5 h-3.5" />
+              Pagar ahora
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+      {/* Spacer to push content below the fixed banner */}
+      <div className="h-[52px]" data-testid="banner-spacer" />
+
+      {showPayModal && (
+        <PaymentBlockModal token={token} onClose={() => { setShowPayModal(false); ctx?.refresh(); }} />
+      )}
+    </>
   );
 }

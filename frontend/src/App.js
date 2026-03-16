@@ -247,7 +247,6 @@ function SchoolDashboardRoute({ user, token, onLogout }) {
 // Subscription Guard - wraps school content and enforces subscription states
 function SubscriptionGuard({ token, user, children }) {
   const ctx = useSubscription();
-  const [showPayModal, setShowPayModal] = useState(false);
 
   // Support users bypass all restrictions
   const isSupportUser = user?.role === "system_admin_global" || user?.original_role === "system_admin_global";
@@ -273,8 +272,21 @@ function SubscriptionGuard({ token, user, children }) {
     );
   }
 
-  // Other states (AVISO, RESTRICCION, VERIFICACION, ACTIVO) just show content
   return children;
+}
+
+// Global fixed subscription banner - renders independently at the top of the viewport
+function GlobalSubscriptionOverlay({ token, user }) {
+  // Only render for logged-in school users (not support, not public pages)
+  if (!token || !user?.school_id) return null;
+  const isSupportUser = user?.role === "system_admin_global" || user?.original_role === "system_admin_global";
+  if (isSupportUser) return null;
+
+  return (
+    <SubscriptionProvider token={token}>
+      <SubscriptionBanner />
+    </SubscriptionProvider>
+  );
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -391,6 +403,7 @@ function App() {
       <DemoModeProvider user={user}>
         <BrowserRouter>
           <ShopifyRedirect user={user} environment={environment} />
+          <GlobalSubscriptionOverlay token={token} user={user} />
         
         <Routes>
           {/* ════════════════════════════════════════════════════════════════════
