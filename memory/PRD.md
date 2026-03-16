@@ -64,7 +64,8 @@ EduNet is a comprehensive academic management system (intranet escolar) for scho
 - [ ] Send reminder button
 
 ### Fase 4 - QR & Reminders
-- [ ] QR Yape upload from support panel (Cloudinary)
+- [x] QR Yape upload from support panel (Cloudinary) - COMPLETED March 16
+- [x] Yape-styled QR frame in PaymentBlockModal - COMPLETED March 16
 - [ ] Automatic reminders (3 days before, day of, 2/5 days after)
 - [ ] WhatsApp integration prep
 

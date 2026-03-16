@@ -68,15 +68,30 @@ export default function PaymentBlockModal({ token, onClose }) {
                 Para continuar utilizando la plataforma EDU.NET debe registrar su pago mensual.
               </p>
 
-              {sub.qr_pago_url && (
-                <div className="bg-slate-50 rounded-xl p-4 flex justify-center border">
-                  <img src={sub.qr_pago_url} alt="QR Yape" className="max-h-48 object-contain" />
+              {(sub.qr_pago_url || sub.yape_number) && (
+                <div className="rounded-2xl p-[3px] bg-gradient-to-br from-violet-400 via-purple-400 to-violet-500 shadow-lg" data-testid="yape-qr-frame">
+                  <div className="rounded-[13px] overflow-hidden bg-[#7B2D8E]">
+                    {/* Yape header */}
+                    <div className="flex justify-center pt-4 pb-2">
+                      <span className="text-white font-extrabold text-lg italic tracking-tight" style={{ fontFamily: 'cursive' }}>yape</span>
+                    </div>
+                    {/* QR image */}
+                    {sub.qr_pago_url && (
+                      <div className="px-6 pb-2">
+                        <div className="bg-white rounded-xl p-3 flex justify-center">
+                          <img src={sub.qr_pago_url} alt="QR Yape" className="max-h-44 object-contain" />
+                        </div>
+                      </div>
+                    )}
+                    {/* Yape number */}
+                    {sub.yape_number && (
+                      <div className="text-center pb-4 pt-1">
+                        <p className="text-white/70 text-xs">Numero Yape</p>
+                        <p className="text-white font-bold text-base tracking-wide">+51 {sub.yape_number}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              )}
-              {sub.yape_number && (
-                <p className="text-center text-slate-500 text-sm">
-                  Yape: <span className="font-bold text-slate-800">{sub.yape_number}</span>
-                </p>
               )}
 
               <div className="bg-slate-50 rounded-xl p-3 text-center border">
