@@ -45,7 +45,15 @@ async def get_grace_days():
 
 
 async def calculate_plan_state(school):
-    """Calculate the current plan state based on expiration date"""
+    """Calculate the current plan state based on expiration date.
+    
+    Rules:
+    - Before expiration       → ACTIVO
+    - Day of expiration (0d)  → AVISO_VENCIMIENTO
+    - 1-3 days overdue        → RESTRICCION_PARCIAL
+    - 4-7 days overdue        → PAGO_OBLIGATORIO
+    - >7 days overdue         → SUSPENDIDO
+    """
     exp_str = school.get("fecha_vencimiento") or school.get("expiration_date")
     if not exp_str:
         return "ACTIVO", 0
@@ -63,20 +71,16 @@ async def calculate_plan_state(school):
         return "ACTIVO", 0
 
     now = datetime.now(timezone.utc)
-    diff = (now - exp).total_seconds() / 86400  # days since expiration
+    # Compare by date only (not time) to avoid partial-day issues
+    dias_vencido = (now.date() - exp.date()).days
 
-    if diff <= 0:
+    if dias_vencido < 0:
         return "ACTIVO", 0
-
-    dias_vencido = int(diff)
-    dias_gracia = await get_grace_days()
-
-    # Progressive states based on days overdue
-    if dias_vencido == 0:
-        return "AVISO_VENCIMIENTO", dias_vencido
+    elif dias_vencido == 0:
+        return "AVISO_VENCIMIENTO", 0
     elif dias_vencido <= 3:
         return "RESTRICCION_PARCIAL", dias_vencido
-    elif dias_vencido <= dias_gracia:
+    elif dias_vencido <= 7:
         return "PAGO_OBLIGATORIO", dias_vencido
     else:
         return "SUSPENDIDO", dias_vencido
@@ -316,9 +320,35 @@ async def update_subscription_config(data: UpdateSubscriptionConfig, user=Depend
 # DAILY CRON - Updates all school statuses
 # ══════════════════════════════════════════════════════════════════════════════
 
+import asyncio
+
+async def daily_subscription_cron():
+    """Background task: runs daily to update all school subscription states."""
+    while True:
+        try:
+            updated = 0
+            schools = await db.schools.find({}, {"_id": 0, "id": 1, "expiration_date": 1, "fecha_vencimiento": 1}).to_list(None)
+            for school in schools:
+                plan_estado, dias_vencido = await calculate_plan_state(school)
+                await db.schools.update_one(
+                    {"id": school["id"]},
+                    {"$set": {
+                        "plan_estado": plan_estado,
+                        "dias_vencido": dias_vencido,
+                        "subscription_checked_at": now_iso(),
+                    }}
+                )
+                updated += 1
+            logger.info(f"[CRON] Verificacion diaria completada: {updated} colegios actualizados")
+        except Exception as e:
+            logger.error(f"[CRON] Error en verificacion diaria: {e}")
+        # Wait 24 hours
+        await asyncio.sleep(86400)
+
+
 @router.post("/run-daily-check")
 async def run_daily_check(user=Depends(require_support)):
-    """Manually trigger the daily subscription check (also runs on startup)"""
+    """Manually trigger the daily subscription check"""
     updated = 0
     schools = await db.schools.find({}, {"_id": 0, "id": 1, "expiration_date": 1, "fecha_vencimiento": 1}).to_list(None)
 

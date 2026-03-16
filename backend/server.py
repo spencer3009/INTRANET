@@ -46,7 +46,7 @@ from routes.parent_portal import router as parent_portal_router
 from routes.live_classes import router as live_classes_router
 from routes.grades import router as grades_router
 from routes.membership import router as membership_router
-from routes.subscription import router as subscription_router
+from routes.subscription import router as subscription_router, daily_subscription_cron
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -266,6 +266,10 @@ async def create_indexes():
         if teachers_without_qr:
             logging.info(f"Generated QR tokens for {len(teachers_without_qr)} teachers")
         logging.info("MongoDB indexes created successfully")
+        # Start daily subscription cron job
+        import asyncio
+        asyncio.create_task(daily_subscription_cron())
+        logging.info("Daily subscription cron job started")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
 
