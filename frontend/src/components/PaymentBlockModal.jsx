@@ -5,7 +5,7 @@ import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function PaymentBlockModal({ token, onClose, forceLock }) {
+export default function PaymentBlockModal({ token, onClose, forceLock, schoolData }) {
   const ctx = useSubscription();
   const [operationCode, setOperationCode] = useState("");
   const [screenshot, setScreenshot] = useState(null);
@@ -14,7 +14,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock }) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const sub = ctx?.sub;
+  const sub = schoolData || ctx?.sub;
   if (!sub) return null;
 
   const isObligatory = forceLock || sub.plan_estado === "PAGO_OBLIGATORIO";
@@ -59,7 +59,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock }) {
       });
       if (res.ok) {
         setSuccess(true);
-        ctx.refresh();
+        ctx?.refresh?.();
         if (!isObligatory) setTimeout(() => onClose?.(), 3000);
       } else {
         const err = await res.json();
