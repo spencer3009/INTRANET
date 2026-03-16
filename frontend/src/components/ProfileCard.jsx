@@ -49,7 +49,7 @@ function getSubState(expDate) {
   const exp = new Date(expDate);
   const diffMs = exp - now;
   const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  if (days <= 0) return { id: "suspended", days: 0, label: "Suspendido", color: "text-slate-500", bar: "bg-slate-400", badge: "bg-slate-700 text-white" };
+  if (days <= 0) return { id: "suspended", days: 0, label: "Suspendido", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-600 text-white" };
   if (days <= 5) return { id: "critical", days, label: "Vence pronto", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-50 text-red-700 ring-1 ring-red-200" };
   if (days <= 10) return { id: "warning", days, label: "Proximo a vencer", color: "text-amber-600", bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" };
   return { id: "active", days, label: "Activo", color: "text-emerald-600", bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" };
