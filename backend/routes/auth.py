@@ -308,13 +308,14 @@ async def login(creds: UserLogin):
                 except Exception as debt_err:
                     logger.error(f"[LOGIN] Error checking debt restrictions: {debt_err}")
 
-                # Block login based on subscription state
+                # Block login based on subscription state (calculate in real-time)
                 try:
-                    plan_estado = school.get("plan_estado", "ACTIVO")
+                    from .subscription import calculate_plan_state
+                    plan_estado, dias_vencido = await calculate_plan_state(school)
                     user_role = user.get("role", "")
                     # SUSPENDIDO (7+ days): block ALL users
                     if plan_estado == "SUSPENDIDO":
-                        logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school SUSPENDIDO")
+                        logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school SUSPENDIDO ({dias_vencido} dias)")
                         raise HTTPException(
                             status_code=403,
                             detail="Su suscripcion a EDU.NET ha sido suspendida por falta de pago. Para reactivar su cuenta, comuniquese con soporte."

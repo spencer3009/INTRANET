@@ -126,16 +126,16 @@ async def subscription_restriction_middleware(request: Request, call_next):
                 token = auth_header[7:]
                 try:
                     payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-                    user_id = payload.get("sub")
                     role = payload.get("role", "")
                     school_id = payload.get("school_id")
-                    if user_id and role in ("owner", "admin") and school_id:
+                    if role in ("owner", "admin") and school_id:
                         school = await db.schools.find_one(
                             {"id": school_id},
-                            {"_id": 0, "plan_estado": 1}
+                            {"_id": 0, "id": 1, "fecha_vencimiento": 1, "expiration_date": 1}
                         )
                         if school:
-                            estado = school.get("plan_estado", "ACTIVO")
+                            from routes.subscription import calculate_plan_state
+                            estado, _ = await calculate_plan_state(school)
                             if estado == "RESTRICCION_PARCIAL":
                                 return JSONResponse(
                                     status_code=403,
