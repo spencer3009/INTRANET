@@ -57,7 +57,7 @@ export default function SubscriptionBanner() {
         </div>
       </div>
       {/* Spacer to push content below the fixed banner */}
-      <div className="h-[72px]" data-testid="banner-spacer" />
+      <div className="h-[84px]" data-testid="banner-spacer" />
 
       {showPayModal && (
         <PaymentBlockModal token={token} onClose={() => { setShowPayModal(false); ctx?.refresh(); }} />
