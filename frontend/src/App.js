@@ -277,9 +277,15 @@ function SubscriptionGuard({ token, user, children }) {
 
 // Global subscription overlay - shows banner, auto-modal for PAGO_OBLIGATORIO, and SuspendedScreen
 function GlobalSubscriptionOverlay({ token, user }) {
+  const location = useLocation();
   if (!token || !user?.school_id) return null;
   const isSupportUser = user?.role === "system_admin_global" || user?.original_role === "system_admin_global";
   if (isSupportUser) return null;
+
+  // Don't show on public pages (landing, login, register, etc.)
+  const path = location.pathname;
+  const isPublicPage = path === "/" || path.endsWith("/login") || path.endsWith("/register") || path === "/login" || path === "/register";
+  if (isPublicPage) return null;
 
   return <SubscriptionEnforcer token={token} />;
 }
