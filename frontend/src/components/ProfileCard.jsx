@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Crown, Shield, ShieldCheck, ShieldAlert, ShieldOff, Clock, CalendarDays, CalendarClock, CreditCard, Loader2 } from "lucide-react";
-import PaymentBlockModal from "./PaymentBlockModal";
 
 function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
   const getInitials = (name) => {
@@ -57,7 +56,7 @@ function getSubState(expDate) {
 
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" }) : "—";
 
-export default function ProfileCard({ user, stats, ownerStats, schoolName, token }) {
+export default function ProfileCard({ user, stats, ownerStats, schoolName, token, onPayClick }) {
   const userPhoto = user?.photo_url;
   const userName = user?.name || "Usuario";
   const userEmail = user?.email || "";
@@ -68,7 +67,6 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
   const showSub = isOwner || isAdmin;
 
   const [school, setSchool] = useState(null);
-  const [showPayModal, setShowPayModal] = useState(false);
   const [pendingRequest, setPendingRequest] = useState(null);
 
   useEffect(() => {
@@ -197,7 +195,7 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
             </div>
           ) : (
             <button
-              onClick={() => setShowPayModal(true)}
+              onClick={() => onPayClick?.()}
               className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-xs font-bold text-white transition-colors"
               style={{ backgroundColor: "#7B1FA2" }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = "#6A1B8A"}
@@ -223,14 +221,6 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
         </div>
       ) : null}
     </div>
-
-    {/* Payment Modal */}
-    {showPayModal && (
-      <PaymentBlockModal
-        token={token}
-        onClose={() => setShowPayModal(false)}
-      />
-    )}
     </>
   );
 }

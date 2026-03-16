@@ -21,6 +21,7 @@ import MessageCenter from "@/components/MessageCenter";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import SubscriptionCard from "@/components/SubscriptionCard";
 // Subscription handled globally by App.js GlobalSubscriptionOverlay
+import PaymentBlockModal from "@/components/PaymentBlockModal";
 import { AlertTriangle, RefreshCw, CheckCircle, XCircle, Newspaper, CalendarDays, ClipboardList, ArrowRight } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -210,6 +211,7 @@ function DashboardInner({
   const systemEmail = settings?.system_email || "";
   const whatsapp = settings?.whatsapp || "";
   const websiteUrl = settings?.website_url || "";
+  const [showPayModal, setShowPayModal] = useState(false);
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="dashboard-container">
@@ -334,7 +336,7 @@ function DashboardInner({
 
             {/* Right column */}
             <div className="lg:col-span-4 space-y-6">
-              <ProfileCard user={user} stats={{ subjects: metrics?.subjects || 0, students: metrics?.students || 0 }} ownerStats={ownerStats} schoolName={schoolName} token={token} />
+              <ProfileCard user={user} stats={{ subjects: metrics?.subjects || 0, students: metrics?.students || 0 }} ownerStats={ownerStats} schoolName={schoolName} token={token} onPayClick={() => setShowPayModal(true)} />
               <EventsList events={calendarEvents.length > 0 ? calendarEvents : events} />
               <MiniCalendar events={calendarEvents} />
             </div>
@@ -405,6 +407,9 @@ function DashboardInner({
       {/* Global Message Center - Floating Button + Drawer */}
       <MessageCenter token={token} user={user} />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      {showPayModal && (
+        <PaymentBlockModal token={token} onClose={() => setShowPayModal(false)} />
+      )}
     </div>
   );
 }
