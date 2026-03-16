@@ -105,7 +105,7 @@ export default function PaymentBlockModal({ token, onClose }) {
                   value={operationCode}
                   onChange={(e) => setOperationCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                   placeholder="Ej: 12345678"
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-center text-xl font-bold tracking-[0.2em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-center text-base font-bold tracking-[0.15em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
                   data-testid="block-modal-operation-code"
                 />
               </div>
