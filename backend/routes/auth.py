@@ -318,7 +318,7 @@ async def login(creds: UserLogin):
                         logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school SUSPENDIDO ({dias_vencido} dias)")
                         raise HTTPException(
                             status_code=403,
-                            detail="Su suscripcion a EDU.NET ha sido suspendida por falta de pago. Para reactivar su cuenta, comuniquese con soporte."
+                            detail="Su suscripcion a EDU.NET ha sido suspendida. Para reactivar su cuenta, comuniquese con soporte."
                         )
                     # PAGO_OBLIGATORIO (4-6 days): block everyone except owner/admin
                     if plan_estado == "PAGO_OBLIGATORIO" and user_role not in ("owner", "admin"):

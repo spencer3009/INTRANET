@@ -118,7 +118,7 @@
     "admin_email": "admin@elroble.edu",
     "admin_password": "1234abc8",
     "school_subdomain": "elroble",
-    "base_url": "https://billing-dashboard-v2.preview.emergentagent.com"
+    "base_url": "https://edunet-subs.preview.emergentagent.com"
   },
 
   "seed_data_creation": "None - Used existing test data (parent Maria Peres Garcia linked to student Pepito Peres Rios via padre_id field)",
