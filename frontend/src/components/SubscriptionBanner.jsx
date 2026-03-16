@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { AlertTriangle, CreditCard, Info, X } from "lucide-react";
+import { AlertTriangle, CreditCard } from "lucide-react";
 import { useSubscription } from "../contexts/SubscriptionContext";
 import PaymentBlockModal from "./PaymentBlockModal";
 
@@ -11,7 +11,6 @@ export default function SubscriptionBanner() {
 
   const { plan_estado, dias_vencido, fecha_vencimiento, monto_plan } = ctx.sub;
 
-  // Only show for non-active, non-verification states
   if (!plan_estado || plan_estado === "ACTIVO" || plan_estado === "PAGO_EN_VERIFICACION") return null;
 
   const fmtDate = fecha_vencimiento
@@ -33,8 +32,8 @@ export default function SubscriptionBanner() {
             </div>
             <div className="min-w-0">
               <p className="text-sm font-bold text-red-800" data-testid="banner-title">
-                Se requiere un nuevo pago de suscripcion
-                <span className="font-normal text-red-600"> — La plataforma no puede continuar funcionando sin renovar el plan.</span>
+                Su suscripcion ha vencido.
+                <span className="font-normal text-red-600"> Para continuar utilizando la plataforma debe registrar su pago.</span>
               </p>
               <p className="text-xs text-red-600/80 mt-0.5">
                 {fmtDate && <>Vencio el {fmtDate}. </>}
@@ -56,7 +55,6 @@ export default function SubscriptionBanner() {
           </div>
         </div>
       </div>
-      {/* Spacer to push content below the fixed banner */}
       <div className="h-[84px]" data-testid="banner-spacer" />
 
       {showPayModal && (

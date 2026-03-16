@@ -1,17 +1,48 @@
 import { useState } from "react";
-import { ShieldAlert, CreditCard, Loader2, CheckCircle2, X } from "lucide-react";
+import { ShieldAlert, CreditCard, Loader2, CheckCircle2, X, Upload, Image as ImageIcon } from "lucide-react";
 import { useSubscription } from "../contexts/SubscriptionContext";
+import axios from "axios";
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function PaymentBlockModal({ token, onClose }) {
+export default function PaymentBlockModal({ token, onClose, forceLock }) {
   const ctx = useSubscription();
   const [operationCode, setOperationCode] = useState("");
+  const [screenshot, setScreenshot] = useState(null);
+  const [screenshotUrl, setScreenshotUrl] = useState("");
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const sub = ctx?.sub;
   if (!sub) return null;
+
+  const isObligatory = forceLock || sub.plan_estado === "PAGO_OBLIGATORIO";
+  const headers = { Authorization: `Bearer ${token}` };
+
+  const handleScreenshotUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const sigRes = await axios.get(`${API}/api/cloudinary/signature`, { headers, params: { folder: "edunet/uploads" } });
+      const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("signature", signature);
+      fd.append("timestamp", String(timestamp));
+      fd.append("api_key", api_key);
+      fd.append("folder", folder);
+      const uploadRes = await axios.post(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, fd);
+      setScreenshotUrl(uploadRes.data.secure_url);
+      setScreenshot(file.name);
+    } catch {
+      alert("Error al subir captura");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const handleSubmit = async () => {
     if (!operationCode.trim()) return;
@@ -19,13 +50,17 @@ export default function PaymentBlockModal({ token, onClose }) {
     try {
       const res = await fetch(`${API}/api/membership/request-payment`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ operation_code: operationCode, payment_method: "yape" }),
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          operation_code: operationCode,
+          payment_method: "yape",
+          screenshot_url: screenshotUrl || undefined,
+        }),
       });
       if (res.ok) {
         setSuccess(true);
         ctx.refresh();
-        setTimeout(() => onClose?.(), 3000);
+        if (!isObligatory) setTimeout(() => onClose?.(), 3000);
       } else {
         const err = await res.json();
         alert(err.detail || "Error al enviar solicitud");
@@ -48,16 +83,18 @@ export default function PaymentBlockModal({ token, onClose }) {
                 Suscripcion Vencida
               </h2>
               <p className="text-red-200 text-sm mt-1">
-                {sub.dias_vencido} dias vencido | S/ {sub.monto_plan?.toFixed(2)} pendiente
+                {sub.dias_vencido} dia{sub.dias_vencido !== 1 ? "s" : ""} vencido | S/ {sub.monto_plan?.toFixed(2)} pendiente
               </p>
             </div>
-            <button
-              onClick={onClose}
-              className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-              data-testid="block-modal-close"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {!isObligatory && (
+              <button
+                onClick={onClose}
+                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                data-testid="block-modal-close"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -65,7 +102,9 @@ export default function PaymentBlockModal({ token, onClose }) {
           {!success ? (
             <>
               <p className="text-sm text-slate-600 text-center">
-                Para continuar utilizando la plataforma EDU.NET debe registrar su pago mensual.
+                {isObligatory
+                  ? "Su acceso a los modulos esta restringido. Registre su pago para continuar."
+                  : "Para continuar utilizando la plataforma EDU.NET debe registrar su pago mensual."}
               </p>
 
               {(sub.qr_pago_url || sub.yape_number) && (
@@ -108,6 +147,29 @@ export default function PaymentBlockModal({ token, onClose }) {
                   className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-center text-base font-bold tracking-[0.15em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400"
                   data-testid="block-modal-operation-code"
                 />
+              </div>
+
+              {/* Screenshot upload (optional) */}
+              <div>
+                <label className="block text-xs font-medium text-slate-500 mb-1">Captura de pago (opcional)</label>
+                {!screenshot ? (
+                  <label className="flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-slate-200 rounded-xl text-sm text-slate-400 hover:border-violet-300 hover:text-violet-500 cursor-pointer transition-colors">
+                    {uploading ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo...</>
+                    ) : (
+                      <><Upload className="w-4 h-4" /> Subir captura</>
+                    )}
+                    <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" disabled={uploading} />
+                  </label>
+                ) : (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
+                    <ImageIcon className="w-4 h-4" />
+                    <span className="flex-1 truncate">{screenshot}</span>
+                    <button onClick={() => { setScreenshot(null); setScreenshotUrl(""); }} className="text-red-400 hover:text-red-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
               </div>
 
               <button

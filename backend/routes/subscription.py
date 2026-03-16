@@ -28,8 +28,36 @@ PLAN_STATES = [
 
 RESTRICTED_ACTIONS = [
     "create_student", "create_teacher", "create_subject",
-    "register_grades", "create_schedule", "register_payment",
+    "register_grades", "register_attendance", "create_schedule",
+    "register_payment", "send_mass_messages",
 ]
+
+
+async def check_subscription_restriction(user):
+    """Check if the school's subscription allows write operations.
+    Raises 403 if the school is in RESTRICCION_PARCIAL or worse.
+    Only applies to owner/admin roles.
+    """
+    role = user.get("role", "")
+    if role not in ("owner", "admin"):
+        return  # Non-admin roles are not restricted
+    school_id = user.get("school_id")
+    if not school_id:
+        return
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "plan_estado": 1})
+    if not school:
+        return
+    estado = school.get("plan_estado", "ACTIVO")
+    if estado in ("RESTRICCION_PARCIAL",):
+        raise HTTPException(
+            status_code=403,
+            detail="Accion restringida: su suscripcion esta vencida. Registre su pago para continuar."
+        )
+    if estado in ("PAGO_OBLIGATORIO", "SUSPENDIDO"):
+        raise HTTPException(
+            status_code=403,
+            detail="Acceso bloqueado: su suscripcion esta suspendida. Registre su pago para reactivar su cuenta."
+        )
 
 
 # ══════════════════════════════════════════════════════════════════════════════

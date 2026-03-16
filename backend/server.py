@@ -107,6 +107,51 @@ async def demo_user_middleware(request: Request, call_next):
     return response
 
 # ══════════════════════════════════════════════════════════════════════════════
+# SUBSCRIPTION RESTRICTION MIDDLEWARE
+# ══════════════════════════════════════════════════════════════════════════════
+
+# Routes that are blocked during RESTRICCION_PARCIAL (write operations only)
+SUBSCRIPTION_SAFE_PATHS = [
+    "/api/auth/", "/api/subscription/", "/api/membership/",
+    "/api/support/", "/api/cloudinary/", "/api/dashboard/",
+]
+
+@app.middleware("http")
+async def subscription_restriction_middleware(request: Request, call_next):
+    if request.method in ["POST", "PUT", "PATCH", "DELETE"]:
+        path = request.url.path
+        if path.startswith("/api/") and not any(path.startswith(safe) for safe in SUBSCRIPTION_SAFE_PATHS):
+            auth_header = request.headers.get("authorization", "")
+            if auth_header.startswith("Bearer "):
+                token = auth_header[7:]
+                try:
+                    payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+                    user_id = payload.get("sub")
+                    role = payload.get("role", "")
+                    school_id = payload.get("school_id")
+                    if user_id and role in ("owner", "admin") and school_id:
+                        school = await db.schools.find_one(
+                            {"id": school_id},
+                            {"_id": 0, "plan_estado": 1}
+                        )
+                        if school:
+                            estado = school.get("plan_estado", "ACTIVO")
+                            if estado == "RESTRICCION_PARCIAL":
+                                return JSONResponse(
+                                    status_code=403,
+                                    content={"detail": "Accion restringida: su suscripcion esta vencida. Registre su pago para continuar utilizando esta funcion."}
+                                )
+                            elif estado in ("PAGO_OBLIGATORIO", "SUSPENDIDO"):
+                                return JSONResponse(
+                                    status_code=403,
+                                    content={"detail": "Acceso bloqueado: su suscripcion esta suspendida. Registre su pago para reactivar su cuenta."}
+                                )
+                except Exception:
+                    pass
+    response = await call_next(request)
+    return response
+
+# ══════════════════════════════════════════════════════════════════════════════
 # INCLUDE ALL ROUTERS
 # ══════════════════════════════════════════════════════════════════════════════
 

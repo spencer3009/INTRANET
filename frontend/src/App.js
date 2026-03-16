@@ -262,12 +262,12 @@ function SubscriptionGuard({ token, user, children }) {
     return <SuspendedScreen token={token} />;
   }
 
-  // PAGO_OBLIGATORIO - show modal over content
+  // PAGO_OBLIGATORIO - show mandatory modal over content (not closeable)
   if (plan_estado === "PAGO_OBLIGATORIO") {
     return (
       <>
         {children}
-        <PaymentBlockModal token={token} onClose={() => ctx.refresh()} />
+        <PaymentBlockModal token={token} forceLock onClose={() => ctx.refresh()} />
       </>
     );
   }
