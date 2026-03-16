@@ -146,6 +146,12 @@ async def get_subscription_status(current_user=Depends(get_current_user)):
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
 
+    # Only owner and admin roles see financial/subscription info
+    ADMIN_ROLES = ("owner", "admin", "system_admin_global")
+    user_role = user.get("role", "")
+    if user_role not in ADMIN_ROLES:
+        return {"plan_estado": "ACTIVO", "dias_vencido": 0, "restricted_actions": []}
+
     school_id = user.get("school_id")
     if not school_id:
         return {"plan_estado": "ACTIVO", "dias_vencido": 0}
