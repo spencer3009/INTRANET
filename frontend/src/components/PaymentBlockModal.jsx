@@ -69,22 +69,22 @@ export default function PaymentBlockModal({ token, onClose }) {
               </p>
 
               {(sub.qr_pago_url || sub.yape_number) && (
-                <div className="rounded-2xl p-[3px] bg-gradient-to-br from-violet-400 via-purple-400 to-violet-500 shadow-lg" data-testid="yape-qr-frame">
+                <div className="rounded-2xl p-[3px] bg-gradient-to-br from-violet-400 via-purple-400 to-violet-500 shadow-lg mx-auto max-w-[240px]" data-testid="yape-qr-frame">
                   <div className="rounded-[13px] overflow-hidden bg-[#7B2D8E]">
-                    <div className="flex justify-center pt-3 pb-1.5">
-                      <span className="text-white font-extrabold text-lg italic tracking-tight" style={{ fontFamily: 'cursive' }}>yape</span>
+                    <div className="flex justify-center pt-2.5 pb-1">
+                      <span className="text-white font-extrabold text-sm italic tracking-tight" style={{ fontFamily: 'cursive' }}>yape</span>
                     </div>
                     {sub.qr_pago_url && (
-                      <div className="px-3 pb-1.5">
-                        <div className="bg-white rounded-lg p-1.5 flex justify-center">
-                          <img src={sub.qr_pago_url} alt="QR Yape" className="w-full object-contain" />
+                      <div className="px-3 pb-1">
+                        <div className="bg-white rounded-lg p-1 flex justify-center">
+                          <img src={sub.qr_pago_url} alt="QR Yape" className="w-full max-h-40 object-contain" />
                         </div>
                       </div>
                     )}
                     {sub.yape_number && (
-                      <div className="text-center pb-3 pt-1">
-                        <p className="text-white/70 text-[10px]">Numero Yape</p>
-                        <p className="text-white font-bold text-sm tracking-wide">+51 {sub.yape_number}</p>
+                      <div className="text-center pb-2.5 pt-0.5">
+                        <p className="text-white/70 text-[9px]">Numero Yape</p>
+                        <p className="text-white font-bold text-xs tracking-wide">+51 {sub.yape_number}</p>
                       </div>
                     )}
                   </div>
