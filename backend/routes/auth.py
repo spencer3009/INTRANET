@@ -308,15 +308,23 @@ async def login(creds: UserLogin):
                 except Exception as debt_err:
                     logger.error(f"[LOGIN] Error checking debt restrictions: {debt_err}")
 
-                # Block non-admin roles when subscription is PAGO_OBLIGATORIO or SUSPENDIDO
+                # Block login based on subscription state
                 try:
                     plan_estado = school.get("plan_estado", "ACTIVO")
                     user_role = user.get("role", "")
-                    if plan_estado in ("PAGO_OBLIGATORIO", "SUSPENDIDO") and user_role not in ("owner", "admin"):
+                    # PAGO_OBLIGATORIO (4-7 days): block everyone except owner/admin
+                    if plan_estado == "PAGO_OBLIGATORIO" and user_role not in ("owner", "admin"):
                         logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school subscription: {plan_estado}")
                         raise HTTPException(
                             status_code=403,
                             detail="El acceso a la plataforma esta temporalmente suspendido. Comuniquese con la administracion de su colegio."
+                        )
+                    # SUSPENDIDO (>7 days): block ALL users including owner/admin
+                    if plan_estado == "SUSPENDIDO":
+                        logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school SUSPENDIDO")
+                        raise HTTPException(
+                            status_code=403,
+                            detail="Su suscripcion a EDU.NET ha sido suspendida por falta de pago. Para reactivar su cuenta, comuniquese con soporte."
                         )
                 except HTTPException:
                     raise
