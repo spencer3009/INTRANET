@@ -282,10 +282,22 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   };
 
   const handleRenewMembership = async (schoolId, schoolName) => {
-    // Find the school to get its price
     const school = mySchools.find(s => s.id === schoolId);
-    setRenewModal({ schoolId, schoolName, price: school?.calculated_price || 0 });
-    setRenewCode("");
+    // Fetch pending payment request to get the client's operation code
+    let pendingPayment = null;
+    try {
+      const res = await axios.get(`${API}/support/payment-requests`, { headers });
+      pendingPayment = res.data.find(p => p.school_id === schoolId && p.status === "processing");
+    } catch {}
+    setRenewModal({
+      schoolId,
+      schoolName,
+      price: school?.calculated_price || 0,
+      clientCode: pendingPayment?.operation_code || "",
+      paymentMethod: pendingPayment?.payment_method || "",
+      paymentDate: pendingPayment?.created_at || "",
+    });
+    setRenewCode(pendingPayment?.operation_code || "");
   };
 
   const handleConfirmRenewal = async () => {
@@ -1007,29 +1019,43 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 </div>
               </div>
 
-              {/* Operation code input */}
-              <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-2">
-                  Numero de operacion <span className="text-red-500">*</span>
-                </label>
-                <p className="text-xs text-slate-400 mb-2">
-                  Ingresa el codigo de 8 digitos que el cliente envio con su pago
-                </p>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={8}
-                  value={renewCode}
-                  onChange={(e) => setRenewCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                  placeholder="Ej: 12345678"
-                  className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-center text-2xl font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-all"
-                  data-testid="renew-operation-code-input"
-                  autoFocus
-                />
-                <p className={`text-xs mt-1.5 text-right font-medium ${renewCode.length === 8 ? "text-emerald-500" : "text-slate-400"}`}>
-                  {renewCode.length}/8 digitos
-                </p>
-              </div>
+              {/* Client operation code (read-only) */}
+              {renewModal.clientCode ? (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Codigo enviado por el cliente
+                  </label>
+                  <div className="w-full px-4 py-3 bg-violet-50 border-2 border-violet-300 rounded-xl text-center text-2xl font-bold tracking-[0.3em] text-violet-700">
+                    {renewModal.clientCode}
+                  </div>
+                  <p className="text-xs mt-1.5 text-slate-400">
+                    Verifica que este codigo coincida con tu registro de Yape
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">
+                    Numero de operacion <span className="text-red-500">*</span>
+                  </label>
+                  <p className="text-xs text-slate-400 mb-2">
+                    No hay pago pendiente. Ingresa el codigo manualmente.
+                  </p>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={8}
+                    value={renewCode}
+                    onChange={(e) => setRenewCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                    placeholder="Ej: 12345678"
+                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-center text-2xl font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-all"
+                    data-testid="renew-operation-code-input"
+                    autoFocus
+                  />
+                  <p className={`text-xs mt-1.5 text-right font-medium ${renewCode.length === 8 ? "text-emerald-500" : "text-slate-400"}`}>
+                    {renewCode.length}/8 digitos
+                  </p>
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-3 pt-1">
