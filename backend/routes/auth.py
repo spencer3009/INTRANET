@@ -312,19 +312,19 @@ async def login(creds: UserLogin):
                 try:
                     plan_estado = school.get("plan_estado", "ACTIVO")
                     user_role = user.get("role", "")
-                    # PAGO_OBLIGATORIO (4-7 days): block everyone except owner/admin
-                    if plan_estado == "PAGO_OBLIGATORIO" and user_role not in ("owner", "admin"):
-                        logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school subscription: {plan_estado}")
-                        raise HTTPException(
-                            status_code=403,
-                            detail="El acceso a la plataforma esta temporalmente suspendido. Comuniquese con la administracion de su colegio."
-                        )
-                    # SUSPENDIDO (>7 days): block ALL users including owner/admin
+                    # SUSPENDIDO (7+ days): block ALL users
                     if plan_estado == "SUSPENDIDO":
                         logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school SUSPENDIDO")
                         raise HTTPException(
                             status_code=403,
                             detail="Su suscripcion a EDU.NET ha sido suspendida por falta de pago. Para reactivar su cuenta, comuniquese con soporte."
+                        )
+                    # PAGO_OBLIGATORIO (4-6 days): block everyone except owner/admin
+                    if plan_estado == "PAGO_OBLIGATORIO" and user_role not in ("owner", "admin"):
+                        logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school subscription: {plan_estado}")
+                        raise HTTPException(
+                            status_code=403,
+                            detail="El acceso a la plataforma esta temporalmente suspendido. Comuniquese con la administracion de su colegio."
                         )
                 except HTTPException:
                     raise
