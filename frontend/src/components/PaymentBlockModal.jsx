@@ -149,29 +149,6 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
                 />
               </div>
 
-              {/* Screenshot upload (optional) */}
-              <div>
-                <label className="block text-xs font-medium text-slate-500 mb-1">Captura de pago (opcional)</label>
-                {!screenshot ? (
-                  <label className="flex items-center justify-center gap-2 px-3 py-2 border-2 border-dashed border-slate-200 rounded-xl text-sm text-slate-400 hover:border-violet-300 hover:text-violet-500 cursor-pointer transition-colors">
-                    {uploading ? (
-                      <><Loader2 className="w-4 h-4 animate-spin" /> Subiendo...</>
-                    ) : (
-                      <><Upload className="w-4 h-4" /> Subir captura</>
-                    )}
-                    <input type="file" accept="image/*" onChange={handleScreenshotUpload} className="hidden" disabled={uploading} />
-                  </label>
-                ) : (
-                  <div className="flex items-center gap-2 px-3 py-2 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">
-                    <ImageIcon className="w-4 h-4" />
-                    <span className="flex-1 truncate">{screenshot}</span>
-                    <button onClick={() => { setScreenshot(null); setScreenshotUrl(""); }} className="text-red-400 hover:text-red-600">
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-
               <button
                 onClick={handleSubmit}
                 disabled={operationCode.length !== 8 || submitting}
