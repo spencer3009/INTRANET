@@ -307,6 +307,21 @@ async def login(creds: UserLogin):
                     raise
                 except Exception as debt_err:
                     logger.error(f"[LOGIN] Error checking debt restrictions: {debt_err}")
+
+                # Block non-admin roles when subscription is PAGO_OBLIGATORIO or SUSPENDIDO
+                try:
+                    plan_estado = school.get("plan_estado", "ACTIVO")
+                    user_role = user.get("role", "")
+                    if plan_estado in ("PAGO_OBLIGATORIO", "SUSPENDIDO") and user_role not in ("owner", "admin"):
+                        logger.info(f"[LOGIN] Blocked {user_role} '{identifier}' - school subscription: {plan_estado}")
+                        raise HTTPException(
+                            status_code=403,
+                            detail="El acceso a la plataforma esta temporalmente suspendido. Comuniquese con la administracion de su colegio."
+                        )
+                except HTTPException:
+                    raise
+                except Exception as sub_err:
+                    logger.error(f"[LOGIN] Error checking subscription: {sub_err}")
                 
                 # Student status login restriction
                 if user.get("role") == "student":
