@@ -51,6 +51,13 @@ export default function PaymentBlockModal({ token, onClose }) {
                 {sub.dias_vencido} dias vencido | S/ {sub.monto_plan?.toFixed(2)} pendiente
               </p>
             </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              data-testid="block-modal-close"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -105,7 +112,7 @@ export default function PaymentBlockModal({ token, onClose }) {
                 href="https://wa.me/51992021294?text=Hola,%20necesito%20ayuda%20con%20mi%20pago%20de%20EduNet"
                 target="_blank"
                 rel="noreferrer"
-                className="block text-center text-sm text-slate-500 hover:text-violet-600 transition-colors"
+                className="block text-center text-sm text-violet-600 hover:text-violet-800 font-medium transition-colors"
               >
                 Necesitas ayuda? Contactar soporte
               </a>
