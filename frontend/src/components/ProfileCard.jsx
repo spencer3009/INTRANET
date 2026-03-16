@@ -48,10 +48,13 @@ function getSubState(expDate) {
   const exp = new Date(expDate);
   const diffMs = exp - now;
   const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-  if (days <= 0) return { id: "suspended", days: 0, label: "Suspendido", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-600 text-white" };
-  if (days <= 5) return { id: "critical", days, label: "Vence pronto", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-50 text-red-700 ring-1 ring-red-200" };
-  if (days <= 10) return { id: "warning", days, label: "Proximo a vencer", color: "text-amber-600", bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" };
-  return { id: "active", days, label: "Activo", color: "text-emerald-600", bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" };
+  if (days <= 0) {
+    const overdueDays = Math.abs(days);
+    return { id: "suspended", days: 0, overdueDays, label: "Suspendido", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-600 text-white" };
+  }
+  if (days <= 5) return { id: "critical", days, overdueDays: 0, label: "Vence pronto", color: "text-red-600", bar: "bg-red-500", badge: "bg-red-50 text-red-700 ring-1 ring-red-200" };
+  if (days <= 10) return { id: "warning", days, overdueDays: 0, label: "Proximo a vencer", color: "text-amber-600", bar: "bg-amber-500", badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" };
+  return { id: "active", days, overdueDays: 0, label: "Activo", color: "text-emerald-600", bar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" };
 }
 
 const fmtDate = (iso) => iso ? new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric" }) : "—";
@@ -83,11 +86,12 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
       .catch(() => {});
   }, [token, showSub]);
 
-  const subState = school ? getSubState(school.expiration_date) : null;
+  const subState = school ? getSubState(school.fecha_vencimiento || school.expiration_date) : null;
   const p = school?.pricing;
+  const expDateForProgress = school?.fecha_vencimiento || school?.expiration_date;
   const progress = (() => {
-    if (!school?.created_at || !school?.expiration_date) return 0;
-    const s = new Date(school.created_at), e = new Date(school.expiration_date), n = new Date();
+    if (!school?.created_at || !expDateForProgress) return 0;
+    const s = new Date(school.created_at), e = new Date(expDateForProgress), n = new Date();
     const total = e - s;
     if (total <= 0) return 100;
     return Math.min(100, Math.max(2, Math.round(((n - s) / total) * 100)));
@@ -173,7 +177,7 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
             </div>
             <div className="flex items-center gap-1">
               <CalendarClock className="w-3.5 h-3.5 text-slate-400" />
-              <span className="font-semibold">{fmtDate(school.expiration_date)}</span>
+              <span className="font-semibold">{fmtDate(school.fecha_vencimiento || school.expiration_date)}</span>
             </div>
           </div>
 
@@ -184,7 +188,10 @@ export default function ProfileCard({ user, stats, ownerStats, schoolName, token
               <span className="text-xs font-semibold">{subState.days} dias restantes</span>
             </div>
           ) : (
-            <p className="text-xs text-center text-slate-500 font-medium">Contacte soporte</p>
+            <div className="flex items-center justify-center gap-1 text-red-600">
+              <ShieldAlert className="w-3 h-3" />
+              <span className="text-xs font-bold">{subState.overdueDays} {subState.overdueDays === 1 ? 'dia' : 'dias'} vencido</span>
+            </div>
           )}
 
           {/* Payment button / pending badge */}
