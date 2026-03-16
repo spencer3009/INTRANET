@@ -5,10 +5,9 @@ import PaymentBlockModal from "./PaymentBlockModal";
 
 export default function SubscriptionBanner() {
   const ctx = useSubscription();
-  const [hidden, setHidden] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
 
-  if (hidden || !ctx || !ctx.sub) return null;
+  if (!ctx || !ctx.sub) return null;
 
   const { plan_estado, dias_vencido, fecha_vencimiento, monto_plan } = ctx.sub;
 
@@ -24,7 +23,7 @@ export default function SubscriptionBanner() {
   return (
     <>
       <div
-        className="fixed top-0 left-0 right-0 z-[100] bg-red-50 border-b border-red-200 px-4 py-2.5 shadow-sm"
+        className="fixed top-0 left-0 right-0 z-[100] bg-red-50 border-2 border-red-300 rounded-xl mx-3 mt-2 px-5 py-3.5 shadow-sm"
         data-testid="subscription-banner"
       >
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center gap-2">
@@ -47,13 +46,6 @@ export default function SubscriptionBanner() {
 
           <div className="flex items-center gap-2 flex-shrink-0 ml-10 sm:ml-0">
             <button
-              onClick={() => setHidden(true)}
-              className="px-3 py-1.5 text-xs font-medium text-red-600 hover:text-red-800 hover:bg-red-100 rounded-lg transition-colors"
-              data-testid="banner-hide-btn"
-            >
-              Ocultar
-            </button>
-            <button
               onClick={() => setShowPayModal(true)}
               className="px-4 py-1.5 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-1.5"
               data-testid="banner-pay-btn"
@@ -65,7 +57,7 @@ export default function SubscriptionBanner() {
         </div>
       </div>
       {/* Spacer to push content below the fixed banner */}
-      <div className="h-[52px]" data-testid="banner-spacer" />
+      <div className="h-[60px]" data-testid="banner-spacer" />
 
       {showPayModal && (
         <PaymentBlockModal token={token} onClose={() => { setShowPayModal(false); ctx?.refresh(); }} />
