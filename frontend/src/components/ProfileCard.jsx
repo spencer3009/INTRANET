@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
-import { Crown, Shield, ShieldCheck, ShieldAlert, ShieldOff, Clock, CalendarDays, CalendarClock, CreditCard, X, Loader2, CheckCircle2 } from "lucide-react";
+import { Crown, Shield, ShieldCheck, ShieldAlert, ShieldOff, Clock, CalendarDays, CalendarClock, CreditCard, Loader2 } from "lucide-react";
 import PaymentBlockModal from "./PaymentBlockModal";
 
 function DefaultAvatar({ name, size = "w-20 h-20", textSize = "text-2xl" }) {
