@@ -69,24 +69,26 @@ export default function SupportPricingPage({ token }) {
     if (!file) return;
     setUploading(true);
     try {
-      // Get Cloudinary signature
+      // Step 1: Get Cloudinary signature
       const sigRes = await axios.get(`${API}/cloudinary/signature`, { headers, params: { folder: "edunet/qr" } });
       const { signature, timestamp, cloud_name, api_key, folder } = sigRes.data;
-      // Upload to Cloudinary
+      // Step 2: Upload to Cloudinary
       const fd = new FormData();
       fd.append("file", file);
       fd.append("signature", signature);
-      fd.append("timestamp", timestamp);
+      fd.append("timestamp", String(timestamp));
       fd.append("api_key", api_key);
       fd.append("folder", folder);
       const uploadRes = await axios.post(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, fd);
       const url = uploadRes.data.secure_url;
       setQrUrl(url);
-      // Save immediately
+      // Step 3: Save config
       await axios.put(`${API}/subscription/qr-config`, { qr_pago_url: url, yape_number: yapeNumber }, { headers });
-      toast.success("QR actualizado");
+      toast.success("QR actualizado exitosamente");
     } catch (err) {
-      toast.error("Error al subir imagen");
+      const detail = err.response?.data?.error?.message || err.response?.data?.detail || err.message || "Error desconocido";
+      toast.error(`Error al subir imagen: ${detail}`);
+      console.error("QR upload error:", err.response?.data || err.message);
     } finally {
       setUploading(false);
       e.target.value = "";
