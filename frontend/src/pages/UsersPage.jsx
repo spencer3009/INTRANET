@@ -2595,7 +2595,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   // Helper function to render student card for grouped view
-  const renderStudentCard = (student, roleConfig, levelColor, gradeName, sectionName) => (
+  const renderStudentCard = (student, roleConfig, levelColor, gradeName, sectionName) => {
+    const st = student.student_status || "active";
+    const statusCfg = { pending: "bg-amber-100 text-amber-700", enrolled: "bg-blue-100 text-blue-700", active: "bg-emerald-100 text-emerald-700", withdrawn: "bg-red-100 text-red-700" };
+    const statusLbl = { pending: "Pendiente", enrolled: "Matriculado", active: "Activo", withdrawn: "Retirado" };
+    const levelName = levelColor?.text?.includes('emerald') ? 'INICIAL' : levelColor?.text?.includes('blue') ? 'PRIMARIA' : 'SECUNDARIA';
+
+    return (
     <div 
       key={student.id}
       className={`group relative overflow-hidden bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border-2 ${levelColor?.border || roleConfig.borderColor}`}
@@ -2603,49 +2609,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     >
       <div className={`h-1.5 bg-gradient-to-r ${levelColor?.gradient || roleConfig.gradientBg}`}></div>
       <div className="p-4">
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-20 h-20 rounded-xl overflow-hidden border-2 border-slate-100">
-                {student.photo_url ? (
-                  <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <div className={`w-full h-full ${levelColor?.light || 'bg-amber-50'} flex items-center justify-center`}>
-                    <span className={`text-2xl font-bold ${levelColor?.text || 'text-amber-600'}`}>
-                      {student.name?.charAt(0)?.toUpperCase()}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className={`absolute -bottom-1 -right-1`}>
-                <button
-                  onClick={(e) => { e.stopPropagation(); handleCardPhotoClick(student); }}
-                  className="w-7 h-7 bg-white rounded-full border-2 border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-emerald-400 transition-all cursor-pointer shadow-sm group/cam"
-                  title="Cambiar foto"
-                  data-testid={`photo-upload-btn-${student.id}`}
-                >
-                  <Camera className="w-3.5 h-3.5 text-slate-400 group-hover/cam:text-emerald-500" />
-                </button>
-              </div>
-            </div>
-            <div>
-              <p className="font-bold text-slate-800 text-base leading-tight flex items-center gap-1.5">
-                {student.name} {student.last_name}
-                {student.is_demo_user && (
-                  <span className="px-1.5 py-0.5 text-[9px] font-bold bg-blue-100 text-blue-700 rounded-full">DEMO</span>
-                )}
-              </p>
-              <div className="flex items-center gap-2 mt-1">
-                <p className="text-sm text-slate-400">@{student.username}</p>
-                {(() => {
-                  const st = student.student_status || "active";
-                  const cfg = { pending: "bg-amber-100 text-amber-700", enrolled: "bg-blue-100 text-blue-700", active: "bg-emerald-100 text-emerald-700", withdrawn: "bg-red-100 text-red-700" };
-                  const lbl = { pending: "Pendiente", enrolled: "Matriculado", active: "Activo", withdrawn: "Retirado" };
-                  return <span className={`px-2.5 py-1 text-xs font-bold rounded-full ${cfg[st] || cfg.active}`}>{lbl[st] || st}</span>;
-                })()}
-              </div>
-            </div>
-          </div>
+        {/* Menu button - top right */}
+        <div className="absolute top-3 right-3 z-10">
           <div className="relative">
             <button
               onClick={(e) => {
@@ -2660,12 +2625,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-xl shadow-lg border border-slate-100 py-1 z-30">
                 <button
                   onClick={() => {
-                    setQRStudent({ 
-                      ...student, 
-                      grade_name: gradeName, 
-                      section_name: sectionName,
-                      level_name: levelColor?.text?.includes('emerald') ? 'INICIAL' : levelColor?.text?.includes('blue') ? 'PRIMARIA' : 'SECUNDARIA'
-                    });
+                    setQRStudent({ ...student, grade_name: gradeName, section_name: sectionName, level_name: levelName });
                     setShowQRModal(true);
                     setOpenMenuId(null);
                   }}
@@ -2675,10 +2635,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   Ver QR
                 </button>
                 <button
-                  onClick={() => {
-                    handleEditUser(student.id);
-                    setOpenMenuId(null);
-                  }}
+                  onClick={() => { handleEditUser(student.id); setOpenMenuId(null); }}
                   className="w-full px-3 py-2 text-left text-xs hover:bg-slate-50 flex items-center gap-2"
                 >
                   <Pencil className="w-3.5 h-3.5" />
@@ -2705,7 +2662,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <button
                     onClick={async () => {
                       setOpenMenuId(null);
-                      if (!window.confirm("¿Retirar a este alumno? No podra acceder al sistema.")) return;
+                      if (!window.confirm("Retirar a este alumno? No podra acceder al sistema.")) return;
                       try {
                         await axios.put(`${API}/students/${student.id}/status?status=withdrawn`, {}, { headers });
                         toast.success("Alumno retirado");
@@ -2735,10 +2692,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   </button>
                 )}
                 <button
-                  onClick={() => {
-                    handleDeleteClick(student);
-                    setOpenMenuId(null);
-                  }}
+                  onClick={() => { handleDeleteClick(student); setOpenMenuId(null); }}
                   className="w-full px-3 py-2 text-left text-xs hover:bg-red-50 text-red-600 flex items-center gap-2"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -2748,43 +2702,100 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
             )}
           </div>
         </div>
-        <div className="space-y-1.5 text-xs">
-          {student.email && (
-            <div className="flex items-center gap-2 text-slate-500">
-              <Mail className="w-3 h-3 text-slate-400" />
-              <span className="truncate">{student.email}</span>
+
+        {/* Photo centered */}
+        <div className="flex flex-col items-center">
+          <div className="relative mb-3">
+            <div className="w-24 h-24 rounded-full overflow-hidden border-3 border-slate-100 shadow-sm">
+              {student.photo_url ? (
+                <img src={student.photo_url} alt="" className="w-full h-full object-cover" />
+              ) : (
+                <div className={`w-full h-full ${levelColor?.light || 'bg-amber-50'} flex items-center justify-center`}>
+                  <span className={`text-3xl font-bold ${levelColor?.text || 'text-amber-600'}`}>
+                    {student.name?.charAt(0)?.toUpperCase()}
+                  </span>
+                </div>
+              )}
             </div>
-          )}
-          {student.phone && (
-            <div className="flex items-center gap-2 text-slate-500">
-              <Phone className="w-3 h-3 text-slate-400" />
-              <span>{student.phone}</span>
-            </div>
-          )}
-        </div>
-        {student.qr_token && (
-          <div className="mt-3 pt-3 border-t border-slate-100 flex justify-center">
             <button
-              onClick={() => {
-                setQRStudent({ 
-                  ...student, 
-                  grade_name: gradeName, 
-                  section_name: sectionName 
-                });
-                setShowQRModal(true);
-              }}
-              className="flex flex-col items-center gap-1 p-1 rounded-lg hover:bg-slate-50 transition-colors"
+              onClick={(e) => { e.stopPropagation(); handleCardPhotoClick(student); }}
+              className="absolute -bottom-1 -right-1 w-8 h-8 bg-white rounded-full border-2 border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:border-emerald-400 transition-all cursor-pointer shadow-sm"
+              title="Cambiar foto"
+              data-testid={`photo-upload-btn-${student.id}`}
             >
-              <div className="bg-white p-1 rounded border border-slate-200">
-                <QRCodeSVG value={student.qr_token} size={40} level="L" />
-              </div>
-              <span className="text-[9px] font-medium text-slate-400 uppercase">QR Code</span>
+              <Camera className="w-4 h-4 text-slate-400" />
             </button>
           </div>
-        )}
+
+          {/* Name */}
+          <p className="font-bold text-slate-800 text-base text-center leading-tight">
+            {student.name} {student.last_name}
+            {student.is_demo_user && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-bold bg-blue-100 text-blue-700 rounded-full align-middle">DEMO</span>
+            )}
+          </p>
+
+          {/* Email */}
+          {student.email && (
+            <p className="text-sm text-slate-400 mt-1 truncate max-w-full">{student.email}</p>
+          )}
+
+          {/* Status badge */}
+          <span className={`mt-2.5 px-4 py-1.5 text-xs font-bold rounded-full ${statusCfg[st] || statusCfg.active}`}>
+            {statusLbl[st] || st}
+          </span>
+        </div>
+
+        {/* Divider */}
+        <div className={`mt-4 mb-3 border-t-2 ${levelColor?.border || 'border-amber-200'}`} style={{ opacity: 0.4 }}></div>
+
+        {/* Bottom section: Info + QR */}
+        <div className="flex items-end justify-between gap-3">
+          <div className="space-y-1.5 text-xs min-w-0 flex-1">
+            {student.phone && (
+              <div className="flex items-center gap-2 text-slate-600">
+                <div className="w-6 h-6 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <Phone className="w-3 h-3 text-amber-500" />
+                </div>
+                <span className="truncate">{student.phone}</span>
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-slate-600">
+              <div className="w-6 h-6 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                <GraduationCap className="w-3 h-3 text-amber-500" />
+              </div>
+              <span className="truncate">{levelName} - {gradeName} - {sectionName}</span>
+            </div>
+            {student.created_at && (
+              <div className="flex items-center gap-2 text-slate-600">
+                <div className="w-6 h-6 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+                  <FileText className="w-3 h-3 text-amber-500" />
+                </div>
+                <span>Registrado: {new Date(student.created_at).toLocaleDateString("es-PE")}</span>
+              </div>
+            )}
+          </div>
+
+          {/* QR Code */}
+          {student.qr_token && (
+            <button
+              onClick={() => {
+                setQRStudent({ ...student, grade_name: gradeName, section_name: sectionName });
+                setShowQRModal(true);
+              }}
+              className="flex flex-col items-center gap-0.5 p-1 rounded-lg hover:bg-slate-50 transition-colors flex-shrink-0"
+            >
+              <div className="bg-white p-1 rounded border border-slate-200">
+                <QRCodeSVG value={student.qr_token} size={50} level="L" />
+              </div>
+              <span className="text-[9px] font-medium text-slate-400 uppercase">QR</span>
+            </button>
+          )}
+        </div>
       </div>
     </div>
-  );
+    );
+  };
 
   // Helper function to render user card for cards view
   const renderUserCard = (u, roleConfig) => (
