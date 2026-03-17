@@ -1,9 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { 
   School, Users, TrendingUp, ArrowRight, 
-  Calendar, Building2, Headset
+  Calendar, Building2, Headset, ChevronLeft, ChevronRight
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -33,13 +33,15 @@ export default function SupportDashboardPage({ token }) {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [schoolsPage, setSchoolsPage] = useState(1);
+  const [schoolsPaginated, setSchoolsPaginated] = useState(null);
+  const [schoolsLoading, setSchoolsLoading] = useState(false);
+  const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     const fetchOverview = async () => {
       try {
-        const res = await axios.get(`${API}/support/overview`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await axios.get(`${API}/support/overview`, { headers });
         setData(res.data);
       } catch (err) {
         console.error("Error fetching support overview:", err);
@@ -48,6 +50,23 @@ export default function SupportDashboardPage({ token }) {
       }
     };
     fetchOverview();
+  }, [token]);
+
+  const fetchSchoolsPage = useCallback(async (page) => {
+    setSchoolsLoading(true);
+    try {
+      const res = await axios.get(`${API}/support/schools-paginated?page=${page}&per_page=5`, { headers });
+      setSchoolsPaginated(res.data);
+      setSchoolsPage(page);
+    } catch (err) {
+      console.error("Error fetching schools page:", err);
+    } finally {
+      setSchoolsLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) fetchSchoolsPage(1);
   }, [token]);
 
   const formatDate = (iso) => {
@@ -97,12 +116,15 @@ export default function SupportDashboardPage({ token }) {
         />
       </div>
 
-      {/* Recent Schools */}
+      {/* Recent Schools - Paginated */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-emerald-500" />
             <h2 className="font-semibold text-slate-800">Ultimos Colegios Registrados</h2>
+            {schoolsPaginated && (
+              <span className="text-xs text-slate-400 ml-1">({schoolsPaginated.total} total)</span>
+            )}
           </div>
           <button 
             onClick={() => navigate("/support/schools")}
@@ -113,28 +135,56 @@ export default function SupportDashboardPage({ token }) {
           </button>
         </div>
         
-        {loading ? (
+        {loading || schoolsLoading ? (
           <div className="p-8 text-center text-slate-400">Cargando...</div>
-        ) : data?.last_schools_created?.length > 0 ? (
-          <div className="divide-y divide-slate-50">
-            {data.last_schools_created.map((school, i) => (
-              <div key={school.id || i} className="px-5 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-                  <School className="w-4 h-4 text-blue-500" />
+        ) : schoolsPaginated?.schools?.length > 0 ? (
+          <>
+            <div className="divide-y divide-slate-50">
+              {schoolsPaginated.schools.map((school, i) => (
+                <div key={school.id || i} className="px-5 py-3.5 flex items-center gap-4 hover:bg-slate-50/50 transition-colors">
+                  <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+                    <School className="w-4 h-4 text-blue-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-slate-800 truncate">
+                      {school.name || school.subdomain}
+                    </p>
+                    <p className="text-xs text-slate-400">{school.subdomain}.edunet.pe</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-xs text-slate-400">
+                    <Calendar className="w-3.5 h-3.5" />
+                    {formatDate(school.created_at)}
+                  </div>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-800 truncate">
-                    {school.name || school.subdomain}
-                  </p>
-                  <p className="text-xs text-slate-400">{school.subdomain}.edunet.pe</p>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                  <Calendar className="w-3.5 h-3.5" />
-                  {formatDate(school.created_at)}
+              ))}
+            </div>
+            {/* Pagination */}
+            {schoolsPaginated.total_pages > 1 && (
+              <div className="px-5 py-3 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-xs text-slate-400">
+                  Pagina {schoolsPaginated.page} de {schoolsPaginated.total_pages}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => fetchSchoolsPage(schoolsPage - 1)}
+                    disabled={schoolsPage <= 1}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    data-testid="schools-page-prev"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => fetchSchoolsPage(schoolsPage + 1)}
+                    disabled={schoolsPage >= schoolsPaginated.total_pages}
+                    className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    data-testid="schools-page-next"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         ) : (
           <div className="p-8 text-center text-slate-400 text-sm">No hay colegios registrados</div>
         )}

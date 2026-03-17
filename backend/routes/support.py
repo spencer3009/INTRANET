@@ -70,7 +70,7 @@ async def support_overview(user=Depends(require_support_admin)):
     # Total users globally
     total_users = await db.users.count_documents({})
     
-    # Last 5 schools created
+    # Last 5 schools created (page 1 default)
     last_schools_cursor = db.schools.find(
         {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1}
     ).sort("created_at", -1).limit(5)
@@ -81,6 +81,25 @@ async def support_overview(user=Depends(require_support_admin)):
         "my_assigned_schools": assignments,
         "total_users_global": total_users,
         "last_schools_created": last_schools
+    }
+
+
+@router.get("/schools-paginated")
+async def support_schools_paginated(page: int = 1, per_page: int = 5, user=Depends(require_support_admin)):
+    """Paginated list of all schools for dashboard"""
+    skip = (page - 1) * per_page
+    total = await db.schools.count_documents({})
+    schools_cursor = db.schools.find(
+        {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1}
+    ).sort("created_at", -1).skip(skip).limit(per_page)
+    schools = await schools_cursor.to_list(length=per_page)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    return {
+        "schools": schools,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": total_pages,
     }
 
 
