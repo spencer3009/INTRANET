@@ -372,35 +372,48 @@ async def update_school_expiration(req: UpdateExpirationRequest, user=Depends(re
 
 class RenewMembershipRequest(BaseModel):
     school_id: str
-    operation_code: str
+    operation_code: Optional[str] = None
+    direct_renewal: bool = False
 
 @router.post("/renew-membership")
 async def renew_membership(req: RenewMembershipRequest, user=Depends(require_support_admin)):
-    """Support confirms payment by matching the operation code the client submitted"""
+    """Support confirms payment - with operation code or direct renewal"""
     school = await db.schools.find_one({"id": req.school_id}, {"_id": 0})
     if not school:
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
 
-    # Validate operation code format
-    code = req.operation_code.strip()
-    if not code.isdigit() or len(code) != 8:
-        raise HTTPException(status_code=400, detail="El codigo de operacion debe tener exactamente 8 digitos")
-
-    # Find pending payment request for this school
-    pending = await db.payment_requests.find_one(
-        {"school_id": req.school_id, "status": "processing"},
-        {"_id": 0}
-    )
-    if not pending:
-        raise HTTPException(status_code=404, detail="No hay solicitud de pago pendiente para este colegio")
-
-    # Compare operation codes
-    if pending.get("operation_code", "").strip() != code:
-        raise HTTPException(status_code=400, detail="El codigo de operacion no coincide con el enviado por el cliente")
-
     now = datetime.now(timezone.utc)
     new_expiration = (now + timedelta(days=30)).isoformat()
-    amount = pending.get("amount", 0)
+    code = ""
+    amount = 0
+    payment_method = "yape"
+    pending = None
+
+    if req.direct_renewal:
+        # Direct renewal - no operation code needed
+        # Calculate amount from pricing
+        from routes.subscription import get_school_pricing
+        pricing = await get_school_pricing(school)
+        amount = pricing.get("monto_actual", 0)
+    else:
+        # With operation code - validate and match
+        code = (req.operation_code or "").strip()
+        if not code.isdigit() or len(code) != 8:
+            raise HTTPException(status_code=400, detail="El codigo de operacion debe tener exactamente 8 digitos")
+
+        pending = await db.payment_requests.find_one(
+            {"school_id": req.school_id, "status": "processing"},
+            {"_id": 0}
+        )
+        if pending and pending.get("operation_code", "").strip() != code:
+            raise HTTPException(status_code=400, detail="El codigo de operacion no coincide con el enviado por el cliente")
+
+        amount = pending.get("amount", 0) if pending else 0
+        if not amount:
+            from routes.subscription import get_school_pricing
+            pricing = await get_school_pricing(school)
+            amount = pricing.get("calculated_price", 0)
+        payment_method = pending.get("payment_method", "yape") if pending else "yape"
 
     # Renew the school membership
     await db.schools.update_one(
@@ -416,17 +429,18 @@ async def renew_membership(req: RenewMembershipRequest, user=Depends(require_sup
         }}
     )
 
-    # Confirm the payment request
-    await db.payment_requests.update_one(
-        {"id": pending["id"]},
-        {"$set": {
-            "status": "confirmed",
-            "resolved_at": now.isoformat(),
-            "resolved_by": user["id"],
-            "resolved_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
-            "updated_at": now.isoformat(),
-        }}
-    )
+    # Confirm pending payment request if exists
+    if pending:
+        await db.payment_requests.update_one(
+            {"id": pending["id"]},
+            {"$set": {
+                "status": "confirmed",
+                "resolved_at": now.isoformat(),
+                "resolved_by": user["id"],
+                "resolved_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+                "updated_at": now.isoformat(),
+            }}
+        )
 
     # Log the renewal
     renewal_log = {
@@ -434,11 +448,12 @@ async def renew_membership(req: RenewMembershipRequest, user=Depends(require_sup
         "school_id": req.school_id,
         "school_name": school.get("name", ""),
         "action": "membership_renewal",
+        "renewal_type": "direct" if req.direct_renewal else "with_code",
         "support_user_id": user["id"],
         "support_user_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
-        "operation_code": code,
+        "operation_code": code or "N/A",
         "amount": amount,
-        "payment_method": pending.get("payment_method", "yape"),
+        "payment_method": payment_method,
         "new_expiration": new_expiration,
         "created_at": now.isoformat(),
     }
@@ -451,10 +466,10 @@ async def renew_membership(req: RenewMembershipRequest, user=Depends(require_sup
         "school_id": req.school_id,
         "school_name": school.get("name", school.get("subdomain", "")),
         "amount": amount,
-        "description": f"Renovacion mensual - {school.get('name', school.get('subdomain', ''))}",
-        "payment_method": pending.get("payment_method", "yape"),
-        "operation_code": code,
-        "payment_request_id": pending["id"],
+        "description": f"Renovacion mensual{' (directa)' if req.direct_renewal else ''} - {school.get('name', school.get('subdomain', ''))}",
+        "payment_method": payment_method,
+        "operation_code": code or "N/A",
+        "payment_request_id": pending["id"] if pending else None,
         "confirmed_by": user["id"],
         "confirmed_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
         "confirmed_at": now.isoformat(),

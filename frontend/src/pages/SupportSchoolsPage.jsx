@@ -27,6 +27,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [pricingInfo, setPricingInfo] = useState({});
   const [renewModal, setRenewModal] = useState(null); // { schoolId, schoolName, price }
   const [renewCode, setRenewCode] = useState("");
+  const [renewTab, setRenewTab] = useState("code"); // "code" | "direct"
   const [renewing, setRenewing] = useState(false);
   const [showCreateSchool, setShowCreateSchool] = useState(false);
   const [createForm, setCreateForm] = useState({ school_name: "", subdomain: "", owner_name: "", owner_email: "", owner_password: "", owner_ruc: "", owner_whatsapp: "" });
@@ -297,20 +298,22 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       paymentDate: pendingPayment?.created_at || "",
     });
     setRenewCode(pendingPayment?.operation_code || "");
+    setRenewTab(pendingPayment?.operation_code ? "code" : "code");
   };
 
   const handleConfirmRenewal = async () => {
     if (!renewModal) return;
-    if (renewCode.length !== 8 || !/^\d{8}$/.test(renewCode)) {
+    const isDirect = renewTab === "direct";
+    if (!isDirect && (renewCode.length !== 8 || !/^\d{8}$/.test(renewCode))) {
       toast.error("El codigo debe tener exactamente 8 digitos");
       return;
     }
     setRenewing(true);
     try {
-      const res = await axios.post(`${API}/support/renew-membership`, {
-        school_id: renewModal.schoolId,
-        operation_code: renewCode
-      }, { headers });
+      const payload = isDirect
+        ? { school_id: renewModal.schoolId, direct_renewal: true }
+        : { school_id: renewModal.schoolId, operation_code: renewCode };
+      const res = await axios.post(`${API}/support/renew-membership`, payload, { headers });
       toast.success(res.data.message || "Membresia renovada");
       setRenewModal(null);
       setRenewCode("");
@@ -1004,7 +1007,27 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* Tabs */}
+            <div className="flex border-b border-slate-200">
+              <button
+                onClick={() => setRenewTab("code")}
+                className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${renewTab === "code" ? "text-violet-600 border-b-2 border-violet-600 bg-violet-50/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"}`}
+                data-testid="renew-tab-code"
+              >
+                Con codigo
+              </button>
+              <button
+                onClick={() => setRenewTab("direct")}
+                className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${renewTab === "direct" ? "text-violet-600 border-b-2 border-violet-600 bg-violet-50/50" : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"}`}
+                data-testid="renew-tab-direct"
+              >
+                Renovacion directa
+              </button>
+            </div>
+
             <div className="p-6 space-y-5">
+              {/* School info */}
               <div className="bg-slate-50 rounded-xl p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-violet-100 flex items-center justify-center">
                   <School className="w-5 h-5 text-violet-600" />
@@ -1014,32 +1037,55 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   <p className="text-xs text-slate-500">Monto: <span className="font-bold text-emerald-600">S/ {renewModal.price.toFixed(2)}</span></p>
                 </div>
               </div>
-              {renewModal.clientCode ? (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Codigo enviado por el cliente</label>
-                  <div className="w-full px-4 py-3 bg-violet-50 border-2 border-violet-300 rounded-xl text-center text-2xl font-bold tracking-[0.3em] text-violet-700">
-                    {renewModal.clientCode}
-                  </div>
-                  <p className="text-xs mt-1.5 text-slate-400">Verifica que este codigo coincida con tu registro de Yape</p>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Numero de operacion <span className="text-red-500">*</span></label>
-                  <p className="text-xs text-slate-400 mb-2">No hay pago pendiente. Ingresa el codigo manualmente.</p>
-                  <input
-                    type="text" inputMode="numeric" maxLength={8} value={renewCode}
-                    onChange={(e) => setRenewCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
-                    placeholder="Ej: 12345678"
-                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-center text-2xl font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-all"
-                    data-testid="renew-operation-code-input" autoFocus
-                  />
-                  <p className={`text-xs mt-1.5 text-right font-medium ${renewCode.length === 8 ? "text-emerald-500" : "text-slate-400"}`}>{renewCode.length}/8 digitos</p>
+
+              {/* Tab: Con codigo */}
+              {renewTab === "code" && (
+                <>
+                  {renewModal.clientCode ? (
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Codigo enviado por el cliente</label>
+                      <div className="w-full px-4 py-3 bg-violet-50 border-2 border-violet-300 rounded-xl text-center text-2xl font-bold tracking-[0.3em] text-violet-700">
+                        {renewModal.clientCode}
+                      </div>
+                      <p className="text-xs mt-1.5 text-slate-400">Verifica que este codigo coincida con tu registro de Yape</p>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Numero de operacion <span className="text-red-500">*</span></label>
+                      <p className="text-xs text-slate-400 mb-2">Ingresa el codigo de operacion del pago.</p>
+                      <input
+                        type="text" inputMode="numeric" maxLength={8} value={renewCode}
+                        onChange={(e) => setRenewCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                        placeholder="Ej: 12345678"
+                        className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-center text-2xl font-bold tracking-[0.3em] focus:outline-none focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400 transition-all"
+                        data-testid="renew-operation-code-input" autoFocus
+                      />
+                      <p className={`text-xs mt-1.5 text-right font-medium ${renewCode.length === 8 ? "text-emerald-500" : "text-slate-400"}`}>{renewCode.length}/8 digitos</p>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Tab: Renovacion directa */}
+              {renewTab === "direct" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+                  <p className="text-sm font-semibold text-amber-800">Renovacion sin codigo de operacion</p>
+                  <p className="text-xs text-amber-700">
+                    Usa esta opcion cuando el cliente envio el comprobante de pago por WhatsApp u otro medio y no registro el codigo en el sistema.
+                  </p>
+                  <p className="text-xs text-amber-600 font-medium">Se renovara por 30 dias a partir de hoy.</p>
                 </div>
               )}
+
+              {/* Action buttons */}
               <div className="flex gap-3 pt-1">
                 <button onClick={() => setRenewModal(null)} className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors" data-testid="renew-modal-cancel">Cancelar</button>
-                <button onClick={handleConfirmRenewal} disabled={renewCode.length !== 8 || renewing}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" data-testid="renew-modal-confirm">
+                <button
+                  onClick={handleConfirmRenewal}
+                  disabled={renewing || (renewTab === "code" && renewCode.length !== 8 && !renewModal.clientCode)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-violet-600 text-white rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="renew-modal-confirm"
+                >
                   {renewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                   Confirmar Renovacion
                 </button>
