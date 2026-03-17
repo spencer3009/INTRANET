@@ -392,9 +392,9 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl lg:text-2xl font-bold text-slate-800">Mis Colegios</h1>
+          <h1 className="text-xl lg:text-2xl font-bold text-slate-800">Colegios</h1>
           <p className="text-sm text-slate-500 mt-1">
-            {mySchools.length} colegio{mySchools.length !== 1 ? "s" : ""} asignado{mySchools.length !== 1 ? "s" : ""}
+            {mySchools.length} colegio{mySchools.length !== 1 ? "s" : ""} registrado{mySchools.length !== 1 ? "s" : ""}
           </p>
         </div>
         <div className="flex gap-2">
@@ -413,7 +413,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
       {mySchools.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
           <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="font-semibold text-slate-600 mb-1">Sin colegios asignados</h3>
+          <h3 className="font-semibold text-slate-600 mb-1">Sin colegios registrados</h3>
           <p className="text-sm text-slate-400">Usa el boton "Crear Colegio" para registrar un nuevo colegio.</p>
         </div>
       ) : (

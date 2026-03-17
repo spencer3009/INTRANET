@@ -105,43 +105,36 @@ async def support_schools_paginated(page: int = 1, per_page: int = 5, user=Depen
 
 @router.get("/schools")
 async def support_schools(user=Depends(require_support_admin)):
-    """List schools for support user. Global admins get auto-assigned to all schools."""
+    """List ALL schools for support user. Global admins see everything."""
     
-    if user.get("role") == "system_admin_global":
-        # Auto-assign global admin to all schools that aren't assigned yet
-        # But skip schools that were explicitly unassigned by the admin
-        all_schools = await db.schools.find({}, {"_id": 0, "id": 1}).to_list(500)
-        all_school_ids = {s["id"] for s in all_schools}
+    is_global = user.get("role") == "system_admin_global"
+    
+    if is_global:
+        # Global admin sees ALL schools
+        schools_cursor = db.schools.find(
+            {},
+            {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1}
+        )
+        schools = await schools_cursor.to_list(length=500)
+        assignment_map = {}
+    else:
+        # Non-global support: only assigned schools
+        assignments_cursor = db.user_school_roles.find(
+            {"user_id": user["id"], "unassigned": {"$ne": True}}, {"_id": 0}
+        )
+        assignments = await assignments_cursor.to_list(length=500)
         
-        existing = await db.user_school_roles.find(
-            {"user_id": user["id"]}, {"_id": 0, "school_id": 1, "unassigned": 1}
-        ).to_list(500)
-        existing_ids = {e["school_id"] for e in existing}
+        if not assignments:
+            return []
         
-        missing = all_school_ids - existing_ids
-        if missing:
-            await db.user_school_roles.insert_many([
-                {"user_id": user["id"], "school_id": sid, "role": "support", "auto_assigned": True}
-                for sid in missing
-            ])
-    
-    # Now get schools from user_school_roles, excluding explicitly unassigned ones
-    assignments_cursor = db.user_school_roles.find(
-        {"user_id": user["id"], "unassigned": {"$ne": True}}, {"_id": 0}
-    )
-    assignments = await assignments_cursor.to_list(length=500)
-    
-    if not assignments:
-        return []
-    
-    school_ids = [a["school_id"] for a in assignments]
-    assignment_map = {a["school_id"]: a for a in assignments}
-    
-    schools_cursor = db.schools.find(
-        {"id": {"$in": school_ids}},
-        {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1}
-    )
-    schools = await schools_cursor.to_list(length=500)
+        school_ids = [a["school_id"] for a in assignments]
+        assignment_map = {a["school_id"]: a for a in assignments}
+        
+        schools_cursor = db.schools.find(
+            {"id": {"$in": school_ids}},
+            {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1}
+        )
+        schools = await schools_cursor.to_list(length=500)
     
     # Get global pricing config
     global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
