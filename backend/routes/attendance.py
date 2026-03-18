@@ -865,9 +865,41 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     
     # Execute action
     if action == "entry":
+        # Determine status based on attendance config (auto tardanza)
+        entry_status = "present"
+        attendance_config = {}
+        try:
+            school_doc = await db.schools.find_one({"id": school_id}, {"_id": 0, "attendance_config": 1})
+            attendance_config = (school_doc or {}).get("attendance_config", {})
+        except Exception:
+            pass
+
+        auto_late = attendance_config.get("auto_late_enabled", False)
+        if auto_late:
+            config_time_key = "teacher_entry_time" if is_teacher_qr else "student_entry_time"
+            config_time_str = attendance_config.get(config_time_key)
+            if config_time_str:
+                try:
+                    ch, cm = map(int, config_time_str.split(":"))
+                    tolerance = attendance_config.get("tolerance_minutes", 0)
+                    absent_limit = attendance_config.get("mark_absent_after_minutes", 0)
+                    # Parse current time (now_time is HH:MM)
+                    nh, nm = map(int, now_time.split(":"))
+                    current_mins = nh * 60 + nm
+                    limit_mins = ch * 60 + cm
+                    if absent_limit > 0 and current_mins > limit_mins + absent_limit:
+                        if attendance_config.get("allow_late_entry", True):
+                            entry_status = "absent"
+                        else:
+                            entry_status = "absent"
+                    elif current_mins > limit_mins + tolerance:
+                        entry_status = "late"
+                except Exception:
+                    pass
+
         entry_update = {
             "$set": {
-                "status": "present",
+                "status": entry_status,
                 "entry_time": now_iso,
                 "entry_method": "qr",
                 "check_in_time": now_time,
@@ -895,7 +927,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             await db.student_attendance.update_one(
                 {"student_id": scanned_user_id, "date": today, "school_id": school_id},
                 {
-                    "$set": {"status": "present", "check_in_time": now_time, "method": "qr_scan",
+                    "$set": {"status": entry_status, "check_in_time": now_time, "method": "qr_scan",
                              "scanned_by": current_user["sub"], "created_at": now_iso,
                              "grado_id": scanned_user.get("grado_id"), "seccion_id": scanned_user.get("seccion_id")},
                     "$setOnInsert": {"id": str(uuid.uuid4()), "student_id": scanned_user_id,
@@ -904,16 +936,17 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                 upsert=True
             )
         
-        logger.info(f"QR Entry ({scanned_role}): {user_info['full_name']} at {now_time}")
+        logger.info(f"QR Entry ({scanned_role}): {user_info['full_name']} at {now_time} [{entry_status}]")
         
         # Send push notification to parent (students only)
         if not is_teacher_qr:
+            notif_event = "tardanza" if entry_status == "late" else "ingreso"
             try:
                 await send_attendance_notification(
                     student_id=scanned_user_id,
                     school_id=school_id,
                     entry_time=now_time,
-                    event_type="ingreso"
+                    event_type=notif_event
                 )
             except Exception as notif_err:
                 logger.error(f"Push notification error: {notif_err}")
@@ -924,7 +957,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             "message": f"Entrada registrada para {user_info['full_name']}",
             "student": user_info,
             "attendance": {
-                "status": "present", "entry_time": now_time, "exit_time": None, "date": today
+                "status": entry_status, "entry_time": now_time, "exit_time": None, "date": today
             }
         }
     

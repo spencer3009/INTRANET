@@ -47,6 +47,17 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [allowAdminBroadcast, setAllowAdminBroadcast] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   
+  // Attendance config state
+  const [attendanceConfig, setAttendanceConfig] = useState({
+    student_entry_time: "07:30",
+    teacher_entry_time: "07:15",
+    tolerance_minutes: 5,
+    mark_absent_after_minutes: 30,
+    allow_late_entry: true,
+    auto_late_enabled: false,
+  });
+  const [savingAttendance, setSavingAttendance] = useState(false);
+  
   // Google Drive states
   const [driveStatus, setDriveStatus] = useState({
     server_configured: false,
@@ -69,6 +80,9 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         setAllowAdminAccounting(res.data.allow_admin_accounting || false);
         setAllowPendingStudents(res.data.permitir_acceso_estudiantes_pendientes || false);
         setAllowAdminBroadcast(res.data.allow_admin_broadcast || false);
+        if (res.data.attendance_config) {
+          setAttendanceConfig(prev => ({ ...prev, ...res.data.attendance_config }));
+        }
         setSettings({
           logo_url: res.data.logo_url || "",
           system_name: res.data.system_name || "",
@@ -287,6 +301,21 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       setSavingRoles(false);
     }
   };
+
+  // Save attendance config
+  const handleSaveAttendanceConfig = async () => {
+    setSavingAttendance(true);
+    try {
+      await axios.put(`${API}/settings/attendance`, attendanceConfig, { headers });
+      setSuccess("Configuracion de asistencia guardada");
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al guardar configuracion de asistencia");
+    } finally {
+      setSavingAttendance(false);
+    }
+  };
+
 
   const handleToggleAdminBroadcast = async () => {
     setSavingRoles(true);
@@ -933,6 +962,141 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
               </section>
               </>
             )}
+
+            {/* Attendance Configuration Section */}
+            <section className="mt-8" data-testid="attendance-config-section">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <Clock className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-bold text-slate-800">Configuracion de Asistencia</h2>
+                  <p className="text-sm text-slate-500">Define horarios de ingreso y reglas de puntualidad</p>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+                {/* Horarios */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Horarios de Ingreso</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-600 mb-1">Hora ingreso estudiantes</label>
+                      <input
+                        type="time"
+                        value={attendanceConfig.student_entry_time}
+                        onChange={(e) => setAttendanceConfig(p => ({ ...p, student_entry_time: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                        data-testid="student-entry-time"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-600 mb-1">Hora ingreso docentes</label>
+                      <input
+                        type="time"
+                        value={attendanceConfig.teacher_entry_time}
+                        onChange={(e) => setAttendanceConfig(p => ({ ...p, teacher_entry_time: e.target.value }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                        data-testid="teacher-entry-time"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reglas */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Reglas de Puntualidad</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-600 mb-1">Tolerancia (minutos)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="60"
+                        value={attendanceConfig.tolerance_minutes}
+                        onChange={(e) => setAttendanceConfig(p => ({ ...p, tolerance_minutes: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                        data-testid="tolerance-minutes"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">Minutos despues de la hora limite para considerar tardanza</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-600 mb-1">Marcar falta despues de (minutos)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="120"
+                        value={attendanceConfig.mark_absent_after_minutes}
+                        onChange={(e) => setAttendanceConfig(p => ({ ...p, mark_absent_after_minutes: parseInt(e.target.value) || 0 }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                        data-testid="absent-after-minutes"
+                      />
+                      <p className="text-xs text-slate-400 mt-1">Pasado este tiempo se marca como falta automaticamente</p>
+                    </div>
+                  </div>
+
+                  {/* Toggles */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <Clock className="w-5 h-5 text-emerald-600" />
+                        <div>
+                          <p className="font-semibold text-slate-800 text-sm">Activar tardanza automatica</p>
+                          <p className="text-xs text-slate-500">El sistema marcara automaticamente como tardanza o falta segun el horario configurado</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAttendanceConfig(p => ({ ...p, auto_late_enabled: !p.auto_late_enabled }))}
+                        className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                          attendanceConfig.auto_late_enabled ? 'bg-emerald-500' : 'bg-slate-300'
+                        }`}
+                        data-testid="toggle-auto-late"
+                      >
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                          attendanceConfig.auto_late_enabled ? 'translate-x-8' : 'translate-x-1'
+                        }`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <UserCheck className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <p className="font-semibold text-slate-800 text-sm">Permitir ingreso con tardanza</p>
+                          <p className="text-xs text-slate-500">Permite que alumnos y docentes ingresen aunque sea tarde</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setAttendanceConfig(p => ({ ...p, allow_late_entry: !p.allow_late_entry }))}
+                        className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          attendanceConfig.allow_late_entry ? 'bg-blue-500' : 'bg-slate-300'
+                        }`}
+                        data-testid="toggle-allow-late"
+                      >
+                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                          attendanceConfig.allow_late_entry ? 'translate-x-8' : 'translate-x-1'
+                        }`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Save Button */}
+                <button
+                  type="button"
+                  onClick={handleSaveAttendanceConfig}
+                  disabled={savingAttendance}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+                  data-testid="save-attendance-config"
+                >
+                  {savingAttendance ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Guardar Configuracion de Asistencia
+                </button>
+              </div>
+            </section>
+
 
             {/* Carousel Manager - Only for owners/super admins */}
             {(user?.is_owner || user?.is_super_admin || user?.role === "owner" || user?.role === "director") && (

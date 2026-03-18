@@ -98,6 +98,16 @@ async def get_tenant_settings(current_user = Depends(require_section_access("set
     settings["permitir_acceso_estudiantes_pendientes"] = school.get("permitir_acceso_estudiantes_pendientes", False)
     settings["allow_admin_broadcast"] = school.get("allow_admin_broadcast", False)
     
+    # Include attendance config
+    settings["attendance_config"] = school.get("attendance_config", {
+        "student_entry_time": "07:30",
+        "teacher_entry_time": "07:15",
+        "tolerance_minutes": 5,
+        "mark_absent_after_minutes": 30,
+        "allow_late_entry": True,
+        "auto_late_enabled": False,
+    })
+    
     return settings
 
 @router.put("/settings")
@@ -193,6 +203,40 @@ async def update_role_settings(
         "permitir_acceso_estudiantes_pendientes": school.get("permitir_acceso_estudiantes_pendientes", False),
         "allow_admin_broadcast": school.get("allow_admin_broadcast", False)
     }
+
+
+class AttendanceConfigUpdate(BaseModel):
+    student_entry_time: Optional[str] = None
+    teacher_entry_time: Optional[str] = None
+    tolerance_minutes: Optional[int] = None
+    mark_absent_after_minutes: Optional[int] = None
+    allow_late_entry: Optional[bool] = None
+    auto_late_enabled: Optional[bool] = None
+
+@router.put("/settings/attendance")
+async def update_attendance_config(
+    data: AttendanceConfigUpdate,
+    current_user = Depends(require_section_access("settings"))
+):
+    """Update attendance configuration for the school."""
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    update_data = {f"attendance_config.{k}": v for k, v in data.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No hay datos para actualizar")
+
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.schools.update_one({"id": school_id}, {"$set": update_data})
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "attendance_config": 1})
+    logger.info(f"Attendance config updated for school {school_id}")
+    return {
+        "message": "Configuracion de asistencia actualizada",
+        "attendance_config": school.get("attendance_config", {})
+    }
+
 
 @router.get("/settings/public/{subdomain}")
 async def get_public_settings(subdomain: str):
