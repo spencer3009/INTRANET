@@ -11,10 +11,35 @@ import {
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-function NotificationBell({ payments = [], schoolName }) {
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch {}
+}
+
+function NotificationBell({ payments = [], schoolName, shouldPlaySound = false }) {
   const [open, setOpen] = useState(false);
   const [cleared, setCleared] = useState(false);
+  const [soundPlayed, setSoundPlayed] = useState(false);
   const count = cleared ? 0 : payments.length;
+
+  useEffect(() => {
+    if (count > 0 && shouldPlaySound && !soundPlayed && !cleared) {
+      playNotificationSound();
+      setSoundPlayed(true);
+    }
+  }, [count, shouldPlaySound]);
 
   const fmtDate = (iso) => {
     if (!iso) return "";
@@ -512,7 +537,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     <h3 className="font-semibold text-slate-800 truncate">{school.name || school.subdomain}</h3>
                     <p className="text-xs text-slate-400">{school.subdomain}.edunet.pe</p>
                   </div>
-                  <NotificationBell payments={school.pending_payments || []} schoolName={school.subdomain} />
+                  <NotificationBell payments={school.pending_payments || []} schoolName={school.subdomain} shouldPlaySound={true} />
                   <button
                     onClick={(e) => { e.stopPropagation(); handleOpenOwner(school); }}
                     className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors flex-shrink-0"
