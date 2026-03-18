@@ -20,6 +20,7 @@ import PhotoUploadModal from "@/components/PhotoUploadModal";
 import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
+import CameraCaptureModal from "@/components/CameraCaptureModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -135,6 +136,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
   const [error, setError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [checkingUsername, setCheckingUsername] = useState(false);
@@ -438,6 +440,37 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
     }
   };
 
+  // Handle camera capture save
+  const handleCameraSave = async (blob) => {
+    setUploading(true);
+    setError("");
+    try {
+      const file = new File([blob], "camera_photo.jpg", { type: "image/jpeg" });
+      const processedFile = await processProfilePhoto(file, { maxWidth: 200, quality: 0.8 });
+      const sigRes = await axios.get(`${API}/cloudinary/signature?resource_type=image&folder=edunet/users`, { headers });
+      const sig = sigRes.data;
+      const fd = new FormData();
+      fd.append("file", processedFile);
+      fd.append("api_key", sig.api_key);
+      fd.append("timestamp", sig.timestamp);
+      fd.append("signature", sig.signature);
+      fd.append("folder", sig.folder);
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, { method: "POST", body: fd });
+      const uploadData = await uploadRes.json();
+      if (uploadData.secure_url) {
+        setForm(prev => ({ ...prev, photo_url: uploadData.secure_url }));
+        setShowCameraModal(false);
+      } else {
+        throw new Error("Error al subir imagen");
+      }
+    } catch (err) {
+      setError(err.message || "Error al guardar la foto");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -595,7 +628,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Photo Upload - Full width */}
             <div className="md:col-span-2 flex flex-col items-center">
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Fotografía</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Fotografia</label>
               <div 
                 className="relative group cursor-pointer"
                 onClick={() => fileInputRef.current?.click()}
@@ -627,7 +660,21 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                 onChange={handlePhotoUpload}
                 className="hidden"
               />
-              <p className="text-xs text-slate-400 mt-2">Click para subir foto</p>
+              <div className="flex gap-2 mt-2">
+                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-xs text-slate-500 hover:text-blue-600 transition-colors" data-testid="upload-photo-btn">
+                  Subir foto
+                </button>
+                <span className="text-xs text-slate-300">|</span>
+                <button type="button" onClick={() => setShowCameraModal(true)} className="text-xs text-slate-500 hover:text-blue-600 transition-colors" data-testid="open-camera-btn">
+                  Tomar foto
+                </button>
+              </div>
+              <CameraCaptureModal
+                open={showCameraModal}
+                onClose={() => setShowCameraModal(false)}
+                onSave={handleCameraSave}
+                uploading={uploading}
+              />
             </div>
 
             {/* Demo User Switch - Only visible for support users */}
