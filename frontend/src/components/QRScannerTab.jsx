@@ -4,8 +4,9 @@ import { Scanner } from "@yudiel/react-qr-scanner";
 import { 
   QrCode, Camera, Check, AlertTriangle, X, Clock, 
   User, Loader2, History, RefreshCw, Volume2, VolumeX,
-  Shield, ExternalLink, Settings, SwitchCamera
+  Shield, ExternalLink, Settings, SwitchCamera, Ban
 } from "lucide-react";
+import { toast } from "sonner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -48,7 +49,7 @@ const CAMERA_ERROR_TYPES = {
   }
 };
 
-export default function QRScannerTab({ token, roleFilter }) {
+export default function QRScannerTab({ token, roleFilter, user }) {
   const [scanning, setScanning] = useState(false);
   const [paused, setPaused] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -62,7 +63,13 @@ export default function QRScannerTab({ token, roleFilter }) {
   const [availableCameras, setAvailableCameras] = useState([]);
   const [checkingCamera, setCheckingCamera] = useState(false);
   const [isInIframe, setIsInIframe] = useState(false);
-  const [scanMode, setScanMode] = useState("auto"); // "auto" | "entry" | "exit"
+  const [scanMode, setScanMode] = useState("auto");
+  const [annulModal, setAnnulModal] = useState(null);
+  const [annulType, setAnnulType] = useState("both");
+  const [annulReason, setAnnulReason] = useState("");
+  const [annulling, setAnnulling] = useState(false);
+
+  const isAdmin = user?.is_owner || user?.role === "owner" || user?.role === "admin" || user?.role === "director";
   
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -347,6 +354,32 @@ export default function QRScannerTab({ token, roleFilter }) {
     setError(null);
     setPaused(false);
   };
+
+  // Annul attendance
+  const openAnnulModal = (item) => {
+    setAnnulModal(item);
+    setAnnulType("both");
+    setAnnulReason("");
+  };
+
+  const handleAnnul = async () => {
+    if (!annulModal || !annulReason.trim()) return;
+    setAnnulling(true);
+    try {
+      await axios.post(`${API}/attendance/${annulModal.attendance_id}/annul`, {
+        annul_type: annulType,
+        reason: annulReason.trim(),
+      }, { headers });
+      toast.success("Asistencia anulada correctamente");
+      setAnnulModal(null);
+      loadHistory();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al anular");
+    } finally {
+      setAnnulling(false);
+    }
+  };
+
 
   const handleError = (err) => {
     console.error("Camera error:", err);
@@ -849,8 +882,12 @@ export default function QRScannerTab({ token, roleFilter }) {
         
         {history.length > 0 ? (
           <div className="divide-y divide-slate-100">
-            {history.map((item, idx) => (
-              <div key={item.id || idx} className="px-6 py-3 flex items-center gap-4 hover:bg-slate-50">
+            {history.map((item, idx) => {
+              const isAnulado = item.status?.includes("anulad");
+              const entryAnulado = item.entry_status === "anulado";
+              const exitAnulado = item.exit_status === "anulado";
+              return (
+              <div key={item.id || idx} className={`px-6 py-3 flex items-center gap-4 hover:bg-slate-50 ${isAnulado ? "opacity-60" : ""}`}>
                 {item.photo_url ? (
                   <img src={item.photo_url} alt="" className="w-10 h-10 rounded-full object-cover" />
                 ) : (
@@ -864,7 +901,7 @@ export default function QRScannerTab({ token, roleFilter }) {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="font-semibold text-slate-800 truncate">{item.student_name || item.name}</p>
+                    <p className={`font-semibold truncate ${isAnulado ? "text-slate-400 line-through" : "text-slate-800"}`}>{item.student_name || item.name}</p>
                     <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded ${
                       item.role === "teacher" ? "bg-indigo-100 text-indigo-600" : "bg-blue-100 text-blue-600"
                     }`}>
@@ -878,23 +915,40 @@ export default function QRScannerTab({ token, roleFilter }) {
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-center">
                     <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">Entrada</p>
-                    <p className="text-base font-bold text-slate-800">{item.entry_time || item.time || "—"}</p>
+                    <p className={`text-base font-bold ${entryAnulado ? "text-red-400 line-through" : "text-slate-800"}`}>{item.entry_time || item.time || "—"}</p>
                   </div>
                   {item.exit_time && (
                     <>
                       <span className="text-slate-300">→</span>
                       <div className="text-center">
                         <p className="text-[10px] uppercase tracking-wide text-slate-400 font-semibold">Salida</p>
-                        <p className="text-base font-bold text-blue-600">{item.exit_time}</p>
+                        <p className={`text-base font-bold ${exitAnulado ? "text-red-400 line-through" : "text-blue-600"}`}>{item.exit_time}</p>
                       </div>
                     </>
                   )}
-                  <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium ml-2">
-                    ✓ Presente
-                  </span>
+                  {isAnulado ? (
+                    <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium ml-2">
+                      Anulado
+                    </span>
+                  ) : (
+                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium ml-2">
+                      Presente
+                    </span>
+                  )}
+                  {isAdmin && !isAnulado && item.attendance_id && (
+                    <button
+                      onClick={() => openAnnulModal(item)}
+                      className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-1"
+                      title="Anular asistencia"
+                      data-testid={`annul-btn-${item.id}`}
+                    >
+                      <Ban className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="p-8 text-center">
@@ -902,6 +956,98 @@ export default function QRScannerTab({ token, roleFilter }) {
           </div>
         )}
       </div>
+
+      {/* Annul Modal */}
+      {annulModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="annul-modal">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            <div className="bg-gradient-to-r from-red-500 to-rose-600 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h3 className="text-white font-bold text-base">Anular Asistencia</h3>
+                <p className="text-white/70 text-xs mt-0.5">{annulModal.student_name || annulModal.name}</p>
+              </div>
+              <button onClick={() => setAnnulModal(null)} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-slate-50 rounded-xl p-3 flex items-center gap-4 text-sm">
+                <div className="text-center">
+                  <p className="text-[10px] text-slate-400 uppercase">Entrada</p>
+                  <p className="font-bold text-slate-700">{annulModal.entry_time || "—"}</p>
+                </div>
+                {annulModal.exit_time && (
+                  <>
+                    <span className="text-slate-300">→</span>
+                    <div className="text-center">
+                      <p className="text-[10px] text-slate-400 uppercase">Salida</p>
+                      <p className="font-bold text-blue-600">{annulModal.exit_time}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Tipo de anulacion</label>
+                <div className="flex gap-2">
+                  {[
+                    { id: "entry", label: "Solo entrada" },
+                    { id: "exit", label: "Solo salida", disabled: !annulModal.exit_time },
+                    { id: "both", label: "Ambas" },
+                  ].map(opt => (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      disabled={opt.disabled}
+                      onClick={() => setAnnulType(opt.id)}
+                      className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors border ${
+                        annulType === opt.id
+                          ? "bg-red-50 border-red-300 text-red-700"
+                          : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                      } ${opt.disabled ? "opacity-30 cursor-not-allowed" : ""}`}
+                      data-testid={`annul-type-${opt.id}`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Motivo <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={annulReason}
+                  onChange={(e) => setAnnulReason(e.target.value)}
+                  placeholder="Ej: Doble escaneo, error de QR, correccion administrativa..."
+                  rows={3}
+                  className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500/30 focus:border-red-400 transition-all resize-none"
+                  data-testid="annul-reason-input"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-1">
+                <button
+                  onClick={() => setAnnulModal(null)}
+                  className="flex-1 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAnnul}
+                  disabled={annulling || annulReason.trim().length < 3}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
+                  data-testid="annul-confirm-btn"
+                >
+                  {annulling ? <Loader2 className="w-4 h-4 animate-spin" /> : <Ban className="w-4 h-4" />}
+                  Confirmar Anulacion
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

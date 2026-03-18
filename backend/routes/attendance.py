@@ -1192,13 +1192,16 @@ async def get_qr_attendance_history(
                 
                 history.append({
                     "id": record.get("id"),
+                    "attendance_id": att.get("id") or record.get("id"),
                     "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
                     "name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
                     "photo_url": student.get("photo_url"),
                     "grade_name": grade.get("nombre") if grade else None,
                     "section_name": section.get("nombre") if section else None,
                     "role": "student",
-                    "status": record.get("status"),
+                    "status": att.get("status") or record.get("status"),
+                    "entry_status": att.get("entry_status", "active"),
+                    "exit_status": att.get("exit_status", "active"),
                     "time": entry_t,
                     "entry_time": entry_t,
                     "exit_time": exit_t,
@@ -1224,6 +1227,7 @@ async def get_qr_attendance_history(
                 exit_t = to_peru_hhmm(record.get("exit_time"))
                 history.append({
                     "id": record.get("id"),
+                    "attendance_id": record.get("id"),
                     "student_name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
                     "name": f"{teacher.get('name', '')} {teacher.get('last_name', '')}".strip(),
                     "photo_url": teacher.get("photo_url"),
@@ -1231,6 +1235,8 @@ async def get_qr_attendance_history(
                     "section_name": None,
                     "role": "teacher",
                     "status": record.get("status"),
+                    "entry_status": record.get("entry_status", "active"),
+                    "exit_status": record.get("exit_status", "active"),
                     "time": entry_t,
                     "entry_time": entry_t,
                     "exit_time": exit_t,
@@ -1256,5 +1262,111 @@ EVENT_TYPES = {
     "special": {"label": "Evento especial", "color": "#F59E0B"},  # Amber
     "communication": {"label": "Comunicación", "color": "#10B981"}  # Green
 }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ATTENDANCE ANNULMENT
+# ══════════════════════════════════════════════════════════════════════════════
+
+class AnnulAttendanceRequest(BaseModel):
+    annul_type: Literal["entry", "exit", "both"]
+    reason: str = Field(..., min_length=3)
+
+@router.post("/attendance/{attendance_id}/annul")
+async def annul_attendance(
+    attendance_id: str,
+    data: AnnulAttendanceRequest,
+    current_user = Depends(get_current_user)
+):
+    """Annul an attendance record (entry, exit or both). Admin+ only."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden anular asistencias")
+
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    # Find the attendance record
+    record = await db.attendances.find_one({"id": attendance_id, "school_id": school_id})
+    if not record:
+        raise HTTPException(status_code=404, detail="Registro de asistencia no encontrado")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    annulled_by = user["id"]
+    annulled_by_name = f"{user.get('name', '')} {user.get('last_name', '')}".strip()
+
+    # Save previous state for audit
+    prev_entry_status = record.get("entry_status", "active")
+    prev_exit_status = record.get("exit_status", "active")
+    prev_entry_time = record.get("entry_time")
+    prev_exit_time = record.get("exit_time")
+
+    update = {"$set": {"updated_at": now_iso}}
+
+    if data.annul_type in ("entry", "both"):
+        update["$set"]["entry_status"] = "anulado"
+        update["$set"]["entry_annulled_at"] = now_iso
+        update["$set"]["entry_annulled_by"] = annulled_by
+        update["$set"]["entry_annulment_reason"] = data.reason
+
+    if data.annul_type in ("exit", "both"):
+        update["$set"]["exit_status"] = "anulado"
+        update["$set"]["exit_annulled_at"] = now_iso
+        update["$set"]["exit_annulled_by"] = annulled_by
+        update["$set"]["exit_annulment_reason"] = data.reason
+
+    # Derive overall status
+    new_entry = update["$set"].get("entry_status", prev_entry_status)
+    new_exit = update["$set"].get("exit_status", prev_exit_status)
+    if new_entry == "anulado" and new_exit == "anulado":
+        update["$set"]["status"] = "anulado"
+    elif new_entry == "anulado":
+        update["$set"]["status"] = "entrada_anulada"
+    elif new_exit == "anulado":
+        update["$set"]["status"] = "salida_anulada"
+
+    await db.attendances.update_one({"_id": record["_id"]}, update)
+
+    # Also update legacy student_attendance if student
+    if record.get("type") == "student":
+        await db.student_attendance.update_one(
+            {"student_id": record["user_id"], "date": record["date"], "school_id": school_id},
+            {"$set": {
+                "status": update["$set"].get("status", record.get("status")),
+                "updated_at": now_iso,
+            }}
+        )
+
+    # Audit log
+    audit = {
+        "id": str(uuid.uuid4()),
+        "attendance_id": attendance_id,
+        "school_id": school_id,
+        "user_id": record.get("user_id"),
+        "user_type": record.get("type", "student"),
+        "action_type": f"annul_{data.annul_type}",
+        "reason": data.reason,
+        "performed_by_user_id": annulled_by,
+        "performed_by_name": annulled_by_name,
+        "performed_at": now_iso,
+        "previous_entry_status": prev_entry_status,
+        "previous_exit_status": prev_exit_status,
+        "previous_entry_time": str(prev_entry_time) if prev_entry_time else None,
+        "previous_exit_time": str(prev_exit_time) if prev_exit_time else None,
+        "new_entry_status": new_entry,
+        "new_exit_status": new_exit,
+    }
+    await db.attendance_annulment_logs.insert_one(audit)
+
+    logger.info(f"Attendance {attendance_id} annulled ({data.annul_type}) by {annulled_by_name}: {data.reason}")
+
+    return {
+        "message": "Asistencia anulada correctamente",
+        "attendance_id": attendance_id,
+        "annul_type": data.annul_type,
+        "new_status": update["$set"].get("status", record.get("status")),
+    }
+
 
 

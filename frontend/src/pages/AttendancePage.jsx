@@ -1929,7 +1929,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
           )}
           
           {activeView === "qr-scanner" && (
-            <QRScannerTab token={token} schoolId={user?.school_id} roleFilter={scanContext} />
+            <QRScannerTab token={token} schoolId={user?.school_id} roleFilter={scanContext} user={user} />
           )}
           
           {activeView === "reports" && (

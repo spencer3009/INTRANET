@@ -947,7 +947,7 @@ export default function TeacherAttendancePage({ user, token, onLogout }) {
           )}
           
           {activeTab === "qr-scanner" && (
-            <QRScannerTab token={token} schoolId={user?.school_id} />
+            <QRScannerTab token={token} schoolId={user?.school_id} user={user} />
           )}
           
           {activeTab === "reports" && (
