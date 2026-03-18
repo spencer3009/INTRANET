@@ -119,12 +119,13 @@ async def push_mark_read(req: MarkReadRequest, user=Depends(get_current_user)):
 # SEND ATTENDANCE NOTIFICATION (called internally from attendance flow)
 # ══════════════════════════════════════════════════════════════════════════════
 
-async def send_attendance_notification(student_id: str, school_id: str, event_type: str = "ingreso"):
+async def send_attendance_notification(student_id: str, school_id: str, entry_time: str = None, event_type: str = "ingreso"):
     """
     Create notification and send push when student attendance is recorded.
     Called internally from attendance routes.
     
     event_type: "ingreso" | "salida" | "tardanza" | "inasistencia"
+    entry_time: optional time string (e.g. "08:15") to include in the message
     """
     # Get student info
     student = await db.users.find_one(
@@ -166,10 +167,11 @@ async def send_attendance_notification(student_id: str, school_id: str, event_ty
         return
 
     # Build notification content
+    time_suffix = f" a las {entry_time}" if entry_time else ""
     event_messages = {
-        "ingreso": f"Tu hijo(a) {student_name} ingreso al colegio",
-        "salida": f"Tu hijo(a) {student_name} salio del colegio",
-        "tardanza": f"Tu hijo(a) {student_name} llego tarde al colegio",
+        "ingreso": f"Tu hijo(a) {student_name} ingreso al colegio{time_suffix}",
+        "salida": f"Tu hijo(a) {student_name} salio del colegio{time_suffix}",
+        "tardanza": f"Tu hijo(a) {student_name} llego tarde al colegio{time_suffix}",
         "inasistencia": f"Tu hijo(a) {student_name} tiene inasistencia registrada",
     }
     title = "Asistencia registrada"

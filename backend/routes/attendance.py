@@ -912,6 +912,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                 await send_attendance_notification(
                     student_id=scanned_user_id,
                     school_id=school_id,
+                    entry_time=now_time,
                     event_type="ingreso"
                 )
             except Exception as notif_err:
@@ -954,6 +955,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                 await send_attendance_notification(
                     student_id=scanned_user_id,
                     school_id=school_id,
+                    entry_time=now_time,
                     event_type="salida"
                 )
             except Exception as notif_err:
