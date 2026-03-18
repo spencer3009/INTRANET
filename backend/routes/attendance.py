@@ -1174,7 +1174,7 @@ async def get_qr_attendance_history(
             att_list = await db.attendances.find({
                 "school_id": school_id, "date": today, "type": "student",
                 "user_id": {"$in": student_ids_today}
-            }, {"_id": 0, "user_id": 1, "entry_time": 1, "exit_time": 1}).to_list(None)
+            }, {"_id": 0, "id": 1, "user_id": 1, "entry_time": 1, "exit_time": 1, "status": 1, "entry_status": 1, "exit_status": 1}).to_list(None)
             attendance_records = {a["user_id"]: a for a in att_list}
         
         for record in student_records:
