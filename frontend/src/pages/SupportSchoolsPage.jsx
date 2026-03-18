@@ -6,10 +6,65 @@ import {
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
   ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2,
-  Eye, EyeOff, UserCircle, Save, Phone, Mail
+  Eye, EyeOff, UserCircle, Save, Phone, Mail, Bell, CreditCard, Clock
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+function NotificationBell({ payments = [], schoolName }) {
+  const [open, setOpen] = useState(false);
+  const count = payments.length;
+
+  const fmtDate = (iso) => {
+    if (!iso) return "";
+    return new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  };
+
+  return (
+    <div className="relative flex-shrink-0">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        className={`p-2 rounded-xl transition-colors ${count > 0 ? "text-violet-600 hover:bg-violet-50" : "text-slate-300 hover:bg-slate-50 hover:text-slate-400"}`}
+        title={count > 0 ? `${count} pago(s) pendiente(s)` : "Sin notificaciones"}
+        data-testid={`notification-bell-${schoolName}`}
+      >
+        <Bell className="w-5 h-5" fill={count > 0 ? "currentColor" : "none"} />
+        {count > 0 && (
+          <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
+            {count}
+          </span>
+        )}
+      </button>
+
+      {open && count > 0 && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-10 z-40 w-72 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-4 py-2.5 bg-violet-50 border-b border-violet-100">
+              <p className="text-xs font-bold text-violet-700">Pagos pendientes ({count})</p>
+            </div>
+            <div className="max-h-60 overflow-y-auto divide-y divide-slate-100">
+              {payments.map((p) => (
+                <div key={p.id} className="px-4 py-3 hover:bg-slate-50 transition-colors">
+                  <div className="flex items-center gap-2 mb-1">
+                    <CreditCard className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    <span className="text-xs font-bold text-slate-800 tracking-wider">{p.operation_code}</span>
+                    <span className="ml-auto text-xs font-bold text-emerald-600">S/ {p.amount?.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                    <Clock className="w-3 h-3" />
+                    <span>{fmtDate(p.created_at)}</span>
+                    {p.requested_by_name && <span className="ml-auto truncate max-w-[120px]">{p.requested_by_name}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function SupportSchoolsPage({ token, onLogin }) {
   const navigate = useNavigate();
@@ -439,6 +494,7 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     <h3 className="font-semibold text-slate-800 truncate">{school.name || school.subdomain}</h3>
                     <p className="text-xs text-slate-400">{school.subdomain}.edunet.pe</p>
                   </div>
+                  <NotificationBell payments={school.pending_payments || []} schoolName={school.subdomain} />
                   <button
                     onClick={(e) => { e.stopPropagation(); handleOpenOwner(school); }}
                     className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors flex-shrink-0"

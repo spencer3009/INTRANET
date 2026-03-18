@@ -190,17 +190,21 @@ async def support_schools(user=Depends(require_support_admin)):
         from .subscription import calculate_plan_state
         plan_estado, dias_vencido = await calculate_plan_state(school)
         
-        # Check for pending payment requests
-        pending_payment = await db.payment_requests.find_one(
-            {"school_id": sid, "status": "processing"}, {"_id": 0, "id": 1}
-        )
+        # Check for pending payment requests (with details for notifications)
+        pending_payments_cursor = db.payment_requests.find(
+            {"school_id": sid, "status": "processing"},
+            {"_id": 0, "id": 1, "operation_code": 1, "amount": 1, "payment_method": 1, "requested_by_name": 1, "created_at": 1}
+        ).sort("created_at", -1)
+        pending_payments = await pending_payments_cursor.to_list(length=20)
         
         assignment = assignment_map.get(sid, {})
         result.append({
             **school,
             "plan_estado": plan_estado,
             "dias_vencido": dias_vencido,
-            "has_pending_payment": bool(pending_payment),
+            "has_pending_payment": len(pending_payments) > 0,
+            "pending_payments_count": len(pending_payments),
+            "pending_payments": pending_payments,
             "role_in_school": assignment.get("role_in_school", "system_admin"),
             "is_system_assignment": assignment.get("is_system_assignment", True),
             "student_count": student_count,

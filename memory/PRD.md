@@ -10,89 +10,77 @@ EduNet is a comprehensive academic management system (intranet escolar) for scho
 
 ## What's Been Implemented
 
-### Subscription System (March 15, 2026) - Fase 1+2
-- [x] Backend module: `/api/subscription/` with status calculation
+### Subscription System (March 2026)
+- [x] Backend module: `/api/subscription/` with real-time state calculation
 - [x] States: ACTIVO, AVISO_VENCIMIENTO, RESTRICCION_PARCIAL, PAGO_OBLIGATORIO, SUSPENDIDO, PAGO_EN_VERIFICACION
 - [x] Progressive blocking: warning → partial restriction → mandatory payment → suspended
-- [x] Subscription banner on owner dashboard (color-coded by severity)
-- [x] SuspendedScreen (full block with payment form + contact support)
-- [x] PaymentBlockModal (mandatory for PAGO_OBLIGATORIO state)
-- [x] SubscriptionCard with status/amount/students/days overdue
-- [x] Support panel: subscription status on school cards
-- [x] Global grace days config (default: 7)
-- [x] QR config endpoints (ready for Cloudinary upload)
-- [x] Daily check endpoint for batch status updates
+- [x] Login restriction: only blocks non-owner/non-admin roles. Owner/admin ALWAYS can login
+- [x] Owner/admin sees non-dismissible PaymentBlockModal (not SuspendedScreen) for SUSPENDIDO/PAGO_OBLIGATORIO
+- [x] Global middleware blocks write operations for RESTRICCION_PARCIAL
+- [x] ProfileCard shows correct days overdue using `fecha_vencimiento` field
+- [x] SubscriptionBanner persistent across all intranet pages
+- [x] QR Yape upload from support panel (Cloudinary)
+- [x] Daily cron job for batch status updates (secondary to real-time calculation)
+
+### Support Panel - Renewal System (March 17, 2026)
+- [x] Two-tab renewal modal: "Con codigo" and "Renovacion directa"
+- [x] "Con codigo": Verify 8-digit operation code from client
+- [x] "Renovacion directa": Renew without operation code (WhatsApp payment proof)
+- [x] Both options renew for 30 days, log renewal, create finance entry
+- [x] Support sees ALL schools (not just assigned) on Colegios page
+
+### Support Panel - Notification Bell (March 18, 2026)
+- [x] NotificationBell component on each school card header
+- [x] Bell between school name and user icon: [Logo] Name [Bell] [User]
+- [x] States: gray outline (no notifications) / violet filled + red badge (pending payments)
+- [x] Dropdown shows payment details: operation code, amount, date, requester name
+- [x] Backend returns `pending_payments` array per school
+- [x] No notification without operation code, no duplicates, lazy load safe
+
+### Support Dashboard - Pagination (March 17, 2026)
+- [x] "Ultimos Colegios Registrados" shows total count
+- [x] Paginated endpoint: `/api/support/schools-paginated?page=1&per_page=5`
+- [x] Pagination controls (prev/next) when total > 5
 
 ### Landing Page (March 2026)
-- [x] Video section: Google Drive iframe
-- [x] Lead form → WhatsApp +51992021294 ("Hola, deseo mas informacion" + datos)
-- [x] "Solicitar demo" → "Informes"
+- [x] Video section, lead form → WhatsApp, "Informes" button
 
-### Owner Modal (March 2026)
-- [x] Owner/titular button on school cards (view/edit)
-- [x] Fields: nombre, nombre colegio, email, RUC, WhatsApp (+51 prefix), contrasena
-- [x] Password visible to support (plain_password stored)
-- [x] Password strength indicator + generator
-
-### School Registration (March 2026)
-- [x] Fields: nombre colegio, subdominio, RUC*, WhatsApp* (+51), nombre, email, contrasena
-- [x] All fields mandatory with asterisk indicators
-- [x] WhatsApp stored as +51XXXXXXXXX in DB
+### School Registration & Owner Modal (March 2026)
+- [x] Complete registration with RUC, WhatsApp (+51), password generator
 
 ### Login
-- [x] Removed "Crea una gratis" text
-
-### Support Panel (Previous)
-- [x] Finance page with advanced filters
-- [x] Create/delete schools
-- [x] Membership renewal with 8-digit code
-- [x] Conditional "Pagar" button
+- [x] Role-based restrictions: students/teachers/parents blocked on PAGO_OBLIGATORIO/SUSPENDIDO
+- [x] Owner/admin always allowed to login
 
 ## Pending Issues
 | Priority | Issue | Status |
 |----------|-------|--------|
-| P0 | Subject list inconsistency | IN PROGRESS |
-| P0 | Production database missing | BLOCKED |
+| P0 | Subject list inconsistency | NOT STARTED (recurring 2+) |
 | P1 | Double scrollbar Registro Auxiliar | NOT STARTED |
-| P2 | Hardcoded Owner Dashboard data | NOT STARTED |
-| P2 | Message Center unread count | NOT STARTED |
-
-## Subscription System - Remaining Work
-### Fase 3 - Support Management
-- [ ] Suspend/reactivate buttons on school cards
-- [ ] Manual payment registration from support
-- [ ] Send reminder button
-
-### Fase 4 - QR & Reminders
-- [x] QR Yape upload from support panel (Cloudinary) - COMPLETED March 16
-- [x] Yape-styled QR frame in PaymentBlockModal - COMPLETED March 16
-- [x] Global persistent subscription banner (all sections) - COMPLETED March 16
-- [x] Role-based banner restriction (owner/admin only) - COMPLETED March 16
-- [ ] Automatic reminders (3 days before, day of, 2/5 days after)
-- [ ] WhatsApp integration prep
-
-### Frontend Restrictions
-- [ ] Block create actions during RESTRICCION_PARCIAL
-- [ ] URL-level route protection for PAGO_OBLIGATORIO/SUSPENDIDO
+| P2 | Hardcoded Owner Dashboard data | NOT STARTED (recurring 9+) |
+| P2 | Message Center unread count | NOT STARTED (recurring 9+) |
 
 ## Upcoming Tasks
-- Refactor Message Pages
+- Refactor Message Pages (consolidation)
 - Gradebook Enhancements (PDF/Excel, Lock Period)
-- Dashboard Widgets Phase 2
+- Dashboard Widgets Phase 2 (real data)
 
 ## Backlog
-- Parent Portal, Matriculas module, Exams Question Bank
-- Replace window.confirm with custom modals
+- Parent Portal feature parity
+- Matriculas module
+- Exams Question Bank
+- Replace window.confirm/alert with custom modals
 - Replicar Ano Academico
 
 ## Credentials
 - **Owner:** subdomain=elroble, email=admin@elroble.edu, pwd=1234abc8
 - **Support:** email=spencer3009@gmail.com, pwd=Socios3009
+- **Test Student:** miguelon@gmail.com / 1234abc8
+- **Test Teacher:** elprofe@gmail.com / 1234abc8
 
 ## Key API Endpoints
-- GET /api/subscription/status - Current subscription status
-- POST /api/subscription/check-action - Check if action allowed
-- GET/PUT /api/subscription/qr-config - QR payment config
-- GET/PUT /api/subscription/config - Grace days config
-- POST /api/subscription/run-daily-check - Manual batch update
-- GET/PUT /api/support/school-owner/{id} - Owner data
+- GET /api/subscription/status - Real-time subscription status
+- POST /api/support/renew-membership - Renew with code or direct
+- GET /api/support/schools - All schools (for global admin)
+- GET /api/support/schools-paginated - Paginated schools list
+- GET /api/support/payment-requests - All payment requests
