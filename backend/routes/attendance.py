@@ -939,24 +939,38 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             entry_update["$setOnInsert"]["grade_id"] = scanned_user.get("grado_id")
             entry_update["$setOnInsert"]["section_id"] = scanned_user.get("seccion_id")
         
-        await db.attendances.update_one(
-            {"school_id": school_id, "type": attendance_type, "user_id": scanned_user_id, "date": today},
-            entry_update,
-            upsert=True
-        )
+        # Save to attendances - only update active records, else create new
+        active_filter = {
+            "school_id": school_id, "type": attendance_type, "user_id": scanned_user_id, "date": today,
+            "$or": [
+                {"entry_status": {"$ne": "anulado"}},
+                {"entry_status": {"$exists": False}},
+            ]
+        }
+        active_record = await db.attendances.find_one(active_filter)
+        if active_record:
+            await db.attendances.update_one({"_id": active_record["_id"]}, {"$set": entry_update["$set"]})
+        else:
+            new_doc = {**entry_update["$setOnInsert"], **entry_update["$set"], "entry_status": "active", "exit_status": "active"}
+            await db.attendances.insert_one(new_doc)
+
         # Also save to legacy collection (students only)
         if not is_teacher_qr:
-            await db.student_attendance.update_one(
-                {"student_id": scanned_user_id, "date": today, "school_id": school_id},
-                {
-                    "$set": {"status": entry_status, "check_in_time": now_time, "method": "qr_scan",
-                             "scanned_by": current_user["sub"], "created_at": now_iso,
-                             "grado_id": scanned_user.get("grado_id"), "seccion_id": scanned_user.get("seccion_id")},
-                    "$setOnInsert": {"id": str(uuid.uuid4()), "student_id": scanned_user_id,
-                                     "school_id": school_id, "date": today}
-                },
-                upsert=True
-            )
+            legacy_filter = {
+                "student_id": scanned_user_id, "date": today, "school_id": school_id,
+                "status": {"$nin": ["anulado", "entrada_anulada"]}
+            }
+            legacy_record = await db.student_attendance.find_one(legacy_filter)
+            legacy_set = {"status": entry_status, "check_in_time": now_time, "method": "qr_scan",
+                         "scanned_by": current_user["sub"], "created_at": now_iso,
+                         "grado_id": scanned_user.get("grado_id"), "seccion_id": scanned_user.get("seccion_id")}
+            if legacy_record:
+                await db.student_attendance.update_one({"_id": legacy_record["_id"]}, {"$set": legacy_set})
+            else:
+                await db.student_attendance.insert_one({
+                    "id": str(uuid.uuid4()), "student_id": scanned_user_id,
+                    "school_id": school_id, "date": today, **legacy_set
+                })
         
         logger.info(f"QR Entry ({scanned_role}): {user_info['full_name']} at {now_time} [{entry_status}]")
         
