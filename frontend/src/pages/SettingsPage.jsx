@@ -11,7 +11,7 @@ import {
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
-  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone
+  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -56,6 +56,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     auto_late_enabled: false,
   });
   const [academicLevels, setAcademicLevels] = useState([]);
+  const [openLevel, setOpenLevel] = useState(null);
   const [savingAttendance, setSavingAttendance] = useState(false);
   
   // Google Drive states
@@ -1032,9 +1033,10 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                   {academicLevels.length === 0 ? (
                     <p className="text-sm text-slate-400 italic">No hay niveles academicos configurados</p>
                   ) : (
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {academicLevels.map(level => {
                         const levelConfig = attendanceConfig.levels.find(l => l.level_id === level.id) || { entry_time: "07:30", exit_time: "13:00" };
+                        const isOpen = openLevel === level.id;
                         const updateLevel = (field, value) => {
                           setAttendanceConfig(p => {
                             const existing = p.levels.filter(l => l.level_id !== level.id);
@@ -1043,30 +1045,44 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                           });
                         };
                         return (
-                          <div key={level.id} className="bg-slate-50 rounded-xl p-4">
-                            <p className="text-sm font-bold text-slate-700 mb-2">{level.nombre || level.name}</p>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-xs text-slate-500 mb-1">Ingreso</label>
-                                <input
-                                  type="time"
-                                  value={levelConfig.entry_time}
-                                  onChange={(e) => updateLevel("entry_time", e.target.value)}
-                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
-                                  data-testid={`level-entry-${level.id}`}
-                                />
-                              </div>
-                              <div>
-                                <label className="block text-xs text-slate-500 mb-1">Salida</label>
-                                <input
-                                  type="time"
-                                  value={levelConfig.exit_time}
-                                  onChange={(e) => updateLevel("exit_time", e.target.value)}
-                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
-                                  data-testid={`level-exit-${level.id}`}
-                                />
+                          <div key={level.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                            <div
+                              onClick={() => setOpenLevel(isOpen ? null : level.id)}
+                              className="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-slate-50 transition-colors"
+                              data-testid={`level-accordion-${level.id}`}
+                            >
+                              <span className="text-sm font-bold text-slate-700">{level.nombre || level.name}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm text-slate-400">{levelConfig.entry_time} - {levelConfig.exit_time}</span>
+                                <ChevronDown className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
                               </div>
                             </div>
+                            {isOpen && (
+                              <div className="px-4 pb-4 pt-2 border-t border-slate-100 bg-slate-50/50">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <div>
+                                    <label className="block text-xs text-slate-500 mb-1">Hora ingreso</label>
+                                    <input
+                                      type="time"
+                                      value={levelConfig.entry_time}
+                                      onChange={(e) => updateLevel("entry_time", e.target.value)}
+                                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                                      data-testid={`level-entry-${level.id}`}
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-slate-500 mb-1">Hora salida</label>
+                                    <input
+                                      type="time"
+                                      value={levelConfig.exit_time}
+                                      onChange={(e) => updateLevel("exit_time", e.target.value)}
+                                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                                      data-testid={`level-exit-${level.id}`}
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         );
                       })}
