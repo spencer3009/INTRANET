@@ -770,15 +770,14 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     
     attendance_type = scanned_role  # "student" or "teacher"
     
-    # Check main attendances collection (exclude fully annulled records)
+    # Check main attendances collection (only records with active entry)
     existing = await db.attendances.find_one({
         "user_id": scanned_user_id,
         "date": today,
         "school_id": school_id,
         "type": attendance_type,
         "$or": [
-            {"entry_status": {"$ne": "anulado"}},
-            {"exit_status": {"$ne": "anulado"}},
+            {"entry_status": "active"},
             {"entry_status": {"$exists": False}},
         ]
     })
@@ -814,8 +813,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             existing = await db.attendances.find_one({
                 "user_id": scanned_user_id, "date": today, "school_id": school_id, "type": "student",
                 "$or": [
-                    {"entry_status": {"$ne": "anulado"}},
-                    {"exit_status": {"$ne": "anulado"}},
+                    {"entry_status": "active"},
                     {"entry_status": {"$exists": False}},
                 ]
             })
@@ -943,7 +941,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         active_filter = {
             "school_id": school_id, "type": attendance_type, "user_id": scanned_user_id, "date": today,
             "$or": [
-                {"entry_status": {"$ne": "anulado"}},
+                {"entry_status": "active"},
                 {"entry_status": {"$exists": False}},
             ]
         }
