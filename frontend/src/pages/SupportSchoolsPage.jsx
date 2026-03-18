@@ -13,8 +13,8 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function NotificationBell({ payments = [], schoolName }) {
   const [open, setOpen] = useState(false);
-  const [seen, setSeen] = useState(false);
-  const count = payments.length;
+  const [cleared, setCleared] = useState(false);
+  const count = cleared ? 0 : payments.length;
 
   const fmtDate = (iso) => {
     if (!iso) return "";
@@ -23,11 +23,13 @@ function NotificationBell({ payments = [], schoolName }) {
 
   const handleClick = (e) => {
     e.stopPropagation();
-    if (!open && count > 0) setSeen(true);
-    setOpen(!open);
+    if (count > 0) setOpen(!open);
   };
 
-  const showBadge = count > 0 && !seen;
+  const handleClear = () => {
+    setCleared(true);
+    setOpen(false);
+  };
 
   return (
     <div className="relative flex-shrink-0">
@@ -38,7 +40,7 @@ function NotificationBell({ payments = [], schoolName }) {
         data-testid={`notification-bell-${schoolName}`}
       >
         <Bell className="w-5 h-5" fill={count > 0 ? "currentColor" : "none"} />
-        {showBadge && (
+        {count > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
             {count}
           </span>
@@ -52,7 +54,7 @@ function NotificationBell({ payments = [], schoolName }) {
             <div className="px-4 py-2.5 bg-violet-50 border-b border-violet-100 flex items-center justify-between">
               <p className="text-xs font-bold text-violet-700">Pagos pendientes ({count})</p>
               <button
-                onClick={() => { setSeen(true); setOpen(false); }}
+                onClick={handleClear}
                 className="text-[10px] font-semibold text-slate-400 hover:text-violet-600 transition-colors"
                 data-testid={`clear-notifications-${schoolName}`}
               >
