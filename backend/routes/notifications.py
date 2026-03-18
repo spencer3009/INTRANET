@@ -167,11 +167,20 @@ async def send_attendance_notification(student_id: str, school_id: str, entry_ti
         return
 
     # Build notification content
-    time_suffix = f" a las {entry_time}" if entry_time else ""
+    time_suffix = ""
+    if entry_time:
+        try:
+            parts = entry_time.split(":")
+            h, m = int(parts[0]), int(parts[1])
+            period = "a. m." if h < 12 else "p. m."
+            h12 = h if 1 <= h <= 12 else (h - 12 if h > 12 else 12)
+            time_suffix = f" a las {h12}:{m:02d} {period}"
+        except Exception:
+            time_suffix = f" a las {entry_time}"
     event_messages = {
-        "ingreso": f"Tu hijo(a) {student_name} ingreso al colegio{time_suffix}",
-        "salida": f"Tu hijo(a) {student_name} salio del colegio{time_suffix}",
-        "tardanza": f"Tu hijo(a) {student_name} llego tarde al colegio{time_suffix}",
+        "ingreso": f"Tu hijo(a) {student_name} ingresó al colegio{time_suffix}",
+        "salida": f"Tu hijo(a) {student_name} salió del colegio{time_suffix}",
+        "tardanza": f"Tu hijo(a) {student_name} llegó tarde al colegio{time_suffix}",
         "inasistencia": f"Tu hijo(a) {student_name} tiene inasistencia registrada",
     }
     title = "Asistencia registrada"
