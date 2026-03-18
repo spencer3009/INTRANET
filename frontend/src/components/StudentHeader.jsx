@@ -112,7 +112,7 @@ export default function StudentHeader({ user, onMenuClick, onLogout, logoUrl, sc
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <NotificationBell token={token} />
+          <NotificationBell token={token} userRole={roleLabel === "Padre" ? "parent" : undefined} />
           <div className="relative" ref={profileMenuRef}>
             <button onClick={() => setProfileMenuOpen(!profileMenuOpen)} className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-3 border-l border-slate-200 cursor-pointer hover:opacity-90 transition-opacity" data-testid="student-header-profile-button">
               <div className="hidden sm:block text-right">

@@ -47,6 +47,7 @@ from routes.live_classes import router as live_classes_router
 from routes.grades import router as grades_router
 from routes.membership import router as membership_router
 from routes.subscription import router as subscription_router, daily_subscription_cron
+from routes.notifications import router as notifications_router
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -114,6 +115,7 @@ async def demo_user_middleware(request: Request, call_next):
 SUBSCRIPTION_SAFE_PATHS = [
     "/api/auth/", "/api/subscription/", "/api/membership/",
     "/api/support/", "/api/cloudinary/", "/api/dashboard/",
+    "/api/notifications/", "/api/push/",
 ]
 
 @app.middleware("http")
@@ -182,6 +184,7 @@ app.include_router(live_classes_router)
 app.include_router(grades_router)
 app.include_router(membership_router)
 app.include_router(subscription_router)
+app.include_router(notifications_router)
 app.include_router(support_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -310,7 +313,21 @@ async def create_indexes():
             )
         if teachers_without_qr:
             logging.info(f"Generated QR tokens for {len(teachers_without_qr)} teachers")
+        # Push notification indexes
+        await db.push_tokens.create_index([("user_id", 1)])
+        await db.push_tokens.create_index([("token", 1)], unique=True)
+        await db.parent_notifications.create_index([("parent_id", 1), ("created_at", -1)])
+        await db.parent_notifications.create_index([("parent_id", 1), ("read_at", 1)])
+        await db.parent_notifications.create_index([("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
         logging.info("MongoDB indexes created successfully")
+        # Initialize Firebase Admin SDK
+        from utils.firebase_admin_sdk import get_firebase_app
+        fb_app = get_firebase_app()
+        if fb_app:
+            logging.info(f"Firebase Admin SDK ready: {fb_app.project_id}")
+        else:
+            logging.warning("Firebase Admin SDK not initialized - push notifications disabled")
+
         # Start daily subscription cron job
         import asyncio
         asyncio.create_task(daily_subscription_cron())

@@ -7,9 +7,10 @@ import {
   Bell, X, Calendar, FileText, BookOpen, AlertCircle,
   Clock, ChevronRight, Eye, Loader2, Sparkles, PenTool,
   FolderOpen, MessageSquare, CheckCircle, CheckCheck, ExternalLink, Wifi, WifiOff,
-  Megaphone
+  Megaphone, UserCheck
 } from "lucide-react";
 import { useNotificationSocket } from "@/hooks/useNotificationSocket";
+import { requestNotificationPermission, onForegroundMessage } from "@/lib/firebase";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -209,17 +210,21 @@ function ReminderNotificationItem({ reminder, onClick }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // NOTIFICATION BELL MAIN COMPONENT
 // ══════════════════════════════════════════════════════════════════════════════
-export default function NotificationBell({ token }) {
+export default function NotificationBell({ token, userRole }) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState({ important: [], upcoming: [], new: [], total_count: 0 });
   const [generalNotifications, setGeneralNotifications] = useState({ notifications: [], unread_count: 0 });
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadBroadcasts, setUnreadBroadcasts] = useState(0);
+  const [attendanceNotifs, setAttendanceNotifs] = useState([]);
+  const [attendanceUnread, setAttendanceUnread] = useState(0);
   const [loading, setLoading] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState(null);
   const [activeTab, setActiveTab] = useState("all");
   const dropdownRef = useRef(null);
+  const fcmRegistered = useRef(false);
   const navigate = useNavigate();
+  const isParent = userRole === "parent";
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -266,6 +271,51 @@ export default function NotificationBell({ token }) {
   // Connect WebSocket
   const { isConnected } = useNotificationSocket(token, handleWebSocketMessage);
 
+  // FCM Registration for parents
+  useEffect(() => {
+    if (!token || !isParent || fcmRegistered.current) return;
+    fcmRegistered.current = true;
+    (async () => {
+      try {
+        const fcmToken = await requestNotificationPermission();
+        if (fcmToken) {
+          await axios.post(`${API}/push/register-token`, { token: fcmToken }, { headers });
+        }
+      } catch (e) {
+        console.warn("FCM registration failed:", e);
+      }
+    })();
+  }, [token, isParent]);
+
+  // FCM foreground listener for parents
+  useEffect(() => {
+    if (!token || !isParent) return;
+    const unsubscribe = onForegroundMessage((payload) => {
+      const data = payload.data || {};
+      const notif = payload.notification || {};
+      toast(notif.title || "Asistencia", {
+        description: notif.body,
+        duration: 6000,
+        icon: <UserCheck className="w-4 h-4 text-emerald-500" />,
+      });
+      loadAttendanceNotifs();
+    });
+    return unsubscribe;
+  }, [token, isParent]);
+
+  // Load attendance notifications for parents
+  const loadAttendanceNotifs = useCallback(async () => {
+    if (!token || !isParent) return;
+    try {
+      const [listRes, countRes] = await Promise.all([
+        axios.get(`${API}/push/attendance-notifications?limit=20`, { headers }).catch(() => ({ data: [] })),
+        axios.get(`${API}/push/unread-count`, { headers }).catch(() => ({ data: { count: 0 } })),
+      ]);
+      setAttendanceNotifs(listRes.data);
+      setAttendanceUnread(countRes.data.count || 0);
+    } catch {}
+  }, [token, isParent]);
+
   const loadNotifications = useCallback(async () => {
     if (!token) return;
     setLoading(true);
@@ -280,12 +330,13 @@ export default function NotificationBell({ token }) {
       setGeneralNotifications(generalRes.data);
       setUnreadMessages(messagesRes.data.unread || 0);
       setUnreadBroadcasts(broadcastRes.data.count || 0);
+      if (isParent) loadAttendanceNotifs();
     } catch (err) {
       console.error("Error loading notifications:", err);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [token, isParent, loadAttendanceNotifs]);
 
   useEffect(() => {
     loadNotifications();
@@ -350,14 +401,35 @@ export default function NotificationBell({ token }) {
         unread_count: 0,
         notifications: prev.notifications.map(n => ({ ...n, is_read: true }))
       }));
+      if (isParent) {
+        await axios.post(`${API}/push/mark-read`, {}, { headers });
+        setAttendanceUnread(0);
+        setAttendanceNotifs(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
+      }
     } catch (err) {
       console.error("Error:", err);
     }
   };
 
+  // Handle attendance notification click
+  const handleAttendanceClick = async (notif) => {
+    if (!notif.read_at) {
+      try {
+        await axios.post(`${API}/push/mark-read`, { notification_id: notif.id }, { headers });
+        setAttendanceNotifs(prev => prev.map(n => n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n));
+        setAttendanceUnread(prev => Math.max(0, prev - 1));
+      } catch {}
+    }
+    if (notif.student_id) {
+      const prefix = getSchoolPrefix();
+      setIsOpen(false);
+      navigate(`${prefix}/parent/dashboard?student=${notif.student_id}`);
+    }
+  };
+
   const handleReminderClick = (reminder) => setSelectedReminder(reminder);
 
-  const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0) + unreadMessages + unreadBroadcasts;
+  const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0) + unreadMessages + unreadBroadcasts + attendanceUnread;
   const hasNotifications = totalCount > 0;
 
   return (
@@ -466,6 +538,20 @@ export default function NotificationBell({ token }) {
                 <span className="ml-1.5 px-1.5 py-0.5 bg-violet-500 text-white text-[10px] rounded-full">{generalNotifications.unread_count}</span>
               )}
             </button>
+            {isParent && (
+              <button
+                onClick={() => setActiveTab("attendance")}
+                className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
+                  activeTab === "attendance" ? "text-emerald-600 border-b-2 border-emerald-500 bg-emerald-50" : "text-gray-500 hover:text-gray-700"
+                }`}
+                data-testid="attendance-tab"
+              >
+                Asistencia
+                {attendanceUnread > 0 && (
+                  <span className="ml-1.5 px-1.5 py-0.5 bg-emerald-500 text-white text-[10px] rounded-full">{attendanceUnread}</span>
+                )}
+              </button>
+            )}
             <button
               onClick={() => setActiveTab("reminders")}
               className={`flex-1 px-4 py-2.5 text-sm font-medium transition-colors ${
@@ -503,6 +589,50 @@ export default function NotificationBell({ token }) {
                       notif={notif}
                       onClick={handleGeneralNotificationClick}
                     />
+                  ))}
+                </div>
+              )
+            ) : activeTab === "attendance" ? (
+              attendanceNotifs.length === 0 ? (
+                <div className="py-8 text-center">
+                  <div className="w-12 h-12 bg-emerald-50 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <UserCheck className="w-6 h-6 text-emerald-300" />
+                  </div>
+                  <p className="text-gray-500 text-sm font-medium">Sin notificaciones</p>
+                  <p className="text-gray-400 text-xs mt-1">Las notificaciones de asistencia apareceran aqui</p>
+                </div>
+              ) : (
+                <div>
+                  {attendanceNotifs.map((notif) => (
+                    <div
+                      key={notif.id}
+                      onClick={() => handleAttendanceClick(notif)}
+                      className={`px-4 py-3 cursor-pointer transition-all border-b border-gray-50 last:border-0 group ${
+                        notif.read_at ? "bg-white hover:bg-gray-50" : "bg-emerald-50 hover:bg-emerald-100"
+                      }`}
+                      data-testid={`attendance-notif-${notif.id}`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center relative">
+                          <UserCheck className="w-5 h-5 text-emerald-600" />
+                          {!notif.read_at && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full border-2 border-white" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm ${notif.read_at ? "text-gray-500" : "font-semibold text-gray-800"}`}>
+                            {notif.body}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-medium rounded-full capitalize">
+                              {notif.type}
+                            </span>
+                            <span className="text-[10px] text-gray-400">{formatTimeAgo(notif.created_at)}</span>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 mt-1" />
+                      </div>
+                    </div>
                   ))}
                 </div>
               )
