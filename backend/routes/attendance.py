@@ -770,18 +770,24 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     
     attendance_type = scanned_role  # "student" or "teacher"
     
-    # Check main attendances collection
+    # Check main attendances collection (exclude fully annulled records)
     existing = await db.attendances.find_one({
         "user_id": scanned_user_id,
         "date": today,
         "school_id": school_id,
-        "type": attendance_type
+        "type": attendance_type,
+        "$or": [
+            {"entry_status": {"$ne": "anulado"}},
+            {"exit_status": {"$ne": "anulado"}},
+            {"entry_status": {"$exists": False}},
+        ]
     })
     
     # Also check student_attendance (legacy QR collection) and sync if needed (students only)
     if not is_teacher_qr:
         existing_legacy = await db.student_attendance.find_one({
-            "student_id": scanned_user_id, "date": today, "school_id": school_id
+            "student_id": scanned_user_id, "date": today, "school_id": school_id,
+            "status": {"$nin": ["anulado", "entrada_anulada"]}
         })
         if existing_legacy and not existing:
             await db.attendances.update_one(
@@ -806,7 +812,12 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
                 upsert=True
             )
             existing = await db.attendances.find_one({
-                "user_id": scanned_user_id, "date": today, "school_id": school_id, "type": "student"
+                "user_id": scanned_user_id, "date": today, "school_id": school_id, "type": "student",
+                "$or": [
+                    {"entry_status": {"$ne": "anulado"}},
+                    {"exit_status": {"$ne": "anulado"}},
+                    {"entry_status": {"$exists": False}},
+                ]
             })
     
     # Build user info for response
