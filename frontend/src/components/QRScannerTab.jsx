@@ -883,9 +883,13 @@ export default function QRScannerTab({ token, roleFilter, user }) {
         {history.length > 0 ? (
           <div className="divide-y divide-slate-100">
             {history.map((item, idx) => {
-              const isAnulado = item.status?.includes("anulad");
               const entryAnulado = item.entry_status === "anulado";
               const exitAnulado = item.exit_status === "anulado";
+              const bothAnulado = entryAnulado && (exitAnulado || !item.exit_time);
+              const isAnulado = bothAnulado || item.status?.includes("anulad");
+              const isIncomplete = (entryAnulado && !exitAnulado && item.exit_time) || (!entryAnulado && exitAnulado);
+              const badgeLabel = isAnulado ? "Anulado" : isIncomplete ? "Incompleto" : "Presente";
+              const badgeClass = isAnulado ? "bg-red-100 text-red-600" : isIncomplete ? "bg-amber-100 text-amber-600" : "bg-emerald-100 text-emerald-700";
               return (
               <div key={item.id || idx} className={`px-6 py-3 flex items-center gap-4 hover:bg-slate-50 ${isAnulado ? "opacity-60" : ""}`}>
                 {item.photo_url ? (
@@ -926,15 +930,9 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                       </div>
                     </>
                   )}
-                  {isAnulado ? (
-                    <span className="px-2 py-1 bg-red-100 text-red-600 rounded-full text-xs font-medium ml-2">
-                      Anulado
-                    </span>
-                  ) : (
-                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium ml-2">
-                      Presente
-                    </span>
-                  )}
+                  <span className={`px-2 py-1 ${badgeClass} rounded-full text-xs font-medium ml-2`}>
+                    {badgeLabel}
+                  </span>
                   {isAdmin && !isAnulado && item.attendance_id && (
                     <button
                       onClick={() => openAnnulModal(item)}
