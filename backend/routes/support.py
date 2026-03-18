@@ -684,15 +684,16 @@ async def switch_school(req: SwitchSchoolRequest, user=Depends(require_support_a
     Returns a new JWT with active_school_id and scope: support_switch.
     Only works if user has assignment to that school.
     """
-    # Verify membership
-    assignment = await db.user_school_roles.find_one(
-        {"user_id": user["id"], "school_id": req.school_id}
-    )
-    if not assignment:
-        raise HTTPException(
-            status_code=403,
-            detail="No tienes acceso a este colegio. Asignalo primero."
+    # Global admin can enter any school without assignment
+    if user.get("role") != "system_admin_global":
+        assignment = await db.user_school_roles.find_one(
+            {"user_id": user["id"], "school_id": req.school_id}
         )
+        if not assignment:
+            raise HTTPException(
+                status_code=403,
+                detail="No tienes acceso a este colegio. Asignalo primero."
+            )
     
     # Get school details
     school = await db.schools.find_one({"id": req.school_id}, {"_id": 0})
