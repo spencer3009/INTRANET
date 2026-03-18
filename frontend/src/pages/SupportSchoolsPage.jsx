@@ -49,8 +49,15 @@ function NotificationBell({ payments = [], schoolName }) {
         <>
           <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
           <div className="absolute right-0 top-10 z-40 w-72 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="px-4 py-2.5 bg-violet-50 border-b border-violet-100">
+            <div className="px-4 py-2.5 bg-violet-50 border-b border-violet-100 flex items-center justify-between">
               <p className="text-xs font-bold text-violet-700">Pagos pendientes ({count})</p>
+              <button
+                onClick={() => { setSeen(true); setOpen(false); }}
+                className="text-[10px] font-semibold text-slate-400 hover:text-violet-600 transition-colors"
+                data-testid={`clear-notifications-${schoolName}`}
+              >
+                Limpiar
+              </button>
             </div>
             <div className="max-h-60 overflow-y-auto divide-y divide-slate-100">
               {payments.map((p) => (
