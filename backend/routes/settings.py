@@ -98,15 +98,25 @@ async def get_tenant_settings(current_user = Depends(require_section_access("set
     settings["permitir_acceso_estudiantes_pendientes"] = school.get("permitir_acceso_estudiantes_pendientes", False)
     settings["allow_admin_broadcast"] = school.get("allow_admin_broadcast", False)
     
-    # Include attendance config
-    settings["attendance_config"] = school.get("attendance_config", {
-        "student_entry_time": "07:30",
-        "teacher_entry_time": "07:15",
+    # Include attendance config (new structure with levels)
+    default_config = {
+        "teachers": {"entry_time": "07:15", "exit_time": "13:00"},
+        "levels": [],
         "tolerance_minutes": 5,
         "mark_absent_after_minutes": 30,
-        "allow_late_entry": True,
         "auto_late_enabled": False,
-    })
+    }
+    raw_config = school.get("attendance_config", {})
+    # Migrate old flat format to new structure
+    if "student_entry_time" in raw_config and "teachers" not in raw_config:
+        raw_config = {
+            "teachers": {"entry_time": raw_config.get("teacher_entry_time", "07:15"), "exit_time": "13:00"},
+            "levels": [],
+            "tolerance_minutes": raw_config.get("tolerance_minutes", 5),
+            "mark_absent_after_minutes": raw_config.get("mark_absent_after_minutes", 30),
+            "auto_late_enabled": raw_config.get("auto_late_enabled", False),
+        }
+    settings["attendance_config"] = {**default_config, **raw_config}
     
     return settings
 
@@ -205,12 +215,20 @@ async def update_role_settings(
     }
 
 
+class AttendanceLevelConfig(BaseModel):
+    level_id: str
+    entry_time: str
+    exit_time: str
+
+class AttendanceTeacherConfig(BaseModel):
+    entry_time: str
+    exit_time: str
+
 class AttendanceConfigUpdate(BaseModel):
-    student_entry_time: Optional[str] = None
-    teacher_entry_time: Optional[str] = None
+    teachers: Optional[AttendanceTeacherConfig] = None
+    levels: Optional[List[AttendanceLevelConfig]] = None
     tolerance_minutes: Optional[int] = None
     mark_absent_after_minutes: Optional[int] = None
-    allow_late_entry: Optional[bool] = None
     auto_late_enabled: Optional[bool] = None
 
 @router.put("/settings/attendance")
@@ -218,12 +236,23 @@ async def update_attendance_config(
     data: AttendanceConfigUpdate,
     current_user = Depends(require_section_access("settings"))
 ):
-    """Update attendance configuration for the school."""
+    """Update attendance configuration for the school (levels-based)."""
     school_id = current_user.get("school_id")
     if not school_id:
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
 
-    update_data = {f"attendance_config.{k}": v for k, v in data.model_dump().items() if v is not None}
+    update_data = {}
+    if data.teachers is not None:
+        update_data["attendance_config.teachers"] = data.teachers.model_dump()
+    if data.levels is not None:
+        update_data["attendance_config.levels"] = [l.model_dump() for l in data.levels]
+    if data.tolerance_minutes is not None:
+        update_data["attendance_config.tolerance_minutes"] = data.tolerance_minutes
+    if data.mark_absent_after_minutes is not None:
+        update_data["attendance_config.mark_absent_after_minutes"] = data.mark_absent_after_minutes
+    if data.auto_late_enabled is not None:
+        update_data["attendance_config.auto_late_enabled"] = data.auto_late_enabled
+
     if not update_data:
         raise HTTPException(status_code=400, detail="No hay datos para actualizar")
 

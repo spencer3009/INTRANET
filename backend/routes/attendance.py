@@ -865,7 +865,7 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     
     # Execute action
     if action == "entry":
-        # Determine status based on attendance config (auto tardanza)
+        # Determine status based on attendance config (auto tardanza by level)
         entry_status = "present"
         attendance_config = {}
         try:
@@ -876,22 +876,33 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
 
         auto_late = attendance_config.get("auto_late_enabled", False)
         if auto_late:
-            config_time_key = "teacher_entry_time" if is_teacher_qr else "student_entry_time"
-            config_time_str = attendance_config.get(config_time_key)
+            # Find the right schedule: teachers or student by level
+            config_time_str = None
+            if is_teacher_qr:
+                teachers_config = attendance_config.get("teachers", {})
+                config_time_str = teachers_config.get("entry_time")
+            else:
+                # Find student's level and match in levels config
+                student_level_id = scanned_user.get("nivel_id") or scanned_user.get("level_id")
+                levels_config = attendance_config.get("levels", [])
+                for lc in levels_config:
+                    if lc.get("level_id") == student_level_id:
+                        config_time_str = lc.get("entry_time")
+                        break
+                # Fallback: old flat format
+                if not config_time_str:
+                    config_time_str = attendance_config.get("student_entry_time")
+
             if config_time_str:
                 try:
                     ch, cm = map(int, config_time_str.split(":"))
                     tolerance = attendance_config.get("tolerance_minutes", 0)
                     absent_limit = attendance_config.get("mark_absent_after_minutes", 0)
-                    # Parse current time (now_time is HH:MM)
                     nh, nm = map(int, now_time.split(":"))
                     current_mins = nh * 60 + nm
                     limit_mins = ch * 60 + cm
                     if absent_limit > 0 and current_mins > limit_mins + absent_limit:
-                        if attendance_config.get("allow_late_entry", True):
-                            entry_status = "absent"
-                        else:
-                            entry_status = "absent"
+                        entry_status = "absent"
                     elif current_mins > limit_mins + tolerance:
                         entry_status = "late"
                 except Exception:

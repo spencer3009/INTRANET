@@ -47,15 +47,15 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [allowAdminBroadcast, setAllowAdminBroadcast] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   
-  // Attendance config state
+  // Attendance config state (levels-based)
   const [attendanceConfig, setAttendanceConfig] = useState({
-    student_entry_time: "07:30",
-    teacher_entry_time: "07:15",
+    teachers: { entry_time: "07:15", exit_time: "13:00" },
+    levels: [],
     tolerance_minutes: 5,
     mark_absent_after_minutes: 30,
-    allow_late_entry: true,
     auto_late_enabled: false,
   });
+  const [academicLevels, setAcademicLevels] = useState([]);
   const [savingAttendance, setSavingAttendance] = useState(false);
   
   // Google Drive states
@@ -81,7 +81,14 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         setAllowPendingStudents(res.data.permitir_acceso_estudiantes_pendientes || false);
         setAllowAdminBroadcast(res.data.allow_admin_broadcast || false);
         if (res.data.attendance_config) {
-          setAttendanceConfig(prev => ({ ...prev, ...res.data.attendance_config }));
+          setAttendanceConfig(prev => ({
+            ...prev,
+            teachers: res.data.attendance_config.teachers || prev.teachers,
+            levels: res.data.attendance_config.levels || [],
+            tolerance_minutes: res.data.attendance_config.tolerance_minutes ?? prev.tolerance_minutes,
+            mark_absent_after_minutes: res.data.attendance_config.mark_absent_after_minutes ?? prev.mark_absent_after_minutes,
+            auto_late_enabled: res.data.attendance_config.auto_late_enabled ?? prev.auto_late_enabled,
+          }));
         }
         setSettings({
           logo_url: res.data.logo_url || "",
@@ -101,6 +108,18 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     
     fetchSettings();
   }, [token]);
+  
+  // Fetch academic levels for attendance config
+  useEffect(() => {
+    const fetchLevels = async () => {
+      try {
+        const res = await axios.get(`${API}/academic/levels`, { headers });
+        setAcademicLevels(res.data || []);
+      } catch {}
+    };
+    if (token) fetchLevels();
+  }, [token]);
+
   
   // Fetch Google Drive status
   useEffect(() => {
@@ -971,41 +990,95 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                 </div>
                 <div>
                   <h2 className="text-lg font-bold text-slate-800">Configuracion de Asistencia</h2>
-                  <p className="text-sm text-slate-500">Define horarios de ingreso y reglas de puntualidad</p>
+                  <p className="text-sm text-slate-500">Define horarios de ingreso por nivel y reglas de puntualidad</p>
                 </div>
               </div>
 
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-                {/* Horarios */}
+                {/* DOCENTES */}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Horarios de Ingreso</h3>
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Users className="w-4 h-4 text-indigo-500" /> Horario Docentes
+                  </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Hora ingreso estudiantes</label>
+                      <label className="block text-sm font-medium text-slate-600 mb-1">Hora ingreso</label>
                       <input
                         type="time"
-                        value={attendanceConfig.student_entry_time}
-                        onChange={(e) => setAttendanceConfig(p => ({ ...p, student_entry_time: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
-                        data-testid="student-entry-time"
+                        value={attendanceConfig.teachers.entry_time}
+                        onChange={(e) => setAttendanceConfig(p => ({ ...p, teachers: { ...p.teachers, entry_time: e.target.value } }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
+                        data-testid="teacher-entry-time"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Hora ingreso docentes</label>
+                      <label className="block text-sm font-medium text-slate-600 mb-1">Hora salida</label>
                       <input
                         type="time"
-                        value={attendanceConfig.teacher_entry_time}
-                        onChange={(e) => setAttendanceConfig(p => ({ ...p, teacher_entry_time: e.target.value }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
-                        data-testid="teacher-entry-time"
+                        value={attendanceConfig.teachers.exit_time}
+                        onChange={(e) => setAttendanceConfig(p => ({ ...p, teachers: { ...p.teachers, exit_time: e.target.value } }))}
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
+                        data-testid="teacher-exit-time"
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Reglas */}
+                {/* ESTUDIANTES POR NIVEL */}
                 <div>
-                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3">Reglas de Puntualidad</h3>
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <GraduationCap className="w-4 h-4 text-emerald-500" /> Horario Estudiantes por Nivel
+                  </h3>
+                  {academicLevels.length === 0 ? (
+                    <p className="text-sm text-slate-400 italic">No hay niveles academicos configurados</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {academicLevels.map(level => {
+                        const levelConfig = attendanceConfig.levels.find(l => l.level_id === level.id) || { entry_time: "07:30", exit_time: "13:00" };
+                        const updateLevel = (field, value) => {
+                          setAttendanceConfig(p => {
+                            const existing = p.levels.filter(l => l.level_id !== level.id);
+                            const current = p.levels.find(l => l.level_id === level.id) || { level_id: level.id, entry_time: "07:30", exit_time: "13:00" };
+                            return { ...p, levels: [...existing, { ...current, [field]: value }] };
+                          });
+                        };
+                        return (
+                          <div key={level.id} className="bg-slate-50 rounded-xl p-4">
+                            <p className="text-sm font-bold text-slate-700 mb-2">{level.nombre || level.name}</p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs text-slate-500 mb-1">Ingreso</label>
+                                <input
+                                  type="time"
+                                  value={levelConfig.entry_time}
+                                  onChange={(e) => updateLevel("entry_time", e.target.value)}
+                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                                  data-testid={`level-entry-${level.id}`}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs text-slate-500 mb-1">Salida</label>
+                                <input
+                                  type="time"
+                                  value={levelConfig.exit_time}
+                                  onChange={(e) => updateLevel("exit_time", e.target.value)}
+                                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                                  data-testid={`level-exit-${level.id}`}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* REGLAS GENERALES */}
+                <div>
+                  <h3 className="text-sm font-bold text-slate-700 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-amber-500" /> Reglas Generales
+                  </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-slate-600 mb-1">Tolerancia (minutos)</label>
@@ -1015,7 +1088,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                         max="60"
                         value={attendanceConfig.tolerance_minutes}
                         onChange={(e) => setAttendanceConfig(p => ({ ...p, tolerance_minutes: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all"
                         data-testid="tolerance-minutes"
                       />
                       <p className="text-xs text-slate-400 mt-1">Minutos despues de la hora limite para considerar tardanza</p>
@@ -1028,58 +1101,33 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                         max="120"
                         value={attendanceConfig.mark_absent_after_minutes}
                         onChange={(e) => setAttendanceConfig(p => ({ ...p, mark_absent_after_minutes: parseInt(e.target.value) || 0 }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
+                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-amber-500/30 focus:border-amber-400 transition-all"
                         data-testid="absent-after-minutes"
                       />
-                      <p className="text-xs text-slate-400 mt-1">Pasado este tiempo se marca como falta automaticamente</p>
+                      <p className="text-xs text-slate-400 mt-1">Pasado este tiempo se marca como falta</p>
                     </div>
                   </div>
 
-                  {/* Toggles */}
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <Clock className="w-5 h-5 text-emerald-600" />
-                        <div>
-                          <p className="font-semibold text-slate-800 text-sm">Activar tardanza automatica</p>
-                          <p className="text-xs text-slate-500">El sistema marcara automaticamente como tardanza o falta segun el horario configurado</p>
-                        </div>
+                  <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <Clock className="w-5 h-5 text-emerald-600" />
+                      <div>
+                        <p className="font-semibold text-slate-800 text-sm">Activar tardanza automatica</p>
+                        <p className="text-xs text-slate-500">El sistema marcara automaticamente tardanza o falta segun el horario por nivel</p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setAttendanceConfig(p => ({ ...p, auto_late_enabled: !p.auto_late_enabled }))}
-                        className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
-                          attendanceConfig.auto_late_enabled ? 'bg-emerald-500' : 'bg-slate-300'
-                        }`}
-                        data-testid="toggle-auto-late"
-                      >
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
-                          attendanceConfig.auto_late_enabled ? 'translate-x-8' : 'translate-x-1'
-                        }`} />
-                      </button>
                     </div>
-
-                    <div className="flex items-center justify-between p-4 bg-blue-50 border border-blue-200 rounded-xl">
-                      <div className="flex items-center gap-3">
-                        <UserCheck className="w-5 h-5 text-blue-600" />
-                        <div>
-                          <p className="font-semibold text-slate-800 text-sm">Permitir ingreso con tardanza</p>
-                          <p className="text-xs text-slate-500">Permite que alumnos y docentes ingresen aunque sea tarde</p>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setAttendanceConfig(p => ({ ...p, allow_late_entry: !p.allow_late_entry }))}
-                        className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-                          attendanceConfig.allow_late_entry ? 'bg-blue-500' : 'bg-slate-300'
-                        }`}
-                        data-testid="toggle-allow-late"
-                      >
-                        <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
-                          attendanceConfig.allow_late_entry ? 'translate-x-8' : 'translate-x-1'
-                        }`} />
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAttendanceConfig(p => ({ ...p, auto_late_enabled: !p.auto_late_enabled }))}
+                      className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                        attendanceConfig.auto_late_enabled ? 'bg-emerald-500' : 'bg-slate-300'
+                      }`}
+                      data-testid="toggle-auto-late"
+                    >
+                      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                        attendanceConfig.auto_late_enabled ? 'translate-x-8' : 'translate-x-1'
+                      }`} />
+                    </button>
                   </div>
                 </div>
 
