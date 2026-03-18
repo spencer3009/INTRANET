@@ -848,8 +848,8 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
     
     mode = data.mode  # entry, exit, auto
     
-    has_entry = existing and existing.get("entry_time")
-    has_exit = existing and existing.get("exit_time")
+    has_entry = existing and existing.get("entry_time") and existing.get("entry_status", "active") != "anulado"
+    has_exit = existing and existing.get("exit_time") and existing.get("exit_status", "active") != "anulado"
     
     # Determine action based on mode
     if mode == "auto":
@@ -1312,7 +1312,6 @@ async def annul_attendance(
     if not school_id:
         raise HTTPException(status_code=403, detail="No autorizado")
 
-    # Find the attendance record
     record = await db.attendances.find_one({"id": attendance_id, "school_id": school_id})
     if not record:
         raise HTTPException(status_code=404, detail="Registro de asistencia no encontrado")
@@ -1321,11 +1320,8 @@ async def annul_attendance(
     annulled_by = user["id"]
     annulled_by_name = f"{user.get('name', '')} {user.get('last_name', '')}".strip()
 
-    # Save previous state for audit
     prev_entry_status = record.get("entry_status", "active")
     prev_exit_status = record.get("exit_status", "active")
-    prev_entry_time = record.get("entry_time")
-    prev_exit_time = record.get("exit_time")
 
     update = {"$set": {"updated_at": now_iso}}
 
@@ -1341,7 +1337,6 @@ async def annul_attendance(
         update["$set"]["exit_annulled_by"] = annulled_by
         update["$set"]["exit_annulment_reason"] = data.reason
 
-    # Derive overall status
     new_entry = update["$set"].get("entry_status", prev_entry_status)
     new_exit = update["$set"].get("exit_status", prev_exit_status)
     if new_entry == "anulado" and new_exit == "anulado":
@@ -1353,17 +1348,13 @@ async def annul_attendance(
 
     await db.attendances.update_one({"_id": record["_id"]}, update)
 
-    # Also update legacy student_attendance if student
     if record.get("type") == "student":
         await db.student_attendance.update_one(
-            {"student_id": record["user_id"], "date": record["date"], "school_id": school_id},
-            {"$set": {
-                "status": update["$set"].get("status", record.get("status")),
-                "updated_at": now_iso,
-            }}
+            {"student_id": record["user_id"], "date": record["date"], "school_id": school_id,
+             "status": {"$ne": "anulado"}},
+            {"$set": {"status": update["$set"].get("status", "anulado"), "updated_at": now_iso}}
         )
 
-    # Audit log
     audit = {
         "id": str(uuid.uuid4()),
         "attendance_id": attendance_id,
@@ -1377,8 +1368,8 @@ async def annul_attendance(
         "performed_at": now_iso,
         "previous_entry_status": prev_entry_status,
         "previous_exit_status": prev_exit_status,
-        "previous_entry_time": str(prev_entry_time) if prev_entry_time else None,
-        "previous_exit_time": str(prev_exit_time) if prev_exit_time else None,
+        "previous_entry_time": str(record.get("entry_time")) if record.get("entry_time") else None,
+        "previous_exit_time": str(record.get("exit_time")) if record.get("exit_time") else None,
         "new_entry_status": new_entry,
         "new_exit_status": new_exit,
     }
@@ -1390,7 +1381,7 @@ async def annul_attendance(
         "message": "Asistencia anulada correctamente",
         "attendance_id": attendance_id,
         "annul_type": data.annul_type,
-        "new_status": update["$set"].get("status", record.get("status")),
+        "new_status": update["$set"].get("status", "anulado"),
     }
 
 

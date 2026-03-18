@@ -933,7 +933,7 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                   <span className={`px-2 py-1 ${badgeClass} rounded-full text-xs font-medium ml-2`}>
                     {badgeLabel}
                   </span>
-                  {isAdmin && !isAnulado && item.attendance_id && (
+                  {isAdmin && item.attendance_id && !(entryAnulado && exitAnulado) && (
                     <button
                       onClick={() => openAnnulModal(item)}
                       className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors ml-1"
