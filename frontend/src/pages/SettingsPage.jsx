@@ -13,6 +13,7 @@ import {
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
   Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown
 } from "lucide-react";
+import { TimePicker } from "@/components/ui/time-picker";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1002,26 +1003,18 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     <Users className="w-4 h-4 text-indigo-500" /> Horario Docentes
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Hora ingreso</label>
-                      <input
-                        type="time"
-                        value={attendanceConfig.teachers.entry_time}
-                        onChange={(e) => setAttendanceConfig(p => ({ ...p, teachers: { ...p.teachers, entry_time: e.target.value } }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
-                        data-testid="teacher-entry-time"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-600 mb-1">Hora salida</label>
-                      <input
-                        type="time"
-                        value={attendanceConfig.teachers.exit_time}
-                        onChange={(e) => setAttendanceConfig(p => ({ ...p, teachers: { ...p.teachers, exit_time: e.target.value } }))}
-                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition-all"
-                        data-testid="teacher-exit-time"
-                      />
-                    </div>
+                    <TimePicker
+                      label="Hora ingreso"
+                      value={attendanceConfig.teachers.entry_time}
+                      onChange={(v) => setAttendanceConfig(p => ({ ...p, teachers: { ...p.teachers, entry_time: v } }))}
+                      data-testid="teacher-entry-time"
+                    />
+                    <TimePicker
+                      label="Hora salida"
+                      value={attendanceConfig.teachers.exit_time}
+                      onChange={(v) => setAttendanceConfig(p => ({ ...p, teachers: { ...p.teachers, exit_time: v } }))}
+                      data-testid="teacher-exit-time"
+                    />
                   </div>
                 </div>
 
@@ -1060,26 +1053,16 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                             {isOpen && (
                               <div className="px-4 pb-4 pt-2 border-t border-slate-100 bg-slate-50/50">
                                 <div className="grid grid-cols-2 gap-3">
-                                  <div>
-                                    <label className="block text-xs text-slate-500 mb-1">Hora ingreso</label>
-                                    <input
-                                      type="time"
-                                      value={levelConfig.entry_time}
-                                      onChange={(e) => updateLevel("entry_time", e.target.value)}
-                                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
-                                      data-testid={`level-entry-${level.id}`}
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs text-slate-500 mb-1">Hora salida</label>
-                                    <input
-                                      type="time"
-                                      value={levelConfig.exit_time}
-                                      onChange={(e) => updateLevel("exit_time", e.target.value)}
-                                      className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-all"
-                                      data-testid={`level-exit-${level.id}`}
-                                    />
-                                  </div>
+                                  <TimePicker
+                                    label="Hora ingreso"
+                                    value={levelConfig.entry_time}
+                                    onChange={(v) => updateLevel("entry_time", v)}
+                                  />
+                                  <TimePicker
+                                    label="Hora salida"
+                                    value={levelConfig.exit_time}
+                                    onChange={(v) => updateLevel("exit_time", v)}
+                                  />
                                 </div>
                               </div>
                             )}
