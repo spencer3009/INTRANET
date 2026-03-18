@@ -13,6 +13,7 @@ const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 function NotificationBell({ payments = [], schoolName }) {
   const [open, setOpen] = useState(false);
+  const [seen, setSeen] = useState(false);
   const count = payments.length;
 
   const fmtDate = (iso) => {
@@ -20,16 +21,24 @@ function NotificationBell({ payments = [], schoolName }) {
     return new Date(iso).toLocaleDateString("es-PE", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   };
 
+  const handleClick = (e) => {
+    e.stopPropagation();
+    if (!open && count > 0) setSeen(true);
+    setOpen(!open);
+  };
+
+  const showBadge = count > 0 && !seen;
+
   return (
     <div className="relative flex-shrink-0">
       <button
-        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        onClick={handleClick}
         className={`p-2 rounded-xl transition-colors ${count > 0 ? "text-violet-600 hover:bg-violet-50" : "text-slate-300 hover:bg-slate-50 hover:text-slate-400"}`}
         title={count > 0 ? `${count} pago(s) pendiente(s)` : "Sin notificaciones"}
         data-testid={`notification-bell-${schoolName}`}
       >
         <Bell className="w-5 h-5" fill={count > 0 ? "currentColor" : "none"} />
-        {count > 0 && (
+        {showBadge && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center bg-red-500 text-white text-[10px] font-bold rounded-full px-1">
             {count}
           </span>
