@@ -13,6 +13,7 @@ import {
   Filter, Download, Mail, ChevronDown, ChevronRight, QrCode, LayoutGrid, List
 } from "lucide-react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
+import CameraCaptureModal from "@/components/CameraCaptureModal";
 
 // LocalStorage keys for filter persistence
 const STORAGE_KEYS = {
@@ -481,6 +482,7 @@ function StudentModal({ isOpen, onClose, token, student, onSave, levels, grades,
   const fileInputRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
   const [error, setError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [checkingUsername, setCheckingUsername] = useState(false);
@@ -742,6 +744,37 @@ function StudentModal({ isOpen, onClose, token, student, onSave, levels, grades,
     }
   };
 
+  // Handle camera capture save
+  const handleCameraSave = async (blob) => {
+    setUploading(true);
+    setError("");
+    try {
+      const file = new File([blob], "camera_photo.jpg", { type: "image/jpeg" });
+      const processedFile = await processProfilePhoto(file, { maxWidth: 200, quality: 0.8 });
+      const sigRes = await axios.get(`${API}/cloudinary/signature?resource_type=image&folder=edunet/users`, { headers });
+      const sig = sigRes.data;
+      const fd = new FormData();
+      fd.append("file", processedFile);
+      fd.append("api_key", sig.api_key);
+      fd.append("timestamp", sig.timestamp);
+      fd.append("signature", sig.signature);
+      fd.append("folder", sig.folder);
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloud_name}/image/upload`, { method: "POST", body: fd });
+      const uploadData = await uploadRes.json();
+      if (uploadData.secure_url) {
+        setForm(prev => ({ ...prev, photo_url: uploadData.secure_url }));
+        setShowCameraModal(false);
+      } else {
+        throw new Error("Error al subir imagen");
+      }
+    } catch (err) {
+      setError(err.message || "Error al guardar la foto");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+
   // Handle submit
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -867,10 +900,7 @@ function StudentModal({ isOpen, onClose, token, student, onSave, levels, grades,
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Photo Upload */}
               <div className="md:col-span-2 flex flex-col items-center mb-4">
-                <div 
-                  className="relative group cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                >
+                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                   <div className="w-24 h-24 rounded-full border-3 border-dashed border-slate-200 flex items-center justify-center bg-slate-50 overflow-hidden transition-all group-hover:border-amber-400">
                     {form.photo_url ? (
                       <img src={form.photo_url} alt="Foto" className="w-full h-full object-cover" />
@@ -886,12 +916,27 @@ function StudentModal({ isOpen, onClose, token, student, onSave, levels, grades,
                     )}
                   </div>
                 </div>
+                <div className="flex gap-2 mt-2">
+                  <button type="button" onClick={() => fileInputRef.current?.click()} className="text-xs text-slate-500 hover:text-amber-600 transition-colors" data-testid="upload-photo-btn">
+                    Subir foto
+                  </button>
+                  <span className="text-xs text-slate-300">|</span>
+                  <button type="button" onClick={() => setShowCameraModal(true)} className="text-xs text-slate-500 hover:text-amber-600 transition-colors" data-testid="open-camera-btn">
+                    Tomar foto
+                  </button>
+                </div>
                 <input
                   ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   onChange={handlePhotoUpload}
                   className="hidden"
+                />
+                <CameraCaptureModal
+                  open={showCameraModal}
+                  onClose={() => setShowCameraModal(false)}
+                  onSave={handleCameraSave}
+                  uploading={uploading}
                 />
               </div>
 
