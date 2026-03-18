@@ -50,6 +50,7 @@ const CAMERA_ERROR_TYPES = {
 
 export default function QRScannerTab({ token, roleFilter }) {
   const [scanning, setScanning] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -302,11 +303,12 @@ export default function QRScannerTab({ token, roleFilter }) {
 
   // Handle QR scan
   const handleScan = async (detectedCodes) => {
-    if (loading || !detectedCodes || detectedCodes.length === 0) return;
+    if (loading || paused || !detectedCodes || detectedCodes.length === 0) return;
     
     const qrToken = detectedCodes[0].rawValue;
     if (!qrToken) return;
     
+    setPaused(true);
     setLoading(true);
     setError(null);
     setResult(null);
@@ -326,9 +328,6 @@ export default function QRScannerTab({ token, roleFilter }) {
       // Refresh history
       loadHistory();
       
-      // Clear result after 5 seconds
-      setTimeout(() => setResult(null), 5000);
-      
     } catch (err) {
       const errorData = err.response?.data?.detail;
       if (typeof errorData === 'object') {
@@ -337,12 +336,16 @@ export default function QRScannerTab({ token, roleFilter }) {
         setError(errorData || "Error al escanear el QR");
       }
       playSound("error");
-      
-      // Clear error after 3 seconds
-      setTimeout(() => setError(null), 3000);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Reset scanner to scan another QR
+  const handleScanAnother = () => {
+    setResult(null);
+    setError(null);
+    setPaused(false);
   };
 
   const handleError = (err) => {
@@ -575,11 +578,11 @@ export default function QRScannerTab({ token, roleFilter }) {
                             width: { ideal: 1280 },
                             height: { ideal: 720 }
                           }}
-                          scanDelay={100}
+                          scanDelay={paused ? 999999 : 100}
                           components={{
                             audio: false,
                             torch: true,
-                            finder: true
+                            finder: !paused
                           }}
                           styles={{
                             container: { width: '100%', height: '100%' },
@@ -667,7 +670,7 @@ export default function QRScannerTab({ token, roleFilter }) {
                         <AlertTriangle className="w-6 h-6 text-white" />
                       </div>
                     )}
-                    <div>
+                    <div className="flex-1">
                       {result.status === "success" && (
                         <p className={`text-[11px] font-bold uppercase tracking-wider mb-0.5 ${
                           result.action === "exit" ? "text-blue-500" : "text-emerald-500"
@@ -758,16 +761,36 @@ export default function QRScannerTab({ token, roleFilter }) {
                       </div>
                     </div>
                   </div>
+
+                  {/* Scan Another Button */}
+                  <button
+                    onClick={handleScanAnother}
+                    className="w-full mt-4 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
+                    data-testid="scan-another-btn"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    Escanear otro
+                  </button>
                 </div>
               ) : error ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-                    <X className="w-6 h-6 text-white" />
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
+                      <X className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <p className="text-lg font-bold text-red-700">Error</p>
+                      <p className="text-red-600">{error}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-lg font-bold text-red-700">Error</p>
-                    <p className="text-red-600">{error}</p>
-                  </div>
+                  <button
+                    onClick={handleScanAnother}
+                    className="w-full px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
+                    data-testid="scan-another-error-btn"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    Escanear otro
+                  </button>
                 </div>
               ) : (
                 <div className="text-center py-8">
