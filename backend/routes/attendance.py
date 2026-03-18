@@ -28,6 +28,8 @@ from .core import (
 
 import jwt
 
+from .notifications import send_attendance_notification
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
@@ -903,6 +905,18 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             )
         
         logger.info(f"QR Entry ({scanned_role}): {user_info['full_name']} at {now_time}")
+        
+        # Send push notification to parent (students only)
+        if not is_teacher_qr:
+            try:
+                await send_attendance_notification(
+                    student_id=scanned_user_id,
+                    school_id=school_id,
+                    event_type="ingreso"
+                )
+            except Exception as notif_err:
+                logger.error(f"Push notification error: {notif_err}")
+        
         return {
             "status": "success",
             "action": "entry",
@@ -933,6 +947,18 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         
         entry_time_str = to_peru_hhmm(existing.get("entry_time")) or existing.get("check_in_time", "")
         logger.info(f"QR Exit ({scanned_role}): {user_info['full_name']} at {now_time} (total: {total_minutes}min)")
+        
+        # Send push notification to parent (students only)
+        if not is_teacher_qr:
+            try:
+                await send_attendance_notification(
+                    student_id=scanned_user_id,
+                    school_id=school_id,
+                    event_type="salida"
+                )
+            except Exception as notif_err:
+                logger.error(f"Push notification error: {notif_err}")
+        
         return {
             "status": "success",
             "action": "exit",
