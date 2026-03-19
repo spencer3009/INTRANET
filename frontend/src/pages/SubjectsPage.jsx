@@ -1078,10 +1078,14 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
     };
     if (editingSubject?.id) {
       await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers });
+      toast.success("Asignatura actualizada");
     } else {
       await axios.post(`${API}/academic/subjects`, subjectData, { headers });
+      toast.success("Asignatura creada");
     }
-    loadSubjects();
+    setEditingSubject(null);
+    setShowSubjectModal(false);
+    await loadSubjects();
   };
 
   const handleToggleStatus = async (subject) => {
