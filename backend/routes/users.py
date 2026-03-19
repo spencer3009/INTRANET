@@ -1201,11 +1201,10 @@ async def bulk_safe_delete_students(data: BulkSafeDeleteRequest, current_user=De
     if not school_id:
         raise HTTPException(status_code=403, detail="No autorizado")
 
-    # Find students
+    # Find students - filter by grado_id + seccion_id (nivel is implicit in grado)
     student_filter = {
         "school_id": school_id,
         "role": "student",
-        "nivel_id": data.nivel_id,
         "grado_id": data.grado_id,
         "seccion_id": data.seccion_id,
         "student_status": {"$ne": "deleted"},
@@ -1215,6 +1214,16 @@ async def bulk_safe_delete_students(data: BulkSafeDeleteRequest, current_user=De
 
     students = await db.users.find(student_filter, {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(2000)
     if not students:
+        # Fallback: try without seccion_id filter in case field name differs
+        student_filter2 = {
+            "school_id": school_id,
+            "role": "student",
+            "grado_id": data.grado_id,
+            "student_status": {"$ne": "deleted"},
+        }
+        all_in_grade = await db.users.find(student_filter2, {"_id": 0, "id": 1, "seccion_id": 1}).to_list(5)
+        if all_in_grade:
+            raise HTTPException(status_code=404, detail=f"No se encontraron estudiantes en esa seccion. Hay {len(all_in_grade)} en el grado pero con otra seccion.")
         raise HTTPException(status_code=404, detail="No se encontraron estudiantes con esos filtros")
 
     student_ids = [s["id"] for s in students]
