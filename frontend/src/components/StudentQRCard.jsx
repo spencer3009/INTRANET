@@ -98,7 +98,7 @@ export default function StudentQRCard({ student, schoolName, logoUrl, onClose })
       ctx.stroke();
       y += 20;
 
-      // Photo (center-crop into circle)
+      // Photo — only if real photo exists, otherwise skip
       if (photoImg) {
         const cx = W / 2, cy = y + photoR;
         ctx.save();
@@ -106,30 +106,16 @@ export default function StudentQRCard({ student, schoolName, logoUrl, onClose })
         ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
         ctx.closePath();
         ctx.clip();
-        // Center-crop: use the smallest dimension to make a square crop
         const srcSize = Math.min(photoImg.width, photoImg.height);
         const sx = (photoImg.width - srcSize) / 2;
         const sy = (photoImg.height - srcSize) / 2;
         ctx.drawImage(photoImg, sx, sy, srcSize, srcSize, cx - photoR, cy - photoR, photoR * 2, photoR * 2);
         ctx.restore();
-        // Circle border
         ctx.strokeStyle = "#cbd5e1";
         ctx.lineWidth = 3;
         ctx.beginPath();
         ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
         ctx.stroke();
-        y += photoR * 2 + 24;
-      } else {
-        // Initial circle
-        const cx = W / 2, cy = y + photoR;
-        ctx.fillStyle = "#f1f5f9";
-        ctx.beginPath();
-        ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#001f4b";
-        ctx.font = "bold 48px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText((student.name || "E").charAt(0), cx, cy + 16);
         y += photoR * 2 + 24;
       }
 

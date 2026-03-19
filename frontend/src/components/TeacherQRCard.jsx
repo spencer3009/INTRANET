@@ -46,7 +46,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
       const logoH = logoImg ? 60 : 0;
       const photoR = 70;
       const qrSize = 220;
-      let totalH = 20 + barH + logoH + 12 + 22 + 20 + (photoR * 2 + 24) + 28 + 22 + qrSize + 20 + 24 + 16;
+      let totalH = 20 + barH + logoH + 12 + 22 + 20 + (photoImg ? photoR * 2 + 24 : 10) + 28 + 22 + qrSize + 20 + 24 + 16;
 
       canvas.width = W;
       canvas.height = totalH;
@@ -96,18 +96,8 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
         ctx.beginPath();
         ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
         ctx.stroke();
-      } else {
-        const cx = W / 2, cy = y + photoR;
-        ctx.fillStyle = "#f1f5f9";
-        ctx.beginPath();
-        ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.fillStyle = "#001f4b";
-        ctx.font = "bold 48px sans-serif";
-        ctx.textAlign = "center";
-        ctx.fillText((teacher.name || "P").charAt(0), cx, cy + 16);
+        y += photoR * 2 + 24;
       }
-      y += photoR * 2 + 24;
 
       ctx.fillStyle = "#001f4b";
       ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, sans-serif";
