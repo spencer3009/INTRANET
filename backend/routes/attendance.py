@@ -1428,13 +1428,17 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
     if data.ordenar_alfabetico:
         students.sort(key=lambda s: f"{s.get('last_name', '')} {s.get('name', '')}".strip().lower())
 
-    # Get names for file naming
-    nivel = await db.academic_levels.find_one({"id": data.nivel_id}, {"_id": 0, "nombre": 1})
-    grado = await db.grados.find_one({"id": data.grado_id}, {"_id": 0, "nombre": 1})
-    seccion = await db.secciones.find_one({"id": data.seccion_id}, {"_id": 0, "nombre": 1})
-    nivel_name = (nivel or {}).get("nombre", "nivel") if nivel else "nivel"
-    grado_name = (grado or {}).get("nombre", "grado") if grado else "grado"
-    seccion_name = (seccion or {}).get("nombre", "seccion") if seccion else "seccion"
+    # Get names for file naming (try multiple collection names for compatibility)
+    nivel = await db.academic_levels.find_one({"id": data.nivel_id}, {"_id": 0, "nombre": 1, "name": 1})
+    grado = await db.grados.find_one({"id": data.grado_id}, {"_id": 0, "nombre": 1, "name": 1})
+    if not grado:
+        grado = await db.grades.find_one({"id": data.grado_id}, {"_id": 0, "nombre": 1, "name": 1})
+    seccion = await db.secciones.find_one({"id": data.seccion_id}, {"_id": 0, "nombre": 1, "name": 1})
+    if not seccion:
+        seccion = await db.sections.find_one({"id": data.seccion_id}, {"_id": 0, "nombre": 1, "name": 1})
+    nivel_name = (nivel or {}).get("nombre") or (nivel or {}).get("name") or "nivel"
+    grado_name = (grado or {}).get("nombre") or (grado or {}).get("name") or "grado"
+    seccion_name = (seccion or {}).get("nombre") or (seccion or {}).get("name") or "seccion"
     file_base = f"qr_{nivel_name}_{grado_name}_{seccion_name}".lower().replace(" ", "_")
 
     def make_qr_image(token_data: str, size: int = 200):
@@ -1475,8 +1479,8 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
     import requests as http_requests
 
     # Get school info for carnet
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "logo_url": 1, "subdomain": 1})
-    school_name = (school or {}).get("name") or (school or {}).get("school_name") or "Colegio"
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "school_name": 1, "nombre": 1, "logo_url": 1, "subdomain": 1})
+    school_name = (school or {}).get("name") or (school or {}).get("school_name") or (school or {}).get("nombre") or "Colegio"
     school_logo_url = (school or {}).get("logo_url")
     school_domain = f"{(school or {}).get('subdomain', '')}.edunet.pe"
     curso_label = f"{grado_name} - {seccion_name}"
@@ -1547,7 +1551,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
 
             c.setFillColor(navy)
             c.setFont("Helvetica-Bold", 6)
-            name_trunc = school_name[:22]
+            name_trunc = school_name[:30]
             tw = c.stringWidth(name_trunc, "Helvetica-Bold", 6)
             c.drawString(x + (card_w - tw) / 2, logo_y - 2 * mm, name_trunc)
 
