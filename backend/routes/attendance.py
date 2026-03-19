@@ -1537,7 +1537,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             c.rect(x + 0.5, y + card_h - 4 * mm, card_w - 1, 4 * mm, fill=1, stroke=0)
 
             # Logo + School name header
-            logo_y = y + card_h - 16 * mm
+            logo_y = y + card_h - 19 * mm
             if logo_img:
                 try:
                     logo_img.seek(0)
