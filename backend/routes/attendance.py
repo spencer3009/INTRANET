@@ -1387,6 +1387,7 @@ class BulkQRRequest(BaseModel):
     turno_id: Optional[str] = None
     formato: Literal["pdf_grid", "zip", "pdf_list"] = "pdf_grid"
     incluir_codigo_alumno: bool = False
+    incluir_foto: bool = True
     ordenar_alfabetico: bool = True
 
 @router.post("/students/qr/bulk-download")
@@ -1559,7 +1560,10 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             photo_size = 20 * mm
             photo_x = x + (card_w - photo_size) / 2
             photo_y = logo_y - 5 * mm - photo_size
-            student_photo = fetch_image(s.get("photo_url"))
+            if data.incluir_foto:
+                student_photo = fetch_image(s.get("photo_url"))
+            else:
+                student_photo = None
             if student_photo:
                 try:
                     student_photo.seek(0)

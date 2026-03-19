@@ -16,6 +16,7 @@ export default function BulkQRModal({ open, onClose, token }) {
   const [turnoId, setTurnoId] = useState("");
   const [formato, setFormato] = useState("pdf_grid");
   const [incluirCodigo, setIncluirCodigo] = useState(false);
+  const [incluirFoto, setIncluirFoto] = useState(true);
   const [ordenar, setOrdenar] = useState(true);
   const [generating, setGenerating] = useState(false);
 
@@ -54,6 +55,7 @@ export default function BulkQRModal({ open, onClose, token }) {
         turno_id: turnoId || undefined,
         formato,
         incluir_codigo_alumno: incluirCodigo,
+        incluir_foto: incluirFoto,
         ordenar_alfabetico: ordenar,
       }, { headers, responseType: "blob" });
 
@@ -157,7 +159,21 @@ export default function BulkQRModal({ open, onClose, token }) {
           </div>
 
           {/* Options */}
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between p-3 bg-violet-50 border border-violet-200 rounded-xl">
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Incluir foto del alumno</p>
+                <p className="text-xs text-slate-400">Muestra la foto en cada carnet</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIncluirFoto(!incluirFoto)}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${incluirFoto ? 'bg-violet-500' : 'bg-slate-300'}`}
+                data-testid="toggle-include-photo"
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${incluirFoto ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={incluirCodigo} onChange={e => setIncluirCodigo(e.target.checked)} className="accent-violet-500 w-4 h-4" />
               <span className="text-sm text-slate-600">Incluir codigo del alumno</span>
