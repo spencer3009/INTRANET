@@ -37,87 +37,114 @@ export default function StudentQRCard({ student, schoolName, logoUrl, onClose })
       const svg = qrRef.current?.querySelector("svg");
       if (!svg) return;
 
-      const W = 400, H = 620;
+      const W = 500;
       const canvas = document.createElement("canvas");
-      canvas.width = W;
-      canvas.height = H;
       const ctx = canvas.getContext("2d");
 
-      // Background
+      // Pre-load images
+      const logoImg = await loadImage(logoUrl);
+      const photoImg = await loadImage(student.photo_url);
+
+      // Calculate height dynamically
+      let totalH = 20; // top padding after bar
+      const barH = 10;
+      totalH += barH;
+      const logoH = logoImg ? 60 : 0;
+      totalH += logoH + 12; // logo + gap
+      totalH += 22; // school name + gap
+      totalH += 20; // divider + gap
+      const photoR = 70; // radius
+      totalH += photoImg ? (photoR * 2 + 24) : 10; // photo + gap (or small gap if no photo)
+      totalH += 28; // name
+      totalH += 22; // grade
+      const qrSize = 220;
+      totalH += qrSize + 20; // qr + gap
+      totalH += 24; // footer
+      totalH += 16; // bottom padding
+
+      canvas.width = W;
+      canvas.height = totalH;
+
+      // White background
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, W, H);
+      ctx.fillRect(0, 0, W, totalH);
 
       // Gray bar
       ctx.fillStyle = "#94a3b8";
-      ctx.fillRect(0, 0, W, 8);
+      ctx.fillRect(0, 0, W, barH);
 
-      let yPos = 24;
+      let y = barH + 20;
 
       // Logo
-      const logoImg = await loadImage(logoUrl);
       if (logoImg) {
-        const lh = 50, lw = (logoImg.width / logoImg.height) * lh;
-        ctx.drawImage(logoImg, (W - lw) / 2, yPos, lw, lh);
-        yPos += lh + 8;
-      } else {
-        yPos += 10;
+        const lw = (logoImg.width / logoImg.height) * logoH;
+        ctx.drawImage(logoImg, (W - lw) / 2, y, lw, logoH);
+        y += logoH + 12;
       }
 
       // School name
       ctx.fillStyle = "#001f4b";
-      ctx.font = "bold 14px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.font = "bold 18px -apple-system, BlinkMacSystemFont, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(displaySchoolName, W / 2, yPos);
-      yPos += 14;
+      ctx.fillText(displaySchoolName, W / 2, y + 14);
+      y += 28;
 
       // Divider
       ctx.strokeStyle = "#e2e8f0";
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(60, yPos);
-      ctx.lineTo(W - 60, yPos);
+      ctx.moveTo(80, y);
+      ctx.lineTo(W - 80, y);
       ctx.stroke();
-      yPos += 14;
+      y += 20;
 
-      // Photo
-      const photoImg = await loadImage(student.photo_url);
-      const photoSize = 100;
-      const photoCx = W / 2, photoCy = yPos + photoSize / 2;
+      // Photo (center-crop into circle)
       if (photoImg) {
+        const cx = W / 2, cy = y + photoR;
         ctx.save();
         ctx.beginPath();
-        ctx.arc(photoCx, photoCy, photoSize / 2, 0, Math.PI * 2);
+        ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
         ctx.closePath();
         ctx.clip();
-        ctx.drawImage(photoImg, photoCx - photoSize / 2, photoCy - photoSize / 2, photoSize, photoSize);
+        // Center-crop: use the smallest dimension to make a square crop
+        const srcSize = Math.min(photoImg.width, photoImg.height);
+        const sx = (photoImg.width - srcSize) / 2;
+        const sy = (photoImg.height - srcSize) / 2;
+        ctx.drawImage(photoImg, sx, sy, srcSize, srcSize, cx - photoR, cy - photoR, photoR * 2, photoR * 2);
         ctx.restore();
+        // Circle border
         ctx.strokeStyle = "#cbd5e1";
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 3;
         ctx.beginPath();
-        ctx.arc(photoCx, photoCy, photoSize / 2, 0, Math.PI * 2);
+        ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
         ctx.stroke();
+        y += photoR * 2 + 24;
       } else {
+        // Initial circle
+        const cx = W / 2, cy = y + photoR;
         ctx.fillStyle = "#f1f5f9";
         ctx.beginPath();
-        ctx.arc(photoCx, photoCy, photoSize / 2, 0, Math.PI * 2);
+        ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
         ctx.fill();
         ctx.fillStyle = "#001f4b";
-        ctx.font = "bold 36px sans-serif";
-        ctx.fillText((student.name || "E").charAt(0), photoCx, photoCy + 12);
+        ctx.font = "bold 48px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText((student.name || "E").charAt(0), cx, cy + 16);
+        y += photoR * 2 + 24;
       }
-      yPos += photoSize + 16;
 
       // Name
       ctx.fillStyle = "#001f4b";
-      ctx.font = "bold 18px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.fillText(fullName, W / 2, yPos);
-      yPos += 20;
+      ctx.font = "bold 22px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(fullName, W / 2, y);
+      y += 28;
 
       // Grade
       ctx.fillStyle = "#64748b";
-      ctx.font = "13px -apple-system, BlinkMacSystemFont, sans-serif";
-      ctx.fillText(gradeInfo, W / 2, yPos);
-      yPos += 20;
+      ctx.font = "15px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText(gradeInfo, W / 2, y);
+      y += 24;
 
       // QR
       const svgData = new XMLSerializer().serializeToString(svg);
@@ -126,14 +153,14 @@ export default function StudentQRCard({ student, schoolName, logoUrl, onClose })
       const qrUrl = URL.createObjectURL(svgBlob);
 
       qrImg.onload = () => {
-        const qrSize = 180;
-        ctx.drawImage(qrImg, (W - qrSize) / 2, yPos, qrSize, qrSize);
-        yPos += qrSize + 12;
+        ctx.drawImage(qrImg, (W - qrSize) / 2, y, qrSize, qrSize);
+        y += qrSize + 16;
 
         // Footer
         ctx.fillStyle = "#94a3b8";
-        ctx.font = "10px sans-serif";
-        ctx.fillText("Personal e intransferible", W / 2, yPos);
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("Personal e intransferible", W / 2, y);
 
         const link = document.createElement("a");
         link.download = `Carnet_${student.name}_${student.last_name || ""}.png`;
