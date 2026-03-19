@@ -108,6 +108,22 @@ export default function BulkQRModal({ open, onClose, token }) {
         </div>
 
         <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Photo toggle - top */}
+          <div className="flex items-center justify-between p-3 bg-violet-50 border border-violet-200 rounded-xl">
+            <div>
+              <p className="text-sm font-semibold text-slate-700">Incluir foto del alumno</p>
+              <p className="text-xs text-slate-400">Muestra la foto en cada carnet</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIncluirFoto(!incluirFoto)}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${incluirFoto ? 'bg-violet-500' : 'bg-slate-300'}`}
+              data-testid="toggle-include-photo"
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${incluirFoto ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+
           {/* Filters */}
           <div className="space-y-3">
             <div>
@@ -160,20 +176,6 @@ export default function BulkQRModal({ open, onClose, token }) {
 
           {/* Options */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-violet-50 border border-violet-200 rounded-xl">
-              <div>
-                <p className="text-sm font-semibold text-slate-700">Incluir foto del alumno</p>
-                <p className="text-xs text-slate-400">Muestra la foto en cada carnet</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIncluirFoto(!incluirFoto)}
-                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${incluirFoto ? 'bg-violet-500' : 'bg-slate-300'}`}
-                data-testid="toggle-include-photo"
-              >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${incluirFoto ? 'translate-x-6' : 'translate-x-1'}`} />
-              </button>
-            </div>
             <label className="flex items-center gap-3 cursor-pointer">
               <input type="checkbox" checked={incluirCodigo} onChange={e => setIncluirCodigo(e.target.checked)} className="accent-violet-500 w-4 h-4" />
               <span className="text-sm text-slate-600">Incluir codigo del alumno</span>
