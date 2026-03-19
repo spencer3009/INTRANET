@@ -1556,45 +1556,45 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             c.setLineWidth(0.4)
             c.line(x + 4 * mm, logo_y - 4 * mm, x + card_w - 4 * mm, logo_y - 4 * mm)
 
-            # Student photo (centered, circular)
-            photo_size = 20 * mm
-            photo_x = x + (card_w - photo_size) / 2
-            photo_y = logo_y - 5 * mm - photo_size
+            # Student photo (only if incluir_foto)
             if data.incluir_foto:
+                photo_size = 20 * mm
+                photo_x = x + (card_w - photo_size) / 2
+                photo_y = logo_y - 5 * mm - photo_size
                 student_photo = fetch_image(s.get("photo_url"))
-            else:
-                student_photo = None
-            if student_photo:
-                try:
-                    student_photo.seek(0)
-                    c.saveState()
-                    path = c.beginPath()
-                    cx_p = photo_x + photo_size / 2
-                    cy_p = photo_y + photo_size / 2
-                    path.circle(cx_p, cy_p, photo_size / 2)
-                    path.close()
-                    c.clipPath(path, stroke=0)
-                    c.drawImage(ImageReader(student_photo), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
-                    c.restoreState()
-                    # Circle border
-                    c.setStrokeColor(HexColor("#cbd5e1"))
-                    c.setLineWidth(0.8)
-                    c.circle(cx_p, cy_p, photo_size / 2, fill=0, stroke=1)
-                except Exception:
+                if student_photo:
+                    try:
+                        student_photo.seek(0)
+                        c.saveState()
+                        path = c.beginPath()
+                        cx_p = photo_x + photo_size / 2
+                        cy_p = photo_y + photo_size / 2
+                        path.circle(cx_p, cy_p, photo_size / 2)
+                        path.close()
+                        c.clipPath(path, stroke=0)
+                        c.drawImage(ImageReader(student_photo), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                        c.restoreState()
+                        c.setStrokeColor(HexColor("#cbd5e1"))
+                        c.setLineWidth(0.8)
+                        c.circle(cx_p, cy_p, photo_size / 2, fill=0, stroke=1)
+                    except Exception:
+                        c.setFillColor(light_bg)
+                        c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
+                        c.setFillColor(navy)
+                        c.setFont("Helvetica-Bold", 16)
+                        c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
+                else:
                     c.setFillColor(light_bg)
                     c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
                     c.setFillColor(navy)
                     c.setFont("Helvetica-Bold", 16)
                     c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
+                content_top = photo_y - 4 * mm
             else:
-                c.setFillColor(light_bg)
-                c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
-                c.setFillColor(navy)
-                c.setFont("Helvetica-Bold", 16)
-                c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
+                content_top = logo_y - 8 * mm
 
             # Student name (centered, bold)
-            info_y = photo_y - 4 * mm
+            info_y = content_top
             c.setFillColor(navy)
             c.setFont("Helvetica-Bold", 7)
             full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()
