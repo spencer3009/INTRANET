@@ -1508,7 +1508,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
         margin_y = (h - rows * card_h) / (rows + 1)
 
         navy = HexColor("#001f4b")
-        teal = HexColor("#10b981")
+        teal = HexColor("#94a3b8")
         gray = HexColor("#64748b")
         light_bg = HexColor("#f1f5f9")
         border_color = HexColor("#d1d5db")
