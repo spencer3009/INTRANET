@@ -131,7 +131,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
         ctx.fillStyle = "#94a3b8";
         ctx.font = "12px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("Personal e intransferible", W / 2, yPos);
+        ctx.fillText("Personal e intransferible", W / 2, y);
         const link = document.createElement("a");
         link.download = `Carnet_Prof_${fullName.replace(/\s+/g, "_")}.png`;
         link.href = canvas.toDataURL("image/png");
