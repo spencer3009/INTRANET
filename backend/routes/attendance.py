@@ -1610,20 +1610,26 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             tw2 = c.stringWidth(info_line, "Helvetica", 5.5)
             c.drawString(x + (card_w - tw2) / 2, info_y - 4 * mm, info_line)
 
-            # QR (large, centered)
-            qr_size_px = 28 * mm
+            # QR — positioned dynamically: fill remaining space between text and footer
+            footer_y = y + 2 * mm
+            qr_top = info_y - 7 * mm
+            qr_bottom = footer_y + 4 * mm
+            available = qr_top - qr_bottom
+            qr_size_px = min(available, 32 * mm)
+            qr_size_px = max(qr_size_px, 18 * mm)
+
             qr_img = make_qr_image(s["qr_token"], 250)
             qr_buf = BytesIO()
             qr_img.save(qr_buf, format="PNG")
             qr_buf.seek(0)
             qr_x = x + (card_w - qr_size_px) / 2
-            qr_y = y + 5 * mm
+            qr_y = qr_bottom + (available - qr_size_px) / 2
             c.drawImage(ImageReader(qr_buf), qr_x, qr_y, qr_size_px, qr_size_px)
 
             # QR label
             c.setFillColor(HexColor("#94a3b8"))
             c.setFont("Helvetica", 4)
-            c.drawCentredString(x + card_w / 2, y + 2 * mm, "Personal e intransferible")
+            c.drawCentredString(x + card_w / 2, footer_y, "Personal e intransferible")
 
             card_idx += 1
 
