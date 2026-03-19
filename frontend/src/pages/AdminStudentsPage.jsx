@@ -2025,6 +2025,7 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
               <StudentQRCard 
                 student={qrStudent}
                 schoolName={settings?.system_name || "EduNet"}
+                logoUrl={settings?.logo_url}
               />
             </div>
           </div>
