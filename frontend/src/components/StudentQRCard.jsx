@@ -22,31 +22,127 @@ export default function StudentQRCard({ student, schoolName, logoUrl, onClose })
   const gradeInfo = `${student.level_name ? student.level_name + " - " : ""}${student.grade_name || ""} - ${student.section_name || ""}`;
   const displaySchoolName = schoolName?.toLowerCase().startsWith("colegio") ? schoolName : `Colegio ${schoolName || ""}`;
 
+  const loadImage = (src) => new Promise((resolve) => {
+    if (!src) return resolve(null);
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+
   const downloadQR = async () => {
     setDownloading(true);
     try {
       const svg = qrRef.current?.querySelector("svg");
       if (!svg) return;
+
+      const W = 400, H = 620;
       const canvas = document.createElement("canvas");
+      canvas.width = W;
+      canvas.height = H;
       const ctx = canvas.getContext("2d");
+
+      // Background
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, W, H);
+
+      // Gray bar
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillRect(0, 0, W, 8);
+
+      let yPos = 24;
+
+      // Logo
+      const logoImg = await loadImage(logoUrl);
+      if (logoImg) {
+        const lh = 50, lw = (logoImg.width / logoImg.height) * lh;
+        ctx.drawImage(logoImg, (W - lw) / 2, yPos, lw, lh);
+        yPos += lh + 8;
+      } else {
+        yPos += 10;
+      }
+
+      // School name
+      ctx.fillStyle = "#001f4b";
+      ctx.font = "bold 14px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(displaySchoolName, W / 2, yPos);
+      yPos += 14;
+
+      // Divider
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(60, yPos);
+      ctx.lineTo(W - 60, yPos);
+      ctx.stroke();
+      yPos += 14;
+
+      // Photo
+      const photoImg = await loadImage(student.photo_url);
+      const photoSize = 100;
+      const photoCx = W / 2, photoCy = yPos + photoSize / 2;
+      if (photoImg) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(photoCx, photoCy, photoSize / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(photoImg, photoCx - photoSize / 2, photoCy - photoSize / 2, photoSize, photoSize);
+        ctx.restore();
+        ctx.strokeStyle = "#cbd5e1";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(photoCx, photoCy, photoSize / 2, 0, Math.PI * 2);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "#f1f5f9";
+        ctx.beginPath();
+        ctx.arc(photoCx, photoCy, photoSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#001f4b";
+        ctx.font = "bold 36px sans-serif";
+        ctx.fillText((student.name || "E").charAt(0), photoCx, photoCy + 12);
+      }
+      yPos += photoSize + 16;
+
+      // Name
+      ctx.fillStyle = "#001f4b";
+      ctx.font = "bold 18px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText(fullName, W / 2, yPos);
+      yPos += 20;
+
+      // Grade
+      ctx.fillStyle = "#64748b";
+      ctx.font = "13px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillText(gradeInfo, W / 2, yPos);
+      yPos += 20;
+
+      // QR
       const svgData = new XMLSerializer().serializeToString(svg);
-      const img = new Image();
+      const qrImg = new Image();
       const svgBlob = new Blob([svgData], { type: "image/svg+xml;charset=utf-8" });
-      const url = URL.createObjectURL(svgBlob);
-      img.onload = () => {
-        canvas.width = 400;
-        canvas.height = 400;
-        ctx.fillStyle = "white";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 50, 50, 300, 300);
+      const qrUrl = URL.createObjectURL(svgBlob);
+
+      qrImg.onload = () => {
+        const qrSize = 180;
+        ctx.drawImage(qrImg, (W - qrSize) / 2, yPos, qrSize, qrSize);
+        yPos += qrSize + 12;
+
+        // Footer
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "10px sans-serif";
+        ctx.fillText("Personal e intransferible", W / 2, yPos);
+
         const link = document.createElement("a");
-        link.download = `QR_${student.name}_${student.last_name || ""}.png`;
+        link.download = `Carnet_${student.name}_${student.last_name || ""}.png`;
         link.href = canvas.toDataURL("image/png");
         link.click();
-        URL.revokeObjectURL(url);
+        URL.revokeObjectURL(qrUrl);
         setDownloading(false);
       };
-      img.src = url;
+      qrImg.src = qrUrl;
     } catch {
       setDownloading(false);
     }
