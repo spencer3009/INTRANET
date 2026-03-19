@@ -46,7 +46,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
       const logoH = logoImg ? 60 : 0;
       const photoR = 70;
       const qrSize = 220;
-      let totalH = 20 + barH + logoH + 12 + 22 + 20 + (photoImg ? photoR * 2 + 24 : 10) + 28 + 22 + qrSize + 20 + 24 + 16;
+      let totalH = 20 + barH + logoH + 12 + 22 + 36 + (photoImg ? photoR * 2 + 24 : 10) + 28 + 22 + qrSize + 20 + 24 + 16;
 
       canvas.width = W;
       canvas.height = totalH;
@@ -77,7 +77,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
       ctx.moveTo(80, y);
       ctx.lineTo(W - 80, y);
       ctx.stroke();
-      y += 20;
+      y += 36;
 
       if (photoImg) {
         const cx = W / 2, cy = y + photoR;

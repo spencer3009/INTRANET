@@ -52,7 +52,7 @@ export default function StudentQRCard({ student, schoolName, logoUrl, onClose })
       const logoH = logoImg ? 60 : 0;
       totalH += logoH + 12; // logo + gap
       totalH += 22; // school name + gap
-      totalH += 20; // divider + gap
+      totalH += 36; // divider + gap
       const photoR = 70; // radius
       totalH += photoImg ? (photoR * 2 + 24) : 10; // photo + gap (or small gap if no photo)
       totalH += 28; // name
@@ -96,7 +96,7 @@ export default function StudentQRCard({ student, schoolName, logoUrl, onClose })
       ctx.moveTo(80, y);
       ctx.lineTo(W - 80, y);
       ctx.stroke();
-      y += 20;
+      y += 36;
 
       // Photo — only if real photo exists, otherwise skip
       if (photoImg) {
