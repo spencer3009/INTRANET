@@ -1551,7 +1551,8 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
 
             c.setFillColor(navy)
             c.setFont("Helvetica-Bold", 6)
-            name_trunc = school_name[:30]
+            display_name = school_name if school_name.lower().startswith("colegio") else f"Colegio {school_name}"
+            name_trunc = display_name[:30]
             tw = c.stringWidth(name_trunc, "Helvetica-Bold", 6)
             c.drawString(x + (card_w - tw) / 2, logo_y - 2 * mm, name_trunc)
 
