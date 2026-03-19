@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
 import CameraCaptureModal from "@/components/CameraCaptureModal";
+import BulkQRModal from "@/components/BulkQRModal";
 
 // LocalStorage keys for filter persistence
 const STORAGE_KEYS = {
@@ -483,6 +484,7 @@ function StudentModal({ isOpen, onClose, token, student, onSave, levels, grades,
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showBulkQR, setShowBulkQR] = useState(false);
   const [error, setError] = useState("");
   const [usernameError, setUsernameError] = useState("");
   const [checkingUsername, setCheckingUsername] = useState(false);
@@ -1854,6 +1856,14 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
                   Limpiar filtros
                 </button>
               )}
+              <button
+                onClick={() => setShowBulkQR(true)}
+                className="text-sm text-violet-600 hover:text-violet-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition-colors border border-violet-200"
+                data-testid="bulk-qr-btn"
+              >
+                <Download className="w-4 h-4" />
+                Descargar QR
+              </button>
             </div>
           </div>
 
@@ -2020,6 +2030,7 @@ export default function AdminStudentsPage({ user, token, onLogout }) {
           </div>
         </div>
       )}
+      <BulkQRModal open={showBulkQR} onClose={() => setShowBulkQR(false)} token={token} />
     </div>
   );
 }
