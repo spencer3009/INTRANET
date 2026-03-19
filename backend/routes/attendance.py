@@ -1418,7 +1418,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
 
     students = await db.users.find(
         student_filter,
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1, "codigo_alumno": 1, "username": 1}
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1, "codigo_alumno": 1, "username": 1, "photo_url": 1}
     ).to_list(1000)
 
     if not students:
@@ -1465,46 +1465,150 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
         return StreamingResponse(buf, media_type="application/zip",
             headers={"Content-Disposition": f"attachment; filename={file_base}.zip"})
 
-    # PDF generation (grid or list)
+    # PDF generation (carnet or list)
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib.units import mm, cm
+    from reportlab.lib.units import mm
     from reportlab.pdfgen import canvas as pdf_canvas
     from reportlab.lib.utils import ImageReader
+    from reportlab.lib.colors import HexColor
+    import requests as http_requests
+
+    # Get school info for carnet
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "logo_url": 1, "subdomain": 1})
+    school_name = (school or {}).get("name", "Colegio")
+    school_logo_url = (school or {}).get("logo_url")
+    school_domain = f"{(school or {}).get('subdomain', '')}.edunet.pe"
+    curso_label = f"{grado_name} - {seccion_name}"
+
+    # Cache downloaded images
+    def fetch_image(url):
+        if not url:
+            return None
+        try:
+            resp = http_requests.get(url, timeout=5)
+            if resp.status_code == 200:
+                return BytesIO(resp.content)
+        except Exception:
+            pass
+        return None
+
+    logo_img = fetch_image(school_logo_url)
 
     buf = BytesIO()
     c = pdf_canvas.Canvas(buf, pagesize=A4)
     w, h = A4
 
     if data.formato == "pdf_grid":
-        cols, rows = 3, 4
-        cell_w = (w - 40) / cols
-        cell_h = (h - 60) / rows
-        qr_size = min(cell_w - 20, cell_h - 40)
+        # Carnet layout: 2 columns x 4 rows on A4
+        cols, rows = 2, 4
+        card_w = 85 * mm
+        card_h = 62 * mm
+        margin_x = (w - cols * card_w) / (cols + 1)
+        margin_y = (h - rows * card_h) / (rows + 1)
 
-        for idx, s in enumerate(students):
+        navy = HexColor("#001f4b")
+        blue_line = HexColor("#1e40af")
+        gray = HexColor("#64748b")
+        light_bg = HexColor("#f1f5f9")
+
+        card_idx = 0
+        for s in students:
             if not s.get("qr_token"):
                 continue
-            if idx > 0 and idx % (cols * rows) == 0:
+            if card_idx > 0 and card_idx % (cols * rows) == 0:
                 c.showPage()
-            pos = idx % (cols * rows)
+
+            pos = card_idx % (cols * rows)
             col = pos % cols
             row = pos // cols
-            x = 20 + col * cell_w
-            y = h - 40 - row * cell_h
+            x = margin_x + col * (card_w + margin_x)
+            y = h - margin_y - (row + 1) * card_h - row * margin_y
 
-            img = make_qr_image(s["qr_token"], int(qr_size))
-            img_buf = BytesIO()
-            img.save(img_buf, format="PNG")
-            img_buf.seek(0)
+            # Card background
+            c.setFillColor(HexColor("#ffffff"))
+            c.setStrokeColor(HexColor("#cbd5e1"))
+            c.setLineWidth(0.5)
+            c.roundRect(x, y, card_w, card_h, 3 * mm, fill=1, stroke=1)
 
-            cx = x + (cell_w - qr_size) / 2
-            c.drawImage(ImageReader(img_buf), cx, y - qr_size, qr_size, qr_size)
+            # Top blue bar
+            c.setFillColor(navy)
+            c.rect(x, y + card_h - 14 * mm, card_w, 14 * mm, fill=1, stroke=0)
+            # Rounded top corners
+            c.setFillColor(navy)
 
-            label = student_label(s)
-            c.setFont("Helvetica", 7)
-            text_w = c.stringWidth(label, "Helvetica", 7)
-            tx = x + (cell_w - text_w) / 2
-            c.drawString(tx, y - qr_size - 12, label)
+            # Logo in top bar
+            if logo_img:
+                try:
+                    logo_img.seek(0)
+                    c.drawImage(ImageReader(logo_img), x + 2 * mm, y + card_h - 12.5 * mm, 10 * mm, 10 * mm, preserveAspectRatio=True, mask='auto')
+                except Exception:
+                    pass
+
+            # School name in top bar
+            c.setFillColor(HexColor("#ffffff"))
+            c.setFont("Helvetica-Bold", 8)
+            c.drawString(x + 14 * mm, y + card_h - 7 * mm, school_name[:30])
+            c.setFont("Helvetica", 5)
+            c.drawString(x + 14 * mm, y + card_h - 11 * mm, school_domain)
+
+            # Blue divider line
+            c.setStrokeColor(blue_line)
+            c.setLineWidth(0.8)
+            c.line(x + 2 * mm, y + card_h - 15 * mm, x + card_w - 2 * mm, y + card_h - 15 * mm)
+
+            # Student photo (circle area)
+            photo_x = x + 3 * mm
+            photo_y = y + card_h - 36 * mm
+            photo_size = 18 * mm
+            student_photo = fetch_image(s.get("photo_url"))
+            if student_photo:
+                try:
+                    student_photo.seek(0)
+                    c.drawImage(ImageReader(student_photo), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                except Exception:
+                    c.setFillColor(light_bg)
+                    c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
+            else:
+                c.setFillColor(light_bg)
+                c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
+                c.setFillColor(gray)
+                c.setFont("Helvetica-Bold", 14)
+                initial = (s.get("name", "?")[:1]).upper()
+                c.drawCentredString(photo_x + photo_size / 2, photo_y + 5 * mm, initial)
+
+            # Student info (right of photo)
+            info_x = photo_x + photo_size + 3 * mm
+            c.setFillColor(navy)
+            c.setFont("Helvetica-Bold", 7.5)
+            full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()
+            # Truncate if too long
+            if len(full_name) > 25:
+                full_name = full_name[:24] + "."
+            c.drawString(info_x, photo_y + 13 * mm, full_name)
+
+            c.setFillColor(gray)
+            c.setFont("Helvetica", 6)
+            c.drawString(info_x, photo_y + 9.5 * mm, f"Curso: {curso_label}")
+            c.drawString(info_x, photo_y + 6.5 * mm, f"Nivel: {nivel_name}")
+            if s.get("codigo_alumno"):
+                c.drawString(info_x, photo_y + 3.5 * mm, f"Cod: {s['codigo_alumno']}")
+
+            # QR code (bottom center)
+            qr_size_px = 22 * mm
+            qr_img = make_qr_image(s["qr_token"], 200)
+            qr_buf = BytesIO()
+            qr_img.save(qr_buf, format="PNG")
+            qr_buf.seek(0)
+            qr_x = x + (card_w - qr_size_px) / 2
+            qr_y = y + 2 * mm
+            c.drawImage(ImageReader(qr_buf), qr_x, qr_y, qr_size_px, qr_size_px)
+
+            # Footer text
+            c.setFillColor(HexColor("#94a3b8"))
+            c.setFont("Helvetica", 4)
+            c.drawCentredString(x + card_w / 2, y + 1 * mm, "Este documento es personal e intransferible")
+
+            card_idx += 1
 
     elif data.formato == "pdf_list":
         c.setFont("Helvetica-Bold", 14)
@@ -1528,9 +1632,9 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             c.drawString(30, y_pos - 10, f"{s.get('last_name', '')} {s.get('name', '')}".strip())
             c.drawString(250, y_pos - 10, s.get("codigo_alumno", s.get("username", "")))
 
-            img = make_qr_image(s["qr_token"], 120)
+            qr_img = make_qr_image(s["qr_token"], 120)
             img_buf = BytesIO()
-            img.save(img_buf, format="PNG")
+            qr_img.save(img_buf, format="PNG")
             img_buf.seek(0)
             c.drawImage(ImageReader(img_buf), 370, y_pos - 40, 40, 40)
 
