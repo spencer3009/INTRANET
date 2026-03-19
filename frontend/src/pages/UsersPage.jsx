@@ -471,6 +471,22 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
     }
   };
 
+  // Regenerate all QR codes (optimized)
+  const handleRegenerateAllQR = async () => {
+    if (!window.confirm("Esta accion regenerara TODOS los codigos QR de alumnos y docentes con un formato optimizado. Los QR anteriores dejaran de funcionar. ¿Deseas continuar?")) return;
+    setRegeneratingQR(true);
+    try {
+      const res = await axios.post(`${API}/attendance/qr/regenerate-all`, {}, { headers });
+      toast.success(res.data.message || "QR regenerados");
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al regenerar QR");
+    } finally {
+      setRegeneratingQR(false);
+    }
+  };
+
+
 
   // Handle form submit
   const handleSubmit = async (e) => {
@@ -1630,6 +1646,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [expandedSections, setExpandedSections] = useState({});
   const [generatingQR, setGeneratingQR] = useState(false);
   const [showBulkQR, setShowBulkQR] = useState(false);
+  const [regeneratingQR, setRegeneratingQR] = useState(false);
   
   // Academic data for QR card (grade/section/level names)
   const [grades, setGrades] = useState([]);
@@ -2366,6 +2383,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 >
                   <Download className="w-4 h-4" />
                   Descargar QR
+                </button>
+                <button
+                  onClick={handleRegenerateAllQR}
+                  disabled={regeneratingQR}
+                  className="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition-colors border border-emerald-200 disabled:opacity-50"
+                  data-testid="regenerate-qr-btn"
+                >
+                  {regeneratingQR ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  {regeneratingQR ? "Regenerando..." : "Optimizar QR"}
                 </button>
                 {(studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch) && (
                   <button

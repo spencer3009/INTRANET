@@ -314,6 +314,7 @@ async def create_indexes():
         if teachers_without_qr:
             logging.info(f"Generated QR tokens for {len(teachers_without_qr)} teachers")
         # Push notification indexes
+        await db.users.create_index([("qr_id", 1)], sparse=True)
         await db.push_tokens.create_index([("user_id", 1)])
         await db.push_tokens.create_index([("token", 1)], unique=True)
         await db.parent_notifications.create_index([("parent_id", 1), ("created_at", -1)])

@@ -702,58 +702,71 @@ class QRScanRequest(BaseModel):
 @router.post("/attendance/qr/scan")
 async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_current_user)):
     """
-    Scan student QR code and register attendance.
-    Returns student info and attendance status.
+    Scan student/teacher QR code and register attendance.
+    Supports both new short QR (qr_id) and legacy JWT tokens.
     """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No autorizado")
     
     school_id = user["school_id"]
-    
-    # Validate QR token (JWT)
-    try:
-        qr_data = jwt.decode(data.qr_token, JWT_SECRET, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=400, detail={
-            "status": "error",
-            "message": "QR expirado",
-            "code": "QR_EXPIRED"
-        })
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=400, detail={
-            "status": "error", 
-            "message": "QR inválido",
-            "code": "QR_INVALID"
-        })
-    
-    # Verify QR type
-    qr_type = qr_data.get("type")
-    if qr_type not in ("student_qr", "teacher_qr"):
-        raise HTTPException(status_code=400, detail={
-            "status": "error",
-            "message": "Este QR no es válido para asistencia",
-            "code": "QR_WRONG_TYPE"
-        })
-    
-    # Verify school match
-    if qr_data.get("school_id") != school_id:
-        raise HTTPException(status_code=403, detail={
-            "status": "error",
-            "message": "Este usuario no pertenece a tu institución",
-            "code": "SCHOOL_MISMATCH"
-        })
-    
-    # Determine if scanning a student or teacher
-    is_teacher_qr = qr_type == "teacher_qr"
-    scanned_user_id = qr_data.get("teacher_id") if is_teacher_qr else qr_data.get("student_id")
-    scanned_role = "teacher" if is_teacher_qr else "student"
-    
-    # Get user info
-    scanned_user = await db.users.find_one(
-        {"id": scanned_user_id, "school_id": school_id, "role": scanned_role},
-        {"_id": 0, "password": 0}
-    )
+    raw = data.qr_token.strip()
+
+    # --- NEW: Short QR (URL or plain qr_id) ---
+    qr_id = None
+    if raw.startswith("http"):
+        # Extract qr_id from URL like https://app.edunet.pe/qr/abc12345
+        parts = raw.rstrip("/").split("/")
+        qr_id = parts[-1] if parts else None
+    elif len(raw) <= 12 and not raw.startswith("ey"):
+        qr_id = raw
+
+    if qr_id:
+        scanned_user = await db.users.find_one(
+            {"qr_id": qr_id, "school_id": school_id},
+            {"_id": 0, "password": 0}
+        )
+        if not scanned_user:
+            raise HTTPException(status_code=400, detail={
+                "status": "error",
+                "message": "QR no reconocido o no pertenece a esta institucion",
+                "code": "QR_INVALID"
+            })
+        is_teacher_qr = scanned_user.get("role") == "teacher"
+        scanned_user_id = scanned_user["id"]
+        scanned_role = "teacher" if is_teacher_qr else "student"
+    else:
+        # --- LEGACY: JWT token ---
+        try:
+            qr_data = jwt.decode(raw, JWT_SECRET, algorithms=["HS256"])
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=400, detail={
+                "status": "error", "message": "QR expirado", "code": "QR_EXPIRED"
+            })
+        except jwt.InvalidTokenError:
+            raise HTTPException(status_code=400, detail={
+                "status": "error", "message": "QR invalido", "code": "QR_INVALID"
+            })
+        
+        qr_type = qr_data.get("type")
+        if qr_type not in ("student_qr", "teacher_qr"):
+            raise HTTPException(status_code=400, detail={
+                "status": "error", "message": "Este QR no es valido para asistencia", "code": "QR_WRONG_TYPE"
+            })
+        
+        if qr_data.get("school_id") != school_id:
+            raise HTTPException(status_code=403, detail={
+                "status": "error", "message": "Este usuario no pertenece a tu institucion", "code": "SCHOOL_MISMATCH"
+            })
+        
+        is_teacher_qr = qr_type == "teacher_qr"
+        scanned_user_id = qr_data.get("teacher_id") if is_teacher_qr else qr_data.get("student_id")
+        scanned_role = "teacher" if is_teacher_qr else "student"
+        
+        scanned_user = await db.users.find_one(
+            {"id": scanned_user_id, "school_id": school_id, "role": scanned_role},
+            {"_id": 0, "password": 0}
+        )
     
     if not scanned_user:
         raise HTTPException(status_code=404, detail={
@@ -1100,67 +1113,100 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             "attendance": {"status": None, "entry_time": None, "exit_time": None, "date": today}
         }
 
+def _generate_short_qr_id():
+    """Generate a short unique QR ID (8 chars)"""
+    return uuid.uuid4().hex[:8]
+
 @router.post("/attendance/qr/generate")
 async def generate_qr_for_existing_users(current_user = Depends(get_current_user)):
-    """
-    Generate QR tokens for existing students and teachers that don't have one.
-    Admin only endpoint.
-    """
+    """Generate optimized short QR IDs for users that don't have one."""
     user = await resolve_user_from_token(current_user)
     if not user or not is_admin_user(user):
-        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar esta acción")
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar esta accion")
     
     school_id = user["school_id"]
-    
     updated_count = 0
     
-    # Generate for students without qr_token
-    students_without_qr = await db.users.find({
-        "school_id": school_id,
-        "role": "student",
-        "qr_token": {"$exists": False}
+    # Students without qr_id
+    students = await db.users.find({
+        "school_id": school_id, "role": "student",
+        "$or": [{"qr_id": {"$exists": False}}, {"qr_id": None}]
     }).to_list(None)
     
-    for student in students_without_qr:
-        qr_payload = {
-            "student_id": student["id"],
-            "school_id": school_id,
-            "issued_at": datetime.now(timezone.utc).isoformat(),
-            "type": "student_qr"
-        }
-        qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
-        await db.users.update_one(
-            {"id": student["id"]},
-            {"$set": {"qr_token": qr_token}}
-        )
+    for s in students:
+        qr_id = _generate_short_qr_id()
+        qr_url = f"https://app.edunet.pe/qr/{qr_id}"
+        await db.users.update_one({"id": s["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url}})
         updated_count += 1
     
-    # Generate for teachers without qr_token
-    teachers_without_qr = await db.users.find({
-        "school_id": school_id,
-        "role": "teacher",
-        "qr_token": {"$exists": False}
+    # Teachers without qr_id
+    teachers = await db.users.find({
+        "school_id": school_id, "role": "teacher",
+        "$or": [{"qr_id": {"$exists": False}}, {"qr_id": None}]
     }).to_list(None)
     
-    for teacher in teachers_without_qr:
-        qr_payload = {
-            "teacher_id": teacher["id"],
-            "school_id": school_id,
-            "issued_at": datetime.now(timezone.utc).isoformat(),
-            "type": "teacher_qr"
-        }
-        qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
-        await db.users.update_one(
-            {"id": teacher["id"]},
-            {"$set": {"qr_token": qr_token}}
-        )
+    for t in teachers:
+        qr_id = _generate_short_qr_id()
+        qr_url = f"https://app.edunet.pe/qr/{qr_id}"
+        await db.users.update_one({"id": t["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url}})
         updated_count += 1
     
     return {
-        "message": f"QR generados para {updated_count} usuarios ({len(students_without_qr)} estudiantes, {len(teachers_without_qr)} profesores)",
+        "message": f"QR generados para {updated_count} usuarios ({len(students)} estudiantes, {len(teachers)} profesores)",
         "updated_count": updated_count,
-        "students_updated": len(students_without_qr),
-        "teachers_updated": len(teachers_without_qr)
+        "students_updated": len(students),
+        "teachers_updated": len(teachers)
+    }
+
+
+@router.post("/attendance/qr/regenerate-all")
+async def regenerate_all_qr(current_user = Depends(get_current_user)):
+    """Regenerate ALL QR codes with optimized short IDs. Admin/owner only. Old QR codes become invalid."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar esta accion")
+    
+    school_id = user["school_id"]
+    
+    students = await db.users.find({"school_id": school_id, "role": "student"}, {"_id": 0, "id": 1}).to_list(None)
+    teachers = await db.users.find({"school_id": school_id, "role": "teacher"}, {"_id": 0, "id": 1}).to_list(None)
+    
+    total = len(students) + len(teachers)
+    if total == 0:
+        return {"message": "No hay usuarios para regenerar", "total": 0}
+    
+    count = 0
+    for s in students:
+        qr_id = _generate_short_qr_id()
+        qr_url = f"https://app.edunet.pe/qr/{qr_id}"
+        await db.users.update_one({"id": s["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url}})
+        count += 1
+    
+    for t in teachers:
+        qr_id = _generate_short_qr_id()
+        qr_url = f"https://app.edunet.pe/qr/{qr_id}"
+        await db.users.update_one({"id": t["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url}})
+        count += 1
+    
+    # Log the operation
+    await db.qr_regeneration_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "performed_by": user["id"],
+        "performed_by_name": f"{user.get('name','')} {user.get('last_name','')}".strip(),
+        "total_regenerated": count,
+        "students": len(students),
+        "teachers": len(teachers),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    
+    logger.info(f"QR regeneration: {count} users in school {school_id}")
+    
+    return {
+        "message": f"Todos los codigos QR fueron optimizados correctamente",
+        "total": count,
+        "students": len(students),
+        "teachers": len(teachers),
     }
 
 @router.get("/attendance/qr/history")
@@ -1442,7 +1488,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
     file_base = f"qr_{nivel_name}_{grado_name}_{seccion_name}".lower().replace(" ", "_")
 
     def make_qr_image(token_data: str, size: int = 200):
-        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=8, border=2)
+        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=10, border=2)
         qr.add_data(token_data)
         qr.make(fit=True)
         return qr.make_image(fill_color="black", back_color="white").resize((size, size))

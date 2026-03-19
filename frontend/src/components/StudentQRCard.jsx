@@ -246,7 +246,7 @@ export default function StudentQRCard({ student, schoolName, logoUrl, onClose })
           <QRCodeSVG
             value={student.qr_token}
             size={170}
-            level="H"
+            level="L"
             includeMargin={true}
             bgColor="#FFFFFF"
             fgColor="#1e293b"

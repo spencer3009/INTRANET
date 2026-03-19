@@ -202,7 +202,7 @@ export default function TeacherQRCard({ teacher, schoolName, logoUrl }) {
           </p>
         </div>
         <div ref={qrRef} className="flex justify-center py-3">
-          <QRCodeSVG value={teacher.qr_token} size={170} level="H" includeMargin={true} bgColor="#FFFFFF" fgColor="#1e293b" />
+          <QRCodeSVG value={teacher.qr_token} size={170} level="L" includeMargin={true} bgColor="#FFFFFF" fgColor="#1e293b" />
         </div>
         <p className="text-[10px] text-slate-400 text-center pb-3">Personal e intransferible</p>
       </div>
