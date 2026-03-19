@@ -1476,7 +1476,7 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
 
     # Get school info for carnet
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "name": 1, "logo_url": 1, "subdomain": 1})
-    school_name = (school or {}).get("name", "Colegio")
+    school_name = (school or {}).get("name") or (school or {}).get("school_name") or "Colegio"
     school_logo_url = (school or {}).get("logo_url")
     school_domain = f"{(school or {}).get('subdomain', '')}.edunet.pe"
     curso_label = f"{grado_name} - {seccion_name}"
