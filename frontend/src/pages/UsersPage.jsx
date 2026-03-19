@@ -2385,7 +2385,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <Download className="w-4 h-4" />
                   Descargar QR
                 </button>
-                {isSupportUser && (
+                {(user?.is_support_session || user?.original_role === 'system_admin_global') && (
                 <button
                   onClick={handleRegenerateAllQR}
                   disabled={regeneratingQR}
