@@ -504,7 +504,10 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, se
       await onSave(formData);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar");
+      const detail = err.response?.data?.detail;
+      const msg = Array.isArray(detail) ? detail.map(d => `${d.loc?.join(".")}: ${d.msg}`).join("\n") : (detail || "Error al guardar");
+      console.error("Subject error:", err.response?.status, err.response?.data);
+      setError(msg);
     } finally {
       setSaving(false);
     }
@@ -1073,8 +1076,8 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
     const subjectData = {
       name: data.name, code: data.code, description: data.description,
       level_id: data.level_id, grade_id: data.grade_id, section_id: data.section_id || null,
-      weekly_hours: data.weekly_hours, color: data.color,
-      status: data.status, image_url: data.image_url || null
+      weekly_hours: data.weekly_hours || 1, color: data.color || "#3B82F6",
+      status: data.status || "active", image_url: data.image_url || null
     };
     if (editingSubject?.id) {
       await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers });
