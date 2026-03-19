@@ -60,7 +60,7 @@ async def get_tenant_users(current_user = Depends(get_current_user)):
     school_id = user["school_id"]
     
     # Build query - system users only visible to owners and system_admins
-    query = {"school_id": school_id}
+    query = {"school_id": school_id, "student_status": {"$ne": "deleted"}}
     
     # Only owners and system_admins can see system users
     can_see_system_users = (
