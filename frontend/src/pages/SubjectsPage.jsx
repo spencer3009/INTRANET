@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "sonner";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 import Sidebar from "../components/Sidebar";
@@ -172,7 +173,7 @@ function PremiumGradeCard({ grade, subjectCount, theme, onClick }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // SUBJECT CARD - Premium colorful style
 // ══════════════════════════════════════════════════════════════════════════════
-function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse }) {
+function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse, onDelete }) {
   const [menuOpen, setMenuOpen] = useState(false);
   
   return (
@@ -218,6 +219,15 @@ function SubjectCard({ subject, onEdit, onToggleStatus, onViewCourse }) {
                     {subject.status === "active" ? <PowerOff className="w-4 h-4 text-amber-600" /> : <Power className="w-4 h-4 text-emerald-600" />}
                   </div>
                   <span className="font-medium">{subject.status === "active" ? "Desactivar" : "Activar"}</span>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setMenuOpen(false); onDelete(subject); }}
+                  className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3"
+                >
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </div>
+                  <span className="font-medium">Eliminar</span>
                 </button>
               </div>
             </>
@@ -1081,6 +1091,18 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
     loadSubjects();
   };
 
+  const handleDeleteSubject = async (subject) => {
+    if (!window.confirm(`¿Eliminar la asignatura "${subject.name}"? Esta accion no se puede deshacer.`)) return;
+    try {
+      await axios.delete(`${API}/academic/subjects/${subject.id}`, { headers });
+      toast.success("Asignatura eliminada");
+      loadSubjects();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al eliminar");
+    }
+  };
+
+
   const handleViewCourse = (subject) => {
     if (subdomain) {
       navigate(`/${subdomain}/curso/${subject.id}`);
@@ -1374,6 +1396,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
                         onEdit={() => { setEditingSubject(subject); setShowSubjectModal(true); }}
                         onToggleStatus={() => handleToggleStatus(subject)}
                         onViewCourse={() => handleViewCourse(subject)}
+                        onDelete={() => handleDeleteSubject(subject)}
                       />
                     ))}
                     <AddSubjectCard 
