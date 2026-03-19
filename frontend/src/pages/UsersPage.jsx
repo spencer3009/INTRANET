@@ -22,6 +22,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
 import CameraCaptureModal from "@/components/CameraCaptureModal";
 import BulkQRModal from "@/components/BulkQRModal";
+import BulkDeleteModal from "@/components/BulkDeleteModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1632,6 +1633,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [expandedSections, setExpandedSections] = useState({});
   const [generatingQR, setGeneratingQR] = useState(false);
   const [showBulkQR, setShowBulkQR] = useState(false);
+  const [showBulkDelete, setShowBulkDelete] = useState(false);
   const [regeneratingQR, setRegeneratingQR] = useState(false);
 
   const handleRegenerateAllQR = async () => {
@@ -2384,6 +2386,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 >
                   <Download className="w-4 h-4" />
                   Descargar QR
+                </button>
+                <button
+                  onClick={() => setShowBulkDelete(true)}
+                  className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors border border-red-200"
+                  data-testid="bulk-delete-btn"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Eliminacion masiva
                 </button>
                 {(user?.is_support_session || user?.original_role === 'system_admin_global') && (
                 <button
@@ -4185,6 +4195,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
       {/* Bulk QR Download Modal */}
       <BulkQRModal open={showBulkQR} onClose={() => setShowBulkQR(false)} token={token} />
+      <BulkDeleteModal open={showBulkDelete} onClose={() => setShowBulkDelete(false)} token={token} onDone={fetchUsers} />
 
 
       {/* ═══════════════ PENDING IMPORTS MODAL ═══════════════ */}

@@ -1176,3 +1176,129 @@ async def delete_pending_student(student_id: str, current_user = Depends(get_cur
 
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BULK SAFE DELETE STUDENTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class BulkSafeDeleteRequest(BaseModel):
+    nivel_id: str
+    grado_id: str
+    seccion_id: str
+    turno_id: Optional[str] = None
+    delete_reason: str = Field(..., min_length=3)
+    confirm: bool = False  # True = execute, False = analyze only
+
+@router.post("/students/bulk-safe-delete")
+async def bulk_safe_delete_students(data: BulkSafeDeleteRequest, current_user=Depends(get_current_user)):
+    """Analyze and optionally soft-delete students without academic activity. Admin/owner only."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar esta accion")
+
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    # Find students
+    student_filter = {
+        "school_id": school_id,
+        "role": "student",
+        "nivel_id": data.nivel_id,
+        "grado_id": data.grado_id,
+        "seccion_id": data.seccion_id,
+        "student_status": {"$ne": "deleted"},
+    }
+    if data.turno_id:
+        student_filter["turno_id"] = data.turno_id
+
+    students = await db.users.find(student_filter, {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(2000)
+    if not students:
+        raise HTTPException(status_code=404, detail="No se encontraron estudiantes con esos filtros")
+
+    student_ids = [s["id"] for s in students]
+
+    # Optimized: batch check activity across all collections
+    attendance_ids = set(await db.attendances.distinct("user_id", {"user_id": {"$in": student_ids}, "school_id": school_id}))
+    legacy_att_ids = set(await db.student_attendance.distinct("student_id", {"student_id": {"$in": student_ids}, "school_id": school_id}))
+    grade_ids = set(await db.student_grades.distinct("student_id", {"student_id": {"$in": student_ids}, "school_id": school_id}))
+    task_ids = set(await db.task_submissions.distinct("student_id", {"student_id": {"$in": student_ids}, "school_id": school_id}))
+    exam_ids = set(await db.exam_attempts.distinct("student_id", {"student_id": {"$in": student_ids}, "school_id": school_id}))
+    payment_ids = set(await db.payments.distinct("student_id", {"student_id": {"$in": student_ids}, "school_id": school_id}))
+
+    blocked_ids = attendance_ids | legacy_att_ids | grade_ids | task_ids | exam_ids | payment_ids
+
+    deletable = []
+    blocked = []
+    for s in students:
+        sid = s["id"]
+        full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()
+        if sid in blocked_ids:
+            reasons = []
+            if sid in attendance_ids or sid in legacy_att_ids:
+                reasons.append("Tiene asistencias")
+            if sid in grade_ids:
+                reasons.append("Tiene notas")
+            if sid in task_ids:
+                reasons.append("Tiene tareas")
+            if sid in exam_ids:
+                reasons.append("Tiene examenes")
+            if sid in payment_ids:
+                reasons.append("Tiene pagos")
+            blocked.append({"id": sid, "name": full_name, "reason": ", ".join(reasons)})
+        else:
+            deletable.append({"id": sid, "name": full_name})
+
+    # Analysis mode (confirm=false)
+    if not data.confirm:
+        return {
+            "mode": "analysis",
+            "total_found": len(students),
+            "deletable_count": len(deletable),
+            "blocked_count": len(blocked),
+            "deletable": deletable,
+            "blocked": blocked,
+        }
+
+    # Execute soft delete
+    if not deletable:
+        raise HTTPException(status_code=400, detail="No hay alumnos eliminables. Todos tienen actividad academica.")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    deletable_ids = [d["id"] for d in deletable]
+
+    await db.users.update_many(
+        {"id": {"$in": deletable_ids}, "school_id": school_id},
+        {"$set": {
+            "student_status": "deleted",
+            "deleted_at": now_iso,
+            "deleted_by": user["id"],
+            "delete_reason": data.delete_reason,
+        }}
+    )
+
+    # Audit log
+    await db.bulk_delete_logs.insert_one({
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "action": "bulk_safe_delete_students",
+        "filters": {"nivel_id": data.nivel_id, "grado_id": data.grado_id, "seccion_id": data.seccion_id, "turno_id": data.turno_id},
+        "deleted_count": len(deletable),
+        "blocked_count": len(blocked),
+        "deleted_ids": deletable_ids,
+        "reason": data.delete_reason,
+        "performed_by": user["id"],
+        "performed_by_name": f"{user.get('name', '')} {user.get('last_name', '')}".strip(),
+        "created_at": now_iso,
+    })
+
+    logger.info(f"Bulk safe delete: {len(deletable)} deleted, {len(blocked)} blocked in school {school_id}")
+
+    return {
+        "mode": "executed",
+        "total_found": len(students),
+        "deleted": len(deletable),
+        "blocked": len(blocked),
+        "blocked_students": blocked,
+    }
