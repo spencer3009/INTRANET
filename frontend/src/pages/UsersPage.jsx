@@ -2385,6 +2385,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   <Download className="w-4 h-4" />
                   Descargar QR
                 </button>
+                {isSupportUser && (
                 <button
                   onClick={handleRegenerateAllQR}
                   disabled={regeneratingQR}
@@ -2394,6 +2395,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {regeneratingQR ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
                   {regeneratingQR ? "Regenerando..." : "Optimizar QR"}
                 </button>
+                )}
                 {(studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch) && (
                   <button
                     onClick={clearStudentFilters}
