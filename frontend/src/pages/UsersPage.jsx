@@ -471,20 +471,6 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
     }
   };
 
-  // Regenerate all QR codes (optimized)
-  const handleRegenerateAllQR = async () => {
-    if (!window.confirm("Esta accion regenerara TODOS los codigos QR de alumnos y docentes con un formato optimizado. Los QR anteriores dejaran de funcionar. ¿Deseas continuar?")) return;
-    setRegeneratingQR(true);
-    try {
-      const res = await axios.post(`${API}/attendance/qr/regenerate-all`, {}, { headers });
-      toast.success(res.data.message || "QR regenerados");
-      fetchUsers();
-    } catch (err) {
-      toast.error(err.response?.data?.detail || "Error al regenerar QR");
-    } finally {
-      setRegeneratingQR(false);
-    }
-  };
 
 
 
@@ -1647,6 +1633,21 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [generatingQR, setGeneratingQR] = useState(false);
   const [showBulkQR, setShowBulkQR] = useState(false);
   const [regeneratingQR, setRegeneratingQR] = useState(false);
+
+  const handleRegenerateAllQR = async () => {
+    if (!window.confirm("Esta accion regenerara TODOS los codigos QR de alumnos y docentes con un formato optimizado. Los QR anteriores dejaran de funcionar. ¿Deseas continuar?")) return;
+    setRegeneratingQR(true);
+    try {
+      const res = await axios.post(`${API}/attendance/qr/regenerate-all`, {}, { headers });
+      toast.success(res.data.message || "QR regenerados");
+      fetchUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al regenerar QR");
+    } finally {
+      setRegeneratingQR(false);
+    }
+  };
+
   
   // Academic data for QR card (grade/section/level names)
   const [grades, setGrades] = useState([]);
