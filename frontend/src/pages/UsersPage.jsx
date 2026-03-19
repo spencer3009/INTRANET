@@ -1642,7 +1642,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     try {
       const res = await axios.post(`${API}/attendance/qr/regenerate-all`, {}, { headers });
       toast.success(res.data.message || "QR regenerados");
-      fetchUsers();
+      loadUsers();
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al regenerar QR");
     } finally {
@@ -4195,7 +4195,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
       {/* Bulk QR Download Modal */}
       <BulkQRModal open={showBulkQR} onClose={() => setShowBulkQR(false)} token={token} />
-      <BulkDeleteModal open={showBulkDelete} onClose={() => setShowBulkDelete(false)} token={token} onDone={fetchUsers} />
+      <BulkDeleteModal open={showBulkDelete} onClose={() => setShowBulkDelete(false)} token={token} onDone={loadUsers} />
 
 
       {/* ═══════════════ PENDING IMPORTS MODAL ═══════════════ */}
