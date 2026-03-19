@@ -1374,3 +1374,169 @@ async def annul_attendance(
 
 
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BULK QR DOWNLOAD
+# ══════════════════════════════════════════════════════════════════════════════
+
+class BulkQRRequest(BaseModel):
+    nivel_id: str
+    grado_id: str
+    seccion_id: str
+    turno_id: Optional[str] = None
+    formato: Literal["pdf_grid", "zip", "pdf_list"] = "pdf_grid"
+    incluir_codigo_alumno: bool = False
+    ordenar_alfabetico: bool = True
+
+@router.post("/students/qr/bulk-download")
+async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current_user)):
+    """Generate and download QR codes for a group of students. Admin/owner only."""
+    from fastapi.responses import StreamingResponse
+    import qrcode
+    from io import BytesIO
+    import zipfile
+
+    user = await resolve_user_from_token(current_user)
+    if not user or not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden descargar QR masivos")
+
+    school_id = user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No autorizado")
+
+    # Build filter
+    student_filter = {
+        "school_id": school_id,
+        "role": "student",
+        "nivel_id": data.nivel_id,
+        "grado_id": data.grado_id,
+        "seccion_id": data.seccion_id,
+    }
+    if data.turno_id:
+        student_filter["turno_id"] = data.turno_id
+
+    students = await db.users.find(
+        student_filter,
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "qr_token": 1, "codigo_alumno": 1, "username": 1}
+    ).to_list(1000)
+
+    if not students:
+        raise HTTPException(status_code=404, detail="No se encontraron estudiantes con esos filtros")
+
+    if data.ordenar_alfabetico:
+        students.sort(key=lambda s: f"{s.get('last_name', '')} {s.get('name', '')}".strip().lower())
+
+    # Get names for file naming
+    nivel = await db.academic_levels.find_one({"id": data.nivel_id}, {"_id": 0, "nombre": 1})
+    grado = await db.grados.find_one({"id": data.grado_id}, {"_id": 0, "nombre": 1})
+    seccion = await db.secciones.find_one({"id": data.seccion_id}, {"_id": 0, "nombre": 1})
+    nivel_name = (nivel or {}).get("nombre", "nivel") if nivel else "nivel"
+    grado_name = (grado or {}).get("nombre", "grado") if grado else "grado"
+    seccion_name = (seccion or {}).get("nombre", "seccion") if seccion else "seccion"
+    file_base = f"qr_{nivel_name}_{grado_name}_{seccion_name}".lower().replace(" ", "_")
+
+    def make_qr_image(token_data: str, size: int = 200):
+        qr = qrcode.QRCode(version=1, error_correction=qrcode.constants.ERROR_CORRECT_M, box_size=8, border=2)
+        qr.add_data(token_data)
+        qr.make(fit=True)
+        return qr.make_image(fill_color="black", back_color="white").resize((size, size))
+
+    def student_label(s):
+        full = f"{s.get('last_name', '')} {s.get('name', '')}".strip()
+        if data.incluir_codigo_alumno and s.get("codigo_alumno"):
+            full += f" ({s['codigo_alumno']})"
+        return full or s.get("username", "Alumno")
+
+    if data.formato == "zip":
+        buf = BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+            for s in students:
+                if not s.get("qr_token"):
+                    continue
+                img = make_qr_image(s["qr_token"], 300)
+                img_buf = BytesIO()
+                img.save(img_buf, format="PNG")
+                fname = f"{s.get('last_name', '')}_{s.get('name', '')}".strip().replace(" ", "_")
+                if s.get("codigo_alumno"):
+                    fname += f"_{s['codigo_alumno']}"
+                zf.writestr(f"{fname}_qr.png", img_buf.getvalue())
+        buf.seek(0)
+        return StreamingResponse(buf, media_type="application/zip",
+            headers={"Content-Disposition": f"attachment; filename={file_base}.zip"})
+
+    # PDF generation (grid or list)
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm, cm
+    from reportlab.pdfgen import canvas as pdf_canvas
+    from reportlab.lib.utils import ImageReader
+
+    buf = BytesIO()
+    c = pdf_canvas.Canvas(buf, pagesize=A4)
+    w, h = A4
+
+    if data.formato == "pdf_grid":
+        cols, rows = 3, 4
+        cell_w = (w - 40) / cols
+        cell_h = (h - 60) / rows
+        qr_size = min(cell_w - 20, cell_h - 40)
+
+        for idx, s in enumerate(students):
+            if not s.get("qr_token"):
+                continue
+            if idx > 0 and idx % (cols * rows) == 0:
+                c.showPage()
+            pos = idx % (cols * rows)
+            col = pos % cols
+            row = pos // cols
+            x = 20 + col * cell_w
+            y = h - 40 - row * cell_h
+
+            img = make_qr_image(s["qr_token"], int(qr_size))
+            img_buf = BytesIO()
+            img.save(img_buf, format="PNG")
+            img_buf.seek(0)
+
+            cx = x + (cell_w - qr_size) / 2
+            c.drawImage(ImageReader(img_buf), cx, y - qr_size, qr_size, qr_size)
+
+            label = student_label(s)
+            c.setFont("Helvetica", 7)
+            text_w = c.stringWidth(label, "Helvetica", 7)
+            tx = x + (cell_w - text_w) / 2
+            c.drawString(tx, y - qr_size - 12, label)
+
+    elif data.formato == "pdf_list":
+        c.setFont("Helvetica-Bold", 14)
+        c.drawString(30, h - 40, f"QR Estudiantes - {nivel_name} {grado_name} {seccion_name}")
+        c.setFont("Helvetica-Bold", 8)
+        c.drawString(30, h - 65, "Nombre")
+        c.drawString(250, h - 65, "Codigo")
+        c.drawString(380, h - 65, "QR")
+        c.line(30, h - 68, w - 30, h - 68)
+        y_pos = h - 85
+        row_h = 55
+
+        for s in students:
+            if not s.get("qr_token"):
+                continue
+            if y_pos < 60:
+                c.showPage()
+                y_pos = h - 50
+
+            c.setFont("Helvetica", 8)
+            c.drawString(30, y_pos - 10, f"{s.get('last_name', '')} {s.get('name', '')}".strip())
+            c.drawString(250, y_pos - 10, s.get("codigo_alumno", s.get("username", "")))
+
+            img = make_qr_image(s["qr_token"], 120)
+            img_buf = BytesIO()
+            img.save(img_buf, format="PNG")
+            img_buf.seek(0)
+            c.drawImage(ImageReader(img_buf), 370, y_pos - 40, 40, 40)
+
+            y_pos -= row_h
+
+    c.save()
+    buf.seek(0)
+    return StreamingResponse(buf, media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={file_base}.pdf"})

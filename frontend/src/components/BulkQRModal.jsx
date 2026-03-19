@@ -1,0 +1,188 @@
+import { useState, useEffect } from "react";
+import { X, Download, Loader2, QrCode, FileText, FolderArchive, List } from "lucide-react";
+import axios from "axios";
+import { toast } from "sonner";
+
+const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+
+export default function BulkQRModal({ open, onClose, token }) {
+  const [levels, setLevels] = useState([]);
+  const [grades, setGrades] = useState([]);
+  const [sections, setSections] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [nivelId, setNivelId] = useState("");
+  const [gradoId, setGradoId] = useState("");
+  const [seccionId, setSeccionId] = useState("");
+  const [turnoId, setTurnoId] = useState("");
+  const [formato, setFormato] = useState("pdf_grid");
+  const [incluirCodigo, setIncluirCodigo] = useState(false);
+  const [ordenar, setOrdenar] = useState(true);
+  const [generating, setGenerating] = useState(false);
+
+  const headers = { Authorization: `Bearer ${token}` };
+
+  useEffect(() => {
+    if (!open || !token) return;
+    axios.get(`${API}/academic/levels`, { headers }).then(r => setLevels(r.data || [])).catch(() => {});
+    axios.get(`${API}/academic/shifts`, { headers }).then(r => setShifts(r.data || [])).catch(() => {});
+  }, [open, token]);
+
+  useEffect(() => {
+    if (!nivelId) { setGrades([]); setGradoId(""); return; }
+    axios.get(`${API}/academic/grades?nivel_id=${nivelId}`, { headers }).then(r => setGrades(r.data || [])).catch(() => {});
+    setGradoId("");
+    setSeccionId("");
+  }, [nivelId]);
+
+  useEffect(() => {
+    if (!gradoId) { setSections([]); setSeccionId(""); return; }
+    axios.get(`${API}/academic/sections?grado_id=${gradoId}`, { headers }).then(r => setSections(r.data || [])).catch(() => {});
+    setSeccionId("");
+  }, [gradoId]);
+
+  const handleDownload = async () => {
+    if (!nivelId || !gradoId || !seccionId) {
+      toast.error("Selecciona nivel, grado y seccion");
+      return;
+    }
+    setGenerating(true);
+    try {
+      const res = await axios.post(`${API}/students/qr/bulk-download`, {
+        nivel_id: nivelId,
+        grado_id: gradoId,
+        seccion_id: seccionId,
+        turno_id: turnoId || undefined,
+        formato,
+        incluir_codigo_alumno: incluirCodigo,
+        ordenar_alfabetico: ordenar,
+      }, { headers, responseType: "blob" });
+
+      const contentDisp = res.headers["content-disposition"] || "";
+      const match = contentDisp.match(/filename=(.+)/);
+      const filename = match ? match[1] : `qr_download.${formato === "zip" ? "zip" : "pdf"}`;
+
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success("Descarga completada");
+      onClose();
+    } catch (err) {
+      if (err.response?.data instanceof Blob) {
+        const text = await err.response.data.text();
+        try { toast.error(JSON.parse(text).detail); } catch { toast.error("Error al generar"); }
+      } else {
+        toast.error(err.response?.data?.detail || "Error al generar QR");
+      }
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  if (!open) return null;
+
+  const formatOptions = [
+    { id: "pdf_grid", label: "PDF para imprimir (grid)", icon: QrCode },
+    { id: "zip", label: "ZIP con imagenes QR", icon: FolderArchive },
+    { id: "pdf_list", label: "PDF tipo lista", icon: List },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" data-testid="bulk-qr-modal">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="bg-gradient-to-r from-violet-600 to-purple-600 px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <QrCode className="w-5 h-5 text-white" />
+            <div>
+              <h3 className="text-white font-bold text-base">Descargar QR en bloque</h3>
+              <p className="text-white/70 text-xs">Genera QR para un aula completa</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Filters */}
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-600 mb-1">Nivel *</label>
+              <select value={nivelId} onChange={e => setNivelId(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500/30 focus:border-violet-400" data-testid="bulk-qr-level">
+                <option value="">Seleccionar...</option>
+                {levels.map(l => <option key={l.id} value={l.id}>{l.nombre || l.name}</option>)}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Grado *</label>
+                <select value={gradoId} onChange={e => setGradoId(e.target.value)} disabled={!nivelId} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm disabled:opacity-50 focus:ring-2 focus:ring-violet-500/30" data-testid="bulk-qr-grade">
+                  <option value="">Seleccionar...</option>
+                  {grades.map(g => <option key={g.id} value={g.id}>{g.nombre || g.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Seccion *</label>
+                <select value={seccionId} onChange={e => setSeccionId(e.target.value)} disabled={!gradoId} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm disabled:opacity-50 focus:ring-2 focus:ring-violet-500/30" data-testid="bulk-qr-section">
+                  <option value="">Seleccionar...</option>
+                  {sections.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
+                </select>
+              </div>
+            </div>
+            {shifts.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Turno (opcional)</label>
+                <select value={turnoId} onChange={e => setTurnoId(e.target.value)} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-violet-500/30" data-testid="bulk-qr-shift">
+                  <option value="">Todos los turnos</option>
+                  {shifts.map(s => <option key={s.id} value={s.id}>{s.nombre || s.name}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Format */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-600 mb-2">Formato de descarga</label>
+            <div className="space-y-2">
+              {formatOptions.map(opt => (
+                <label key={opt.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${formato === opt.id ? "border-violet-300 bg-violet-50" : "border-slate-200 hover:bg-slate-50"}`}>
+                  <input type="radio" name="formato" value={opt.id} checked={formato === opt.id} onChange={() => setFormato(opt.id)} className="accent-violet-500" />
+                  <opt.icon className={`w-4 h-4 ${formato === opt.id ? "text-violet-600" : "text-slate-400"}`} />
+                  <span className={`text-sm font-medium ${formato === opt.id ? "text-violet-700" : "text-slate-600"}`}>{opt.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Options */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={incluirCodigo} onChange={e => setIncluirCodigo(e.target.checked)} className="accent-violet-500 w-4 h-4" />
+              <span className="text-sm text-slate-600">Incluir codigo del alumno</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={ordenar} onChange={e => setOrdenar(e.target.checked)} className="accent-violet-500 w-4 h-4" />
+              <span className="text-sm text-slate-600">Ordenar alfabeticamente</span>
+            </label>
+          </div>
+
+          {/* Button */}
+          <button
+            onClick={handleDownload}
+            disabled={generating || !nivelId || !gradoId || !seccionId}
+            className="w-full flex items-center justify-center gap-2 py-3 bg-violet-600 text-white rounded-xl font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50"
+            data-testid="bulk-qr-generate"
+          >
+            {generating ? (
+              <><Loader2 className="w-5 h-5 animate-spin" /> Generando QR...</>
+            ) : (
+              <><Download className="w-5 h-5" /> Generar descarga</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

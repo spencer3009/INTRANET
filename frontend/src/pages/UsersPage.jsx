@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { QRCodeSVG } from "qrcode.react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
 import CameraCaptureModal from "@/components/CameraCaptureModal";
+import BulkQRModal from "@/components/BulkQRModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -1628,6 +1629,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [expandedGrades, setExpandedGrades] = useState({});
   const [expandedSections, setExpandedSections] = useState({});
   const [generatingQR, setGeneratingQR] = useState(false);
+  const [showBulkQR, setShowBulkQR] = useState(false);
   
   // Academic data for QR card (grade/section/level names)
   const [grades, setGrades] = useState([]);
@@ -2357,6 +2359,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     Generar QR ({studentsWithoutQR})
                   </button>
                 )}
+                <button
+                  onClick={() => setShowBulkQR(true)}
+                  className="text-sm text-violet-600 hover:text-violet-700 font-medium flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-violet-50 transition-colors border border-violet-200"
+                  data-testid="bulk-qr-btn"
+                >
+                  <Download className="w-4 h-4" />
+                  Descargar QR
+                </button>
                 {(studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch) && (
                   <button
                     onClick={clearStudentFilters}
@@ -4141,6 +4151,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         token={token}
         onPhotoUpdated={handlePhotoUpdated}
       />
+
+      {/* Bulk QR Download Modal */}
+      <BulkQRModal open={showBulkQR} onClose={() => setShowBulkQR(false)} token={token} />
+
 
       {/* ═══════════════ PENDING IMPORTS MODAL ═══════════════ */}
       {showPendingImports && (
