@@ -33,14 +33,14 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   const request = event.request;
 
+  // ONLY handle same-origin requests — ignore all external/third-party
+  if (new URL(request.url).origin !== self.location.origin) return;
+
   // Skip non-GET requests entirely (POST/PUT/DELETE go straight to network)
   if (request.method !== 'GET') return;
 
   // Skip API requests entirely (never cache, never intercept)
   if (request.url.includes('/api/')) return;
-
-  // Skip WebSocket and chrome-extension requests
-  if (request.url.startsWith('ws') || request.url.startsWith('chrome-extension')) return;
 
   // Navigation requests: network-first, fallback to cached index.html
   if (request.mode === 'navigate') {
