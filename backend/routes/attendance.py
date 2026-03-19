@@ -1499,17 +1499,18 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
     w, h = A4
 
     if data.formato == "pdf_grid":
-        # Carnet layout: 2 columns x 4 rows on A4
-        cols, rows = 2, 4
-        card_w = 85 * mm
-        card_h = 62 * mm
+        # Carnet vertical: 3 columns x 3 rows on A4 (like the student cards)
+        cols, rows = 3, 3
+        card_w = 60 * mm
+        card_h = 88 * mm
         margin_x = (w - cols * card_w) / (cols + 1)
         margin_y = (h - rows * card_h) / (rows + 1)
 
         navy = HexColor("#001f4b")
-        blue_line = HexColor("#1e40af")
+        teal = HexColor("#10b981")
         gray = HexColor("#64748b")
         light_bg = HexColor("#f1f5f9")
+        border_color = HexColor("#d1d5db")
 
         card_idx = 0
         for s in students:
@@ -1524,89 +1525,101 @@ async def bulk_download_qr(data: BulkQRRequest, current_user=Depends(get_current
             x = margin_x + col * (card_w + margin_x)
             y = h - margin_y - (row + 1) * card_h - row * margin_y
 
-            # Card background
+            # Card border
             c.setFillColor(HexColor("#ffffff"))
-            c.setStrokeColor(HexColor("#cbd5e1"))
+            c.setStrokeColor(border_color)
             c.setLineWidth(0.5)
-            c.roundRect(x, y, card_w, card_h, 3 * mm, fill=1, stroke=1)
+            c.roundRect(x, y, card_w, card_h, 2 * mm, fill=1, stroke=1)
 
-            # Top blue bar
-            c.setFillColor(navy)
-            c.rect(x, y + card_h - 14 * mm, card_w, 14 * mm, fill=1, stroke=0)
-            # Rounded top corners
-            c.setFillColor(navy)
+            # Top green/teal bar
+            c.setFillColor(teal)
+            c.rect(x + 0.5, y + card_h - 4 * mm, card_w - 1, 4 * mm, fill=1, stroke=0)
 
-            # Logo in top bar
+            # Logo + School name header
+            logo_y = y + card_h - 16 * mm
             if logo_img:
                 try:
                     logo_img.seek(0)
-                    c.drawImage(ImageReader(logo_img), x + 2 * mm, y + card_h - 12.5 * mm, 10 * mm, 10 * mm, preserveAspectRatio=True, mask='auto')
+                    c.drawImage(ImageReader(logo_img), x + (card_w - 10 * mm) / 2, logo_y + 2 * mm, 10 * mm, 10 * mm, preserveAspectRatio=True, mask='auto')
                 except Exception:
                     pass
 
-            # School name in top bar
-            c.setFillColor(HexColor("#ffffff"))
-            c.setFont("Helvetica-Bold", 8)
-            c.drawString(x + 14 * mm, y + card_h - 7 * mm, school_name[:30])
-            c.setFont("Helvetica", 5)
-            c.drawString(x + 14 * mm, y + card_h - 11 * mm, school_domain)
+            c.setFillColor(navy)
+            c.setFont("Helvetica-Bold", 6)
+            name_trunc = school_name[:22]
+            tw = c.stringWidth(name_trunc, "Helvetica-Bold", 6)
+            c.drawString(x + (card_w - tw) / 2, logo_y - 2 * mm, name_trunc)
 
-            # Blue divider line
-            c.setStrokeColor(blue_line)
-            c.setLineWidth(0.8)
-            c.line(x + 2 * mm, y + card_h - 15 * mm, x + card_w - 2 * mm, y + card_h - 15 * mm)
+            # Divider
+            c.setStrokeColor(HexColor("#e2e8f0"))
+            c.setLineWidth(0.4)
+            c.line(x + 4 * mm, logo_y - 4 * mm, x + card_w - 4 * mm, logo_y - 4 * mm)
 
-            # Student photo (circle area)
-            photo_x = x + 3 * mm
-            photo_y = y + card_h - 36 * mm
-            photo_size = 18 * mm
+            # Student photo (centered, circular)
+            photo_size = 20 * mm
+            photo_x = x + (card_w - photo_size) / 2
+            photo_y = logo_y - 5 * mm - photo_size
             student_photo = fetch_image(s.get("photo_url"))
             if student_photo:
                 try:
                     student_photo.seek(0)
+                    c.saveState()
+                    path = c.beginPath()
+                    cx_p = photo_x + photo_size / 2
+                    cy_p = photo_y + photo_size / 2
+                    path.circle(cx_p, cy_p, photo_size / 2)
+                    path.close()
+                    c.clipPath(path, stroke=0)
                     c.drawImage(ImageReader(student_photo), photo_x, photo_y, photo_size, photo_size, preserveAspectRatio=True, mask='auto')
+                    c.restoreState()
+                    # Circle border
+                    c.setStrokeColor(HexColor("#cbd5e1"))
+                    c.setLineWidth(0.8)
+                    c.circle(cx_p, cy_p, photo_size / 2, fill=0, stroke=1)
                 except Exception:
                     c.setFillColor(light_bg)
-                    c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
+                    c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
+                    c.setFillColor(navy)
+                    c.setFont("Helvetica-Bold", 16)
+                    c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
             else:
                 c.setFillColor(light_bg)
-                c.rect(photo_x, photo_y, photo_size, photo_size, fill=1, stroke=0)
-                c.setFillColor(gray)
-                c.setFont("Helvetica-Bold", 14)
-                initial = (s.get("name", "?")[:1]).upper()
-                c.drawCentredString(photo_x + photo_size / 2, photo_y + 5 * mm, initial)
+                c.circle(photo_x + photo_size / 2, photo_y + photo_size / 2, photo_size / 2, fill=1, stroke=0)
+                c.setFillColor(navy)
+                c.setFont("Helvetica-Bold", 16)
+                c.drawCentredString(photo_x + photo_size / 2, photo_y + photo_size / 2 - 3, (s.get("name", "?")[:1]).upper())
 
-            # Student info (right of photo)
-            info_x = photo_x + photo_size + 3 * mm
+            # Student name (centered, bold)
+            info_y = photo_y - 4 * mm
             c.setFillColor(navy)
-            c.setFont("Helvetica-Bold", 7.5)
+            c.setFont("Helvetica-Bold", 7)
             full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()
-            # Truncate if too long
-            if len(full_name) > 25:
-                full_name = full_name[:24] + "."
-            c.drawString(info_x, photo_y + 13 * mm, full_name)
+            if len(full_name) > 22:
+                full_name = full_name[:21] + "."
+            tw = c.stringWidth(full_name, "Helvetica-Bold", 7)
+            c.drawString(x + (card_w - tw) / 2, info_y, full_name)
 
+            # Level - Grade - Section
             c.setFillColor(gray)
-            c.setFont("Helvetica", 6)
-            c.drawString(info_x, photo_y + 9.5 * mm, f"Curso: {curso_label}")
-            c.drawString(info_x, photo_y + 6.5 * mm, f"Nivel: {nivel_name}")
-            if s.get("codigo_alumno"):
-                c.drawString(info_x, photo_y + 3.5 * mm, f"Cod: {s['codigo_alumno']}")
+            c.setFont("Helvetica", 5.5)
+            info_line = f"{nivel_name} - {curso_label}"
+            tw2 = c.stringWidth(info_line, "Helvetica", 5.5)
+            c.drawString(x + (card_w - tw2) / 2, info_y - 4 * mm, info_line)
 
-            # QR code (bottom center)
-            qr_size_px = 22 * mm
-            qr_img = make_qr_image(s["qr_token"], 200)
+            # QR (large, centered)
+            qr_size_px = 28 * mm
+            qr_img = make_qr_image(s["qr_token"], 250)
             qr_buf = BytesIO()
             qr_img.save(qr_buf, format="PNG")
             qr_buf.seek(0)
             qr_x = x + (card_w - qr_size_px) / 2
-            qr_y = y + 2 * mm
+            qr_y = y + 5 * mm
             c.drawImage(ImageReader(qr_buf), qr_x, qr_y, qr_size_px, qr_size_px)
 
-            # Footer text
+            # QR label
             c.setFillColor(HexColor("#94a3b8"))
             c.setFont("Helvetica", 4)
-            c.drawCentredString(x + card_w / 2, y + 1 * mm, "Este documento es personal e intransferible")
+            c.drawCentredString(x + card_w / 2, y + 2 * mm, "Personal e intransferible")
 
             card_idx += 1
 
