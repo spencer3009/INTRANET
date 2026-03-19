@@ -4138,6 +4138,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <TeacherQRCard 
                 teacher={qrTeacher}
                 schoolName={settings?.system_name || "EduNet"}
+                logoUrl={logoUrl}
               />
             </div>
           </div>
