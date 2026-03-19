@@ -28,7 +28,11 @@ from .core import (
 
 import jwt
 
-from .notifications import send_attendance_notification
+try:
+    from .notifications import send_attendance_notification
+except Exception:
+    async def send_attendance_notification(*args, **kwargs):
+        pass
 
 logger = logging.getLogger(__name__)
 

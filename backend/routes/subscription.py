@@ -73,98 +73,100 @@ async def get_grace_days():
 
 
 async def calculate_plan_state(school):
-    """Calculate the current plan state based on expiration date.
-    
-    Rules:
-    - Before expiration       → ACTIVO
-    - Day of expiration (0d)  → AVISO_VENCIMIENTO
-    - 1-3 days overdue        → RESTRICCION_PARCIAL
-    - 4-7 days overdue        → PAGO_OBLIGATORIO
-    - >7 days overdue         → SUSPENDIDO
-    """
-    exp_str = school.get("fecha_vencimiento") or school.get("expiration_date")
-    if not exp_str:
-        return "ACTIVO", 0
-
-    # Check if there's a pending payment verification
-    pending = await db.payment_requests.find_one(
-        {"school_id": school["id"], "status": "processing"}, {"_id": 0, "id": 1}
-    )
-    if pending:
-        return "PAGO_EN_VERIFICACION", 0
-
+    """Calculate the current plan state based on expiration date."""
     try:
-        exp = datetime.fromisoformat(str(exp_str).replace("Z", "+00:00"))
-    except Exception:
-        return "ACTIVO", 0
+        exp_str = school.get("fecha_vencimiento") or school.get("expiration_date")
+        if not exp_str:
+            return "ACTIVO", 0
 
-    now = datetime.now(timezone.utc)
-    # Compare by date only (not time) to avoid partial-day issues
-    dias_vencido = (now.date() - exp.date()).days
+        # Check if there's a pending payment verification
+        try:
+            pending = await db.payment_requests.find_one(
+                {"school_id": school.get("id", ""), "status": "processing"}, {"_id": 0, "id": 1}
+            )
+            if pending:
+                return "PAGO_EN_VERIFICACION", 0
+        except Exception:
+            pass
 
-    if dias_vencido < 0:
+        try:
+            exp = datetime.fromisoformat(str(exp_str).replace("Z", "+00:00"))
+        except Exception:
+            return "ACTIVO", 0
+
+        now = datetime.now(timezone.utc)
+        dias_vencido = (now.date() - exp.date()).days
+
+        if dias_vencido < 0:
+            return "ACTIVO", 0
+        elif dias_vencido == 0:
+            return "AVISO_VENCIMIENTO", 0
+        elif dias_vencido <= 3:
+            return "RESTRICCION_PARCIAL", dias_vencido
+        elif dias_vencido <= 6:
+            return "PAGO_OBLIGATORIO", dias_vencido
+        else:
+            return "SUSPENDIDO", dias_vencido
+    except Exception as e:
+        logger.error(f"calculate_plan_state error: {e}")
         return "ACTIVO", 0
-    elif dias_vencido == 0:
-        return "AVISO_VENCIMIENTO", 0
-    elif dias_vencido <= 3:
-        return "RESTRICCION_PARCIAL", dias_vencido
-    elif dias_vencido <= 6:
-        return "PAGO_OBLIGATORIO", dias_vencido
-    else:
-        return "SUSPENDIDO", dias_vencido
 
 
 async def get_school_pricing(school):
     """Calculate school's current pricing"""
-    school_id = school["id"]
-    pricing = school.get("pricing_override", {})
-    global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
-    if not global_pricing:
-        global_pricing = {
-            "billing_mode": "base_plus_student",
-            "base_monthly_fee": 50.0,
-            "per_student_fee": 0.70,
-            "per_student_from_month": 3,
-            "flat_fee": 0.0,
+    try:
+        school_id = school.get("id", "")
+        pricing = school.get("pricing_override") or {}
+        global_pricing = await db.pricing_config.find_one({"id": "global"}, {"_id": 0})
+        if not global_pricing:
+            global_pricing = {
+                "billing_mode": "base_plus_student",
+                "base_monthly_fee": 50.0,
+                "per_student_fee": 0.70,
+                "per_student_from_month": 3,
+                "flat_fee": 0.0,
+            }
+
+        def _ev(key, default):
+            if pricing and key in pricing:
+                return pricing[key]
+            return global_pricing.get(key, default)
+
+        eff_mode = _ev("billing_mode", "base_plus_student")
+        eff_base = _ev("base_monthly_fee", 50.0)
+        eff_student_fee = _ev("per_student_fee", 0.70)
+        eff_from_month = _ev("per_student_from_month", 3)
+        eff_flat = _ev("flat_fee", 0.0)
+
+        student_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
+
+        months_active = 1
+        if school.get("created_at"):
+            try:
+                created = datetime.fromisoformat(str(school["created_at"]).replace("Z", "+00:00"))
+                now = datetime.now(timezone.utc)
+                months_active = max(1, (now.year - created.year) * 12 + now.month - created.month + 1)
+            except Exception:
+                pass
+
+        if eff_mode == "flat_fee":
+            amount = round(eff_flat, 2)
+        elif eff_mode == "student_only":
+            amount = round(student_count * eff_student_fee, 2) if months_active >= eff_from_month else 0.0
+        else:
+            student_charge = round(student_count * eff_student_fee, 2) if months_active >= eff_from_month else 0.0
+            amount = round(eff_base + student_charge, 2)
+
+        return {
+            "cantidad_alumnos": student_count,
+            "precio_por_alumno": eff_student_fee,
+            "base_mensual": eff_base,
+            "monto_actual": amount,
+            "billing_mode": eff_mode,
         }
-
-    def _ev(key, default):
-        if pricing and key in pricing:
-            return pricing[key]
-        return global_pricing.get(key, default)
-
-    eff_mode = _ev("billing_mode", "base_plus_student")
-    eff_base = _ev("base_monthly_fee", 50.0)
-    eff_student_fee = _ev("per_student_fee", 0.70)
-    eff_from_month = _ev("per_student_from_month", 3)
-    eff_flat = _ev("flat_fee", 0.0)
-
-    student_count = await db.users.count_documents({"school_id": school_id, "role": "student"})
-
-    months_active = 1
-    if school.get("created_at"):
-        try:
-            created = datetime.fromisoformat(str(school["created_at"]).replace("Z", "+00:00"))
-            now = datetime.now(timezone.utc)
-            months_active = max(1, (now.year - created.year) * 12 + now.month - created.month + 1)
-        except Exception:
-            pass
-
-    if eff_mode == "flat_fee":
-        amount = round(eff_flat, 2)
-    elif eff_mode == "student_only":
-        amount = round(student_count * eff_student_fee, 2) if months_active >= eff_from_month else 0.0
-    else:
-        student_charge = round(student_count * eff_student_fee, 2) if months_active >= eff_from_month else 0.0
-        amount = round(eff_base + student_charge, 2)
-
-    return {
-        "cantidad_alumnos": student_count,
-        "precio_por_alumno": eff_student_fee,
-        "base_mensual": eff_base,
-        "monto_actual": amount,
-        "billing_mode": eff_mode,
-    }
+    except Exception as e:
+        logger.error(f"get_school_pricing error: {e}")
+        return {"cantidad_alumnos": 0, "precio_por_alumno": 0, "base_mensual": 0, "monto_actual": 0, "billing_mode": "base_plus_student"}
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -174,46 +176,52 @@ async def get_school_pricing(school):
 @router.get("/status")
 async def get_subscription_status(current_user=Depends(get_current_user)):
     """Get current subscription status for the user's school"""
-    user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0})
-    if not user:
-        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    try:
+        user = await db.users.find_one({"id": current_user["sub"]}, {"_id": 0, "password": 0})
+        if not user:
+            return {"plan_estado": "ACTIVO", "dias_vencido": 0}
 
-    # Only owner and admin roles see financial/subscription info
-    ADMIN_ROLES = ("owner", "admin", "system_admin_global")
-    user_role = user.get("role", "")
-    if user_role not in ADMIN_ROLES:
+        ADMIN_ROLES = ("owner", "admin", "system_admin_global")
+        user_role = user.get("role", "")
+        if user_role not in ADMIN_ROLES:
+            return {"plan_estado": "ACTIVO", "dias_vencido": 0, "restricted_actions": []}
+
+        school_id = user.get("school_id")
+        if not school_id:
+            return {"plan_estado": "ACTIVO", "dias_vencido": 0}
+
+        school = await db.schools.find_one({"id": school_id}, {"_id": 0})
+        if not school:
+            return {"plan_estado": "ACTIVO", "dias_vencido": 0}
+
+        plan_estado, dias_vencido = await calculate_plan_state(school)
+
+        try:
+            pricing = await get_school_pricing(school)
+        except Exception:
+            pricing = {"monto_actual": 0, "cantidad_alumnos": 0, "precio_por_alumno": 0, "base_mensual": 0, "billing_mode": "base_plus_student"}
+
+        qr_config = await db.system_config.find_one({"id": "payment_qr"}, {"_id": 0})
+        qr_url = qr_config.get("qr_pago_url", "") if qr_config else ""
+        yape_number = qr_config.get("yape_number", "") if qr_config else ""
+
+        exp_str = school.get("fecha_vencimiento") or school.get("expiration_date")
+
+        return {
+            "plan_estado": plan_estado,
+            "dias_vencido": dias_vencido,
+            "fecha_vencimiento": exp_str,
+            "fecha_activacion": school.get("fecha_activacion") or school.get("created_at"),
+            "monto_plan": pricing.get("monto_actual", 0),
+            "pricing": pricing,
+            "school_name": school.get("name") or school.get("school_name") or school.get("subdomain", ""),
+            "qr_pago_url": qr_url,
+            "yape_number": yape_number,
+            "restricted_actions": RESTRICTED_ACTIONS if plan_estado == "RESTRICCION_PARCIAL" else [],
+        }
+    except Exception as e:
+        logger.error(f"Subscription status error: {e}")
         return {"plan_estado": "ACTIVO", "dias_vencido": 0, "restricted_actions": []}
-
-    school_id = user.get("school_id")
-    if not school_id:
-        return {"plan_estado": "ACTIVO", "dias_vencido": 0}
-
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0})
-    if not school:
-        return {"plan_estado": "ACTIVO", "dias_vencido": 0}
-
-    plan_estado, dias_vencido = await calculate_plan_state(school)
-    pricing = await get_school_pricing(school)
-
-    # Get QR config
-    qr_config = await db.system_config.find_one({"id": "payment_qr"}, {"_id": 0})
-    qr_url = qr_config.get("qr_pago_url", "") if qr_config else ""
-    yape_number = qr_config.get("yape_number", "") if qr_config else ""
-
-    exp_str = school.get("fecha_vencimiento") or school.get("expiration_date")
-
-    return {
-        "plan_estado": plan_estado,
-        "dias_vencido": dias_vencido,
-        "fecha_vencimiento": exp_str,
-        "fecha_activacion": school.get("fecha_activacion") or school.get("created_at"),
-        "monto_plan": pricing["monto_actual"],
-        "pricing": pricing,
-        "school_name": school.get("name", school.get("subdomain", "")),
-        "qr_pago_url": qr_url,
-        "yape_number": yape_number,
-        "restricted_actions": RESTRICTED_ACTIONS if plan_estado == "RESTRICCION_PARCIAL" else [],
-    }
 
 
 @router.post("/register-payment")

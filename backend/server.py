@@ -47,7 +47,13 @@ from routes.live_classes import router as live_classes_router
 from routes.grades import router as grades_router
 from routes.membership import router as membership_router
 from routes.subscription import router as subscription_router, daily_subscription_cron
-from routes.notifications import router as notifications_router
+try:
+    from routes.notifications import router as notifications_router
+except Exception as _notif_err:
+    logging.basicConfig(level=logging.INFO)
+    logging.warning(f"Notifications module failed to load: {_notif_err}. Push notifications disabled.")
+    from fastapi import APIRouter
+    notifications_router = APIRouter()
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
