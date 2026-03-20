@@ -64,8 +64,8 @@
     "student_email": "pepito@gmail.com",
     "student_password": "1234abc8",
     "school_subdomain": "elroble",
-    "admin_exam_schedule_url": "https://edunet-subs.preview.emergentagent.com/school/elroble/admin/exam-schedule",
-    "student_exam_schedule_url": "https://edunet-subs.preview.emergentagent.com/student/exams"
+    "admin_exam_schedule_url": "https://parent-notify-sys.preview.emergentagent.com/school/elroble/admin/exam-schedule",
+    "student_exam_schedule_url": "https://parent-notify-sys.preview.emergentagent.com/student/exams"
   },
 
   "seed_data_creation": "None - used existing test data. Exam on Feb 25 for '3 años ÚNICA' - Ciencias Naturales, 09:00-10:30, Parcial",
