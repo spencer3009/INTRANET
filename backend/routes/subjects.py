@@ -394,13 +394,35 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
                 "value": safe_name
             })
 
-        # ── 7. CHECK DUPLICATE CODE ──────────────────────────────────────
+        # ── 7. CHECK DUPLICATE CODE (SCOPED) ─────────────────────────────
         try:
             escaped_code = re.escape(safe_code)
             code_query = {
                 "school_id": school_id,
-                "code": {"$regex": f"^{escaped_code}$", "$options": "i"}
+                "code": {"$regex": f"^{escaped_code}$", "$options": "i"},
+                "level_id": safe_level_id
             }
+
+            # Caso 1: si hay section_id → validar dentro de esa sección
+            if safe_section_id:
+                code_query["section_id"] = safe_section_id
+
+            # Caso 2: si NO hay section_id pero SÍ grade_id → validar dentro del grado
+            elif safe_grade_id:
+                code_query["grade_id"] = safe_grade_id
+                code_query["$or"] = [
+                    {"section_id": None},
+                    {"section_id": {"$exists": False}},
+                    {"section_id": ""}
+                ]
+
+            # Caso 3: solo nivel
+            else:
+                code_query["$or"] = [
+                    {"grade_id": None},
+                    {"grade_id": {"$exists": False}}
+                ]
+
             logger.info(f"[CREATE_SUBJECT] Duplicate code query: {code_query}")
             code_exists = await db.subjects.find_one(code_query, {"_id": 0, "id": 1, "code": 1, "name": 1})
         except Exception as code_err:
