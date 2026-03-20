@@ -25,6 +25,7 @@ from .core import (
     GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, BASE_URL,
     GOOGLE_DRIVE_SCOPES, GOOGLE_DRIVE_ALLOWED_EXTENSIONS, MIME_TYPE_MAP,
     encrypt_token, decrypt_token, fernet,
+    GOOGLE_REDIRECT_URI,
     ACADEMIC_STUDENT_FILTER, ACADEMIC_STUDENT_FILTER_WITH_PENDING,
     PERU_TZ, to_peru_hhmm,
 )
@@ -1148,20 +1149,10 @@ async def initiate_google_drive_auth(
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "subdomain": 1})
     subdomain = school.get("subdomain", "") if school else ""
     
-    # Build redirect_uri dynamically from the request
-    origin = request.headers.get("origin")
-    if not origin:
-        origin = f"{request.url.scheme}://{request.url.netloc}"
+    # Use fixed redirect_uri from env var — MUST match Google Cloud Console exactly
+    redirect_uri = GOOGLE_REDIRECT_URI
     
-    origin = origin.rstrip("/")
-    redirect_uri = f"{origin}/api/integrations/google-drive/callback"
-    
-    logger.info(f"[GoogleDrive DEBUG] origin: {origin}")
-    logger.info(f"[GoogleDrive DEBUG] redirect_uri: {redirect_uri}")
-    logger.info(f"[GoogleDrive DEBUG] request.url: {request.url}")
-    logger.info(f"[GoogleDrive DEBUG] request.headers.host: {request.headers.get('host')}")
-    logger.info(f"[GoogleDrive DEBUG] request.headers.x-forwarded-proto: {request.headers.get('x-forwarded-proto')}")
-    logger.info(f"[GoogleDrive DEBUG] request.headers.x-forwarded-host: {request.headers.get('x-forwarded-host')}")
+    logger.info(f"[GoogleDrive] connect - redirect_uri: {redirect_uri}")
     
     # Create the flow first to get Google's generated state
     flow = create_google_drive_flow(redirect_uri, None)
@@ -1217,21 +1208,24 @@ async def google_drive_callback(
         school_id = state_data.get("school_id")
         user_id = state_data.get("user_id")
         subdomain = state_data.get("subdomain", "")
-        redirect_uri = state_data.get("redirect_uri")
         logger.info(f"OAuth callback - Retrieved state for school: {school_id}, subdomain: {subdomain}")
     else:
         origin = fallback_url
         school_id = None
         user_id = None
         subdomain = ""
-        redirect_uri = f"{origin}/api/integrations/google-drive/callback"
         logger.error(f"OAuth callback - State not found in database: {state}")
     
-    # Build the correct settings URL with subdomain
+    # ALWAYS use the same fixed redirect_uri as connect — MUST match exactly
+    redirect_uri = GOOGLE_REDIRECT_URI
+    logger.info(f"[GoogleDrive] callback - redirect_uri: {redirect_uri}")
+    
+    # Build the correct settings URL with subdomain — use BASE_URL for production
+    base = BASE_URL.rstrip("/")
     if subdomain:
-        settings_url = f"{origin}/{subdomain}/settings"
+        settings_url = f"{base}/{subdomain}/settings"
     else:
-        settings_url = f"{origin}/settings"
+        settings_url = f"{base}/settings"
     
     if error:
         logger.error(f"Google Drive OAuth error: {error}")

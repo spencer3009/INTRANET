@@ -173,6 +173,7 @@ cloudinary.config(
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET")
 BASE_URL = os.environ.get("BASE_URL", "https://edunet.pe")
+GOOGLE_REDIRECT_URI = os.environ.get("GOOGLE_REDIRECT_URI", "https://edunet.pe/api/integrations/google-drive/callback")
 
 def get_encryption_key():
     key_bytes = hashlib.sha256(JWT_SECRET.encode()).digest()
