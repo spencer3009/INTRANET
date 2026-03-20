@@ -1169,7 +1169,6 @@ async def initiate_google_drive_auth(
         "state_id": generated_state,
         "school_id": school_id,
         "user_id": user['id'],
-        "origin": origin,
         "subdomain": subdomain,
         "redirect_uri": redirect_uri,
         "created_at": datetime.now(timezone.utc),
