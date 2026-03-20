@@ -96,70 +96,99 @@ async def get_subjects(
     current_user = Depends(get_current_user)
 ):
     """Get all subjects for a school"""
-    user = await resolve_user_from_token(current_user)
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    school_id = user["school_id"]
-    
-    query = {"school_id": school_id}
-    if level_id:
-        query["level_id"] = level_id
-    if grade_id:
-        query["grade_id"] = grade_id
-    if section_id:
-        query["section_id"] = section_id
-    if status:
-        query["status"] = status
-    
-    subjects_cursor = db.subjects.find(query, {"_id": 0}).sort("name", 1)
-    subjects = await subjects_cursor.to_list(500)
-    
-    # Enrich subjects with level and grade names
-    levels = {l["id"]: l["nombre"] for l in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)}
-    grades = {g["id"]: g for g in await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(200)}
-    sections_map = {s["id"]: s for s in await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(500)}
-    
-    # Get all users (teachers) for assignment lookup - include both profile_image and photo_url
-    users_cache = {u["id"]: u for u in await db.users.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "profile_image": 1, "photo_url": 1}).to_list(500)}
-    
-    for subject in subjects:
-        subject["level_name"] = levels.get(subject.get("level_id"), "")
-        grade = grades.get(subject.get("grade_id"))
-        subject["grade_name"] = grade.get("nombre", "") if grade else "Todos"
-        section = sections_map.get(subject.get("section_id"))
-        subject["section_name"] = section.get("nombre", "") if section else ""
+    try:
+        user = await resolve_user_from_token(current_user)
+        if not user or not user.get("school_id"):
+            return []
         
-        # Get assigned teachers from academic_assignments (the new architecture)
-        assignments = await db.academic_assignments.find({
-            "school_id": school_id,
-            "subject_id": subject["id"],
-            "status": "activo"
-        }, {"_id": 0, "teacher_id": 1, "role": 1}).to_list(10)
+        school_id = user["school_id"]
         
-        subject["teacher_count"] = len(assignments)
-        subject["assigned_teachers"] = []
+        query = {"school_id": school_id}
+        if level_id:
+            query["level_id"] = level_id
+        if grade_id:
+            query["grade_id"] = grade_id
+        if section_id:
+            query["section_id"] = section_id
+        if status:
+            query["status"] = status
         
-        for assignment in assignments:
-            teacher = users_cache.get(assignment.get("teacher_id"))
-            if teacher:
-                # Use profile_image or photo_url (whichever is available)
-                teacher_photo = teacher.get("profile_image") or teacher.get("photo_url")
-                subject["assigned_teachers"].append({
-                    "id": teacher["id"],
-                    "name": teacher["name"],
-                    "profile_image": teacher_photo,
-                    "role": assignment.get("role", "titular")
-                })
+        subjects_cursor = db.subjects.find(query, {"_id": 0}).sort("name", 1)
+        subjects = await subjects_cursor.to_list(500)
         
-        # Set primary teacher (first titular, or first if no titular)
-        if subject["assigned_teachers"]:
-            titular = next((t for t in subject["assigned_teachers"] if t.get("role") == "titular"), None)
-            subject["primary_teacher"] = titular or subject["assigned_teachers"][0]
-        else:
-            subject["primary_teacher"] = None
-    
-    return subjects
+        # Build lookup caches safely
+        try:
+            levels = {l["id"]: l.get("nombre", "") for l in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)}
+        except Exception:
+            levels = {}
+        try:
+            grades_list = await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(200)
+            grades = {g["id"]: g for g in grades_list if g.get("id")}
+        except Exception:
+            grades = {}
+        try:
+            sections_list = await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(500)
+            sections_map = {s["id"]: s for s in sections_list if s.get("id")}
+        except Exception:
+            sections_map = {}
+        try:
+            users_cache = {u["id"]: u for u in await db.users.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "profile_image": 1, "photo_url": 1}).to_list(500)}
+        except Exception:
+            users_cache = {}
+        
+        result = []
+        for subject in subjects:
+            try:
+                subject["level_name"] = levels.get(subject.get("level_id"), "")
+                grade = grades.get(subject.get("grade_id"))
+                subject["grade_name"] = grade.get("nombre", "") if grade else "Todos"
+                section = sections_map.get(subject.get("section_id"))
+                subject["section_name"] = section.get("nombre", "") if section else ""
+                
+                try:
+                    assignments = await db.academic_assignments.find({
+                        "school_id": school_id,
+                        "subject_id": subject.get("id"),
+                        "status": "activo"
+                    }, {"_id": 0, "teacher_id": 1, "role": 1}).to_list(10)
+                except Exception:
+                    assignments = []
+                
+                subject["teacher_count"] = len(assignments)
+                subject["assigned_teachers"] = []
+                
+                for assignment in assignments:
+                    teacher = users_cache.get(assignment.get("teacher_id"))
+                    if teacher:
+                        teacher_photo = teacher.get("profile_image") or teacher.get("photo_url")
+                        subject["assigned_teachers"].append({
+                            "id": teacher.get("id"),
+                            "name": teacher.get("name", ""),
+                            "profile_image": teacher_photo,
+                            "role": assignment.get("role", "titular")
+                        })
+                
+                if subject["assigned_teachers"]:
+                    titular = next((t for t in subject["assigned_teachers"] if t.get("role") == "titular"), None)
+                    subject["primary_teacher"] = titular or subject["assigned_teachers"][0]
+                else:
+                    subject["primary_teacher"] = None
+                
+                result.append(subject)
+            except Exception as subj_err:
+                logger.error(f"Error enriching subject {subject.get('id')}: {subj_err}")
+                subject["level_name"] = ""
+                subject["grade_name"] = ""
+                subject["section_name"] = ""
+                subject["teacher_count"] = 0
+                subject["assigned_teachers"] = []
+                subject["primary_teacher"] = None
+                result.append(subject)
+        
+        return result
+    except Exception as e:
+        logger.error(f"GET /academic/subjects error: {e}")
+        return []
 
 @router.get("/academic/teacher-subjects")
 async def get_teacher_subjects(
@@ -227,19 +256,20 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
     if not level:
         raise HTTPException(status_code=400, detail="El nivel seleccionado no existe")
     
-    # Verify grade exists if provided
+    # Verify grade exists if provided (check both collection names)
     if data.grade_id:
         grade = await db.grades.find_one({"id": data.grade_id, "school_id": school_id})
         if not grade:
-            raise HTTPException(status_code=400, detail="El grado seleccionado no existe")
+            grade = await db.grados.find_one({"id": data.grade_id, "school_id": school_id})
+        if not grade:
+            logger.warning(f"Grade {data.grade_id} not found in grades/grados for school {school_id}")
     
-    # Verify section exists if provided
+    # Verify section exists if provided (check both collection names)
     if data.section_id:
         section = await db.sections.find_one({"id": data.section_id, "school_id": school_id})
         if not section:
-            raise HTTPException(status_code=400, detail="La sección seleccionada no existe")
-        # Auto-set grade_id from section if not provided
-        if not data.grade_id:
+            section = await db.secciones.find_one({"id": data.section_id, "school_id": school_id})
+        if section and not data.grade_id:
             data.grade_id = section.get("grado_id")
     
     # Check for duplicates (name + level + grade + section)
