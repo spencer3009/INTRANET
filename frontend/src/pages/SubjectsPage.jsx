@@ -504,9 +504,21 @@ function SubjectFormModal({ isOpen, onClose, subject, onSave, levels, grades, se
       await onSave(formData);
       onClose();
     } catch (err) {
+      const status = err.response?.status;
       const detail = err.response?.data?.detail;
-      const msg = Array.isArray(detail) ? detail.map(d => `${d.loc?.join(".")}: ${d.msg}`).join("\n") : (detail || "Error al guardar");
-      console.error("Subject error:", err.response?.status, err.response?.data);
+      // Handle structured error responses from backend
+      let msg;
+      if (detail && typeof detail === 'object' && !Array.isArray(detail)) {
+        // Structured error: { error, field, detail, value }
+        msg = detail.detail || detail.error || "Error al guardar";
+        console.error(`[Subject ${status}] field=${detail.field} error=${detail.error} detail=${detail.detail} value=${detail.value || ''} existing_id=${detail.existing_id || ''}`);
+      } else if (Array.isArray(detail)) {
+        msg = detail.map(d => `${d.loc?.join(".")}: ${d.msg}`).join("\n");
+        console.error("Subject validation error:", status, detail);
+      } else {
+        msg = detail || "Error al guardar";
+        console.error("Subject error:", status, err.response?.data);
+      }
       setError(msg);
     } finally {
       setSaving(false);
@@ -1079,6 +1091,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       weekly_hours: data.weekly_hours || 1, color: data.color || "#3B82F6",
       status: data.status || "active", image_url: data.image_url || null
     };
+    console.log("[Subject] Sending payload:", JSON.stringify(subjectData));
     if (editingSubject?.id) {
       await axios.put(`${API}/academic/subjects/${editingSubject.id}`, subjectData, { headers });
       toast.success("Asignatura actualizada");

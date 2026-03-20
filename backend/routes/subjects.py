@@ -241,92 +241,228 @@ async def get_teacher_subjects(
 
 @router.post("/academic/subjects")
 async def create_subject(data: SubjectCreate, current_user = Depends(get_current_user)):
-    """Create a new subject"""
-    user = await resolve_user_from_token(current_user)
-    if not user or not user.get("school_id"):
-        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
-    if user.get("role") not in ["owner", "admin", "director"]:
-        raise HTTPException(status_code=403, detail="No tienes permiso para crear asignaturas")
-    
-    school_id = user["school_id"]
-    
-    # Verify level exists
-    level = await db.academic_levels.find_one({"id": data.level_id, "school_id": school_id})
-    if not level:
-        raise HTTPException(status_code=400, detail="El nivel seleccionado no existe")
-    
-    # Verify grade exists if provided (check both collection names)
-    if data.grade_id:
-        grade = await db.grades.find_one({"id": data.grade_id, "school_id": school_id})
-        if not grade:
-            grade = await db.grados.find_one({"id": data.grade_id, "school_id": school_id})
-        if not grade:
-            logger.warning(f"Grade {data.grade_id} not found in grades/grados for school {school_id}")
-    
-    # Verify section exists if provided (check both collection names)
-    if data.section_id:
-        section = await db.sections.find_one({"id": data.section_id, "school_id": school_id})
-        if not section:
-            section = await db.secciones.find_one({"id": data.section_id, "school_id": school_id})
-        if section and not data.grade_id:
-            data.grade_id = section.get("grado_id")
-    
-    # Check for duplicates (name + level + grade + section)
-    duplicate_query = {
-        "school_id": school_id,
-        "name": {"$regex": f"^{re.escape(data.name.strip())}$", "$options": "i"},
-        "level_id": data.level_id
-    }
-    if data.section_id:
-        duplicate_query["section_id"] = data.section_id
-    elif data.grade_id:
-        duplicate_query["grade_id"] = data.grade_id
-        duplicate_query["$or"] = [{"section_id": None}, {"section_id": {"$exists": False}}, {"section_id": ""}]
-    else:
-        duplicate_query["$or"] = [{"grade_id": None}, {"grade_id": {"$exists": False}}]
-    
-    existing = await db.subjects.find_one(duplicate_query)
-    if existing:
-        raise HTTPException(status_code=400, detail="Ya existe una asignatura con ese nombre para el mismo nivel/grado")
-    
-    # Check code uniqueness
-    code_exists = await db.subjects.find_one({
-        "school_id": school_id,
-        "code": {"$regex": f"^{data.code}$", "$options": "i"}
-    })
-    if code_exists:
-        raise HTTPException(status_code=400, detail="El código de asignatura ya está en uso")
-    
-    now = datetime.now(timezone.utc).isoformat()
-    
-    subject = {
-        "id": str(uuid.uuid4()),
-        "school_id": school_id,
-        "name": data.name.strip(),
-        "code": data.code.strip().upper(),
-        "description": data.description.strip() if data.description else "",
-        "level_id": data.level_id,
-        "grade_id": data.grade_id,
-        "section_id": data.section_id,
-        "weekly_hours": max(1, data.weekly_hours),
-        "color": data.color,
-        "status": data.status,
-        "image_url": data.image_url,
-        "area_name": data.area_name.strip().upper() if data.area_name else None,
-        "area_order": data.area_order,
-        "created_at": now,
-        "updated_at": now
-    }
-    
-    await db.subjects.insert_one(subject)
-    
-    # Remove _id before returning
-    subject.pop("_id", None)
-    
-    logger.info(f"Subject created: {subject['name']} ({subject['code']}) by {user['id']}")
-    
-    return {"message": "Asignatura creada correctamente", "subject": subject}
+    """Create a new subject — hardened with detailed logging and structured errors"""
+    try:
+        # ── 1. LOG INCOMING PAYLOAD ──────────────────────────────────────
+        logger.info(f"[CREATE_SUBJECT] Payload: name={data.name!r} code={data.code!r} "
+                     f"level_id={data.level_id!r} grade_id={data.grade_id!r} "
+                     f"section_id={data.section_id!r} hours={data.weekly_hours}")
+
+        # ── 2. AUTH ──────────────────────────────────────────────────────
+        try:
+            user = await resolve_user_from_token(current_user)
+        except Exception as auth_err:
+            logger.error(f"[CREATE_SUBJECT] resolve_user_from_token failed: {auth_err}")
+            raise HTTPException(status_code=403, detail="Error al resolver usuario")
+
+        if not user or not user.get("school_id"):
+            raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+        if user.get("role") not in ["owner", "admin", "director"]:
+            raise HTTPException(status_code=403, detail="No tienes permiso para crear asignaturas")
+
+        school_id = user["school_id"]
+        logger.info(f"[CREATE_SUBJECT] User={user['id']} school={school_id} role={user.get('role')}")
+
+        # Use local variables — NEVER mutate the Pydantic model
+        safe_name = (data.name or "").strip()
+        safe_code = (data.code or "").strip().upper()
+        safe_level_id = data.level_id
+        safe_grade_id = data.grade_id
+        safe_section_id = data.section_id
+
+        if not safe_name:
+            raise HTTPException(status_code=400, detail={
+                "error": "Campo requerido vacio", "field": "name",
+                "detail": "El nombre de la asignatura es requerido"
+            })
+        if not safe_code:
+            raise HTTPException(status_code=400, detail={
+                "error": "Campo requerido vacio", "field": "code",
+                "detail": "El codigo de la asignatura es requerido"
+            })
+
+        # ── 3. VERIFY LEVEL ─────────────────────────────────────────────
+        try:
+            level = await db.academic_levels.find_one(
+                {"id": safe_level_id, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}
+            )
+            if not level:
+                # Try alternate collection
+                level = await db.niveles.find_one(
+                    {"id": safe_level_id, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}
+                )
+        except Exception as lvl_err:
+            logger.error(f"[CREATE_SUBJECT] Level lookup error: {lvl_err}")
+            level = None
+
+        if not level:
+            logger.warning(f"[CREATE_SUBJECT] BLOCKED: level_id={safe_level_id} not found for school={school_id}")
+            raise HTTPException(status_code=400, detail={
+                "error": "Nivel no encontrado", "field": "level_id",
+                "detail": f"El nivel con id '{safe_level_id}' no existe en este colegio",
+                "value": safe_level_id
+            })
+        logger.info(f"[CREATE_SUBJECT] Level OK: {level.get('nombre', '?')}")
+
+        # ── 4. VERIFY GRADE ──────────────────────────────────────────────
+        grade = None
+        if safe_grade_id:
+            try:
+                grade = await db.grades.find_one(
+                    {"id": safe_grade_id, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}
+                )
+                if not grade:
+                    grade = await db.grados.find_one(
+                        {"id": safe_grade_id, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}
+                    )
+            except Exception as grd_err:
+                logger.error(f"[CREATE_SUBJECT] Grade lookup error: {grd_err}")
+                grade = None
+
+            if not grade:
+                logger.warning(f"[CREATE_SUBJECT] BLOCKED: grade_id={safe_grade_id} not found")
+                raise HTTPException(status_code=400, detail={
+                    "error": "Grado no encontrado", "field": "grade_id",
+                    "detail": f"El grado con id '{safe_grade_id}' no existe en este colegio",
+                    "value": safe_grade_id
+                })
+            logger.info(f"[CREATE_SUBJECT] Grade OK: {grade.get('nombre', '?')}")
+
+        # ── 5. VERIFY SECTION ────────────────────────────────────────────
+        section = None
+        if safe_section_id:
+            try:
+                section = await db.sections.find_one(
+                    {"id": safe_section_id, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}
+                )
+                if not section:
+                    section = await db.secciones.find_one(
+                        {"id": safe_section_id, "school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}
+                    )
+            except Exception as sec_err:
+                logger.error(f"[CREATE_SUBJECT] Section lookup error: {sec_err}")
+                section = None
+
+            if not section:
+                logger.warning(f"[CREATE_SUBJECT] BLOCKED: section_id={safe_section_id} not found")
+                raise HTTPException(status_code=400, detail={
+                    "error": "Seccion no encontrada", "field": "section_id",
+                    "detail": f"La seccion con id '{safe_section_id}' no existe en este colegio",
+                    "value": safe_section_id
+                })
+            # Auto-fill grade from section if not provided
+            if not safe_grade_id:
+                safe_grade_id = section.get("grado_id")
+            logger.info(f"[CREATE_SUBJECT] Section OK: {section.get('nombre', '?')}")
+
+        # ── 6. CHECK DUPLICATE NAME ──────────────────────────────────────
+        try:
+            escaped_name = re.escape(safe_name)
+            duplicate_query = {
+                "school_id": school_id,
+                "name": {"$regex": f"^{escaped_name}$", "$options": "i"},
+                "level_id": safe_level_id
+            }
+            if safe_section_id:
+                duplicate_query["section_id"] = safe_section_id
+            elif safe_grade_id:
+                duplicate_query["grade_id"] = safe_grade_id
+                duplicate_query["$or"] = [
+                    {"section_id": None},
+                    {"section_id": {"$exists": False}},
+                    {"section_id": ""}
+                ]
+            else:
+                duplicate_query["$or"] = [
+                    {"grade_id": None},
+                    {"grade_id": {"$exists": False}}
+                ]
+
+            logger.info(f"[CREATE_SUBJECT] Duplicate name query: {duplicate_query}")
+            existing = await db.subjects.find_one(duplicate_query, {"_id": 0, "id": 1, "name": 1, "section_id": 1})
+        except Exception as dup_err:
+            logger.error(f"[CREATE_SUBJECT] Duplicate name check error: {dup_err}")
+            existing = None
+
+        if existing:
+            logger.warning(f"[CREATE_SUBJECT] BLOCKED: duplicate name '{safe_name}' found: {existing}")
+            raise HTTPException(status_code=400, detail={
+                "error": "Nombre duplicado", "field": "name",
+                "detail": f"Ya existe una asignatura '{safe_name}' en esta seccion/grado",
+                "existing_id": existing.get("id"),
+                "value": safe_name
+            })
+
+        # ── 7. CHECK DUPLICATE CODE ──────────────────────────────────────
+        try:
+            escaped_code = re.escape(safe_code)
+            code_query = {
+                "school_id": school_id,
+                "code": {"$regex": f"^{escaped_code}$", "$options": "i"}
+            }
+            logger.info(f"[CREATE_SUBJECT] Duplicate code query: {code_query}")
+            code_exists = await db.subjects.find_one(code_query, {"_id": 0, "id": 1, "code": 1, "name": 1})
+        except Exception as code_err:
+            logger.error(f"[CREATE_SUBJECT] Code uniqueness check error: {code_err}")
+            code_exists = None
+
+        if code_exists:
+            logger.warning(f"[CREATE_SUBJECT] BLOCKED: duplicate code '{safe_code}' found: {code_exists}")
+            raise HTTPException(status_code=400, detail={
+                "error": "Codigo duplicado", "field": "code",
+                "detail": f"El codigo '{safe_code}' ya esta en uso por la asignatura '{code_exists.get('name', '?')}'",
+                "existing_id": code_exists.get("id"),
+                "value": safe_code
+            })
+
+        # ── 8. INSERT ────────────────────────────────────────────────────
+        now = datetime.now(timezone.utc).isoformat()
+        subject = {
+            "id": str(uuid.uuid4()),
+            "school_id": school_id,
+            "name": safe_name,
+            "code": safe_code,
+            "description": (data.description or "").strip(),
+            "level_id": safe_level_id,
+            "grade_id": safe_grade_id,
+            "section_id": safe_section_id,
+            "weekly_hours": max(1, data.weekly_hours),
+            "color": data.color or "#3B82F6",
+            "status": data.status or "active",
+            "image_url": data.image_url,
+            "area_name": data.area_name.strip().upper() if data.area_name else None,
+            "area_order": data.area_order,
+            "created_at": now,
+            "updated_at": now
+        }
+
+        try:
+            await db.subjects.insert_one(subject)
+        except Exception as insert_err:
+            logger.error(f"[CREATE_SUBJECT] INSERT FAILED: {insert_err}")
+            raise HTTPException(status_code=500, detail={
+                "error": "Error de base de datos", "field": "db",
+                "detail": f"No se pudo guardar en la base de datos: {str(insert_err)}"
+            })
+
+        # Remove _id before returning
+        subject.pop("_id", None)
+
+        logger.info(f"[CREATE_SUBJECT] SUCCESS: {subject['name']} ({subject['code']}) id={subject['id']}")
+
+        return {"message": "Asignatura creada correctamente", "subject": subject}
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is (our explicit validation errors)
+        raise
+    except Exception as global_err:
+        # Catch-all for any unexpected error — never leave the system in a broken state
+        logger.error(f"[CREATE_SUBJECT] UNEXPECTED ERROR: {type(global_err).__name__}: {global_err}", exc_info=True)
+        raise HTTPException(status_code=500, detail={
+            "error": "Error interno inesperado", "field": "unknown",
+            "detail": f"{type(global_err).__name__}: {str(global_err)}"
+        })
 
 class ReplicateSubjectsRequest(BaseModel):
     source_section_id: str
