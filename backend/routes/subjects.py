@@ -358,7 +358,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
 
         # ── 6. CHECK DUPLICATE NAME ──────────────────────────────────────
         try:
-            escaped_name = re.escape(safe_name)
+            escaped_name = re.escape(safe_name or "")
             duplicate_query = {
                 "school_id": school_id,
                 "name": {"$regex": f"^{escaped_name}$", "$options": "i"},
@@ -370,8 +370,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
                 duplicate_query["grade_id"] = safe_grade_id
                 duplicate_query["$or"] = [
                     {"section_id": None},
-                    {"section_id": {"$exists": False}},
-                    {"section_id": ""}
+                    {"section_id": {"$exists": False}}
                 ]
             else:
                 duplicate_query["$or"] = [
@@ -396,7 +395,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
 
         # ── 7. CHECK DUPLICATE CODE (SCOPED) ─────────────────────────────
         try:
-            escaped_code = re.escape(safe_code)
+            escaped_code = re.escape(safe_code or "")
             code_query = {
                 "school_id": school_id,
                 "code": {"$regex": f"^{escaped_code}$", "$options": "i"},
@@ -412,8 +411,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
                 code_query["grade_id"] = safe_grade_id
                 code_query["$or"] = [
                     {"section_id": None},
-                    {"section_id": {"$exists": False}},
-                    {"section_id": ""}
+                    {"section_id": {"$exists": False}}
                 ]
 
             # Caso 3: solo nivel
