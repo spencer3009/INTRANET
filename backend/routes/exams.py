@@ -1156,7 +1156,12 @@ async def initiate_google_drive_auth(
     origin = origin.rstrip("/")
     redirect_uri = f"{origin}/api/integrations/google-drive/callback"
     
-    logger.info(f"Google Drive OAuth - Origin: {origin}, Redirect URI: {redirect_uri}")
+    logger.info(f"[GoogleDrive DEBUG] origin: {origin}")
+    logger.info(f"[GoogleDrive DEBUG] redirect_uri: {redirect_uri}")
+    logger.info(f"[GoogleDrive DEBUG] request.url: {request.url}")
+    logger.info(f"[GoogleDrive DEBUG] request.headers.host: {request.headers.get('host')}")
+    logger.info(f"[GoogleDrive DEBUG] request.headers.x-forwarded-proto: {request.headers.get('x-forwarded-proto')}")
+    logger.info(f"[GoogleDrive DEBUG] request.headers.x-forwarded-host: {request.headers.get('x-forwarded-host')}")
     
     # Create the flow first to get Google's generated state
     flow = create_google_drive_flow(redirect_uri, None)
