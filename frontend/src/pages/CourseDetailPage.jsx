@@ -1467,7 +1467,13 @@ function CreatePostModal({ isOpen, onClose, subjectId, token, user, onPostCreate
       onPostCreated(res.data.post);
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al publicar');
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail;
+      if (status === 401 && detail && typeof detail === 'object' && detail.code === 'DRIVE_REAUTH_REQUIRED') {
+        setError("Tu conexion con Google Drive ha expirado. Ve a Ajustes para reconectarlo.");
+      } else {
+        setError((typeof detail === 'string' ? detail : detail?.message) || 'Error al publicar');
+      }
     } finally {
       setSubmitting(false);
       setUploadProgress(0);
@@ -8510,8 +8516,18 @@ function MaterialTableContent({ subjectId, token, user }) {
       resetForm();
     } catch (err) {
       console.error('Error uploading material:', err);
-      const errorMsg = err.response?.data?.detail || "Error al subir el material. Intenta de nuevo.";
-      setError(errorMsg);
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail;
+      
+      // Handle Drive reauth required
+      if (status === 401 && detail && typeof detail === 'object' && detail.code === 'DRIVE_REAUTH_REQUIRED') {
+        setError("Tu conexion con Google Drive ha expirado. Ve a Ajustes para reconectarlo.");
+        // Update drive status locally
+        setDriveStatus(prev => ({ ...prev, connected: false }));
+      } else {
+        const errorMsg = (typeof detail === 'string' ? detail : detail?.message) || "Error al subir el material. Intenta de nuevo.";
+        setError(errorMsg);
+      }
     } finally {
       setSubmitting(false);
       setUploadProgress(0);

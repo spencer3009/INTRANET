@@ -993,39 +993,80 @@ def create_google_drive_flow(redirect_uri: str, state: str = None):
     return flow
 
 async def get_drive_service(school_id: str):
-    """Get authenticated Google Drive service for a school"""
+    """Get authenticated Google Drive service for a school — with automatic token refresh"""
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
     if not school:
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
-    
+
     if not school.get("google_drive_connected"):
-        raise HTTPException(status_code=400, detail="Google Drive no está conectado para este colegio")
-    
+        raise HTTPException(status_code=401, detail={
+            "code": "DRIVE_REAUTH_REQUIRED",
+            "message": "Google Drive no esta conectado para este colegio"
+        })
+
     encrypted_refresh_token = school.get("google_drive_refresh_token")
     if not encrypted_refresh_token:
-        raise HTTPException(status_code=400, detail="No se encontró el token de Google Drive")
-    
+        raise HTTPException(status_code=401, detail={
+            "code": "DRIVE_REAUTH_REQUIRED",
+            "message": "No se encontro el token de Google Drive. Reconecte su cuenta."
+        })
+
     try:
         refresh_token = decrypt_token(encrypted_refresh_token)
     except Exception as e:
-        logger.error(f"Error decrypting Drive token for school {school_id}: {e}")
-        raise HTTPException(status_code=400, detail="Token de Google Drive inválido. Por favor reconecte su cuenta.")
-    
+        logger.error(f"[GoogleDrive] Error decrypting token for school {school_id}: {e}")
+        # Mark as disconnected
+        await db.schools.update_one({"id": school_id}, {"$set": {"google_drive_connected": False}})
+        raise HTTPException(status_code=401, detail={
+            "code": "DRIVE_REAUTH_REQUIRED",
+            "message": "Token de Google Drive invalido. Por favor reconecte su cuenta."
+        })
+
+    # Create credentials with refresh token
+    from google.auth.transport.requests import Request as GoogleAuthRequest
     credentials = Credentials(
-        token=None,
+        token=school.get("google_drive_access_token"),
         refresh_token=refresh_token,
         token_uri="https://oauth2.googleapis.com/token",
         client_id=GOOGLE_CLIENT_ID,
         client_secret=GOOGLE_CLIENT_SECRET,
         scopes=GOOGLE_DRIVE_SCOPES
     )
-    
+
+    # Force refresh if token is missing or expired
+    try:
+        if not credentials.token or not credentials.valid:
+            logger.info(f"[GoogleDrive] Token expirado. Intentando refresh para school {school_id}...")
+            credentials.refresh(GoogleAuthRequest())
+            logger.info(f"[GoogleDrive] Token renovado exitosamente. Nuevo expiry: {credentials.expiry}")
+
+            # Persist the new access token and expiry
+            update_fields = {
+                "google_drive_access_token": credentials.token,
+                "google_drive_token_expiry": credentials.expiry.isoformat() if credentials.expiry else None,
+                "updated_at": datetime.now(timezone.utc).isoformat()
+            }
+            # If Google rotated the refresh token, persist the new one
+            if credentials.refresh_token and credentials.refresh_token != refresh_token:
+                update_fields["google_drive_refresh_token"] = encrypt_token(credentials.refresh_token)
+                logger.info(f"[GoogleDrive] Refresh token rotado, guardando nuevo token")
+
+            await db.schools.update_one({"id": school_id}, {"$set": update_fields})
+    except Exception as refresh_err:
+        logger.error(f"[GoogleDrive] Error al renovar token: {refresh_err}. Se requiere reautenticacion.")
+        # Mark as disconnected
+        await db.schools.update_one({"id": school_id}, {"$set": {"google_drive_connected": False}})
+        raise HTTPException(status_code=401, detail={
+            "code": "DRIVE_REAUTH_REQUIRED",
+            "message": "Tu conexion con Google Drive ha expirado. Por favor, vuelve a conectarlo desde Ajustes."
+        })
+
     try:
         service = build('drive', 'v3', credentials=credentials)
         return service
     except Exception as e:
-        logger.error(f"Error creating Drive service for school {school_id}: {e}")
-        raise HTTPException(status_code=400, detail="Error al conectar con Google Drive. Por favor reconecte su cuenta.")
+        logger.error(f"[GoogleDrive] Error creating Drive service for school {school_id}: {e}")
+        raise HTTPException(status_code=500, detail="Error al conectar con Google Drive")
 
 async def create_drive_folder(service, name: str, parent_id: str = None):
     """Create a folder in Google Drive"""
@@ -1299,108 +1340,115 @@ async def upload_material_to_drive(
     description: str = Form(""),
     current_user=Depends(get_current_user)
 ):
-    """
-    Upload a material file to Google Drive.
-    Only for non-image files (PDF, DOC, etc.)
-    """
+    """Upload a material file to Google Drive — with token refresh retry"""
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
+
     school_id = user.get("school_id")
     if not school_id:
         raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
-    
+
     # Check if Drive is connected
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
     if not school or not school.get("google_drive_connected"):
-        raise HTTPException(
-            status_code=400, 
-            detail="Debes conectar Google Drive desde Ajustes antes de subir materiales."
-        )
-    
+        raise HTTPException(status_code=401, detail={
+            "code": "DRIVE_REAUTH_REQUIRED",
+            "message": "Debes conectar Google Drive desde Ajustes antes de subir materiales."
+        })
+
     # Validate file extension
     file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
     if file_ext not in GOOGLE_DRIVE_ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"Tipo de archivo no permitido. Extensiones válidas: {', '.join(GOOGLE_DRIVE_ALLOWED_EXTENSIONS)}"
+            detail=f"Tipo de archivo no permitido. Extensiones validas: {', '.join(GOOGLE_DRIVE_ALLOWED_EXTENSIONS)}"
         )
-    
-    try:
-        # Get Drive service
-        service = await get_drive_service(school_id)
-        
-        # Get materials folder ID
-        materials_folder_id = school.get("google_drive_materials_folder_id")
-        if not materials_folder_id:
-            raise HTTPException(status_code=400, detail="Carpeta de materiales no encontrada en Drive")
-        
-        # Read file content
-        file_content = await file.read()
-        
-        # Get MIME type
-        mime_type = MIME_TYPE_MAP.get(file_ext, "application/octet-stream")
-        
-        # Upload to Drive
-        file_metadata = {
-            'name': file.filename,
-            'parents': [materials_folder_id]
-        }
-        
-        media = MediaIoBaseUpload(
-            io.BytesIO(file_content),
-            mimetype=mime_type,
-            resumable=True
-        )
-        
-        drive_file = service.files().create(
-            body=file_metadata,
-            media_body=media,
+
+    # Read file content once
+    file_content = await file.read()
+    mime_type = MIME_TYPE_MAP.get(file_ext, "application/octet-stream")
+    materials_folder_id = school.get("google_drive_materials_folder_id")
+    if not materials_folder_id:
+        raise HTTPException(status_code=400, detail="Carpeta de materiales no encontrada en Drive")
+
+    # Helper to perform the actual upload
+    async def _do_upload(svc):
+        file_metadata = {'name': file.filename, 'parents': [materials_folder_id]}
+        media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype=mime_type, resumable=True)
+        drive_file = svc.files().create(
+            body=file_metadata, media_body=media,
             fields='id, name, mimeType, size, webContentLink'
         ).execute()
-        
-        # Create material record in database
-        material_id = str(uuid.uuid4())
-        material_doc = {
-            "id": material_id,
-            "school_id": school_id,
-            "subject_id": subject_id,
-            "title": title,
-            "description": description,
-            "type": "material",
-            "post_type": "material",
-            "drive_file_id": drive_file.get('id'),
-            "drive_file_name": drive_file.get('name'),
-            "mime_type": mime_type,
-            "file_extension": file_ext,
-            "file_size": len(file_content),
-            "storage_type": "google_drive",
-            "author_id": user["id"],
-            "status": "active",
-            "created_at": datetime.now(timezone.utc).isoformat(),
-            "updated_at": datetime.now(timezone.utc).isoformat()
-        }
-        
-        await db.course_posts.insert_one(material_doc)
-        
-        logger.info(f"Material uploaded to Drive: {file.filename} for school {school_id}")
-        
-        # Return without _id
-        return {
-            "id": material_id,
-            "title": title,
-            "drive_file_id": drive_file.get('id'),
-            "drive_file_name": drive_file.get('name'),
-            "file_size": len(file_content),
-            "message": "Material subido correctamente a Google Drive"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading to Drive: {e}")
-        raise HTTPException(status_code=500, detail=f"Error al subir archivo a Google Drive: {str(e)}")
+        return drive_file
+
+    # Attempt upload with 1 retry on auth failure
+    drive_file = None
+    for attempt in range(2):
+        try:
+            service = await get_drive_service(school_id)
+            drive_file = await _do_upload(service)
+            logger.info(f"[GoogleDrive] Subida exitosa: {file.filename} -> {drive_file.get('id')}")
+            break
+        except HTTPException as he:
+            # If it's a DRIVE_REAUTH_REQUIRED, propagate immediately (no retry)
+            detail = he.detail
+            if isinstance(detail, dict) and detail.get("code") == "DRIVE_REAUTH_REQUIRED":
+                raise
+            # Other HTTP exceptions — propagate
+            raise
+        except Exception as e:
+            error_str = str(e).lower()
+            if attempt == 0 and ("invalid_grant" in error_str or "401" in error_str or "token" in error_str):
+                logger.warning(f"[GoogleDrive] Error en subida: {e}. Reintentando con token renovado...")
+                # Force re-fetch of service (which triggers refresh)
+                # Clear the cached access token to force a fresh refresh
+                await db.schools.update_one(
+                    {"id": school_id},
+                    {"$unset": {"google_drive_access_token": ""}}
+                )
+                continue
+            else:
+                logger.error(f"[GoogleDrive] Error en subida (intento {attempt+1}): {e}")
+                raise HTTPException(status_code=500, detail=f"Error al subir archivo a Google Drive: {str(e)}")
+
+    if not drive_file:
+        raise HTTPException(status_code=500, detail="No se pudo subir el archivo despues de reintentar")
+
+    # Create material record in database
+    material_id = str(uuid.uuid4())
+    material_doc = {
+        "id": material_id,
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "title": title,
+        "description": description,
+        "type": "material",
+        "post_type": "material",
+        "drive_file_id": drive_file.get('id'),
+        "drive_file_name": drive_file.get('name'),
+        "mime_type": mime_type,
+        "file_extension": file_ext,
+        "file_size": len(file_content),
+        "storage_type": "google_drive",
+        "author_id": user["id"],
+        "status": "active",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    await db.course_posts.insert_one(material_doc)
+
+    logger.info(f"[GoogleDrive] Material guardado en DB: {file.filename} id={material_id}")
+
+    return {
+        "id": material_id,
+        "title": title,
+        "drive_file_id": drive_file.get('id'),
+        "drive_file_name": drive_file.get('name'),
+        "file_size": len(file_content),
+        "message": "Material subido correctamente a Google Drive"
+    }
 
 
 @router.post("/files/upload-to-drive")
@@ -1409,85 +1457,73 @@ async def upload_file_to_drive_only(
     subject_id: str = Form(...),
     current_user=Depends(get_current_user)
 ):
-    """
-    Upload a file to Google Drive WITHOUT creating any database record.
-    Used for attaching files to tasks, forums, and board posts.
-    The actual post record is created separately via /course/{subject_id}/posts.
-    """
+    """Upload a file to Google Drive WITHOUT creating a DB record — with token refresh retry"""
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
-    
+
     school_id = user.get("school_id")
     if not school_id:
         raise HTTPException(status_code=400, detail="Usuario sin colegio asignado")
-    
-    # Check if Drive is connected
+
     school = await db.schools.find_one({"id": school_id}, {"_id": 0})
     if not school or not school.get("google_drive_connected"):
-        raise HTTPException(
-            status_code=400, 
-            detail="Debes conectar Google Drive desde Ajustes antes de subir archivos."
-        )
-    
-    # Validate file extension
+        raise HTTPException(status_code=401, detail={
+            "code": "DRIVE_REAUTH_REQUIRED",
+            "message": "Debes conectar Google Drive desde Ajustes antes de subir archivos."
+        })
+
     file_ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
     if file_ext not in GOOGLE_DRIVE_ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=400,
-            detail=f"Tipo de archivo no permitido. Extensiones válidas: {', '.join(GOOGLE_DRIVE_ALLOWED_EXTENSIONS)}"
+            detail=f"Tipo de archivo no permitido. Extensiones validas: {', '.join(GOOGLE_DRIVE_ALLOWED_EXTENSIONS)}"
         )
-    
-    try:
-        # Get Drive service
-        service = await get_drive_service(school_id)
-        
-        # Get materials folder ID (we use the same folder for all files)
-        materials_folder_id = school.get("google_drive_materials_folder_id")
-        if not materials_folder_id:
-            raise HTTPException(status_code=400, detail="Carpeta de materiales no encontrada en Drive")
-        
-        # Read file content
-        file_content = await file.read()
-        
-        # Get MIME type
-        mime_type = MIME_TYPE_MAP.get(file_ext, "application/octet-stream")
-        
-        # Upload to Drive
-        file_metadata = {
-            'name': file.filename,
-            'parents': [materials_folder_id]
-        }
-        
-        media = MediaIoBaseUpload(
-            io.BytesIO(file_content),
-            mimetype=mime_type,
-            resumable=True
-        )
-        
-        drive_file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id, name, mimeType, size'
-        ).execute()
-        
-        logger.info(f"File uploaded to Drive (no post created): {file.filename} for school {school_id}")
-        
-        # Return file info - NO database record created
-        return {
-            "drive_file_id": drive_file.get('id'),
-            "drive_file_name": drive_file.get('name'),
-            "mime_type": mime_type,
-            "file_size": len(file_content),
-            "file_extension": file_ext,
-            "message": "Archivo subido correctamente a Google Drive"
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error uploading file to Drive: {e}")
-        raise HTTPException(status_code=500, detail=f"Error al subir archivo a Google Drive: {str(e)}")
+
+    file_content = await file.read()
+    mime_type = MIME_TYPE_MAP.get(file_ext, "application/octet-stream")
+    materials_folder_id = school.get("google_drive_materials_folder_id")
+    if not materials_folder_id:
+        raise HTTPException(status_code=400, detail="Carpeta de materiales no encontrada en Drive")
+
+    async def _do_upload(svc):
+        file_metadata = {'name': file.filename, 'parents': [materials_folder_id]}
+        media = MediaIoBaseUpload(io.BytesIO(file_content), mimetype=mime_type, resumable=True)
+        return svc.files().create(body=file_metadata, media_body=media, fields='id, name, mimeType, size').execute()
+
+    drive_file = None
+    for attempt in range(2):
+        try:
+            service = await get_drive_service(school_id)
+            drive_file = await _do_upload(service)
+            logger.info(f"[GoogleDrive] Subida exitosa (sin post): {file.filename} -> {drive_file.get('id')}")
+            break
+        except HTTPException as he:
+            detail = he.detail
+            if isinstance(detail, dict) and detail.get("code") == "DRIVE_REAUTH_REQUIRED":
+                raise
+            raise
+        except Exception as e:
+            error_str = str(e).lower()
+            if attempt == 0 and ("invalid_grant" in error_str or "401" in error_str or "token" in error_str):
+                logger.warning(f"[GoogleDrive] Error en subida: {e}. Reintentando con token renovado...")
+                await db.schools.update_one({"id": school_id}, {"$unset": {"google_drive_access_token": ""}})
+                continue
+            else:
+                logger.error(f"[GoogleDrive] Error en subida (intento {attempt+1}): {e}")
+                raise HTTPException(status_code=500, detail=f"Error al subir archivo a Google Drive: {str(e)}")
+
+    if not drive_file:
+        raise HTTPException(status_code=500, detail="No se pudo subir el archivo despues de reintentar")
+
+    return {
+        "drive_file_id": drive_file.get('id'),
+        "drive_file_name": drive_file.get('name'),
+        "mime_type": mime_type,
+        "file_size": len(file_content),
+        "file_extension": file_ext,
+        "message": "Archivo subido correctamente a Google Drive"
+    }
 
 
 @router.get("/materials/download/{material_id}")
