@@ -96,99 +96,27 @@ async def get_subjects(
     status: Optional[str] = None,
     current_user = Depends(get_current_user)
 ):
-    """Get all subjects for a school"""
+    """Get all subjects for a school — DEBUG MODE: raw data, no enrichment"""
     try:
         user = await resolve_user_from_token(current_user)
         if not user or not user.get("school_id"):
             return []
-        
+
         school_id = user["school_id"]
-        
-        query = {"school_id": school_id}
-        if level_id:
-            query["level_id"] = level_id
-        if grade_id:
-            query["grade_id"] = grade_id
-        if section_id:
-            query["section_id"] = section_id
-        if status:
-            query["status"] = status
-        
-        subjects_cursor = db.subjects.find(query, {"_id": 0}).sort("name", 1)
-        subjects = await subjects_cursor.to_list(500)
-        
-        # Build lookup caches safely
-        try:
-            levels = {l["id"]: l.get("nombre", "") for l in await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)}
-        except Exception:
-            levels = {}
-        try:
-            grades_list = await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "nivel_id": 1}).to_list(200)
-            grades = {g["id"]: g for g in grades_list if g.get("id")}
-        except Exception:
-            grades = {}
-        try:
-            sections_list = await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1, "grado_id": 1}).to_list(500)
-            sections_map = {s["id"]: s for s in sections_list if s.get("id")}
-        except Exception:
-            sections_map = {}
-        try:
-            users_cache = {u["id"]: u for u in await db.users.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "profile_image": 1, "photo_url": 1}).to_list(500)}
-        except Exception:
-            users_cache = {}
-        
-        result = []
-        for subject in subjects:
-            try:
-                subject["level_name"] = levels.get(subject.get("level_id"), "")
-                grade = grades.get(subject.get("grade_id"))
-                subject["grade_name"] = grade.get("nombre", "") if grade else "Todos"
-                section = sections_map.get(subject.get("section_id"))
-                subject["section_name"] = section.get("nombre", "") if section else ""
-                
-                try:
-                    assignments = await db.academic_assignments.find({
-                        "school_id": school_id,
-                        "subject_id": subject.get("id"),
-                        "status": "activo"
-                    }, {"_id": 0, "teacher_id": 1, "role": 1}).to_list(10)
-                except Exception:
-                    assignments = []
-                
-                subject["teacher_count"] = len(assignments)
-                subject["assigned_teachers"] = []
-                
-                for assignment in assignments:
-                    teacher = users_cache.get(assignment.get("teacher_id"))
-                    if teacher:
-                        teacher_photo = teacher.get("profile_image") or teacher.get("photo_url")
-                        subject["assigned_teachers"].append({
-                            "id": teacher.get("id"),
-                            "name": teacher.get("name", ""),
-                            "profile_image": teacher_photo,
-                            "role": assignment.get("role", "titular")
-                        })
-                
-                if subject["assigned_teachers"]:
-                    titular = next((t for t in subject["assigned_teachers"] if t.get("role") == "titular"), None)
-                    subject["primary_teacher"] = titular or subject["assigned_teachers"][0]
-                else:
-                    subject["primary_teacher"] = None
-                
-                result.append(subject)
-            except Exception as subj_err:
-                logger.error(f"Error enriching subject {subject.get('id')}: {subj_err}")
-                subject["level_name"] = ""
-                subject["grade_name"] = ""
-                subject["section_name"] = ""
-                subject["teacher_count"] = 0
-                subject["assigned_teachers"] = []
-                subject["primary_teacher"] = None
-                result.append(subject)
-        
-        return result
+
+        # DEBUG: Solo query crudo por school_id, sin filtros
+        collection_name = db.subjects.name
+        logger.info(f"[DEBUG_GET_SUBJECTS] collection={collection_name} school_id={school_id}")
+
+        subjects = await db.subjects.find(
+            {"school_id": school_id}, {"_id": 0}
+        ).to_list(1000)
+
+        logger.info(f"[DEBUG_GET_SUBJECTS] encontrados={len(subjects)} school_id={school_id}")
+
+        return subjects
     except Exception as e:
-        logger.error(f"GET /academic/subjects error: {e}")
+        logger.error(f"[DEBUG_GET_SUBJECTS] CRASH: {type(e).__name__}: {e}")
         return []
 
 @router.get("/academic/teacher-subjects")
