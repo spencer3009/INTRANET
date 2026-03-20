@@ -10,6 +10,7 @@ from enum import Enum
 import uuid
 import re
 import logging
+from asyncio import wait_for
 
 from .core import (
     db, get_current_user, resolve_user_from_token, is_admin_user,
@@ -395,12 +396,18 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
 
         # ── 7. CHECK DUPLICATE CODE (SCOPED) ─────────────────────────────
         try:
-            escaped_code = re.escape(safe_code or "")
+            if safe_code:
+                escaped_code = re.escape(safe_code)
+            else:
+                escaped_code = None
+
             code_query = {
                 "school_id": school_id,
-                "code": {"$regex": f"^{escaped_code}$", "$options": "i"},
                 "level_id": safe_level_id
             }
+
+            if escaped_code:
+                code_query["code"] = {"$regex": f"^{escaped_code}$", "$options": "i"}
 
             # Caso 1: si hay section_id → validar dentro de esa sección
             if safe_section_id:
@@ -422,7 +429,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
                 ]
 
             logger.info(f"[CREATE_SUBJECT] Duplicate code query: {code_query}")
-            code_exists = await db.subjects.find_one(code_query, {"_id": 0, "id": 1, "code": 1, "name": 1})
+            code_exists = await db.subjects.find_one(code_query, {"_id": 0, "id": 1, "code": 1, "name": 1}) if escaped_code else None
         except Exception as code_err:
             logger.error(f"[CREATE_SUBJECT] Code uniqueness check error: {code_err}")
             code_exists = None
@@ -438,21 +445,30 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
 
         # ── 8. INSERT ────────────────────────────────────────────────────
         now = datetime.now(timezone.utc).isoformat()
+
+        # Hard validation types
+        try:
+            weekly_hours = int(data.weekly_hours)
+        except Exception:
+            weekly_hours = 1
+        weekly_hours = max(1, weekly_hours)
+
+        # Clean subject object — all fields explicitly typed
         subject = {
             "id": str(uuid.uuid4()),
             "school_id": school_id,
-            "name": safe_name,
-            "code": safe_code,
-            "description": (data.description or "").strip(),
-            "level_id": safe_level_id,
-            "grade_id": safe_grade_id,
-            "section_id": safe_section_id,
-            "weekly_hours": max(1, int(data.weekly_hours or 1)),
-            "color": data.color or "#3B82F6",
-            "status": data.status or "active",
-            "image_url": data.image_url or None,
-            "area_name": data.area_name.strip().upper() if data.area_name else None,
-            "area_order": data.area_order if data.area_order is not None else None,
+            "name": str(safe_name),
+            "code": str(safe_code),
+            "description": str((data.description or "").strip()),
+            "level_id": str(safe_level_id),
+            "grade_id": str(safe_grade_id) if safe_grade_id else None,
+            "section_id": str(safe_section_id) if safe_section_id else None,
+            "weekly_hours": weekly_hours,
+            "color": str(data.color or "#3B82F6"),
+            "status": str(data.status or "active"),
+            "image_url": data.image_url if data.image_url else None,
+            "area_name": str(data.area_name.strip().upper()) if data.area_name else None,
+            "area_order": int(data.area_order) if isinstance(data.area_order, int) else None,
             "created_at": now,
             "updated_at": now
         }
@@ -460,7 +476,7 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
         logger.info(f"[CREATE_SUBJECT] FINAL DOC BEFORE INSERT: {subject}")
 
         try:
-            await db.subjects.insert_one(subject)
+            await wait_for(db.subjects.insert_one(subject), timeout=5)
         except Exception as insert_err:
             logger.error(f"[CREATE_SUBJECT] INSERT FAILED: {insert_err}")
             raise HTTPException(status_code=500, detail={
