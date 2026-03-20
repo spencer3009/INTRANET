@@ -267,9 +267,9 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
         # Use local variables — NEVER mutate the Pydantic model
         safe_name = (data.name or "").strip()
         safe_code = (data.code or "").strip().upper()
-        safe_level_id = data.level_id
-        safe_grade_id = data.grade_id
-        safe_section_id = data.section_id
+        safe_level_id = str(data.level_id) if data.level_id else None
+        safe_grade_id = str(data.grade_id) if data.grade_id else None
+        safe_section_id = str(data.section_id) if data.section_id else None
 
         if not safe_name:
             raise HTTPException(status_code=400, detail={
@@ -447,15 +447,17 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
             "level_id": safe_level_id,
             "grade_id": safe_grade_id,
             "section_id": safe_section_id,
-            "weekly_hours": max(1, data.weekly_hours),
+            "weekly_hours": max(1, int(data.weekly_hours or 1)),
             "color": data.color or "#3B82F6",
             "status": data.status or "active",
-            "image_url": data.image_url,
+            "image_url": data.image_url or None,
             "area_name": data.area_name.strip().upper() if data.area_name else None,
-            "area_order": data.area_order,
+            "area_order": data.area_order if data.area_order is not None else None,
             "created_at": now,
             "updated_at": now
         }
+
+        logger.info(f"[CREATE_SUBJECT] FINAL DOC BEFORE INSERT: {subject}")
 
         try:
             await db.subjects.insert_one(subject)
