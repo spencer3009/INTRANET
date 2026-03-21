@@ -716,24 +716,30 @@ function CourseRightSidebar({ teacher, students, subjectId, token, userRole, onO
   const [presenceStatus, setPresenceStatus] = useState({});
   const displayedStudents = showAllStudents ? students : students.slice(0, 6);
   
-  // Fetch presence status periodically
+  // Fetch presence status periodically — scoped to course
   useEffect(() => {
     const fetchPresence = async () => {
       try {
-        const res = await axios.get(`${API}/presence/users`, {
+        const params = subjectId ? `?subject_id=${subjectId}` : '';
+        const res = await axios.get(`${API}/presence/users${params}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setPresenceStatus(res.data);
+        // Convert array to map keyed by user_id for O(1) lookup
+        const map = {};
+        for (const u of (res.data?.users || [])) {
+          map[u.user_id] = u;
+        }
+        setPresenceStatus(map);
       } catch (err) {
         console.log("Could not fetch presence");
       }
     };
     
     fetchPresence();
-    const interval = setInterval(fetchPresence, 30000); // Every 30 seconds
+    const interval = setInterval(fetchPresence, 30000);
     
     return () => clearInterval(interval);
-  }, [token]);
+  }, [token, subjectId]);
   
   // Online status indicator component
   const OnlineIndicator = ({ userId, size = "sm" }) => {

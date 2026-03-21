@@ -655,36 +655,67 @@ async def send_heartbeat(current_user = Depends(get_current_user)):
     return {"status": "ok", "last_seen": now.isoformat()}
 
 @router.get("/presence/users")
-async def get_presence_status(current_user = Depends(get_current_user)):
+async def get_presence_status(
+    subject_id: Optional[str] = Query(None, description="Filter by course subject_id"),
+    current_user = Depends(get_current_user)
+):
     """
-    Get online/offline status for all users in the same school.
+    Get online/offline status — optimized.
+    If subject_id is provided, only returns presence for users in that course.
+    Otherwise returns all school users (backward compatible).
     """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
+
     school_id = user["school_id"]
     now = datetime.now(timezone.utc)
     timeout_threshold = now - timedelta(minutes=PRESENCE_TIMEOUT_MINUTES)
-    
-    # Get all presence records for school
-    presence_cursor = db.presence.find(
-        {"school_id": school_id},
-        {"_id": 0}
-    )
-    presence_records = await presence_cursor.to_list(length=1000)
-    
-    # Build presence map with online status based on last_seen
-    result = {}
+
+    presence_filter = {"school_id": school_id}
+
+    # If subject_id provided, scope to course participants only
+    if subject_id:
+        # Get the subject to find section_id
+        subject = await db.subjects.find_one(
+            {"id": subject_id},
+            {"_id": 0, "seccion_id": 1, "profesor_id": 1}
+        )
+        if subject:
+            # Get student IDs in this section + teacher
+            user_ids = []
+            if subject.get("profesor_id"):
+                user_ids.append(subject["profesor_id"])
+            if subject.get("seccion_id"):
+                students = await db.users.find(
+                    {"school_id": school_id, "seccion_id": subject["seccion_id"],
+                     "role": "estudiante", "status": {"$ne": "inactive"}},
+                    {"_id": 0, "id": 1}
+                ).to_list(200)
+                user_ids.extend(s["id"] for s in students)
+            if user_ids:
+                presence_filter["user_id"] = {"$in": user_ids}
+
+    presence_records = await db.presence.find(
+        presence_filter, {"_id": 0}
+    ).to_list(length=500)
+
+    result = []
     for p in presence_records:
-        last_seen = datetime.fromisoformat(p["last_seen"].replace("Z", "+00:00")) if p.get("last_seen") else None
-        is_online = last_seen and last_seen > timeout_threshold if last_seen else False
-        result[p["user_id"]] = {
+        last_seen = None
+        if p.get("last_seen"):
+            try:
+                last_seen = datetime.fromisoformat(p["last_seen"].replace("Z", "+00:00"))
+            except (ValueError, AttributeError):
+                pass
+        is_online = last_seen is not None and last_seen > timeout_threshold
+        result.append({
+            "user_id": p["user_id"],
             "is_online": is_online,
             "last_seen": p.get("last_seen")
-        }
-    
-    return {"users": [{"user_id": k, "is_online": v["is_online"], "last_seen": v.get("last_seen")} for k, v in result.items()]}
+        })
+
+    return {"users": result}
 
 @router.post("/presence/offline")
 async def mark_offline(current_user = Depends(get_current_user)):

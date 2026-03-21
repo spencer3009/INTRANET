@@ -100,15 +100,17 @@ async def get_course_posts(
             {"type": post_type}
         ]
 
-    # Projection: exclude heavy fields from list view
+    # Projection: exclude heavy fields (submissions[]) from list view
     list_projection = {
         "_id": 0,
         "id": 1, "subject_id": 1, "school_id": 1, "title": 1, "content": 1,
         "post_type": 1, "type": 1, "status": 1, "author_id": 1,
         "created_at": 1, "updated_at": 1, "image_url": 1,
+        "file_url": 1, "file_name": 1,
         "drive_file_id": 1, "drive_file_name": 1, "file_extension": 1,
         "file_type": 1, "file_size": 1, "storage_type": 1,
-        "mime_type": 1, "due_date": 1, "submissions_count": 1
+        "mime_type": 1, "due_date": 1, "metadata": 1,
+        "cloudinary_data": 1
     }
 
     # 1. Get posts + total count in parallel
@@ -151,26 +153,26 @@ async def get_course_posts(
 
     # For tasks: get submission counts via aggregation
     task_post_ids = [p["id"] for p in posts if p.get("post_type") == "task" or p.get("type") == "task"]
+
+    # Gather all batch queries in parallel
+    gather_futures = [authors_future, likes_agg_future, comments_agg_future, user_likes_future]
     if task_post_ids:
-        subs_agg_future = db.task_submissions.aggregate([
+        gather_futures.append(db.task_submissions.aggregate([
             {"$match": {"task_id": {"$in": task_post_ids}}},
             {"$group": {
                 "_id": "$task_id",
                 "total": {"$sum": 1},
                 "graded": {"$sum": {"$cond": [{"$ne": ["$grade", None]}, 1, 0]}}
             }}
-        ]).to_list(len(task_post_ids))
-    else:
-        subs_agg_future = asyncio.coroutine(lambda: [])()
+        ]).to_list(len(task_post_ids)))
 
-    authors_list, likes_agg, comments_agg, user_likes_list, subs_agg = await asyncio.gather(
-        authors_future, likes_agg_future, comments_agg_future, user_likes_future,
-        subs_agg_future if task_post_ids else asyncio.sleep(0)
-    )
+    results = await asyncio.gather(*gather_futures)
 
-    # Handle the case where subs_agg might be None (from sleep(0))
-    if not task_post_ids:
-        subs_agg = []
+    authors_list = results[0]
+    likes_agg = results[1]
+    comments_agg = results[2]
+    user_likes_list = results[3]
+    subs_agg = results[4] if task_post_ids else []
 
     # 3. Build lookup dictionaries (O(1) access)
     authors_map = {a["id"]: a for a in authors_list}
@@ -1129,215 +1131,131 @@ async def get_course_sidebar_summary(
     current_user = Depends(get_current_user)
 ):
     """
-    Get sidebar summary for a course - dynamic panel with:
-    - Latest news (upcoming exams, tasks, announcements, reminders)
-    - Quick access counters (materials, pending tasks, recorded classes)
+    Get sidebar summary — fully parallelized.
+    Phase 2 optimization: 11 sequential queries → 2 parallel batches.
     """
+    import asyncio
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
-    
-    # Verify subject exists
-    subject = await db.subjects.find_one({"id": subject_id}, {"_id": 0})
+
+    subject = await db.subjects.find_one({"id": subject_id}, {"_id": 0, "id": 1})
     if not subject:
         raise HTTPException(status_code=404, detail="Asignatura no encontrada")
-    
-    school_id = user["school_id"]
+
     now = datetime.now(timezone.utc)
-    now_iso = now.isoformat()
-    
-    # Calculate date ranges
+    now_iso_date = now.isoformat()[:10]
     week_ago = (now - timedelta(days=7)).isoformat()
-    week_ahead = (now + timedelta(days=14)).isoformat()
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # 1. LATEST NEWS - Dynamic news from course data
-    # ══════════════════════════════════════════════════════════════════════════
+    week_ahead = (now + timedelta(days=14)).isoformat()[:10]
+    month_ago = (now - timedelta(days=30)).isoformat()
+
+    # ══════════════════════════════════════════════════════════════════════
+    # BATCH 1: News queries + all count queries in ONE asyncio.gather()
+    # ══════════════════════════════════════════════════════════════════════
+    base_filter = {"subject_id": subject_id, "status": "active"}
+
+    (
+        upcoming_reminders,
+        recent_announcements,
+        upcoming_tasks,
+        materials_count,
+        pending_tasks_post_count,
+        pending_task_reminders_count,
+        videos_count,
+        forum_count,
+        announcements_count,
+        total_posts,
+        total_reminders,
+    ) = await asyncio.gather(
+        # News: reminders
+        db.course_reminders.find(
+            {"subject_id": subject_id, "status": "active",
+             "date": {"$gte": now_iso_date, "$lte": week_ahead}},
+            {"_id": 0, "id": 1, "title": 1, "date": 1, "reminder_type": 1, "is_important": 1}
+        ).sort("date", 1).limit(5).to_list(5),
+        # News: announcements
+        db.course_posts.find(
+            {"subject_id": subject_id, "post_type": "announcement", "status": "active",
+             "created_at": {"$gte": week_ago}},
+            {"_id": 0, "id": 1, "title": 1, "content": 1, "created_at": 1}
+        ).sort("created_at", -1).limit(3).to_list(3),
+        # News: tasks
+        db.course_posts.find(
+            {"subject_id": subject_id, "post_type": "task", "status": "active",
+             "created_at": {"$gte": week_ago}},
+            {"_id": 0, "id": 1, "title": 1, "content": 1, "created_at": 1}
+        ).sort("created_at", -1).limit(3).to_list(3),
+        # Counts: materials
+        db.course_posts.count_documents({**base_filter, "post_type": "material"}),
+        # Counts: pending tasks (last 30d)
+        db.course_posts.count_documents({**base_filter, "post_type": "task", "created_at": {"$gte": month_ago}}),
+        # Counts: pending task reminders
+        db.course_reminders.count_documents({
+            "subject_id": subject_id, "reminder_type": "task",
+            "status": "active", "date": {"$gte": now_iso_date}
+        }),
+        # Counts: videos — indexed file_type only, NO regex on content
+        db.course_posts.count_documents({**base_filter, "file_type": {"$regex": "^video", "$options": "i"}}),
+        # Counts: forum
+        db.course_posts.count_documents({**base_filter, "post_type": "forum"}),
+        # Counts: announcements
+        db.course_posts.count_documents({**base_filter, "post_type": "announcement"}),
+        # Stats: total posts
+        db.course_posts.count_documents(base_filter),
+        # Stats: total reminders
+        db.course_reminders.count_documents({"subject_id": subject_id, "status": "active"}),
+    )
+
+    # ══════════════════════════════════════════════════════════════════════
+    # Build news items in memory
+    # ══════════════════════════════════════════════════════════════════════
     news_items = []
-    
-    # 1a. Get upcoming reminders (exams, tasks, notices) - next 14 days
-    upcoming_reminders = await db.course_reminders.find(
-        {
-            "subject_id": subject_id,
-            "status": "active",
-            "date": {"$gte": now_iso[:10], "$lte": week_ahead[:10]}
-        },
-        {"_id": 0, "id": 1, "title": 1, "date": 1, "reminder_type": 1, "is_important": 1}
-    ).sort("date", 1).limit(5).to_list(5)
-    
-    for reminder in upcoming_reminders:
-        reminder_type_labels = {
-            "exam": "📝 Examen programado",
-            "task": "📋 Tarea pendiente",
-            "notice": "📢 Aviso"
-        }
+    reminder_type_labels = {
+        "exam": "Examen programado",
+        "task": "Tarea pendiente",
+        "notice": "Aviso"
+    }
+    for r in upcoming_reminders:
         news_items.append({
-            "id": reminder["id"],
-            "type": "reminder",
-            "subtype": reminder["reminder_type"],
-            "title": reminder["title"],
-            "date": reminder["date"],
-            "icon": reminder["reminder_type"],
-            "is_important": reminder.get("is_important", False),
-            "label": reminder_type_labels.get(reminder["reminder_type"], "Recordatorio")
+            "id": r["id"], "type": "reminder", "subtype": r["reminder_type"],
+            "title": r["title"], "date": r["date"], "icon": r["reminder_type"],
+            "is_important": r.get("is_important", False),
+            "label": reminder_type_labels.get(r["reminder_type"], "Recordatorio")
         })
-    
-    # 1b. Get recent announcements (last 7 days)
-    recent_announcements = await db.course_posts.find(
-        {
-            "subject_id": subject_id,
-            "post_type": "announcement",
-            "status": "active",
-            "created_at": {"$gte": week_ago}
-        },
-        {"_id": 0, "id": 1, "title": 1, "content": 1, "created_at": 1}
-    ).sort("created_at", -1).limit(3).to_list(3)
-    
-    for post in recent_announcements:
+
+    for p in recent_announcements:
+        title = p.get("title") or (p["content"][:60] + "..." if len(p.get("content", "")) > 60 else p.get("content", ""))
         news_items.append({
-            "id": post["id"],
-            "type": "announcement",
-            "subtype": "announcement",
-            "title": post.get("title") or (post["content"][:60] + "..." if len(post["content"]) > 60 else post["content"]),
-            "date": post["created_at"][:10],
-            "icon": "announcement",
-            "is_important": False,
-            "label": "📢 Aviso publicado"
+            "id": p["id"], "type": "announcement", "subtype": "announcement",
+            "title": title, "date": p["created_at"][:10],
+            "icon": "announcement", "is_important": False, "label": "Aviso publicado"
         })
-    
-    # 1c. Get upcoming tasks from posts (next 14 days)
-    upcoming_tasks = await db.course_posts.find(
-        {
-            "subject_id": subject_id,
-            "post_type": "task",
-            "status": "active",
-            "created_at": {"$gte": week_ago}
-        },
-        {"_id": 0, "id": 1, "title": 1, "content": 1, "created_at": 1}
-    ).sort("created_at", -1).limit(3).to_list(3)
-    
-    for task in upcoming_tasks:
-        # Check if not already in news from reminders
+
+    for t in upcoming_tasks:
+        title = t.get("title") or (t["content"][:60] + "..." if len(t.get("content", "")) > 60 else t.get("content", ""))
         news_items.append({
-            "id": task["id"],
-            "type": "task",
-            "subtype": "task",
-            "title": task.get("title") or (task["content"][:60] + "..." if len(task["content"]) > 60 else task["content"]),
-            "date": task["created_at"][:10],
-            "icon": "task",
-            "is_important": False,
-            "label": "📋 Nueva tarea"
+            "id": t["id"], "type": "task", "subtype": "task",
+            "title": title, "date": t["created_at"][:10],
+            "icon": "task", "is_important": False, "label": "Nueva tarea"
         })
-    
-    # Sort news by date (most recent/upcoming first) and limit to 5
-    # First important items, then by date
+
     news_items.sort(key=lambda x: (not x.get("is_important", False), x.get("date", "")))
     news_items = news_items[:5]
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # 2. QUICK ACCESS COUNTERS - Dynamic counts from course data
-    # ══════════════════════════════════════════════════════════════════════════
-    
-    # Count materials
-    materials_count = await db.course_posts.count_documents({
-        "subject_id": subject_id,
-        "post_type": "material",
-        "status": "active"
-    })
-    
-    # Count pending tasks (tasks created in last 30 days)
-    month_ago = (now - timedelta(days=30)).isoformat()
-    pending_tasks_count = await db.course_posts.count_documents({
-        "subject_id": subject_id,
-        "post_type": "task",
-        "status": "active",
-        "created_at": {"$gte": month_ago}
-    })
-    
-    # Also count task reminders
-    pending_task_reminders = await db.course_reminders.count_documents({
-        "subject_id": subject_id,
-        "reminder_type": "task",
-        "status": "active",
-        "date": {"$gte": now_iso[:10]}
-    })
-    pending_tasks_count += pending_task_reminders
-    
-    # Count videos/recorded classes (posts with video files or type)
-    videos_count = await db.course_posts.count_documents({
-        "subject_id": subject_id,
-        "status": "active",
-        "$or": [
-            {"file_type": {"$regex": "video", "$options": "i"}},
-            {"content": {"$regex": "youtube|vimeo|video", "$options": "i"}}
-        ]
-    })
-    
-    # Count forum posts
-    forum_count = await db.course_posts.count_documents({
-        "subject_id": subject_id,
-        "post_type": "forum",
-        "status": "active"
-    })
-    
-    # Count total announcements
-    announcements_count = await db.course_posts.count_documents({
-        "subject_id": subject_id,
-        "post_type": "announcement",
-        "status": "active"
-    })
-    
-    quick_access = [
-        {
-            "id": "materials",
-            "label": "Materiales",
-            "count": materials_count,
-            "icon": "folder",
-            "color": "blue",
-            "filter": "material"
-        },
-        {
-            "id": "tasks",
-            "label": "Tareas pendientes",
-            "count": pending_tasks_count,
-            "icon": "task",
-            "color": "amber",
-            "filter": "task"
-        },
-        {
-            "id": "videos",
-            "label": "Clases grabadas",
-            "count": videos_count,
-            "icon": "video",
-            "color": "rose",
-            "filter": "video"
-        },
-        {
-            "id": "forum",
-            "label": "Foro del curso",
-            "count": forum_count,
-            "icon": "forum",
-            "color": "violet",
-            "filter": "forum"
-        }
-    ]
-    
-    # ══════════════════════════════════════════════════════════════════════════
-    # 3. COURSE STATS - Quick overview
-    # ══════════════════════════════════════════════════════════════════════════
-    total_posts = await db.course_posts.count_documents({
-        "subject_id": subject_id,
-        "status": "active"
-    })
-    
-    total_reminders = await db.course_reminders.count_documents({
-        "subject_id": subject_id,
-        "status": "active"
-    })
-    
+
+    pending_tasks_count = pending_tasks_post_count + pending_task_reminders_count
+
     return {
         "news": news_items,
-        "quick_access": quick_access,
+        "quick_access": [
+            {"id": "materials", "label": "Materiales", "count": materials_count,
+             "icon": "folder", "color": "blue", "filter": "material"},
+            {"id": "tasks", "label": "Tareas pendientes", "count": pending_tasks_count,
+             "icon": "task", "color": "amber", "filter": "task"},
+            {"id": "videos", "label": "Clases grabadas", "count": videos_count,
+             "icon": "video", "color": "rose", "filter": "video"},
+            {"id": "forum", "label": "Foro del curso", "count": forum_count,
+             "icon": "forum", "color": "violet", "filter": "forum"},
+        ],
         "stats": {
             "total_posts": total_posts,
             "total_reminders": total_reminders,
