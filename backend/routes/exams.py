@@ -45,6 +45,11 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
+from services.exam_register_sync import (
+    sync_exam_to_register, sync_single_student, retry_pending_syncs,
+    REGISTER_TYPE_MAP, PARTICIPATION_MAP,
+)
+
 # ONLINE EXAMS MODULE - Premium Implementation
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -62,6 +67,10 @@ class ExamCreate(BaseModel):
     end_datetime: str    # ISO format datetime
     duration_minutes: int = 60  # Default 60 minutes, required
     min_score_percentage: Optional[float] = 60.0
+    # Register linkage fields
+    period_id: Optional[str] = None          # Bimester period ID (required)
+    register_type: Optional[str] = None      # "EM" or "EB" (optional)
+    register_participation: Optional[str] = None  # "P1", "P2", or "P3" (optional)
 
 
 class ExamUpdate(BaseModel):
@@ -72,6 +81,137 @@ class ExamUpdate(BaseModel):
     duration_minutes: Optional[int] = None
     min_score_percentage: Optional[float] = None
     status: Optional[ExamStatus] = None
+    # Register linkage fields
+    period_id: Optional[str] = None
+    register_type: Optional[str] = None
+    register_participation: Optional[str] = None
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REGISTER AVAILABILITY ENDPOINT
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/exams/register-availability")
+async def get_register_availability(
+    subject_id: str = Query(...),
+    section_id: str = Query(None),
+    period_id: str = Query(...),
+    current_user=Depends(get_current_user)
+):
+    """
+    Check which EM/EB/P1/P2/P3 slots are available for a given
+    subject + section + period (bimester).
+    """
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    school_id = user["school_id"]
+
+    # Resolve section_id from subject if not provided
+    if not section_id:
+        subject = await db.subjects.find_one(
+            {"id": subject_id, "school_id": school_id},
+            {"_id": 0, "section_id": 1}
+        )
+        section_id = subject.get("section_id") if subject else None
+
+    # Find all exams for this subject+section+period that have linkage
+    linked_exams = await db.online_exams.find(
+        {
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "period_id": period_id,
+            "$or": [
+                {"register_type": {"$ne": None}},
+                {"register_participation": {"$ne": None}},
+            ]
+        },
+        {"_id": 0, "id": 1, "title": 1, "register_type": 1, "register_participation": 1}
+    ).to_list(50)
+
+    # Build availability map
+    slots = {}
+    for key in ["EM", "EB", "P1", "P2", "P3"]:
+        slots[key] = {"available": True, "assigned_exam": None}
+
+    for exam in linked_exams:
+        rt = exam.get("register_type")
+        rp = exam.get("register_participation")
+        exam_ref = {"id": exam["id"], "title": exam.get("title", "")}
+
+        if rt and rt in slots:
+            slots[rt] = {"available": False, "assigned_exam": exam_ref}
+        if rp and rp in slots:
+            slots[rp] = {"available": False, "assigned_exam": exam_ref}
+
+    # Check register lock status
+    register_status = "open"
+    if section_id:
+        lock = await db.grade_locks.find_one(
+            {"school_id": school_id, "subject_id": subject_id,
+             "section_id": section_id, "period_id": period_id},
+            {"_id": 0}
+        )
+        if lock and lock.get("locked"):
+            register_status = "closed"
+
+    return {
+        "period_id": period_id,
+        "subject_id": subject_id,
+        "section_id": section_id,
+        "availability": slots,
+        "register_status": register_status,
+    }
+
+
+async def _validate_register_linkage(
+    school_id: str, subject_id: str, period_id: str,
+    register_type: str | None, register_participation: str | None,
+    exclude_exam_id: str | None = None,
+):
+    """
+    Validate that the chosen EM/EB/P slot is not already taken.
+    Returns None if ok, or raises HTTPException 409 on conflict.
+    """
+    if register_type and register_type not in ("EM", "EB"):
+        raise HTTPException(status_code=400, detail=f"register_type invalido: {register_type}")
+    if register_participation and register_participation not in ("P1", "P2", "P3"):
+        raise HTTPException(status_code=400, detail=f"register_participation invalido: {register_participation}")
+
+    if register_type:
+        conflict_query = {
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "period_id": period_id,
+            "register_type": register_type,
+        }
+        if exclude_exam_id:
+            conflict_query["id"] = {"$ne": exclude_exam_id}
+
+        conflict = await db.online_exams.find_one(conflict_query, {"_id": 0, "id": 1, "title": 1})
+        if conflict:
+            raise HTTPException(
+                status_code=409,
+                detail=f"La columna {register_type} ya fue asignada al examen '{conflict.get('title', '')}'. Actualice la pagina e intente de nuevo."
+            )
+
+    if register_participation:
+        conflict_query = {
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "period_id": period_id,
+            "register_participation": register_participation,
+        }
+        if exclude_exam_id:
+            conflict_query["id"] = {"$ne": exclude_exam_id}
+
+        conflict = await db.online_exams.find_one(conflict_query, {"_id": 0, "id": 1, "title": 1})
+        if conflict:
+            raise HTTPException(
+                status_code=409,
+                detail=f"La columna {register_participation} ya fue asignada al examen '{conflict.get('title', '')}'. Actualice la pagina e intente de nuevo."
+            )
 
 
 @router.get("/course/{subject_id}/exams")
@@ -159,15 +299,28 @@ async def create_exam(
     # Validate duration
     if not data.duration_minutes or data.duration_minutes < 1:
         raise HTTPException(status_code=400, detail="La duración del examen debe ser al menos 1 minuto")
-    
+
+    school_id = user["school_id"]
+    section_id = subject.get("section_id")
+
+    # Validate register linkage uniqueness (if provided)
+    if data.register_type or data.register_participation:
+        if not data.period_id:
+            raise HTTPException(status_code=400, detail="Se requiere period_id para vincular al registro auxiliar")
+        await _validate_register_linkage(
+            school_id, subject_id, data.period_id,
+            data.register_type, data.register_participation,
+        )
+
     # Create exam
     exam_id = str(uuid.uuid4())
     now = datetime.now(timezone.utc).isoformat()
     
     exam = {
         "id": exam_id,
-        "school_id": user["school_id"],
+        "school_id": school_id,
         "subject_id": subject_id,
+        "section_id": section_id,
         "title": data.title,
         "description": data.description or "",
         "start_datetime": data.start_datetime,
@@ -177,7 +330,12 @@ async def create_exam(
         "status": ExamStatus.draft.value,
         "created_by": user["id"],
         "created_at": now,
-        "updated_at": now
+        "updated_at": now,
+        # Register linkage
+        "period_id": data.period_id,
+        "register_type": data.register_type,
+        "register_participation": data.register_participation,
+        "sync_status": "not_linked" if not data.register_type and not data.register_participation else "pending",
     }
     
     await db.online_exams.insert_one(exam)
@@ -350,8 +508,52 @@ async def update_exam(
         if data.end_datetime is not None:
             update_data["end_datetime"] = data.end_datetime
     
+    # Handle register linkage updates
+    old_register_type = exam.get("register_type")
+    old_register_participation = exam.get("register_participation")
+    old_period_id = exam.get("period_id")
+    linkage_changed = False
+
+    if data.period_id is not None:
+        update_data["period_id"] = data.period_id
+    if data.register_type is not None:
+        update_data["register_type"] = data.register_type if data.register_type else None
+    if data.register_participation is not None:
+        update_data["register_participation"] = data.register_participation if data.register_participation else None
+
+    # Determine effective values
+    eff_period = update_data.get("period_id", old_period_id)
+    eff_type = update_data.get("register_type", old_register_type)
+    eff_part = update_data.get("register_participation", old_register_participation)
+
+    # Validate new linkage if changed
+    if eff_type != old_register_type or eff_part != old_register_participation or update_data.get("period_id") != old_period_id:
+        linkage_changed = True
+        if eff_type or eff_part:
+            if not eff_period:
+                raise HTTPException(status_code=400, detail="Se requiere period_id para vincular al registro auxiliar")
+            await _validate_register_linkage(
+                user["school_id"], exam["subject_id"], eff_period,
+                eff_type, eff_part, exclude_exam_id=exam_id,
+            )
+        # Update sync_status
+        update_data["sync_status"] = "not_linked" if not eff_type and not eff_part else "pending"
+
     await db.online_exams.update_one({"id": exam_id}, {"$set": update_data})
-    
+
+    # If linkage changed, clean old columns and sync new ones
+    if linkage_changed:
+        # Clean old linkage
+        if old_register_type or old_register_participation:
+            old_exam_snapshot = {**exam, "register_type": old_register_type, "register_participation": old_register_participation, "period_id": old_period_id}
+            await db.online_exams.update_one({"id": exam_id}, {"$set": old_exam_snapshot})
+            await sync_exam_to_register(db, exam_id, "delete")
+            # Restore new linkage
+            await db.online_exams.update_one({"id": exam_id}, {"$set": update_data})
+        # Sync new linkage
+        if eff_type or eff_part:
+            await sync_exam_to_register(db, exam_id, "update")
+
     # Return updated exam
     updated_exam = await db.online_exams.find_one({"id": exam_id}, {"_id": 0})
     return updated_exam
@@ -511,7 +713,11 @@ async def delete_exam(
     # Cannot delete closed exams
     if exam["status"] == ExamStatus.closed.value:
         raise HTTPException(status_code=400, detail="No se puede eliminar un examen cerrado. Solo puedes archivarlo.")
-    
+
+    # Clean register linkage before deleting
+    if exam.get("register_type") or exam.get("register_participation"):
+        await sync_exam_to_register(db, exam_id, "delete")
+
     await db.online_exams.delete_one({"id": exam_id})
     
     return {"message": "Examen eliminado exitosamente"}
@@ -2207,6 +2413,13 @@ async def submit_exam_attempt(
             "time_used_seconds": time_used_seconds
         }}
     )
+
+    # Sync to register if exam has linkage (P0 spec: only if linked)
+    if exam.get("register_type") or exam.get("register_participation"):
+        try:
+            await sync_single_student(db, exam["id"], attempt["student_id"], round(percentage, 2))
+        except Exception as e:
+            logger.error(f"[SYNC] Failed to sync student grade for attempt {attempt_id}: {e}")
     
     return {
         "message": "Examen enviado exitosamente",
