@@ -93,12 +93,13 @@ class ExamUpdate(BaseModel):
 async def get_register_availability(
     subject_id: str = Query(...),
     section_id: str = Query(None),
-    period_id: str = Query(...),
+    period_id: str = Query(None),
     current_user=Depends(get_current_user)
 ):
     """
     Check which EM/EB/P1/P2/P3 slots are available for a given
-    subject + section + period (bimester).
+    subject + section + active period (bimester).
+    period_id is resolved automatically from the active academic period.
     A slot is UNAVAILABLE if:
       1. An exam is already linked to it, OR
       2. The column has manual grades in student_grades (at least one non-null value)
@@ -109,6 +110,19 @@ async def get_register_availability(
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
 
     school_id = user["school_id"]
+
+    # Auto-resolve period_id from active academic period
+    if not period_id:
+        active_period = await db.academic_periods.find_one(
+            {"school_id": school_id, "activo": True},
+            {"_id": 0, "id": 1}
+        )
+        if not active_period:
+            raise HTTPException(
+                status_code=400,
+                detail="No hay un periodo academico activo. Configure uno en Anos Academicos."
+            )
+        period_id = active_period["id"]
 
     # Resolve section_id from subject if not provided
     if not section_id:
@@ -319,12 +333,22 @@ async def create_exam(
     school_id = user["school_id"]
     section_id = subject.get("section_id")
 
+    # Auto-resolve period_id from active academic period
+    active_period = await db.academic_periods.find_one(
+        {"school_id": school_id, "activo": True},
+        {"_id": 0, "id": 1}
+    )
+    resolved_period_id = active_period["id"] if active_period else None
+
     # Validate register linkage uniqueness (if provided)
     if data.register_column:
-        if not data.period_id:
-            raise HTTPException(status_code=400, detail="Se requiere period_id para vincular al registro auxiliar")
+        if not resolved_period_id:
+            raise HTTPException(
+                status_code=400,
+                detail="No hay un periodo academico activo. Configure uno en Anos Academicos."
+            )
         await _validate_register_linkage(
-            school_id, subject_id, data.period_id, data.register_column,
+            school_id, subject_id, resolved_period_id, data.register_column,
         )
 
     # Create exam
@@ -346,8 +370,8 @@ async def create_exam(
         "created_by": user["id"],
         "created_at": now,
         "updated_at": now,
-        # Register linkage — single column
-        "period_id": data.period_id,
+        # Register linkage — single column, period auto-resolved
+        "period_id": resolved_period_id,
         "register_column": data.register_column,
         "sync_status": "not_linked" if not data.register_column else "pending",
     }
@@ -527,21 +551,30 @@ async def update_exam(
     old_period_id = exam.get("period_id")
     linkage_changed = False
 
-    if data.period_id is not None:
-        update_data["period_id"] = data.period_id
+    # Auto-resolve period from active academic period
+    active_period = await db.academic_periods.find_one(
+        {"school_id": user["school_id"], "activo": True},
+        {"_id": 0, "id": 1}
+    )
+    resolved_period_id = active_period["id"] if active_period else old_period_id
+
     if data.register_column is not None:
         update_data["register_column"] = data.register_column if data.register_column else None
+    # Always use the active period for linkage
+    update_data["period_id"] = resolved_period_id
 
-    eff_period = update_data.get("period_id", old_period_id)
     eff_column = update_data.get("register_column", old_column)
 
-    if eff_column != old_column or update_data.get("period_id") != old_period_id:
+    if eff_column != old_column or resolved_period_id != old_period_id:
         linkage_changed = True
         if eff_column:
-            if not eff_period:
-                raise HTTPException(status_code=400, detail="Se requiere period_id para vincular al registro auxiliar")
+            if not resolved_period_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail="No hay un periodo academico activo. Configure uno en Anos Academicos."
+                )
             await _validate_register_linkage(
-                user["school_id"], exam["subject_id"], eff_period,
+                user["school_id"], exam["subject_id"], resolved_period_id,
                 eff_column, exclude_exam_id=exam_id,
             )
         update_data["sync_status"] = "not_linked" if not eff_column else "pending"

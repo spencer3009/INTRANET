@@ -16,12 +16,14 @@
 
 ### Exam ↔ Registro Auxiliar Linkage (P0) - COMPLETED
 - Backend: `register_column` (single field, mutually exclusive: EM|EB|P1|P2|P3|null)
-- Backend: `GET /api/exams/register-availability` with slot availability per bimester
+- Backend: `GET /api/exams/register-availability` with slot availability per bimester (auto-resolves active period)
 - Backend: Validation 409 conflict on duplicate register_column
 - Backend: `sync_exam_to_register()` and `sync_single_student()` for auto-grading
 - Backend: Single unique partial index `uq_exam_register_column`
+- Backend: `period_id` auto-resolved from active academic period (not sent from frontend)
 - Frontend: ExamModal single radio group (EM, EB, P1, P2, P3 + Sin vinculacion)
-- Frontend: Bimester select, dynamic availability badges, confirmation text
+- Frontend: Bimester displayed as read-only badge with ACTIVO indicator (not dropdown)
+- Frontend: If no active period, linkage block shows warning and hides column options
 
 ### Prior Features (from previous sessions)
 - Attendance Config by Level, Push Notifications, QR Scanner

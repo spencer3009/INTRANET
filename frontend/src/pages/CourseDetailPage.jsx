@@ -4834,8 +4834,8 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
   const [error, setError] = useState("");
 
   // Register linkage state — single column (mutually exclusive)
-  const [periods, setPeriods] = useState([]);
-  const [selectedPeriodId, setSelectedPeriodId] = useState("");
+  const [activePeriod, setActivePeriod] = useState(null); // {id, nombre, ...} or null
+  const [activePeriodLoading, setActivePeriodLoading] = useState(false);
   const [registerColumn, setRegisterColumn] = useState(null); // "EM"|"EB"|"P1"|"P2"|"P3"|null
   const [availability, setAvailability] = useState(null);
   const [registerStatus, setRegisterStatus] = useState("open");
@@ -4843,41 +4843,27 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
 
   const headers = { Authorization: `Bearer ${token}` };
 
-  // Calculate default bimester from current month
-  const getDefaultBimester = () => {
-    const month = new Date().getMonth() + 1; // 1-12
-    if (month >= 3 && month <= 5) return 1;
-    if (month >= 6 && month <= 7) return 2;
-    if (month >= 8 && month <= 10) return 3;
-    return 4;
-  };
-
-  // Load academic periods for the school
+  // Load active academic period
   useEffect(() => {
     if (!isOpen) return;
-    const loadPeriods = async () => {
+    const loadActivePeriod = async () => {
+      setActivePeriodLoading(true);
       try {
-        const res = await axios.get(`${API}/academic/periods`, { headers });
-        const periodList = res.data || [];
-        setPeriods(periodList);
-        // Pre-select based on current bimester or exam's existing period
-        if (exam?.period_id) {
-          setSelectedPeriodId(exam.period_id);
-        } else if (periodList.length > 0) {
-          const defaultBim = getDefaultBimester();
-          const match = periodList.find(p => p.orden === defaultBim) || periodList[0];
-          setSelectedPeriodId(match?.id || "");
-        }
+        const res = await axios.get(`${API}/academic/periods/active`, { headers });
+        setActivePeriod(res.data?.active_period || null);
       } catch (err) {
-        console.log("Could not load periods:", err);
+        console.log("Could not load active period:", err);
+        setActivePeriod(null);
+      } finally {
+        setActivePeriodLoading(false);
       }
     };
-    loadPeriods();
+    loadActivePeriod();
   }, [isOpen]);
 
-  // Load availability when period changes
+  // Load availability when active period is loaded
   useEffect(() => {
-    if (!selectedPeriodId || !subjectId || !isOpen) {
+    if (!activePeriod?.id || !subjectId || !isOpen) {
       setAvailability(null);
       return;
     }
@@ -4886,7 +4872,6 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
       try {
         const params = new URLSearchParams({
           subject_id: subjectId,
-          period_id: selectedPeriodId,
         });
         if (sectionId) params.append("section_id", sectionId);
         const res = await axios.get(`${API}/exams/register-availability?${params}`, { headers });
@@ -4900,7 +4885,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
       }
     };
     loadAvailability();
-  }, [selectedPeriodId, subjectId, isOpen]);
+  }, [activePeriod, subjectId, isOpen]);
 
   // Initialize form when opening
   useEffect(() => {
@@ -4943,7 +4928,6 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
     if (!date) { setError("La fecha es requerida"); return; }
     if (!startTime || !endTime) { setError("Las horas de inicio y fin son requeridas"); return; }
     if (!durationMinutes || durationMinutes < 1) { setError("La duracion debe ser al menos 1 minuto"); return; }
-    if (!selectedPeriodId) { setError("Selecciona un bimestre"); return; }
 
     const startDatetime = new Date(`${date}T${startTime}`).toISOString();
     const endDatetime = new Date(`${date}T${endTime}`).toISOString();
@@ -4962,7 +4946,6 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
         end_datetime: endDatetime,
         duration_minutes: parseInt(durationMinutes),
         min_score_percentage: minScore,
-        period_id: selectedPeriodId,
         register_column: registerColumn,
       }, exam?.id);
       onClose();
@@ -4997,7 +4980,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
     if (!registerColumn) {
       return { linked: false, text: "Este examen NO se vinculara al Registro Auxiliar. Las notas solo quedaran en el modulo de examenes." };
     }
-    const periodName = periods.find(p => p.id === selectedPeriodId)?.nombre || `Periodo`;
+    const periodName = activePeriod?.nombre || "Periodo activo";
     const labels = {
       "EM": "Examen Mensual (EM)",
       "EB": "Examen Bimestral (EB)",
@@ -5056,28 +5039,33 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
               Vinculacion al Registro Auxiliar
             </p>
 
-            {/* Bimestre select */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">Bimestre *</label>
-              <select
-                data-testid="bimester-select"
-                value={selectedPeriodId}
-                onChange={(e) => {
-                  setSelectedPeriodId(e.target.value);
-                  setRegisterColumn(null);
-                }}
-                className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
-                required
-              >
-                <option value="">Seleccionar bimestre...</option>
-                {periods.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre || `Bimestre ${p.orden}`}</option>
-                ))}
-              </select>
-            </div>
-
-            {selectedPeriodId && (
+            {/* Active period display */}
+            {activePeriodLoading ? (
+              <div className="flex items-center gap-2 text-xs text-amber-600">
+                <Loader2 className="w-3 h-3 animate-spin" /> Cargando periodo activo...
+              </div>
+            ) : !activePeriod ? (
+              <div className="p-3 bg-orange-100 border border-orange-300 rounded-lg text-xs text-orange-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>No hay un periodo academico activo. Configure uno en <strong>Anos Academicos</strong> para poder vincular examenes al registro.</span>
+              </div>
+            ) : (
               <>
+                {/* Bimestre — read-only badge */}
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Bimestre</label>
+                  <div
+                    data-testid="bimester-badge"
+                    className="inline-flex items-center gap-2 px-3 py-2 bg-amber-100 border border-amber-300 rounded-lg text-sm font-semibold text-amber-800"
+                  >
+                    <span>{activePeriod.nombre || `Bimestre ${activePeriod.orden}`}</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                      Activo
+                    </span>
+                  </div>
+                </div>
+
                 {loadingAvailability ? (
                   <div className="flex items-center gap-2 text-xs text-amber-600">
                     <Loader2 className="w-3 h-3 animate-spin" /> Verificando disponibilidad...
@@ -5113,7 +5101,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                               <label
                                 key={key}
                                 data-testid={`register-col-${key.toLowerCase()}`}
-                                title={!available ? `Ya asignado al examen: ${occupyingExam}` : ""}
+                                title={!available ? occupyingExam : ""}
                                 className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
                                   !available
                                     ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
