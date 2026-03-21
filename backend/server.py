@@ -47,6 +47,7 @@ from routes.live_classes import router as live_classes_router
 from routes.grades import router as grades_router
 from routes.membership import router as membership_router
 from routes.subscription import router as subscription_router, daily_subscription_cron
+from routes.exams import close_expired_exams_cron
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -357,6 +358,8 @@ async def create_indexes():
         import asyncio
         asyncio.create_task(daily_subscription_cron())
         logging.info("Daily subscription cron job started")
+        asyncio.create_task(close_expired_exams_cron())
+        logging.info("Exam auto-close cron job started")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
 

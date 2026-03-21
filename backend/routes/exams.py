@@ -3073,3 +3073,124 @@ async def get_student_exam_schedule(
 
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EXAM AUTO-CLOSE CRON — Runs every 60 seconds
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def close_expired_exams_cron():
+    """
+    Background task: checks every 60s for published exams past their end_datetime.
+    For each:
+      1. Changes status to "closed"
+      2. Expires any in-progress attempts
+      3. Creates score=0 attempts for students who never took the exam
+      4. Syncs all grades to the registro auxiliar (if linked)
+    """
+    import asyncio
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            now_iso = now.isoformat()
+
+            # Find published exams whose end_datetime has passed
+            expired_exams = await db.online_exams.find(
+                {
+                    "status": ExamStatus.published.value,
+                    "end_datetime": {"$lte": now_iso},
+                },
+                {"_id": 0}
+            ).to_list(100)
+
+            for exam in expired_exams:
+                exam_id = exam["id"]
+                subject_id = exam["subject_id"]
+                school_id = exam["school_id"]
+                section_id = exam.get("section_id")
+
+                # 1. Close the exam
+                await db.online_exams.update_one(
+                    {"id": exam_id},
+                    {"$set": {"status": ExamStatus.closed.value, "updated_at": now_iso}}
+                )
+
+                # 2. Expire any in-progress attempts
+                await db.exam_attempts.update_many(
+                    {"exam_id": exam_id, "status": ExamAttemptStatus.in_progress.value},
+                    {"$set": {"status": ExamAttemptStatus.expired.value, "end_time": now_iso}}
+                )
+
+                # 3. Find students who should have taken the exam but didn't
+                # Get all students in this section
+                student_query = {"school_id": school_id, "role": "estudiante", "status": {"$ne": "inactive"}}
+                if section_id:
+                    student_query["seccion_id"] = section_id
+
+                all_students = await db.users.find(
+                    student_query, {"_id": 0, "id": 1}
+                ).to_list(500)
+                all_student_ids = {s["id"] for s in all_students}
+
+                # Get students who already have a completed attempt
+                completed_attempts = await db.exam_attempts.find(
+                    {"exam_id": exam_id, "status": ExamAttemptStatus.completed.value},
+                    {"_id": 0, "student_id": 1}
+                ).to_list(500)
+                completed_ids = {a["student_id"] for a in completed_attempts}
+
+                # Students who didn't take the exam
+                absent_ids = all_student_ids - completed_ids
+
+                if absent_ids:
+                    # Create score=0 attempts for absent students
+                    absent_attempts = []
+                    for sid in absent_ids:
+                        # Check no attempt at all (could have expired/abandoned)
+                        existing = await db.exam_attempts.find_one(
+                            {"exam_id": exam_id, "student_id": sid, "status": ExamAttemptStatus.completed.value}
+                        )
+                        if existing:
+                            continue
+
+                        attempt_doc = {
+                            "id": str(uuid.uuid4()),
+                            "exam_id": exam_id,
+                            "student_id": sid,
+                            "school_id": school_id,
+                            "status": ExamAttemptStatus.completed.value,
+                            "start_time": now_iso,
+                            "end_time": now_iso,
+                            "score": 0,
+                            "max_score": 20,
+                            "percentage": 0.0,
+                            "passed": False,
+                            "correct_count": 0,
+                            "incorrect_count": 0,
+                            "unanswered_count": 0,
+                            "graded_answers": [],
+                            "time_used_seconds": 0,
+                            "auto_zero": True,  # Flag: auto-assigned zero
+                        }
+                        absent_attempts.append(attempt_doc)
+
+                    if absent_attempts:
+                        await db.exam_attempts.insert_many(absent_attempts)
+                        logger.info(f"[EXAM-CRON] Exam {exam_id}: assigned 0 to {len(absent_attempts)} absent students")
+
+                # 4. Sync all grades to register if linked
+                if exam.get("register_column"):
+                    try:
+                        await sync_exam_to_register(db, exam_id, "create")
+                    except Exception as e:
+                        logger.error(f"[EXAM-CRON] Sync failed for exam {exam_id}: {e}")
+
+                logger.info(f"[EXAM-CRON] Closed exam '{exam.get('title', exam_id)}' — {len(completed_ids)} completed, {len(absent_ids)} absent")
+
+            if expired_exams:
+                logger.info(f"[EXAM-CRON] Processed {len(expired_exams)} expired exams")
+
+        except Exception as e:
+            logger.error(f"[EXAM-CRON] Error: {e}")
+
+        await asyncio.sleep(60)  # Check every 60 seconds
