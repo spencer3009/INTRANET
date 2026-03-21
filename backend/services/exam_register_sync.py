@@ -7,18 +7,16 @@ from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
-
-# Grade fields that can be linked from exams
-REGISTER_TYPE_MAP = {
+# Maps register_column value to the student_grades field name
+COLUMN_FIELD_MAP = {
     "EM": "exam_mensual",
     "EB": "exam_bimestral",
-}
-
-PARTICIPATION_MAP = {
     "P1": "part_p1",
     "P2": "part_p2",
     "P3": "part_p3",
 }
+
+VALID_COLUMNS = set(COLUMN_FIELD_MAP.keys())
 
 
 def score_to_vigesimal(percentage: float) -> int:
@@ -31,6 +29,7 @@ def score_to_vigesimal(percentage: float) -> int:
 async def sync_exam_to_register(db, exam_id: str, action: str):
     """
     Central sync function. IDEMPOTENT — safe to call multiple times.
+    Writes to exactly ONE column in student_grades based on register_column.
 
     Args:
         db: Motor database instance
@@ -42,15 +41,18 @@ async def sync_exam_to_register(db, exam_id: str, action: str):
         logger.warning(f"[SYNC] Exam {exam_id} not found")
         return
 
-    register_type = exam.get("register_type")
-    register_participation = exam.get("register_participation")
+    register_column = exam.get("register_column")
 
-    # If no linkage, mark and exit
-    if not register_type and not register_participation:
+    if not register_column:
         await db.online_exams.update_one(
             {"id": exam_id},
             {"$set": {"sync_status": "not_linked"}}
         )
+        return
+
+    grade_field = COLUMN_FIELD_MAP.get(register_column)
+    if not grade_field:
+        logger.error(f"[SYNC] Invalid register_column '{register_column}' for exam {exam_id}")
         return
 
     period_id = exam.get("period_id")
@@ -84,38 +86,24 @@ async def sync_exam_to_register(db, exam_id: str, action: str):
         {"_id": 0, "student_id": 1, "percentage": 1}
     ).to_list(500)
 
-    # Build the field names to update
-    type_field = REGISTER_TYPE_MAP.get(register_type) if register_type else None
-    part_field = PARTICIPATION_MAP.get(register_participation) if register_participation else None
-
     for attempt in attempts:
         student_id = attempt["student_id"]
-        grade_value = score_to_vigesimal(attempt.get("percentage", 0))
-
-        update_fields = {}
         if action == "delete":
-            if type_field:
-                update_fields[type_field] = None
-            if part_field:
-                update_fields[part_field] = None
+            update_fields = {grade_field: None}
         else:
-            if type_field:
-                update_fields[type_field] = grade_value
-            if part_field:
-                update_fields[part_field] = grade_value
+            update_fields = {grade_field: score_to_vigesimal(attempt.get("percentage", 0))}
 
-        if update_fields:
-            await db.student_grades.update_one(
-                {
-                    "school_id": school_id,
-                    "subject_id": subject_id,
-                    "section_id": section_id,
-                    "period_id": period_id,
-                    "student_id": student_id,
-                },
-                {"$set": update_fields},
-                upsert=True,
-            )
+        await db.student_grades.update_one(
+            {
+                "school_id": school_id,
+                "subject_id": subject_id,
+                "section_id": section_id,
+                "period_id": period_id,
+                "student_id": student_id,
+            },
+            {"$set": update_fields},
+            upsert=True,
+        )
 
     new_status = "synced" if action != "delete" else "not_linked"
     await db.online_exams.update_one(
@@ -125,7 +113,7 @@ async def sync_exam_to_register(db, exam_id: str, action: str):
 
     logger.info(
         f"[SYNC] Exam {exam_id} action={action} synced {len(attempts)} students "
-        f"(type={register_type}, part={register_participation})"
+        f"(column={register_column} → field={grade_field})"
     )
 
 
@@ -138,10 +126,12 @@ async def sync_single_student(db, exam_id: str, student_id: str, percentage: flo
     if not exam:
         return
 
-    register_type = exam.get("register_type")
-    register_participation = exam.get("register_participation")
+    register_column = exam.get("register_column")
+    if not register_column:
+        return
 
-    if not register_type and not register_participation:
+    grade_field = COLUMN_FIELD_MAP.get(register_column)
+    if not grade_field:
         return
 
     period_id = exam.get("period_id")
@@ -168,35 +158,23 @@ async def sync_single_student(db, exam_id: str, student_id: str, percentage: flo
         return
 
     grade_value = score_to_vigesimal(percentage)
-    update_fields = {}
-
-    type_field = REGISTER_TYPE_MAP.get(register_type) if register_type else None
-    part_field = PARTICIPATION_MAP.get(register_participation) if register_participation else None
-
-    if type_field:
-        update_fields[type_field] = grade_value
-    if part_field:
-        update_fields[part_field] = grade_value
-
-    if update_fields:
-        await db.student_grades.update_one(
-            {
-                "school_id": school_id,
-                "subject_id": subject_id,
-                "section_id": section_id,
-                "period_id": period_id,
-                "student_id": student_id,
-            },
-            {"$set": update_fields},
-            upsert=True,
-        )
-        logger.info(f"[SYNC] Student {student_id} grade synced for exam {exam_id}: {update_fields}")
+    await db.student_grades.update_one(
+        {
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "section_id": section_id,
+            "period_id": period_id,
+            "student_id": student_id,
+        },
+        {"$set": {grade_field: grade_value}},
+        upsert=True,
+    )
+    logger.info(f"[SYNC] Student {student_id} grade synced: {grade_field}={grade_value}")
 
 
 async def retry_pending_syncs(db, school_id: str, subject_id: str, section_id: str, period_id: str):
     """
     Retry all pending syncs when a register is reopened.
-    Called from unlock_period endpoint.
     """
     pending_exams = await db.online_exams.find(
         {

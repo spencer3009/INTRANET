@@ -334,18 +334,12 @@ async def create_indexes():
         await db.presence.create_index([("school_id", 1)])
         await db.course_posts.create_index([("subject_id", 1), ("status", 1), ("created_at", -1)])
 
-        # Exam ↔ Register linkage indexes (unique with partial filter)
+        # Exam ↔ Register linkage: ONE column per subject+period (unique)
         await db.online_exams.create_index(
-            [("school_id", 1), ("subject_id", 1), ("period_id", 1), ("register_type", 1)],
+            [("school_id", 1), ("subject_id", 1), ("period_id", 1), ("register_column", 1)],
             unique=True,
-            partialFilterExpression={"register_type": {"$in": ["EM", "EB"]}},
-            name="uq_exam_register_type"
-        )
-        await db.online_exams.create_index(
-            [("school_id", 1), ("subject_id", 1), ("period_id", 1), ("register_participation", 1)],
-            unique=True,
-            partialFilterExpression={"register_participation": {"$in": ["P1", "P2", "P3"]}},
-            name="uq_exam_register_participation"
+            partialFilterExpression={"register_column": {"$in": ["EM", "EB", "P1", "P2", "P3"]}},
+            name="uq_exam_register_column"
         )
         await db.online_exams.create_index([("sync_status", 1), ("subject_id", 1), ("period_id", 1)])
         await db.online_exams.create_index([("school_id", 1), ("subject_id", 1), ("period_id", 1)])

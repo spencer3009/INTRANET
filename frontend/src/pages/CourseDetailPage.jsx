@@ -4833,11 +4833,10 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  // Register linkage state
+  // Register linkage state — single column (mutually exclusive)
   const [periods, setPeriods] = useState([]);
   const [selectedPeriodId, setSelectedPeriodId] = useState("");
-  const [registerType, setRegisterType] = useState(null); // "EM", "EB", or null
-  const [registerParticipation, setRegisterParticipation] = useState(null); // "P1","P2","P3", or null
+  const [registerColumn, setRegisterColumn] = useState(null); // "EM"|"EB"|"P1"|"P2"|"P3"|null
   const [availability, setAvailability] = useState(null);
   const [registerStatus, setRegisterStatus] = useState("open");
   const [loadingAvailability, setLoadingAvailability] = useState(false);
@@ -4922,8 +4921,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
       }
       setDurationMinutes(exam.duration_minutes || 60);
       setMinScore(exam.min_score_percentage || 60);
-      setRegisterType(exam.register_type || null);
-      setRegisterParticipation(exam.register_participation || null);
+      setRegisterColumn(exam.register_column || null);
     } else {
       setTitle("");
       setDescription("");
@@ -4932,8 +4930,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
       setEndTime("11:00:00");
       setDurationMinutes(60);
       setMinScore(55);
-      setRegisterType(null);
-      setRegisterParticipation(null);
+      setRegisterColumn(null);
     }
     setError("");
   }, [exam, isOpen]);
@@ -4966,8 +4963,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
         duration_minutes: parseInt(durationMinutes),
         min_score_percentage: minScore,
         period_id: selectedPeriodId,
-        register_type: registerType,
-        register_participation: registerParticipation,
+        register_column: registerColumn,
       }, exam?.id);
       onClose();
     } catch (err) {
@@ -4983,7 +4979,6 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
     const slot = availability[key];
     if (!slot) return true;
     if (slot.available) return true;
-    // If editing, the current exam's own slot should appear available
     if (exam?.id && slot.assigned_exam?.id === exam.id) return true;
     return false;
   };
@@ -4998,30 +4993,28 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
 
   // Build confirmation text
   const buildConfirmationText = () => {
-    if (!registerType && !registerParticipation) {
+    if (!registerColumn) {
       return { linked: false, text: "Este examen NO se vinculara al Registro Auxiliar. Las notas solo quedaran en el modulo de examenes." };
     }
-    const periodName = periods.find(p => p.id === selectedPeriodId)?.nombre || `Periodo ${selectedPeriodId}`;
-    const parts = [];
-    if (registerType === "EM") parts.push("Examen Mensual (EM)");
-    if (registerType === "EB") parts.push("Examen Bimestral (EB)");
-    if (registerParticipation) parts.push(`Participacion ${registerParticipation}`);
-    const columns = [];
-    if (registerType) columns.push(registerType);
-    if (registerParticipation) columns.push(registerParticipation);
+    const periodName = periods.find(p => p.id === selectedPeriodId)?.nombre || `Periodo`;
+    const labels = {
+      "EM": "Examen Mensual (EM)",
+      "EB": "Examen Bimestral (EB)",
+      "P1": "Participacion P1",
+      "P2": "Participacion P2",
+      "P3": "Participacion P3",
+    };
     return {
       linked: true,
-      text: `${periodName} → ${parts.join(" + ")}`,
-      detail: `Las notas de los alumnos se guardaran automaticamente en las columnas ${columns.join(" y ")}.`
+      text: `${periodName} → ${labels[registerColumn] || registerColumn}`,
+      detail: `Las notas de los alumnos se guardaran automaticamente en la columna ${registerColumn}.`
     };
   };
 
   const confirmation = buildConfirmationText();
 
-  // All EM/EB taken?
-  const allExamTypesTaken = availability && !isSlotAvailable("EM") && !isSlotAvailable("EB");
-  // All P taken?
-  const allParticipationsTaken = availability && !isSlotAvailable("P1") && !isSlotAvailable("P2") && !isSlotAvailable("P3");
+  // All slots taken?
+  const allSlotsTaken = availability && !isSlotAvailable("EM") && !isSlotAvailable("EB") && !isSlotAvailable("P1") && !isSlotAvailable("P2") && !isSlotAvailable("P3");
 
   if (!isOpen) return null;
 
@@ -5070,9 +5063,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                 value={selectedPeriodId}
                 onChange={(e) => {
                   setSelectedPeriodId(e.target.value);
-                  // Reset selections when changing bimester
-                  setRegisterType(null);
-                  setRegisterParticipation(null);
+                  setRegisterColumn(null);
                 }}
                 className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required
@@ -5100,24 +5091,27 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                       </div>
                     )}
 
-                    {/* Exam type: EM / EB */}
+                    {/* Single column selection — mutually exclusive */}
                     <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-2">Registrar nota como:</label>
-                      {allExamTypesTaken ? (
-                        <p className="text-xs text-gray-500 italic">Ya se asignaron ambos examenes (EM y EB) para este bimestre.</p>
+                      <label className="block text-xs font-semibold text-gray-700 mb-2">Vincular al Registro Auxiliar como:</label>
+                      {allSlotsTaken ? (
+                        <p className="text-xs text-gray-500 italic">Todas las columnas ya fueron asignadas para este bimestre.</p>
                       ) : (
                         <div className="space-y-1.5">
                           {[
                             { key: "EM", label: "Examen Mensual (EM)", weight: "15%" },
                             { key: "EB", label: "Examen Bimestral (EB)", weight: "20%" },
+                            { key: "P1", label: "Participacion P1", weight: null },
+                            { key: "P2", label: "Participacion P2", weight: null },
+                            { key: "P3", label: "Participacion P3", weight: null },
                           ].map(({ key, label, weight }) => {
                             const available = isSlotAvailable(key);
                             const occupyingExam = getSlotExamTitle(key);
-                            const isSelected = registerType === key;
+                            const isSelected = registerColumn === key;
                             return (
                               <label
                                 key={key}
-                                data-testid={`register-type-${key.toLowerCase()}`}
+                                data-testid={`register-col-${key.toLowerCase()}`}
                                 title={!available ? `Ya asignado al examen: ${occupyingExam}` : ""}
                                 className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
                                   !available
@@ -5129,14 +5123,16 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                               >
                                 <input
                                   type="radio"
-                                  name="register_type"
+                                  name="register_column"
                                   checked={isSelected}
                                   disabled={!available}
-                                  onChange={() => setRegisterType(isSelected ? null : key)}
-                                  onClick={() => { if (isSelected) setRegisterType(null); }}
+                                  onChange={() => setRegisterColumn(isSelected ? null : key)}
+                                  onClick={() => { if (isSelected) setRegisterColumn(null); }}
                                   className="accent-amber-600"
                                 />
-                                <span className="flex-1">{label} - {weight}</span>
+                                <span className="flex-1">
+                                  {label}{weight ? ` - ${weight}` : ""}
+                                </span>
                                 {!available ? (
                                   <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">Ya asignado</span>
                                 ) : (
@@ -5145,41 +5141,24 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                               </label>
                             );
                           })}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Participation: P1 / P2 / P3 */}
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-700 mb-2">Registrar tambien como participacion:</label>
-                      {allParticipationsTaken ? (
-                        <p className="text-xs text-gray-500 italic">Las 3 participaciones ya fueron asignadas para este bimestre.</p>
-                      ) : (
-                        <div className="flex gap-2">
-                          {["P1", "P2", "P3"].map((key) => {
-                            const available = isSlotAvailable(key);
-                            const occupyingExam = getSlotExamTitle(key);
-                            const isSelected = registerParticipation === key;
-                            return (
-                              <button
-                                key={key}
-                                type="button"
-                                data-testid={`register-part-${key.toLowerCase()}`}
-                                title={!available ? `Ya asignado al examen: ${occupyingExam}` : ""}
-                                disabled={!available}
-                                onClick={() => setRegisterParticipation(isSelected ? null : key)}
-                                className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-all ${
-                                  !available
-                                    ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                                    : isSelected
-                                    ? "bg-amber-500 border-amber-500 text-white"
-                                    : "bg-white border-gray-200 text-gray-700 hover:border-amber-300"
-                                }`}
-                              >
-                                {key} {!available ? "•" : ""}
-                              </button>
-                            );
-                          })}
+                          {/* "Sin vinculacion" option */}
+                          <label
+                            data-testid="register-col-none"
+                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                              !registerColumn
+                                ? "bg-gray-100 border-gray-300 text-gray-700"
+                                : "bg-white border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="register_column"
+                              checked={!registerColumn}
+                              onChange={() => setRegisterColumn(null)}
+                              className="accent-gray-500"
+                            />
+                            <span className="flex-1 text-gray-500">Sin vinculacion</span>
+                          </label>
                         </div>
                       )}
                     </div>
