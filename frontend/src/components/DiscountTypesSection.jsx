@@ -62,8 +62,8 @@ function DiscountTypeModal({ isOpen, onClose, onSave, editingType }) {
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg" data-testid="discount-type-modal">
-        <div className="bg-gradient-to-r from-[#001f4b] to-[#0a3068] px-6 py-5 rounded-t-2xl flex items-center justify-between">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col" data-testid="discount-type-modal">
+        <div className="bg-gradient-to-r from-[#001f4b] to-[#0a3068] px-6 py-5 rounded-t-2xl flex items-center justify-between flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
               <Tag className="w-5 h-5 text-white" />
@@ -77,7 +77,7 @@ function DiscountTypeModal({ isOpen, onClose, onSave, editingType }) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto flex-1">
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-200 text-rose-600 rounded-xl flex items-center gap-2 text-sm font-medium">
               <AlertCircle className="w-4 h-4 flex-shrink-0" /> {error}
