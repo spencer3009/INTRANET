@@ -345,6 +345,20 @@ async def create_indexes():
         await db.online_exams.create_index([("sync_status", 1), ("subject_id", 1), ("period_id", 1)])
         await db.online_exams.create_index([("school_id", 1), ("subject_id", 1), ("period_id", 1)])
 
+        # register_column_assignments: cross-collection uniqueness for exam+task linkage
+        await db.register_column_assignments.create_index(
+            [("school_id", 1), ("subject_id", 1), ("section_id", 1), ("period_id", 1), ("register_column", 1)],
+            unique=True,
+            name="uq_register_column_assignment"
+        )
+        await db.register_column_assignments.create_index(
+            [("source_id", 1)],
+            name="idx_rca_source_id"
+        )
+        # Task linkage indexes
+        await db.course_posts.create_index([("school_id", 1), ("subject_id", 1), ("period_id", 1), ("register_column", 1)])
+        await db.course_posts.create_index([("sync_status", 1), ("subject_id", 1), ("period_id", 1)])
+
         logging.info("MongoDB indexes created successfully")
         # Initialize Firebase Admin SDK
         from utils.firebase_admin_sdk import get_firebase_app

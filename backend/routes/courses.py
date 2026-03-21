@@ -32,6 +32,11 @@ import jwt
 import cloudinary
 import cloudinary.uploader
 
+from services.register_sync import (
+    sync_single_student_task, sync_to_register,
+    COLUMN_FIELD_MAP, TASK_VALID_COLUMNS,
+)
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
@@ -56,6 +61,8 @@ class CoursePostCreate(BaseModel):
     metadata: Optional[dict] = None
     # Cloudinary data for proper file handling
     cloudinary_data: Optional[dict] = None
+    # Register linkage for tasks
+    register_column: Optional[str] = None  # "P1"|"P2"|"P3"|null (tasks only)
 
 class CoursePostUpdate(BaseModel):
     title: Optional[str] = None
@@ -263,7 +270,79 @@ async def create_course_post(
         if data.post_type == "task" and data.metadata.get("points"):
             post["max_grade"] = data.metadata["points"]
     
+    # Handle register linkage for tasks
+    resolved_period_id = None
+    if data.post_type == "task":
+        # Auto-resolve active period
+        active_period = await db.academic_periods.find_one(
+            {"school_id": school_id, "activo": True},
+            {"_id": 0, "id": 1}
+        )
+        resolved_period_id = active_period["id"] if active_period else None
+        post["period_id"] = resolved_period_id
+
+        register_column = data.register_column
+        if register_column:
+            if register_column not in TASK_VALID_COLUMNS:
+                raise HTTPException(status_code=400, detail="Las tareas solo pueden vincularse a P1, P2 o P3")
+            if not resolved_period_id:
+                raise HTTPException(status_code=400, detail="No hay un periodo academico activo. Configure uno en Anos Academicos.")
+            # Validate uniqueness via register_column_assignments
+            conflict = await db.register_column_assignments.find_one({
+                "school_id": school_id,
+                "subject_id": subject_id,
+                "period_id": resolved_period_id,
+                "register_column": register_column,
+            }, {"_id": 0})
+            if conflict:
+                ctype = conflict.get("source_type", "exam")
+                ctitle = conflict.get("source_title", "")
+                label = "examen" if ctype == "exam" else "tarea"
+                raise HTTPException(
+                    status_code=409,
+                    detail=f"La columna {register_column} ya fue asignada al {label} '{ctitle}'. Actualice la pagina e intente de nuevo."
+                )
+            # Check manual grades
+            field = COLUMN_FIELD_MAP.get(register_column)
+            if field:
+                manual_count = await db.student_grades.count_documents({
+                    "school_id": school_id,
+                    "subject_id": subject_id,
+                    "period_id": resolved_period_id,
+                    field: {"$ne": None},
+                })
+                if manual_count > 0:
+                    raise HTTPException(
+                        status_code=409,
+                        detail=f"La columna {register_column} ya tiene notas registradas manualmente en el Registro Auxiliar."
+                    )
+
+        post["register_column"] = register_column
+        post["section_id"] = subject.get("section_id") if subject else None
+        post["sync_status"] = "not_linked" if not register_column else "pending"
+    
     await db.course_posts.insert_one(post)
+
+    # Insert register_column_assignments for tasks
+    if data.post_type == "task" and data.register_column and resolved_period_id:
+        try:
+            await db.register_column_assignments.insert_one({
+                "school_id": school_id,
+                "subject_id": subject_id,
+                "section_id": subject.get("section_id") if subject else None,
+                "period_id": resolved_period_id,
+                "register_column": data.register_column,
+                "source_type": "task",
+                "source_id": post["id"],
+                "source_title": data.title.strip() if data.title else "",
+                "created_at": datetime.now(timezone.utc).isoformat(),
+            })
+        except Exception:
+            await db.course_posts.delete_one({"id": post["id"]})
+            raise HTTPException(
+                status_code=409,
+                detail=f"La columna {data.register_column} ya fue asignada. Actualice la pagina e intente de nuevo."
+            )
     
     # Register activity in the course stream
     activity_type_map = {
@@ -437,16 +516,30 @@ async def delete_course_post(
         except Exception as e:
             # Log error but continue with soft delete
             logger.error(f"Error deleting file from Google Drive: {e}")
+
+    # Clean register linkage for tasks
+    if post.get("post_type") == "task" and post.get("register_column"):
+        try:
+            await sync_to_register(db, post_id, "task", "delete")
+            await db.register_column_assignments.delete_one({"source_id": post_id})
+        except Exception as e:
+            logger.warning(f"Error cleaning task register linkage: {e}")
     
     # Soft delete - do NOT delete files from Cloudinary
     # Files are preserved for potential restoration
+    soft_delete_fields = {
+        "status": "deleted", 
+        "deleted_at": datetime.now(timezone.utc).isoformat(),
+        "deleted_by": user["id"],
+    }
+    # Clear register linkage fields on soft delete
+    if post.get("register_column"):
+        soft_delete_fields["register_column"] = None
+        soft_delete_fields["sync_status"] = "not_linked"
+
     await db.course_posts.update_one(
         {"id": post_id},
-        {"$set": {
-            "status": "deleted", 
-            "deleted_at": datetime.now(timezone.utc).isoformat(),
-            "deleted_by": user["id"]
-        }}
+        {"$set": soft_delete_fields}
     )
     
     # Create audit log
@@ -696,11 +789,23 @@ async def grade_task_submission(
         logger.error(f"Database error: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error de base de datos: {str(e)}")
     
+    # Trigger sync to Registro Auxiliar if task is linked
+    if task.get("register_column") and data.grade is not None:
+        sub = submissions[submission_idx] if submission_idx < len(submissions) else {}
+        student_id = sub.get("student_id")
+        if student_id:
+            try:
+                await sync_single_student_task(db, task_id, student_id, data.grade)
+            except Exception as sync_err:
+                logger.warning(f"[SYNC] Task grade sync failed: {sync_err}")
+
     return {
         "message": "Calificación guardada exitosamente",
         "grade": data.grade,
         "feedback": data.feedback
     }
+
+    # Note: The sync is triggered AFTER response below via background logic
 
 @router.post("/course/tasks/{task_id}/archive")
 async def archive_task(

@@ -2197,6 +2197,23 @@ function TaskTimePicker({ value, onChange, label }) {
   );
 }
 
+// Task slot availability helpers (shared between PremiumTaskModal and EditTaskModal)
+function _taskSlotAvailable(key, availability) {
+  if (!availability) return true;
+  const slot = availability[key];
+  return !slot || slot.available;
+}
+function _taskSlotTooltip(key, availability) {
+  if (!availability) return "";
+  const slot = availability[key];
+  if (!slot || slot.available) return "";
+  if (slot.reason === "manual") return "Esta columna ya tiene notas registradas manualmente";
+  if (slot.reason === "exam") return slot.assigned_to?.title ? `Ya asignado al examen: ${slot.assigned_to.title}` : "Ya asignado";
+  if (slot.reason === "task") return slot.assigned_to?.title ? `Ya asignado a la tarea: ${slot.assigned_to.title}` : "Ya asignado";
+  return "Ya asignado";
+}
+
+
 // ══════════════════════════════════════════════════════════════════════════════
 // PREMIUM TASK CREATION MODAL - Beautiful task creation experience
 // ══════════════════════════════════════════════════════════════════════════════
@@ -2213,6 +2230,14 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+  
+  // Register linkage state for tasks (P1/P2/P3 only)
+  const [taskActivePeriod, setTaskActivePeriod] = useState(null);
+  const [taskActivePeriodLoading, setTaskActivePeriodLoading] = useState(false);
+  const [taskRegisterColumn, setTaskRegisterColumn] = useState(null);
+  const [taskAvailability, setTaskAvailability] = useState(null);
+  const [taskRegisterStatus, setTaskRegisterStatus] = useState("open");
+  const [taskLoadingAvailability, setTaskLoadingAvailability] = useState(false);
   
   // Google Drive state
   const [driveStatus, setDriveStatus] = useState({ connected: false });
@@ -2231,6 +2256,45 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
     };
     checkDriveStatus();
   }, [token]);
+
+  // Load active period for register linkage
+  useEffect(() => {
+    if (!isOpen) return;
+    const loadActivePeriod = async () => {
+      setTaskActivePeriodLoading(true);
+      try {
+        const res = await axios.get(`${API}/academic/periods/active`, { headers });
+        setTaskActivePeriod(res.data?.active_period || null);
+      } catch (err) {
+        setTaskActivePeriod(null);
+      } finally {
+        setTaskActivePeriodLoading(false);
+      }
+    };
+    loadActivePeriod();
+  }, [isOpen]);
+
+  // Load availability when period is loaded
+  useEffect(() => {
+    if (!taskActivePeriod?.id || !subjectId || !isOpen) {
+      setTaskAvailability(null);
+      return;
+    }
+    const loadAvail = async () => {
+      setTaskLoadingAvailability(true);
+      try {
+        const params = new URLSearchParams({ subject_id: subjectId });
+        const res = await axios.get(`${API}/register/availability?${params}`, { headers });
+        setTaskAvailability(res.data.availability);
+        setTaskRegisterStatus(res.data.register_status);
+      } catch (err) {
+        setTaskAvailability(null);
+      } finally {
+        setTaskLoadingAvailability(false);
+      }
+    };
+    loadAvail();
+  }, [taskActivePeriod, subjectId, isOpen]);
   
   useEffect(() => {
     if (!isOpen) {
@@ -2244,6 +2308,7 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
       setFile(null);
       setError("");
       setUploadProgress(0);
+      setTaskRegisterColumn(null);
     }
   }, [isOpen]);
   
@@ -2373,6 +2438,7 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
         file_type: fileType,
         drive_file_id: driveFileId,
         storage_type: storageType,
+        register_column: taskRegisterColumn,
         metadata: {
           delivery_type: deliveryType,
           due_date: dueDateTime,
@@ -2449,6 +2515,92 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
             </div>
           )}
           
+          {/* ═══════ REGISTER LINKAGE BLOCK (Tasks: P1/P2/P3 only) ═══════ */}
+          <div data-testid="task-register-linkage-block" className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4 mb-5">
+            <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Vinculacion al Registro Auxiliar
+            </p>
+
+            {taskActivePeriodLoading ? (
+              <div className="flex items-center gap-2 text-xs text-amber-600">
+                <Loader2 className="w-3 h-3 animate-spin" /> Cargando periodo activo...
+              </div>
+            ) : !taskActivePeriod ? (
+              <div className="p-3 bg-orange-100 border border-orange-300 rounded-lg text-xs text-orange-700 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                <span>No hay un periodo academico activo. Configure uno en <strong>Anos Academicos</strong> para poder vincular tareas al registro.</span>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Bimestre</label>
+                  <div data-testid="task-bimester-badge" className="inline-flex items-center gap-2 px-3 py-2 bg-amber-100 border border-amber-300 rounded-lg text-sm font-semibold text-amber-800">
+                    <span>{taskActivePeriod.nombre || `Bimestre ${taskActivePeriod.orden}`}</span>
+                    <span className="inline-flex items-center gap-1 text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                      <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
+                      Activo
+                    </span>
+                  </div>
+                </div>
+                {taskLoadingAvailability ? (
+                  <div className="flex items-center gap-2 text-xs text-amber-600">
+                    <Loader2 className="w-3 h-3 animate-spin" /> Verificando disponibilidad...
+                  </div>
+                ) : (
+                  <>
+                    {taskRegisterStatus === "closed" && (
+                      <div className="p-2 bg-orange-100 border border-orange-300 rounded-lg text-xs text-orange-700">
+                        <AlertCircle className="w-3 h-3 inline mr-1" />
+                        El Registro Auxiliar de este bimestre esta cerrado. Las notas quedaran pendientes.
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-2">Registrar nota como participacion:</label>
+                      {(() => {
+                        const allTaken = taskAvailability && !_taskSlotAvailable("P1", taskAvailability) && !_taskSlotAvailable("P2", taskAvailability) && !_taskSlotAvailable("P3", taskAvailability);
+                        return allTaken ? (
+                          <p className="text-xs text-gray-500 italic">Todas las columnas de participacion ya fueron asignadas.</p>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {[{ key: "P1", label: "Participacion P1" }, { key: "P2", label: "Participacion P2" }, { key: "P3", label: "Participacion P3" }].map(({ key, label }) => {
+                              const avail = _taskSlotAvailable(key, taskAvailability);
+                              const tip = _taskSlotTooltip(key, taskAvailability);
+                              const isSel = taskRegisterColumn === key;
+                              return (
+                                <label key={key} data-testid={`task-register-col-${key.toLowerCase()}`} title={!avail ? tip : ""} className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${!avail ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60" : isSel ? "bg-amber-100 border-amber-400 text-amber-800" : "bg-white border-gray-200 hover:border-amber-300"}`}>
+                                  <input type="radio" name="task_register_column" checked={isSel} disabled={!avail} onChange={() => setTaskRegisterColumn(isSel ? null : key)} onClick={() => { if (isSel) setTaskRegisterColumn(null); }} className="accent-amber-600" />
+                                  <span className="flex-1">{label}</span>
+                                  {!avail ? (<span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">{taskAvailability?.[key]?.reason === "manual" ? "Notas manuales" : "Ya asignado"}</span>) : (<span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Disponible</span>)}
+                                </label>
+                              );
+                            })}
+                            <label data-testid="task-register-col-none" className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${!taskRegisterColumn ? "bg-gray-100 border-gray-300 text-gray-700" : "bg-white border-gray-200 hover:border-gray-300"}`}>
+                              <input type="radio" name="task_register_column" checked={!taskRegisterColumn} onChange={() => setTaskRegisterColumn(null)} className="accent-gray-500" />
+                              <span className="flex-1 text-gray-500">Sin vinculacion</span>
+                            </label>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    {(() => {
+                      const pName = taskActivePeriod?.nombre || "Periodo activo";
+                      const labels = { "P1": "Participacion P1", "P2": "Participacion P2", "P3": "Participacion P3" };
+                      const conf = taskRegisterColumn ? { linked: true, text: `${pName} → ${labels[taskRegisterColumn]}`, detail: `Las notas se guardaran automaticamente en la columna ${taskRegisterColumn}.` } : { linked: false, text: "Esta tarea NO se vinculara al Registro Auxiliar." };
+                      return (
+                        <div data-testid="task-register-confirmation" className={`p-2.5 rounded-lg text-xs border ${conf.linked ? "bg-green-50 border-green-200 text-green-800" : "bg-gray-50 border-gray-200 text-gray-600"}`}>
+                          <p className="font-semibold mb-0.5">{conf.linked ? "Esta tarea se registrara en el Registro Auxiliar:" : "Sin vinculacion"}</p>
+                          <p>{conf.text}</p>
+                          {conf.detail && <p className="mt-0.5 opacity-80">{conf.detail}</p>}
+                        </div>
+                      );
+                    })()}
+                  </>
+                )}
+              </>
+            )}
+          </div>
+          {/* ═══════ END TASK REGISTER LINKAGE ═══════ */}
           {/* Title */}
           <div className="mb-5">
             <label className="block text-sm font-semibold text-slate-700 mb-2">
@@ -4874,7 +5026,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
           subject_id: subjectId,
         });
         if (sectionId) params.append("section_id", sectionId);
-        const res = await axios.get(`${API}/exams/register-availability?${params}`, { headers });
+        const res = await axios.get(`${API}/register/availability?${params}`, { headers });
         setAvailability(res.data.availability);
         setRegisterStatus(res.data.register_status);
       } catch (err) {
@@ -4962,17 +5114,20 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
     const slot = availability[key];
     if (!slot) return true;
     if (slot.available) return true;
-    if (exam?.id && slot.assigned_exam?.id === exam.id) return true;
+    // If editing and this exam owns this slot, it's still available
+    if (exam?.id && slot.assigned_to?.id === exam.id) return true;
     return false;
   };
 
-  const getSlotExamTitle = (key) => {
+  const getSlotTooltip = (key) => {
     if (!availability) return "";
     const slot = availability[key];
     if (!slot || slot.available) return "";
-    if (exam?.id && slot.assigned_exam?.id === exam.id) return "";
-    if (slot.reason === "manual_grades") return "Esta columna ya tiene notas registradas manualmente en el Registro Auxiliar";
-    return slot.assigned_exam?.title ? `Ya asignado al examen: ${slot.assigned_exam.title}` : "";
+    if (exam?.id && slot.assigned_to?.id === exam.id) return "";
+    if (slot.reason === "manual") return "Esta columna ya tiene notas registradas manualmente en el Registro Auxiliar";
+    if (slot.reason === "exam") return slot.assigned_to?.title ? `Ya asignado al examen: ${slot.assigned_to.title}` : "Ya asignado";
+    if (slot.reason === "task") return slot.assigned_to?.title ? `Ya asignado a la tarea: ${slot.assigned_to.title}` : "Ya asignado";
+    return "Ya asignado";
   };
 
   // Build confirmation text
@@ -5095,13 +5250,13 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                             { key: "P3", label: "Participacion P3", weight: null },
                           ].map(({ key, label, weight }) => {
                             const available = isSlotAvailable(key);
-                            const occupyingExam = getSlotExamTitle(key);
+                            const tooltip = getSlotTooltip(key);
                             const isSelected = registerColumn === key;
                             return (
                               <label
                                 key={key}
                                 data-testid={`register-col-${key.toLowerCase()}`}
-                                title={!available ? occupyingExam : ""}
+                                title={!available ? tooltip : ""}
                                 className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
                                   !available
                                     ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed opacity-60"
@@ -5124,7 +5279,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                                 </span>
                                 {!available ? (
                                   <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">
-                                    {availability?.[key]?.reason === "manual_grades" ? "Notas manuales" : "Ya asignado"}
+                                    {availability?.[key]?.reason === "manual" ? "Notas manuales" : "Ya asignado"}
                                   </span>
                                 ) : (
                                   <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Disponible</span>

@@ -45,9 +45,10 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
-from services.exam_register_sync import (
+from services.register_sync import (
     sync_exam_to_register, sync_single_student, retry_pending_syncs,
-    COLUMN_FIELD_MAP, VALID_COLUMNS,
+    sync_to_register, sync_single_student_task,
+    COLUMN_FIELD_MAP, VALID_COLUMNS, TASK_VALID_COLUMNS,
 )
 
 # ONLINE EXAMS MODULE - Premium Implementation
@@ -86,23 +87,19 @@ class ExamUpdate(BaseModel):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# REGISTER AVAILABILITY ENDPOINT
+# UNIFIED REGISTER AVAILABILITY ENDPOINT (exams + tasks + manual grades)
 # ══════════════════════════════════════════════════════════════════════════════
 
-@router.get("/exams/register-availability")
-async def get_register_availability(
+@router.get("/register/availability")
+async def get_unified_register_availability(
     subject_id: str = Query(...),
     section_id: str = Query(None),
-    period_id: str = Query(None),
     current_user=Depends(get_current_user)
 ):
     """
-    Check which EM/EB/P1/P2/P3 slots are available for a given
-    subject + section + active period (bimester).
-    period_id is resolved automatically from the active academic period.
-    A slot is UNAVAILABLE if:
-      1. An exam is already linked to it, OR
-      2. The column has manual grades in student_grades (at least one non-null value)
+    Unified availability check for EM/EB/P1/P2/P3 columns.
+    TRIPLE verification: exams + tasks + manual grades.
+    period_id is auto-resolved from the active academic period.
     """
     import asyncio as _asyncio
     user = await resolve_user_from_token(current_user)
@@ -111,18 +108,24 @@ async def get_register_availability(
 
     school_id = user["school_id"]
 
-    # Auto-resolve period_id from active academic period
-    if not period_id:
-        active_period = await db.academic_periods.find_one(
-            {"school_id": school_id, "activo": True},
-            {"_id": 0, "id": 1}
-        )
-        if not active_period:
-            raise HTTPException(
-                status_code=400,
-                detail="No hay un periodo academico activo. Configure uno en Anos Academicos."
-            )
-        period_id = active_period["id"]
+    # Auto-resolve period from active academic period
+    active_period = await db.academic_periods.find_one(
+        {"school_id": school_id, "activo": True},
+        {"_id": 0, "id": 1, "nombre": 1}
+    )
+    if not active_period:
+        return {
+            "period_id": None,
+            "period_name": None,
+            "period_active": False,
+            "subject_id": subject_id,
+            "section_id": section_id,
+            "register_status": "open",
+            "availability": {},
+        }
+
+    period_id = active_period["id"]
+    period_name = active_period.get("nombre", "")
 
     # Resolve section_id from subject if not provided
     if not section_id:
@@ -132,13 +135,6 @@ async def get_register_availability(
         )
         section_id = subject.get("section_id") if subject else None
 
-    # Column name → student_grades field mapping
-    col_to_field = {
-        "EM": "exam_mensual", "EB": "exam_bimestral",
-        "P1": "part_p1", "P2": "part_p2", "P3": "part_p3",
-    }
-
-    # --- Parallel: fetch linked exams + check manual grades for all 5 columns ---
     grade_base_filter = {
         "school_id": school_id,
         "subject_id": subject_id,
@@ -154,13 +150,21 @@ async def get_register_availability(
              "period_id": period_id, "register_column": {"$ne": None}},
             {"_id": 0, "id": 1, "title": 1, "register_column": 1}
         ).to_list(50),
-        # b) Manual grades: count docs where each column is not null
+        # b) Tasks already linked (exclude soft-deleted)
+        db.course_posts.find(
+            {"school_id": school_id, "subject_id": subject_id,
+             "period_id": period_id, "register_column": {"$ne": None},
+             "deleted_at": {"$exists": False},
+             "$or": [{"post_type": "task"}, {"type": "task"}]},
+            {"_id": 0, "id": 1, "title": 1, "register_column": 1}
+        ).to_list(50),
+        # c) Manual grades count per column
         db.student_grades.count_documents({**grade_base_filter, "exam_mensual": {"$ne": None}}),
         db.student_grades.count_documents({**grade_base_filter, "exam_bimestral": {"$ne": None}}),
         db.student_grades.count_documents({**grade_base_filter, "part_p1": {"$ne": None}}),
         db.student_grades.count_documents({**grade_base_filter, "part_p2": {"$ne": None}}),
         db.student_grades.count_documents({**grade_base_filter, "part_p3": {"$ne": None}}),
-        # c) Lock status
+        # d) Lock status
         db.grade_locks.find_one(
             {"school_id": school_id, "subject_id": subject_id,
              "section_id": section_id, "period_id": period_id} if section_id else {"_id": None},
@@ -169,79 +173,159 @@ async def get_register_availability(
     )
 
     linked_exams = results[0]
+    linked_tasks = results[1]
     manual_counts = {
-        "EM": results[1], "EB": results[2],
-        "P1": results[3], "P2": results[4], "P3": results[5],
+        "EM": results[2], "EB": results[3],
+        "P1": results[4], "P2": results[5], "P3": results[6],
     }
-    lock = results[6]
+    lock = results[7]
+
+    # Build exam/task lookup by column
+    exam_by_col = {}
+    for exam in linked_exams:
+        col = exam.get("register_column")
+        if col:
+            exam_by_col[col] = exam
+
+    task_by_col = {}
+    for task in linked_tasks:
+        col = task.get("register_column")
+        if col:
+            task_by_col[col] = task
 
     # Build availability map
     slots = {}
     for key in ["EM", "EB", "P1", "P2", "P3"]:
-        slots[key] = {"available": True, "assigned_exam": None, "reason": None}
-
-    # Mark slots taken by linked exams
-    for exam in linked_exams:
-        col = exam.get("register_column")
-        if col and col in slots:
-            slots[col] = {
-                "available": False,
-                "assigned_exam": {"id": exam["id"], "title": exam.get("title", "")},
-                "reason": "exam",
-            }
-
-    # Mark slots with manual grades (only if not already taken by exam)
-    for key, count in manual_counts.items():
-        if count > 0 and slots[key]["available"]:
+        if key in exam_by_col:
+            e = exam_by_col[key]
             slots[key] = {
                 "available": False,
-                "assigned_exam": None,
-                "reason": "manual_grades",
+                "reason": "exam",
+                "assigned_to": {
+                    "type": "exam",
+                    "id": e["id"],
+                    "title": e.get("title", ""),
+                },
+            }
+        elif key in task_by_col:
+            t = task_by_col[key]
+            slots[key] = {
+                "available": False,
+                "reason": "task",
+                "assigned_to": {
+                    "type": "task",
+                    "id": t["id"],
+                    "title": t.get("title", ""),
+                },
+            }
+        elif manual_counts.get(key, 0) > 0:
+            slots[key] = {
+                "available": False,
+                "reason": "manual",
+                "assigned_to": {
+                    "type": "manual",
+                    "id": None,
+                    "title": None,
+                },
+            }
+        else:
+            slots[key] = {
+                "available": True,
+                "reason": None,
+                "assigned_to": None,
             }
 
-    register_status = "open"
-    if lock and lock.get("locked"):
-        register_status = "closed"
+    register_status = "closed" if (lock and lock.get("locked")) else "open"
 
     return {
         "period_id": period_id,
+        "period_name": period_name,
+        "period_active": True,
         "subject_id": subject_id,
         "section_id": section_id,
-        "availability": slots,
         "register_status": register_status,
+        "availability": slots,
     }
+
+
+# Keep old endpoint for backward compat (redirects to unified logic)
+@router.get("/exams/register-availability")
+async def get_register_availability(
+    subject_id: str = Query(...),
+    section_id: str = Query(None),
+    period_id: str = Query(None),
+    current_user=Depends(get_current_user)
+):
+    """Legacy endpoint — delegates to unified availability."""
+    return await get_unified_register_availability(
+        subject_id=subject_id,
+        section_id=section_id,
+        current_user=current_user,
+    )
 
 
 async def _validate_register_linkage(
     school_id: str, subject_id: str, period_id: str,
     register_column: str | None,
-    exclude_exam_id: str | None = None,
+    exclude_source_id: str | None = None,
+    source_type: str = "exam",
 ):
     """
-    Validate that the chosen column is not already taken.
-    Returns None if ok, or raises HTTPException 409 on conflict.
+    Validate that the chosen column is not already taken by an exam, task, or manual grades.
+    Uses register_column_assignments for cross-collection uniqueness.
+    Falls back to direct queries for safety.
     """
     if not register_column:
         return
 
-    if register_column not in VALID_COLUMNS:
-        raise HTTPException(status_code=400, detail=f"register_column invalido: {register_column}. Valores validos: {', '.join(sorted(VALID_COLUMNS))}")
+    if source_type == "task" and register_column not in TASK_VALID_COLUMNS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Las tareas solo pueden vincularse a P1, P2 o P3"
+        )
 
-    conflict_query = {
+    if register_column not in VALID_COLUMNS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"register_column invalido: {register_column}. Valores validos: {', '.join(sorted(VALID_COLUMNS))}"
+        )
+
+    # Check register_column_assignments for cross-collection uniqueness
+    assignment_query = {
         "school_id": school_id,
         "subject_id": subject_id,
         "period_id": period_id,
         "register_column": register_column,
     }
-    if exclude_exam_id:
-        conflict_query["id"] = {"$ne": exclude_exam_id}
+    if exclude_source_id:
+        assignment_query["source_id"] = {"$ne": exclude_source_id}
 
-    conflict = await db.online_exams.find_one(conflict_query, {"_id": 0, "id": 1, "title": 1})
+    conflict = await db.register_column_assignments.find_one(
+        assignment_query, {"_id": 0}
+    )
     if conflict:
+        ctype = conflict.get("source_type", "exam")
+        ctitle = conflict.get("source_title", "")
+        label = "examen" if ctype == "exam" else "tarea"
         raise HTTPException(
             status_code=409,
-            detail=f"La columna {register_column} ya fue asignada al examen '{conflict.get('title', '')}'. Actualice la pagina e intente de nuevo."
+            detail=f"La columna {register_column} ya fue asignada al {label} '{ctitle}'. Actualice la pagina e intente de nuevo."
         )
+
+    # Also check manual grades
+    field = COLUMN_FIELD_MAP.get(register_column)
+    if field:
+        manual_count = await db.student_grades.count_documents({
+            "school_id": school_id,
+            "subject_id": subject_id,
+            "period_id": period_id,
+            field: {"$ne": None},
+        })
+        if manual_count > 0:
+            raise HTTPException(
+                status_code=409,
+                detail=f"La columna {register_column} ya tiene notas registradas manualmente en el Registro Auxiliar."
+            )
 
 
 @router.get("/course/{subject_id}/exams")
@@ -349,6 +433,7 @@ async def create_exam(
             )
         await _validate_register_linkage(
             school_id, subject_id, resolved_period_id, data.register_column,
+            source_type="exam",
         )
 
     # Create exam
@@ -377,6 +462,28 @@ async def create_exam(
     }
     
     await db.online_exams.insert_one(exam)
+
+    # Insert register_column_assignments if linked
+    if data.register_column and resolved_period_id:
+        try:
+            await db.register_column_assignments.insert_one({
+                "school_id": school_id,
+                "subject_id": subject_id,
+                "section_id": section_id,
+                "period_id": resolved_period_id,
+                "register_column": data.register_column,
+                "source_type": "exam",
+                "source_id": exam_id,
+                "source_title": data.title,
+                "created_at": now,
+            })
+        except Exception as e:
+            # Unique index violation = race condition
+            await db.online_exams.delete_one({"id": exam_id})
+            raise HTTPException(
+                status_code=409,
+                detail=f"La columna {data.register_column} ya fue asignada. Actualice la pagina e intente de nuevo."
+            )
     
     # Remove _id for response
     exam.pop("_id", None)
@@ -575,20 +682,37 @@ async def update_exam(
                 )
             await _validate_register_linkage(
                 user["school_id"], exam["subject_id"], resolved_period_id,
-                eff_column, exclude_exam_id=exam_id,
+                eff_column, exclude_source_id=exam_id, source_type="exam",
             )
         update_data["sync_status"] = "not_linked" if not eff_column else "pending"
 
     await db.online_exams.update_one({"id": exam_id}, {"$set": update_data})
 
-    # If linkage changed, clean old column and sync new one
+    # Update register_column_assignments if linkage changed
     if linkage_changed:
+        # Remove old assignment
         if old_column:
-            # Temporarily restore old column to clean it
+            await db.register_column_assignments.delete_one({"source_id": exam_id})
+            # Clean old grades
             await db.online_exams.update_one({"id": exam_id}, {"$set": {"register_column": old_column, "period_id": old_period_id}})
             await sync_exam_to_register(db, exam_id, "delete")
             await db.online_exams.update_one({"id": exam_id}, {"$set": update_data})
-        if eff_column:
+        # Insert new assignment
+        if eff_column and resolved_period_id:
+            try:
+                await db.register_column_assignments.insert_one({
+                    "school_id": user["school_id"],
+                    "subject_id": exam["subject_id"],
+                    "section_id": exam.get("section_id"),
+                    "period_id": resolved_period_id,
+                    "register_column": eff_column,
+                    "source_type": "exam",
+                    "source_id": exam_id,
+                    "source_title": update_data.get("title", exam.get("title", "")),
+                    "created_at": datetime.now(timezone.utc).isoformat(),
+                })
+            except Exception:
+                pass
             await sync_exam_to_register(db, exam_id, "update")
 
     # Return updated exam
@@ -754,6 +878,7 @@ async def delete_exam(
     # Clean register linkage before deleting
     if exam.get("register_column"):
         await sync_exam_to_register(db, exam_id, "delete")
+        await db.register_column_assignments.delete_one({"source_id": exam_id})
 
     await db.online_exams.delete_one({"id": exam_id})
     
