@@ -25,7 +25,8 @@
 - **Sync on grade**: `sync_single_student_task()` triggers when teacher grades a submission
 - **Deletion**: Clears register_column_assignments + register grades on delete
 - **Validation**: Tasks with EM/EB → 400 error. Cross-collection conflict → 409 error
-- **Cron auto-zero**: Background job for expired exams (not tasks)
+- **Cron auto-zero exámenes**: Background job cada 60s para exámenes expirados (not tasks)
+- **Cron auto-zero tareas**: Background job cada 60s para tareas vencidas (due_date pasada) → asigna grade=0 a alumnos sin entrega → sync al registro auxiliar
 
 ### Prior Features (from previous sessions)
 - Attendance Config by Level, Push Notifications, QR Scanner

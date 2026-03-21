@@ -154,6 +154,11 @@ async def _sync_task_grades(db, task, task_id, grade_field, grade_filter_base, a
         max_points = 100
 
     submissions = task.get("submissions", [])
+    
+    # Re-fetch task to get latest submissions (especially after cron adds auto-zero)
+    fresh_task = await db.course_posts.find_one({"id": task_id}, {"_id": 0, "submissions": 1})
+    if fresh_task and fresh_task.get("submissions"):
+        submissions = fresh_task["submissions"]
 
     for sub in submissions:
         student_id = sub.get("student_id")

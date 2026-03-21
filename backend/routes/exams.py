@@ -3395,3 +3395,114 @@ async def close_expired_exams_cron():
             logger.error(f"[EXAM-CRON] Error: {e}")
 
         await asyncio.sleep(60)  # Check every 60 seconds
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TASK AUTO-CLOSE CRON — Runs every 60 seconds
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def close_expired_tasks_cron():
+    """
+    Background task: checks every 60s for active tasks past their due_date.
+    For each:
+      1. Changes status to "closed"
+      2. For each enrolled student without a submission → assigns grade=0
+      3. Syncs all grades to the registro auxiliar (if linked via register_column)
+    """
+    import asyncio
+    while True:
+        try:
+            now = datetime.now(timezone.utc)
+            now_iso = now.isoformat()
+
+            # Find active tasks whose due_date has passed
+            expired_tasks = await db.course_posts.find(
+                {
+                    "$or": [{"post_type": "task"}, {"type": "task"}],
+                    "status": "active",
+                    "due_date": {"$lte": now_iso},
+                    "deleted_at": {"$exists": False},
+                },
+                {"_id": 0}
+            ).to_list(100)
+
+            for task in expired_tasks:
+                task_id = task["id"]
+                subject_id = task.get("subject_id")
+                school_id = task.get("school_id")
+                section_id = task.get("section_id")
+                max_points = task.get("max_grade") or task.get("metadata", {}).get("points") or 100
+
+                # 1. Close the task
+                await db.course_posts.update_one(
+                    {"id": task_id},
+                    {"$set": {"status": "closed", "closed_at": now_iso}}
+                )
+
+                # 2. Find students who should have submitted
+                student_query = {
+                    "school_id": school_id,
+                    "role": "estudiante",
+                    "status": {"$ne": "inactive"},
+                }
+                if section_id:
+                    student_query["seccion_id"] = section_id
+
+                all_students = await db.users.find(
+                    student_query, {"_id": 0, "id": 1}
+                ).to_list(500)
+                all_student_ids = {s["id"] for s in all_students}
+
+                # Get students who already submitted
+                submissions = task.get("submissions", [])
+                submitted_ids = {s.get("student_id") for s in submissions if s.get("student_id")}
+
+                # Students who didn't submit
+                absent_ids = all_student_ids - submitted_ids
+
+                if absent_ids:
+                    # Add grade=0 submissions for absent students
+                    new_submissions = []
+                    for sid in absent_ids:
+                        new_submissions.append({
+                            "id": str(uuid.uuid4()),
+                            "student_id": sid,
+                            "submitted_at": now_iso,
+                            "grade": 0,
+                            "feedback": "No entregado - nota asignada automaticamente",
+                            "graded_at": now_iso,
+                            "graded_by": "system",
+                            "auto_zero": True,
+                            "content": "",
+                            "files": [],
+                        })
+
+                    if new_submissions:
+                        await db.course_posts.update_one(
+                            {"id": task_id},
+                            {"$push": {"submissions": {"$each": new_submissions}}}
+                        )
+                        logger.info(
+                            f"[TASK-CRON] Task '{task.get('title', task_id)}': "
+                            f"assigned 0 to {len(new_submissions)} absent students"
+                        )
+
+                # 3. Sync all grades to register if linked
+                if task.get("register_column"):
+                    try:
+                        await sync_to_register(db, task_id, "task", "close_exam")
+                    except Exception as e:
+                        logger.error(f"[TASK-CRON] Sync failed for task {task_id}: {e}")
+
+                logger.info(
+                    f"[TASK-CRON] Closed task '{task.get('title', task_id)}' — "
+                    f"{len(submitted_ids)} submitted, {len(absent_ids)} absent"
+                )
+
+            if expired_tasks:
+                logger.info(f"[TASK-CRON] Processed {len(expired_tasks)} expired tasks")
+
+        except Exception as e:
+            logger.error(f"[TASK-CRON] Error: {e}")
+
+        await asyncio.sleep(60)  # Check every 60 seconds
