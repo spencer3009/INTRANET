@@ -3,6 +3,8 @@ import axios from "axios";
 import { toast } from "sonner";
 import { Settings, DollarSign, Clock, Percent, Save, ToggleLeft, ToggleRight, CalendarDays, AlertTriangle } from "lucide-react";
 import PaymentConceptsSection from "./PaymentConceptsSection";
+import DiscountTypesSection from "./DiscountTypesSection";
+import StudentDiscountsSection from "./StudentDiscountsSection";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -332,6 +334,12 @@ export default function FinancialSettingsTab({ token, user }) {
           </div>
         </div>
       </div>
+
+      {/* Discount Types Section */}
+      <DiscountTypesSection token={token} />
+
+      {/* Student Discounts Section */}
+      <StudentDiscountsSection token={token} />
 
       {/* Payment Concepts Section */}
       <PaymentConceptsSection token={token} user={user} />

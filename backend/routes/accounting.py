@@ -1290,3 +1290,573 @@ async def auto_update_student_status_on_payment(student_id: str, school_id: str,
 
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DISCOUNT TYPES CRUD
+# ══════════════════════════════════════════════════════════════════════════════
+
+class DiscountTypeCreate(BaseModel):
+    name: str
+    description: str = ""
+    discount_type: Literal["percentage", "fixed_amount"]
+    value: float
+    application_mode: Literal["automatic", "manual"] = "manual"
+    automatic_rule: Optional[str] = None
+    is_active: bool = True
+
+class DiscountTypeUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    discount_type: Optional[Literal["percentage", "fixed_amount"]] = None
+    value: Optional[float] = None
+    application_mode: Optional[Literal["automatic", "manual"]] = None
+    automatic_rule: Optional[str] = None
+    is_active: Optional[bool] = None
+
+VALID_AUTO_RULES = {"has_active_siblings"}
+
+@router.get("/accounting/discount-types")
+async def get_discount_types(current_user=Depends(require_section_access("accounting"))):
+    school_id = current_user["school_id"]
+    await seed_default_discount_types(school_id)
+    types = await db.discount_types.find(
+        {"school_id": school_id}, {"_id": 0}
+    ).sort("created_at", 1).to_list(100)
+    # Count assigned students per type
+    for dt in types:
+        dt["assigned_count"] = await db.student_discounts.count_documents(
+            {"discount_type_id": dt["id"]}
+        )
+    return types
+
+@router.post("/accounting/discount-types")
+async def create_discount_type(data: DiscountTypeCreate, current_user=Depends(require_section_access("accounting"))):
+    school_id = current_user["school_id"]
+
+    if data.discount_type == "percentage" and (data.value < 0 or data.value > 100):
+        raise HTTPException(status_code=400, detail="El porcentaje debe estar entre 0 y 100")
+    if data.value < 0:
+        raise HTTPException(status_code=400, detail="El valor no puede ser negativo")
+
+    # Unique name per school
+    existing = await db.discount_types.find_one(
+        {"school_id": school_id, "name": data.name}, {"_id": 0}
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Ya existe un tipo de descuento con el nombre '{data.name}'")
+
+    # Only one auto rule per type
+    if data.application_mode == "automatic":
+        if not data.automatic_rule or data.automatic_rule not in VALID_AUTO_RULES:
+            raise HTTPException(status_code=400, detail=f"Regla automatica invalida. Valores validos: {', '.join(VALID_AUTO_RULES)}")
+        dup_rule = await db.discount_types.find_one(
+            {"school_id": school_id, "automatic_rule": data.automatic_rule}, {"_id": 0}
+        )
+        if dup_rule:
+            raise HTTPException(status_code=409, detail=f"Ya existe un descuento automatico con la regla '{data.automatic_rule}'")
+    else:
+        data.automatic_rule = None
+
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "school_id": school_id,
+        "name": data.name,
+        "description": data.description,
+        "discount_type": data.discount_type,
+        "value": data.value,
+        "application_mode": data.application_mode,
+        "automatic_rule": data.automatic_rule,
+        "is_active": data.is_active,
+        "created_at": now,
+        "updated_at": now,
+    }
+    await db.discount_types.insert_one(doc)
+    doc.pop("_id", None)
+    doc["assigned_count"] = 0
+    return doc
+
+@router.put("/accounting/discount-types/{type_id}")
+async def update_discount_type(type_id: str, data: DiscountTypeUpdate, current_user=Depends(require_section_access("accounting"))):
+    school_id = current_user["school_id"]
+    dt = await db.discount_types.find_one({"id": type_id, "school_id": school_id}, {"_id": 0})
+    if not dt:
+        raise HTTPException(status_code=404, detail="Tipo de descuento no encontrado")
+
+    update_data = {k: v for k, v in data.dict().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No hay datos para actualizar")
+
+    if "name" in update_data:
+        dup = await db.discount_types.find_one(
+            {"school_id": school_id, "name": update_data["name"], "id": {"$ne": type_id}}, {"_id": 0}
+        )
+        if dup:
+            raise HTTPException(status_code=409, detail=f"Ya existe un descuento con el nombre '{update_data['name']}'")
+
+    if "discount_type" in update_data and update_data["discount_type"] == "percentage":
+        val = update_data.get("value", dt.get("value", 0))
+        if val < 0 or val > 100:
+            raise HTTPException(status_code=400, detail="El porcentaje debe estar entre 0 y 100")
+
+    if update_data.get("application_mode") == "automatic":
+        rule = update_data.get("automatic_rule", dt.get("automatic_rule"))
+        if not rule or rule not in VALID_AUTO_RULES:
+            raise HTTPException(status_code=400, detail="Regla automatica invalida")
+        dup_rule = await db.discount_types.find_one(
+            {"school_id": school_id, "automatic_rule": rule, "id": {"$ne": type_id}}, {"_id": 0}
+        )
+        if dup_rule:
+            raise HTTPException(status_code=409, detail=f"Ya existe un descuento automatico con la regla '{rule}'")
+
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.discount_types.update_one({"id": type_id}, {"$set": update_data})
+    updated = await db.discount_types.find_one({"id": type_id}, {"_id": 0})
+    updated["assigned_count"] = await db.student_discounts.count_documents({"discount_type_id": type_id})
+    return updated
+
+@router.delete("/accounting/discount-types/{type_id}")
+async def delete_discount_type(type_id: str, current_user=Depends(require_section_access("accounting"))):
+    school_id = current_user["school_id"]
+    dt = await db.discount_types.find_one({"id": type_id, "school_id": school_id}, {"_id": 0})
+    if not dt:
+        raise HTTPException(status_code=404, detail="Tipo de descuento no encontrado")
+
+    assigned = await db.student_discounts.count_documents({"discount_type_id": type_id})
+    if assigned > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Este descuento esta asignado a {assigned} alumno(s). Desactivalo en lugar de eliminarlo."
+        )
+
+    await db.discount_types.delete_one({"id": type_id})
+    return {"message": "Tipo de descuento eliminado"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# STUDENT DISCOUNTS (assignment / removal)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class StudentDiscountAssign(BaseModel):
+    discount_type_id: str
+    custom_value: Optional[float] = None
+
+@router.get("/accounting/students/{student_id}/discounts")
+async def get_student_discounts(student_id: str, current_user=Depends(require_section_access("accounting"))):
+    school_id = current_user["school_id"]
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "monthly_pension_override": 1}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    assignments = await db.student_discounts.find(
+        {"student_id": student_id}, {"_id": 0}
+    ).to_list(50)
+
+    # Enrich with discount type info
+    type_ids = [a["discount_type_id"] for a in assignments]
+    types = {}
+    if type_ids:
+        type_docs = await db.discount_types.find(
+            {"id": {"$in": type_ids}}, {"_id": 0}
+        ).to_list(50)
+        types = {t["id"]: t for t in type_docs}
+
+    enriched = []
+    for a in assignments:
+        dt = types.get(a["discount_type_id"], {})
+        enriched.append({
+            **a,
+            "type_name": dt.get("name", ""),
+            "type_description": dt.get("description", ""),
+            "discount_type": dt.get("discount_type", ""),
+            "default_value": dt.get("value", 0),
+            "application_mode": dt.get("application_mode", "manual"),
+            "automatic_rule": dt.get("automatic_rule"),
+            "is_type_active": dt.get("is_active", True),
+        })
+
+    return {
+        "student_id": student_id,
+        "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+        "monthly_pension_override": student.get("monthly_pension_override"),
+        "discounts": enriched,
+    }
+
+@router.post("/accounting/students/{student_id}/discounts")
+async def assign_student_discount(student_id: str, data: StudentDiscountAssign, current_user=Depends(require_section_access("accounting"))):
+    school_id = current_user["school_id"]
+
+    student = await db.users.find_one({"id": student_id, "school_id": school_id}, {"_id": 0, "id": 1})
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    dt = await db.discount_types.find_one({"id": data.discount_type_id, "school_id": school_id}, {"_id": 0})
+    if not dt:
+        raise HTTPException(status_code=404, detail="Tipo de descuento no encontrado")
+
+    if not dt.get("is_active"):
+        raise HTTPException(status_code=400, detail="Este tipo de descuento esta inactivo")
+
+    if dt.get("application_mode") == "automatic":
+        raise HTTPException(status_code=400, detail="Los descuentos automaticos no se pueden asignar manualmente")
+
+    # Check duplicate
+    existing = await db.student_discounts.find_one(
+        {"student_id": student_id, "discount_type_id": data.discount_type_id}, {"_id": 0}
+    )
+    if existing:
+        raise HTTPException(status_code=409, detail="Este descuento ya esta asignado a este alumno")
+
+    now = datetime.now(timezone.utc).isoformat()
+    doc = {
+        "id": str(uuid.uuid4()),
+        "student_id": student_id,
+        "discount_type_id": data.discount_type_id,
+        "custom_value": data.custom_value,
+        "origin": "manual",
+        "assigned_at": now,
+        "assigned_by": current_user["id"],
+    }
+    await db.student_discounts.insert_one(doc)
+    doc.pop("_id", None)
+    return {"message": "Descuento asignado", "discount": doc}
+
+@router.delete("/accounting/students/{student_id}/discounts/{discount_id}")
+async def remove_student_discount(student_id: str, discount_id: str, current_user=Depends(require_section_access("accounting"))):
+    sd = await db.student_discounts.find_one(
+        {"id": discount_id, "student_id": student_id}, {"_id": 0}
+    )
+    if not sd:
+        raise HTTPException(status_code=404, detail="Descuento no encontrado")
+
+    if sd.get("origin") == "automatic":
+        raise HTTPException(status_code=400, detail="Los descuentos automaticos no se pueden quitar manualmente. Desactiva el tipo de descuento.")
+
+    await db.student_discounts.delete_one({"id": discount_id})
+    return {"message": "Descuento removido"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PENSION CALCULATION
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/accounting/students/{student_id}/pension")
+async def get_student_pension(student_id: str, current_user=Depends(require_section_access("accounting"))):
+    school_id = current_user["school_id"]
+
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "monthly_pension_override": 1}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+    base_pension = settings.get("pension_mensual", 0) if settings else 0
+    pronto_pago_activo = settings.get("pronto_pago_activo", False) if settings else False
+    pronto_pago_monto = settings.get("pronto_pago_monto", 0) if settings else 0
+    pronto_pago_descuento = base_pension - pronto_pago_monto if pronto_pago_activo and pronto_pago_monto > 0 else 30
+
+    override = student.get("monthly_pension_override")
+    if override is not None:
+        return {
+            "student_id": student_id,
+            "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+            "base_pension": base_pension,
+            "discounts": [],
+            "total_discount": 0,
+            "final_pension": override,
+            "early_payment_discount": pronto_pago_descuento,
+            "final_with_early_payment": max(0, override - pronto_pago_descuento),
+            "is_override": True,
+        }
+
+    # Get active discounts
+    assignments = await db.student_discounts.find(
+        {"student_id": student_id}, {"_id": 0}
+    ).to_list(50)
+
+    type_ids = [a["discount_type_id"] for a in assignments]
+    types = {}
+    if type_ids:
+        type_docs = await db.discount_types.find(
+            {"id": {"$in": type_ids}, "is_active": True}, {"_id": 0}
+        ).to_list(50)
+        types = {t["id"]: t for t in type_docs}
+
+    discounts_detail = []
+    total_discount = 0
+
+    for a in assignments:
+        dt = types.get(a["discount_type_id"])
+        if not dt:
+            continue
+        effective_value = a.get("custom_value") if a.get("custom_value") is not None else dt["value"]
+        if dt["discount_type"] == "percentage":
+            amount = round(base_pension * effective_value / 100, 2)
+        else:
+            amount = effective_value
+        total_discount += amount
+
+        # Get sibling info for automatic discounts
+        reason = None
+        if dt.get("automatic_rule") == "has_active_siblings":
+            siblings = await _get_active_siblings(student_id, school_id)
+            if siblings:
+                names = [f"{s.get('name','')} {s.get('last_name','')}".strip() for s in siblings]
+                reason = f"Tiene {len(siblings)} hermano(s) activo(s): {', '.join(names)}"
+
+        discounts_detail.append({
+            "name": dt["name"],
+            "type": dt["discount_type"],
+            "value": effective_value,
+            "amount": amount,
+            "origin": a.get("origin", "manual"),
+            "reason": reason,
+        })
+
+    final_pension = max(0, round(base_pension - total_discount, 2))
+
+    return {
+        "student_id": student_id,
+        "student_name": f"{student.get('name', '')} {student.get('last_name', '')}".strip(),
+        "base_pension": base_pension,
+        "discounts": discounts_detail,
+        "total_discount": round(total_discount, 2),
+        "final_pension": final_pension,
+        "early_payment_discount": pronto_pago_descuento,
+        "final_with_early_payment": max(0, round(final_pension - pronto_pago_descuento, 2)),
+        "is_override": False,
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SIBLINGS DETECTION & AUTO-SYNC
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def _get_parent_ids(student_id: str, school_id: str) -> list:
+    """Get parent/apoderado IDs linked to a student."""
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id},
+        {"_id": 0, "parent_id": 1, "padre_id": 1}
+    )
+    if not student:
+        return []
+    parent_ids = set()
+    if student.get("parent_id"):
+        parent_ids.add(student["parent_id"])
+    if student.get("padre_id"):
+        parent_ids.add(student["padre_id"])
+    return list(parent_ids)
+
+async def _get_active_siblings(student_id: str, school_id: str) -> list:
+    """Get active siblings of a student (other students linked to same parent)."""
+    parent_ids = await _get_parent_ids(student_id, school_id)
+    if not parent_ids:
+        return []
+
+    siblings = await db.users.find(
+        {
+            "school_id": school_id,
+            "role": {"$in": ["student", "estudiante"]},
+            "id": {"$ne": student_id},
+            "$or": [
+                {"parent_id": {"$in": parent_ids}},
+                {"padre_id": {"$in": parent_ids}},
+            ],
+            "student_status": {"$in": ["active", "activo", "matriculado", "enrolled"]},
+        },
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "seccion_id": 1}
+    ).to_list(50)
+    return siblings
+
+@router.get("/accounting/students/{student_id}/siblings")
+async def get_student_siblings(student_id: str, current_user=Depends(require_section_access("accounting"))):
+    school_id = current_user["school_id"]
+    student = await db.users.find_one({"id": student_id, "school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "last_name": 1})
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+
+    parent_ids = await _get_parent_ids(student_id, school_id)
+    siblings = await _get_active_siblings(student_id, school_id)
+
+    # Get parent info
+    parent_name = ""
+    if parent_ids:
+        parent = await db.users.find_one({"id": parent_ids[0]}, {"_id": 0, "name": 1, "last_name": 1})
+        if parent:
+            parent_name = f"{parent.get('name', '')} {parent.get('last_name', '')}".strip()
+
+    return {
+        "student_id": student_id,
+        "parent_id": parent_ids[0] if parent_ids else None,
+        "parent_name": parent_name,
+        "siblings": siblings,
+        "active_siblings_count": len(siblings),
+        "qualifies_for_sibling_discount": len(siblings) > 0,
+        "has_parent_linked": len(parent_ids) > 0,
+    }
+
+@router.post("/accounting/discounts/sync")
+async def sync_automatic_discounts(current_user=Depends(require_section_access("accounting"))):
+    """Sync all automatic discounts for the school (siblings detection)."""
+    school_id = current_user["school_id"]
+    result = await _sync_all_sibling_discounts(school_id)
+    return result
+
+@router.post("/accounting/students/{student_id}/discounts/sync")
+async def sync_student_automatic_discounts(student_id: str, current_user=Depends(require_section_access("accounting"))):
+    """Sync automatic discounts for a specific student."""
+    school_id = current_user["school_id"]
+    parent_ids = await _get_parent_ids(student_id, school_id)
+    if not parent_ids:
+        return {"message": "Alumno sin apoderado vinculado", "assigned": 0, "removed": 0}
+
+    result = await _sync_sibling_discount_for_parent(school_id, parent_ids[0])
+    return result
+
+async def _sync_all_sibling_discounts(school_id: str):
+    """Sync sibling discounts for all students in the school."""
+    sibling_dt = await db.discount_types.find_one(
+        {"school_id": school_id, "automatic_rule": "has_active_siblings", "is_active": True},
+        {"_id": 0}
+    )
+    if not sibling_dt:
+        return {"message": "No hay descuento automatico de hermanos activo", "assigned": 0, "removed": 0}
+
+    # Get all active students with parent_id
+    students = await db.users.find(
+        {
+            "school_id": school_id,
+            "role": {"$in": ["student", "estudiante"]},
+            "student_status": {"$in": ["active", "activo", "matriculado", "enrolled"]},
+            "$or": [
+                {"parent_id": {"$ne": None}},
+                {"padre_id": {"$ne": None}},
+            ],
+        },
+        {"_id": 0, "id": 1, "parent_id": 1, "padre_id": 1}
+    ).to_list(1000)
+
+    # Group by parent
+    parent_groups = {}
+    for s in students:
+        pid = s.get("parent_id") or s.get("padre_id")
+        if pid:
+            parent_groups.setdefault(pid, []).append(s["id"])
+
+    total_assigned = 0
+    total_removed = 0
+
+    for parent_id, student_ids in parent_groups.items():
+        has_siblings = len(student_ids) > 1
+        for sid in student_ids:
+            existing = await db.student_discounts.find_one(
+                {"student_id": sid, "discount_type_id": sibling_dt["id"]}, {"_id": 0}
+            )
+            if has_siblings and not existing:
+                await db.student_discounts.insert_one({
+                    "id": str(uuid.uuid4()),
+                    "student_id": sid,
+                    "discount_type_id": sibling_dt["id"],
+                    "custom_value": None,
+                    "origin": "automatic",
+                    "assigned_at": datetime.now(timezone.utc).isoformat(),
+                    "assigned_by": None,
+                })
+                total_assigned += 1
+            elif not has_siblings and existing and existing.get("origin") == "automatic":
+                await db.student_discounts.delete_one({"id": existing["id"]})
+                total_removed += 1
+
+    # Also remove for students without parent
+    orphan_autos = await db.student_discounts.find(
+        {"discount_type_id": sibling_dt["id"], "origin": "automatic"},
+        {"_id": 0, "id": 1, "student_id": 1}
+    ).to_list(1000)
+    all_student_ids_with_parent = set()
+    for ids in parent_groups.values():
+        all_student_ids_with_parent.update(ids)
+    for oa in orphan_autos:
+        if oa["student_id"] not in all_student_ids_with_parent:
+            await db.student_discounts.delete_one({"id": oa["id"]})
+            total_removed += 1
+
+    return {
+        "message": f"Sincronizacion completada",
+        "assigned": total_assigned,
+        "removed": total_removed,
+        "families_processed": len(parent_groups),
+    }
+
+async def _sync_sibling_discount_for_parent(school_id: str, parent_id: str):
+    """Sync sibling discount for all children of a specific parent."""
+    sibling_dt = await db.discount_types.find_one(
+        {"school_id": school_id, "automatic_rule": "has_active_siblings", "is_active": True},
+        {"_id": 0}
+    )
+    if not sibling_dt:
+        return {"message": "No hay descuento automatico de hermanos activo", "assigned": 0, "removed": 0}
+
+    children = await db.users.find(
+        {
+            "school_id": school_id,
+            "role": {"$in": ["student", "estudiante"]},
+            "$or": [
+                {"parent_id": parent_id},
+                {"padre_id": parent_id},
+            ],
+            "student_status": {"$in": ["active", "activo", "matriculado", "enrolled"]},
+        },
+        {"_id": 0, "id": 1}
+    ).to_list(50)
+
+    child_ids = [c["id"] for c in children]
+    has_siblings = len(child_ids) > 1
+    assigned = 0
+    removed = 0
+
+    for sid in child_ids:
+        existing = await db.student_discounts.find_one(
+            {"student_id": sid, "discount_type_id": sibling_dt["id"]}, {"_id": 0}
+        )
+        if has_siblings and not existing:
+            await db.student_discounts.insert_one({
+                "id": str(uuid.uuid4()),
+                "student_id": sid,
+                "discount_type_id": sibling_dt["id"],
+                "custom_value": None,
+                "origin": "automatic",
+                "assigned_at": datetime.now(timezone.utc).isoformat(),
+                "assigned_by": None,
+            })
+            assigned += 1
+        elif not has_siblings and existing and existing.get("origin") == "automatic":
+            await db.student_discounts.delete_one({"id": existing["id"]})
+            removed += 1
+
+    return {"message": "Sincronizacion completada", "assigned": assigned, "removed": removed}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SEED DEFAULT DISCOUNT TYPES
+# ══════════════════════════════════════════════════════════════════════════════
+
+async def seed_default_discount_types(school_id: str):
+    """Create default discount types for a school if none exist."""
+    count = await db.discount_types.count_documents({"school_id": school_id})
+    if count > 0:
+        return
+    now = datetime.now(timezone.utc).isoformat()
+    defaults = [
+        {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Descuento por hermanos", "description": "Aplica cuando hay mas de un hermano matriculado", "discount_type": "percentage", "value": 10, "application_mode": "automatic", "automatic_rule": "has_active_siblings", "is_active": True, "created_at": now, "updated_at": now},
+        {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Primeros puestos", "description": "Descuento por rendimiento academico destacado", "discount_type": "percentage", "value": 15, "application_mode": "manual", "automatic_rule": None, "is_active": True, "created_at": now, "updated_at": now},
+        {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Bajos recursos", "description": "Descuento por evaluacion socioeconomica", "discount_type": "fixed_amount", "value": 100, "application_mode": "manual", "automatic_rule": None, "is_active": True, "created_at": now, "updated_at": now},
+        {"id": str(uuid.uuid4()), "school_id": school_id, "name": "Beca completa", "description": "Exoneracion total de pension", "discount_type": "percentage", "value": 100, "application_mode": "manual", "automatic_rule": None, "is_active": True, "created_at": now, "updated_at": now},
+    ]
+    await db.discount_types.insert_many(defaults)
+    logger.info(f"[SEED] Created {len(defaults)} default discount types for school {school_id}")
+

@@ -13,7 +13,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://gradebook-link.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://flexible-fees.preview.emergentagent.com').rstrip('/')
 
 # Test credentials
 OWNER_EMAIL = "admin@elroble.edu"

@@ -1,16 +1,16 @@
 <analysis>**original_problem_statement**: 
-The user wants to enhance the EduNet platform, resolve critical production crashes, modernize QR generation, resolve severe performance bottlenecks on the Course Dashboard, and implement an automated linkage between Online Exams and the Gradebook (Registro Auxiliar) including an auto-grading (zero score) mechanism for absent students.
+The user wants to refine the Gradebook Linkage (Registro Auxiliar) to encompass both Exams and Tasks/Assignments, ensuring mutual exclusivity via a central assignments collection. They also require a background auto-zero cron job for expired tasks. Most recently, the user requested a major new feature: Sistema de Descuentos y Pensiones Variables to allow dynamic, student-specific monthly tuition pricing based on automatic (e.g., siblings) and manual (e.g., scholarships) discounts.
 
 **User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only).
 
 **what currently exists?** 
-A React + FastAPI + MongoDB school management platform. Severe performance bottlenecks in the Course Dashboard were successfully resolved using  and parallel queries. A robust new feature was implemented that links Online Exams to the Auxiliary Gradebook columns (, , , , ). The linkage enforces mutually exclusive column selection via a single  field. A background cron job automatically closes expired exams, creates a  score attempt for enrolled students who were absent, and syncs those zeros into the gradebook. The availability endpoint features double validation to prevent linking exams to columns that already contain manual grades or other linked exams.
+A React + FastAPI + MongoDB school management platform. Exams and Tasks are fully integrated with the Auxiliary Gradebook via a unified  collection. A background cron job automatically closes expired exams and tasks, assigns  scores to absent students, and syncs grades. The Bimestre (Period) selection across modals is now a read-only badge that auto-resolves from the active academic period.
 
 **Last working item**:
-- **Last item agent was working**: Implementing double validation logic in  to ensure that gradebook columns are marked as blocked if they either already have an exam linked OR if they contain manually entered grades in the  collection.
-- **Status**: COMPLETED (Agent implemented and verified successfully with curl/screenshots).
-- **Agent Testing Done**: Y
-- **Which testing method agent to use?**: NA (Testing was completed successfully via testing subagent for major features, and curl/screenshots for the final availability validation).
+- **Last item agent was working**: Implementing the backend for the Sistema de Descuentos y Pensiones Variables PRD. The agent just inserted a large block of code into  to handle CRUD operations for , , and the logic for dynamic pension calculation based on siblings and manual overrides.
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N
+- **Which testing method agent to use?**: testing_agent_v3_fork (Use this after completing the full full-stack implementation of the discount system).
 - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
@@ -24,8 +24,8 @@ A React + FastAPI + MongoDB school management platform. Severe performance bottl
 
   Issue 2: Incomplete Payment Flow (P1)
   - Attempted fixes: None in this session.
-  - Next debug checklist: Create a new page/section in the support panel to list payments with status . Implement Approve/Reject buttons to update .
-  - Why fix this issue and what will be achieved with the fix?: Allows admins to actually approve payments registered by users.
+  - Next debug checklist: Create a new page/section in the support panel to list payments with status . Implement Approve/Reject buttons. *(Note: This might intersect with the new Discount System being built)*.
+  - Why fix this issue and what will be achieved with the fix?: Allows admins to approve payments.
   - Status: NOT STARTED
   - Is recurring issue? N
   - Should Test frontend/backend/both after fix?: Both.
@@ -38,106 +38,107 @@ A React + FastAPI + MongoDB school management platform. Severe performance bottl
   - Should Test frontend/backend/both after fix?: Both.
 
 **In progress Task List**:
-None. (All tasks picked up in the previous fork were successfully completed).
+  Task 1: Sistema de Descuentos y Pensiones Variables (P0)
+  - Where to resume: The agent just pasted the backend endpoints into . You need to verify if the file compiles ( / check supervisor logs), ensure the logic correctly uses / for sibling detection, and then implement the Frontend UI (FinancialSettingsTab, Student Profile for manual discounts, and updating the Payment Modal to show dynamic pricing).
+  - What will be achieved with this?: Allows the school to charge dynamic monthly tuition based on automatic sibling discounts and manual overrides.
+  - Status: IN PROGRESS
+  - Should Test frontend/backend/both after fix?: Both (Highly critical financial feature).
+  - Blocked on something: No.
 
-**Upcoming and Future Tasks**:
-  Upcoming Tasks:
-  - P1: Refactor Message Pages: Consolidate duplicated message pages into a single, robust component.
-  - P2: Visual indicator of  in Exams List: Add a badge (✅ Sincronizado / ⏳ Pendiente / ➖ Sin vincular) in the Exams UI list so teachers can see linkage status at a glance.
-  - P2: Gradebook Enhancements: Implement Export to PDF/Excel and a Lock/Close Period feature.
-  - P2: Double Scrollbar in Registro Auxiliar UI fix.
-  
-  Future Tasks:
-  - Complete Parent Portal Feature Parity.
-  - Build a Matrículas (Enrollments) module.
-  - Enhance the Exams module with a Question Bank.
-  - Replace all remaining / calls with custom modals.
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - P1: Refactor Message Pages: Consolidate duplicated message pages into a single, robust component.
+    - P2: Visual indicator of  in Exams/Tasks List: Add a badge (✅ Sincronizado / ⏳ Pendiente / ➖ Sin vincular) so teachers can see linkage status at a glance.
+    - P2: Gradebook Enhancements: Implement Export to PDF/Excel and a Lock/Close Period feature.
+    - P2: Double Scrollbar in Registro Auxiliar UI fix.
+    
+    Future Tasks:
+    - Complete Parent Portal Feature Parity.
+    - Build a Matrículas (Enrollments) module.
+    - Enhance the Exams module with a Question Bank.
+    - Replace all remaining / calls with custom modals.
 
-**Completed work in this session**:
-- Course Dashboard Performance Fase 2: Sidebar summary parallelized and Presence endpoint scoped specifically to subject users (DONE).
-- Created : Idempotent service syncing converted exam scores (mathematically rounded to 0-20 scale) directly into  (DONE).
-- Updated Exam backend & UI: Exam creation/update/deletion handles mutually exclusive  linkage (, , , , ) (DONE).
-- Added : Background job running every 60s to close expired exams, assign  to absent students (), and sync grades (DONE).
-- Implemented Double Validation on Exam Availability: Endpoint blocks exam linkage if the target gradebook column already has manual grades or another exam linked, updating the UI payload with the block reason (DONE).
+**Completed work in this session**
+- Auto-resolved Bimestre: Replaced dropdowns with read-only badges fetching the active period (DONE).
+- Unified Gradebook Linkage: Created  and  to handle mutually exclusive gradebook linkage for both Exams and Tasks (DONE).
+- Task Gradebook Linkage: Added linkage options (P1, P2, P3 only) to  and task backend logic (DONE).
+- Task Auto-Zero Cron: Created  to assign 0 to absent students when a task expires (DONE).
 
-**Earlier issues found/mentioned but not fixed**:
-  - Issue 1: Inconsistent Subject List (tracked in pending list).
-  - Issue 2: Incomplete Payment Flow (tracked in pending list).
-  - Issue 3: Hardcoded Owner Dashboard Data (tracked in pending list).
+**Earlier issues found/mentioned but not fixed**
+None found in this session outside the carried-over issues.
 
-**Known issue recurrence from previous fork**:
+**Known issue recurrence from previous fork**
   - Issue recurrence in previous fork: Production vs Preview Environment Schema Naming ( vs ). 
   - Recurrence count: 3
-  - Status: RESOLVED (Handled via multi-collection caching in ). Do not revert.
+  - Status: RESOLVED (Handled via multi-collection caching). Do not revert.
 
-**Code Architecture**:
+**Code Architecture**
 
 
-**Key Technical Concepts**:
-- **Exam ↔ Gradebook Synchronization:** An idempotent service that safely writes to . Exam scores (percentages) are mathematically rounded to fit the Peruvian 0-20 scale ().
-- **Auto-Zero Cron Job:**  runs asynchronously every 60s. It closes exams when the  is passed, loops through enrolled section students who lack an attempt, creates a 0-score attempt with , and triggers the gradebook sync.
-- **Mutually Exclusive Linkage:** Governed by a single  field to prevent multiple column linking. Double validation exists to prevent overwriting manual grades.
+**Key Technical Concepts**
+- **Idempotent Grade Sync:**  centralizes all gradebook writing. Converts percentages to a 0-20 scale .
+- **Auto-Zero Crons:** Two background tasks (, ) check for expired deadlines, close the post, and assign 0s to students without submissions.
+- **Unified Availability Endpoint:**  performs a triple-check (Exams + Tasks + Manual grades) to prevent overlapping columns.
+- **Dynamic Pension (WIP):** Calculates individual tuition using: . Sibling detection relies on matching  /  fields inside the  collection.
 
-**key DB schema**:
-  - : . A unique partial index handles avoiding  overlaps per school/subject/section/period.
-  - :  flag added for cron-assigned zeroes.
-  - : Target collection for the synced grades (, , , etc.).
+**key DB schema**
+  - : . Compound unique index enforces mutual exclusivity.
+  -  (New): .
+  -  (New): .
 
-**changes in tech stack**:
-  - Utilizing  for running concurrent scheduled cron jobs in the background ().
+**changes in tech stack**
+  - None.
 
-**All files of reference**:
-  -  (New file)
+**All files of reference**
+  - 
+  -  (Contains WIP Discount logic)
   - 
   - 
   - 
-  
+
 **Areas that need refactoring**: 
-  - : Remains bloated with Google Drive OAuth logic (, , ). This should be extracted to  or  to keep the exam module focused.
+  - : Remains bloated with Google Drive OAuth logic.
 
-**key api endpoints**:
-  - : Returns availability of gradebook columns, checking both  and manual grades in .
-  - : Creates exams handling linkage logic.
+**key api endpoints**
+  - : Unified endpoint checking column availability for EM/EB/P1/P2/P3.
+  -  (WIP): Calculates full pension breakdown based on applied discounts.
 
-**Critical Info for New Agent**:
+**Critical Info for New Agent**
   - **LANGUAGE:** Respond to the user strictly in **Spanish**.
-  - **Grading Scale:** Always convert percentages into integer 0-20 scale when syncing to the registry using mathematical rounding ().
-  - **Linkage Exclusivity:** Exams must only map to ONE  (EM, EB, P1, P2, P3). Do not attempt to link multiple columns to a single exam.
-  - **Auto-Zero Cron:** Auto-zero execution is fully handled by . Do not modify exam submission logic to inject zeroes for unsubmitted exams; trust the background task.
+  - **Task vs Exam Linkage:** Tasks can ONLY be linked to , , or . Exams can be linked to , , , , or .
+  - **Discount Logic:** The logic for Siblings (Hermanos) MUST rely on the existing  /  field in the user collection. DO NOT create a new Siblings table.
+  - **Current State:** The backend logic for the Discount system was *just* pasted into . Your first step must be to verify the syntax and logic of this file before moving to the frontend implementation in .
 
-**documents and test reports created in this job**:
-  - 
-  - 
+**documents and test reports created in this job**
   - 
   - 
   - 
 
-**Last 10 User Messages and any pending HUMAN messages**:
-  1. User approved Phase 1 & 2 performance optimizations.
-  2. Agent completed Phase 1 & 2.
-  3. User requested a new feature: Link Exams to Gradebook Columns (EM, EB, P1, P2, P3).
-  4. Agent implemented the linkage backend + frontend.
-  5. User submitted a correction:  and  must be Mutually Exclusive using a single  field.
-  6. Agent refactored DB models, UI, and backend to enforce single  mutual exclusivity.
-  7. User requested an auto-zero feature for students who miss an exam when its deadline passes.
-  8. Agent implemented a background cron job to auto-close exams, assign 0s, and sync to the registry.
-  9. User provided an additional rule for : Ensure the UI blocks linking to a gradebook column if the teacher has already manually inputted grades there, even if no exam is linked.
-  10. Agent implemented the double check, returning accurate disabled reasons (exam vs manual_grades) and successfully tested it. *(No pending messages)*.
+**Last 10 User Messages and any pending HUMAN messages**
+  1. User requested changing the Bimestre dropdown to a read-only badge.
+  2. User reported the change wasn't visible in the Admin portal.
+  3. Agent verified it was visible and showed screenshots.
+  4. User provided a massive PRD to unify Task and Exam linkage to the Gradebook.
+  5. User authorized starting the P0 phase of the PRD.
+  6. User asked how tasks are currently graded/synced.
+  7. User requested an auto-zero cron job for expired tasks.
+  8. Agent successfully implemented the unified linkage and task cron job.
+  9. User provided a massive new PRD for Sistema de Descuentos y Pensiones Variables. *(Pending task)*.
 
 **Project Health Check**:
-  - Broken: None.
+  - Broken: None known.
   - Mocked: None.
 
 **3rd Party Integrations**:
-  - Google Drive (File Storage) — requires User API Key (, )
+  - Google Drive (File Storage) — requires User API Key
   - Firebase FCM (Push Notifications)
   - Cloudinary (Image Storage)
 
 **Testing status**:
-  - Testing agent used after significant changes: YES
+  - Testing agent used after significant changes: YES (Iterations 87 & 88 passed 100%).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: , , 
-  - Known regressions: None known.
+  - Test files created: , 
+  - Known regressions: None.
 
 **Credentials to test flow**:
   - **School Owner / Admin:**
@@ -145,5 +146,5 @@ None. (All tasks picked up in the previous fork were successfully completed).
     - **Email:** 
     - **Password:** 
 
-**What agent forgot to execute**:
-The agent proposed adding a visual indicator badge for  (✅ Sincronizado / ⏳ Pendiente / ➖ Sin vincular) in the Exams List view to give teachers visibility into the linkage status. The user did not explicitly request it so it wasn't implemented, but it is tracked under Upcoming Tasks (P2).</analysis>
+**What agent forgot to execute**
+The agent is currently midway through implementing the Sistema de Descuentos y Pensiones Variables PRD. Backend code was pasted, but frontend UI and backend testing remain to be done.</analysis>

@@ -19,7 +19,7 @@ import {
   CircleDollarSign, FileText, Percent, Scale, Briefcase,
   BadgeDollarSign, Coins, ChartLine, Building2, Wallet2,
   ShieldCheck, BarChart4, LineChart, Users, AlertOctagon, 
-  Eye, History, UserX, UserCheck, Settings
+  Eye, History, UserX, UserCheck, Settings, Tag, Zap
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -868,6 +868,7 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
   const headers = { Authorization: `Bearer ${localStorage.getItem("token") || ""}` };
   const [paymentConcepts, setPaymentConcepts] = useState([]);
   const [studentPaidConcepts, setStudentPaidConcepts] = useState([]);
+  const [studentPension, setStudentPension] = useState(null);
 
   // Load active payment concepts
   useEffect(() => {
@@ -880,11 +881,15 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
   // Load student's already-paid concepts for current year
   const loadStudentPaidConcepts = (studentId) => {
-    if (!studentId) { setStudentPaidConcepts([]); return; }
+    if (!studentId) { setStudentPaidConcepts([]); setStudentPension(null); return; }
     const currentYear = new Date().getFullYear();
     axios.get(`${API}/accounting/student-paid-concepts/${studentId}?year=${currentYear}`, { headers })
       .then(r => setStudentPaidConcepts(r.data.paid_concepts || []))
       .catch(() => setStudentPaidConcepts([]));
+    // Also load student pension with discounts
+    axios.get(`${API}/accounting/students/${studentId}/pension`, { headers })
+      .then(r => setStudentPension(r.data))
+      .catch(() => setStudentPension(null));
   };
 
   // Filter out "unico" concepts already paid by this student
@@ -898,13 +903,23 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
 
   const getDefaultAmount = (conceptName) => {
     const found = paymentConcepts.find(c => c.name === conceptName);
-    if (found && found.amount > 0) return found.amount.toString();
+    if (found && found.amount > 0) {
+      // For mensualidad, use student's individual pension if available
+      if ((conceptName.toLowerCase() === "mensualidad") && studentPension && studentPension.final_pension > 0) {
+        return studentPension.final_pension.toString();
+      }
+      return found.amount.toString();
+    }
     // Fallback to financial settings
     if (conceptName.toLowerCase() === "matricula" || conceptName === "Matrícula") {
       const val = financialSettings?.matricula || financialSettings?.matricula_monto || 0;
       return val > 0 ? val.toString() : "";
     }
     if (conceptName.toLowerCase() === "mensualidad") {
+      // Use student pension if available
+      if (studentPension && studentPension.final_pension > 0) {
+        return studentPension.final_pension.toString();
+      }
       const val = financialSettings?.pension_mensual || 0;
       return val > 0 ? val.toString() : "";
     }
@@ -930,11 +945,15 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
     return financialSettings?.matricula || financialSettings?.matricula_monto || 0;
   }, [paymentConcepts, financialSettings]);
   const comboMensualidadAmount = useMemo(() => {
+    // Use student's individual pension if available
+    if (studentPension && studentPension.final_pension > 0) {
+      return studentPension.final_pension;
+    }
     const c = paymentConcepts.find(c => c.name === "Mensualidad" || c.name.toLowerCase() === "mensualidad");
     if (c && c.amount > 0) return c.amount;
     // Fallback to financial settings
     return financialSettings?.pension_mensual || 0;
-  }, [paymentConcepts, financialSettings]);
+  }, [paymentConcepts, financialSettings, studentPension]);
 
   const [formData, setFormData] = useState({
     student_id: "",
@@ -1232,8 +1251,45 @@ function PaymentFormModal({ isOpen, onClose, payment, onSave, grades, sections, 
             onClear={() => {
               setFormData(prev => ({ ...prev, student_id: "", grade_id: "", section_id: "", concept: "", amount_base: "" }));
               setStudentPaidConcepts([]);
+              setStudentPension(null);
             }}
           />
+
+          {/* Student Discounts Breakdown - shown when student is selected */}
+          {formData.student_id && studentPension && studentPension.discounts && studentPension.discounts.length > 0 && (
+            <div className="mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-xl" data-testid="payment-student-discounts">
+              <div className="flex items-center gap-2 mb-3">
+                <Tag className="w-4 h-4 text-blue-600" />
+                <span className="text-sm font-bold text-gray-700">Descuentos del alumno</span>
+                <span className="ml-auto text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full font-semibold">
+                  {studentPension.discounts.length} descuento{studentPension.discounts.length !== 1 ? "s" : ""}
+                </span>
+              </div>
+              <div className="space-y-2">
+                {studentPension.discounts.map((d, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm">
+                    <span className="text-gray-600 flex items-center gap-1.5">
+                      {d.origin === "automatic" ? (
+                        <span className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center flex-shrink-0"><Zap className="w-3 h-3 text-blue-600" /></span>
+                      ) : (
+                        <span className="w-5 h-5 bg-gray-200 rounded flex items-center justify-center flex-shrink-0"><User className="w-3 h-3 text-gray-500" /></span>
+                      )}
+                      {d.name}
+                      <span className="text-xs text-gray-400">({d.type === "percentage" ? `${d.value}%` : `S/ ${d.value}`})</span>
+                    </span>
+                    <span className="font-semibold text-rose-500">- S/ {formatNumber(d.amount)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between pt-2 border-t border-blue-200 text-sm">
+                  <span className="text-gray-600">Base: S/ {formatNumber(studentPension.base_pension)}</span>
+                  <span className="font-bold text-emerald-600">Pension individual: S/ {formatNumber(studentPension.final_pension)}</span>
+                </div>
+              </div>
+              {studentPension.is_override && (
+                <p className="text-xs text-amber-600 mt-2 font-medium">* Monto fijo manual (override)</p>
+              )}
+            </div>
+          )}
 
           {/* Concept and method */}
           <div className="grid grid-cols-2 gap-4 mb-6">
