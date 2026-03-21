@@ -2,46 +2,34 @@
 
 ## Architecture
 - Frontend: React + Tailwind + Shadcn/UI
-- Backend: FastAPI + MongoDB
+- Backend: FastAPI + MongoDB (DB_NAME: database)
 - 3rd Party: Cloudinary, Firebase Admin SDK (push), pandas, openpyxl, recharts
 
-## Implemented (March 21, 2026)
+## Implemented Features
 
 ### Performance Optimization - Course Dashboard (Fase 1 + 2) - COMPLETED
-- [x] Fase 1: Fixed N+1 queries in `get_course_posts` with `asyncio.gather()` batch queries
-- [x] Fase 1: Added projection to exclude heavy fields (`submissions[]`) from list view
-- [x] Fase 1: Fixed deprecated `asyncio.coroutine` code, added missing `file_url`/`file_name`/`metadata` to projection
-- [x] Fase 1: MongoDB indexes for `post_likes`, `post_comments`, `course_activities`, `course_reminders`, `presence`
-- [x] Fase 2: Parallelized `sidebar-summary` (11 sequential queries → 1 `asyncio.gather`)
-- [x] Fase 2: Removed slow regex on `content` field for video counting (now uses indexed `file_type` prefix match)
-- [x] Fase 2: Optimized `presence/users` with optional `subject_id` filter (scopes to ~7 course users vs 1000+ school)
-- [x] Frontend: Fixed presence map bug (array→map conversion for O(1) lookup)
+- Fase 1: Fixed N+1 queries in `get_course_posts` with `asyncio.gather()` batch queries
+- Fase 1: Added projection to exclude heavy fields, fixed deprecated asyncio.coroutine
+- Fase 2: Parallelized `sidebar-summary` (11 queries → 1 asyncio.gather)
+- Fase 2: Optimized `presence/users` with optional `subject_id` filter
+- Frontend: Fixed presence map bug (array→map for O(1) lookup)
 
-### Attendance Config by Level
-- [x] UI: Docentes (entry/exit global) + Estudiantes por Nivel
-- [x] DB: attendance_config.teachers + attendance_config.levels[] + tolerance + auto_late
-- [x] Backend: PUT /api/settings/attendance, GET includes config
-- [x] QR: auto-marks present/late/absent by student level_id or teacher config
+### Exam ↔ Registro Auxiliar Linkage (P0) - COMPLETED
+- Backend: `GET /api/exams/register-availability` with slot availability per bimester
+- Backend: Validation 409 conflict on duplicate register_type/register_participation
+- Backend: New exam fields: `period_id`, `register_type` (EM/EB), `register_participation` (P1/P2/P3), `sync_status`
+- Backend: `sync_exam_to_register()` and `sync_single_student()` for auto-grading
+- Backend: Hook in `submit_exam_attempt` for instant grade sync (% → vigesimal)
+- Backend: Unique partial indexes on `online_exams` for concurrency safety
+- Frontend: ExamModal "Vinculacion al Registro Auxiliar" block (first section)
+- Frontend: Bimester select, EM/EB radios, P1/P2/P3 toggles with availability badges
+- Frontend: Dynamic confirmation text, disabled states for occupied slots
 
-### Push Notifications
-- [x] Firebase Admin SDK, FCM tokens, Service Worker
-- [x] Attendance push: entry + exit + tardanza notifications
-- [x] "Asistencia" tab in NotificationBell for parents
-
-### QR Scanner
-- [x] Pauses on scan, "Escanear otro" button, no re-scan
-
-### Support Panel
-- [x] Two-tab renewal, all schools visible, paginated, notification bell
-
-### Subscription
-- [x] Real-time state, owner/admin always login, ProfileCard days overdue
-
-### Production Hardening (March 2026)
-- [x] Fixed 503 errors from stale Service Worker
-- [x] Hardened POST/GET /api/academic/subjects with scoped validation, multi-collection caching
-- [x] Fixed Google Drive OAuth token refresh + redirect_uri
-- [x] Centralized QR Code Generation (services/qr_service.py)
+### Prior Features (from previous sessions)
+- Attendance Config by Level, Push Notifications, QR Scanner
+- Support Panel, Subscription management
+- Production Hardening (503 fix, Subjects hardening, Google Drive OAuth, QR centralization)
+- Registro Auxiliar Excel-Format Rebuild, Mass Student Import
 
 ## Pending Issues
 | P | Issue | Status |
@@ -54,17 +42,21 @@
 ## Upcoming Tasks
 | P | Task | Status |
 |---|------|--------|
+| P1 | Exam Linkage P1: Tooltips, deletion warning, edit linkage, closed register warning | NOT STARTED |
 | P1 | Refactor Message Pages (consolidate duplicated components) | NOT STARTED |
 | P2 | Gradebook Enhancements (Export PDF/Excel, Lock/Close Period) | NOT STARTED |
 
 ## Future/Backlog Tasks
 - Complete Parent Portal Feature Parity
-- Build "Matrículas" (Enrollments) module
+- Build "Matriculas" (Enrollments) module
 - Enhance Exams module with Question Bank
 - Replace all window.confirm/alert with custom modals
+- Move Google Drive OAuth from exams.py to dedicated integrations module
 
-## Refactoring Needed
-- Move Google Drive OAuth from exams.py to dedicated integrations.py/drive_service.py
+## Key Data Models
+- `online_exams`: `{id, school_id, subject_id, section_id, title, period_id, register_type, register_participation, sync_status, ...}`
+- `student_grades`: `{school_id, subject_id, section_id, period_id, student_id, exam_mensual, exam_bimestral, part_p1-p3, ...}`
+- `academic_periods`: `{id, school_id, nombre, orden, activo, fecha_inicio, fecha_fin}`
 
 ## Credentials
 - Owner: elroble / admin@elroble.edu / 1234abc8
