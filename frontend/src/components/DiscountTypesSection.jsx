@@ -60,7 +60,7 @@ function DiscountTypeModal({ isOpen, onClose, onSave, editingType }) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg" data-testid="discount-type-modal">
         <div className="bg-gradient-to-r from-[#001f4b] to-[#0a3068] px-6 py-5 rounded-t-2xl flex items-center justify-between">

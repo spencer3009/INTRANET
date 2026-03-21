@@ -73,7 +73,7 @@ export default function PaymentBlockModal({ token, onClose, forceLock, schoolDat
   };
 
   return (
-    <div className="fixed inset-0 z-[90] bg-black/60 flex items-center justify-center p-4" data-testid="payment-block-modal">
+    <div className="fixed inset-0 z-[150] bg-black/60 flex items-center justify-center p-4" data-testid="payment-block-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="bg-gradient-to-r from-red-600 to-red-700 px-4 py-3 text-white">
           <div className="flex items-center justify-between">

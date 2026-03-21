@@ -232,7 +232,7 @@ export default function PaymentConceptsSection({ token, user, onConceptsChange }
 
       {/* Form Modal */}
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="concept-form-modal">
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4" data-testid="concept-form-modal">
           <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm" onClick={() => setShowForm(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
             <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4 flex items-center justify-between">
