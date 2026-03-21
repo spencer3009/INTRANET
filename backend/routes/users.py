@@ -26,7 +26,7 @@ from .core import (
     create_system_support_user,
 )
 
-import jwt
+from services.qr_service import generate_user_qr
 import io
 import csv
 import unicodedata
@@ -244,15 +244,11 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         if data.notas:
             new_user["notas"] = data.notas
         
-        # Generate unique QR token for student (JWT signed)
-        qr_payload = {
-            "student_id": new_user["id"],
-            "school_id": school_id,
-            "issued_at": datetime.now(timezone.utc).isoformat(),
-            "type": "student_qr"
-        }
-        qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+        # Generate short QR (centralized service)
+        qr_id, qr_token = await generate_user_qr(db)
+        new_user["qr_id"] = qr_id
         new_user["qr_token"] = qr_token
+        new_user["qr_version"] = 2
     
     # Add parent-specific fields
     if data.role == "parent":
@@ -261,16 +257,12 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["lugar_trabajo"] = data.lugar_trabajo
         new_user["telefono_trabajo"] = data.telefono_trabajo
     
-    # Generate QR token for teachers (same logic as students)
+    # Generate short QR for teachers (centralized service)
     if data.role == "teacher":
-        qr_payload = {
-            "teacher_id": new_user["id"],
-            "school_id": school_id,
-            "issued_at": datetime.now(timezone.utc).isoformat(),
-            "type": "teacher_qr"
-        }
-        qr_token = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+        qr_id, qr_token = await generate_user_qr(db)
+        new_user["qr_id"] = qr_id
         new_user["qr_token"] = qr_token
+        new_user["qr_version"] = 2
     
     await db.users.insert_one(new_user)
     
@@ -1051,13 +1043,11 @@ async def import_students(
             "updated_at": now,
         }
 
-        qr_payload = {
-            "student_id": new_student["id"],
-            "school_id": school_id,
-            "issued_at": now,
-            "type": "student_qr"
-        }
-        new_student["qr_token"] = jwt.encode(qr_payload, JWT_SECRET, algorithm="HS256")
+        # Generate short QR (centralized service)
+        qr_id, qr_token = await generate_user_qr(db)
+        new_student["qr_id"] = qr_id
+        new_student["qr_token"] = qr_token
+        new_student["qr_version"] = 2
 
         if errors:
             pending.append({"row": idx + 1, "name": f"{name} {last_name}", "errors": errors, "student_code": student_code})

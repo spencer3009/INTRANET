@@ -27,6 +27,7 @@ from .core import (
 )
 
 import jwt
+from services.qr_service import generate_user_qr
 
 try:
     from .notifications import send_attendance_notification
@@ -1117,9 +1118,6 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             "attendance": {"status": None, "entry_time": None, "exit_time": None, "date": today}
         }
 
-def _generate_short_qr_id():
-    """Generate a short unique QR ID (8 chars)"""
-    return uuid.uuid4().hex[:8]
 
 @router.post("/attendance/qr/generate")
 async def generate_qr_for_existing_users(current_user = Depends(get_current_user)):
@@ -1138,9 +1136,8 @@ async def generate_qr_for_existing_users(current_user = Depends(get_current_user
     }).to_list(None)
     
     for s in students:
-        qr_id = _generate_short_qr_id()
-        qr_url = f"https://app.edunet.pe/qr/{qr_id}"
-        await db.users.update_one({"id": s["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url}})
+        qr_id, qr_url = await generate_user_qr(db)
+        await db.users.update_one({"id": s["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url, "qr_version": 2}})
         updated_count += 1
     
     # Teachers without qr_id
@@ -1150,9 +1147,8 @@ async def generate_qr_for_existing_users(current_user = Depends(get_current_user
     }).to_list(None)
     
     for t in teachers:
-        qr_id = _generate_short_qr_id()
-        qr_url = f"https://app.edunet.pe/qr/{qr_id}"
-        await db.users.update_one({"id": t["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url}})
+        qr_id, qr_url = await generate_user_qr(db)
+        await db.users.update_one({"id": t["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url, "qr_version": 2}})
         updated_count += 1
     
     return {
@@ -1181,15 +1177,13 @@ async def regenerate_all_qr(current_user = Depends(get_current_user)):
     
     count = 0
     for s in students:
-        qr_id = _generate_short_qr_id()
-        qr_url = f"https://app.edunet.pe/qr/{qr_id}"
-        await db.users.update_one({"id": s["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url}})
+        qr_id, qr_url = await generate_user_qr(db)
+        await db.users.update_one({"id": s["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url, "qr_version": 2}})
         count += 1
     
     for t in teachers:
-        qr_id = _generate_short_qr_id()
-        qr_url = f"https://app.edunet.pe/qr/{qr_id}"
-        await db.users.update_one({"id": t["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url}})
+        qr_id, qr_url = await generate_user_qr(db)
+        await db.users.update_one({"id": t["id"]}, {"$set": {"qr_id": qr_id, "qr_token": qr_url, "qr_version": 2}})
         count += 1
     
     # Log the operation
