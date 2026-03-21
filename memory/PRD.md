@@ -15,15 +15,13 @@
 - Frontend: Fixed presence map bug (array→map for O(1) lookup)
 
 ### Exam ↔ Registro Auxiliar Linkage (P0) - COMPLETED
+- Backend: `register_column` (single field, mutually exclusive: EM|EB|P1|P2|P3|null)
 - Backend: `GET /api/exams/register-availability` with slot availability per bimester
-- Backend: Validation 409 conflict on duplicate register_type/register_participation
-- Backend: New exam fields: `period_id`, `register_type` (EM/EB), `register_participation` (P1/P2/P3), `sync_status`
+- Backend: Validation 409 conflict on duplicate register_column
 - Backend: `sync_exam_to_register()` and `sync_single_student()` for auto-grading
-- Backend: Hook in `submit_exam_attempt` for instant grade sync (% → vigesimal)
-- Backend: Unique partial indexes on `online_exams` for concurrency safety
-- Frontend: ExamModal "Vinculacion al Registro Auxiliar" block (first section)
-- Frontend: Bimester select, EM/EB radios, P1/P2/P3 toggles with availability badges
-- Frontend: Dynamic confirmation text, disabled states for occupied slots
+- Backend: Single unique partial index `uq_exam_register_column`
+- Frontend: ExamModal single radio group (EM, EB, P1, P2, P3 + Sin vinculacion)
+- Frontend: Bimester select, dynamic availability badges, confirmation text
 
 ### Prior Features (from previous sessions)
 - Attendance Config by Level, Push Notifications, QR Scanner
@@ -54,7 +52,7 @@
 - Move Google Drive OAuth from exams.py to dedicated integrations module
 
 ## Key Data Models
-- `online_exams`: `{id, school_id, subject_id, section_id, title, period_id, register_type, register_participation, sync_status, ...}`
+- `online_exams`: `{id, school_id, subject_id, section_id, title, period_id, register_column, sync_status, ...}`
 - `student_grades`: `{school_id, subject_id, section_id, period_id, student_id, exam_mensual, exam_bimestral, part_p1-p3, ...}`
 - `academic_periods`: `{id, school_id, nombre, orden, activo, fecha_inicio, fecha_fin}`
 
