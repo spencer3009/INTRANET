@@ -1,198 +1,167 @@
-<analysis>**original_problem_statement:**
-The user wants to enhance the EduNet platform with several advanced features, debug production issues, and refine existing functionalities.
+<analysis>**original_problem_statement**: 
+The user wants to enhance the EduNet platform, resolve critical production crashes (502/503/520 errors) related to course creation, fix Google Drive integration failures (token expiration and redirect mismatches), modernize the QR code generation across all modules (including Excel bulk import), and resolve severe performance bottlenecks on the Course Dashboard pages.
 
-**Key requirements specified in this session:**
-1.  **Subscription System Fixes:**
-    *   Allow owners and admins to log in even when their school's subscription is , showing a non-dismissible payment modal instead of a full block.
-    *   Display the number of overdue days on the owner's dashboard profile card.
-2.  **Support Panel Enhancements:**
-    *   Provide two membership renewal options: one with an operation code and one for direct renewal without a code.
-    *   Implement a paginated list for Recent Schools on the dashboard.
-    *   Show all schools on the Colegios page, not just those assigned to the support user.
-    *   Add a notification bell on each school card to show pending payment requests, with a sound alert for new notifications.
-    *   Add a search bar to filter schools by name or subdomain.
-    *   Allow support users with the  role to enter any school dashboard without prior assignment.
-3.  **QR Code System Overhaul:**
-    *   Improve the scanner flow to pause after a scan and require a Scan another button press to resume.
-    *   Redesign the individual QR code pop-up and download to be a full-color carnet with the school's logo, student's photo, and details.
-    *   Implement the same carnet format for teachers.
-    *   Completely optimize the QR generation system to use short, unique URLs () instead of long JWTs to improve scan speed and reliability. Implement a mass regeneration feature.
-    *   Implement bulk QR code download (PDF/ZIP) for entire classes, with options to include photos and student codes.
-4.  **Attendance & User Management:**
-    *   Implement a Safe Bulk Delete feature for students that validates against existing academic activity (grades, attendance) and uses a soft delete ().
-    *   Implement a system for setting attendance rules (entry time, tolerance) per academic level, which automatically marks students as  or  upon QR scan.
-    *   Implement an Annul Attendance feature with an audit log, allowing admins to void incorrect QR scans.
-    *   Add the ability to capture a student/teacher photo directly from the device's camera.
-    *   Add a Delete option for subjects/courses.
-5.  **Firebase Push Notifications:**
-    *   Implement a full-stack Firebase Cloud Messaging (FCM) system to send real-time push notifications to parents when their child's attendance is registered via QR scan (entry or exit). This must work even if the app is closed.
-6.  **Production Debugging:**
-    *   Diagnose and fix various 502 and 503 errors occurring in the production environment, primarily related to the subscription status check, course creation, and stale Service Workers.
+**User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only).
 
-**User's preferred language**: Spanish
-
-**what currently exists?**
-The application is a mature school management platform with a React frontend and FastAPI backend. This session heavily fortified the application by:
--   **Implementing a full Firebase Push Notification system** for parent attendance alerts, including backend logic (FCM Admin SDK), database tables for tokens and notifications, and frontend integration (Service Worker, notification hooks).
--   **Completely overhauling the QR code system**. QR codes now contain short, unique URLs instead of JWTs, making them simpler and faster to scan. A mass-regeneration feature has been added.
--   **Adding advanced administrative tools**, including Safe Bulk Delete for students (with academic validation) and bulk QR code downloads in multiple formats (PDF carnet, ZIP).
--   **Refactoring the attendance configuration** to be granular per academic level.
--   **Adding a direct camera capture feature** for user profile photos.
--   **Implementing numerous defensive coding patterns** in the backend (extensive  blocks, fallback values, conditional imports) to make the production environment more resilient and prevent 502/503 errors.
--   **Improving the frontend Service Worker** to prevent incorrect caching of API requests and third-party scripts.
+**what currently exists?** 
+A mature React + FastAPI + MongoDB school management platform. In this session, the backend was heavily fortified against production crashes. The  endpoints were rewritten with scoped validations and defensive joins. Google Drive OAuth2 integration was fixed to support automatic token refreshing and retry logic. A centralized  was created to completely replace legacy JWTs with short URLs for all student/teacher creation methods (including Excel imports). Finally, the backend underwent Phase 1 performance optimizations to eliminate N+1 query bottlenecks in course posts using .
 
 **Last working item**:
--   Last item agent was working: Investigating why new courses were not appearing in the production environment after being created. The agent identified the root cause as a stale Service Worker in the user's browser intercepting  requests and returning a 503 error.
--   Status: **RESOLVED** (Agent-side). The agent implemented a mechanism in  to force self-update and unregister old versions, which should resolve the issue for the user upon the next hard refresh. The backend code was verified to be correct.
--   Agent Testing Done: Y
--   Which testing method agent to use? The user needs to test this directly in their production environment. The agent has instructed them to perform a hard refresh (Ctrl+Shift+R) to ensure the new Service Worker is activated.
--   User Testing Done: N
+- **Last item agent was working**: Implementing Fase 2 of the performance optimization for the Course Dashboard. The agent had just finished Fase 1 (fixing the N+1 query problem in  and adding MongoDB indexes) and was about to optimize the  and  endpoints.
+- **Status**: IN PROGRESS
+- **Agent Testing Done**: N (Fase 1 code was just written, needs testing; Fase 2 is pending implementation).
+- **Which testing method agent to use?**: manual testing by curl/ python -c (to verify response times of the optimized endpoints) and screenshot tool (to ensure the frontend dashboard loads correctly).
+- **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
--   **Issue 1: Inconsistent Subject List (P0)**
--   **Issue 2: Incomplete Payment Flow (P1)**
--   **Issue 3: Hardcoded Owner Dashboard Data (P2)**
--   **Issue 4: Double Scrollbar in Registro Auxiliar (P2)**
+  Issue 1: Performance bottlenecks in Course Dashboard (Fase 2) (P0)
+  - Attempted fixes: Fase 1 (Posts N+1 queries) was completed. Fase 2 is pending.
+  - Next debug checklist: 
+    - In , endpoint : replace the 8+ sequential  queries with  for parallel execution. Remove the slow regex  and replace it with a boolean or indexed post type.
+    - In , endpoint : filter users by the specific course/subject rather than fetching all 1000+ users in the school.
+  - Why fix this issue and what will be achieved with the fix?: Reduces page load times from 5-9 seconds to sub-second loads, improving UX.
+  - Status: IN PROGRESS
+  - Is recurring issue? N
+  - Should Test frontend/backend/both after fix?: Both. Check API response time and UI loading state.
+  - Blocked on other issue: None
 
-**Issues Detail:**
--   **Issue 1: Inconsistent Subject List (P0)**
-    -   **Description:** A recurring critical bug where the Asignaturas page shows a different number of subjects than the Asignar Docente modal.
-    -   **Next debug checklist:** Compare the backend API endpoints and database queries used by both frontend components. Unify the logic in  or .
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
+  Issue 2: Inconsistent Subject List (P1)
+  - Attempted fixes: None in this session (overridden by critical production crashes).
+  - Next debug checklist: Compare the backend API endpoints and DB queries used by the Asignaturas page vs the Asignar Docente modal.
+  - Why fix this issue and what will be achieved with the fix?: Ensures data consistency across the app.
+  - Status: NOT STARTED
+  - Is recurring issue? Y
+  - Should Test frontend/backend/both after fix?: Both.
 
--   **Issue 2: Incomplete Payment Flow (P1)**
-    -   **Description:** The UI for registering a payment is complete (via the notification bell in the support panel), but there is no admin interface to view and approve these pending payments.
-    -   **Next debug checklist:**
-        1.  Create a new page/section in the support panel to list payments with status .
-        2.  Implement Approve and Reject buttons.
-        3.  The Approve button should call a backend endpoint to update the school's  and change the payment status.
-    -   **Status:** NOT STARTED
-    -   **Blocked on other issue:** The payment registration flow from the user side is complete, but this admin-facing part is pending.
+  Issue 3: Incomplete Payment Flow (P1)
+  - Attempted fixes: None in this session.
+  - Next debug checklist: Create a new page/section in the support panel to list payments with status . Implement Approve/Reject buttons to update .
+  - Why fix this issue and what will be achieved with the fix?: Allows admins to actually approve payments registered by users.
+  - Status: NOT STARTED
+  - Is recurring issue? N
+  - Should Test frontend/backend/both after fix?: Both.
 
--   **Issue 3: Hardcoded Owner Dashboard Data (P2)**
-    -   **Description:** A recurring issue where the owner's dashboard widgets show static, hardcoded data instead of real-time statistics.
-    -   **Status:** NOT STARTED
-    -   **Is recurring issue?** Y
+  Issue 4: Hardcoded Owner Dashboard Data (P2)
+  - Attempted fixes: None in this session.
+  - Next debug checklist: Replace static widgets in the owner's dashboard with real-time statistics from the backend.
+  - Status: NOT STARTED
+  - Is recurring issue? Y
 
--   **Issue 4: Double Scrollbar in Registro Auxiliar (P2)**
-    -   **Description:** The  has a redundant scrollbar, affecting usability.
-    -   **Status:** NOT STARTED
+**In progress Task List**:
+  Task 1: Optimize Course Dashboard Endpoints (Fase 2)
+  - Where to resume: Modify  in  and  in .
+  - What will be achieved with this?: Completion of the performance optimization overhaul.
+  - Status: IN PROGRESS
+  - Should Test frontend/backend/both after fix?: Both
+  - Blocked on something: None
 
 **Upcoming and Future Tasks**
--   **Upcoming Tasks:**
-    -   **P1: Refactor Message Pages:** Consolidate duplicated message pages into a single, robust component.
-    -   **P2: Gradebook Enhancements:** Implement Export to PDF/Excel and a Lock/Close Period feature.
--   **Future Tasks:**
-    -   Complete Parent Portal Feature Parity.
-    -   Build a Matrículas (Enrollments) module.
-    -   Enhance the Exams module with a Question Bank.
-    -   Replace all remaining / calls with custom modals.
+  Upcoming Tasks:
+  - P1: Refactor Message Pages: Consolidate duplicated message pages into a single, robust component.
+  - P2: Gradebook Enhancements: Implement Export to PDF/Excel and a Lock/Close Period feature.
+  - P2: Double Scrollbar in Registro Auxiliar UI fix.
+  
+  Future Tasks:
+  - Complete Parent Portal Feature Parity.
+  - Build a Matrículas (Enrollments) module.
+  - Enhance the Exams module with a Question Bank.
+  - Replace all remaining / calls with custom modals.
 
 **Completed work in this session**
--   **Production Stability:** Implemented extensive defensive coding (, conditional imports, fallback values) across , , and  to prevent 502/503 errors. Improved the Service Worker to avoid caching API calls and third-party scripts.
--   **Firebase Push Notifications:** Fully implemented a system for parent attendance alerts using FCM. Created , , , and integrated logic into the parent portal.
--   **QR Code System Overhaul:**
-    -   Refactored QR tokens to be short URLs instead of long JWTs in .
-    -   Created a mass regeneration endpoint ().
-    -   Created a bulk download endpoint () to generate PDFs/ZIPs of QR carnets on the fly.
-    -   Redesigned the individual QR pop-up (, ) into a full carnet format.
--   **Attendance Management:**
-    -   Created a Safe Bulk Delete feature for students with academic activity validation ().
-    -   Implemented a UI for configuring attendance rules (entry time, tolerance) per academic level in .
-    -   Implemented a feature to annul incorrect QR scans (), with a full audit trail.
--   **User/Course Management:**
-    -   Added a feature to capture student/teacher photos directly from the camera () in  and .
-    -   Added a Delete option for subjects in .
--   **Support Panel UX:**
-    -   Added dual renewal options, a search bar, and a notification bell for payments in .
-    -   Removed the assignment requirement for  to enter school dashboards.
+- Fixed 503 errors caused by stale Service Worker ( upgraded, offline fallback added).
+- Hardened  (Added detailed logging, structured errors, scoped duplicate code checks,  timeout protection, normalized IDs).
+- Hardened  (Fixed DB join enrichment crashes by implementing multi-collection caching  + , and safe  fallbacks).
+- Fixed Google Drive  token expiration ( now auto-refreshes tokens and handles  401s).
+- Fixed Google Drive  (Hardcoded  using  env var).
+- Centralized QR Code Generation (Created , removed legacy JWT generation from , including Excel bulk import, ensured backward compatibility in  scanning).
+- Performance Fase 1 (Fixed N+1 query issue in  using , added missing DB indexes).
+
+**Earlier issues found/mentioned but not fixed**
+  - Issue 1: Inconsistent Subject List (mentioned in previous handoff)
+  - Issue 2: Incomplete Payment Flow (mentioned in previous handoff)
+  - Issue 3: Hardcoded Owner Dashboard Data (mentioned in previous handoff)
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: Production vs Preview Environment Schema Naming. The production DB sometimes uses Spanish collection names (, , ) while the code expects English (, , ).
+  - Recurrence count: 3
+  - Status: RESOLVED (Agent implemented dual-collection cache merging in  to handle this dynamically).
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
--   **Firebase Cloud Messaging (FCM):** Used for sending and receiving push notifications. The backend uses the  Python SDK, and the frontend PWA uses a Service Worker () to handle background messages.
--   **On-the-Fly File Generation:** The bulk QR download feature generates PDF and ZIP files entirely in memory using  and , streaming the response directly to the user without writing to disk. This is a critical architectural pattern for scalability.
--   **Defensive Programming for Production:** A major theme of the session was hardening the backend against production-specific errors (like missing dependencies or different database schemas). This involved adding extensive  blocks, using  with defaults for dictionary access, and implementing conditional imports to prevent server crashes.
--   **Service Worker Strategy:** The  was refactored to use a network-first strategy, ignore all API calls and third-party domains, and provide valid fallback  objects to prevent browser errors.
--   **Soft Deletes:** The bulk student deletion feature does not physically remove records. It sets a  flag and records the reason and timestamp, preserving data for audits.
--   **Optimized QR Payloads:** Shifted from embedding large JWTs in QR codes to using short, unique IDs in a URL format (), which are then looked up by the backend. This improves scannability.
+- **N+1 Query Elimination:** Aggregating IDs in memory and using  to fetch related records (users, likes, comments) in batch, rather than querying inside a loop.
+- **Google OAuth2 Offline Access:** Storing , using  to fetch new  on the fly, and utilizing  for fixed redirect URIs.
+- **Defensive Production Lookups:** Querying multiple potential collection names (e.g.,  and ) and merging the results to ensure data enrichment doesn't fail due to legacy schema differences.
 
 **key DB schema**
--   **users:** Added  (short unique string),  (e.g., active, deleted), , , .
--   **attendances:** Added  (active, anulado), , and several  fields for auditing.
--   **parent_notifications (NEW):** Stores push notification details for parents (, , , , ).
--   **notification_audit (NEW):** Logs every push notification sent.
--   **bulk_delete_logs (NEW):** Logs every bulk deletion operation.
--   **school_settings:** The  object was refactored to support separate configurations for teachers and a list of configurations for each academic level.
+  - :  (Migrated from legacy JWT tokens).
+  - : .
+  - : Standardized table for assigning teachers to subjects.
+
+**changes in tech stack**
+  - Added  and  heavily for performance and stability.
 
 **All files of reference**
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   
--   
+  -  (Currently modifying for Performance Fase 2)
+  -  (Currently modifying for Performance Fase 2)
+  - 
+  - 
+  -  (New file)
+  - 
+
+**Areas that need refactoring**: 
+  - : Contains all the Google Drive OAuth integration logic (, , ). This should ideally be moved to an  or  module, as it has nothing to do with exams.
 
 **key api endpoints**
--   : Analyzes or performs a safe soft-delete of students.
--   : Generates and streams a PDF or ZIP of QR carnets.
--   : Optimizes all QR codes for a school.
--   : Registers a device's FCM token for push notifications.
--   : Annuls an attendance record.
--   : Now defensively coded to prevent crashes from corrupt data.
--   : Now defensively coded to handle different collection names in production.
+  - : Optimized Phase 1.
+  - : Needs Phase 2 optimization.
+  - : Needs Phase 2 optimization.
+  - : Hardened.
+  - : Google Drive auto-refresh and retry implemented.
 
 **Critical Info for New Agent**
--   **¡Habla en español!** The user's primary language is Spanish. All communication must be in Spanish.
--   **Production vs. Preview:** The production environment has repeatedly shown different behavior than the preview environment (502/503 errors, different DB collection names). This job included significant work to make the backend more resilient. Be prepared to debug issues that only appear in production. The user is aware of how to deploy.
--   **Service Worker:** The Service Worker has been a source of production bugs. It was recently improved to be more robust, but if the user reports strange caching or network issues, it's the first place to look. The user may need to be reminded to clear their browser cache/unregister the SW.
--   **QR System:** The entire QR code system has been modernized. It now uses short URLs, and the scan endpoint is backward-compatible with the old JWT format for a transition period.
+  - **LANGUAGE:** Respond to the user strictly in **Spanish**.
+  - **Google Drive URI:** The Google Drive  is now strictly hardcoded to use the  env variable (). Do not revert to reading the  header dynamically.
+  - **QR System:** The system now exclusively generates Short URLs +  via . JWT generation has been wiped. However, the scanning endpoint in  *must* retain the  block for backward compatibility with old physical IDs.
+  - **Schema Inconsistencies:** The production DB contains mixed collection names (e.g.,  vs ). The  endpoint has a robust multi-collection caching mechanism to handle this. Do not remove it.
 
-**Last 10 User Messages and any pending HUMAN messages**
-1.  **User**: Creating a new course is not working in production.
-2.  **Agent**: Diagnosed the issue as a 502 error on  caused by a stale production environment. Advised user to redeploy.
-3.  **User**: Redeployed, but the 502 error persists.
-4.  **Agent**: Diagnosed a probable crash on startup due to the new  dependency. Implemented defensive coding (conditional imports, extensive try/catch blocks) to make the server more resilient.
-5.  **User**: The Service Worker is causing Failed to convert value to Response errors.
-6.  **Agent**: Refactored the  with a better caching strategy, ignoring API calls and third-party requests, and ensuring it always returns a valid .
-7.  **User**: Still getting a 503 error when creating a course.
-8.  **Agent**: Identified that the user's browser likely has a stale Service Worker cached. Implemented a mechanism to force the SW to update on new versions.
-9.  **User**: Confirmed the 503 is gone, but the course is still not appearing after creation.
-10. **Agent**: Explained that the course creation is likely failing due to a 400 error (e.g., duplicate code) that the old Service Worker was masking as a 503. The latest changes ensure the real error message is now shown in the UI and console. Advised user to check the console for the specific validation error from the backend.
+**documents and test reports created in this job**
+  - None created in this specific slice.
+
+**Last 10 User Messages and any pending HUMAN messages** 
+  1. User requested fixing a 503 error on the Subjects page in production.
+  2. User reported  was crashing completely after failing once on 5 años.
+  3. User clarified the issue is happening in production where sections *do* exist, and manually tried to edit the code.
+  4. User broke production indentation, requested agent to fix the duplicate code check logic and apply it.
+  5. User asked for extreme hardening of  to prevent 502/520 crashes during DB inserts.
+  6. User requested a raw diagnostic of  to see if the DB had data. It did.
+  7. User instructed agent to restore the  enrichment with safe fallbacks and multi-collection caching.
+  8. User reported Google Drive  during PDF uploads. Agent fixed token refreshing.
+  9. User reported Google Drive . Agent fixed by hardcoding .
+  10. User requested fixing QR generation during Excel bulk import to use the new short format. Agent fixed.
+  11. User reported severe performance lag (5-9s) on Course Dashboard. Agent diagnosed N+1 queries. User instructed to execute Fase 1 (Posts) and then Fase 2 (Sidebar/Presence). *Fase 1 is done. Fase 2 is pending.*
 
 **Project Health Check:**
--   **Broken**:
-    -   Subject list is inconsistent between two different pages.
-    -   The owner's dashboard still uses hardcoded data.
--   **Mocked**: None.
+  - Broken: None critically broken.
+  - Mocked: None.
 
 **3rd Party Integrations**
--   **Cloudinary:** Image storage.
--   **Firebase (FCM):** Push notifications.
--   , : Backend data processing.
--   : Frontend charts.
+  - Google Drive (File Storage) — requires User API Key (, )
+  - Firebase FCM (Push Notifications)
+  - Cloudinary (Image Storage)
 
 **Testing status**
--   **Testing agent used after significant changes**: NO
--   **Troubleshoot agent used after agent stuck in loop**: NO
--   **Test files created**: []
--   **Known regressions**: None identified.
+  - Testing agent used after significant changes: NO
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: []
+  - Known regressions: None known.
 
 **Credentials to test flow:**
--   **School Owner / Admin:**
-    -   **Subdomain:** 
-    -   **Email:** 
-    -   **Password:** 
--   **Support User ():**
-    -   **Email:** 
-    -   **Password:** 
+  - **School Owner / Admin:**
+    - **Subdomain:** 
+    - **Email:** 
+    - **Password:** 
 
 **What agent forgot to execute**
-The agent successfully implemented a very large number of complex features and bug fixes requested by the user. Long-standing, lower-priority issues from the initial handoff (like the subject list inconsistency and hardcoded dashboard) were not addressed because the user continuously introduced new, higher-priority feature requests that consumed the session's time. Nothing was forgotten, but priorities were constantly steered by the user.</analysis>
+The agent was in the middle of executing the Fase 2 performance optimizations ( and ) when context ran out. Legacy UI issues (Message pages, Gradebook enhancements) from previous handoffs remain untouched.</analysis>

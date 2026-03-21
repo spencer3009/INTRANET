@@ -79,71 +79,119 @@ async def get_course_posts(
     offset: int = Query(0, ge=0),
     current_user = Depends(get_current_user)
 ):
-    """Get all posts for a course/subject, optionally filtered by type"""
+    """Get all posts for a course/subject — optimized batch queries"""
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    
+
     school_id = user["school_id"]
     user_id = user["id"]
-    
-    # Verify subject exists
-    subject = await db.subjects.find_one({"id": subject_id, "school_id": school_id})
-    if not subject:
-        raise HTTPException(status_code=404, detail="Asignatura no encontrada")
-    
-    # Build query filter - only show active posts (not archived or deleted)
+
     query_filter = {
-        "subject_id": subject_id, 
-        "school_id": school_id, 
+        "subject_id": subject_id,
+        "school_id": school_id,
         "status": "active",
         "deleted_at": {"$exists": False}
     }
-    
-    # Filter by type if specified (support both post_type and type fields for backwards compatibility)
+
     if post_type and post_type in ["announcement", "task", "material", "forum"]:
-        # Include posts where post_type matches OR type matches (for backwards compatibility)
         query_filter["$or"] = [
             {"post_type": post_type},
             {"type": post_type}
         ]
-    
-    # Get posts
-    posts = await db.course_posts.find(
-        query_filter,
-        {"_id": 0}
+
+    # Projection: exclude heavy fields from list view
+    list_projection = {
+        "_id": 0,
+        "id": 1, "subject_id": 1, "school_id": 1, "title": 1, "content": 1,
+        "post_type": 1, "type": 1, "status": 1, "author_id": 1,
+        "created_at": 1, "updated_at": 1, "image_url": 1,
+        "drive_file_id": 1, "drive_file_name": 1, "file_extension": 1,
+        "file_type": 1, "file_size": 1, "storage_type": 1,
+        "mime_type": 1, "due_date": 1, "submissions_count": 1
+    }
+
+    # 1. Get posts + total count in parallel
+    import asyncio
+    posts_future = db.course_posts.find(
+        query_filter, list_projection
     ).sort("created_at", -1).skip(offset).limit(limit).to_list(limit)
-    
-    # Get total count
-    total = await db.course_posts.count_documents(query_filter)
-    
-    # Enrich posts with author info, likes count, user's like status, and comments count
+
+    total_future = db.course_posts.count_documents(query_filter)
+
+    posts, total = await asyncio.gather(posts_future, total_future)
+
+    if not posts:
+        return {"posts": [], "total": total}
+
+    # Extract unique IDs for batch queries
+    post_ids = [p["id"] for p in posts if p.get("id")]
+    author_ids = list(set(p.get("author_id") for p in posts if p.get("author_id")))
+
+    # 2. Batch queries in parallel (5 queries instead of 200)
+    authors_future = db.users.find(
+        {"id": {"$in": author_ids}},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}
+    ).to_list(len(author_ids))
+
+    likes_agg_future = db.post_likes.aggregate([
+        {"$match": {"post_id": {"$in": post_ids}}},
+        {"$group": {"_id": "$post_id", "count": {"$sum": 1}}}
+    ]).to_list(len(post_ids))
+
+    comments_agg_future = db.post_comments.aggregate([
+        {"$match": {"post_id": {"$in": post_ids}, "status": "active"}},
+        {"$group": {"_id": "$post_id", "count": {"$sum": 1}}}
+    ]).to_list(len(post_ids))
+
+    user_likes_future = db.post_likes.find(
+        {"post_id": {"$in": post_ids}, "user_id": user_id},
+        {"_id": 0, "post_id": 1}
+    ).to_list(len(post_ids))
+
+    # For tasks: get submission counts via aggregation
+    task_post_ids = [p["id"] for p in posts if p.get("post_type") == "task" or p.get("type") == "task"]
+    if task_post_ids:
+        subs_agg_future = db.task_submissions.aggregate([
+            {"$match": {"task_id": {"$in": task_post_ids}}},
+            {"$group": {
+                "_id": "$task_id",
+                "total": {"$sum": 1},
+                "graded": {"$sum": {"$cond": [{"$ne": ["$grade", None]}, 1, 0]}}
+            }}
+        ]).to_list(len(task_post_ids))
+    else:
+        subs_agg_future = asyncio.coroutine(lambda: [])()
+
+    authors_list, likes_agg, comments_agg, user_likes_list, subs_agg = await asyncio.gather(
+        authors_future, likes_agg_future, comments_agg_future, user_likes_future,
+        subs_agg_future if task_post_ids else asyncio.sleep(0)
+    )
+
+    # Handle the case where subs_agg might be None (from sleep(0))
+    if not task_post_ids:
+        subs_agg = []
+
+    # 3. Build lookup dictionaries (O(1) access)
+    authors_map = {a["id"]: a for a in authors_list}
+    likes_map = {item["_id"]: item["count"] for item in likes_agg}
+    comments_map = {item["_id"]: item["count"] for item in comments_agg}
+    user_liked_set = {item["post_id"] for item in user_likes_list}
+    subs_map = {item["_id"]: item for item in (subs_agg or [])}
+
+    # 4. Enrich posts in memory — ZERO additional DB queries
     for post in posts:
-        # Get author info
-        author = await db.users.find_one(
-            {"id": post.get("author_id")},
-            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "role": 1}
-        )
-        post["author"] = author
-        
-        # Get likes count
-        likes_count = await db.post_likes.count_documents({"post_id": post["id"]})
-        post["likes_count"] = likes_count
-        
-        # Check if current user liked this post
-        user_like = await db.post_likes.find_one({"post_id": post["id"], "user_id": user_id})
-        post["user_liked"] = user_like is not None
-        
-        # Get comments count
-        comments_count = await db.post_comments.count_documents({"post_id": post["id"], "status": "active"})
-        post["comments_count"] = comments_count
-        
-        # For tasks, add submissions count
+        pid = post.get("id")
+        post["author"] = authors_map.get(post.get("author_id"))
+        post["likes_count"] = likes_map.get(pid, 0)
+        post["user_liked"] = pid in user_liked_set
+        post["comments_count"] = comments_map.get(pid, 0)
+
         if post.get("post_type") == "task" or post.get("type") == "task":
-            submissions = post.get("submissions", [])
-            post["submissions_count"] = len(submissions)
-            post["graded_count"] = sum(1 for s in submissions if s.get("grade") is not None)
-    
+            sub_info = subs_map.get(pid, {})
+            post["submissions_count"] = sub_info.get("total", 0)
+            post["graded_count"] = sub_info.get("graded", 0)
+
     return {"posts": posts, "total": total}
 
 @router.post("/course/{subject_id}/posts")

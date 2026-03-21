@@ -53,7 +53,7 @@
     "admin_email": "admin@elroble.edu",
     "admin_password": "1234abc8",
     "school_subdomain": "elroble",
-    "login_url": "https://parent-notify-sys.preview.emergentagent.com/login"
+    "login_url": "https://dashboard-optimize-5.preview.emergentagent.com/login"
   },
 
   "seed_data_creation": "None - used existing school data. Existing Recreo break at 10:00-10:30 was used for testing.",

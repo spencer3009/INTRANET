@@ -70,7 +70,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://parent-notify-sys.preview.emergentagent.com",
+        "https://dashboard-optimize-5.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com|https://.*\.emergent\.host",
     allow_credentials=True,
@@ -326,6 +326,13 @@ async def create_indexes():
         await db.parent_notifications.create_index([("parent_id", 1), ("created_at", -1)])
         await db.parent_notifications.create_index([("parent_id", 1), ("read_at", 1)])
         await db.parent_notifications.create_index([("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
+        # Performance indexes for course detail page
+        await db.post_likes.create_index([("post_id", 1), ("user_id", 1)])
+        await db.post_comments.create_index([("post_id", 1), ("status", 1)])
+        await db.course_activities.create_index([("subject_id", 1), ("created_at", -1)])
+        await db.course_reminders.create_index([("subject_id", 1), ("status", 1), ("date", 1)])
+        await db.presence.create_index([("school_id", 1)])
+        await db.course_posts.create_index([("subject_id", 1), ("status", 1), ("created_at", -1)])
         logging.info("MongoDB indexes created successfully")
         # Initialize Firebase Admin SDK
         from utils.firebase_admin_sdk import get_firebase_app
