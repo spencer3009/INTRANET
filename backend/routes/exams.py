@@ -99,7 +99,11 @@ async def get_register_availability(
     """
     Check which EM/EB/P1/P2/P3 slots are available for a given
     subject + section + period (bimester).
+    A slot is UNAVAILABLE if:
+      1. An exam is already linked to it, OR
+      2. The column has manual grades in student_grades (at least one non-null value)
     """
+    import asyncio as _asyncio
     user = await resolve_user_from_token(current_user)
     if not user:
         raise HTTPException(status_code=403, detail="Usuario no encontrado")
@@ -114,37 +118,76 @@ async def get_register_availability(
         )
         section_id = subject.get("section_id") if subject else None
 
-    # Find all exams for this subject+period that have linkage
-    linked_exams = await db.online_exams.find(
-        {
-            "school_id": school_id,
-            "subject_id": subject_id,
-            "period_id": period_id,
-            "register_column": {"$ne": None},
-        },
-        {"_id": 0, "id": 1, "title": 1, "register_column": 1}
-    ).to_list(50)
+    # Column name → student_grades field mapping
+    col_to_field = {
+        "EM": "exam_mensual", "EB": "exam_bimestral",
+        "P1": "part_p1", "P2": "part_p2", "P3": "part_p3",
+    }
+
+    # --- Parallel: fetch linked exams + check manual grades for all 5 columns ---
+    grade_base_filter = {
+        "school_id": school_id,
+        "subject_id": subject_id,
+        "period_id": period_id,
+    }
+    if section_id:
+        grade_base_filter["section_id"] = section_id
+
+    results = await _asyncio.gather(
+        # a) Exams already linked
+        db.online_exams.find(
+            {"school_id": school_id, "subject_id": subject_id,
+             "period_id": period_id, "register_column": {"$ne": None}},
+            {"_id": 0, "id": 1, "title": 1, "register_column": 1}
+        ).to_list(50),
+        # b) Manual grades: count docs where each column is not null
+        db.student_grades.count_documents({**grade_base_filter, "exam_mensual": {"$ne": None}}),
+        db.student_grades.count_documents({**grade_base_filter, "exam_bimestral": {"$ne": None}}),
+        db.student_grades.count_documents({**grade_base_filter, "part_p1": {"$ne": None}}),
+        db.student_grades.count_documents({**grade_base_filter, "part_p2": {"$ne": None}}),
+        db.student_grades.count_documents({**grade_base_filter, "part_p3": {"$ne": None}}),
+        # c) Lock status
+        db.grade_locks.find_one(
+            {"school_id": school_id, "subject_id": subject_id,
+             "section_id": section_id, "period_id": period_id} if section_id else {"_id": None},
+            {"_id": 0}
+        ),
+    )
+
+    linked_exams = results[0]
+    manual_counts = {
+        "EM": results[1], "EB": results[2],
+        "P1": results[3], "P2": results[4], "P3": results[5],
+    }
+    lock = results[6]
 
     # Build availability map
     slots = {}
     for key in ["EM", "EB", "P1", "P2", "P3"]:
-        slots[key] = {"available": True, "assigned_exam": None}
+        slots[key] = {"available": True, "assigned_exam": None, "reason": None}
 
+    # Mark slots taken by linked exams
     for exam in linked_exams:
         col = exam.get("register_column")
         if col and col in slots:
-            slots[col] = {"available": False, "assigned_exam": {"id": exam["id"], "title": exam.get("title", "")}}
+            slots[col] = {
+                "available": False,
+                "assigned_exam": {"id": exam["id"], "title": exam.get("title", "")},
+                "reason": "exam",
+            }
 
-    # Check register lock status
+    # Mark slots with manual grades (only if not already taken by exam)
+    for key, count in manual_counts.items():
+        if count > 0 and slots[key]["available"]:
+            slots[key] = {
+                "available": False,
+                "assigned_exam": None,
+                "reason": "manual_grades",
+            }
+
     register_status = "open"
-    if section_id:
-        lock = await db.grade_locks.find_one(
-            {"school_id": school_id, "subject_id": subject_id,
-             "section_id": section_id, "period_id": period_id},
-            {"_id": 0}
-        )
-        if lock and lock.get("locked"):
-            register_status = "closed"
+    if lock and lock.get("locked"):
+        register_status = "closed"
 
     return {
         "period_id": period_id,

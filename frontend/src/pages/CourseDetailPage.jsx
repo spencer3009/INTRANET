@@ -4988,7 +4988,8 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
     const slot = availability[key];
     if (!slot || slot.available) return "";
     if (exam?.id && slot.assigned_exam?.id === exam.id) return "";
-    return slot.assigned_exam?.title || "";
+    if (slot.reason === "manual_grades") return "Esta columna ya tiene notas registradas manualmente en el Registro Auxiliar";
+    return slot.assigned_exam?.title ? `Ya asignado al examen: ${slot.assigned_exam.title}` : "";
   };
 
   // Build confirmation text
@@ -5134,7 +5135,9 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                                   {label}{weight ? ` - ${weight}` : ""}
                                 </span>
                                 {!available ? (
-                                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">Ya asignado</span>
+                                  <span className="text-[10px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full font-medium">
+                                    {availability?.[key]?.reason === "manual_grades" ? "Notas manuales" : "Ya asignado"}
+                                  </span>
                                 ) : (
                                   <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Disponible</span>
                                 )}
