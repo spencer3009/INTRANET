@@ -16,6 +16,7 @@ import {
   Landmark,
   UserCheck,
   Trophy,
+  Video,
 } from "lucide-react";
 import { canAccessSection, isOwner } from "../lib/permissions";
 
@@ -35,6 +36,7 @@ const allNavItems = [
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina" },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad", section: "accounting" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
+  { id: "academia", label: "Academia", icon: Video, route: "/academia" },
 ];
 
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken, user }) {

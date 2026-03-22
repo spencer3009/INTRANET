@@ -89,6 +89,7 @@ import SupportSchoolsPage from "@/pages/SupportSchoolsPage";
 import SupportProfilePage from "@/pages/SupportProfilePage";
 import SupportPricingPage from "@/pages/SupportPricingPage";
 import SupportAcademiaPage from "@/pages/SupportAcademiaPage";
+import AcademiaPortalPage from "@/pages/AcademiaPortalPage";
 import SupportFinancesPage from "@/pages/SupportFinancesPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
@@ -1751,6 +1752,24 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <CourseDetailPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Academia Portal Page - URL path mode */}
+          <Route
+            path="/:subdomain/academia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AcademiaPortalPage token={token} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/academia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AcademiaPortalPage token={token} />
               </ProtectedRoute>
             }
           />

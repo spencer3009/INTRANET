@@ -385,3 +385,129 @@ async def seed_academia_categories():
                 "sort_order": j, "is_active": True, "created_at": now, "updated_at": now,
             })
     logger.info("[SEED] Created default academia categories")
+
+
+
+# ═══════════════════════════════════════════════════════════
+# PORTAL ENDPOINTS (Read-only — for school users)
+# ═══════════════════════════════════════════════════════════
+
+PORTAL_ROLES = ["owner", "admin", "director", "coordinator", "teacher"]
+
+async def require_portal_user(current_user=Depends(get_current_user)):
+    role = current_user.get("role", "")
+    if current_user.get("is_owner") or current_user.get("is_super_admin"):
+        return current_user
+    if role in PORTAL_ROLES:
+        return current_user
+    raise HTTPException(403, "No tienes acceso a esta seccion")
+
+
+@router.get("/academia/portal/stats")
+async def portal_stats(user=Depends(require_portal_user)):
+    total_videos = await db.tutorial_videos.count_documents({"is_published": True})
+    # Only count active categories that have at least one published video
+    cats = await db.tutorial_categories.find({"is_active": True}, {"_id": 0, "id": 1}).to_list(200)
+    active_cats = 0
+    for cat in cats:
+        vc = await db.tutorial_videos.count_documents({"category_id": cat["id"], "is_published": True})
+        if vc > 0:
+            active_cats += 1
+    return {"total_videos": total_videos, "total_categories": active_cats}
+
+
+@router.get("/academia/portal/categories")
+async def portal_categories(user=Depends(require_portal_user)):
+    cats = await db.tutorial_categories.find(
+        {"is_active": True}, {"_id": 0}
+    ).sort("sort_order", 1).to_list(200)
+
+    result = []
+    for cat in cats:
+        video_count = await db.tutorial_videos.count_documents({"category_id": cat["id"], "is_published": True})
+        if video_count == 0:
+            continue
+        subs = await db.tutorial_subcategories.find(
+            {"category_id": cat["id"], "is_active": True}, {"_id": 0}
+        ).sort("sort_order", 1).to_list(100)
+        filtered_subs = []
+        for sub in subs:
+            svc = await db.tutorial_videos.count_documents({"subcategory_id": sub["id"], "is_published": True})
+            if svc > 0:
+                filtered_subs.append({
+                    "id": sub["id"], "name": sub["name"], "video_count": svc
+                })
+        result.append({
+            "id": cat["id"], "name": cat["name"], "icon": cat.get("icon"),
+            "sort_order": cat.get("sort_order", 0), "video_count": video_count,
+            "subcategories": filtered_subs,
+        })
+    return result
+
+
+@router.get("/academia/portal/videos")
+async def portal_videos(
+    category_id: Optional[str] = None,
+    subcategory_id: Optional[str] = None,
+    search: Optional[str] = None,
+    user=Depends(require_portal_user),
+):
+    query = {"is_published": True}
+    if category_id:
+        query["category_id"] = category_id
+    if subcategory_id:
+        query["subcategory_id"] = subcategory_id
+
+    if search:
+        # Build search across titles + descriptions
+        search_conditions = [
+            {"title": {"$regex": search, "$options": "i"}},
+            {"description": {"$regex": search, "$options": "i"}},
+        ]
+        # Also search by category/subcategory names
+        matching_cats = await db.tutorial_categories.find(
+            {"name": {"$regex": search, "$options": "i"}, "is_active": True}, {"_id": 0, "id": 1}
+        ).to_list(50)
+        matching_subs = await db.tutorial_subcategories.find(
+            {"name": {"$regex": search, "$options": "i"}, "is_active": True}, {"_id": 0, "id": 1}
+        ).to_list(50)
+        if matching_cats:
+            search_conditions.append({"category_id": {"$in": [c["id"] for c in matching_cats]}})
+        if matching_subs:
+            search_conditions.append({"subcategory_id": {"$in": [s["id"] for s in matching_subs]}})
+        # Override category filter when searching
+        query.pop("category_id", None)
+        query.pop("subcategory_id", None)
+        query["$or"] = search_conditions
+
+    videos = await db.tutorial_videos.find(query, {"_id": 0}).sort("sort_order", 1).to_list(500)
+
+    # Enrich with category/subcategory names
+    cat_cache = {}
+    sub_cache = {}
+    for v in videos:
+        cid = v.get("category_id")
+        if cid and cid not in cat_cache:
+            c = await db.tutorial_categories.find_one({"id": cid}, {"_id": 0, "name": 1})
+            cat_cache[cid] = c["name"] if c else ""
+        sid = v.get("subcategory_id")
+        if sid and sid not in sub_cache:
+            s = await db.tutorial_subcategories.find_one({"id": sid}, {"_id": 0, "name": 1})
+            sub_cache[sid] = s["name"] if s else ""
+        v["category_name"] = cat_cache.get(cid, "")
+        v["subcategory_name"] = sub_cache.get(sid, "")
+    return videos
+
+
+@router.get("/academia/portal/videos/{video_id}")
+async def portal_video_detail(video_id: str, user=Depends(require_portal_user)):
+    video = await db.tutorial_videos.find_one({"id": video_id, "is_published": True}, {"_id": 0})
+    if not video:
+        raise HTTPException(404, "Video no encontrado")
+    if video.get("category_id"):
+        cat = await db.tutorial_categories.find_one({"id": video["category_id"]}, {"_id": 0, "name": 1})
+        video["category_name"] = cat["name"] if cat else ""
+    if video.get("subcategory_id"):
+        sub = await db.tutorial_subcategories.find_one({"id": video["subcategory_id"]}, {"_id": 0, "name": 1})
+        video["subcategory_name"] = sub["name"] if sub else ""
+    return video
