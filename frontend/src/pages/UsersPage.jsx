@@ -1596,6 +1596,20 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Photo upload modal
   const [photoModalUser, setPhotoModalUser] = useState(null);
 
+  // ═══════════════ PARENT IMPORT STATES ═══════════════
+  const [showParentImportModal, setShowParentImportModal] = useState(false);
+  const [parentImportStep, setParentImportStep] = useState("menu"); // menu|upload|confirm|importing|result
+  const [parentImportFile, setParentImportFile] = useState(null);
+  const [parentImporting, setParentImporting] = useState(false);
+  const [parentImportResult, setParentImportResult] = useState(null);
+  const [parentDragOver, setParentDragOver] = useState(false);
+  const [parentImportProgress, setParentImportProgress] = useState(0);
+  const [showParentPending, setShowParentPending] = useState(false);
+  const [parentPending, setParentPending] = useState([]);
+  const [loadingParentPending, setLoadingParentPending] = useState(false);
+  const [editingParentPendingId, setEditingParentPendingId] = useState(null);
+  const [editingParentPendingData, setEditingParentPendingData] = useState({});
+
   const handleCardPhotoClick = (user) => {
     setPhotoModalUser(user);
   };
@@ -1603,6 +1617,99 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const handlePhotoUpdated = (userId, newUrl) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, photo_url: newUrl } : u));
     toast.success("Foto actualizada correctamente");
+  };
+
+  // ═══════════════ PARENT IMPORT FUNCTIONS ═══════════════
+  const handleDownloadParentTemplate = async () => {
+    try {
+      const res = await axios.get(`${API}/parents/template`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a"); a.href = url;
+      a.download = "plantilla_padres.xlsx"; document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Plantilla descargada");
+    } catch { toast.error("Error al descargar plantilla"); }
+  };
+
+  const handleParentFileSelect = (file) => {
+    if (!file) return;
+    const ext = file.name.split(".").pop().toLowerCase();
+    if (!["xlsx", "xls", "csv"].includes(ext)) { toast.error("Formato no soportado. Use .xlsx, .xls o .csv"); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error("El archivo excede 5MB"); return; }
+    setParentImportFile(file);
+    setParentImportStep("confirm");
+  };
+
+  const handleParentImport = async () => {
+    if (!parentImportFile) return;
+    setParentImporting(true);
+    setParentImportStep("importing");
+    setParentImportProgress(10);
+    const interval = setInterval(() => setParentImportProgress(p => Math.min(p + 8, 90)), 300);
+    try {
+      const fd = new FormData(); fd.append("file", parentImportFile);
+      const res = await axios.post(`${API}/parents/import`, fd, { headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" } });
+      clearInterval(interval);
+      setParentImportProgress(100);
+      setParentImportResult(res.data);
+      setParentImportStep("result");
+      loadUsers();
+    } catch (err) {
+      clearInterval(interval);
+      toast.error(err.response?.data?.detail || "Error al importar");
+      setParentImportStep("menu");
+    } finally { setParentImporting(false); }
+  };
+
+  const handleDownloadParentCredentials = async (batchId) => {
+    try {
+      const res = await axios.get(`${API}/parents/import/${batchId}/credentials`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a"); a.href = url;
+      a.download = `credenciales_padres_${batchId}.csv`; document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Credenciales descargadas");
+    } catch { toast.error("Error al descargar credenciales"); }
+  };
+
+  const loadParentPending = async () => {
+    setLoadingParentPending(true);
+    try {
+      const res = await axios.get(`${API}/parents/pending`, { headers: { Authorization: `Bearer ${token}` } });
+      setParentPending(res.data);
+    } catch { toast.error("Error al cargar pendientes"); }
+    finally { setLoadingParentPending(false); }
+  };
+
+  const handleActivateParentPending = async (id) => {
+    try {
+      const res = await axios.post(`${API}/parents/pending/${id}/activate`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success(`Padre creado. Usuario: ${res.data.username}`);
+      loadParentPending();
+      loadUsers();
+    } catch (err) { toast.error(err.response?.data?.detail || "Error al activar"); }
+  };
+
+  const handleDeleteParentPending = async (id) => {
+    if (!window.confirm("¿Eliminar este registro pendiente?")) return;
+    try {
+      await axios.delete(`${API}/parents/pending/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Pendiente eliminado");
+      loadParentPending();
+    } catch { toast.error("Error al eliminar"); }
+  };
+
+  const handleEditParentPending = async (id) => {
+    try {
+      await axios.put(`${API}/parents/pending/${id}`, editingParentPendingData, { headers: { Authorization: `Bearer ${token}` } });
+      toast.success("Pendiente actualizado");
+      setEditingParentPendingId(null);
+      loadParentPending();
+    } catch (err) { toast.error(err.response?.data?.detail || "Error al actualizar"); }
+  };
+
+  const resetParentImport = () => {
+    setParentImportStep("menu"); setParentImportFile(null); setParentImportResult(null); setParentImportProgress(0);
   };
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -2461,6 +2568,40 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 >
                   <AlertTriangle className="w-4 h-4" />
                   Pendientes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════
+            PARENT BULK IMPORT CARD
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {selectedRole === 'parent' && (
+          <div className="bg-white rounded-2xl border-2 border-blue-200 p-6 mb-6 shadow-sm" data-testid="parent-import-block">
+            <div className="flex flex-col sm:flex-row items-center gap-5">
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg">
+                <Users className="w-9 h-9 text-white" />
+              </div>
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="text-lg font-bold text-slate-800">Importacion Masiva de Padres</h3>
+                <p className="text-sm text-slate-500 mt-0.5">Descarga la plantilla, completa los datos de los padres y sube el archivo para crearlos automaticamente en el sistema.</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
+                <button onClick={handleDownloadParentTemplate}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  data-testid="parent-download-template-btn">
+                  <Download className="w-4 h-4" /> Descargar Plantilla
+                </button>
+                <button onClick={() => { setShowParentImportModal(true); resetParentImport(); }}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5"
+                  data-testid="parent-import-btn">
+                  <Upload className="w-4 h-4" /> Importar Archivo
+                </button>
+                <button onClick={() => { setShowParentPending(true); loadParentPending(); }}
+                  className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg"
+                  data-testid="parent-pending-btn">
+                  <AlertTriangle className="w-4 h-4" /> Pendientes
                 </button>
               </div>
             </div>
@@ -4687,6 +4828,220 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <button onClick={() => { setShowImportModal(false); setImportResult(null); setImportFile(null); setImportModalStep("menu"); setImportMismatchData(null); }} className="px-6 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors" data-testid="import-close">
                   {importResult ? "Cerrar" : "Cancelar"}
                 </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ PARENT IMPORT MODAL ═══════════════ */}
+      {showParentImportModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { if (!parentImporting) { setShowParentImportModal(false); resetParentImport(); } }} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" data-testid="parent-import-modal">
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800">Importar Padres/Apoderados</h3>
+              {!parentImporting && (
+                <button onClick={() => { setShowParentImportModal(false); resetParentImport(); }} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            <div className="p-6">
+              {/* STEP: Menu */}
+              {parentImportStep === "menu" && (
+                <div>
+                  <div
+                    className={`border-2 border-dashed rounded-2xl p-8 text-center transition-colors ${parentDragOver ? "border-blue-400 bg-blue-50" : "border-slate-200 hover:border-blue-300"}`}
+                    onDragOver={(e) => { e.preventDefault(); setParentDragOver(true); }}
+                    onDragLeave={() => setParentDragOver(false)}
+                    onDrop={(e) => { e.preventDefault(); setParentDragOver(false); handleParentFileSelect(e.dataTransfer.files[0]); }}
+                    data-testid="parent-import-dropzone"
+                  >
+                    <Upload className="w-10 h-10 text-blue-400 mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-slate-700">Arrastra tu archivo aqui</p>
+                    <p className="text-xs text-slate-400 mt-1">o haz clic para seleccionar</p>
+                    <p className="text-[10px] text-slate-400 mt-2">.xlsx, .xls, .csv (max 5MB)</p>
+                    <input type="file" accept=".xlsx,.xls,.csv" className="hidden" id="parent-file-input"
+                      onChange={(e) => handleParentFileSelect(e.target.files[0])} />
+                    <button onClick={() => document.getElementById("parent-file-input").click()}
+                      className="mt-4 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-colors"
+                      data-testid="parent-select-file-btn">
+                      Seleccionar archivo
+                    </button>
+                  </div>
+                  <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <p className="text-xs text-blue-700">La importacion solo crea padres. La vinculacion con estudiantes se realiza desde el modulo de Estudiantes.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP: Confirm */}
+              {parentImportStep === "confirm" && parentImportFile && (
+                <div>
+                  <div className="bg-slate-50 rounded-xl p-5 mb-5">
+                    <div className="flex items-center gap-3">
+                      <FileSpreadsheet className="w-8 h-8 text-emerald-600" />
+                      <div>
+                        <p className="font-semibold text-slate-800 text-sm">{parentImportFile.name}</p>
+                        <p className="text-xs text-slate-400">{(parentImportFile.size / 1024).toFixed(1)} KB</p>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-5">¿Desea proceder con la importacion de padres?</p>
+                  <div className="flex gap-3">
+                    <button onClick={() => { setParentImportFile(null); setParentImportStep("menu"); }}
+                      className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl font-semibold hover:bg-slate-200 transition-colors">
+                      Cancelar
+                    </button>
+                    <button onClick={handleParentImport}
+                      className="flex-1 px-4 py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+                      data-testid="parent-confirm-import-btn">
+                      Confirmar Importacion
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* STEP: Importing */}
+              {parentImportStep === "importing" && (
+                <div className="text-center py-6">
+                  <Loader2 className="w-10 h-10 text-blue-500 animate-spin mx-auto mb-4" />
+                  <p className="font-semibold text-slate-800">Procesando padres... {parentImportProgress}%</p>
+                  <div className="w-full bg-slate-200 rounded-full h-3 mt-4">
+                    <div className="bg-blue-600 h-3 rounded-full transition-all duration-300" style={{ width: `${parentImportProgress}%` }} />
+                  </div>
+                  <p className="text-xs text-slate-400 mt-3">No cierre esta pagina</p>
+                </div>
+              )}
+
+              {/* STEP: Result */}
+              {parentImportStep === "result" && parentImportResult && (
+                <div>
+                  <div className="grid grid-cols-2 gap-3 mb-5">
+                    <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-emerald-600" data-testid="parent-result-created">{parentImportResult.summary.created}</p>
+                      <p className="text-xs text-emerald-600 font-medium">Creados</p>
+                    </div>
+                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-blue-600" data-testid="parent-result-updated">{parentImportResult.summary.updated}</p>
+                      <p className="text-xs text-blue-600 font-medium">Actualizados</p>
+                    </div>
+                    <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-rose-600" data-testid="parent-result-errors">{parentImportResult.summary.errors}</p>
+                      <p className="text-xs text-rose-600 font-medium">Con errores</p>
+                    </div>
+                    <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-slate-600">{(parentImportResult.summary.processing_time_ms / 1000).toFixed(1)}s</p>
+                      <p className="text-xs text-slate-500 font-medium">Tiempo</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {parentImportResult.credentials_available && (
+                      <button onClick={() => handleDownloadParentCredentials(parentImportResult.batch_id)}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors"
+                        data-testid="parent-download-credentials-btn">
+                        <Download className="w-4 h-4" /> Descargar Credenciales
+                      </button>
+                    )}
+                    {parentImportResult.summary.errors > 0 && (
+                      <button onClick={() => { setShowParentImportModal(false); resetParentImport(); setShowParentPending(true); loadParentPending(); }}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-500 text-white rounded-xl font-semibold hover:bg-amber-600 transition-colors"
+                        data-testid="parent-view-pending-btn">
+                        <AlertTriangle className="w-4 h-4" /> Ver Pendientes ({parentImportResult.summary.errors})
+                      </button>
+                    )}
+                    <button onClick={() => { setShowParentImportModal(false); resetParentImport(); }}
+                      className="w-full px-4 py-3 bg-slate-100 text-slate-600 rounded-xl font-semibold hover:bg-slate-200 transition-colors">
+                      Cerrar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ PARENT PENDING MODAL ═══════════════ */}
+      {showParentPending && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowParentPending(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col" data-testid="parent-pending-modal">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
+              <div>
+                <h3 className="text-lg font-bold text-slate-800">Padres Pendientes</h3>
+                <p className="text-xs text-slate-400">{parentPending.length} registro{parentPending.length !== 1 ? "s" : ""} con errores</p>
+              </div>
+              <button onClick={() => setShowParentPending(false)} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {loadingParentPending ? (
+                <div className="flex justify-center py-10"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /></div>
+              ) : parentPending.length === 0 ? (
+                <div className="text-center py-10">
+                  <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+                  <p className="text-sm text-slate-500 font-medium">No hay padres pendientes</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {parentPending.map(p => (
+                    <div key={p.id} className="bg-slate-50 rounded-xl border border-slate-200 p-4" data-testid={`parent-pending-${p.id}`}>
+                      {editingParentPendingId === p.id ? (
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-2 gap-3">
+                            <input value={editingParentPendingData.name || ""} onChange={e => setEditingParentPendingData(d => ({...d, name: e.target.value}))}
+                              placeholder="Nombre" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                            <input value={editingParentPendingData.last_name || ""} onChange={e => setEditingParentPendingData(d => ({...d, last_name: e.target.value}))}
+                              placeholder="Apellido" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                            <input value={editingParentPendingData.dni || ""} onChange={e => setEditingParentPendingData(d => ({...d, dni: e.target.value}))}
+                              placeholder="DNI (8 digitos)" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                            <input value={editingParentPendingData.email || ""} onChange={e => setEditingParentPendingData(d => ({...d, email: e.target.value}))}
+                              placeholder="Correo" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                            <input value={editingParentPendingData.phone || ""} onChange={e => setEditingParentPendingData(d => ({...d, phone: e.target.value}))}
+                              placeholder="Celular" className="px-3 py-2 border border-slate-200 rounded-lg text-sm" />
+                          </div>
+                          <div className="flex gap-2">
+                            <button onClick={() => handleEditParentPending(p.id)} className="px-4 py-2 bg-blue-600 text-white text-xs rounded-lg font-semibold hover:bg-blue-700">Guardar</button>
+                            <button onClick={() => setEditingParentPendingId(null)} className="px-4 py-2 bg-slate-200 text-slate-600 text-xs rounded-lg font-semibold hover:bg-slate-300">Cancelar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="font-semibold text-slate-800 text-sm">{p.name || "---"} {p.last_name || "---"}</p>
+                              <p className="text-xs text-slate-400">DNI: {p.dni || "---"} &middot; Fila: {p.row_number}</p>
+                            </div>
+                            <div className="flex gap-1.5">
+                              <button onClick={() => { setEditingParentPendingId(p.id); setEditingParentPendingData({ name: p.name, last_name: p.last_name, dni: p.dni, email: p.email || "", phone: p.phone || "" }); }}
+                                className="px-3 py-1.5 bg-blue-100 text-blue-700 text-xs rounded-lg font-semibold hover:bg-blue-200" data-testid={`parent-pending-edit-${p.id}`}>
+                                Editar
+                              </button>
+                              <button onClick={() => handleActivateParentPending(p.id)}
+                                className="px-3 py-1.5 bg-emerald-100 text-emerald-700 text-xs rounded-lg font-semibold hover:bg-emerald-200" data-testid={`parent-pending-activate-${p.id}`}>
+                                Activar
+                              </button>
+                              <button onClick={() => handleDeleteParentPending(p.id)}
+                                className="px-3 py-1.5 bg-rose-100 text-rose-600 text-xs rounded-lg font-semibold hover:bg-rose-200" data-testid={`parent-pending-delete-${p.id}`}>
+                                Eliminar
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {p.errors?.map((err, i) => (
+                              <span key={i} className="px-2 py-0.5 bg-rose-50 text-rose-600 text-[10px] rounded-full border border-rose-200 font-medium">{err}</span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>

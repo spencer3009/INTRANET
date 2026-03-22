@@ -49,6 +49,7 @@ from routes.membership import router as membership_router
 from routes.subscription import router as subscription_router, daily_subscription_cron
 from routes.exams import close_expired_exams_cron, close_expired_tasks_cron
 from routes.academia import router as academia_router, seed_academia_categories
+from routes.parents import router as parents_router
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -195,6 +196,7 @@ app.include_router(subscription_router)
 app.include_router(notifications_router)
 app.include_router(support_router)
 app.include_router(academia_router)
+app.include_router(parents_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
