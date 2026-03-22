@@ -1,34 +1,55 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
+import Sidebar from "@/components/Sidebar";
+import DashboardHeader from "@/components/DashboardHeader";
 import {
   Video, FolderOpen, Search, X, Loader2, Play, Clock,
-  ChevronDown, ArrowLeft, GraduationCap
+  ChevronDown, ArrowLeft, GraduationCap, BookOpen, BarChart3
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
 const CAT_COLORS = [
-  "bg-emerald-500", "bg-blue-500", "bg-violet-500", "bg-amber-500",
-  "bg-rose-500", "bg-cyan-500", "bg-fuchsia-500", "bg-teal-500",
+  { bg: "bg-emerald-500", light: "bg-emerald-50 text-emerald-700", gradient: "from-emerald-500 to-emerald-600" },
+  { bg: "bg-blue-500", light: "bg-blue-50 text-blue-700", gradient: "from-blue-500 to-blue-600" },
+  { bg: "bg-violet-500", light: "bg-violet-50 text-violet-700", gradient: "from-violet-500 to-violet-600" },
+  { bg: "bg-amber-500", light: "bg-amber-50 text-amber-700", gradient: "from-amber-500 to-amber-600" },
+  { bg: "bg-rose-500", light: "bg-rose-50 text-rose-700", gradient: "from-rose-500 to-rose-600" },
+  { bg: "bg-cyan-500", light: "bg-cyan-50 text-cyan-700", gradient: "from-cyan-500 to-cyan-600" },
+  { bg: "bg-fuchsia-500", light: "bg-fuchsia-50 text-fuchsia-700", gradient: "from-fuchsia-500 to-fuchsia-600" },
+  { bg: "bg-teal-500", light: "bg-teal-50 text-teal-700", gradient: "from-teal-500 to-teal-600" },
 ];
 
 function VideoPlayerModal({ video, onClose }) {
   if (!video) return null;
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/80 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col" data-testid="portal-video-player">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200 flex-shrink-0">
-          <button onClick={onClose} className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col animate-in fade-in zoom-in-95 duration-200"
+        data-testid="portal-video-player"
+      >
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-100 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-800 transition-colors"
+            data-testid="portal-video-back-btn"
+          >
             <ArrowLeft className="w-4 h-4" /> Volver
           </button>
-          <span className="text-sm font-medium text-slate-400">Reproduciendo tutorial</span>
-          <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Reproduciendo tutorial
+          </span>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors"
+            data-testid="portal-video-close-btn"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
         <div className="overflow-y-auto flex-1 p-5">
-          <div className="relative w-full rounded-xl overflow-hidden bg-black" style={{ paddingTop: "56.25%" }}>
+          <div className="relative w-full rounded-xl overflow-hidden bg-black shadow-lg" style={{ paddingTop: "56.25%" }}>
             <iframe
               className="absolute inset-0 w-full h-full"
               src={`https://www.youtube.com/embed/${video.youtube_video_id}?autoplay=1`}
@@ -41,13 +62,20 @@ function VideoPlayerModal({ video, onClose }) {
             <h2 className="text-xl font-bold text-slate-800">{video.title}</h2>
             <div className="flex flex-wrap items-center gap-2 mt-3">
               {video.category_name && (
-                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">{video.category_name}</span>
+                <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold">
+                  {video.category_name}
+                </span>
               )}
               {video.subcategory_name && (
-                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">{video.subcategory_name}</span>
+                <span className="px-3 py-1 bg-slate-100 text-slate-600 rounded-full text-xs font-semibold">
+                  {video.subcategory_name}
+                </span>
               )}
               {video.duration && (
-                <span className="flex items-center gap-1 text-xs text-slate-400"><Clock className="w-3 h-3" />{video.duration}</span>
+                <span className="flex items-center gap-1 text-xs text-slate-400">
+                  <Clock className="w-3 h-3" />
+                  {video.duration}
+                </span>
               )}
             </div>
             {video.description && (
@@ -60,7 +88,7 @@ function VideoPlayerModal({ video, onClose }) {
   );
 }
 
-export default function AcademiaPortalPage({ token }) {
+function AcademiaContent({ token }) {
   const headers = { Authorization: `Bearer ${token}` };
   const [categories, setCategories] = useState([]);
   const [videos, setVideos] = useState([]);
@@ -82,10 +110,15 @@ export default function AcademiaPortalPage({ token }) {
       setCategories(catsRes.data);
       setStats(statsRes.data);
       if (catsRes.data.length > 0 && !selectedCat) setSelectedCat(catsRes.data[0]);
-    } catch {} finally { setLoading(false); }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    loadData();
+  }, []);
 
   const loadVideos = useCallback(async () => {
     setLoadingVideos(true);
@@ -99,10 +132,15 @@ export default function AcademiaPortalPage({ token }) {
     try {
       const res = await axios.get(`${API}/academia/portal/videos`, { headers, params });
       setVideos(res.data);
-    } catch {} finally { setLoadingVideos(false); }
+    } catch {
+    } finally {
+      setLoadingVideos(false);
+    }
   }, [selectedCat, selectedSub, searchActive, searchText]);
 
-  useEffect(() => { loadVideos(); }, [selectedCat, selectedSub, searchActive, searchText]);
+  useEffect(() => {
+    loadVideos();
+  }, [selectedCat, selectedSub, searchActive, searchText]);
 
   const handleSelectCat = (cat) => {
     setSelectedCat(cat);
@@ -113,7 +151,7 @@ export default function AcademiaPortalPage({ token }) {
 
   const handleSelectSub = (sub) => {
     if (selectedSub?.id === sub.id) {
-      setSelectedSub(null); // deselect
+      setSelectedSub(null);
     } else {
       setSelectedSub(sub);
     }
@@ -133,83 +171,165 @@ export default function AcademiaPortalPage({ token }) {
     setSearchActive(false);
   };
 
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-32">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-400" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-5" data-testid="academia-portal-page">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-emerald-600" />
+    <div data-testid="academia-portal-page">
+      {/* Hero Banner */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#064e3b] via-[#065f46] to-[#047857] p-6 sm:p-8 mb-6 shadow-lg">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-white/20 rounded-full -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/4" />
+        </div>
+        <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
+              <GraduationCap className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight" data-testid="academia-hero-title">
+                Academia EduNet
+              </h1>
+              <p className="text-emerald-200/80 text-sm mt-0.5">
+                Video tutoriales para dominar la plataforma
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">Academia</h1>
-            <p className="text-xs text-slate-400">Tutoriales de la plataforma</p>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/15">
+              <Video className="w-4 h-4 text-emerald-300" />
+              <div>
+                <p className="text-xl font-bold text-white leading-none" data-testid="academia-stat-videos">{stats.total_videos}</p>
+                <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider font-medium">Videos</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/15">
+              <FolderOpen className="w-4 h-4 text-emerald-300" />
+              <div>
+                <p className="text-xl font-bold text-white leading-none" data-testid="academia-stat-categories">{stats.total_categories}</p>
+                <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider font-medium">Categorias</p>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input type="text" value={searchText} onChange={e => handleSearch(e.target.value)}
-            placeholder="Buscar tutoriales por titulo o categoria..."
-            className="w-full pl-10 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-300"
-            data-testid="portal-search" />
+
+        {/* Search Bar inside banner */}
+        <div className="relative mt-5 max-w-xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-300/70" />
+          <input
+            type="text"
+            value={searchText}
+            onChange={(e) => handleSearch(e.target.value)}
+            placeholder="Buscar tutoriales por titulo, descripcion o categoria..."
+            className="w-full pl-11 pr-10 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm text-white placeholder-emerald-200/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/15 transition-all"
+            data-testid="portal-search"
+          />
           {searchText && (
-            <button onClick={clearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600">
+            <button
+              onClick={clearSearch}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-emerald-200/60 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+              data-testid="portal-search-clear"
+            >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
       </div>
 
-      {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-slate-300" /></div>
-      ) : categories.length === 0 ? (
+      {categories.length === 0 ? (
         <div className="text-center py-20">
-          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Video className="w-7 h-7 text-slate-300" />
+          <div className="w-20 h-20 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Video className="w-9 h-9 text-slate-300" />
           </div>
-          <p className="text-sm text-slate-500 font-medium">Sin videos disponibles</p>
-          <p className="text-xs text-slate-400 mt-1">Aun no hay tutoriales publicados</p>
+          <p className="text-base text-slate-500 font-semibold">Sin videos disponibles</p>
+          <p className="text-sm text-slate-400 mt-1">Aun no hay tutoriales publicados</p>
         </div>
       ) : (
-        <div className="flex gap-5">
+        <div className="flex gap-6">
           {/* Left: Categories Panel (desktop) */}
-          <div className="w-[272px] flex-shrink-0 hidden lg:block">
-            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden sticky top-24" data-testid="portal-categories-panel">
-              <div className="px-4 py-3 border-b border-slate-100">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Categorias</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">{stats.total_categories} categorias · {stats.total_videos} videos</p>
+          <div className="w-[280px] flex-shrink-0 hidden lg:block">
+            <div
+              className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden sticky top-24 shadow-sm"
+              data-testid="portal-categories-panel"
+            >
+              <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="w-4 h-4 text-slate-500" />
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Categorias</p>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {stats.total_categories} categorias &middot; {stats.total_videos} videos
+                </p>
               </div>
-              <div className="max-h-[65vh] overflow-y-auto">
+              <div className="max-h-[60vh] overflow-y-auto">
                 {categories.map((cat, idx) => {
                   const isActive = !searchActive && selectedCat?.id === cat.id;
                   const hasSubs = cat.subcategories?.length > 0;
+                  const color = CAT_COLORS[idx % CAT_COLORS.length];
                   return (
                     <div key={cat.id}>
-                      <button onClick={() => handleSelectCat(cat)}
-                        className={`w-full text-left px-4 py-3 flex items-center gap-3 transition-all ${
-                          isActive ? "bg-emerald-50" : "hover:bg-slate-50"
-                        }`} data-testid={`portal-cat-${cat.id}`}>
-                        <div className={`w-[30px] h-[30px] ${CAT_COLORS[idx % CAT_COLORS.length]} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <button
+                        onClick={() => handleSelectCat(cat)}
+                        className={`w-full text-left px-4 py-3.5 flex items-center gap-3 transition-all duration-150 ${
+                          isActive
+                            ? "bg-emerald-50 border-l-[3px] border-l-emerald-500"
+                            : "hover:bg-slate-50/80 border-l-[3px] border-l-transparent"
+                        }`}
+                        data-testid={`portal-cat-${cat.id}`}
+                      >
+                        <div
+                          className={`w-8 h-8 ${color.bg} rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}
+                        >
                           <FolderOpen className="w-3.5 h-3.5 text-white" />
                         </div>
-                        <span className={`text-sm flex-1 truncate ${isActive ? "font-semibold text-emerald-800" : "font-medium text-slate-700"}`}>{cat.name}</span>
-                        <span className="text-[11px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-medium">{cat.video_count}</span>
+                        <span
+                          className={`text-sm flex-1 truncate ${
+                            isActive ? "font-bold text-emerald-800" : "font-medium text-slate-700"
+                          }`}
+                        >
+                          {cat.name}
+                        </span>
+                        <span
+                          className={`text-[11px] px-2 py-0.5 rounded-full font-semibold ${
+                            isActive
+                              ? "bg-emerald-200/60 text-emerald-700"
+                              : "bg-slate-100 text-slate-500"
+                          }`}
+                        >
+                          {cat.video_count}
+                        </span>
                         {hasSubs && (
-                          <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isActive ? "rotate-180" : ""}`} />
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ${
+                              isActive ? "rotate-180" : ""
+                            }`}
+                          />
                         )}
                       </button>
-                      {/* Subcategories */}
                       {isActive && hasSubs && (
-                        <div className="border-b border-slate-100">
-                          {cat.subcategories.map(sub => {
+                        <div className="bg-emerald-50/30 border-b border-slate-100">
+                          {cat.subcategories.map((sub) => {
                             const subActive = selectedSub?.id === sub.id;
                             return (
-                              <button key={sub.id} onClick={() => handleSelectSub(sub)}
-                                className={`w-full text-left pl-14 pr-4 py-2 flex items-center gap-2 text-[12px] transition-colors ${
-                                  subActive ? "bg-emerald-100/60 text-emerald-700 font-semibold" : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
-                                }`} data-testid={`portal-sub-${sub.id}`}>
+                              <button
+                                key={sub.id}
+                                onClick={() => handleSelectSub(sub)}
+                                className={`w-full text-left pl-[52px] pr-4 py-2.5 flex items-center gap-2 text-[12px] transition-all duration-150 ${
+                                  subActive
+                                    ? "bg-emerald-100/70 text-emerald-800 font-bold"
+                                    : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                                }`}
+                                data-testid={`portal-sub-${sub.id}`}
+                              >
+                                <div className={`w-1.5 h-1.5 rounded-full ${subActive ? "bg-emerald-500" : "bg-slate-300"}`} />
                                 <span className="flex-1">{sub.name}</span>
-                                <span className="text-[10px] text-slate-400">{sub.video_count}</span>
+                                <span className="text-[10px] text-slate-400 font-medium">{sub.video_count}</span>
                               </button>
                             );
                           })}
@@ -222,35 +342,46 @@ export default function AcademiaPortalPage({ token }) {
             </div>
           </div>
 
-          {/* Mobile category selector */}
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-2 overflow-x-auto flex gap-2" style={{ display: "none" }}>
-            {/* Will be shown via media query if needed */}
-          </div>
-
           {/* Right: Videos Grid */}
           <div className="flex-1 min-w-0">
-            {/* Panel header */}
-            <div className="mb-4">
+            {/* Section header */}
+            <div className="mb-5">
               {searchActive ? (
-                <div>
-                  <p className="text-lg font-bold text-slate-800">
-                    Resultados: "<span className="text-emerald-600">{searchText}</span>"
-                  </p>
-                  <p className="text-xs text-slate-400">{videos.length} video{videos.length !== 1 ? "s" : ""}</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <Search className="w-4 h-4 text-slate-500" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-bold text-slate-800">
+                      Resultados: &ldquo;<span className="text-emerald-600">{searchText}</span>&rdquo;
+                    </p>
+                    <p className="text-xs text-slate-400">
+                      {videos.length} video{videos.length !== 1 ? "s" : ""} encontrado{videos.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
                 </div>
               ) : selectedCat ? (
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 ${CAT_COLORS[categories.indexOf(selectedCat) % CAT_COLORS.length]} rounded-lg flex items-center justify-center`}>
+                  <div
+                    className={`w-9 h-9 ${
+                      CAT_COLORS[categories.indexOf(selectedCat) % CAT_COLORS.length].bg
+                    } rounded-lg flex items-center justify-center shadow-sm`}
+                  >
                     <FolderOpen className="w-4 h-4 text-white" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-1.5 text-sm text-slate-400">
-                      <span className="font-bold text-lg text-slate-800">{selectedCat.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold text-slate-800">{selectedCat.name}</span>
                       {selectedSub && (
-                        <><span className="mx-1">›</span><span className="font-semibold text-emerald-600">{selectedSub.name}</span></>
+                        <>
+                          <ChevronDown className="w-3 h-3 text-slate-400 -rotate-90" />
+                          <span className="text-sm font-semibold text-emerald-600">{selectedSub.name}</span>
+                        </>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400">{videos.length} video{videos.length !== 1 ? "s" : ""}</p>
+                    <p className="text-xs text-slate-400">
+                      {videos.length} video{videos.length !== 1 ? "s" : ""}
+                    </p>
                   </div>
                 </div>
               ) : null}
@@ -258,52 +389,95 @@ export default function AcademiaPortalPage({ token }) {
 
             {/* Mobile category select */}
             <div className="lg:hidden mb-4">
-              <select value={selectedCat?.id || ""} onChange={e => { const c = categories.find(x => x.id === e.target.value); if (c) handleSelectCat(c); }}
-                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium" data-testid="portal-mobile-cat-select">
-                {categories.map(c => <option key={c.id} value={c.id}>{c.name} ({c.video_count})</option>)}
+              <select
+                value={selectedCat?.id || ""}
+                onChange={(e) => {
+                  const c = categories.find((x) => x.id === e.target.value);
+                  if (c) handleSelectCat(c);
+                }}
+                className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-300"
+                data-testid="portal-mobile-cat-select"
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.video_count})
+                  </option>
+                ))}
               </select>
             </div>
 
             {loadingVideos ? (
-              <div className="flex justify-center py-16"><Loader2 className="w-6 h-6 animate-spin text-slate-300" /></div>
+              <div className="flex justify-center py-20">
+                <Loader2 className="w-7 h-7 animate-spin text-emerald-400" />
+              </div>
             ) : videos.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Video className="w-6 h-6 text-slate-300" />
+              <div className="text-center py-20">
+                <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Video className="w-7 h-7 text-slate-300" />
                 </div>
-                <p className="text-sm text-slate-500 font-medium">
+                <p className="text-sm text-slate-500 font-semibold">
                   {searchActive ? "Sin resultados" : "Sin videos en esta seccion"}
                 </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  {searchActive ? `No se encontraron tutoriales para "${searchText}"` : "Esta categoria aun no tiene tutoriales publicados"}
+                <p className="text-xs text-slate-400 mt-1.5">
+                  {searchActive
+                    ? `No se encontraron tutoriales para "${searchText}"`
+                    : "Esta categoria aun no tiene tutoriales publicados"}
                 </p>
               </div>
             ) : (
-              <div className="grid gap-4" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(265px, 1fr))" }} data-testid="portal-videos-grid">
-                {videos.map(v => (
-                  <div key={v.id} onClick={() => setPlayerVideo(v)}
-                    className="bg-white rounded-xl border border-slate-200 overflow-hidden cursor-pointer group hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-                    data-testid={`portal-video-${v.id}`}>
+              <div
+                className="grid gap-5"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))" }}
+                data-testid="portal-videos-grid"
+              >
+                {videos.map((v) => (
+                  <div
+                    key={v.id}
+                    onClick={() => setPlayerVideo(v)}
+                    className="bg-white rounded-2xl border border-slate-200/80 overflow-hidden cursor-pointer group hover:shadow-xl hover:-translate-y-1 transition-all duration-300 shadow-sm"
+                    data-testid={`portal-video-${v.id}`}
+                  >
                     <div className="relative overflow-hidden">
-                      <img src={v.thumbnail_url} alt={v.title}
-                        className="w-full aspect-video object-cover bg-slate-100 group-hover:scale-[1.04] transition-transform duration-300" loading="lazy" />
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                        <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                          <Play className="w-5 h-5 text-slate-800 ml-0.5" />
+                      <img
+                        src={v.thumbnail_url}
+                        alt={v.title}
+                        className="w-full aspect-video object-cover bg-slate-100 group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                      {/* Hover overlay with play button */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <div className="w-14 h-14 bg-white/95 rounded-full flex items-center justify-center shadow-xl transform scale-75 group-hover:scale-100 transition-transform duration-300">
+                          <Play className="w-6 h-6 text-emerald-700 ml-0.5" />
                         </div>
                       </div>
+                      {/* Duration badge */}
                       {v.duration && (
-                        <span className="absolute bottom-2 right-2 bg-black/80 text-white text-[10px] font-mono px-1.5 py-0.5 rounded">{v.duration}</span>
+                        <span className="absolute bottom-2.5 right-2.5 bg-black/80 text-white text-[10px] font-mono px-2 py-1 rounded-md backdrop-blur-sm">
+                          {v.duration}
+                        </span>
                       )}
                     </div>
-                    <div className="p-3.5">
-                      <h3 className="text-sm font-semibold text-slate-800 line-clamp-2 group-hover:text-emerald-700 transition-colors">{v.title}</h3>
+                    <div className="p-4">
+                      <h3 className="text-sm font-bold text-slate-800 line-clamp-2 group-hover:text-emerald-700 transition-colors duration-200 leading-snug">
+                        {v.title}
+                      </h3>
                       {v.description && (
-                        <p className="text-xs text-slate-400 line-clamp-2 mt-1">{v.description}</p>
+                        <p className="text-xs text-slate-400 line-clamp-2 mt-1.5 leading-relaxed">
+                          {v.description}
+                        </p>
                       )}
-                      <div className="flex items-center gap-3 mt-2.5 text-[11px] text-slate-400">
-                        {v.duration && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{v.duration}</span>}
-                        {v.category_name && <span className="flex items-center gap-1"><FolderOpen className="w-3 h-3" />{v.category_name}</span>}
+                      <div className="flex items-center gap-3 mt-3 text-[11px] text-slate-400">
+                        {v.duration && (
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {v.duration}
+                          </span>
+                        )}
+                        {v.category_name && (
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full text-[10px] font-medium">
+                            {v.category_name}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -315,6 +489,40 @@ export default function AcademiaPortalPage({ token }) {
       )}
 
       <VideoPlayerModal video={playerVideo} onClose={() => setPlayerVideo(null)} />
+    </div>
+  );
+}
+
+export default function AcademiaPortalPage({ user, token, subdomain, onLogout }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="academia-portal-container">
+      <Sidebar
+        active="academia"
+        onNavigate={() => {}}
+        expanded={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onLogout={onLogout}
+        schoolName=""
+        subdomain={subdomain}
+        token={token}
+        user={user}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => setSidebarOpen(!sidebarOpen)}
+          onLogout={onLogout}
+          subdomain={subdomain}
+          token={token}
+        />
+
+        <main className="flex-1 p-3 sm:p-4 md:p-6 lg:p-8 pb-20 lg:pb-8 overflow-y-auto custom-scroll">
+          <AcademiaContent token={token} />
+        </main>
+      </div>
     </div>
   );
 }

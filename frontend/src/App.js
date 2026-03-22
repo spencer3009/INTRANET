@@ -1761,7 +1761,7 @@ function App() {
             path="/:subdomain/academia"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AcademiaPortalPage token={token} />
+                <AcademiaPortalPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1769,7 +1769,7 @@ function App() {
             path="/academia"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <AcademiaPortalPage token={token} />
+                <AcademiaPortalPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
