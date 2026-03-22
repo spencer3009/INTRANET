@@ -45,6 +45,7 @@ COL_MAP = {
 
 def normalize_key(k):
     k = k.lower().strip()
+    k = k.replace("*", "").strip()
     k = unicodedata.normalize("NFD", k)
     k = "".join(c for c in k if unicodedata.category(c) != "Mn")
     return COL_MAP.get(k, k)
