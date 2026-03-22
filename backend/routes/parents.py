@@ -146,7 +146,7 @@ def read_rows_from_file(content, ext):
         all_rows = list(ws.iter_rows(values_only=True))
         header_idx = None
         for i, row in enumerate(all_rows):
-            if row and any(str(c or "").strip().lower() in ("nombre", "name") for c in row):
+            if row and any(str(c or "").strip().lower().replace("*", "").strip() in ("nombre", "name") for c in row):
                 header_idx = i
                 break
         if header_idx is None:
@@ -168,7 +168,7 @@ def read_rows_from_file(content, ext):
         header_idx = None
         for i in range(min(15, sheet.nrows)):
             vals = [str(sheet.cell_value(i, j)).strip() for j in range(sheet.ncols)]
-            if any(v.lower() in ("nombre", "name") for v in vals):
+            if any(v.lower().replace("*", "").strip() in ("nombre", "name") for v in vals):
                 header_idx = i
                 break
         if header_idx is None:
