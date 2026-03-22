@@ -19,6 +19,7 @@ Plataforma de gestión escolar (React + FastAPI + MongoDB) para el Colegio El Ro
 7. **Contabilidad**: Pagos, gastos, morosos, configuración financiera, descuentos
 8. **Mensajería**: Comunicados, mensajes directos
 9. **Panel de Padres**: Vista limitada para apoderados
+10. **Academia**: Centro de videos tutoriales de YouTube (Panel de Soporte)
 
 ## What's Been Implemented
 
@@ -32,14 +33,16 @@ Plataforma de gestión escolar (React + FastAPI + MongoDB) para el Colegio El Ro
 - [x] Auto-zero crons for expired exams and tasks
 - [x] Read-only "Bimestre" badge (auto-resolved from active period)
 - [x] Accounting: Payments, expenses, financial configuration
-- [x] **Sistema de Descuentos y Pensiones Variables** (FULL IMPLEMENTATION)
-  - Discount types CRUD (automatic/manual)
-  - Sibling detection via parent_id/padre_id linkage
-  - Automatic sync of sibling discounts
-  - Individual pension calculation with discount breakdown
-  - Student discounts management UI
-  - Payment modal integration showing student discounts
-  - Seed data: 4 default discount types
+- [x] **Sistema de Descuentos y Pensiones Variables** (FULL)
+- [x] **Academia - Centro de Videos Tutoriales** (FULL - Phase 1)
+  - YouTube video CRUD with oEmbed title extraction
+  - Categories and subcategories CRUD with reorder
+  - 2-column layout (categories sidebar + video grid)
+  - Video player modal with YouTube embed
+  - Publish/Draft status management
+  - Stats dashboard (total, categories, published, drafts)
+  - Sidebar integration with Video icon between dividers
+  - 6 seed categories with subcategories
 
 ## Pending Issues (Prioritized)
 - **P1**: Inconsistent Subject List between "Asignaturas" page and "Asignar Docente" modal
@@ -53,19 +56,14 @@ Plataforma de gestión escolar (React + FastAPI + MongoDB) para el Colegio El Ro
 - **P2**: Double scrollbar fix in "Registro Auxiliar"
 
 ## Future Tasks
+- Academia Phase 2: Expose published videos to school admins
 - Complete Parent Portal feature parity
 - Build "Matrículas" (Enrollments) module
 - Question Bank for Exams
 - Replace all window.confirm/alert with custom modals
 
-## Key Technical Details
-- **Discount System**: `discount_types` + `student_discounts` collections
-- **Sibling Detection**: Matches `parent_id`/`padre_id` on students → same parent = siblings
-- **Pension Formula**: `final = base - auto_discounts - manual_discounts` (min S/ 0)
-- **Override**: `monthly_pension_override` field on student for exceptional cases
-- **Pronto Pago**: Fixed S/ 30 discount on individual pension
-
 ## Test Credentials
+- **Support**: spencer3009@gmail.com / Socios3009
 - **Owner**: admin@elroble.edu / 1234abc8 (subdomain: elroble)
 - **Teacher**: luis.martinez@elroble.edu / 1234abc8
 - **Parent**: micky@gmail.com / 1234abc8
@@ -73,4 +71,5 @@ Plataforma de gestión escolar (React + FastAPI + MongoDB) para el Colegio El Ro
 ## Test Reports
 - /app/test_reports/iteration_87.json
 - /app/test_reports/iteration_88.json
-- /app/test_reports/iteration_89.json (Discount System - 100% pass)
+- /app/test_reports/iteration_89.json (Discount System - 100%)
+- /app/test_reports/iteration_90.json (Academia - 100%)
