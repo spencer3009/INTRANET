@@ -20,10 +20,27 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
 - [x] Accounting: Payments, expenses, financial configuration
 - [x] **Sistema de Descuentos y Pensiones Variables** (FULL)
 - [x] **Academia Phase 1**: Support panel CRUD (categories, subcategories, YouTube videos)
-- [x] **Academia Phase 2**: Portal read-only view for school users (owner/admin/teacher)
-- [x] **Academia Portal Corrections (Mar 22, 2026)**:
-  - Fixed: Page now renders INSIDE portal layout (Sidebar + DashboardHeader)
-  - Fixed: Premium UI redesign with hero banner, styled search, premium cards, professional modal
+- [x] **Academia Phase 2**: Portal read-only view for school users
+- [x] **Academia Portal Corrections (Mar 22, 2026)**: Layout fix + Premium redesign (navy+gold branding)
+- [x] **Academia Share**: Share button on portal video cards and support panel cards
+- [x] **Dashboard**: "Centro de Ayuda (Videos Tutoriales)" with graduation cap icon
+- [x] **Importacion Masiva de Padres v3.0 (Mar 22, 2026)**: FULL implementation
+  - Backend: Template generation (2 sheets), import with auto-merge, credentials CSV, pending CRUD
+  - Frontend: Import card, drag-drop modal, progress bar, result summary, pending management
+  - Testing: 100% backend (15/15) + frontend verified (iteration_93)
+
+## Key DB Collections (new)
+- `import_pending`: Stores errored rows from bulk imports (type: "parent" or "student")
+- `import_credentials`: Stores generated credentials per batch for download
+
+## Key API Endpoints (new)
+- `GET /api/parents/template` — Download Excel template
+- `POST /api/parents/import` — Bulk import parents
+- `GET /api/parents/import/{batchId}/credentials` — Download credentials CSV
+- `GET /api/parents/pending` — List pending parents
+- `POST /api/parents/pending/{id}/activate` — Activate pending parent
+- `PUT /api/parents/pending/{id}` — Edit pending parent
+- `DELETE /api/parents/pending/{id}` — Delete pending parent
 
 ## Pending Issues
 - **P1**: Inconsistent Subject List between pages
@@ -41,6 +58,7 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
 - Build "Matriculas" module
 - Question Bank for Exams
 - Replace window.confirm/alert with custom modals
+- Vinculacion Masiva Inteligente (Phase 2 of parent import)
 
 ## Test Credentials
 - **Support**: spencer3009@gmail.com / Socios3009
@@ -51,3 +69,4 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
 - /app/test_reports/iteration_90.json (Academia Phase 1 - 100%)
 - /app/test_reports/iteration_91.json (Academia Phase 2 - 100%)
 - /app/test_reports/iteration_92.json (Academia Portal Corrections - 100%)
+- /app/test_reports/iteration_93.json (Parent Bulk Import - 100%)
