@@ -7,7 +7,7 @@ import BroadcastPopup from "@/components/BroadcastPopup";
 import { 
   Users, GraduationCap, UserCog, UserCheck, BookOpen, 
   Calendar, TrendingUp, AlertCircle, Loader2, ArrowRight,
-  Clock, CheckCircle, XCircle, BarChart3, Newspaper, CalendarDays, ClipboardList
+  Clock, CheckCircle, XCircle, BarChart3, Newspaper, CalendarDays, ClipboardList, Video
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -259,8 +259,8 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
                 />
               </div>
 
-              {/* Gestión Rápida: Noticias, Eventos, Encuestas */}
-              <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6" data-testid="dashboard-quick-actions">
+              {/* Gestión Rápida: Noticias, Eventos, Encuestas, Academia */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6" data-testid="dashboard-quick-actions">
                 <button
                   onClick={() => navigateTo('/noticias')}
                   className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-blue-300 hover:shadow-md transition-all text-left overflow-hidden"
@@ -312,6 +312,24 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
                       <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Crear y gestionar</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors flex-shrink-0" />
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => navigateTo('/academia')}
+                  className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-amber-300 hover:shadow-md transition-all text-left overflow-hidden"
+                  data-testid="quick-action-academia"
+                >
+                  <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-500 transition-colors">
+                      <Video className="w-5 h-5 text-amber-600 group-hover:text-white transition-colors" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-800 text-sm sm:text-base">Academia</p>
+                      <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Video tutoriales</p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-amber-500 transition-colors flex-shrink-0" />
                   </div>
                 </button>
               </div>

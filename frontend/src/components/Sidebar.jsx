@@ -36,7 +36,6 @@ const allNavItems = [
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina" },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad", section: "accounting" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
-  { id: "academia", label: "Academia", icon: Video, route: "/academia" },
 ];
 
 export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogout, schoolName, subdomain, token: propToken, user }) {
@@ -138,7 +137,7 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
       </div>
 
       {/* Nav items */}
-      <nav className="flex-1 py-4 px-2.5 space-y-1 overflow-y-auto custom-scroll">
+      <nav className="flex-1 py-4 px-2.5 space-y-1 overflow-y-auto sidebar-scroll">
         {navItems.map((item) => {
           const Icon = item.icon;
           const showBadge = item.hasBadge && item.id === "mensajeria" && unreadMessages > 0;
