@@ -1226,19 +1226,14 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 <button
                   onClick={async () => {
                     if (!ownerData) return;
-                    const text = [
-                      `*Datos del Titular - ${ownerData.school_display_name || ownerModal.schoolName}*`,
-                      `Nombre: ${ownerData.name || "No registrado"}`,
-                      `Email: ${ownerData.email || "No registrado"}`,
-                      `RUC: ${ownerData.ruc || "No registrado"}`,
-                      `WhatsApp: ${ownerData.whatsapp || "No registrado"}`,
-                      ownerData.plain_password ? `Contrasena: ${ownerData.plain_password}` : "",
-                      ownerData.created_at ? `Registrado: ${ownerData.created_at}` : "",
-                    ].filter(Boolean).join("\n");
+                    const nombre = ownerData.name || "Cliente";
+                    const email = ownerData.email || "No registrado";
+                    const pwd = ownerData.plain_password || "[contraseña no disponible]";
+                    const text = `Estimado/a ${nombre},\nSu cuenta ha sido creada exitosamente. A continuacion le comparto sus datos de acceso:\n\nAcceso al sistema: https://edunet.pe/login\nUsuario: ${email}\nContrasena: ${pwd}\n\nPasos para ingresar:\n1. Abra el enlace en su navegador (recomendamos Google Chrome)\n2. Ingrese su usuario y contrasena\n3. Haga clic en "Iniciar Sesion"`;
                     if (navigator.share) {
-                      try { await navigator.share({ title: `Titular - ${ownerModal.schoolName}`, text }); } catch {}
+                      try { await navigator.share({ title: "Datos de acceso EduNet", text }); } catch {}
                     } else {
-                      try { await navigator.clipboard.writeText(text); toast.success("Datos copiados al portapapeles"); } catch { toast.error("No se pudo copiar"); }
+                      try { await navigator.clipboard.writeText(text); toast.success("Datos de acceso copiados al portapapeles"); } catch { toast.error("No se pudo copiar"); }
                     }
                   }}
                   className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
