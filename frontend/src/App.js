@@ -88,6 +88,7 @@ import SupportDashboardPage from "@/pages/SupportDashboardPage";
 import SupportSchoolsPage from "@/pages/SupportSchoolsPage";
 import SupportProfilePage from "@/pages/SupportProfilePage";
 import SupportPricingPage from "@/pages/SupportPricingPage";
+import SupportAcademiaPage from "@/pages/SupportAcademiaPage";
 import SupportFinancesPage from "@/pages/SupportFinancesPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
@@ -1793,6 +1794,7 @@ function App() {
             <Route path="schools" element={<SupportSchoolsPage token={token} onLogin={handleLogin} />} />
             <Route path="finances" element={<SupportFinancesPage token={token} />} />
             <Route path="pricing" element={<SupportPricingPage token={token} />} />
+            <Route path="academia" element={<SupportAcademiaPage token={token} />} />
             <Route path="profile" element={<SupportProfilePage token={token} user={user} onUserUpdate={handleUserUpdate} />} />
             <Route path="*" element={<Navigate to="/support" replace />} />
           </Route>

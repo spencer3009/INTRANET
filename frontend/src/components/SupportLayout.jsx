@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate, Outlet } from "react-router-dom";
 import { 
   LayoutDashboard, School, User, LogOut, Menu, X, 
-  Headset, ChevronRight, Shield, DollarSign, BarChart3
+  Headset, ChevronRight, Shield, DollarSign, BarChart3, Video
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -10,6 +10,9 @@ const NAV_ITEMS = [
   { to: "/support/schools", icon: School, label: "Colegios" },
   { to: "/support/finances", icon: BarChart3, label: "Finanzas" },
   { to: "/support/pricing", icon: DollarSign, label: "Precios" },
+  { type: "divider" },
+  { to: "/support/academia", icon: Video, label: "Academia" },
+  { type: "divider" },
   { to: "/support/profile", icon: User, label: "Mi Perfil" },
 ];
 
@@ -80,7 +83,11 @@ export default function SupportLayout({ user, token, onLogout }) {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {NAV_ITEMS.map(item => (
+          {NAV_ITEMS.map((item, idx) => {
+            if (item.type === "divider") {
+              return <div key={`div-${idx}`} className="my-2 border-t border-white/10" />;
+            }
+            return (
             <NavLink
               key={item.to}
               to={item.to}
@@ -98,7 +105,8 @@ export default function SupportLayout({ user, token, onLogout }) {
               <item.icon className="w-[18px] h-[18px]" />
               <span>{item.label}</span>
             </NavLink>
-          ))}
+            );
+          })}
         </nav>
 
         {/* Logout */}

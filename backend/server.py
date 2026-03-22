@@ -48,6 +48,7 @@ from routes.grades import router as grades_router
 from routes.membership import router as membership_router
 from routes.subscription import router as subscription_router, daily_subscription_cron
 from routes.exams import close_expired_exams_cron, close_expired_tasks_cron
+from routes.academia import router as academia_router, seed_academia_categories
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -193,6 +194,7 @@ app.include_router(membership_router)
 app.include_router(subscription_router)
 app.include_router(notifications_router)
 app.include_router(support_router)
+app.include_router(academia_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
@@ -290,6 +292,7 @@ async def create_indexes():
             unique=True
         )
         await ensure_global_support_user()
+        await seed_academia_categories()
         schools_without_exp = db.schools.find({"expiration_date": {"$exists": False}}, {"_id": 0, "id": 1, "created_at": 1})
         async for school in schools_without_exp:
             created = school.get("created_at")
