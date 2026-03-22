@@ -6,7 +6,7 @@ import {
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
   ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2,
-  Eye, EyeOff, UserCircle, Save, Phone, Mail, Bell, CreditCard, Clock
+  Eye, EyeOff, UserCircle, Save, Phone, Mail, Bell, CreditCard, Clock, Share2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1222,13 +1222,39 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                 <h3 className="text-white font-bold text-base">Titular de la Cuenta</h3>
                 <p className="text-white/70 text-xs mt-0.5">{ownerModal.schoolName}</p>
               </div>
-              <button
-                onClick={() => { setOwnerModal(null); setOwnerEditing(false); }}
-                className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                data-testid="owner-modal-close"
-              >
-                <X className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={async () => {
+                    if (!ownerData) return;
+                    const text = [
+                      `*Datos del Titular - ${ownerData.school_display_name || ownerModal.schoolName}*`,
+                      `Nombre: ${ownerData.name || "No registrado"}`,
+                      `Email: ${ownerData.email || "No registrado"}`,
+                      `RUC: ${ownerData.ruc || "No registrado"}`,
+                      `WhatsApp: ${ownerData.whatsapp || "No registrado"}`,
+                      ownerData.plain_password ? `Contrasena: ${ownerData.plain_password}` : "",
+                      ownerData.created_at ? `Registrado: ${ownerData.created_at}` : "",
+                    ].filter(Boolean).join("\n");
+                    if (navigator.share) {
+                      try { await navigator.share({ title: `Titular - ${ownerModal.schoolName}`, text }); } catch {}
+                    } else {
+                      try { await navigator.clipboard.writeText(text); toast.success("Datos copiados al portapapeles"); } catch { toast.error("No se pudo copiar"); }
+                    }
+                  }}
+                  className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  data-testid="owner-modal-share"
+                  title="Compartir datos del titular"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
+                <button
+                  onClick={() => { setOwnerModal(null); setOwnerEditing(false); }}
+                  className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  data-testid="owner-modal-close"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
             </div>
 
             <div className="p-6 space-y-4 overflow-y-auto flex-1">
