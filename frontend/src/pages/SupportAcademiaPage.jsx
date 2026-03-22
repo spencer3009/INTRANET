@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Video, FolderOpen, Plus, Search, Edit2, Trash2, X, Loader2,
   Eye, Play, ChevronUp, ChevronDown, Tag, Check, AlertCircle,
-  Film, BarChart3, Clock, Globe
+  Film, BarChart3, Clock, Globe, Share2
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -624,6 +624,16 @@ export default function SupportAcademiaPage({ token }) {
                       className={`p-1.5 rounded-lg ${v.is_published ? "text-amber-500 hover:bg-amber-50" : "text-emerald-500 hover:bg-emerald-50"}`}
                       data-testid={`publish-video-${v.id}`} title={v.is_published ? "Despublicar" : "Publicar"}>
                       <Globe className="w-4 h-4" />
+                    </button>
+                    <button onClick={async () => {
+                      const url = v.youtube_url;
+                      if (navigator.share) {
+                        try { await navigator.share({ title: v.title, url }); } catch {}
+                      } else {
+                        try { await navigator.clipboard.writeText(url); toast.success("Enlace copiado al portapapeles"); } catch { toast.error("No se pudo copiar el enlace"); }
+                      }
+                    }} className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg" data-testid={`share-video-${v.id}`} title="Compartir enlace de YouTube">
+                      <Share2 className="w-4 h-4" />
                     </button>
                     <button onClick={() => handleDeleteVideo(v)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg ml-auto" data-testid={`delete-video-${v.id}`}><Trash2 className="w-4 h-4" /></button>
                   </div>
