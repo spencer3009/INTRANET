@@ -1620,7 +1620,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   // ═══════════════ PARENT IMPORT FUNCTIONS ═══════════════
+  const [downloadingParentTemplate, setDownloadingParentTemplate] = useState(false);
+
   const handleDownloadParentTemplate = async () => {
+    setDownloadingParentTemplate(true);
     try {
       const res = await axios.get(`${API}/parents/template`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
       const url = window.URL.createObjectURL(new Blob([res.data]));
@@ -1629,6 +1632,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       window.URL.revokeObjectURL(url);
       toast.success("Plantilla descargada");
     } catch { toast.error("Error al descargar plantilla"); }
+    finally { setDownloadingParentTemplate(false); }
   };
 
   const handleParentFileSelect = (file) => {
@@ -2588,10 +2592,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <p className="text-sm text-slate-500 mt-0.5">Descarga la plantilla, completa los datos de los padres y sube el archivo para crearlos automaticamente en el sistema.</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
-                <button onClick={handleDownloadParentTemplate}
-                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5"
+                <button onClick={handleDownloadParentTemplate} disabled={downloadingParentTemplate}
+                  className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
                   data-testid="parent-download-template-btn">
-                  <Download className="w-4 h-4" /> Descargar Plantilla
+                  {downloadingParentTemplate ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {downloadingParentTemplate ? "Generando..." : "Descargar Plantilla"}
                 </button>
                 <button onClick={() => { setShowParentImportModal(true); resetParentImport(); }}
                   className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5"
