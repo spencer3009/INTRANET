@@ -211,9 +211,9 @@ function CategoryManagerModal({ isOpen, onClose, token, onRefresh }) {
 // ═══════════════════════════════════════════════════════════
 // VIDEO FORM MODAL
 // ═══════════════════════════════════════════════════════════
-function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRefresh }) {
+function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRefresh, autoCategoryId, autoSubcategoryId }) {
   const headers = { Authorization: `Bearer ${token}` };
-  const [form, setForm] = useState({ youtube_url: "", title: "", description: "", category_id: "", subcategory_id: "", duration: "", is_published: false });
+  const [form, setForm] = useState({ youtube_url: "", title: "", description: "", duration: "", is_published: false });
   const [preview, setPreview] = useState(null);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -225,14 +225,12 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
         youtube_url: editingVideo.youtube_url || "",
         title: editingVideo.title || "",
         description: editingVideo.description || "",
-        category_id: editingVideo.category_id || "",
-        subcategory_id: editingVideo.subcategory_id || "",
         duration: editingVideo.duration || "",
         is_published: editingVideo.is_published || false,
       });
       setPreview(editingVideo.youtube_video_id ? { thumbnail_url: editingVideo.thumbnail_url, youtube_video_id: editingVideo.youtube_video_id } : null);
     } else {
-      setForm({ youtube_url: "", title: "", description: "", category_id: "", subcategory_id: "", duration: "", is_published: false });
+      setForm({ youtube_url: "", title: "", description: "", duration: "", is_published: false });
       setPreview(null);
     }
     setError("");
@@ -257,23 +255,22 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
     e.preventDefault(); setError("");
     if (!form.youtube_url.trim()) { setError("URL de YouTube requerida"); return; }
     if (!form.title.trim()) { setError("Titulo requerido"); return; }
-    if (!form.category_id) { setError("Selecciona una categoria"); return; }
+    const categoryId = editingVideo ? editingVideo.category_id : autoCategoryId;
+    const subcategoryId = editingVideo ? editingVideo.subcategory_id : autoSubcategoryId;
+    if (!categoryId) { setError("No hay categoria seleccionada"); return; }
     setSaving(true);
     try {
       if (editingVideo) {
         await axios.put(`${API}/academia/videos/${editingVideo.id}`, form, { headers });
         toast.success("Video actualizado");
       } else {
-        await axios.post(`${API}/academia/videos`, form, { headers });
+        await axios.post(`${API}/academia/videos`, { ...form, category_id: categoryId, subcategory_id: subcategoryId || null }, { headers });
         toast.success("Video agregado");
       }
       onRefresh(); onClose();
     } catch (err) { setError(err.response?.data?.detail || "Error al guardar"); }
     finally { setSaving(false); }
   };
-
-  const selectedCat = categories.find(c => c.id === form.category_id);
-  const subcategories = selectedCat?.subcategories || [];
 
   if (!isOpen) return null;
   return (
@@ -330,27 +327,6 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
             <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2}
               placeholder="Notas sobre el video..." className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-emerald-200"
               data-testid="video-desc-input" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Categoria *</label>
-              <select value={form.category_id} onChange={e => setForm(p => ({ ...p, category_id: e.target.value, subcategory_id: "" }))}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                data-testid="video-category-select">
-                <option value="">Seleccionar...</option>
-                {categories.filter(c => c.is_active).map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Subcategoria</label>
-              <select value={form.subcategory_id} onChange={e => setForm(p => ({ ...p, subcategory_id: e.target.value }))} disabled={!form.category_id}
-                className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200 disabled:opacity-50"
-                data-testid="video-subcategory-select">
-                <option value="">Sin subcategoria</option>
-                {subcategories.filter(s => s.is_active).map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -565,16 +541,28 @@ export default function SupportAcademiaPage({ token }) {
                         {cat.video_count}
                       </span>
                     </button>
-                    {/* Subcategories as pills */}
+                    {/* Subcategories as vertical list */}
                     {selectedCat?.id === cat.id && cat.subcategories?.length > 0 && (
-                      <div className="px-4 py-2 bg-emerald-50/50 flex flex-wrap gap-1.5">
+                      <div className="bg-emerald-50/50 border-b border-slate-100">
                         <button onClick={() => setSelectedSub(null)}
-                          className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${!selectedSub ? "bg-emerald-500 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-emerald-300"}`}
-                          data-testid="sub-all-btn">Todos</button>
+                          className={`w-full text-left pl-11 pr-4 py-2 flex items-center gap-2 text-[12px] font-medium transition-colors ${
+                            !selectedSub ? "text-emerald-700 bg-emerald-100/60" : "text-slate-500 hover:text-slate-700 hover:bg-emerald-50"
+                          }`}
+                          data-testid="sub-all-btn">
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${!selectedSub ? "bg-emerald-500" : "bg-slate-300"}`} />
+                          <span className="flex-1">Todos</span>
+                          <span className="text-[10px] text-slate-400">{cat.video_count}</span>
+                        </button>
                         {cat.subcategories.map(sub => (
                           <button key={sub.id} onClick={() => setSelectedSub(sub)}
-                            className={`px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors ${selectedSub?.id === sub.id ? "bg-emerald-500 text-white" : "bg-white text-slate-500 border border-slate-200 hover:border-emerald-300"}`}
-                            data-testid={`sub-btn-${sub.id}`}>{sub.name}</button>
+                            className={`w-full text-left pl-11 pr-4 py-2 flex items-center gap-2 text-[12px] font-medium transition-colors ${
+                              selectedSub?.id === sub.id ? "text-emerald-700 bg-emerald-100/60" : "text-slate-500 hover:text-slate-700 hover:bg-emerald-50"
+                            }`}
+                            data-testid={`sub-btn-${sub.id}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${selectedSub?.id === sub.id ? "bg-emerald-500" : "bg-slate-300"}`} />
+                            <span className="flex-1">{sub.name}</span>
+                            <span className="text-[10px] text-slate-400">{sub.video_count}</span>
+                          </button>
                         ))}
                       </div>
                     )}
@@ -667,7 +655,8 @@ export default function SupportAcademiaPage({ token }) {
       {/* Modals */}
       <CategoryManagerModal isOpen={showCatModal} onClose={() => setShowCatModal(false)} token={token} onRefresh={loadData} />
       <VideoFormModal isOpen={showVideoModal} onClose={() => { setShowVideoModal(false); setEditingVideo(null); }} token={token}
-        categories={categories} editingVideo={editingVideo} onRefresh={() => { loadVideos(); loadData(); }} />
+        categories={categories} editingVideo={editingVideo} onRefresh={() => { loadVideos(); loadData(); }}
+        autoCategoryId={selectedCat?.id} autoSubcategoryId={selectedSub?.id} />
       <VideoPlayerModal video={playerVideo} onClose={() => { setPlayerVideo(null); loadVideos(); }} token={token} onRefresh={() => { loadVideos(); loadData(); }} />
     </div>
   );
