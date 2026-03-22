@@ -211,65 +211,65 @@ function AcademiaContent({ token }) {
 
   return (
     <div data-testid="academia-portal-page">
-      {/* Hero Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#064e3b] via-[#065f46] to-[#047857] p-6 sm:p-8 mb-6 shadow-lg">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-white/20 rounded-full -translate-y-1/2 translate-x-1/3" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full translate-y-1/2 -translate-x-1/4" />
+      {/* Hero Banner — Navy oscuro con acentos dorados (marca EduNet) */}
+      <div className="relative overflow-hidden rounded-2xl p-6 sm:p-8 mb-5 shadow-lg" style={{ background: "linear-gradient(135deg, #0F172A 0%, #1E293B 60%, #1a2744 100%)" }}>
+        <div className="absolute inset-0 opacity-[0.07]">
+          <div className="absolute top-0 right-0 w-80 h-80 bg-[#FBBF24] rounded-full -translate-y-1/2 translate-x-1/3" />
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#FBBF24] rounded-full translate-y-1/2 -translate-x-1/4" />
         </div>
         <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 shadow-inner">
-              <GraduationCap className="w-7 h-7 text-white" />
+            <div className="w-14 h-14 bg-[#FBBF24]/15 rounded-2xl flex items-center justify-center border border-[#FBBF24]/25">
+              <GraduationCap className="w-7 h-7 text-[#FBBF24]" />
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight" data-testid="academia-hero-title">
                 Academia EduNet
               </h1>
-              <p className="text-emerald-200/80 text-sm mt-0.5">
+              <p className="text-slate-400 text-sm mt-0.5">
                 Video tutoriales para dominar la plataforma
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/15">
-              <Video className="w-4 h-4 text-emerald-300" />
+            <div className="flex items-center gap-2.5 bg-white/5 rounded-xl px-4 py-2.5 border border-[#FBBF24]/20">
+              <Video className="w-4 h-4 text-[#FBBF24]" />
               <div>
-                <p className="text-xl font-bold text-white leading-none" data-testid="academia-stat-videos">{stats.total_videos}</p>
-                <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider font-medium">Videos</p>
+                <p className="text-xl font-bold text-[#FBBF24] leading-none" data-testid="academia-stat-videos">{stats.total_videos}</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Videos</p>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-2.5 border border-white/15">
-              <FolderOpen className="w-4 h-4 text-emerald-300" />
+            <div className="flex items-center gap-2.5 bg-white/5 rounded-xl px-4 py-2.5 border border-[#FBBF24]/20">
+              <FolderOpen className="w-4 h-4 text-[#FBBF24]" />
               <div>
-                <p className="text-xl font-bold text-white leading-none" data-testid="academia-stat-categories">{stats.total_categories}</p>
-                <p className="text-[10px] text-emerald-300/70 uppercase tracking-wider font-medium">Categorias</p>
+                <p className="text-xl font-bold text-[#FBBF24] leading-none" data-testid="academia-stat-categories">{stats.total_categories}</p>
+                <p className="text-[10px] text-slate-400 uppercase tracking-wider font-medium">Categorias</p>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Search Bar inside banner */}
-        <div className="relative mt-5 max-w-xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-300/70" />
-          <input
-            type="text"
-            value={searchText}
-            onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Buscar tutoriales por titulo, descripcion o categoria..."
-            className="w-full pl-11 pr-10 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full text-sm text-white placeholder-emerald-200/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:bg-white/15 transition-all"
-            data-testid="portal-search"
-          />
-          {searchText && (
-            <button
-              onClick={clearSearch}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-emerald-200/60 hover:text-white rounded-full hover:bg-white/10 transition-colors"
-              data-testid="portal-search-clear"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
-        </div>
+      {/* Search Bar — Separada del banner, fondo blanco */}
+      <div className="relative mb-5">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+        <input
+          type="text"
+          value={searchText}
+          onChange={(e) => handleSearch(e.target.value)}
+          placeholder="Buscar tutoriales por titulo, descripcion o categoria..."
+          className="w-full pl-11 pr-10 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#FBBF24]/30 focus:border-[#FBBF24]/50 transition-all shadow-sm"
+          data-testid="portal-search"
+        />
+        {searchText && (
+          <button
+            onClick={clearSearch}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-100 transition-colors"
+            data-testid="portal-search-clear"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {categories.length === 0 ? (
