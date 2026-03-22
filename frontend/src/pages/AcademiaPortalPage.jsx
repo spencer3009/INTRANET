@@ -495,6 +495,13 @@ function AcademiaContent({ token }) {
 
 export default function AcademiaPortalPage({ user, token, subdomain, onLogout }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [settings, setSettings] = useState(null);
+
+  useEffect(() => {
+    axios.get(`${API}/settings`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(res => setSettings(res.data))
+      .catch(() => {});
+  }, [token]);
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="academia-portal-container">
@@ -504,7 +511,7 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
         expanded={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
         onLogout={onLogout}
-        schoolName=""
+        schoolName={settings?.system_name}
         subdomain={subdomain}
         token={token}
         user={user}
@@ -515,6 +522,8 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
           user={user}
           onMenuClick={() => setSidebarOpen(!sidebarOpen)}
           onLogout={onLogout}
+          logoUrl={settings?.logo_url}
+          schoolName={settings?.system_name}
           subdomain={subdomain}
           token={token}
         />
