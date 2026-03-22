@@ -5,7 +5,7 @@ import AdminSidebar from "@/components/AdminSidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import BroadcastPopup from "@/components/BroadcastPopup";
 import { 
-  Users, GraduationCap, UserCog, UserCheck, BookOpen, 
+  Users, GraduationCap, UserCog, UserCheck, BookOpen, HelpCircle,
   Calendar, TrendingUp, AlertCircle, Loader2, ArrowRight,
   Clock, CheckCircle, XCircle, BarChart3, Newspaper, CalendarDays, ClipboardList, Video
 } from "lucide-react";
@@ -323,7 +323,7 @@ export default function AdminDashboardPage({ user, token, onLogout }) {
                   <div className="absolute top-0 left-0 w-full h-1 bg-amber-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-100 flex items-center justify-center flex-shrink-0 group-hover:bg-amber-500 transition-colors">
-                      <GraduationCap className="w-5 h-5 text-amber-600 group-hover:text-white transition-colors" />
+                      <HelpCircle className="w-5 h-5 text-amber-600 group-hover:text-white transition-colors" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-slate-800 text-sm sm:text-base">Centro de Ayuda</p>
