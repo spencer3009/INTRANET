@@ -1,54 +1,60 @@
-<analysis>**original_problem_statement**: 
-The user wants to refine the Gradebook Linkage (Registro Auxiliar) to encompass both Exams and Tasks/Assignments, ensuring mutual exclusivity via a central assignments collection. They also require a background auto-zero cron job for expired tasks. Most recently, the user requested a major new feature: Sistema de Descuentos y Pensiones Variables to allow dynamic, student-specific monthly tuition pricing based on automatic (e.g., siblings) and manual (e.g., scholarships) discounts.
+<analysis>Here is the handover summary for the next agent:
+
+**original_problem_statement**: 
+The user requested a major new feature: Sistema de Descuentos y Pensiones Variables to allow dynamic monthly tuition pricing. Following the successful delivery of this feature, the user provided PRDs for a new module: Academia EduNet, a library for YouTube video tutorials managed by the global support team (Phase 1) and exposed to school administrators in a read-only portal (Phase 2). 
 
 **User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only).
 
 **what currently exists?** 
-A React + FastAPI + MongoDB school management platform. Exams and Tasks are fully integrated with the Auxiliary Gradebook via a unified  collection. A background cron job automatically closes expired exams and tasks, assigns  scores to absent students, and syncs grades. The Bimestre (Period) selection across modals is now a read-only badge that auto-resolves from the active academic period.
+A React + FastAPI + MongoDB school management platform. A robust Discount and Variable Pension System has been fully implemented, handling automatic sibling discounts and manual overrides. A new Academia module exists, allowing global support admins to manage YouTube tutorial videos (with auto-extraction of thumbnails and titles). These videos are now exposed in read-only mode to school owners/admins via quick access cards on their dashboards.
 
 **Last working item**:
-- **Last item agent was working**: Implementing the backend for the Sistema de Descuentos y Pensiones Variables PRD. The agent just inserted a large block of code into  to handle CRUD operations for , , and the logic for dynamic pension calculation based on siblings and manual overrides.
-- **Status**: IN PROGRESS
-- **Agent Testing Done**: N
-- **Which testing method agent to use?**: testing_agent_v3_fork (Use this after completing the full full-stack implementation of the discount system).
-- **User Testing Done**: N
+    - **Last item agent was working**: The user uploaded a Word document titled  containing required UI/UX corrections for the Academia School Portal View. The agent successfully extracted the text from the document (Message 347), but the session ended before the agent could read the contents and implement the fixes.
+    - **Status**: NOT STARTED
+    - **Agent Testing Done**: N
+    - **Which testing method agent to use?**: Frontend testing agent / manual screenshot tool depending on the size of the requested corrections.
+    - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: Inconsistent Subject List (P1)
-  - Attempted fixes: None in this session.
-  - Next debug checklist: Compare the backend API endpoints and DB queries used by the Asignaturas page vs the Asignar Docente modal.
-  - Why fix this issue and what will be achieved with the fix?: Ensures data consistency across the app.
-  - Status: NOT STARTED
-  - Is recurring issue? Y
-  - Should Test frontend/backend/both after fix?: Both.
+  Issue 1: Correcciones Academia EduNet — Vista Portal de Colegios (P0)
+     - Attempted fixes: None. The document was just extracted in the final message.
+     - Next debug checklist: Read the extracted text from the tool result in **Message 347**. Understand the specific corrections requested for the School Portal view of Academia and implement them.
+     - Why fix this issue and what will be achieved with the fix?: Direct user request to polish the newly delivered feature.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend mostly (unless logic changes are requested).
 
   Issue 2: Incomplete Payment Flow (P1)
-  - Attempted fixes: None in this session.
-  - Next debug checklist: Create a new page/section in the support panel to list payments with status . Implement Approve/Reject buttons. *(Note: This might intersect with the new Discount System being built)*.
-  - Why fix this issue and what will be achieved with the fix?: Allows admins to approve payments.
-  - Status: NOT STARTED
-  - Is recurring issue? N
-  - Should Test frontend/backend/both after fix?: Both.
+     - Attempted fixes: None in this session.
+     - Next debug checklist: Create a new page/section in the support panel to list payments with status . Implement Approve/Reject buttons.
+     - Why fix this issue and what will be achieved with the fix?: Allows admins to approve payments.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Both.
+     - Blocked on other issue: No.
 
-  Issue 3: Hardcoded Owner Dashboard Data (P2)
-  - Attempted fixes: None in this session.
-  - Next debug checklist: Replace static widgets in the owner's dashboard with real-time statistics from the backend.
-  - Status: NOT STARTED
-  - Is recurring issue? Y
-  - Should Test frontend/backend/both after fix?: Both.
+  Issue 3: Inconsistent Subject List (P1)
+     - Attempted fixes: None in this session.
+     - Next debug checklist: Compare the backend API endpoints and DB queries used by the Asignaturas page vs the Asignar Docente modal.
+     - Why fix this issue and what will be achieved with the fix?: Ensures data consistency across the app.
+     - Status: NOT STARTED
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Both.
+
+  Issue 4: Hardcoded Owner Dashboard Data (P2)
+     - Attempted fixes: None in this session.
+     - Next debug checklist: Replace static widgets in the owner's dashboard with real-time statistics from the backend.
+     - Status: NOT STARTED
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix?: Both.
 
 **In progress Task List**:
-  Task 1: Sistema de Descuentos y Pensiones Variables (P0)
-  - Where to resume: The agent just pasted the backend endpoints into . You need to verify if the file compiles ( / check supervisor logs), ensure the logic correctly uses / for sibling detection, and then implement the Frontend UI (FinancialSettingsTab, Student Profile for manual discounts, and updating the Payment Modal to show dynamic pricing).
-  - What will be achieved with this?: Allows the school to charge dynamic monthly tuition based on automatic sibling discounts and manual overrides.
-  - Status: IN PROGRESS
-  - Should Test frontend/backend/both after fix?: Both (Highly critical financial feature).
-  - Blocked on something: No.
+  *(None currently in progress outside of Issue 1)*
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
     - P1: Refactor Message Pages: Consolidate duplicated message pages into a single, robust component.
-    - P2: Visual indicator of  in Exams/Tasks List: Add a badge (✅ Sincronizado / ⏳ Pendiente / ➖ Sin vincular) so teachers can see linkage status at a glance.
+    - P2: Visual indicator of  in Exams/Tasks List: Add a badge (✅ Sincronizado / ⏳ Pendiente / ➖ Sin vincular).
     - P2: Gradebook Enhancements: Implement Export to PDF/Excel and a Lock/Close Period feature.
     - P2: Double Scrollbar in Registro Auxiliar UI fix.
     
@@ -59,16 +65,18 @@ A React + FastAPI + MongoDB school management platform. Exams and Tasks are full
     - Replace all remaining / calls with custom modals.
 
 **Completed work in this session**
-- Auto-resolved Bimestre: Replaced dropdowns with read-only badges fetching the active period (DONE).
-- Unified Gradebook Linkage: Created  and  to handle mutually exclusive gradebook linkage for both Exams and Tasks (DONE).
-- Task Gradebook Linkage: Added linkage options (P1, P2, P3 only) to  and task backend logic (DONE).
-- Task Auto-Zero Cron: Created  to assign 0 to absent students when a task expires (DONE).
+- Sistema de Descuentos y Pensiones Variables: Full Full-stack implementation including , , updated , and sibling discount auto-sync logic (DONE).
+- Z-Index & Scroll UI Fixes: Fixed bug where the header covered modals in the Accounting page and added  to prevent oversized modals (DONE).
+- Academia EduNet (Phase 1): Full CRUD for tutorial videos in the Support panel, including YouTube oEmbed extraction for titles and auto-generated thumbnails (DONE).
+- Academia EduNet UI Tweaks: Changed subcategories to vertical lists, removed category/subcategory selectors from Video Add Modal to auto-inherit from the current view (DONE).
+- Academia EduNet (Phase 2): Read-only portal view () implemented for school owners (DONE).
+- Dashboard Navigation Update: Added Academia to the Quick Access cards in Owner and Admin dashboards, removed it from the standard sidebar (DONE).
 
 **Earlier issues found/mentioned but not fixed**
-None found in this session outside the carried-over issues.
+- None found outside the pending list.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Production vs Preview Environment Schema Naming ( vs ). 
+  - Issue recurrence in previous fork: Production vs Preview Environment Schema Naming ( vs ).
   - Recurrence count: 3
   - Status: RESOLVED (Handled via multi-collection caching). Do not revert.
 
@@ -76,22 +84,23 @@ None found in this session outside the carried-over issues.
 
 
 **Key Technical Concepts**
-- **Idempotent Grade Sync:**  centralizes all gradebook writing. Converts percentages to a 0-20 scale .
-- **Auto-Zero Crons:** Two background tasks (, ) check for expired deadlines, close the post, and assign 0s to students without submissions.
-- **Unified Availability Endpoint:**  performs a triple-check (Exams + Tasks + Manual grades) to prevent overlapping columns.
-- **Dynamic Pension (WIP):** Calculates individual tuition using: . Sibling detection relies on matching  /  fields inside the  collection.
+- **Dynamic Pension:** Calculates individual tuition using: . Sibling detection relies on matching  /  fields inside the  collection. (Checks  for active enrollment).
+- **Academia YouTube Integration:** Uses  to call YouTube's oEmbed API () to fetch video titles, and uses Regex to extract video IDs to generate static  thumbnail URLs. Videos are not hosted locally.
 
 **key DB schema**
-  - : . Compound unique index enforces mutual exclusivity.
-  -  (New): .
-  -  (New): .
+  - : 
+  - : 
+  - :  (Global table, no )
+  - : 
+  - : 
 
 **changes in tech stack**
-  - None.
+  -  package added to  to handle external HTTP requests for YouTube metadata.
 
 **All files of reference**
   - 
-  -  (Contains WIP Discount logic)
+  - 
+  - 
   - 
   - 
   - 
@@ -100,44 +109,45 @@ None found in this session outside the carried-over issues.
   - : Remains bloated with Google Drive OAuth logic.
 
 **key api endpoints**
-  - : Unified endpoint checking column availability for EM/EB/P1/P2/P3.
-  -  (WIP): Calculates full pension breakdown based on applied discounts.
+  - : Extracts YouTube metadata.
+  - : Admin view for Support panel.
+  - : Read-only view for the School portal.
 
 **Critical Info for New Agent**
   - **LANGUAGE:** Respond to the user strictly in **Spanish**.
-  - **Task vs Exam Linkage:** Tasks can ONLY be linked to , , or . Exams can be linked to , , , , or .
-  - **Discount Logic:** The logic for Siblings (Hermanos) MUST rely on the existing  /  field in the user collection. DO NOT create a new Siblings table.
-  - **Current State:** The backend logic for the Discount system was *just* pasted into . Your first step must be to verify the syntax and logic of this file before moving to the frontend implementation in .
+  - **Current State Blocker:** The user uploaded a Word document in their final message. **You MUST review the tool result of Message 347** to read the extracted text. This contains the exact UI/UX corrections the user wants for the Academia Portal view.
+  - **Student Status:** When checking student enrollment states (e.g., for sibling discounts), ensure you query the  field, not the  field.
 
 **documents and test reports created in this job**
-  - 
-  - 
+  -  (Discounts)
+  -  (Academia Phase 1)
+  -  (Academia Phase 2)
   - 
 
 **Last 10 User Messages and any pending HUMAN messages**
-  1. User requested changing the Bimestre dropdown to a read-only badge.
-  2. User reported the change wasn't visible in the Admin portal.
-  3. Agent verified it was visible and showed screenshots.
-  4. User provided a massive PRD to unify Task and Exam linkage to the Gradebook.
-  5. User authorized starting the P0 phase of the PRD.
-  6. User asked how tasks are currently graded/synced.
-  7. User requested an auto-zero cron job for expired tasks.
-  8. Agent successfully implemented the unified linkage and task cron job.
-  9. User provided a massive new PRD for Sistema de Descuentos y Pensiones Variables. *(Pending task)*.
+  1. User supplied PRD for Academia EduNet Phase 1 (Support video library).
+  2. User requested 2 UI tweaks: vertical subcategories and removing selectors from the Add Video modal.
+  3. User uploaded prompt for Phase 2: Exposing videos to school portal users.
+  4. User couldn't find Academia in the Owner portal menu.
+  5. User provided a screenshot showing it missing (due to unseen scroll).
+  6. User requested moving the Academia link out of the sidebar and into the Quick Access cards on the dashboard.
+  7. User reiterated removing it entirely from the left menu.
+  8. User uploaded a Word document:  with adjustments. *(PENDING: Agent extracted the file but session ended).*
 
 **Project Health Check**:
   - Broken: None known.
   - Mocked: None.
 
 **3rd Party Integrations**:
-  - Google Drive (File Storage) — requires User API Key
-  - Firebase FCM (Push Notifications)
-  - Cloudinary (Image Storage)
+  - YouTube oEmbed API (Public API, no key required).
+  - Google Drive (File Storage) — requires User API Key.
+  - Firebase FCM (Push Notifications).
+  - Cloudinary (Image Storage).
 
 **Testing status**:
-  - Testing agent used after significant changes: YES (Iterations 87 & 88 passed 100%).
+  - Testing agent used after significant changes: YES (Iterations 89, 90, 91 passed 100%).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: , 
+  - Test files created: , , 
   - Known regressions: None.
 
 **Credentials to test flow**:
@@ -145,6 +155,9 @@ None found in this session outside the carried-over issues.
     - **Subdomain:** 
     - **Email:** 
     - **Password:** 
+  - **Support Admin:**
+    - **Email:** 
+    - **Password:** 
 
 **What agent forgot to execute**
-The agent is currently midway through implementing the Sistema de Descuentos y Pensiones Variables PRD. Backend code was pasted, but frontend UI and backend testing remain to be done.</analysis>
+The agent extracted the text from the  file (Message 347) but the session ended immediately. The agent forgot to read the extracted content to implement the requested corrections. Your first action should be to read the text extracted in that tool call.</analysis>
