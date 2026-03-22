@@ -1,15 +1,15 @@
 # EduNet - PRD
 
 ## Original Problem Statement
-Plataforma de gestión escolar (React + FastAPI + MongoDB) para el Colegio El Roble. Incluye módulos de usuarios, asignaturas, horarios, asistencia, exámenes, tareas, contabilidad, mensajería y panel de padres.
+Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Roble. Incluye modulos de usuarios, asignaturas, horarios, asistencia, examenes, tareas, contabilidad, mensajeria y panel de padres.
 
 ## Architecture
 - **Frontend**: React (CRA) + Shadcn/UI + Tailwind CSS
 - **Backend**: FastAPI + Motor (async MongoDB)
 - **Database**: MongoDB
-- **Integrations**: Google Drive, Firebase FCM, Cloudinary
+- **Integrations**: Google Drive, Firebase FCM, Cloudinary, YouTube oEmbed API
 
-## What's Been Implemented (March 2026)
+## What's Been Implemented
 - [x] Full auth system with roles (owner, admin, teacher, student, parent)
 - [x] Academic structure (grades, sections, subjects, schedules)
 - [x] Attendance with QR scanning
@@ -21,11 +21,9 @@ Plataforma de gestión escolar (React + FastAPI + MongoDB) para el Colegio El Ro
 - [x] **Sistema de Descuentos y Pensiones Variables** (FULL)
 - [x] **Academia Phase 1**: Support panel CRUD (categories, subcategories, YouTube videos)
 - [x] **Academia Phase 2**: Portal read-only view for school users (owner/admin/teacher)
-  - Portal-specific endpoints returning only published videos
-  - 2-column layout: categories panel + video grid
-  - YouTube embed player with autoplay
-  - Search across titles, descriptions, categories
-  - Sidebar integration for school portal
+- [x] **Academia Portal Corrections (Mar 22, 2026)**:
+  - Fixed: Page now renders INSIDE portal layout (Sidebar + DashboardHeader)
+  - Fixed: Premium UI redesign with hero banner, styled search, premium cards, professional modal
 
 ## Pending Issues
 - **P1**: Inconsistent Subject List between pages
@@ -40,7 +38,7 @@ Plataforma de gestión escolar (React + FastAPI + MongoDB) para el Colegio El Ro
 
 ## Future Tasks
 - Complete Parent Portal feature parity
-- Build "Matrículas" module
+- Build "Matriculas" module
 - Question Bank for Exams
 - Replace window.confirm/alert with custom modals
 
@@ -52,3 +50,4 @@ Plataforma de gestión escolar (React + FastAPI + MongoDB) para el Colegio El Ro
 - /app/test_reports/iteration_89.json (Discounts - 100%)
 - /app/test_reports/iteration_90.json (Academia Phase 1 - 100%)
 - /app/test_reports/iteration_91.json (Academia Phase 2 - 100%)
+- /app/test_reports/iteration_92.json (Academia Portal Corrections - 100%)
