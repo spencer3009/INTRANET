@@ -1621,6 +1621,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   // ═══════════════ PARENT IMPORT FUNCTIONS ═══════════════
   const [downloadingParentTemplate, setDownloadingParentTemplate] = useState(false);
+  const [exportingCredentials, setExportingCredentials] = useState(false);
 
   const handleDownloadParentTemplate = async () => {
     setDownloadingParentTemplate(true);
@@ -1714,6 +1715,29 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   const resetParentImport = () => {
     setParentImportStep("menu"); setParentImportFile(null); setParentImportResult(null); setParentImportProgress(0);
+  };
+
+  const handleExportCredentials = async () => {
+    setExportingCredentials(true);
+    try {
+      const params = new URLSearchParams();
+      if (studentFilters.nivel) params.append("nivel_id", studentFilters.nivel);
+      if (studentFilters.grado) params.append("grado_id", studentFilters.grado);
+      if (studentFilters.seccion) params.append("seccion_id", studentFilters.seccion);
+      if (studentFilters.turno) params.append("turno_id", studentFilters.turno);
+      const res = await axios.get(`${API}/students/export-credentials?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a"); a.href = url;
+      a.download = "credenciales_estudiantes.xlsx"; document.body.appendChild(a); a.click(); a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Credenciales exportadas correctamente");
+    } catch (err) {
+      if (err.response?.status === 404) {
+        toast.error("No hay estudiantes para exportar con los filtros seleccionados");
+      } else {
+        toast.error("Error al exportar credenciales. Intente nuevamente.");
+      }
+    } finally { setExportingCredentials(false); }
   };
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -2572,6 +2596,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 >
                   <AlertTriangle className="w-4 h-4" />
                   Pendientes
+                </button>
+                <button
+                  onClick={handleExportCredentials} disabled={exportingCredentials}
+                  className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-y-0"
+                  data-testid="export-credentials-btn"
+                >
+                  {exportingCredentials ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  {exportingCredentials ? "Exportando..." : "Exportar credenciales"}
                 </button>
               </div>
             </div>

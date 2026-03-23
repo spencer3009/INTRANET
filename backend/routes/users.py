@@ -1303,3 +1303,88 @@ async def bulk_safe_delete_students(data: BulkSafeDeleteRequest, current_user=De
         "blocked": len(blocked),
         "blocked_students": blocked,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  GET /api/students/export-credentials — Export student credentials as Excel
+# ═══════════════════════════════════════════════════════════════════════════════
+@router.get("/students/export-credentials")
+async def export_student_credentials(
+    nivel_id: str = "",
+    grado_id: str = "",
+    seccion_id: str = "",
+    turno_id: str = "",
+    current_user=Depends(get_current_user)
+):
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=400, detail="school_id es requerido")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden exportar credenciales")
+
+    school_id = user["school_id"]
+    query = {"role": "student", "school_id": school_id}
+    if nivel_id:
+        query["nivel_id"] = nivel_id
+    if grado_id:
+        query["grado_id"] = grado_id
+    if seccion_id:
+        query["seccion_id"] = seccion_id
+    if turno_id:
+        query["turno_id"] = turno_id
+
+    students = await db.users.find(
+        query,
+        {"_id": 0, "name": 1, "last_name": 1, "username": 1, "dni": 1}
+    ).to_list(5000)
+
+    if not students:
+        raise HTTPException(status_code=404, detail="No se encontraron estudiantes con los filtros aplicados")
+
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Credenciales"
+
+    header_fill = PatternFill(start_color="1565C0", end_color="1565C0", fill_type="solid")
+    header_font = Font(name="Arial", bold=True, color="FFFFFF", size=11)
+    thin_border = Border(
+        left=Side(style='thin'), right=Side(style='thin'),
+        top=Side(style='thin'), bottom=Side(style='thin')
+    )
+
+    headers = ["Nombre completo", "Usuario", "Contrasena"]
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col, value=h)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+        cell.border = thin_border
+
+    ws.column_dimensions["A"].width = 35
+    ws.column_dimensions["B"].width = 25
+    ws.column_dimensions["C"].width = 20
+    ws.freeze_panes = "A2"
+
+    for idx, s in enumerate(students, 2):
+        full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()
+        username = s.get("username", "")
+        dni = (s.get("dni") or "").strip()
+        password = dni if dni else "123456"
+
+        ws.cell(row=idx, column=1, value=full_name).border = thin_border
+        ws.cell(row=idx, column=2, value=username).border = thin_border
+        ws.cell(row=idx, column=3, value=password).border = thin_border
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    from starlette.responses import StreamingResponse
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": 'attachment; filename="credenciales_estudiantes.xlsx"'}
+    )
