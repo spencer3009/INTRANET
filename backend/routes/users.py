@@ -1322,16 +1322,15 @@ async def export_student_credentials(
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden exportar credenciales")
 
+    if not nivel_id or not grado_id or not seccion_id or not turno_id:
+        raise HTTPException(status_code=400, detail="Todos los filtros son requeridos: nivel, grado, seccion y turno")
+
     school_id = user["school_id"]
     query = {"role": "student", "school_id": school_id, "student_status": {"$ne": "deleted"}}
-    if nivel_id:
-        query["nivel_id"] = nivel_id
-    if grado_id:
-        query["grado_id"] = grado_id
-    if seccion_id:
-        query["seccion_id"] = seccion_id
-    if turno_id:
-        query["turno_id"] = turno_id
+    query["nivel_id"] = nivel_id
+    query["grado_id"] = grado_id
+    query["seccion_id"] = seccion_id
+    query["turno_id"] = turno_id
 
     students = await db.users.find(
         query,
@@ -1341,13 +1340,32 @@ async def export_student_credentials(
     if not students:
         raise HTTPException(status_code=404, detail="No se encontraron estudiantes con los filtros aplicados")
 
+    # Resolve filter names
+    nivel_doc = await db.academic_levels.find_one({"id": nivel_id, "school_id": school_id}, {"_id": 0, "name": 1, "nombre": 1})
+    grado_doc = await db.grades.find_one({"id": grado_id, "school_id": school_id}, {"_id": 0, "name": 1, "nombre": 1})
+    seccion_doc = await db.sections.find_one({"id": seccion_id, "school_id": school_id}, {"_id": 0, "name": 1, "nombre": 1})
+    turno_doc = await db.shifts.find_one({"id": turno_id, "school_id": school_id}, {"_id": 0, "name": 1, "nombre": 1})
+
+    nivel_name = (nivel_doc.get("name") or nivel_doc.get("nombre") or nivel_id) if nivel_doc else nivel_id
+    grado_name = (grado_doc.get("name") or grado_doc.get("nombre") or grado_id) if grado_doc else grado_id
+    seccion_name = (seccion_doc.get("name") or seccion_doc.get("nombre") or seccion_id) if seccion_doc else seccion_id
+    turno_name = (turno_doc.get("name") or turno_doc.get("nombre") or turno_id) if turno_doc else turno_id
+
     from openpyxl import Workbook
     from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+    from datetime import datetime, timezone
 
     wb = Workbook()
     ws = wb.active
     ws.title = "Credenciales"
 
+    ws.column_dimensions["A"].width = 35
+    ws.column_dimensions["B"].width = 25
+    ws.column_dimensions["C"].width = 20
+
+    title_font = Font(name="Arial", bold=True, size=14, color="1565C0")
+    label_font = Font(name="Arial", bold=True, size=11, color="333333")
+    value_font = Font(name="Arial", size=11, color="333333")
     header_fill = PatternFill(start_color="1565C0", end_color="1565C0", fill_type="solid")
     header_font = Font(name="Arial", bold=True, color="FFFFFF", size=11)
     thin_border = Border(
@@ -1355,20 +1373,38 @@ async def export_student_credentials(
         top=Side(style='thin'), bottom=Side(style='thin')
     )
 
+    # Row 1: Title
+    ws.merge_cells("A1:C1")
+    ws["A1"] = "Credenciales de Estudiantes"
+    ws["A1"].font = title_font
+
+    # Row 3-8: Metadata
+    meta = [
+        ("Nivel:", nivel_name),
+        ("Grado:", grado_name),
+        ("Seccion:", seccion_name),
+        ("Turno:", turno_name),
+        ("Fecha de exportacion:", datetime.now(timezone.utc).strftime("%d/%m/%Y")),
+        ("Total de estudiantes:", str(len(students))),
+    ]
+    for i, (label, value) in enumerate(meta, 3):
+        ws.cell(row=i, column=1, value=label).font = label_font
+        ws.cell(row=i, column=2, value=value).font = value_font
+
+    # Row 10: Table headers
+    data_start = 10
     headers = ["Nombre completo", "Usuario", "Contrasena"]
     for col, h in enumerate(headers, 1):
-        cell = ws.cell(row=1, column=col, value=h)
+        cell = ws.cell(row=data_start, column=col, value=h)
         cell.fill = header_fill
         cell.font = header_font
         cell.alignment = Alignment(horizontal="center", vertical="center")
         cell.border = thin_border
 
-    ws.column_dimensions["A"].width = 35
-    ws.column_dimensions["B"].width = 25
-    ws.column_dimensions["C"].width = 20
-    ws.freeze_panes = "A2"
+    ws.freeze_panes = f"A{data_start + 1}"
 
-    for idx, s in enumerate(students, 2):
+    # Data rows
+    for idx, s in enumerate(students, data_start + 1):
         full_name = f"{s.get('name', '')} {s.get('last_name', '')}".strip()
         username = s.get("username", "")
         dni = (s.get("dni") or "").strip()
@@ -1382,9 +1418,19 @@ async def export_student_credentials(
     wb.save(buffer)
     buffer.seek(0)
 
+    # Build descriptive filename
+    import re as _re
+    def sanitize(s):
+        s = unicodedata.normalize("NFD", s)
+        s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+        s = _re.sub(r"[^a-zA-Z0-9]+", "_", s.lower()).strip("_")
+        return s or "x"
+
+    filename = f"credenciales_{sanitize(nivel_name)}_{sanitize(grado_name)}_{sanitize(seccion_name)}.xlsx"
+
     from starlette.responses import StreamingResponse
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": 'attachment; filename="credenciales_estudiantes.xlsx"'}
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
     )

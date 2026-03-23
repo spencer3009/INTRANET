@@ -1622,6 +1622,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // ═══════════════ PARENT IMPORT FUNCTIONS ═══════════════
   const [downloadingParentTemplate, setDownloadingParentTemplate] = useState(false);
   const [exportingCredentials, setExportingCredentials] = useState(false);
+  const [showExportFilterModal, setShowExportFilterModal] = useState(false);
+  const [missingExportFilters, setMissingExportFilters] = useState([]);
 
   const handleDownloadParentTemplate = async () => {
     setDownloadingParentTemplate(true);
@@ -1718,17 +1720,30 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   const handleExportCredentials = async () => {
+    const missing = [];
+    if (!studentFilterLevel) missing.push("Nivel");
+    if (!studentFilterGrade) missing.push("Grado");
+    if (!studentFilterSection) missing.push("Seccion");
+    if (!studentFilterShift) missing.push("Turno");
+    if (missing.length > 0) {
+      setMissingExportFilters(missing);
+      setShowExportFilterModal(true);
+      return;
+    }
     setExportingCredentials(true);
     try {
       const params = new URLSearchParams();
-      if (studentFilterLevel) params.append("nivel_id", studentFilterLevel);
-      if (studentFilterGrade) params.append("grado_id", studentFilterGrade);
-      if (studentFilterSection) params.append("seccion_id", studentFilterSection);
-      if (studentFilterShift) params.append("turno_id", studentFilterShift);
+      params.append("nivel_id", studentFilterLevel);
+      params.append("grado_id", studentFilterGrade);
+      params.append("seccion_id", studentFilterSection);
+      params.append("turno_id", studentFilterShift);
       const res = await axios.get(`${API}/students/export-credentials?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
+      const disposition = res.headers["content-disposition"] || "";
+      const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+      const filename = filenameMatch ? filenameMatch[1] : "credenciales_estudiantes.xlsx";
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a"); a.href = url;
-      a.download = "credenciales_estudiantes.xlsx"; document.body.appendChild(a); a.click(); a.remove();
+      a.download = filename; document.body.appendChild(a); a.click(); a.remove();
       window.URL.revokeObjectURL(url);
       toast.success("Credenciales exportadas correctamente");
     } catch (err) {
@@ -5114,6 +5129,33 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════ EXPORT FILTER VALIDATION MODAL ═══════════════ */}
+      {showExportFilterModal && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowExportFilterModal(false)} />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md" data-testid="export-filter-modal">
+            <div className="p-6 text-center">
+              <div className="w-14 h-14 bg-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <AlertTriangle className="w-7 h-7 text-rose-500" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Filtros requeridos</h3>
+              <p className="text-sm text-slate-500 mb-4">Para exportar credenciales debe seleccionar todos los filtros: Nivel, Grado, Seccion y Turno.</p>
+              <div className="bg-rose-50 border border-rose-200 rounded-xl p-3 mb-5 text-left">
+                <p className="text-xs font-semibold text-rose-700 mb-1">Falta seleccionar:</p>
+                {missingExportFilters.map(f => (
+                  <p key={f} className="text-sm text-rose-600">&bull; {f}</p>
+                ))}
+              </div>
+              <button onClick={() => setShowExportFilterModal(false)}
+                className="w-full px-5 py-3 bg-slate-800 text-white rounded-xl font-semibold hover:bg-slate-900 transition-colors"
+                data-testid="export-filter-modal-close">
+                Entendido
+              </button>
             </div>
           </div>
         </div>
