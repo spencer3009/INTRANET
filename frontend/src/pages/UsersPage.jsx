@@ -1569,6 +1569,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showEditPassword, setShowEditPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  // Student password field in edit modal
+  const [studentEditPassword, setStudentEditPassword] = useState("");
+  const [studentEditPasswordOriginal, setStudentEditPasswordOriginal] = useState("");
+  const [showStudentEditPassword, setShowStudentEditPassword] = useState(true);
   const [showParentSection, setShowParentSection] = useState(false);
   const [selectedParentId, setSelectedParentId] = useState("");
   const [parentSearchQuery, setParentSearchQuery] = useState("");
@@ -2156,6 +2160,11 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       setConfirmPassword("");
       setShowEditPassword(false);
       setShowConfirmPassword(false);
+      // Initialize student password field (reconstructed from DNI or "123456")
+      const reconstructedPassword = userToEdit.dni ? userToEdit.dni : "123456";
+      setStudentEditPassword(reconstructedPassword);
+      setStudentEditPasswordOriginal(reconstructedPassword);
+      setShowStudentEditPassword(true);
       setShowParentSection(userToEdit.parent_id ? true : false);
       setSelectedParentId(userToEdit.parent_id || "");
       // Set parent search query to show selected parent name
@@ -2209,9 +2218,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       // Build payload with optional password and parent_id
       const payload = { ...editForm };
       
-      // Add password if provided
+      // Add password if provided (non-student password section)
       if (showPasswordSection && editPassword) {
         payload.password = editPassword;
+      }
+      
+      // Add student password if modified
+      if (editingUser.role === 'student' && studentEditPassword !== studentEditPasswordOriginal) {
+        if (studentEditPassword.trim().length < 4) {
+          setInfoModalContent({
+            title: "Contraseña muy corta",
+            message: "La contraseña debe tener al menos 4 caracteres.",
+            type: "error"
+          });
+          setShowInfoModal(true);
+          setEditLoading(false);
+          return;
+        }
+        payload.password = studentEditPassword;
       }
       
       // Add/remove parent_id for students
@@ -3735,6 +3759,44 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 focus:bg-white outline-none transition-all"
                   />
                 </div>
+                {/* Contraseña del estudiante - solo visible para role student */}
+                {editingUser.role === 'student' && (
+                  <div className="md:col-span-2" data-testid="student-password-edit-section">
+                    <label className="block text-xs font-semibold text-amber-600 uppercase tracking-wider mb-1.5">
+                      Contraseña
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showStudentEditPassword ? "text" : "password"}
+                        value={studentEditPassword}
+                        onChange={(e) => setStudentEditPassword(e.target.value)}
+                        placeholder="Ingrese nueva contraseña"
+                        data-testid="student-password-edit-input"
+                        className={`w-full px-4 py-2.5 pr-12 border rounded-xl focus:ring-2 focus:ring-amber-400/30 focus:border-amber-400 outline-none transition-all ${
+                          studentEditPassword !== studentEditPasswordOriginal
+                            ? 'bg-amber-50 border-amber-300 focus:bg-amber-50'
+                            : 'bg-slate-50 border-slate-200 focus:bg-white'
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowStudentEditPassword(!showStudentEditPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+                        data-testid="student-password-toggle-visibility"
+                      >
+                        {showStudentEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-1.5">
+                      Contraseña actual del estudiante. Modifíquela solo si es necesario.
+                    </p>
+                    {studentEditPassword !== studentEditPasswordOriginal && (
+                      <p className="text-xs text-amber-600 mt-1 font-medium" data-testid="student-password-changed-indicator">
+                        La contraseña será actualizada al guardar.
+                      </p>
+                    )}
+                  </div>
+                )}
                 {/* Email */}
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Correo electrónico</label>
