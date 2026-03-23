@@ -28,6 +28,12 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
   - Backend: Template generation (2 sheets), import with auto-merge, credentials CSV, pending CRUD
   - Frontend: Import card, drag-drop modal, progress bar, result summary, pending management
   - Testing: 100% backend (15/15) + frontend verified (iteration_93)
+- [x] **Vimeo Support in Academia (Mar 22, 2026)**: Platform toggle, auto-detection, oEmbed extraction
+- [x] **Export Student Credentials (Mar 22, 2026)**: Excel export with 4-filter validation (Level, Grade, Section, Shift)
+- [x] **Student Password View/Edit in Edit Modal (Mar 23, 2026)**: 
+  - Frontend: Password field with Eye/EyeOff toggle, reconstructed from DNI or "123456", amber styling, only for students
+  - Backend: PUT /api/users/{user_id} accepts password field, hashes and saves plain_password
+  - Testing: 100% backend (4/4) + 100% frontend verified (iteration_94)
 
 ## Key DB Collections (new)
 - `import_pending`: Stores errored rows from bulk imports (type: "parent" or "student")
@@ -70,3 +76,4 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
 - /app/test_reports/iteration_91.json (Academia Phase 2 - 100%)
 - /app/test_reports/iteration_92.json (Academia Portal Corrections - 100%)
 - /app/test_reports/iteration_93.json (Parent Bulk Import - 100%)
+- /app/test_reports/iteration_94.json (Student Password Edit - 100%)
