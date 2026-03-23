@@ -222,6 +222,20 @@ async def support_schools(user=Depends(require_support_admin)):
             "missing_payment": missing_payment,
         })
     
+    # Enrich with owner's school_display_name (prefer it over school.name)
+    school_ids_list = [s["id"] for s in result]
+    if school_ids_list:
+        owners_cursor = db.users.find(
+            {"school_id": {"$in": school_ids_list}, "role": "owner"},
+            {"_id": 0, "school_id": 1, "school_display_name": 1}
+        )
+        owners = await owners_cursor.to_list(length=500)
+        owner_display_map = {o["school_id"]: o.get("school_display_name", "") for o in owners if o.get("school_display_name")}
+        for s in result:
+            display_name = owner_display_map.get(s["id"])
+            if display_name:
+                s["name"] = display_name
+
     # Sort by name
     result.sort(key=lambda x: x.get("name", ""))
     return result
@@ -1205,6 +1219,11 @@ async def update_school_owner(school_id: str, data: UpdateOwnerRequest, user=Dep
         update_fields["name"] = data.name.strip()
     if data.school_display_name is not None:
         update_fields["school_display_name"] = data.school_display_name.strip()
+        # Also sync to school document name
+        await db.schools.update_one(
+            {"id": school_id},
+            {"$set": {"name": data.school_display_name.strip(), "updated_at": now_iso()}}
+        )
     if data.email is not None:
         existing = await db.users.find_one(
             {"email": data.email.lower().strip(), "id": {"$ne": owner_id}},

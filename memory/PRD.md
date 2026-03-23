@@ -34,6 +34,9 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
   - Frontend: Password field with Eye/EyeOff toggle, reconstructed from DNI or "123456", amber styling, only for students
   - Backend: PUT /api/users/{user_id} accepts password field, hashes and saves plain_password
   - Testing: 100% backend (4/4) + 100% frontend verified (iteration_94)
+- [x] **Fix: Nombre colegio en tarjeta soporte (Mar 23, 2026)**: 
+  - Backend: GET /support/schools ahora usa owner.school_display_name sobre school.name
+  - Backend: PUT /support/school-owner sincroniza school_display_name a schools.name
 
 ## Key DB Collections (new)
 - `import_pending`: Stores errored rows from bulk imports (type: "parent" or "student")
