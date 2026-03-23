@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Video, FolderOpen, Plus, Search, Edit2, Trash2, X, Loader2,
   Eye, Play, ChevronUp, ChevronDown, Tag, Check, AlertCircle,
-  Film, BarChart3, Clock, Globe, Share2
+  Film, BarChart3, Clock, Globe, Share2, ArrowRightLeft
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -214,10 +214,14 @@ function CategoryManagerModal({ isOpen, onClose, token, onRefresh }) {
 function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRefresh, autoCategoryId, autoSubcategoryId }) {
   const headers = { Authorization: `Bearer ${token}` };
   const [form, setForm] = useState({ youtube_url: "", title: "", description: "", duration: "", is_published: false, platform: "youtube" });
+  const [moveCategoryId, setMoveCategoryId] = useState("");
+  const [moveSubcategoryId, setMoveSubcategoryId] = useState("");
   const [preview, setPreview] = useState(null);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const moveSubcategories = categories.find(c => c.id === moveCategoryId)?.subcategories || [];
 
   useEffect(() => {
     if (editingVideo) {
@@ -229,9 +233,13 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
         is_published: editingVideo.is_published || false,
         platform: editingVideo.platform || "youtube",
       });
+      setMoveCategoryId(editingVideo.category_id || "");
+      setMoveSubcategoryId(editingVideo.subcategory_id || "");
       setPreview(editingVideo.youtube_video_id ? { thumbnail_url: editingVideo.thumbnail_url, youtube_video_id: editingVideo.youtube_video_id, platform: editingVideo.platform || "youtube" } : null);
     } else {
       setForm({ youtube_url: "", title: "", description: "", duration: "", is_published: false, platform: "youtube" });
+      setMoveCategoryId("");
+      setMoveSubcategoryId("");
       setPreview(null);
     }
     setError("");
@@ -271,13 +279,19 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
     e.preventDefault(); setError("");
     if (!form.youtube_url.trim()) { setError(`URL de ${form.platform === "vimeo" ? "Vimeo" : "YouTube"} requerida`); return; }
     if (!form.title.trim()) { setError("Titulo requerido"); return; }
-    const categoryId = editingVideo ? editingVideo.category_id : autoCategoryId;
-    const subcategoryId = editingVideo ? editingVideo.subcategory_id : autoSubcategoryId;
+    const categoryId = editingVideo ? moveCategoryId : autoCategoryId;
+    const subcategoryId = editingVideo ? moveSubcategoryId : autoSubcategoryId;
     if (!categoryId) { setError("No hay categoria seleccionada"); return; }
     setSaving(true);
     try {
       if (editingVideo) {
-        await axios.put(`${API}/academia/videos/${editingVideo.id}`, form, { headers });
+        const updatePayload = { ...form };
+        // Include category/subcategory if changed
+        if (moveCategoryId !== editingVideo.category_id || moveSubcategoryId !== (editingVideo.subcategory_id || "")) {
+          updatePayload.category_id = moveCategoryId;
+          updatePayload.subcategory_id = moveSubcategoryId || null;
+        }
+        await axios.put(`${API}/academia/videos/${editingVideo.id}`, updatePayload, { headers });
         toast.success("Video actualizado");
       } else {
         await axios.post(`${API}/academia/videos`, { ...form, category_id: categoryId, subcategory_id: subcategoryId || null }, { headers });
@@ -323,6 +337,52 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
               Vimeo
             </button>
           </div>
+
+          {/* Category/Subcategory selector - only when editing */}
+          {editingVideo && (
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-3" data-testid="move-video-section">
+              <div className="flex items-center gap-2">
+                <ArrowRightLeft className="w-4 h-4 text-amber-600" />
+                <span className="text-sm font-semibold text-amber-700">Mover a otra categoría</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Categoría</label>
+                  <select
+                    value={moveCategoryId}
+                    onChange={e => { setMoveCategoryId(e.target.value); setMoveSubcategoryId(""); }}
+                    className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    data-testid="move-category-select"
+                  >
+                    <option value="">Sin categoría</option>
+                    {categories.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-600 mb-1">Subcategoría</label>
+                  <select
+                    value={moveSubcategoryId}
+                    onChange={e => setMoveSubcategoryId(e.target.value)}
+                    disabled={!moveCategoryId || moveSubcategories.length === 0}
+                    className="w-full px-3 py-2 bg-white border border-amber-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-300 disabled:opacity-50 disabled:bg-slate-50"
+                    data-testid="move-subcategory-select"
+                  >
+                    <option value="">Todas / Sin subcategoría</option>
+                    {moveSubcategories.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              {moveCategoryId && moveCategoryId !== editingVideo.category_id && (
+                <p className="text-xs text-amber-600 font-medium" data-testid="move-indicator">
+                  El video se moverá a "{categories.find(c => c.id === moveCategoryId)?.name}" al guardar.
+                </p>
+              )}
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1.5">

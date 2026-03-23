@@ -37,6 +37,9 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
 - [x] **Fix: Nombre colegio en tarjeta soporte (Mar 23, 2026)**: 
   - Backend: GET /support/schools ahora usa owner.school_display_name sobre school.name
   - Backend: PUT /support/school-owner sincroniza school_display_name a schools.name
+- [x] **Feature: Mover video de categoría en Academia (Mar 23, 2026)**:
+  - Frontend: Dropdowns de Categoría/Subcategoría en modal Editar Video
+  - Backend: Ya soportado en PUT /academia/videos/{video_id}
 
 ## Key DB Collections (new)
 - `import_pending`: Stores errored rows from bulk imports (type: "parent" or "student")
