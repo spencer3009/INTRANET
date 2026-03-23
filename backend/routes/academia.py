@@ -48,6 +48,7 @@ class VideoCreate(BaseModel):
     subcategory_id: Optional[str] = None
     duration: Optional[str] = None
     is_published: bool = False
+    platform: Optional[str] = "youtube"
 
 class VideoUpdate(BaseModel):
     title: Optional[str] = None
@@ -57,6 +58,7 @@ class VideoUpdate(BaseModel):
     duration: Optional[str] = None
     youtube_url: Optional[str] = None
     is_published: Optional[bool] = None
+    platform: Optional[str] = None
 
 class ReorderRequest(BaseModel):
     ordered_ids: List[str]
@@ -74,8 +76,23 @@ def extract_youtube_id(url: str) -> Optional[str]:
     match = re.search(pattern, url)
     return match.group(1) if match else None
 
+def extract_vimeo_id(url: str) -> Optional[str]:
+    pattern = r'(?:vimeo\.com/)(\d+)'
+    match = re.search(pattern, url)
+    return match.group(1) if match else None
+
+def detect_platform(url: str) -> Optional[str]:
+    if extract_youtube_id(url):
+        return "youtube"
+    if extract_vimeo_id(url):
+        return "vimeo"
+    return None
+
 def get_thumbnail_url(video_id: str) -> str:
     return f"https://img.youtube.com/vi/{video_id}/hqdefault.jpg"
+
+def get_vimeo_thumbnail_url(video_id: str) -> str:
+    return f"https://vumbnail.com/{video_id}.jpg"
 
 async def get_next_sort_order(collection: str, filter_dict: dict) -> int:
     last = await db[collection].find_one(filter_dict, {"_id": 0, "sort_order": 1}, sort=[("sort_order", -1)])
@@ -254,11 +271,19 @@ async def get_video(video_id: str, user=Depends(require_support_admin)):
 
 @router.post("/academia/videos")
 async def create_video(data: VideoCreate, user=Depends(require_support_admin)):
-    yt_id = extract_youtube_id(data.youtube_url)
-    if not yt_id:
-        raise HTTPException(400, "URL de YouTube no valida")
+    platform = data.platform or detect_platform(data.youtube_url) or "youtube"
+    if platform == "vimeo":
+        video_id = extract_vimeo_id(data.youtube_url)
+        if not video_id:
+            raise HTTPException(400, "URL de Vimeo no valida")
+        thumbnail = get_vimeo_thumbnail_url(video_id)
+    else:
+        video_id = extract_youtube_id(data.youtube_url)
+        if not video_id:
+            raise HTTPException(400, "URL de YouTube no valida")
+        thumbnail = get_thumbnail_url(video_id)
     dup = await db.tutorial_videos.find_one(
-        {"youtube_video_id": yt_id, "category_id": data.category_id}, {"_id": 0}
+        {"youtube_video_id": video_id, "category_id": data.category_id}, {"_id": 0}
     )
     if dup:
         raise HTTPException(409, "Este video ya existe en esta categoria")
@@ -277,8 +302,9 @@ async def create_video(data: VideoCreate, user=Depends(require_support_admin)):
         "title": data.title,
         "description": data.description,
         "youtube_url": data.youtube_url,
-        "youtube_video_id": yt_id,
-        "thumbnail_url": get_thumbnail_url(yt_id),
+        "youtube_video_id": video_id,
+        "thumbnail_url": thumbnail,
+        "platform": platform,
         "duration": data.duration,
         "sort_order": sort_order,
         "is_published": data.is_published,
@@ -296,11 +322,20 @@ async def update_video(video_id: str, data: VideoUpdate, user=Depends(require_su
         raise HTTPException(404, "Video no encontrado")
     updates = {k: v for k, v in data.dict().items() if v is not None}
     if "youtube_url" in updates:
-        yt_id = extract_youtube_id(updates["youtube_url"])
-        if not yt_id:
-            raise HTTPException(400, "URL de YouTube no valida")
-        updates["youtube_video_id"] = yt_id
-        updates["thumbnail_url"] = get_thumbnail_url(yt_id)
+        platform = updates.get("platform") or detect_platform(updates["youtube_url"]) or video.get("platform", "youtube")
+        if platform == "vimeo":
+            vid = extract_vimeo_id(updates["youtube_url"])
+            if not vid:
+                raise HTTPException(400, "URL de Vimeo no valida")
+            updates["youtube_video_id"] = vid
+            updates["thumbnail_url"] = get_vimeo_thumbnail_url(vid)
+        else:
+            vid = extract_youtube_id(updates["youtube_url"])
+            if not vid:
+                raise HTTPException(400, "URL de YouTube no valida")
+            updates["youtube_video_id"] = vid
+            updates["thumbnail_url"] = get_thumbnail_url(vid)
+        updates["platform"] = platform
     updates["updated_at"] = datetime.now(timezone.utc).isoformat()
     await db.tutorial_videos.update_one({"id": video_id}, {"$set": updates})
     return {**video, **updates}
@@ -336,10 +371,30 @@ async def toggle_publish(video_id: str, user=Depends(require_support_admin)):
 # ═══════════════════════════════════════════════════════════
 
 @router.post("/academia/youtube/extract")
-async def extract_youtube_info(data: YouTubeExtractRequest, user=Depends(require_support_admin)):
+async def extract_video_info(data: YouTubeExtractRequest, user=Depends(require_support_admin)):
+    platform = detect_platform(data.url)
+
+    if platform == "vimeo":
+        vimeo_id = extract_vimeo_id(data.url)
+        title = ""
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(f"https://vimeo.com/api/oembed.json?url=https://vimeo.com/{vimeo_id}")
+                if resp.status_code == 200:
+                    title = resp.json().get("title", "")
+        except Exception:
+            pass
+        return {
+            "is_valid": True,
+            "platform": "vimeo",
+            "youtube_video_id": vimeo_id,
+            "thumbnail_url": get_vimeo_thumbnail_url(vimeo_id),
+            "title": title,
+        }
+
     yt_id = extract_youtube_id(data.url)
     if not yt_id:
-        return {"is_valid": False, "error": "URL de YouTube no valida"}
+        return {"is_valid": False, "error": "URL no valida. Use una URL de YouTube o Vimeo."}
     title = ""
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
@@ -350,6 +405,7 @@ async def extract_youtube_info(data: YouTubeExtractRequest, user=Depends(require
         pass
     return {
         "is_valid": True,
+        "platform": "youtube",
         "youtube_video_id": yt_id,
         "thumbnail_url": get_thumbnail_url(yt_id),
         "title": title,

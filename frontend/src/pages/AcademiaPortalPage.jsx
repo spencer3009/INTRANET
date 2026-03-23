@@ -72,7 +72,7 @@ function VideoPlayerModal({ video, onClose }) {
           <div className="relative w-full rounded-xl overflow-hidden bg-black shadow-lg" style={{ paddingTop: "56.25%" }}>
             <iframe
               className="absolute inset-0 w-full h-full"
-              src={`https://www.youtube.com/embed/${video.youtube_video_id}?autoplay=1`}
+              src={video.platform === "vimeo" ? `https://player.vimeo.com/video/${video.youtube_video_id}?autoplay=1` : `https://www.youtube.com/embed/${video.youtube_video_id}?autoplay=1`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               title={video.title}

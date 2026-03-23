@@ -213,7 +213,7 @@ function CategoryManagerModal({ isOpen, onClose, token, onRefresh }) {
 // ═══════════════════════════════════════════════════════════
 function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRefresh, autoCategoryId, autoSubcategoryId }) {
   const headers = { Authorization: `Bearer ${token}` };
-  const [form, setForm] = useState({ youtube_url: "", title: "", description: "", duration: "", is_published: false });
+  const [form, setForm] = useState({ youtube_url: "", title: "", description: "", duration: "", is_published: false, platform: "youtube" });
   const [preview, setPreview] = useState(null);
   const [extracting, setExtracting] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -227,22 +227,38 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
         description: editingVideo.description || "",
         duration: editingVideo.duration || "",
         is_published: editingVideo.is_published || false,
+        platform: editingVideo.platform || "youtube",
       });
-      setPreview(editingVideo.youtube_video_id ? { thumbnail_url: editingVideo.thumbnail_url, youtube_video_id: editingVideo.youtube_video_id } : null);
+      setPreview(editingVideo.youtube_video_id ? { thumbnail_url: editingVideo.thumbnail_url, youtube_video_id: editingVideo.youtube_video_id, platform: editingVideo.platform || "youtube" } : null);
     } else {
-      setForm({ youtube_url: "", title: "", description: "", duration: "", is_published: false });
+      setForm({ youtube_url: "", title: "", description: "", duration: "", is_published: false, platform: "youtube" });
       setPreview(null);
     }
     setError("");
   }, [editingVideo, isOpen]);
 
-  const extractYT = async () => {
+  const detectPlatformFromUrl = (url) => {
+    if (/vimeo\.com\/\d+/.test(url)) return "vimeo";
+    if (/youtube\.com|youtu\.be/.test(url)) return "youtube";
+    return null;
+  };
+
+  const handleUrlChange = (url) => {
+    setForm(p => ({ ...p, youtube_url: url }));
+    const detected = detectPlatformFromUrl(url);
+    if (detected && detected !== form.platform) {
+      setForm(p => ({ ...p, youtube_url: url, platform: detected }));
+    }
+  };
+
+  const extractInfo = async () => {
     if (!form.youtube_url.trim()) return;
     setExtracting(true); setPreview(null); setError("");
     try {
       const res = await axios.post(`${API}/academia/youtube/extract`, { url: form.youtube_url }, { headers });
       if (res.data.is_valid) {
         setPreview(res.data);
+        if (res.data.platform) setForm(p => ({ ...p, platform: res.data.platform }));
         if (!form.title && res.data.title) setForm(p => ({ ...p, title: res.data.title }));
       } else {
         setError(res.data.error || "URL no valida");
@@ -253,7 +269,7 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setError("");
-    if (!form.youtube_url.trim()) { setError("URL de YouTube requerida"); return; }
+    if (!form.youtube_url.trim()) { setError(`URL de ${form.platform === "vimeo" ? "Vimeo" : "YouTube"} requerida`); return; }
     if (!form.title.trim()) { setError("Titulo requerido"); return; }
     const categoryId = editingVideo ? editingVideo.category_id : autoCategoryId;
     const subcategoryId = editingVideo ? editingVideo.subcategory_id : autoSubcategoryId;
@@ -292,14 +308,32 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
             </div>
           )}
 
+          {/* Platform Toggle */}
+          <div className="flex bg-slate-100 rounded-xl p-1" data-testid="platform-toggle">
+            <button type="button" onClick={() => setForm(p => ({ ...p, platform: "youtube" }))}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${form.platform === "youtube" ? "bg-white text-red-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              data-testid="platform-youtube-btn">
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
+              YouTube
+            </button>
+            <button type="button" onClick={() => setForm(p => ({ ...p, platform: "vimeo" }))}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${form.platform === "vimeo" ? "bg-white text-[#1ab7ea] shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+              data-testid="platform-vimeo-btn">
+              <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor"><path d="M23.977 6.416c-.105 2.338-1.739 5.543-4.894 9.609-3.268 4.247-6.026 6.37-8.29 6.37-1.409 0-2.578-1.294-3.553-3.881L5.322 11.4C4.603 8.816 3.834 7.522 3.01 7.522c-.179 0-.806.378-1.881 1.132L0 7.197a315.065 315.065 0 0 0 3.501-3.123C5.08 2.701 6.266 1.984 7.055 1.91c1.867-.18 3.016 1.1 3.447 3.838.465 2.953.789 4.789.971 5.507.539 2.45 1.131 3.674 1.776 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.868 3.434-5.757 6.762-5.637 2.473.06 3.628 1.664 3.493 4.797l-.013.01z"/></svg>
+              Vimeo
+            </button>
+          </div>
+
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">URL de YouTube *</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">
+              {form.platform === "vimeo" ? "URL de Vimeo *" : "URL de YouTube *"}
+            </label>
             <div className="flex gap-2">
-              <input type="url" value={form.youtube_url} onChange={e => setForm(p => ({ ...p, youtube_url: e.target.value }))}
-                onBlur={extractYT} placeholder="https://www.youtube.com/watch?v=..."
+              <input type="url" value={form.youtube_url} onChange={e => handleUrlChange(e.target.value)}
+                onBlur={extractInfo} placeholder={form.platform === "vimeo" ? "https://vimeo.com/123456789" : "https://www.youtube.com/watch?v=..."}
                 className="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-200"
                 data-testid="video-url-input" />
-              <button type="button" onClick={extractYT} disabled={extracting} className="px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-200 disabled:opacity-50">
+              <button type="button" onClick={extractInfo} disabled={extracting} className="px-3 py-2.5 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-600 hover:bg-slate-200 disabled:opacity-50">
                 {extracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
               </button>
             </div>
@@ -310,7 +344,9 @@ function VideoFormModal({ isOpen, onClose, token, categories, editingVideo, onRe
               <img src={preview.thumbnail_url} alt="" className="w-24 h-16 rounded-lg object-cover" />
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-slate-700 truncate">{form.title || preview.title}</p>
-                <p className="text-[10px] text-emerald-600 mt-1">ID: {preview.youtube_video_id}</p>
+                <p className="text-[10px] text-emerald-600 mt-1">
+                  {(preview.platform || form.platform) === "vimeo" ? "Vimeo" : "YouTube"} &middot; ID: {preview.youtube_video_id}
+                </p>
               </div>
             </div>
           )}
@@ -388,7 +424,7 @@ function VideoPlayerModal({ video, onClose, token, onRefresh }) {
           <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
             <iframe
               className="absolute inset-0 w-full h-full rounded-xl"
-              src={`https://www.youtube.com/embed/${video.youtube_video_id}`}
+              src={video.platform === "vimeo" ? `https://player.vimeo.com/video/${video.youtube_video_id}?autoplay=1` : `https://www.youtube.com/embed/${video.youtube_video_id}`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               title={video.title}
