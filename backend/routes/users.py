@@ -1323,7 +1323,7 @@ async def export_student_credentials(
         raise HTTPException(status_code=403, detail="Solo administradores pueden exportar credenciales")
 
     school_id = user["school_id"]
-    query = {"role": "student", "school_id": school_id}
+    query = {"role": "student", "school_id": school_id, "student_status": {"$ne": "deleted"}}
     if nivel_id:
         query["nivel_id"] = nivel_id
     if grado_id:

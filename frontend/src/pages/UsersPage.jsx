@@ -1721,10 +1721,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     setExportingCredentials(true);
     try {
       const params = new URLSearchParams();
-      if (studentFilters.nivel) params.append("nivel_id", studentFilters.nivel);
-      if (studentFilters.grado) params.append("grado_id", studentFilters.grado);
-      if (studentFilters.seccion) params.append("seccion_id", studentFilters.seccion);
-      if (studentFilters.turno) params.append("turno_id", studentFilters.turno);
+      if (studentFilterLevel) params.append("nivel_id", studentFilterLevel);
+      if (studentFilterGrade) params.append("grado_id", studentFilterGrade);
+      if (studentFilterSection) params.append("seccion_id", studentFilterSection);
+      if (studentFilterShift) params.append("turno_id", studentFilterShift);
       const res = await axios.get(`${API}/students/export-credentials?${params.toString()}`, { headers: { Authorization: `Bearer ${token}` }, responseType: "blob" });
       const url = window.URL.createObjectURL(new Blob([res.data]));
       const a = document.createElement("a"); a.href = url;
