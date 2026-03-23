@@ -3742,6 +3742,24 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   />
                 </div>
 
+                {/* Contraseña actual — visible para todos los roles excepto estudiantes (que la ven en su propia sección) */}
+                {editingUser.role !== 'student' && editingUser.plain_password && (
+                  <div className="md:col-span-2 mt-2">
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between" data-testid="current-password-display-general">
+                      <div className="flex items-center gap-2">
+                        <Key className="w-4 h-4 text-amber-600" />
+                        <span className="text-sm font-semibold text-slate-700">Contrasena actual:</span>
+                        <span className="text-sm font-mono text-slate-800 bg-white px-2 py-0.5 rounded-lg border border-amber-200">{editingUser.plain_password}</span>
+                      </div>
+                      <button type="button" onClick={async () => {
+                        try { await navigator.clipboard.writeText(editingUser.plain_password); toast.success("Contrasena copiada"); } catch {}
+                      }} className="px-2.5 py-1 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 font-semibold transition-colors">
+                        Copiar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 {/* Campos específicos para estudiantes */}
                 {editingUser.role === 'student' && (
                   <>
@@ -3831,6 +3849,22 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     {/* SECCIÓN: GESTIÓN DE CREDENCIALES */}
                     {/* ═══════════════════════════════════════════════════════════════ */}
                     <div className="md:col-span-2 mt-6 pt-4 border-t border-slate-200">
+                      {/* Contraseña actual visible */}
+                      {editingUser.plain_password && (
+                        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between" data-testid="current-password-display">
+                          <div className="flex items-center gap-2">
+                            <Key className="w-4 h-4 text-amber-600" />
+                            <span className="text-sm font-semibold text-slate-700">Contrasena actual:</span>
+                            <span className="text-sm font-mono text-slate-800 bg-white px-2 py-0.5 rounded-lg border border-amber-200">{editingUser.plain_password}</span>
+                          </div>
+                          <button type="button" onClick={async () => {
+                            try { await navigator.clipboard.writeText(editingUser.plain_password); toast.success("Contrasena copiada"); } catch {}
+                          }} className="px-2.5 py-1 text-xs bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 font-semibold transition-colors">
+                            Copiar
+                          </button>
+                        </div>
+                      )}
+
                       <div className="flex items-center justify-between mb-4">
                         <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                           <Key className="w-4 h-4 text-amber-500" /> Editar Contraseña

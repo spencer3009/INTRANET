@@ -202,6 +202,7 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         "id": str(uuid.uuid4()),
         "username": data.username.lower(),
         "password": hash_password(data.password),
+        "plain_password": data.password,
         "name": data.name,
         "last_name": data.last_name,
         "email": data.email.lower() if data.email else None,
@@ -413,6 +414,7 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
     # Handle password change
     if data.password is not None and data.password.strip():
         update_data["password"] = hash_password(data.password)
+        update_data["plain_password"] = data.password
         logger.info(f"Password changed for user {user_id}")
     
     # Handle parent_id (frontend sends parent_id, backend uses padre_id)
