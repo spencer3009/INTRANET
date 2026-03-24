@@ -44,6 +44,9 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
   - Frontend: Modo reordenamiento con drag & drop HTML5 + flechas ↑↓, botón "Guardar orden" sticky
   - Backend: PUT /academia/subcategories/reorder (nuevo), fix de orden de rutas FastAPI
   - Testing: 100% backend (10/10) + 100% frontend (iteration_95)
+- [x] **Integración ChatPal en Academia Portal (Mar 24, 2026)**:
+  - Widget ChatPal inyectado dinámicamente en AcademiaPortalPage.jsx (para owner/admin/teacher)
+  - Cleanup automático al desmontar componente
 
 ## Key DB Collections (new)
 - `import_pending`: Stores errored rows from bulk imports (type: "parent" or "student")

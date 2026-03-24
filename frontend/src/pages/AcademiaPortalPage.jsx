@@ -543,6 +543,35 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
       .catch(() => {});
   }, [token]);
 
+  // ChatPal widget
+  useEffect(() => {
+    const SCRIPT_ID = "chatpal-script";
+    if (document.getElementById(SCRIPT_ID)) return;
+    const script = document.createElement("script");
+    script.id = SCRIPT_ID;
+    script.src = "https://chatterpal.me/build/js/chatpal.js?8.3";
+    script.integrity = "sha384-+YIWcPZjPZYuhrEm13vJJg76TIO/g7y5B14VE35zhQdrojfD9dPemo7q6vnH44FR";
+    script.crossOrigin = "anonymous";
+    script.setAttribute("data-cfasync", "false");
+    script.onload = () => {
+      if (window.ChatPal) {
+        window.__chatPalInstance = new window.ChatPal({
+          embedId: "rtg8Y2d7NE7C",
+          remoteBaseUrl: "https://chatterpal.me/",
+          version: "8.3"
+        });
+      }
+    };
+    document.body.appendChild(script);
+    return () => {
+      const el = document.getElementById(SCRIPT_ID);
+      if (el) el.remove();
+      // Clean up ChatPal DOM elements
+      document.querySelectorAll('[id*="chatpal"], [class*="chatpal"], [id*="ChatPal"], [class*="ChatPal"]').forEach(e => e.remove());
+      window.__chatPalInstance = null;
+    };
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="academia-portal-container">
       <Sidebar
