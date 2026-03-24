@@ -40,6 +40,10 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
 - [x] **Feature: Mover video de categoría en Academia (Mar 23, 2026)**:
   - Frontend: Dropdowns de Categoría/Subcategoría en modal Editar Video
   - Backend: Ya soportado en PUT /academia/videos/{video_id}
+- [x] **Feature: Reordenar Categorías y Subcategorías en Academia (Mar 24, 2026)**:
+  - Frontend: Modo reordenamiento con drag & drop HTML5 + flechas ↑↓, botón "Guardar orden" sticky
+  - Backend: PUT /academia/subcategories/reorder (nuevo), fix de orden de rutas FastAPI
+  - Testing: 100% backend (10/10) + 100% frontend (iteration_95)
 
 ## Key DB Collections (new)
 - `import_pending`: Stores errored rows from bulk imports (type: "parent" or "student")
