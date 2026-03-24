@@ -1,0 +1,117 @@
+{
+  "summary": "Academia Reorder Feature - Complete testing of category and subcategory reordering in Support/Academia module. Fixed critical backend bug (route order issue) and verified all frontend functionality. Backend: 10/10 tests passed. Frontend: All UI flows verified.",
+  
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  
+  "passed_tests": [
+    "Backend: GET /api/academia/categories returns categories with sort_order",
+    "Backend: PUT /api/academia/categories/reorder swaps category order correctly",
+    "Backend: PUT /api/academia/categories/reorder handles invalid IDs gracefully",
+    "Backend: PUT /api/academia/categories/reorder handles empty list",
+    "Backend: GET /api/academia/categories returns subcategories with sort_order",
+    "Backend: PUT /api/academia/subcategories/reorder swaps subcategory order correctly",
+    "Backend: PUT /api/academia/subcategories/reorder handles invalid IDs gracefully",
+    "Backend: PUT /api/academia/subcategories/reorder handles empty list",
+    "Backend: Reorder preserves video counts",
+    "Backend: Reorder preserves subcategory structure",
+    "Frontend: Login as support admin (spencer3009@gmail.com) works",
+    "Frontend: Navigate to /support/academia loads Academia page",
+    "Frontend: Categories panel (data-testid='categories-panel') visible",
+    "Frontend: Reorder button (data-testid='enter-reorder-btn') visible in sidebar header",
+    "Frontend: Normal mode shows categories without drag handles or arrows",
+    "Frontend: Click reorder button enters reorder mode",
+    "Frontend: Reorder mode shows 'Arrastra o usa flechas para reordenar' hint",
+    "Frontend: Drag handles (GripVertical icons) appear on all categories",
+    "Frontend: Up/down arrow buttons appear on each category",
+    "Frontend: First category's up arrow is disabled",
+    "Frontend: Last category's down arrow is disabled",
+    "Frontend: Click down arrow moves category down in list",
+    "Frontend: Click up arrow moves category up in list",
+    "Frontend: Subcategories shown expanded with drag handles and arrows",
+    "Frontend: Subcategory reordering works within parent category",
+    "Frontend: 'Guardar orden' button (data-testid='save-reorder-btn') appears at bottom",
+    "Frontend: Click 'Guardar orden' shows success toast 'Orden guardado'",
+    "Frontend: Save button changes to 'Orden guardado' with checkmark after save",
+    "Frontend: Click X button (data-testid='exit-reorder-btn') exits reorder mode",
+    "Frontend: Sidebar returns to normal mode after exit"
+  ],
+  
+  "test_report_links": [
+    "/app/backend/tests/test_academia_reorder.py",
+    "/app/test_reports/pytest/pytest_academia_reorder.xml"
+  ],
+  
+  "action_items": [],
+  
+  "critical_code_review_comments": [
+    "FIXED: Backend route order issue - /academia/categories/reorder was being matched by /academia/categories/{cat_id} because parameterized route was defined first. Moved reorder routes BEFORE parameterized routes.",
+    "Frontend SupportAcademiaPage.jsx correctly implements reorder mode with state: reorderMode, reorderCats, reorderSaving, reorderSaved, expandedReorderCats, dragState, dropTarget",
+    "Drag & drop uses HTML5 native API with onDragStart, onDragOver, onDrop, onDragEnd handlers",
+    "Arrow buttons provide alternative reordering method with moveCatInReorder and moveSubInReorder functions",
+    "All interactive elements have proper data-testid attributes for testing"
+  ],
+  
+  "updated_files": [
+    "/app/backend/routes/academia.py",
+    "/app/backend/tests/test_academia_reorder.py"
+  ],
+  
+  "success_rate": {
+    "backend": "100% (10/10 tests passed)",
+    "frontend": "100% (all UI flows verified)"
+  },
+  
+  "test_credentials": {
+    "support_email": "spencer3009@gmail.com",
+    "support_password": "Socios3009"
+  },
+  
+  "seed_data_creation": "No new seed data created. Used existing categories and subcategories.",
+  
+  "retest_needed": false,
+  
+  "should_main_agent_self_test": false,
+  
+  "context_for_next_testing_agent": "Academia reorder feature fully tested. Categories and subcategories can be reordered using drag & drop or arrow buttons. Backend routes fixed - reorder routes must be defined BEFORE parameterized routes to avoid route matching issues. All data-testid attributes verified: enter-reorder-btn, exit-reorder-btn, save-reorder-btn, cat-up-{id}, cat-down-{id}, sub-up-{id}, sub-down-{id}, reorder-cat-{id}, reorder-sub-{id}.",
+  
+  "bug_fixed": {
+    "issue": "PUT /api/academia/categories/reorder returning 404 'Categoria no encontrada'",
+    "root_cause": "FastAPI route order issue - /academia/categories/{cat_id} was defined before /academia/categories/reorder, so {cat_id} parameter was capturing 'reorder' as the category ID",
+    "fix": "Moved @router.put('/academia/categories/reorder') BEFORE @router.put('/academia/categories/{cat_id}') in academia.py. Same fix applied for subcategories reorder route.",
+    "file_modified": "/app/backend/routes/academia.py"
+  },
+  
+  "verified_features": {
+    "reorder_button_location": "Sidebar header next to + button",
+    "reorder_mode_hint": "Arrastra o usa flechas para reordenar",
+    "drag_handles": "GripVertical icons on left of each category/subcategory",
+    "arrow_buttons": "ChevronUp/ChevronDown on right of each category/subcategory",
+    "first_item_up_disabled": true,
+    "last_item_down_disabled": true,
+    "save_button": "Sticky at bottom, shows 'Guardar orden' -> 'Orden guardado' after save",
+    "exit_button": "X button in sidebar header to exit reorder mode",
+    "subcategories_expanded": "All categories expand to show subcategories in reorder mode"
+  },
+  
+  "data_testid_attributes_verified": [
+    "categories-panel",
+    "enter-reorder-btn",
+    "exit-reorder-btn",
+    "save-reorder-btn",
+    "reorder-cat-{id}",
+    "reorder-sub-{id}",
+    "cat-up-{id}",
+    "cat-down-{id}",
+    "sub-up-{id}",
+    "sub-down-{id}"
+  ]
+}

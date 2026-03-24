@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import {
   Video, FolderOpen, Plus, Search, Edit2, Trash2, X, Loader2,
   Eye, Play, ChevronUp, ChevronDown, Tag, Check, AlertCircle,
-  Film, BarChart3, Clock, Globe, Share2, ArrowRightLeft
+  Film, BarChart3, Clock, Globe, Share2, ArrowRightLeft, GripVertical, ArrowUpDown, Save
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -523,6 +523,15 @@ export default function SupportAcademiaPage({ token }) {
   const [editingVideo, setEditingVideo] = useState(null);
   const [playerVideo, setPlayerVideo] = useState(null);
 
+  // Reorder mode state
+  const [reorderMode, setReorderMode] = useState(false);
+  const [reorderCats, setReorderCats] = useState([]);
+  const [reorderSaving, setReorderSaving] = useState(false);
+  const [reorderSaved, setReorderSaved] = useState(false);
+  const [expandedReorderCats, setExpandedReorderCats] = useState({});
+  const [dragState, setDragState] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
+
   const loadData = useCallback(async () => {
     try {
       const [catsRes, statsRes] = await Promise.all([
@@ -570,6 +579,122 @@ export default function SupportAcademiaPage({ token }) {
       toast.success(res.data.is_published ? "Video publicado" : "Video despublicado");
       loadVideos(); loadData();
     } catch { toast.error("Error"); }
+  };
+
+  // ═══ REORDER FUNCTIONS ═══
+  const enterReorderMode = () => {
+    setReorderCats(categories.map(c => ({ ...c, subcategories: [...(c.subcategories || [])] })));
+    setReorderMode(true);
+    setReorderSaved(false);
+    const exp = {};
+    categories.forEach(c => { if (c.subcategories?.length > 0) exp[c.id] = true; });
+    setExpandedReorderCats(exp);
+  };
+
+  const exitReorderMode = () => {
+    setReorderMode(false);
+    setDragState(null);
+    setDropTarget(null);
+  };
+
+  const moveCatInReorder = (index, dir) => {
+    const arr = [...reorderCats];
+    const newIdx = index + dir;
+    if (newIdx < 0 || newIdx >= arr.length) return;
+    [arr[index], arr[newIdx]] = [arr[newIdx], arr[index]];
+    setReorderCats(arr);
+  };
+
+  const moveSubInReorder = (catId, subIndex, dir) => {
+    setReorderCats(prev => prev.map(cat => {
+      if (cat.id !== catId) return cat;
+      const subs = [...cat.subcategories];
+      const newIdx = subIndex + dir;
+      if (newIdx < 0 || newIdx >= subs.length) return cat;
+      [subs[subIndex], subs[newIdx]] = [subs[newIdx], subs[subIndex]];
+      return { ...cat, subcategories: subs };
+    }));
+  };
+
+  // Drag handlers for categories
+  const onCatDragStart = (e, index) => {
+    setDragState({ type: 'category', index });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  };
+
+  const onCatDragOver = (e, index) => {
+    e.preventDefault();
+    if (!dragState || dragState.type !== 'category') return;
+    setDropTarget({ type: 'category', index });
+  };
+
+  const onCatDrop = (e, toIndex) => {
+    e.preventDefault();
+    if (!dragState || dragState.type !== 'category') return;
+    const fromIndex = dragState.index;
+    if (fromIndex === toIndex) { setDragState(null); setDropTarget(null); return; }
+    const arr = [...reorderCats];
+    const [moved] = arr.splice(fromIndex, 1);
+    arr.splice(toIndex, 0, moved);
+    setReorderCats(arr);
+    setDragState(null);
+    setDropTarget(null);
+  };
+
+  // Drag handlers for subcategories
+  const onSubDragStart = (e, catId, subIndex) => {
+    e.stopPropagation();
+    setDragState({ type: 'subcategory', catId, subIndex });
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', '');
+  };
+
+  const onSubDragOver = (e, catId, subIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dragState || dragState.type !== 'subcategory' || dragState.catId !== catId) return;
+    setDropTarget({ type: 'subcategory', catId, subIndex });
+  };
+
+  const onSubDrop = (e, catId, toIndex) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!dragState || dragState.type !== 'subcategory' || dragState.catId !== catId) return;
+    const fromIndex = dragState.subIndex;
+    if (fromIndex === toIndex) { setDragState(null); setDropTarget(null); return; }
+    setReorderCats(prev => prev.map(cat => {
+      if (cat.id !== catId) return cat;
+      const subs = [...cat.subcategories];
+      const [moved] = subs.splice(fromIndex, 1);
+      subs.splice(toIndex, 0, moved);
+      return { ...cat, subcategories: subs };
+    }));
+    setDragState(null);
+    setDropTarget(null);
+  };
+
+  const onDragEnd = () => { setDragState(null); setDropTarget(null); };
+
+  const saveReorder = async () => {
+    setReorderSaving(true);
+    try {
+      // Save categories order
+      await axios.put(`${API}/academia/categories/reorder`,
+        { ordered_ids: reorderCats.map(c => c.id) }, { headers });
+      // Save subcategories order for each category
+      for (const cat of reorderCats) {
+        if (cat.subcategories?.length > 0) {
+          await axios.put(`${API}/academia/subcategories/reorder`,
+            { ordered_ids: cat.subcategories.map(s => s.id) }, { headers });
+        }
+      }
+      setReorderSaved(true);
+      setTimeout(() => setReorderSaved(false), 2000);
+      toast.success("Orden guardado");
+      loadData();
+    } catch { toast.error("Error al guardar el orden"); }
+    finally { setReorderSaving(false); }
   };
 
   return (
@@ -620,11 +745,113 @@ export default function SupportAcademiaPage({ token }) {
           <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden sticky top-24" data-testid="categories-panel">
             <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
               <span className="text-sm font-bold text-slate-700">Categorias</span>
-              <button onClick={() => setShowCatModal(true)} className="p-1 text-emerald-500 hover:bg-emerald-50 rounded-lg"><Plus className="w-4 h-4" /></button>
+              <div className="flex items-center gap-1">
+                {!reorderMode && (
+                  <button onClick={enterReorderMode} className="p-1 text-slate-400 hover:text-[#2d8a56] hover:bg-[#e8f5ee] rounded-lg transition-colors" title="Reordenar" data-testid="enter-reorder-btn">
+                    <ArrowUpDown className="w-4 h-4" />
+                  </button>
+                )}
+                {!reorderMode && (
+                  <button onClick={() => setShowCatModal(true)} className="p-1 text-emerald-500 hover:bg-emerald-50 rounded-lg"><Plus className="w-4 h-4" /></button>
+                )}
+                {reorderMode && (
+                  <button onClick={exitReorderMode} className="p-1 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Cancelar" data-testid="exit-reorder-btn">
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
-            <div className="max-h-[60vh] overflow-y-auto">
+
+            {/* REORDER MODE HINT */}
+            {reorderMode && (
+              <div className="px-4 py-2 bg-[#f0faf4] border-b border-[#5BB88A]/30">
+                <p className="text-[11px] text-[#2d8a56] font-medium">Arrastra o usa flechas para reordenar</p>
+              </div>
+            )}
+
+            <div className="max-h-[55vh] overflow-y-auto">
               {loading ? <div className="flex justify-center py-6"><Loader2 className="w-5 h-5 animate-spin text-slate-300" /></div> :
-                categories.length === 0 ? <p className="text-center text-xs text-slate-400 py-6">Sin categorias</p> :
+
+              /* === REORDER MODE === */
+              reorderMode ? (
+                reorderCats.length === 0 ? <p className="text-center text-xs text-slate-400 py-6">Sin categorias</p> :
+                reorderCats.map((cat, catIdx) => (
+                  <div key={cat.id}
+                    draggable
+                    onDragStart={(e) => onCatDragStart(e, catIdx)}
+                    onDragOver={(e) => onCatDragOver(e, catIdx)}
+                    onDrop={(e) => onCatDrop(e, catIdx)}
+                    onDragEnd={onDragEnd}
+                    className={`transition-all ${
+                      dragState?.type === 'category' && dragState.index === catIdx ? 'opacity-40' : ''
+                    } ${
+                      dropTarget?.type === 'category' && dropTarget.index === catIdx && dragState?.index !== catIdx
+                        ? 'border-t-2 border-[#5BB88A] bg-[#f0faf4]' : ''
+                    }`}
+                    data-testid={`reorder-cat-${cat.id}`}
+                  >
+                    <div className="flex items-center gap-1 px-2 py-2.5 border-b border-slate-100 group cursor-grab active:cursor-grabbing">
+                      <GripVertical className="w-4 h-4 text-slate-300 group-hover:text-[#5BB88A] flex-shrink-0" />
+                      <button onClick={() => setExpandedReorderCats(p => ({ ...p, [cat.id]: !p[cat.id] }))}
+                        className="p-0.5 text-slate-400 hover:text-slate-600 flex-shrink-0">
+                        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expandedReorderCats[cat.id] ? 'rotate-0' : '-rotate-90'}`} />
+                      </button>
+                      <FolderOpen className="w-4 h-4 text-[#86CEAC] flex-shrink-0" />
+                      <span className="text-sm font-semibold text-[#1a2e23] flex-1 truncate">{cat.name}</span>
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <button onClick={() => moveCatInReorder(catIdx, -1)} disabled={catIdx === 0}
+                          className="p-0.5 text-slate-400 hover:text-[#2d8a56] disabled:opacity-20 disabled:cursor-not-allowed rounded" data-testid={`cat-up-${cat.id}`}>
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button onClick={() => moveCatInReorder(catIdx, 1)} disabled={catIdx === reorderCats.length - 1}
+                          className="p-0.5 text-slate-400 hover:text-[#2d8a56] disabled:opacity-20 disabled:cursor-not-allowed rounded" data-testid={`cat-down-${cat.id}`}>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full font-semibold bg-[#e8f5ee] text-[#2d8a56]">{cat.video_count}</span>
+                    </div>
+                    {/* Subcategories in reorder mode */}
+                    {expandedReorderCats[cat.id] && cat.subcategories?.length > 0 && (
+                      <div className="bg-slate-50/50 border-b border-slate-100">
+                        {cat.subcategories.map((sub, subIdx) => (
+                          <div key={sub.id}
+                            draggable
+                            onDragStart={(e) => onSubDragStart(e, cat.id, subIdx)}
+                            onDragOver={(e) => onSubDragOver(e, cat.id, subIdx)}
+                            onDrop={(e) => onSubDrop(e, cat.id, subIdx)}
+                            onDragEnd={onDragEnd}
+                            className={`flex items-center gap-1 pl-7 pr-2 py-1.5 group cursor-grab active:cursor-grabbing transition-all ${
+                              dragState?.type === 'subcategory' && dragState.catId === cat.id && dragState.subIndex === subIdx ? 'opacity-40' : ''
+                            } ${
+                              dropTarget?.type === 'subcategory' && dropTarget.catId === cat.id && dropTarget.subIndex === subIdx && dragState?.subIndex !== subIdx
+                                ? 'border-t-2 border-[#5BB88A] bg-[#f0faf4]' : ''
+                            }`}
+                            data-testid={`reorder-sub-${sub.id}`}
+                          >
+                            <GripVertical className="w-3 h-3 text-slate-300 group-hover:text-[#5BB88A] flex-shrink-0" />
+                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${sub.is_active !== false ? 'bg-[#5BB88A]' : 'bg-slate-300'}`} />
+                            <span className="text-xs text-[#3a5245] flex-1 truncate">{sub.name}</span>
+                            <div className="flex items-center gap-0.5 flex-shrink-0">
+                              <button onClick={() => moveSubInReorder(cat.id, subIdx, -1)} disabled={subIdx === 0}
+                                className="p-0.5 text-slate-300 hover:text-[#2d8a56] disabled:opacity-20 disabled:cursor-not-allowed rounded" data-testid={`sub-up-${sub.id}`}>
+                                <ChevronUp className="w-3 h-3" />
+                              </button>
+                              <button onClick={() => moveSubInReorder(cat.id, subIdx, 1)} disabled={subIdx === cat.subcategories.length - 1}
+                                className="p-0.5 text-slate-300 hover:text-[#2d8a56] disabled:opacity-20 disabled:cursor-not-allowed rounded" data-testid={`sub-down-${sub.id}`}>
+                                <ChevronDown className="w-3 h-3" />
+                              </button>
+                            </div>
+                            <span className="text-[10px] text-[#8aaa9a]">{sub.video_count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) :
+
+              /* === NORMAL MODE === */
+              categories.length === 0 ? <p className="text-center text-xs text-slate-400 py-6">Sin categorias</p> :
                 categories.map(cat => (
                   <div key={cat.id}>
                     <button onClick={() => handleSelectCat(cat)}
@@ -637,7 +864,6 @@ export default function SupportAcademiaPage({ token }) {
                         {cat.video_count}
                       </span>
                     </button>
-                    {/* Subcategories as vertical list */}
                     {selectedCat?.id === cat.id && cat.subcategories?.length > 0 && (
                       <div className="bg-emerald-50/50 border-b border-slate-100">
                         <button onClick={() => setSelectedSub(null)}
@@ -666,6 +892,23 @@ export default function SupportAcademiaPage({ token }) {
                 ))
               }
             </div>
+
+            {/* Save button - sticky at bottom in reorder mode */}
+            {reorderMode && (
+              <div className="px-3 py-3 border-t border-slate-200 bg-white">
+                <button onClick={saveReorder} disabled={reorderSaving}
+                  className={`w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 transition-all ${
+                    reorderSaved
+                      ? 'bg-[#e8f5ee] text-[#2d8a56] border border-[#5BB88A]'
+                      : 'bg-gradient-to-r from-[#3da36e] to-[#2d8a56] text-white hover:from-[#2d8a56] hover:to-[#1d7a46] shadow-sm'
+                  } disabled:opacity-60`}
+                  data-testid="save-reorder-btn">
+                  {reorderSaving ? <Loader2 className="w-4 h-4 animate-spin" /> :
+                   reorderSaved ? <><Check className="w-4 h-4" /> Orden guardado</> :
+                   <><Save className="w-4 h-4" /> Guardar orden</>}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 

@@ -155,6 +155,14 @@ async def create_category(data: CategoryCreate, user=Depends(require_support_adm
     cat.pop("_id", None)
     return cat
 
+# NOTE: Reorder route MUST be defined BEFORE parameterized routes to avoid {cat_id} capturing "reorder"
+@router.put("/academia/categories/reorder")
+async def reorder_categories(data: ReorderRequest, user=Depends(require_support_admin)):
+    """Reorder categories by updating their sort_order"""
+    for i, cid in enumerate(data.ordered_ids):
+        await db.tutorial_categories.update_one({"id": cid}, {"$set": {"sort_order": i}})
+    return {"message": "Categorias reordenadas"}
+
 @router.put("/academia/categories/{cat_id}")
 async def update_category(cat_id: str, data: CategoryUpdate, user=Depends(require_support_admin)):
     cat = await db.tutorial_categories.find_one({"id": cat_id}, {"_id": 0})
@@ -186,11 +194,13 @@ async def delete_category(cat_id: str, user=Depends(require_support_admin)):
     await db.tutorial_categories.delete_one({"id": cat_id})
     return {"message": "Categoria eliminada"}
 
-@router.put("/academia/categories/reorder")
-async def reorder_categories(data: ReorderRequest, user=Depends(require_support_admin)):
-    for i, cid in enumerate(data.ordered_ids):
-        await db.tutorial_categories.update_one({"id": cid}, {"$set": {"sort_order": i}})
-    return {"message": "Categorias reordenadas"}
+# NOTE: Subcategories reorder route MUST be defined BEFORE parameterized routes
+@router.put("/academia/subcategories/reorder")
+async def reorder_subcategories(data: ReorderRequest, user=Depends(require_support_admin)):
+    """Reorder subcategories within a category"""
+    for i, sid in enumerate(data.ordered_ids):
+        await db.tutorial_subcategories.update_one({"id": sid}, {"$set": {"sort_order": i}})
+    return {"message": "Subcategorias reordenadas"}
 
 
 # ═══════════════════════════════════════════════════════════
