@@ -47,6 +47,11 @@ Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Rob
 - [x] **Integración ChatPal en Academia Portal (Mar 24, 2026)**:
   - Widget ChatPal inyectado dinámicamente en AcademiaPortalPage.jsx (para owner/admin/teacher)
   - Cleanup automático al desmontar componente
+  - ChatPalRouteGuard en App.js para ocultar en otras páginas via CSS
+- [x] **Sincronización Asignación Docente → Asignaturas Cards (Mar 25, 2026)**:
+  - Backend: Cambiado GET /academic/subjects para consultar `academic_assignments` (fuente de verdad) en vez de `subject_teachers`
+  - Filtros por level_id, grade_id, section_id para match exacto
+  - Las cards ahora muestran el docente asignado correctamente
 
 ## Key DB Collections (new)
 - `import_pending`: Stores errored rows from bulk imports (type: "parent" or "student")

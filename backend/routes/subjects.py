@@ -176,13 +176,20 @@ async def get_subjects(
         except Exception:
             pass
 
-        # ── 3. TEACHER ASSIGNMENTS: subject_teachers (coleccion unificada) ─
+        # ── 3. TEACHER ASSIGNMENTS: academic_assignments (fuente de verdad) ─
         subject_ids = [s.get("id") for s in subjects if s.get("id")]
         teacher_assignments = {}
         try:
-            all_assignments = await db.subject_teachers.find(
-                {"school_id": school_id, "subject_id": {"$in": subject_ids}},
-                {"_id": 0, "subject_id": 1, "teacher_id": 1, "role": 1}
+            assign_query = {"school_id": school_id, "subject_id": {"$in": subject_ids}}
+            if level_id:
+                assign_query["level_id"] = level_id
+            if grade_id:
+                assign_query["grade_id"] = grade_id
+            if section_id:
+                assign_query["section_id"] = section_id
+            all_assignments = await db.academic_assignments.find(
+                assign_query,
+                {"_id": 0, "subject_id": 1, "teacher_id": 1, "role": 1, "section_id": 1}
             ).to_list(2000)
             for a in all_assignments:
                 sid = a.get("subject_id")
