@@ -4,6 +4,7 @@ import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import FloatingHelpAvatar from "@/components/FloatingHelpAvatar";
 import ConfirmModal from "@/components/ConfirmModal";
 import { 
   Users, UserPlus, ArrowLeft, Loader2, X, Camera, Upload,
@@ -5224,6 +5225,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       )}
 
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }
