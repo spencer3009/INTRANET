@@ -193,6 +193,34 @@ function ShopifyRedirect({ user, environment }) {
   return null;
 }
 
+// Global ChatPal cleanup on route changes (ensures it only lives on /academia)
+function ChatPalRouteGuard() {
+  const location = useLocation();
+  useEffect(() => {
+    const isAcademia = location.pathname.includes('/academia');
+    if (!isAcademia) {
+      const cleanup = () => {
+        document.querySelectorAll(
+          '[id*="chatpal"],[class*="chatpal"],[id*="ChatPal"],[class*="ChatPal"],[id*="chatterpal"],[class*="chatterpal"],iframe[src*="chatterpal"],iframe[src*="chatpal"],[data-chatpal],[data-chatterpal],#chatpal-script'
+        ).forEach(el => el.remove());
+        document.querySelectorAll('style').forEach(s => {
+          if (s.textContent && /chat.?pal/i.test(s.textContent)) s.remove();
+        });
+        try { window.__chatPalInstance?.destroy?.(); } catch {}
+        window.__chatPalInstance = null;
+        delete window.ChatPal;
+        delete window.chatPal;
+      };
+      cleanup();
+      const t1 = setTimeout(cleanup, 300);
+      const t2 = setTimeout(cleanup, 1000);
+      const t3 = setTimeout(cleanup, 2500);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    }
+  }, [location.pathname]);
+  return null;
+}
+
 // ══════════════════════════════════════════════════════════════════════════════
 // Protected Route Component
 // ══════════════════════════════════════════════════════════════════════════════
@@ -429,6 +457,7 @@ function App() {
         <BrowserRouter>
           <SubscriptionProvider token={token}>
           <ShopifyRedirect user={user} environment={environment} />
+          <ChatPalRouteGuard />
           <GlobalSubscriptionOverlay token={token} user={user} />
         
         <Routes>

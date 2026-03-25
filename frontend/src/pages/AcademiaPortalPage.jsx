@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
+import { useLocation } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import {
@@ -543,10 +544,42 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
       .catch(() => {});
   }, [token]);
 
-  // ChatPal widget
+  // ChatPal widget - robust SPA integration
+  const chatPalCleanupRef = useRef(null);
+  const location = useLocation();
+
   useEffect(() => {
     const SCRIPT_ID = "chatpal-script";
-    if (document.getElementById(SCRIPT_ID)) return;
+
+    // Aggressive cleanup function
+    const cleanupChatPal = () => {
+      // Remove script tag
+      const scriptEl = document.getElementById(SCRIPT_ID);
+      if (scriptEl) scriptEl.remove();
+      // Remove ALL ChatPal DOM elements (iframes, divs, containers)
+      const selectors = [
+        '[id*="chatpal"]', '[class*="chatpal"]',
+        '[id*="ChatPal"]', '[class*="ChatPal"]',
+        '[id*="chatterpal"]', '[class*="chatterpal"]',
+        'iframe[src*="chatterpal"]', 'iframe[src*="chatpal"]',
+        '[data-chatpal]', '[data-chatterpal]'
+      ];
+      document.querySelectorAll(selectors.join(',')).forEach(el => el.remove());
+      // Remove injected styles
+      document.querySelectorAll('style').forEach(s => {
+        if (s.textContent && /chat.?pal/i.test(s.textContent)) s.remove();
+      });
+      // Destroy instance and global refs
+      try { window.__chatPalInstance?.destroy?.(); } catch {}
+      window.__chatPalInstance = null;
+      delete window.ChatPal;
+      delete window.chatPal;
+    };
+
+    // Clean first in case of leftover from previous mount
+    cleanupChatPal();
+
+    // Load script fresh
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
     script.src = "https://chatterpal.me/build/js/chatpal.js?8.3";
@@ -563,23 +596,19 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
       }
     };
     document.body.appendChild(script);
+
+    // Store cleanup ref for delayed elements
+    chatPalCleanupRef.current = cleanupChatPal;
+
     return () => {
-      const el = document.getElementById(SCRIPT_ID);
-      if (el) el.remove();
-      // Clean up ALL ChatPal DOM elements (iframes, divs, styles)
-      document.querySelectorAll('[id*="chatpal"], [class*="chatpal"], [id*="ChatPal"], [class*="ChatPal"], [id*="chatterpal"], [class*="chatterpal"], iframe[src*="chatterpal"], iframe[src*="chatpal"]').forEach(e => e.remove());
-      // Remove any ChatPal-injected styles
-      document.querySelectorAll('style').forEach(s => {
-        if (s.textContent && (s.textContent.includes('chatpal') || s.textContent.includes('ChatPal') || s.textContent.includes('chatterpal'))) s.remove();
-      });
-      // Clean global references
-      if (window.__chatPalInstance) {
-        try { window.__chatPalInstance.destroy?.(); } catch {}
-        window.__chatPalInstance = null;
-      }
-      delete window.ChatPal;
+      cleanupChatPal();
+      // Delayed cleanup to catch async-injected elements
+      const t1 = setTimeout(cleanupChatPal, 500);
+      const t2 = setTimeout(cleanupChatPal, 1500);
+      const t3 = setTimeout(cleanupChatPal, 3000);
+      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
     };
-  }, []);
+  }, [location.pathname]);
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="academia-portal-container">
