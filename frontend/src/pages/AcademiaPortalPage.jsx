@@ -545,10 +545,22 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
 
   // ChatPal widget - CSS visibility approach (bulletproof for SPA)
   useEffect(() => {
-    // Add class to body to make ChatPal visible via CSS
+    // 1. Add class to body to make ChatPal visible via CSS
     document.body.classList.add("chatpal-active");
 
-    // Load script only once globally (it persists, CSS controls visibility)
+    // 2. Clean up inline styles that the RouteGuard applied when we were on other pages
+    document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
+      if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
+        el.style.removeProperty('display');
+        el.style.removeProperty('visibility');
+      }
+    });
+    document.querySelectorAll('iframe[src*="chatterpal"], iframe[src*="chatpal"]').forEach(el => {
+      el.style.removeProperty('display');
+      el.style.removeProperty('visibility');
+    });
+
+    // 3. Load ChatPal script (only first time)
     const SCRIPT_ID = "chatpal-script";
     if (!document.getElementById(SCRIPT_ID)) {
       const script = document.createElement("script");
@@ -567,10 +579,34 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
         }
       };
       document.body.appendChild(script);
+    } else {
+      // Script already loaded — re-initialize if iframes were destroyed
+      if (window.ChatPal && !document.querySelector('iframe[src*="chatterpal"]')) {
+        try {
+          new window.ChatPal({
+            embedId: "rtg8Y2d7NE7C",
+            remoteBaseUrl: "https://chatterpal.me/",
+            version: "8.3"
+          });
+        } catch (e) {
+          console.log("ChatPal re-init:", e);
+        }
+      }
     }
+
+    // 4. Keep ChatPal visible while on this page (clean inline styles periodically)
+    const showInterval = setInterval(() => {
+      document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
+        if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
+          el.style.removeProperty('display');
+          el.style.removeProperty('visibility');
+        }
+      });
+    }, 500);
 
     return () => {
       document.body.classList.remove("chatpal-active");
+      clearInterval(showInterval);
     };
   }, []);
 

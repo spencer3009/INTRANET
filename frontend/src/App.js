@@ -194,8 +194,9 @@ function ShopifyRedirect({ user, environment }) {
 }
 
 // Global CSS: Hide ChatPal widget elements when not on Academia page
-// Uses very specific selectors to avoid hiding page content
 function ChatPalRouteGuard() {
+  const location = useLocation();
+
   useEffect(() => {
     const STYLE_ID = "chatpal-visibility-css";
     if (!document.getElementById(STYLE_ID)) {
@@ -210,9 +211,6 @@ function ChatPalRouteGuard() {
           display: none !important;
           visibility: hidden !important;
         }
-        .chatpal-hidden-by-guard {
-          display: none !important;
-        }
         /* Show them ONLY when chatpal-active class is on body */
         body.chatpal-active iframe[src*="chatterpal.me"],
         body.chatpal-active iframe[src*="chatpal.me"],
@@ -221,28 +219,31 @@ function ChatPalRouteGuard() {
           display: block !important;
           visibility: visible !important;
         }
-        body.chatpal-active .chatpal-hidden-by-guard {
-          display: block !important;
-        }
       `;
       document.head.appendChild(style);
     }
   }, []);
 
-  // Also observe and hide any ChatPal injected fixed-position elements
-  const location = useLocation();
+  // Hide ChatPal floating elements when NOT on academia
   useEffect(() => {
     const isAcademia = location.pathname.includes('/academia');
     if (isAcademia) return;
 
-    // Periodically check for and hide ChatPal floating elements (not on academia)
-    const interval = setInterval(() => {
+    const hideElements = () => {
       document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
         if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
-          el.classList.add('chatpal-hidden-by-guard');
+          el.style.setProperty('display', 'none', 'important');
+          el.style.setProperty('visibility', 'hidden', 'important');
         }
       });
-    }, 500);
+      document.querySelectorAll('iframe[src*="chatterpal"], iframe[src*="chatpal"]').forEach(el => {
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('visibility', 'hidden', 'important');
+      });
+    };
+
+    hideElements();
+    const interval = setInterval(hideElements, 500);
 
     return () => clearInterval(interval);
   }, [location.pathname]);
