@@ -1455,6 +1455,10 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         onSuccess={loadSubjects}
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      {/* Avatar flotante */}
+      <div className="fixed bottom-6 right-6 z-50 w-28 h-28 rounded-full overflow-hidden shadow-lg hover:scale-110 transition-transform cursor-pointer" data-testid="floating-avatar">
+        <img src="https://customer-assets.emergentagent.com/job_b91f707a-1a92-469c-9853-602cda64d52a/artifacts/lcmdr80v_avartar-web.webp" alt="Asistente" className="w-full h-full object-cover" />
+      </div>
     </div>
   );
 }
