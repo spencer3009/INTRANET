@@ -9726,45 +9726,38 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
     setLoading(true);
     setError(null);
     try {
-      // Load settings - use public endpoint for non-owner users
-      let settingsData = null;
-      try {
-        if (user?.role === "teacher") {
-          // Teachers use public settings endpoint
-          const currentSubdomain = subdomain || user?.subdomain || 'elroble';
-          const settingsRes = await axios.get(`${API}/settings/public/${currentSubdomain}`);
-          settingsData = settingsRes.data;
-        } else {
-          const settingsRes = await axios.get(`${API}/settings`, { headers });
-          settingsData = settingsRes.data;
-        }
-      } catch (e) {
-        // Fallback to public settings if main fails
-        try {
-          const currentSubdomain = subdomain || user?.subdomain || 'elroble';
-          const settingsRes = await axios.get(`${API}/settings/public/${currentSubdomain}`);
-          settingsData = settingsRes.data;
-        } catch (e2) {
-          console.log("Could not load settings");
-        }
-      }
-      setSettings(settingsData);
-      
-      // Load subject details
-      const subjectsRes = await axios.get(`${API}/academic/subjects`, { headers });
+      // ═══ FASE 1: Llamadas 100% independientes — todas en paralelo ═══
+      const currentSubdomain = subdomain || user?.subdomain || 'elroble';
+      const settingsPromise = user?.role === "teacher"
+        ? axios.get(`${API}/settings/public/${currentSubdomain}`).catch(() =>
+            axios.get(`${API}/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
+          )
+        : axios.get(`${API}/settings`, { headers }).catch(() =>
+            axios.get(`${API}/settings/public/${currentSubdomain}`).catch(() => ({ data: null }))
+          );
+
+      const subjectsPromise = axios.get(`${API}/academic/subjects`, { headers });
+      const assignmentsPromise = axios.get(`${API}/academic/assignments`, { headers }).catch(() => ({ data: [] }));
+
+      const [settingsRes, subjectsRes, assignmentsRes] = await Promise.all([
+        settingsPromise,
+        subjectsPromise,
+        assignmentsPromise,
+      ]);
+
+      setSettings(settingsRes.data);
+
       const foundSubject = subjectsRes.data.find(s => s.id === subjectId);
-      
       if (!foundSubject) {
         setError("Asignatura no encontrada");
         setLoading(false);
         return;
       }
-      
+
       setSubject(foundSubject);
       setLevelName(foundSubject.level_name || "");
       setGradeName(foundSubject.grade_name || "");
-      
-      // Load teacher from the subject data (now includes primary_teacher from academic_assignments)
+
       if (foundSubject.primary_teacher) {
         setTeacher({
           id: foundSubject.primary_teacher.id,
@@ -9773,59 +9766,58 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
           role: foundSubject.primary_teacher.role
         });
       }
-      
-      // Load students for this course/grade
-      try {
-        if (user?.role === "teacher") {
-          // For teachers, load students from their assigned sections
-          const studentsRes = await axios.get(`${API}/teacher/students`, { headers });
-          const courseStudents = studentsRes.data.students || [];
-          // Filter by section if the subject has a specific section
-          const subjectAssignments = await axios.get(`${API}/academic/assignments`, { headers }).catch(() => ({ data: [] }));
-          const thisAssignment = subjectAssignments.data?.find(a => a.subject_id === subjectId);
-          if (thisAssignment?.section_id) {
-            const filteredStudents = courseStudents.filter(s => s.section_id === thisAssignment.section_id);
-            setStudents(filteredStudents);
+
+      // Reutilizar assignmentsRes (no pedir 2 veces)
+      const allAssignments = assignmentsRes.data || [];
+      const thisAssignment = allAssignments.find(a => a.subject_id === subjectId && a.status === "activo");
+
+      // ═══ FASE 2: Llamadas que dependen de fase 1 — en paralelo entre sí ═══
+      const studentsPromise = (async () => {
+        try {
+          if (user?.role === "teacher") {
+            const studentsRes = await axios.get(`${API}/teacher/students`, { headers });
+            const courseStudents = studentsRes.data.students || [];
+            if (thisAssignment?.section_id) {
+              setStudents(courseStudents.filter(s => s.section_id === thisAssignment.section_id));
+            } else {
+              setStudents(courseStudents);
+            }
           } else {
-            setStudents(courseStudents);
+            const usersRes = await axios.get(`${API}/users`, { headers });
+            const gradeStudents = usersRes.data.filter(
+              u => u.role === "student" && u.grado_id === foundSubject.grade_id && u.student_status !== "pending"
+            );
+            setStudents(gradeStudents);
           }
-        } else {
-          // For owners/admins, load all students
-          const usersRes = await axios.get(`${API}/users`, { headers });
-          const gradeStudents = usersRes.data.filter(
-            u => u.role === "student" && u.grado_id === foundSubject.grade_id && u.student_status !== "pending"
-          );
-          setStudents(gradeStudents);
+        } catch (e) {
+          console.log("Could not load students:", e);
         }
-      } catch (e) {
-        console.log("Could not load students:", e);
-      }
-      
-      // Get the academic period from assignments for this subject
-      try {
-        const assignmentsRes = await axios.get(`${API}/academic/assignments`, { headers });
-        const subjectAssignment = assignmentsRes.data.find(a => a.subject_id === subjectId && a.status === "activo");
-        if (subjectAssignment) {
-          // Use academic_year if available, otherwise show school_year
-          if (subjectAssignment.academic_year) {
-            setAcademicPeriodName(`Año Escolar ${subjectAssignment.academic_year}`);
-          } else if (subjectAssignment.school_year) {
-            setAcademicPeriodName(`Año Escolar ${subjectAssignment.school_year}`);
-          }
-        } else {
-          // Fallback: try to get active academic year
-          const yearsRes = await axios.get(`${API}/academic/years`, { headers });
-          const activeYear = yearsRes.data.find(y => y.status === "activo");
-          if (activeYear) {
-            setAcademicPeriodName(`Año Escolar ${activeYear.year}`);
+      })();
+
+      const periodPromise = (async () => {
+        try {
+          if (thisAssignment) {
+            if (thisAssignment.academic_year) {
+              setAcademicPeriodName(`Año Escolar ${thisAssignment.academic_year}`);
+            } else if (thisAssignment.school_year) {
+              setAcademicPeriodName(`Año Escolar ${thisAssignment.school_year}`);
+            }
           } else {
-            setAcademicPeriodName(`${new Date().getFullYear()}`);
+            const yearsRes = await axios.get(`${API}/academic/years`, { headers });
+            const activeYear = yearsRes.data.find(y => y.status === "activo");
+            if (activeYear) {
+              setAcademicPeriodName(`Año Escolar ${activeYear.year}`);
+            } else {
+              setAcademicPeriodName(`${new Date().getFullYear()}`);
+            }
           }
+        } catch (e) {
+          setAcademicPeriodName(`${new Date().getFullYear()}`);
         }
-      } catch (e) {
-        setAcademicPeriodName(`${new Date().getFullYear()}`);
-      }
-      
+      })();
+
+      await Promise.all([studentsPromise, periodPromise]);
+
     } catch (err) {
       console.error(err);
       setError("Error al cargar los datos del curso");
