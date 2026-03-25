@@ -50,8 +50,7 @@ export default function FloatingHelpAvatar({ subdomain }) {
         >
           <div className="absolute inset-0 rounded-2xl" style={{ border: "1.5px solid rgba(251,191,36,0.35)" }} />
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, rgba(251,191,36,0.6), transparent)" }} />
-          <p className="text-[13px] font-bold text-white tracking-wide leading-tight">Centro de Ayuda</p>
-          <p className="text-[11px] font-semibold text-white tracking-wider mt-0.5">Videos Tutoriales</p>
+          <p className="text-[13px] font-bold text-white tracking-wide leading-tight">Videos Tutoriales</p>
         </div>
       </div>
     </>
