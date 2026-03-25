@@ -33,6 +33,7 @@ import {
   Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy,
   Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3
 } from "lucide-react";
+import CourseLoadingScreen from "../components/CourseLoadingScreen";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -9954,45 +9955,7 @@ export default function CourseDetailPage({ user, token, subdomain, onLogout }) {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-100 via-gray-50 to-zinc-100 flex">
-        {user?.role === "teacher" ? (
-          <TeacherSidebar
-            active="courses"
-            onNavigate={() => {}}
-            expanded={sidebarOpen}
-            onToggle={() => setSidebarOpen(!sidebarOpen)}
-            onLogout={onLogout}
-            user={user}
-          />
-        ) : (
-          <Sidebar
-            active="asignaturas"
-            onNavigate={() => {}}
-            expanded={sidebarOpen}
-            onToggle={() => setSidebarOpen(!sidebarOpen)}
-            onLogout={onLogout}
-            schoolName={settings?.system_name}
-            subdomain={subdomain}
-            user={user}
-          />
-        )}
-        <div className="flex-1 p-6 lg:p-8">
-          <HeaderSkeleton />
-          <div className="mt-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-3">
-              <SidebarSkeleton />
-            </div>
-            <div className="lg:col-span-6">
-              <ContentSkeleton />
-            </div>
-            <div className="lg:col-span-3">
-              <SidebarSkeleton />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <CourseLoadingScreen />;
   }
 
   if (error) {
