@@ -202,13 +202,26 @@ function ChatPalRouteGuard() {
       const style = document.createElement("style");
       style.id = STYLE_ID;
       style.textContent = `
-        /* Hide ChatPal iframes and fixed overlays by default */
+        /* Hide ALL ChatPal elements by default */
         iframe[src*="chatterpal.me"],
-        iframe[src*="chatpal.me"] {
+        iframe[src*="chatpal.me"],
+        div:has(> iframe[src*="chatterpal.me"]),
+        div:has(> iframe[src*="chatpal.me"]) {
+          display: none !important;
+          visibility: hidden !important;
+        }
+        .chatpal-hidden-by-guard {
           display: none !important;
         }
+        /* Show them ONLY when chatpal-active class is on body */
         body.chatpal-active iframe[src*="chatterpal.me"],
-        body.chatpal-active iframe[src*="chatpal.me"] {
+        body.chatpal-active iframe[src*="chatpal.me"],
+        body.chatpal-active div:has(> iframe[src*="chatterpal.me"]),
+        body.chatpal-active div:has(> iframe[src*="chatpal.me"]) {
+          display: block !important;
+          visibility: visible !important;
+        }
+        body.chatpal-active .chatpal-hidden-by-guard {
           display: block !important;
         }
       `;
@@ -225,9 +238,8 @@ function ChatPalRouteGuard() {
     // Periodically check for and hide ChatPal floating elements (not on academia)
     const interval = setInterval(() => {
       document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
-        // Only target elements that look like ChatPal (contain iframes from chatterpal)
         if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
-          el.style.display = 'none';
+          el.classList.add('chatpal-hidden-by-guard');
         }
       });
     }, 500);
