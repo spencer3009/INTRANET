@@ -1456,13 +1456,15 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
       {/* Avatar flotante con letrero */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-1.5" data-testid="floating-avatar">
-        <div className="w-28 h-28 rounded-full overflow-hidden shadow-lg hover:scale-110 transition-transform cursor-pointer ring-4 ring-orange-400 bg-green-100">
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-2" data-testid="floating-avatar">
+        <div className="w-36 h-36 rounded-full overflow-hidden shadow-2xl hover:scale-105 transition-transform cursor-pointer ring-[5px] ring-orange-400 bg-green-100">
           <img src="https://customer-assets.emergentagent.com/job_b91f707a-1a92-469c-9853-602cda64d52a/artifacts/vbv0s9n6_avatar%20-transparente.png" alt="Asistente" className="w-full h-full object-cover" />
         </div>
-        <div className="bg-gradient-to-r from-[#0F172A] to-[#1e293b] text-white px-3 py-1.5 rounded-xl shadow-md text-center leading-tight">
-          <p className="text-[11px] font-bold tracking-wide">Centro de Ayuda</p>
-          <p className="text-[9px] text-amber-300 font-medium">Videos tutoriales</p>
+        <div className="relative px-5 py-2.5 rounded-2xl shadow-xl text-center overflow-hidden cursor-pointer hover:scale-105 transition-transform" style={{background: 'linear-gradient(135deg, #0F172A 0%, #1e293b 50%, #0F172A 100%)'}}>
+          <div className="absolute inset-0 rounded-2xl" style={{border: '1.5px solid rgba(251,191,36,0.35)'}} />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px]" style={{background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.6), transparent)'}} />
+          <p className="text-[13px] font-bold text-white tracking-wide leading-tight">Centro de Ayuda</p>
+          <p className="text-[11px] font-semibold text-amber-400 tracking-wider mt-0.5">Videos Tutoriales</p>
         </div>
       </div>
     </div>
