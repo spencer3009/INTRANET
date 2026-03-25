@@ -20,7 +20,11 @@ const loadingStyles = `
   }
 `;
 
-export default function CourseLoadingScreen() {
+export default function CourseLoadingScreen({ 
+  title = "Cargando curso",
+  subtitle = "Preparando tu espacio de trabajo",
+  icon: Icon = BookOpen 
+}) {
   const [progress, setProgress] = useState(0);
   const pRef = useRef(0);
   const timerRef = useRef(null);
@@ -68,7 +72,7 @@ export default function CourseLoadingScreen() {
                 animation: "clsLoaderPulse 2s ease-in-out infinite",
               }}
             >
-              <BookOpen className="w-10 h-10 text-white" strokeWidth={1.5} />
+              <Icon className="w-10 h-10 text-white" strokeWidth={1.5} />
             </div>
           </div>
 
@@ -92,10 +96,10 @@ export default function CourseLoadingScreen() {
           {/* Text */}
           <div className="text-center -mt-2">
             <h2 className="text-xl font-bold text-slate-800 mb-2">
-              Cargando curso
+              {title}
             </h2>
             <p className="text-sm text-slate-500 flex items-center justify-center gap-1">
-              Preparando tu espacio de trabajo
+              {subtitle}
               {[0, 1, 2].map((i) => (
                 <span
                   key={i}

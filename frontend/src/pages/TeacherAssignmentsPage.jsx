@@ -5,6 +5,7 @@ import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import FloatingHelpAvatar from "@/components/FloatingHelpAvatar";
+import CourseLoadingScreen from "@/components/CourseLoadingScreen";
 import ConfirmModal from "@/components/ConfirmModal";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
@@ -1012,6 +1013,16 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
     });
   };
   
+  if (loading) {
+    return (
+      <CourseLoadingScreen 
+        title="Cargando asignaciones"
+        subtitle="Preparando la gestión docente"
+        icon={BookMarked}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 flex">
       <Sidebar 
@@ -1082,23 +1093,8 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
             
             {/* Assignments Grid */}
             {loading ? (
-              <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6].map(i => (
-                  <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 animate-pulse">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 bg-gray-200 rounded-xl" />
-                      <div className="flex-1">
-                        <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                        <div className="h-3 bg-gray-100 rounded w-1/2" />
-                      </div>
-                    </div>
-                    <div className="h-10 bg-gray-100 rounded-lg mb-3" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="h-4 bg-gray-100 rounded" />
-                      <div className="h-4 bg-gray-100 rounded" />
-                    </div>
-                  </div>
-                ))}
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
               </div>
             ) : assignments.length === 0 ? (
               <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
