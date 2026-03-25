@@ -1458,7 +1458,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       {/* Avatar flotante con letrero */}
       <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-1.5" data-testid="floating-avatar">
         <div className="w-28 h-28 rounded-full overflow-hidden shadow-lg hover:scale-110 transition-transform cursor-pointer ring-2 ring-white">
-          <img src="https://customer-assets.emergentagent.com/job_b91f707a-1a92-469c-9853-602cda64d52a/artifacts/lcmdr80v_avartar-web.webp" alt="Asistente" className="w-full h-full object-cover" />
+          <img src="https://customer-assets.emergentagent.com/job_b91f707a-1a92-469c-9853-602cda64d52a/artifacts/vbv0s9n6_avatar%20-transparente.png" alt="Asistente" className="w-full h-full object-cover" />
         </div>
         <div className="bg-gradient-to-r from-[#0F172A] to-[#1e293b] text-white px-3 py-1.5 rounded-xl shadow-md text-center leading-tight">
           <p className="text-[11px] font-bold tracking-wide">Centro de Ayuda</p>
