@@ -566,9 +566,18 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
     return () => {
       const el = document.getElementById(SCRIPT_ID);
       if (el) el.remove();
-      // Clean up ChatPal DOM elements
-      document.querySelectorAll('[id*="chatpal"], [class*="chatpal"], [id*="ChatPal"], [class*="ChatPal"]').forEach(e => e.remove());
-      window.__chatPalInstance = null;
+      // Clean up ALL ChatPal DOM elements (iframes, divs, styles)
+      document.querySelectorAll('[id*="chatpal"], [class*="chatpal"], [id*="ChatPal"], [class*="ChatPal"], [id*="chatterpal"], [class*="chatterpal"], iframe[src*="chatterpal"], iframe[src*="chatpal"]').forEach(e => e.remove());
+      // Remove any ChatPal-injected styles
+      document.querySelectorAll('style').forEach(s => {
+        if (s.textContent && (s.textContent.includes('chatpal') || s.textContent.includes('ChatPal') || s.textContent.includes('chatterpal'))) s.remove();
+      });
+      // Clean global references
+      if (window.__chatPalInstance) {
+        try { window.__chatPalInstance.destroy?.(); } catch {}
+        window.__chatPalInstance = null;
+      }
+      delete window.ChatPal;
     };
   }, []);
 
