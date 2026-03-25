@@ -1456,7 +1456,9 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
       {/* Avatar flotante con letrero */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-2" data-testid="floating-avatar">
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-2" data-testid="floating-avatar"
+        onClick={() => navigate(subdomain ? `/${subdomain}/academia` : '/academia')}
+      >
         <div className="w-36 h-36 rounded-full overflow-hidden shadow-2xl hover:scale-105 transition-transform cursor-pointer ring-[5px] ring-orange-400 bg-green-100">
           <img src="https://customer-assets.emergentagent.com/job_b91f707a-1a92-469c-9853-602cda64d52a/artifacts/vbv0s9n6_avatar%20-transparente.png" alt="Asistente" className="w-full h-full object-cover" />
         </div>
