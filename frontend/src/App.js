@@ -193,31 +193,42 @@ function ShopifyRedirect({ user, environment }) {
   return null;
 }
 
-// Global ChatPal cleanup on route changes (ensures it only lives on /academia)
+// Global CSS: ChatPal elements hidden by default, visible only when body has .chatpal-active
 function ChatPalRouteGuard() {
-  const location = useLocation();
   useEffect(() => {
-    const isAcademia = location.pathname.includes('/academia');
-    if (!isAcademia) {
-      const cleanup = () => {
-        document.querySelectorAll(
-          '[id*="chatpal"],[class*="chatpal"],[id*="ChatPal"],[class*="ChatPal"],[id*="chatterpal"],[class*="chatterpal"],iframe[src*="chatterpal"],iframe[src*="chatpal"],[data-chatpal],[data-chatterpal],#chatpal-script'
-        ).forEach(el => el.remove());
-        document.querySelectorAll('style').forEach(s => {
-          if (s.textContent && /chat.?pal/i.test(s.textContent)) s.remove();
-        });
-        try { window.__chatPalInstance?.destroy?.(); } catch {}
-        window.__chatPalInstance = null;
-        delete window.ChatPal;
-        delete window.chatPal;
-      };
-      cleanup();
-      const t1 = setTimeout(cleanup, 300);
-      const t2 = setTimeout(cleanup, 1000);
-      const t3 = setTimeout(cleanup, 2500);
-      return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const STYLE_ID = "chatpal-visibility-css";
+    if (!document.getElementById(STYLE_ID)) {
+      const style = document.createElement("style");
+      style.id = STYLE_ID;
+      style.textContent = `
+        /* Hide ALL ChatPal elements by default */
+        [id*="chatpal"], [class*="chatpal"],
+        [id*="ChatPal"], [class*="ChatPal"],
+        [id*="chatterpal"], [class*="chatterpal"],
+        iframe[src*="chatterpal"], iframe[src*="chatpal"] {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+        /* Show ChatPal ONLY when body has .chatpal-active */
+        body.chatpal-active [id*="chatpal"],
+        body.chatpal-active [class*="chatpal"],
+        body.chatpal-active [id*="ChatPal"],
+        body.chatpal-active [class*="ChatPal"],
+        body.chatpal-active [id*="chatterpal"],
+        body.chatpal-active [class*="chatterpal"],
+        body.chatpal-active iframe[src*="chatterpal"],
+        body.chatpal-active iframe[src*="chatpal"] {
+          display: block !important;
+          visibility: visible !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
+        }
+      `;
+      document.head.appendChild(style);
     }
-  }, [location.pathname]);
+  }, []);
   return null;
 }
 
