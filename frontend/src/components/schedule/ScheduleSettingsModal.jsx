@@ -36,9 +36,9 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="schedule-settings-modal">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="px-6 py-5 bg-gradient-to-r from-slate-700 to-slate-800 sticky top-0">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header - Fixed */}
+        <div className="px-6 py-5 bg-gradient-to-r from-slate-700 to-slate-800 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
               <Settings className="w-6 h-6 text-white" />
@@ -50,7 +50,9 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          {/* Scrollable content */}
+          <div className="p-6 space-y-5 overflow-y-auto flex-1">
           {/* Time Range */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">
@@ -197,8 +199,10 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-2">
+          </div>
+
+          {/* Buttons - Fixed at bottom */}
+          <div className="flex gap-3 px-6 py-4 border-t border-slate-200 flex-shrink-0 bg-white">
             <button
               type="button"
               data-testid="settings-cancel-btn"
