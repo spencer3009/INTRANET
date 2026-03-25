@@ -244,9 +244,9 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="schedule-entry-modal">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 sticky top-0">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header - Fixed */}
+        <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 flex-shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
@@ -267,7 +267,9 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+          {/* Scrollable content */}
+          <div className="p-6 space-y-4 overflow-y-auto flex-1">
           {/* Error */}
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
@@ -509,8 +511,10 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-2">
+          </div>
+
+          {/* Buttons - Fixed at bottom */}
+          <div className="flex gap-3 px-6 py-4 border-t border-slate-200 flex-shrink-0 bg-white">
             <button
               type="button"
               data-testid="entry-cancel-btn"
