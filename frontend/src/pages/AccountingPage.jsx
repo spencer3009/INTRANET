@@ -4,6 +4,7 @@ import axios from "axios";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, AreaChart, Area } from "recharts";
 import Sidebar from "../components/Sidebar";
 import MobileBottomNav from "../components/MobileBottomNav";
+import FloatingHelpAvatar from "../components/FloatingHelpAvatar";
 import DashboardHeader from "../components/DashboardHeader";
 import AccessDenied from "../components/AccessDenied";
 import { canAccessSection } from "../lib/permissions";
@@ -2565,6 +2566,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         icon="delete"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

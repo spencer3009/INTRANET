@@ -3,6 +3,7 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import MobileBottomNav from "../components/MobileBottomNav";
+import FloatingHelpAvatar from "../components/FloatingHelpAvatar";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 import { 
   AlertTriangle, Plus, X, Loader2, AlertCircle, Check, Edit2, Trash2, 
@@ -1272,6 +1273,7 @@ export default function DisciplinePage({ user, token, subdomain, onLogout }) {
         icon="delete"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

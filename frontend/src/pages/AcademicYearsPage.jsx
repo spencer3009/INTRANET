@@ -9,6 +9,7 @@ import {
 import DashboardHeader from "../components/DashboardHeader";
 import Sidebar from "../components/Sidebar";
 import MobileBottomNav from "../components/MobileBottomNav";
+import FloatingHelpAvatar from "../components/FloatingHelpAvatar";
 import { ConfirmModal } from "../components/ui/ConfirmModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -1580,6 +1581,7 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
         icon="power"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

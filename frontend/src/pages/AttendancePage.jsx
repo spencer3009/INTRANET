@@ -4,6 +4,7 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import DashboardHeader from "../components/DashboardHeader";
 import MobileBottomNav from "../components/MobileBottomNav";
+import FloatingHelpAvatar from "../components/FloatingHelpAvatar";
 import QRScannerTab from "../components/QRScannerTab";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -1942,6 +1943,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
         </main>
       </div>
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

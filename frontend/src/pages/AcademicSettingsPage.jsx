@@ -4,6 +4,7 @@ import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import FloatingHelpAvatar from "@/components/FloatingHelpAvatar";
 import ConfirmModal from "@/components/ConfirmModal";
 import { 
   BookMarked, GraduationCap, Calendar, Clock,
@@ -1667,6 +1668,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         showCancel={false} 
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

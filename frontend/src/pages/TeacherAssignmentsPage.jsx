@@ -4,6 +4,7 @@ import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import MobileBottomNav from "@/components/MobileBottomNav";
+import FloatingHelpAvatar from "@/components/FloatingHelpAvatar";
 import ConfirmModal from "@/components/ConfirmModal";
 import { 
   BookOpen, Plus, X, Loader2, AlertCircle, Check, Edit2, 
@@ -1180,6 +1181,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         confirmColor="red"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+      <FloatingHelpAvatar subdomain={user?.subdomain} />
     </div>
   );
 }
