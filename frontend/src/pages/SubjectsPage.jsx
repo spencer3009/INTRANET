@@ -1456,7 +1456,19 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
       {/* Avatar flotante con letrero */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-2" data-testid="floating-avatar"
+      <style>{`
+        @keyframes bounceUp {
+          0% { transform: translateY(200px); opacity: 0; }
+          50% { transform: translateY(-15px); opacity: 1; }
+          70% { transform: translateY(8px); }
+          85% { transform: translateY(-4px); }
+          100% { transform: translateY(0); opacity: 1; }
+        }
+        .animate-bounce-up {
+          animation: bounceUp 1s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        }
+      `}</style>
+      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-2 animate-bounce-up" data-testid="floating-avatar"
         onClick={() => navigate(subdomain ? `/${subdomain}/academia` : '/academia')}
       >
         <div className="w-36 h-36 rounded-full overflow-hidden shadow-2xl hover:scale-105 transition-transform cursor-pointer ring-[5px] ring-orange-400 bg-green-100">
