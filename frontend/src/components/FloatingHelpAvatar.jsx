@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { X } from "lucide-react";
 
+const AVATAR_URL = "https://res.cloudinary.com/dhn5pzinf/image/upload/q_auto,f_auto,fl_preserve_transparency/v1774413654/avatar_-transparente_vc7dsq.png";
+const FALLBACK_AVATAR = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='144' height='144' viewBox='0 0 144 144'%3E%3Ccircle cx='72' cy='72' r='72' fill='%23e2e8f0'/%3E%3Ccircle cx='72' cy='56' r='24' fill='%2394a3b8'/%3E%3Cellipse cx='72' cy='110' rx='36' ry='28' fill='%2394a3b8'/%3E%3C/svg%3E";
+
 export default function FloatingHelpAvatar({ subdomain }) {
   const navigate = useNavigate();
   const [dismissed, setDismissed] = useState(false);
@@ -37,7 +40,8 @@ export default function FloatingHelpAvatar({ subdomain }) {
             onClick={() => navigate(subdomain ? `/${subdomain}/academia` : "/academia")}
           >
             <img
-              src="https://customer-assets.emergentagent.com/job_b91f707a-1a92-469c-9853-602cda64d52a/artifacts/vbv0s9n6_avatar%20-transparente.png"
+              src={AVATAR_URL}
+              onError={(e) => { e.target.onerror = null; e.target.src = FALLBACK_AVATAR; }}
               alt="Asistente"
               className="w-full h-full object-cover"
             />
