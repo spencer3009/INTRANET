@@ -45,13 +45,13 @@ export default function FloatingHelpAvatar({ subdomain }) {
         </div>
         <div
           className="relative px-5 py-2.5 rounded-2xl shadow-xl text-center overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-          style={{ background: "linear-gradient(135deg, #3B9B7A 0%, #4BA88A 50%, #3B9B7A 100%)" }}
+          style={{ background: "linear-gradient(135deg, #1B6B50 0%, #257A5C 50%, #1B6B50 100%)" }}
           onClick={() => navigate(subdomain ? `/${subdomain}/academia` : "/academia")}
         >
           <div className="absolute inset-0 rounded-2xl" style={{ border: "1.5px solid rgba(251,191,36,0.35)" }} />
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-[1px]" style={{ background: "linear-gradient(90deg, transparent, rgba(251,191,36,0.6), transparent)" }} />
           <p className="text-[13px] font-bold text-white tracking-wide leading-tight">Centro de Ayuda</p>
-          <p className="text-[11px] font-semibold text-amber-400 tracking-wider mt-0.5">Videos Tutoriales</p>
+          <p className="text-[11px] font-semibold text-white tracking-wider mt-0.5">Videos Tutoriales</p>
         </div>
       </div>
     </>
