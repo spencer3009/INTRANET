@@ -193,7 +193,8 @@ function ShopifyRedirect({ user, environment }) {
   return null;
 }
 
-// Global CSS: ChatPal elements hidden by default, visible only when body has .chatpal-active
+// Global CSS: Hide ChatPal widget elements when not on Academia page
+// Uses very specific selectors to avoid hiding page content
 function ChatPalRouteGuard() {
   useEffect(() => {
     const STYLE_ID = "chatpal-visibility-css";
@@ -201,34 +202,39 @@ function ChatPalRouteGuard() {
       const style = document.createElement("style");
       style.id = STYLE_ID;
       style.textContent = `
-        /* Hide ALL ChatPal elements by default */
-        [id*="chatpal"], [class*="chatpal"],
-        [id*="ChatPal"], [class*="ChatPal"],
-        [id*="chatterpal"], [class*="chatterpal"],
-        iframe[src*="chatterpal"], iframe[src*="chatpal"] {
+        /* Hide ChatPal iframes and fixed overlays by default */
+        iframe[src*="chatterpal.me"],
+        iframe[src*="chatpal.me"] {
           display: none !important;
-          visibility: hidden !important;
-          opacity: 0 !important;
-          pointer-events: none !important;
         }
-        /* Show ChatPal ONLY when body has .chatpal-active */
-        body.chatpal-active [id*="chatpal"],
-        body.chatpal-active [class*="chatpal"],
-        body.chatpal-active [id*="ChatPal"],
-        body.chatpal-active [class*="ChatPal"],
-        body.chatpal-active [id*="chatterpal"],
-        body.chatpal-active [class*="chatterpal"],
-        body.chatpal-active iframe[src*="chatterpal"],
-        body.chatpal-active iframe[src*="chatpal"] {
+        body.chatpal-active iframe[src*="chatterpal.me"],
+        body.chatpal-active iframe[src*="chatpal.me"] {
           display: block !important;
-          visibility: visible !important;
-          opacity: 1 !important;
-          pointer-events: auto !important;
         }
       `;
       document.head.appendChild(style);
     }
   }, []);
+
+  // Also observe and hide any ChatPal injected fixed-position elements
+  const location = useLocation();
+  useEffect(() => {
+    const isAcademia = location.pathname.includes('/academia');
+    if (isAcademia) return;
+
+    // Periodically check for and hide ChatPal floating elements (not on academia)
+    const interval = setInterval(() => {
+      document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
+        // Only target elements that look like ChatPal (contain iframes from chatterpal)
+        if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
+          el.style.display = 'none';
+        }
+      });
+    }, 500);
+
+    return () => clearInterval(interval);
+  }, [location.pathname]);
+
   return null;
 }
 
