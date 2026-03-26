@@ -1,104 +1,94 @@
-<analysis>Here is the handover summary for the next agent:
-
-**original_problem_statement**: 
-The user requested a major new feature: Sistema de Descuentos y Pensiones Variables to allow dynamic monthly tuition pricing. Following the successful delivery of this feature, the user provided PRDs for a new module: Academia EduNet, a library for YouTube video tutorials managed by the global support team (Phase 1) and exposed to school administrators in a read-only portal (Phase 2). 
+<analysis>**original_problem_statement**: The user requested multiple UI/UX fixes, architectural refactors, and feature additions. Key requests included adding a view/edit password field for students, fixing school names in the support panel, adding drag-and-drop category reordering in the Academia module, integrating a ChatPal widget safely into the SPA without bleeding into other pages, creating a global floating help avatar, fixing the data architecture for teacher assignments on subject cards, optimizing page load speeds, updating loading screens, fixing scrollable areas in schedule modals, and finally, generating synthetic pending payment data in the accounting module.
 
 **User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only).
 
 **what currently exists?** 
-A React + FastAPI + MongoDB school management platform. A robust Discount and Variable Pension System has been fully implemented, handling automatic sibling discounts and manual overrides. A new Academia module exists, allowing global support admins to manage YouTube tutorial videos (with auto-extraction of thumbnails and titles). These videos are now exposed in read-only mode to school owners/admins via quick access cards on their dashboards.
+A robust React + FastAPI + MongoDB school management platform. The system now features a highly optimized , native HTML5 Drag & Drop for support categories, a globally available floating help avatar, a fully isolated ChatPal widget integration, and premium animated loading screens. The backend properly syncs teacher assignments using  as the absolute source of truth. 
 
 **Last working item**:
-    - **Last item agent was working**: The user uploaded a Word document titled  containing required UI/UX corrections for the Academia School Portal View. The agent successfully extracted the text from the document (Message 347), but the session ended before the agent could read the contents and implement the fixes.
-    - **Status**: NOT STARTED
-    - **Agent Testing Done**: N
-    - **Which testing method agent to use?**: Frontend testing agent / manual screenshot tool depending on the size of the requested corrections.
+    - **Last item agent was working**: Generating synthetic data in the Accounting module. The user requested: En contabilidad, crea aqui montos pedientes por cobrar por lo menos 4000 soles. The agent wrote and executed a Python script in the bash terminal to insert 5 pending payments totaling S/4000 for active students directly into the  collection.
+    - **Status**: USER VERIFICATION PENDING
+    - **Agent Testing Done**: Y (Verified via python script query in the terminal).
+    - **Which testing method agent to use?**: Frontend screenshot tool (Navigate to  to verify the pending amounts are shown on the UI) or ask user to verify.
     - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: Correcciones Academia EduNet — Vista Portal de Colegios (P0)
-     - Attempted fixes: None. The document was just extracted in the final message.
-     - Next debug checklist: Read the extracted text from the tool result in **Message 347**. Understand the specific corrections requested for the School Portal view of Academia and implement them.
-     - Why fix this issue and what will be achieved with the fix?: Direct user request to polish the newly delivered feature.
-     - Status: NOT STARTED
+  Issue 1: Verificación de data sintética en Contabilidad (P0)
+     - Attempted fixes: Agent injected 5 records into MongoDB totaling S/4000. Session ended before frontend verification.
+     - Next debug checklist: Take a screenshot of the Accounting page to ensure the Pendientes por cobrar reflects the S/4000. Communicate success to the user.
+     - Why fix this issue and what will be achieved with the fix?: Concludes the user's last request.
+     - Status: USER VERIFICATION PENDING
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend mostly (unless logic changes are requested).
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: None
 
-  Issue 2: Incomplete Payment Flow (P1)
-     - Attempted fixes: None in this session.
-     - Next debug checklist: Create a new page/section in the support panel to list payments with status . Implement Approve/Reject buttons.
-     - Why fix this issue and what will be achieved with the fix?: Allows admins to approve payments.
-     - Status: NOT STARTED
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Both.
-     - Blocked on other issue: No.
-
-  Issue 3: Inconsistent Subject List (P1)
-     - Attempted fixes: None in this session.
-     - Next debug checklist: Compare the backend API endpoints and DB queries used by the Asignaturas page vs the Asignar Docente modal.
-     - Why fix this issue and what will be achieved with the fix?: Ensures data consistency across the app.
-     - Status: NOT STARTED
+  Issue 2: Production Deployment Instability (P1)
+     - Attempted fixes: Issue carried over from previous forks. Production deploys sometimes result in 504/520 errors.
+     - Next debug checklist: Ensure  is perfectly synced and check for synchronous blocking loops on startup if a deploy is requested.
+     - Why fix this issue and what will be achieved with the fix?: Ensures stability during production updates.
+     - Status: BLOCKED (User handles deploys).
      - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Both.
-
-  Issue 4: Hardcoded Owner Dashboard Data (P2)
-     - Attempted fixes: None in this session.
-     - Next debug checklist: Replace static widgets in the owner's dashboard with real-time statistics from the backend.
-     - Status: NOT STARTED
-     - Is recurring issue? Y
-     - Should Test frontend/backend/both after fix?: Both.
+     - Should Test frontend/backend/both after fix?: Both
 
 **In progress Task List**:
-  *(None currently in progress outside of Issue 1)*
+  Task 1: Confirm Pending Payments Generation (P0)
+     - Where to resume: You are at the start of the session. Acknowledge the generation of the S/4000 pending payments and ask the user if they want to review it or move to the next task.
+     - What will be achieved with this?: Closes the loop on the final interaction.
+     - Status: TESTING PENDING
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on something: None
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
     - P1: Refactor Message Pages: Consolidate duplicated message pages into a single, robust component.
-    - P2: Visual indicator of  in Exams/Tasks List: Add a badge (✅ Sincronizado / ⏳ Pendiente / ➖ Sin vincular).
+    - P2: Visual indicator of  in Exams/Tasks List.
     - P2: Gradebook Enhancements: Implement Export to PDF/Excel and a Lock/Close Period feature.
     - P2: Double Scrollbar in Registro Auxiliar UI fix.
     
     Future Tasks:
-    - Complete Parent Portal Feature Parity.
+    - Vinculación Masiva Inteligente (Phase 2 of Parent Mass Import).
+    - Dashboard Owner con datos reales (currently hardcoded metrics).
     - Build a Matrículas (Enrollments) module.
-    - Enhance the Exams module with a Question Bank.
     - Replace all remaining / calls with custom modals.
 
 **Completed work in this session**
-- Sistema de Descuentos y Pensiones Variables: Full Full-stack implementation including , , updated , and sibling discount auto-sync logic (DONE).
-- Z-Index & Scroll UI Fixes: Fixed bug where the header covered modals in the Accounting page and added  to prevent oversized modals (DONE).
-- Academia EduNet (Phase 1): Full CRUD for tutorial videos in the Support panel, including YouTube oEmbed extraction for titles and auto-generated thumbnails (DONE).
-- Academia EduNet UI Tweaks: Changed subcategories to vertical lists, removed category/subcategory selectors from Video Add Modal to auto-inherit from the current view (DONE).
-- Academia EduNet (Phase 2): Read-only portal view () implemented for school owners (DONE).
-- Dashboard Navigation Update: Added Academia to the Quick Access cards in Owner and Admin dashboards, removed it from the standard sidebar (DONE).
+- Student Password Visibility: Added view/edit password field in student edit modal (, ) (DONE).
+- Support Panel School Names: Fixed cards to display  from the owner instead of raw  (DONE).
+- Academia Category Management: Added dropdowns to move videos between categories/subcategories (DONE).
+- Academia Reordering: Implemented native Drag & Drop reordering for categories and subcategories in the frontend sidebar, with a new backend endpoint  (DONE).
+- ChatPal Integration: Embedded ChatPal widget strictly limited to . Implemented bulletproof cleanup using CSS global rules in  and  class to prevent widget bleed across the SPA (DONE).
+- Floating Help Avatar: Created  using a fixed Cloudinary URL, bounce animations, and added it to 8 core pages (DONE).
+- Teacher Assignment Architecture: Refactored  to source teacher data directly from  instead of the outdated  logic (DONE).
+- Load Time Optimization: Refactored   using  to parallelize network requests, reducing load time by ~3x (DONE).
+- Premium Loading Screens: Created  and applied it to Course Detail and Teacher Assignments pages (DONE).
+- Modal Scroll Fixes: Refactored  and  to have sticky headers/footers with only the form content being scrollable (DONE).
 
 **Earlier issues found/mentioned but not fixed**
-- None found outside the pending list.
+- None in this specific session.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Production vs Preview Environment Schema Naming ( vs ).
-  - Recurrence count: 3
-  - Status: RESOLVED (Handled via multi-collection caching). Do not revert.
+  - Issue recurrence in previous fork: Production deployment timeouts/520 errors.
+  - Recurrence count: 1
+  - Status: BLOCKED
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Dynamic Pension:** Calculates individual tuition using: . Sibling detection relies on matching  /  fields inside the  collection. (Checks  for active enrollment).
-- **Academia YouTube Integration:** Uses  to call YouTube's oEmbed API () to fetch video titles, and uses Regex to extract video IDs to generate static  thumbnail URLs. Videos are not hosted locally.
+- **ChatPal SPA Isolation:** Because ChatPal injects iframes asynchronously, standard DOM removal fails on SPA navigation. The current architecture uses  () to inject global CSS that hides  via . When the user is on ,  is appended, making the widget visible. 
+- **Teacher Assignments Truth:**  is the strict source of truth for who teaches what.  matches this via , , and .
 
 **key DB schema**
   - : 
   - : 
-  - :  (Global table, no )
-  - : 
-  - : 
 
 **changes in tech stack**
-  -  package added to  to handle external HTTP requests for YouTube metadata.
+  - No new dependencies added. Leveraged native HTML5 drag and drop API.
 
-**All files of reference**
-  - 
+**All files of reference** 
+  -  (New)
+  -  (New)
+  -  (ChatPal global guard)
   - 
   - 
   - 
@@ -106,58 +96,50 @@ A React + FastAPI + MongoDB school management platform. A robust Discount and Va
   - 
 
 **Areas that need refactoring**: 
-  - : Remains bloated with Google Drive OAuth logic.
+  -  (>5000 lines). Modals and tabs desperately need sub-components.
+  - Message pages are heavily duplicated across user roles.
 
 **key api endpoints**
-  - : Extracts YouTube metadata.
-  - : Admin view for Support panel.
-  - : Read-only view for the School portal.
+  -  (New)
+  -  (Refactored)
 
 **Critical Info for New Agent**
-  - **LANGUAGE:** Respond to the user strictly in **Spanish**.
-  - **Current State Blocker:** The user uploaded a Word document in their final message. **You MUST review the tool result of Message 347** to read the extracted text. This contains the exact UI/UX corrections the user wants for the Academia Portal view.
-  - **Student Status:** When checking student enrollment states (e.g., for sibling discounts), ensure you query the  field, not the  field.
+  - **LANGUAGE:** Respond strictly in **Spanish**.
+  - **ChatPal Logic:** Do NOT attempt to alter the  in  unless absolutely necessary. It was meticulously crafted to handle asynchronous DOM bleeding during SPA routing.
+  - **Data Injection:** The 4000 soles in pending payments have already been inserted into the database. You just need to verify it visually on the frontend and confirm with the user.
 
 **documents and test reports created in this job**
-  -  (Discounts)
-  -  (Academia Phase 1)
-  -  (Academia Phase 2)
-  - 
+  -  (Student Password Edit Feature - 100% pass)
+  -  (Academia Reorder Feature - 100% pass)
+  -  (Updated)
 
-**Last 10 User Messages and any pending HUMAN messages**
-  1. User supplied PRD for Academia EduNet Phase 1 (Support video library).
-  2. User requested 2 UI tweaks: vertical subcategories and removing selectors from the Add Video modal.
-  3. User uploaded prompt for Phase 2: Exposing videos to school portal users.
-  4. User couldn't find Academia in the Owner portal menu.
-  5. User provided a screenshot showing it missing (due to unseen scroll).
-  6. User requested moving the Academia link out of the sidebar and into the Quick Access cards on the dashboard.
-  7. User reiterated removing it entirely from the left menu.
-  8. User uploaded a Word document:  with adjustments. *(PENDING: Agent extracted the file but session ended).*
+**Last 10 User Messages and any pending HUMAN messages** 
+  - User requested fix: Modal scroll in Configuración de Horarios (fixed).
+  - User requested fix: Modal scroll in Agregar Horario (fixed).
+  - User initiated new conversation: hola
+  - Agent replied: ¡Hola! ¿En qué te puedo ayudar?
+  - **(PENDING) User requested:** En contabilidad, crea aqui montos pedientes por cobrar por lo menos 4000 soles (Agent executed a bash python script to insert data into MongoDB, but the session ended before confirming with the user or showing a screenshot).
 
-**Project Health Check**:
-  - Broken: None known.
-  - Mocked: None.
+**Project Health Check:**
+  - Broken: Production deploys (External constraint).
+  - Mocked: Synthetic pending payments data created in DB.
 
-**3rd Party Integrations**:
-  - YouTube oEmbed API (Public API, no key required).
-  - Google Drive (File Storage) — requires User API Key.
-  - Firebase FCM (Push Notifications).
-  - Cloudinary (Image Storage).
+**3rd Party Integrations** 
+  - ChatterPal (Video Avatar Widget) — External Script injection (No key required directly in code, EmbedID hardcoded).
+  - Cloudinary (Image Hosting) — Hardcoded URL for Help Avatar.
+  - YouTube/Vimeo oEmbed APIs.
 
-**Testing status**:
-  - Testing agent used after significant changes: YES (Iterations 89, 90, 91 passed 100%).
+**Testing status**
+  - Testing agent used after significant changes: YES
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: , , 
+  - Test files created: , 
   - Known regressions: None.
 
-**Credentials to test flow**:
+**Credentials to test flow:**
   - **School Owner / Admin:**
     - **Subdomain:** 
     - **Email:** 
     - **Password:** 
-  - **Support Admin:**
-    - **Email:** 
-    - **Password:** 
 
 **What agent forgot to execute**
-The agent extracted the text from the  file (Message 347) but the session ended immediately. The agent forgot to read the extracted content to implement the requested corrections. Your first action should be to read the text extracted in that tool call.</analysis>
+The agent successfully inserted the synthetic pending payment data (S/4000) directly into the MongoDB via a terminal python script. However, the session ended before the agent could take a screenshot of the Accounting frontend page to verify it visually and use the  tool to communicate this back to the user. Start by acknowledging the data generation and taking a screenshot to ensure it renders correctly on .</analysis>

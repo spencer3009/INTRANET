@@ -1,97 +1,107 @@
-# EduNet - PRD
+# PRD - EduNet School Management Platform
 
 ## Original Problem Statement
-Plataforma de gestion escolar (React + FastAPI + MongoDB) para el Colegio El Roble. Incluye modulos de usuarios, asignaturas, horarios, asistencia, examenes, tareas, contabilidad, mensajeria y panel de padres.
+Build a comprehensive school management platform (React + FastAPI + MongoDB) for Peruvian schools. Features include multi-tenant subdomain routing, role-based access control, academic management, accounting/financial module, messaging, schedules, and more.
+
+## User Personas
+- **School Owner/Director**: Full admin access, financial oversight
+- **Teachers**: Academic management, grades, attendance
+- **Students**: View grades, schedules, messages
+- **Parents**: Monitor child's progress, payments
+
+## Core Requirements
+- Multi-tenant architecture with subdomain routing
+- Role-based access control (owner, director, admin, teacher, student, parent)
+- Academic module (subjects, assignments, grades)
+- Accounting module (payments, expenses, debtors, financial settings)
+- Messaging system
+- Schedule management
+- Support/Academia portal with video tutorials
+
+## Tech Stack
+- Frontend: React + Tailwind + Shadcn/UI + Recharts
+- Backend: FastAPI + Motor (async MongoDB)
+- Database: MongoDB
+- 3rd Party: ChatterPal (video avatar), Cloudinary (images), YouTube/Vimeo oEmbed
 
 ## Architecture
-- **Frontend**: React (CRA) + Shadcn/UI + Tailwind CSS
-- **Backend**: FastAPI + Motor (async MongoDB)
-- **Database**: MongoDB
-- **Integrations**: Google Drive, Firebase FCM, Cloudinary, YouTube oEmbed API
+```
+/app
+├── backend/
+│   ├── routes/
+│   │   ├── academia.py
+│   │   ├── subjects.py
+│   │   ├── support.py
+│   │   ├── users.py
+│   │   ├── accounting.py
+│   │   └── core.py
+│   └── server.py
+└── frontend/
+    └── src/
+        ├── App.js
+        ├── components/
+        │   ├── CourseLoadingScreen.jsx
+        │   ├── FloatingHelpAvatar.jsx
+        │   ├── FinancialSettingsTab.jsx
+        │   ├── AccountingDateFilter.jsx
+        │   ├── AccountingSummaryCards.jsx
+        │   └── schedule/
+        └── pages/
+            ├── AccountingPage.jsx
+            ├── CourseDetailPage.jsx
+            ├── TeacherAssignmentsPage.jsx
+            ├── AcademiaPortalPage.jsx
+            └── SupportAcademiaPage.jsx
+```
+
+## Key DB Collections
+- `users`: All user accounts with roles
+- `payments`: Income records (student payments)
+- `expenses`: Expense records (school outflows)
+- `academic_assignments`: Teacher-subject assignments (source of truth)
+- `payment_concepts`: Configurable payment types
+- `school_financial_settings`: Financial configuration per school
+- `discount_types`, `student_discounts`: Discount management
+
+## Credentials
+- School Owner: `admin@elroble.edu` / `1234abc8` (subdomain: `elroble`)
+
+---
 
 ## What's Been Implemented
-- [x] Full auth system with roles (owner, admin, teacher, student, parent)
-- [x] Academic structure (grades, sections, subjects, schedules)
-- [x] Attendance with QR scanning
-- [x] Exams module with gradebook linkage (EM/EB/P1/P2/P3)
-- [x] Tasks module with gradebook linkage (P1/P2/P3 only)
-- [x] Unified `register_column_assignments` for mutual exclusivity
-- [x] Auto-zero crons for expired exams and tasks
-- [x] Accounting: Payments, expenses, financial configuration
-- [x] **Sistema de Descuentos y Pensiones Variables** (FULL)
-- [x] **Academia Phase 1**: Support panel CRUD (categories, subcategories, YouTube videos)
-- [x] **Academia Phase 2**: Portal read-only view for school users
-- [x] **Academia Portal Corrections (Mar 22, 2026)**: Layout fix + Premium redesign (navy+gold branding)
-- [x] **Academia Share**: Share button on portal video cards and support panel cards
-- [x] **Dashboard**: "Centro de Ayuda (Videos Tutoriales)" with graduation cap icon
-- [x] **Importacion Masiva de Padres v3.0 (Mar 22, 2026)**: FULL implementation
-  - Backend: Template generation (2 sheets), import with auto-merge, credentials CSV, pending CRUD
-  - Frontend: Import card, drag-drop modal, progress bar, result summary, pending management
-  - Testing: 100% backend (15/15) + frontend verified (iteration_93)
-- [x] **Vimeo Support in Academia (Mar 22, 2026)**: Platform toggle, auto-detection, oEmbed extraction
-- [x] **Export Student Credentials (Mar 22, 2026)**: Excel export with 4-filter validation (Level, Grade, Section, Shift)
-- [x] **Student Password View/Edit in Edit Modal (Mar 23, 2026)**: 
-  - Frontend: Password field with Eye/EyeOff toggle, reconstructed from DNI or "123456", amber styling, only for students
-  - Backend: PUT /api/users/{user_id} accepts password field, hashes and saves plain_password
-  - Testing: 100% backend (4/4) + 100% frontend verified (iteration_94)
-- [x] **Fix: Nombre colegio en tarjeta soporte (Mar 23, 2026)**: 
-  - Backend: GET /support/schools ahora usa owner.school_display_name sobre school.name
-  - Backend: PUT /support/school-owner sincroniza school_display_name a schools.name
-- [x] **Feature: Mover video de categoría en Academia (Mar 23, 2026)**:
-  - Frontend: Dropdowns de Categoría/Subcategoría en modal Editar Video
-  - Backend: Ya soportado en PUT /academia/videos/{video_id}
-- [x] **Feature: Reordenar Categorías y Subcategorías en Academia (Mar 24, 2026)**:
-  - Frontend: Modo reordenamiento con drag & drop HTML5 + flechas ↑↓, botón "Guardar orden" sticky
-  - Backend: PUT /academia/subcategories/reorder (nuevo), fix de orden de rutas FastAPI
-  - Testing: 100% backend (10/10) + 100% frontend (iteration_95)
-- [x] **Integración ChatPal en Academia Portal (Mar 24, 2026)**:
-  - Widget ChatPal inyectado dinámicamente en AcademiaPortalPage.jsx (para owner/admin/teacher)
-  - Cleanup automático al desmontar componente
-  - ChatPalRouteGuard en App.js para ocultar en otras páginas via CSS
-- [x] **Sincronización Asignación Docente → Asignaturas Cards (Mar 25, 2026)**:
-  - Backend: Cambiado GET /academic/subjects para consultar `academic_assignments` (fuente de verdad) en vez de `subject_teachers`
-  - Filtros por level_id, grade_id, section_id para match exacto
-  - Las cards ahora muestran el docente asignado correctamente
 
-## Key DB Collections (new)
-- `import_pending`: Stores errored rows from bulk imports (type: "parent" or "student")
-- `import_credentials`: Stores generated credentials per batch for download
+### Session History (Latest)
+- Student Password Visibility (view/edit in modal)
+- Support Panel School Names fix
+- Academia Category Management (move videos between categories)
+- Academia Reordering (native Drag & Drop)
+- ChatPal Integration (isolated to AcademiaPortalPage)
+- Floating Help Avatar (8 core pages)
+- Teacher Assignment Architecture refactor
+- Load Time Optimization (Promise.all)
+- Premium Loading Screens
+- Modal Scroll Fixes (ScheduleSettingsModal, ScheduleEntryModal)
+- Synthetic pending payments: S/4,000 (5 records)
+- Synthetic expenses: S/8,000 (8 records, March 2026)
 
-## Key API Endpoints (new)
-- `GET /api/parents/template` — Download Excel template
-- `POST /api/parents/import` — Bulk import parents
-- `GET /api/parents/import/{batchId}/credentials` — Download credentials CSV
-- `GET /api/parents/pending` — List pending parents
-- `POST /api/parents/pending/{id}/activate` — Activate pending parent
-- `PUT /api/parents/pending/{id}` — Edit pending parent
-- `DELETE /api/parents/pending/{id}` — Delete pending parent
+---
 
-## Pending Issues
-- **P1**: Inconsistent Subject List between pages
-- **P1**: Incomplete Payment Verification Flow
-- **P2**: Hardcoded Owner Dashboard Data
+## Prioritized Backlog
 
-## Upcoming Tasks
-- P1: Refactor duplicate Message pages
-- P2: Visual sync_status indicator in Exams/Tasks
-- P2: Gradebook enhancements (Export PDF/Excel, Lock Period)
-- P2: Double scrollbar fix in "Registro Auxiliar"
+### P1
+- Refactor Message Pages (consolidate duplicated components)
 
-## Future Tasks
-- Complete Parent Portal feature parity
-- Build "Matriculas" module
-- Question Bank for Exams
-- Replace window.confirm/alert with custom modals
-- Vinculacion Masiva Inteligente (Phase 2 of parent import)
+### P2
+- Visual indicator of `sync_status` in Exams/Tasks List
+- Gradebook Enhancements (Export PDF/Excel, Lock/Close Period)
+- Double Scrollbar fix in "Registro Auxiliar"
 
-## Test Credentials
-- **Support**: spencer3009@gmail.com / Socios3009
-- **Owner**: admin@elroble.edu / 1234abc8 (subdomain: elroble)
+### P3 (Future)
+- Vinculacion Masiva Inteligente (Phase 2 parent import)
+- Dashboard Owner con datos reales
+- Build "Matriculas" (Enrollments) module
+- Replace all window.confirm/alert with custom modals
+- UsersPage.jsx refactoring (>5000 lines, needs sub-components)
 
-## Test Reports
-- /app/test_reports/iteration_89.json (Discounts - 100%)
-- /app/test_reports/iteration_90.json (Academia Phase 1 - 100%)
-- /app/test_reports/iteration_91.json (Academia Phase 2 - 100%)
-- /app/test_reports/iteration_92.json (Academia Portal Corrections - 100%)
-- /app/test_reports/iteration_93.json (Parent Bulk Import - 100%)
-- /app/test_reports/iteration_94.json (Student Password Edit - 100%)
+## Known Issues
+- Production deployment timeouts/520 errors (external constraint)

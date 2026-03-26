@@ -52,7 +52,7 @@
     "support": {
       "email": "spencer3009@gmail.com",
       "password": "Socios3009",
-      "login_url": "https://student-auth-modal.preview.emergentagent.com/login",
+      "login_url": "https://payment-data-test.preview.emergentagent.com/login",
       "role": "system_admin_global"
     }
   },
