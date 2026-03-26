@@ -1916,16 +1916,61 @@ function StudentHistoryModal({ isOpen, onClose, studentId, token }) {
 // ══════════════════════════════════════════════════════════════════════════════
 // MOROSOS TAB
 // ══════════════════════════════════════════════════════════════════════════════
+// Collapsible pending months cell
+function PendingMonthsCell({ months }) {
+  const [expanded, setExpanded] = useState(false);
+  if (!months || months.length === 0) {
+    return <span className="text-xs italic" style={{ color: "#9CA3AF" }}>Al día en meses</span>;
+  }
+  return (
+    <div className="min-w-[160px]">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-2 group cursor-pointer"
+        data-testid="toggle-pending-months"
+      >
+        <span className="inline-flex items-center justify-center w-6 h-6 rounded text-xs font-bold" style={{ background: "#FCEBEB", color: "#A32D2D" }}>
+          {months.length}
+        </span>
+        <span className="text-[13px] font-medium" style={{ color: "#A32D2D" }}>
+          {months.length} {months.length === 1 ? "mes" : "meses"} sin pagar
+        </span>
+        <ChevronRight className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${expanded ? "rotate-90" : ""}`} />
+      </button>
+      {expanded && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {months.map((m, i) => (
+            <span key={i} className="text-[11px] px-2 py-0.5 rounded" style={{ background: "#F5F5F4", color: "#6B6B67" }}>{m}</span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Student initials helper
+function getInitials(name) {
+  if (!name || name === "Desconocido") return "??";
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return (parts[0]?.[0] || "?").toUpperCase();
+}
+
 function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
-  const [filter, setFilter] = useState("all"); // all, moroso, al_dia
-  
+  const [filter, setFilter] = useState("all");
   const filtered = filter === "all" ? debtors : debtors.filter(d => d.status === filter);
+  const avgDebt = debtorsSummary?.morosos_count > 0 ? (debtorsSummary.total_debt / debtorsSummary.morosos_count) : 0;
 
   return (
     <div className="space-y-5">
       {/* Summary cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-red-500 cursor-pointer hover:shadow-md transition-all" onClick={() => setFilter("moroso")}>
+        <div
+          className={`bg-white rounded-xl p-5 border shadow-sm border-l-4 border-l-red-500 cursor-pointer hover:shadow-md transition-all ${filter === "moroso" ? "border-red-300 ring-1 ring-red-200" : "border-gray-100"}`}
+          onClick={() => setFilter(filter === "moroso" ? "all" : "moroso")}
+          data-testid="card-morosos"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center"><UserX className="w-5 h-5 text-red-600" /></div>
             <div>
@@ -1943,7 +1988,11 @@ function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-xl p-5 border border-gray-100 shadow-sm border-l-4 border-l-emerald-500 cursor-pointer hover:shadow-md transition-all" onClick={() => setFilter("al_dia")}>
+        <div
+          className={`bg-white rounded-xl p-5 border shadow-sm border-l-4 border-l-emerald-500 cursor-pointer hover:shadow-md transition-all ${filter === "al_dia" ? "border-emerald-300 ring-1 ring-emerald-200" : "border-gray-100"}`}
+          onClick={() => setFilter(filter === "al_dia" ? "all" : "al_dia")}
+          data-testid="card-al-dia"
+        >
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center"><UserCheck className="w-5 h-5 text-emerald-600" /></div>
             <div>
@@ -1963,6 +2012,7 @@ function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
             data-testid={`filter-${f.key}`}
           >{f.label}</button>
         ))}
+        <span className="ml-auto text-xs text-gray-400">{filtered.length} resultado{filtered.length !== 1 ? "s" : ""}</span>
       </div>
 
       {/* Table */}
@@ -1970,62 +2020,83 @@ function MorososTab({ loading, debtors, debtorsSummary, onViewHistory }) {
         <div className="overflow-x-auto">
           <table className="w-full" data-testid="morosos-table">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Estado</th>
-                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Alumno</th>
-                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Grado</th>
-                <th className="px-5 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Deuda</th>
-                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Meses Pendientes</th>
-                <th className="px-5 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Último Pago</th>
-                <th className="px-5 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Acciones</th>
+              <tr className="border-b border-gray-100" style={{ background: "#FAFAF9" }}>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: "#8C8C88" }}>Estado</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: "#8C8C88" }}>Alumno</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide" style={{ color: "#8C8C88" }}>Deuda</th>
+                <th className="px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide" style={{ color: "#8C8C88" }}>Meses Pendientes</th>
+                <th className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-wide" style={{ color: "#8C8C88" }}>Último Pago</th>
+                <th className="px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-wide" style={{ color: "#8C8C88" }}>Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody>
               {loading ? (
-                <tr><td colSpan={7} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-gray-400 mx-auto" /></td></tr>
+                <tr><td colSpan={6} className="py-12 text-center"><Loader2 className="w-6 h-6 animate-spin text-gray-400 mx-auto" /></td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-16 text-center">
+                <tr><td colSpan={6} className="px-5 py-16 text-center">
                   <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><Users className="w-8 h-8 text-gray-300" /></div>
                   <p className="text-gray-500 font-semibold">Sin resultados</p>
                 </td></tr>
               ) : filtered.map(d => (
-                <tr key={d.student_id} className="hover:bg-gray-50/50 transition-colors" data-testid={`debtor-row-${d.student_id}`}>
-                  <td className="px-5 py-4">
-                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${
-                      d.status === 'moroso' ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full ${d.status === 'moroso' ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                      {d.status === 'moroso' ? 'Moroso' : 'Al Día'}
+                <tr
+                  key={d.student_id}
+                  className="transition-colors hover:bg-[#FAFAF9]"
+                  style={{ borderBottom: "0.5px solid #E8E8E5" }}
+                  data-testid={`debtor-row-${d.student_id}`}
+                >
+                  {/* Estado */}
+                  <td className="px-4 py-4">
+                    <div
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium"
+                      style={d.status === "moroso"
+                        ? { background: "#FCEBEB", color: "#A32D2D" }
+                        : { background: "#ECFDF5", color: "#166534" }
+                      }
+                    >
+                      <div
+                        className="w-2 h-2 rounded-full"
+                        style={{ background: d.status === "moroso" ? "#A32D2D" : "#22C55E" }}
+                      />
+                      {d.status === "moroso" ? "Moroso" : "Al Día"}
                     </div>
                   </td>
-                  <td className="px-5 py-4">
+                  {/* Alumno (con grado fusionado) */}
+                  <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center">
-                        <User className="w-4 h-4 text-gray-500" />
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold"
+                        style={{ background: "#F5F5F4", color: "#6B6B67" }}
+                      >
+                        {getInitials(d.student_name)}
                       </div>
-                      <span className="text-sm font-semibold text-gray-800">{d.student_name}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">{d.student_name}</p>
+                        <p className="text-xs" style={{ color: "#9CA3AF" }}>{d.grade_name} - {d.section_name}</p>
+                      </div>
                     </div>
                   </td>
-                  <td className="px-5 py-4">
-                    <span className="text-sm text-gray-600">{d.grade_name} - {d.section_name}</span>
-                  </td>
-                  <td className="px-5 py-4 text-right">
-                    <span className={`text-sm font-bold ${d.total_pending > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {/* Deuda */}
+                  <td className="px-4 py-4 text-right">
+                    <span className="text-sm font-medium" style={{ color: d.total_pending > 0 ? "#A32D2D" : "#166534" }}>
                       S/ {formatNumber(d.total_pending)}
                     </span>
                   </td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-1">
-                      {d.pending_months.length > 0 ? d.pending_months.map((m, i) => (
-                        <span key={i} className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-200">{m}</span>
-                      )) : <span className="text-xs text-emerald-600">Ninguno</span>}
-                    </div>
+                  {/* Meses Pendientes (colapsable) */}
+                  <td className="px-4 py-4">
+                    <PendingMonthsCell months={d.pending_months} />
                   </td>
-                  <td className="px-5 py-4">
-                    <span className="text-sm text-gray-500">{d.last_payment_date || '-'}</span>
+                  {/* Último Pago */}
+                  <td className="px-4 py-4 text-right">
+                    <span className="text-[13px]" style={{ color: "#9CA3AF" }}>{d.last_payment_date || "-"}</span>
                   </td>
-                  <td className="px-5 py-4 text-center">
-                    <button onClick={() => onViewHistory(d.student_id)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors" title="Ver historial" data-testid={`view-history-${d.student_id}`}>
+                  {/* Acciones */}
+                  <td className="px-4 py-4 text-center">
+                    <button
+                      onClick={() => onViewHistory(d.student_id)}
+                      className="w-8 h-8 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-100 transition-colors mx-auto"
+                      title="Ver historial"
+                      data-testid={`view-history-${d.student_id}`}
+                    >
                       <Eye className="w-4 h-4" />
                     </button>
                   </td>
