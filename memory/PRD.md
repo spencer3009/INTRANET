@@ -70,7 +70,11 @@ Build a comprehensive school management platform (React + FastAPI + MongoDB) for
 
 ## What's Been Implemented
 
-### Session History (Latest)
+### Latest Session (March 2026)
+- **Morosos Tab Fix**: Changed Morosos from separate page navigation to inline tab within AccountingPage, maintaining the tab menu visible
+- **Synthetic Data**: Inserted S/8,000 in expenses (8 records, March 2026) and S/29,158 in paid payments to reach S/34,000 income target
+
+### Previous Sessions
 - Student Password Visibility (view/edit in modal)
 - Support Panel School Names fix
 - Academia Category Management (move videos between categories)
@@ -82,7 +86,6 @@ Build a comprehensive school management platform (React + FastAPI + MongoDB) for
 - Premium Loading Screens
 - Modal Scroll Fixes (ScheduleSettingsModal, ScheduleEntryModal)
 - Synthetic pending payments: S/4,000 (5 records)
-- Synthetic expenses: S/8,000 (8 records, March 2026)
 
 ---
 
@@ -105,3 +108,4 @@ Build a comprehensive school management platform (React + FastAPI + MongoDB) for
 
 ## Known Issues
 - Production deployment timeouts/520 errors (external constraint)
+- MorososPage.jsx still exists as separate page (could be removed/deprecated)
