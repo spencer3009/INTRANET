@@ -43,6 +43,7 @@ class SupportProfileUpdate(BaseModel):
     last_name: Optional[str] = None
     email: Optional[str] = None
     photo_url: Optional[str] = None
+    whatsapp: Optional[str] = None
 
 class SupportPasswordChange(BaseModel):
     current_password: str

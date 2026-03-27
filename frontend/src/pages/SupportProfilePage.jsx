@@ -3,7 +3,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { 
   User, Mail, Lock, Camera, Save, Eye, EyeOff, 
-  Loader2, CheckCircle, Shield
+  Loader2, CheckCircle, Shield, Phone
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -30,7 +30,8 @@ export default function SupportProfilePage({ token, user, onUserUpdate }) {
         setForm({
           name: res.data.name || "",
           last_name: res.data.last_name || "",
-          email: res.data.email || ""
+          email: res.data.email || "",
+          whatsapp: res.data.whatsapp || ""
         });
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -211,6 +212,22 @@ export default function SupportProfilePage({ token, user, onUserUpdate }) {
               data-testid="profile-email-input"
             />
           </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-600 mb-1.5">WhatsApp de Contacto</label>
+          <div className="relative">
+            <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={form.whatsapp}
+              onChange={(e) => setForm(f => ({ ...f, whatsapp: e.target.value.replace(/[^0-9]/g, '') }))}
+              placeholder="Ej: 51987654321"
+              className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+              data-testid="profile-whatsapp-input"
+            />
+          </div>
+          <p className="text-xs text-slate-400 mt-1">Este numero se mostrara en la pagina de login de los colegios. Ingresa el numero con codigo de pais, sin + ni espacios.</p>
         </div>
 
         <button

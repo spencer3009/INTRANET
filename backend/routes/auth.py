@@ -917,6 +917,13 @@ async def get_school_public_info(subdomain: str):
     if not school:
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
     
+    # Get support whatsapp from global support admin
+    support_user = await db.users.find_one(
+        {"role": "system_admin_global"},
+        {"_id": 0, "whatsapp": 1}
+    )
+    support_whatsapp = support_user.get("whatsapp") if support_user else None
+    
     return {
         "subdomain": school.get("subdomain"),
         "school_name": school.get("school_name"),
@@ -925,6 +932,7 @@ async def get_school_public_info(subdomain: str):
         "primary_color": school.get("primary_color", "#001f4b"),
         "secondary_color": school.get("secondary_color", "#e1b82c"),
         "login_background_url": school.get("login_background_url"),
+        "support_whatsapp": support_whatsapp,
     }
 
 # ══════════════════════════════════════════════════════════════════════════════

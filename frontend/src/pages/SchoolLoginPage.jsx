@@ -259,16 +259,21 @@ export default function SchoolLoginPage({ onLogin }) {
             </button>
           </form>
 
-          <p className="text-center text-sm text-slate-500 mt-6">
-            No tienes cuenta en este colegio?{" "}
-            <Link 
-              to="/register" 
-              className="font-semibold hover:underline"
-              style={{ color: primaryColor }}
-            >
-              Contacta al administrador
-            </Link>
-          </p>
+          {school?.support_whatsapp && (
+            <p className="text-center text-sm text-slate-500 mt-6">
+              No tienes cuenta en este colegio?{" "}
+              <a 
+                href={`https://wa.me/${school.support_whatsapp}?text=Hola, necesito ayuda para acceder a la plataforma del colegio.`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold hover:underline"
+                style={{ color: primaryColor }}
+                data-testid="contact-admin-whatsapp"
+              >
+                Contacta al administrador
+              </a>
+            </p>
+          )}
         </div>
 
         {/* Powered by */}
