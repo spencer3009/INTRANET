@@ -156,7 +156,7 @@ export default function SchoolLoginPage({ onLogin }) {
               <img 
                 src={school.logo_url} 
                 alt={school.school_name}
-                className="w-24 h-24 object-contain mb-4"
+                className="w-32 h-32 object-contain mb-4"
                 data-testid="school-logo"
               />
             ) : (
