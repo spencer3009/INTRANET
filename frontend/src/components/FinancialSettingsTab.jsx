@@ -21,7 +21,7 @@ export default function FinancialSettingsTab({ token, user }) {
     interes_activo: false,
     interes_tipo: "porcentaje",
     interes_valor: 0,
-    activacion_modo: "matricula_pension"
+    activacion_modo: "on_create"
   });
 
   const isOwnerOrAdmin = user?.is_owner || user?.role === "owner" || user?.role === "director" || user?.role === "admin";
@@ -39,7 +39,7 @@ export default function FinancialSettingsTab({ token, user }) {
           interes_activo: d.interes_activo ?? false,
           interes_tipo: d.interes_tipo ?? "porcentaje",
           interes_valor: d.interes_valor ?? 0,
-          activacion_modo: d.activacion_modo ?? "matricula_pension"
+          activacion_modo: d.activacion_modo ?? "on_create"
         });
       })
       .catch(() => {})
@@ -318,7 +318,7 @@ export default function FinancialSettingsTab({ token, user }) {
               <label
                 key={opt.value}
                 className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                  (form.activacion_modo || "matricula_pension") === opt.value
+                  (form.activacion_modo || "on_create") === opt.value
                     ? "border-violet-300 bg-violet-50"
                     : "border-slate-200 hover:border-slate-300 bg-white"
                 }`}

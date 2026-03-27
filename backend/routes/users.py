@@ -229,7 +229,7 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         fin_settings = await db.school_financial_settings.find_one(
             {"school_id": school_id}, {"_id": 0, "activacion_modo": 1}
         )
-        activation_mode = (fin_settings or {}).get("activacion_modo", "matricula_pension")
+        activation_mode = (fin_settings or {}).get("activacion_modo", "on_create")
         if activation_mode == "on_create":
             new_user["student_status"] = "active"
         else:

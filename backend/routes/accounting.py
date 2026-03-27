@@ -1283,7 +1283,7 @@ async def auto_update_student_status_on_payment(student_id: str, school_id: str,
     
     # Get activation config
     fin_settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
-    activacion_modo = (fin_settings or {}).get("activacion_modo", "matricula_pension")
+    activacion_modo = (fin_settings or {}).get("activacion_modo", "on_create")
     
     concept_lower = concept.lower().strip()
     
