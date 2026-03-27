@@ -20,7 +20,8 @@ export default function FinancialSettingsTab({ token, user }) {
     pronto_pago_fecha_limite: 5,
     interes_activo: false,
     interes_tipo: "porcentaje",
-    interes_valor: 0
+    interes_valor: 0,
+    activacion_modo: "matricula_pension"
   });
 
   const isOwnerOrAdmin = user?.is_owner || user?.role === "owner" || user?.role === "director" || user?.role === "admin";
@@ -37,7 +38,8 @@ export default function FinancialSettingsTab({ token, user }) {
           pronto_pago_fecha_limite: d.pronto_pago_fecha_limite ?? 5,
           interes_activo: d.interes_activo ?? false,
           interes_tipo: d.interes_tipo ?? "porcentaje",
-          interes_valor: d.interes_valor ?? 0
+          interes_valor: d.interes_valor ?? 0,
+          activacion_modo: d.activacion_modo ?? "matricula_pension"
         });
       })
       .catch(() => {})
