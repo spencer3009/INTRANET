@@ -305,7 +305,8 @@ export default function FinancialSettingsTab({ token, user }) {
           <div className="space-y-3">
             {[
               { value: "matricula", label: "Activar con matricula", desc: "El alumno se activa al registrar pago de matricula" },
-              { value: "matricula_pension", label: "Activar con matricula + primera pension", desc: "El alumno se activa al registrar matricula y primera mensualidad" }
+              { value: "matricula_pension", label: "Activar con matricula + primera pension", desc: "El alumno se activa al registrar matricula y primera mensualidad" },
+              { value: "on_create", label: "Activar al registrar alumno", desc: "El alumno se activa automaticamente al ser registrado, sin requerir ningun pago" }
             ].map(opt => (
               <label
                 key={opt.value}

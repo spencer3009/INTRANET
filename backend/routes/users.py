@@ -225,8 +225,15 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         new_user["grado_id"] = data.grado_id
         new_user["seccion_id"] = data.seccion_id
         new_user["turno_id"] = data.turno_id
-        # Always start as pending until matrícula is paid
-        new_user["student_status"] = "pending"
+        # Check activation mode from financial settings
+        fin_settings = await db.school_financial_settings.find_one(
+            {"school_id": school_id}, {"_id": 0, "activacion_modo": 1}
+        )
+        activation_mode = (fin_settings or {}).get("activacion_modo", "matricula_pension")
+        if activation_mode == "on_create":
+            new_user["student_status"] = "active"
+        else:
+            new_user["student_status"] = "pending"
         if data.padre_id:
             new_user["padre_id"] = data.padre_id
         # Complementary info
@@ -938,6 +945,12 @@ async def import_students(
     created = []
     pending = []
 
+    # Check activation mode
+    fin_settings = await db.school_financial_settings.find_one(
+        {"school_id": school_id}, {"_id": 0, "activacion_modo": 1}
+    )
+    activation_mode = (fin_settings or {}).get("activacion_modo", "matricula_pension")
+
     last_code = await db.users.find_one(
         {"school_id": school_id, "student_code": {"$exists": True}},
         sort=[("student_code", -1)],
@@ -1037,7 +1050,7 @@ async def import_students(
             "seccion_id": seccion_id or None,
             "turno_id": turno_id or None,
             "student_code": student_code,
-            "student_status": "pending" if errors else "active",
+            "student_status": "pending" if errors else ("active" if activation_mode == "on_create" else "active"),
             "import_status": "pending" if errors else "imported",
             "import_errors": errors if errors else None,
             "import_notes": notes or None,
