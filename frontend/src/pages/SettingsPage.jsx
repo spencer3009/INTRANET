@@ -48,6 +48,11 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [allowAdminBroadcast, setAllowAdminBroadcast] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
   
+  // Login background state
+  const [loginBgUrl, setLoginBgUrl] = useState(null);
+  const [uploadingBg, setUploadingBg] = useState(false);
+  const loginBgInputRef = useRef(null);
+  
   // Attendance config state (levels-based)
   const [attendanceConfig, setAttendanceConfig] = useState({
     teachers: { entry_time: "07:15", exit_time: "13:00" },
@@ -135,6 +140,17 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
     };
     
     fetchDriveStatus();
+  }, [token]);
+
+  // Fetch login background
+  useEffect(() => {
+    const fetchLoginBg = async () => {
+      try {
+        const res = await axios.get(`${API}/settings/login-background`, { headers });
+        setLoginBgUrl(res.data.login_background_url);
+      } catch {}
+    };
+    if (token) fetchLoginBg();
   }, [token]);
   
   // Handle OAuth callback results from URL params
@@ -1149,6 +1165,152 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
             {(user?.is_owner || user?.is_super_admin || user?.role === "owner" || user?.role === "director") && (
               <section className="mt-8" data-testid="carousel-section">
                 <CarouselManager token={token} />
+              </section>
+            )}
+
+            {/* Login Background Image - Only for owners */}
+            {(user?.is_owner || user?.is_super_admin || user?.role === "owner" || user?.role === "director") && (
+              <section className="mt-8" data-testid="login-background-section">
+                <div className="bg-slate-800 text-white rounded-2xl p-6 flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center">
+                      <Image className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold">Fondo de Pagina de Login</h3>
+                      <p className="text-sm text-white/70">Personaliza la imagen de fondo de la pagina de inicio de sesion de tu colegio</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                  {loginBgUrl ? (
+                    <div className="space-y-4">
+                      <div className="relative rounded-xl overflow-hidden border border-gray-200 aspect-[16/6]">
+                        <img
+                          src={loginBgUrl}
+                          alt="Fondo de login"
+                          className="w-full h-full object-cover"
+                          data-testid="login-bg-preview"
+                        />
+                        {uploadingBg && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="w-8 h-8 text-white animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => loginBgInputRef.current?.click()}
+                          disabled={uploadingBg}
+                          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+                          data-testid="login-bg-replace-btn"
+                        >
+                          <Upload className="w-4 h-4" />
+                          Reemplazar imagen
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm("¿Eliminar la imagen de fondo del login?")) return;
+                            setUploadingBg(true);
+                            try {
+                              await axios.delete(`${API}/settings/login-background`, { headers });
+                              setLoginBgUrl(null);
+                              setSuccess("Imagen de fondo eliminada");
+                              setTimeout(() => setSuccess(""), 3000);
+                            } catch (err) {
+                              setError(err.response?.data?.detail || "Error al eliminar");
+                              setTimeout(() => setError(""), 3000);
+                            } finally {
+                              setUploadingBg(false);
+                            }
+                          }}
+                          disabled={uploadingBg}
+                          className="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium rounded-xl transition-colors flex items-center gap-2"
+                          data-testid="login-bg-delete-btn"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => !uploadingBg && loginBgInputRef.current?.click()}
+                      onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                      onDrop={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const file = e.dataTransfer.files[0];
+                        if (!file) return;
+                        if (!["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(file.type)) {
+                          setError("Formato no soportado. Usa JPG, PNG o WebP.");
+                          setTimeout(() => setError(""), 3000);
+                          return;
+                        }
+                        setUploadingBg(true);
+                        try {
+                          const formData = new FormData();
+                          formData.append("file", file);
+                          const res = await axios.put(`${API}/settings/login-background`, formData, {
+                            headers: { ...headers, "Content-Type": "multipart/form-data" },
+                          });
+                          setLoginBgUrl(res.data.login_background_url);
+                          setSuccess("Imagen de fondo actualizada");
+                          setTimeout(() => setSuccess(""), 3000);
+                        } catch (err) {
+                          setError(err.response?.data?.detail || "Error al subir imagen");
+                          setTimeout(() => setError(""), 3000);
+                        } finally {
+                          setUploadingBg(false);
+                        }
+                      }}
+                      className="border-2 border-dashed border-gray-300 rounded-xl p-12 flex flex-col items-center justify-center cursor-pointer hover:border-slate-400 hover:bg-slate-50 transition-all"
+                      data-testid="login-bg-dropzone"
+                    >
+                      {uploadingBg ? (
+                        <Loader2 className="w-10 h-10 text-slate-400 animate-spin mb-3" />
+                      ) : (
+                        <Upload className="w-10 h-10 text-slate-400 mb-3" />
+                      )}
+                      <p className="text-sm font-medium text-slate-600">
+                        {uploadingBg ? "Subiendo imagen..." : "Arrastra una imagen o haz clic para seleccionar"}
+                      </p>
+                      <p className="text-xs text-slate-400 mt-1">JPG, PNG o WebP</p>
+                    </div>
+                  )}
+
+                  <input
+                    ref={loginBgInputRef}
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files[0];
+                      if (!file) return;
+                      setUploadingBg(true);
+                      try {
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const res = await axios.put(`${API}/settings/login-background`, formData, {
+                          headers: { ...headers, "Content-Type": "multipart/form-data" },
+                        });
+                        setLoginBgUrl(res.data.login_background_url);
+                        setSuccess("Imagen de fondo actualizada");
+                        setTimeout(() => setSuccess(""), 3000);
+                      } catch (err) {
+                        setError(err.response?.data?.detail || "Error al subir imagen");
+                        setTimeout(() => setError(""), 3000);
+                      } finally {
+                        setUploadingBg(false);
+                        e.target.value = "";
+                      }
+                    }}
+                    data-testid="login-bg-file-input"
+                  />
+                </div>
               </section>
             )}
           </form>

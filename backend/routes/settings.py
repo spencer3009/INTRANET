@@ -298,7 +298,111 @@ async def get_public_settings(subdomain: str):
         "system_title": settings.get("system_title") if settings else f"{school.get('school_name')} - Intranet",
         "primary_color": school.get("primary_color", "#001f4b"),
         "secondary_color": school.get("secondary_color", "#e1b82c"),
+        "login_background_url": school.get("login_background_url"),
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# LOGIN BACKGROUND IMAGE
+# ══════════════════════════════════════════════════════════════════════════════
+
+import cloudinary
+import cloudinary.uploader
+
+@router.put("/settings/login-background")
+async def upload_login_background(
+    file: UploadFile = File(...),
+    current_user = Depends(require_section_access("settings"))
+):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    if file.content_type not in ["image/jpeg", "image/jpg", "image/png", "image/webp"]:
+        raise HTTPException(status_code=400, detail="Formato no soportado. Usa JPG, PNG o WebP.")
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "login_background_public_id": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    # Delete old image from Cloudinary if exists
+    old_public_id = school.get("login_background_public_id")
+    if old_public_id:
+        try:
+            cloudinary.uploader.destroy(old_public_id)
+        except Exception as e:
+            logger.warning(f"Failed to delete old login background from Cloudinary: {e}")
+
+    # Upload new image
+    try:
+        contents = await file.read()
+        result = cloudinary.uploader.upload(
+            contents,
+            folder=f"schools/{school_id}/login_background",
+            format="webp",
+            transformation=[{"width": 1500, "crop": "limit"}],
+            resource_type="image"
+        )
+    except Exception as e:
+        logger.error(f"Cloudinary upload failed: {e}")
+        raise HTTPException(status_code=500, detail="Error al subir la imagen")
+
+    login_bg_url = result.get("secure_url")
+    login_bg_public_id = result.get("public_id")
+
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {
+            "login_background_url": login_bg_url,
+            "login_background_public_id": login_bg_public_id,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    return {"message": "Imagen de fondo actualizada", "login_background_url": login_bg_url}
+
+
+@router.delete("/settings/login-background")
+async def delete_login_background(
+    current_user = Depends(require_section_access("settings"))
+):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "login_background_public_id": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+
+    old_public_id = school.get("login_background_public_id")
+    if old_public_id:
+        try:
+            cloudinary.uploader.destroy(old_public_id)
+        except Exception as e:
+            logger.warning(f"Failed to delete login background from Cloudinary: {e}")
+
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {
+            "login_background_url": None,
+            "login_background_public_id": None,
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+
+    return {"message": "Imagen de fondo eliminada"}
+
+
+@router.get("/settings/login-background")
+async def get_login_background(
+    current_user = Depends(require_section_access("settings"))
+):
+    school_id = current_user.get("school_id")
+    if not school_id:
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "login_background_url": 1})
+    return {"login_background_url": school.get("login_background_url") if school else None}

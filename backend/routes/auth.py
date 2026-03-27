@@ -924,6 +924,7 @@ async def get_school_public_info(subdomain: str):
         "logo_url": school.get("logo_url"),  # Can be null
         "primary_color": school.get("primary_color", "#001f4b"),
         "secondary_color": school.get("secondary_color", "#e1b82c"),
+        "login_background_url": school.get("login_background_url"),
     }
 
 # ══════════════════════════════════════════════════════════════════════════════

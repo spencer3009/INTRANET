@@ -123,21 +123,36 @@ export default function SchoolLoginPage({ onLogin }) {
   // Get school colors (with fallbacks)
   const primaryColor = school?.primary_color || "#001f4b";
   const secondaryColor = school?.secondary_color || "#e1b82c";
+  const loginBgUrl = school?.login_background_url;
 
   return (
     <InstallGateway>
     <div 
-      className="min-h-screen flex items-center justify-center px-6"
-      style={{
+      className="min-h-screen flex items-center justify-center px-6 relative"
+      style={loginBgUrl ? {
+        backgroundImage: `url(${loginBgUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      } : {
         background: `linear-gradient(135deg, ${primaryColor}dd 0%, ${primaryColor} 50%, ${primaryColor}ee 100%)`
       }}
       data-testid="school-login-page"
     >
-      {/* Decorative elements */}
-      <div className="absolute top-20 right-20 w-96 h-96 rounded-full opacity-10 blur-3xl" 
-           style={{ backgroundColor: secondaryColor }} />
-      <div className="absolute bottom-20 left-20 w-72 h-72 rounded-full opacity-10 blur-3xl"
-           style={{ backgroundColor: secondaryColor }} />
+      {/* Dark overlay when background image is set */}
+      {loginBgUrl && (
+        <div className="absolute inset-0 bg-black/40" />
+      )}
+
+      {/* Decorative elements - only when no custom background */}
+      {!loginBgUrl && (
+        <>
+          <div className="absolute top-20 right-20 w-96 h-96 rounded-full opacity-10 blur-3xl" 
+               style={{ backgroundColor: secondaryColor }} />
+          <div className="absolute bottom-20 left-20 w-72 h-72 rounded-full opacity-10 blur-3xl"
+               style={{ backgroundColor: secondaryColor }} />
+        </>
+      )}
 
       <div className="w-full max-w-md relative z-10">
         {/* Back to general login */}
