@@ -48,8 +48,13 @@ export default function FinancialSettingsTab({ token, user }) {
     setSaving(true);
     try {
       const res = await axios.put(`${API}/accounting/financial-settings`, form, { headers });
+      const activated = res.data.activated_students || 0;
       setForm(prev => ({ ...prev, ...res.data }));
-      toast.success("Configuracion financiera guardada");
+      if (activated > 0) {
+        toast.success(`Configuracion guardada. Se activaron ${activated} alumno${activated !== 1 ? "s" : ""} pendiente${activated !== 1 ? "s" : ""}.`);
+      } else {
+        toast.success("Configuracion financiera guardada");
+      }
     } catch (err) {
       toast.error(err.response?.data?.detail || "Error al guardar");
     } finally {

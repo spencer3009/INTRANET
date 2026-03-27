@@ -1028,7 +1028,17 @@ async def update_financial_settings(req: FinancialSettingsUpdate, current_user =
             {"$set": {"amount": update_data["pension_mensual"], "updated_at": datetime.now(timezone.utc).isoformat()}}
         )
     
+    # If activation mode changed to ON_CREATE, activate all pending students
+    activated_count = 0
+    if update_data.get("activacion_modo") == "on_create":
+        result = await db.users.update_many(
+            {"school_id": school_id, "role": "student", "student_status": "pending"},
+            {"$set": {"student_status": "active", "updated_at": datetime.now(timezone.utc).isoformat()}}
+        )
+        activated_count = result.modified_count
+    
     settings = await db.school_financial_settings.find_one({"school_id": school_id}, {"_id": 0})
+    settings["activated_students"] = activated_count
     return settings
 
 # ─────────────────────────────────────────────────────────────────────────────
