@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { toast } from "sonner";
-import { Settings, DollarSign, Clock, Percent, Save, ToggleLeft, ToggleRight, CalendarDays, AlertTriangle } from "lucide-react";
+import { Settings, DollarSign, Clock, Percent, Save, ToggleLeft, ToggleRight, CalendarDays, AlertTriangle, Loader2 } from "lucide-react";
 import PaymentConceptsSection from "./PaymentConceptsSection";
 import DiscountTypesSection from "./DiscountTypesSection";
 import StudentDiscountsSection from "./StudentDiscountsSection";
@@ -338,6 +338,19 @@ export default function FinancialSettingsTab({ token, user }) {
               </label>
             ))}
           </div>
+          {isOwnerOrAdmin && (
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className="px-5 py-2.5 bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2"
+                data-testid="save-activation-btn"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                Guardar configuracion
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
