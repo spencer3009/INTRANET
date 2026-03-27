@@ -300,7 +300,14 @@ async def get_grades(
     if activo is not None:
         query["activo"] = activo
     
-    grades = await db.grades.find(query, {"_id": 0}).sort([("nivel_id", 1), ("orden", 1)]).to_list(200)
+    grades_raw = await db.grades.find(query).sort([("nivel_id", 1), ("orden", 1)]).to_list(200)
+    
+    # Normalize: ensure every grade has a string `id` field
+    grades = []
+    for g in grades_raw:
+        g["id"] = str(g.get("id") or g.get("_id"))
+        g.pop("_id", None)
+        grades.append(g)
     
     # Add level info and section count for each grade
     levels_cache = {}
@@ -817,20 +824,39 @@ async def get_sections(
     school_id = user["school_id"]
     query = {"school_id": school_id}
     if grado_id:
-        query["grado_id"] = grado_id
+        # Flexible match: handle both String and ObjectId
+        try:
+            from bson import ObjectId as BsonObjectId
+            query["grado_id"] = {"$in": [grado_id, BsonObjectId(grado_id)]}
+        except Exception:
+            query["grado_id"] = grado_id
     if activo is not None:
         query["activo"] = activo
     
     # If filtering by nivel_id, first get all grades of that level
     if nivel_id:
         grades_in_level = await db.grades.find(
-            {"school_id": school_id, "nivel_id": nivel_id},
-            {"id": 1}
+            {"school_id": school_id, "nivel_id": nivel_id}
         ).to_list(100)
-        grade_ids = [g["id"] for g in grades_in_level]
+        grade_ids = []
+        for g in grades_in_level:
+            gid = str(g.get("id") or g.get("_id"))
+            grade_ids.append(gid)
+            try:
+                grade_ids.append(BsonObjectId(gid))
+            except Exception:
+                pass
         query["grado_id"] = {"$in": grade_ids}
     
-    sections = await db.sections.find(query, {"_id": 0}).sort("nombre", 1).to_list(500)
+    sections_raw = await db.sections.find(query).sort("nombre", 1).to_list(500)
+    
+    # Normalize: ensure every section has string `id` and `grado_id`
+    sections = []
+    for s in sections_raw:
+        s["id"] = str(s.get("id") or s.get("_id"))
+        s["grado_id"] = str(s["grado_id"]) if s.get("grado_id") else s.get("grado_id")
+        s.pop("_id", None)
+        sections.append(s)
     
     # Load section types for mapping (for backward compatibility)
     section_types = await db.section_types.find({"school_id": school_id}, {"_id": 0}).to_list(50)
