@@ -14,6 +14,7 @@ import {
   Check,
   X,
   Sparkles,
+  Lock,
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -57,6 +58,7 @@ export default function RegisterPage() {
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
 
   const update = (key, val) => setForm((p) => ({ ...p, [key]: val }));
 
@@ -405,23 +407,37 @@ export default function RegisterPage() {
                   )}
                 </div>
 
-                {/* Submit */}
+                {/* Submit - DISABLED: Registration blocked */}
                 <button
                   data-testid="register-submit-btn"
-                  type="submit"
-                  disabled={loading}
-                  className="w-full py-4 bg-gradient-to-r from-[#001f4b] to-[#0a3068] text-white font-bold rounded-xl hover:shadow-lg hover:shadow-blue-900/25 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 flex items-center justify-center gap-2"
+                  type="button"
+                  onClick={() => setShowBlockedModal(true)}
+                  className="w-full py-4 bg-gradient-to-r from-[#001f4b] to-[#0a3068] text-white font-bold rounded-xl flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
                 >
-                  {loading ? (
-                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      Continuar
-                      <ArrowLeft className="w-4 h-4 rotate-180" />
-                    </>
-                  )}
+                  Continuar
+                  <ArrowLeft className="w-4 h-4 rotate-180" />
                 </button>
               </form>
+
+              {/* Blocked Registration Modal */}
+              {showBlockedModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4" onClick={() => setShowBlockedModal(false)}>
+                  <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center" onClick={e => e.stopPropagation()} data-testid="blocked-modal">
+                    <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Lock className="w-7 h-7 text-red-500" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-800 mb-2">Acceso restringido</h3>
+                    <p className="text-sm text-slate-500 mb-6">No tienes autorizacion para crear una cuenta de intranet.</p>
+                    <button
+                      onClick={() => setShowBlockedModal(false)}
+                      className="w-full py-3 bg-[#001f4b] text-white font-semibold rounded-xl hover:bg-[#0a3068] transition-colors"
+                      data-testid="blocked-modal-close"
+                    >
+                      Entendido
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Login link */}
               <p className="text-center text-sm text-slate-500 mt-6">
