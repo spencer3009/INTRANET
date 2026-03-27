@@ -96,7 +96,10 @@ async def get_students_for_attendance(
     
     school_id = user["school_id"]
     
-    logger.info(f"Attendance Query: grade_id={grade_id}, section_id={section_id}, school_id={school_id}, date={date}")
+    logger.info(f"=== DEBUG ATTENDANCE ===")
+    logger.info(f"Received params - grade_id: {grade_id} (type: {type(grade_id).__name__})")
+    logger.info(f"Received params - section_id: {section_id} (type: {type(section_id).__name__})")
+    logger.info(f"Received params - school_id: {school_id} (type: {type(school_id).__name__})")
     
     # Build flexible query that handles both String and ObjectId types
     student_query = {
@@ -107,6 +110,8 @@ async def get_students_for_attendance(
     student_query.update(flexible_id_filter("grado_id", grade_id))
     student_query.update(flexible_id_filter("seccion_id", section_id))
     
+    logger.info(f"MongoDB student_query: {student_query}")
+    
     # Get students for this grade/section (exclude pending)
     students_cursor = db.users.find(
         student_query,
@@ -114,7 +119,44 @@ async def get_students_for_attendance(
     )
     students = await students_cursor.to_list(length=500)
     
-    logger.info(f"Attendance Students found: {len(students)}")
+    logger.info(f"Students found: {len(students)}")
+    
+    # If 0 students, run diagnostic queries
+    if len(students) == 0:
+        total_in_school = await db.users.count_documents({"school_id": school_id, "role": "student"})
+        logger.info(f"DIAG: Total students in school (exact school_id match): {total_in_school}")
+        
+        # Try without ACADEMIC_STUDENT_FILTER
+        diag_q = {"role": "student"}
+        diag_q.update(flexible_id_filter("school_id", school_id))
+        total_no_filter = await db.users.count_documents(diag_q)
+        logger.info(f"DIAG: Total students in school (flexible, no status filter): {total_no_filter}")
+        
+        # Check with only grade
+        diag_q2 = {"role": "student"}
+        diag_q2.update(flexible_id_filter("school_id", school_id))
+        diag_q2.update(flexible_id_filter("grado_id", grade_id))
+        with_grade = await db.users.count_documents(diag_q2)
+        logger.info(f"DIAG: Students matching school+grade: {with_grade}")
+        
+        # Check with only section
+        diag_q3 = {"role": "student"}
+        diag_q3.update(flexible_id_filter("school_id", school_id))
+        diag_q3.update(flexible_id_filter("seccion_id", section_id))
+        with_section = await db.users.count_documents(diag_q3)
+        logger.info(f"DIAG: Students matching school+section: {with_section}")
+        
+        # Sample a student to see what fields they have
+        sample = await db.users.find_one({"school_id": school_id, "role": "student"}, {"_id": 0, "grado_id": 1, "seccion_id": 1, "grade_id": 1, "section_id": 1, "student_status": 1, "name": 1})
+        logger.info(f"DIAG: Sample student: {sample}")
+        
+        # Check student_status distribution
+        pipeline = [
+            {"$match": {"school_id": school_id, "role": "student"}},
+            {"$group": {"_id": "$student_status", "count": {"$sum": 1}}}
+        ]
+        statuses = await db.users.aggregate(pipeline).to_list(10)
+        logger.info(f"DIAG: Student status distribution: {statuses}")
     
     # Get existing attendance records for this date (also flexible)
     att_query = {

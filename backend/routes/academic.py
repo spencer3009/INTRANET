@@ -302,6 +302,10 @@ async def get_grades(
     
     grades_raw = await db.grades.find(query).sort([("nivel_id", 1), ("orden", 1)]).to_list(200)
     
+    logger.info(f"=== DEBUG GRADES === school_id={user['school_id']}, raw count={len(grades_raw)}")
+    for g in grades_raw[:3]:
+        logger.info(f"  Grade RAW: _id={g.get('_id')} type={type(g.get('_id')).__name__}, id={g.get('id')} type={type(g.get('id')).__name__ if g.get('id') else 'NONE'}, nombre={g.get('nombre')}")
+    
     # Normalize: ensure every grade has a string `id` field
     grades = []
     for g in grades_raw:
@@ -849,6 +853,10 @@ async def get_sections(
         query["grado_id"] = {"$in": grade_ids}
     
     sections_raw = await db.sections.find(query).sort("nombre", 1).to_list(500)
+    
+    logger.info(f"=== DEBUG SECTIONS === school_id={school_id}, query={query}, raw count={len(sections_raw)}")
+    for s in sections_raw[:3]:
+        logger.info(f"  Section RAW: _id={s.get('_id')} type={type(s.get('_id')).__name__}, id={s.get('id')} type={type(s.get('id')).__name__ if s.get('id') else 'NONE'}, grado_id={s.get('grado_id')} type={type(s.get('grado_id')).__name__}, nombre={s.get('nombre')}")
     
     # Normalize: ensure every section has string `id` and `grado_id`
     sections = []
