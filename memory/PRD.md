@@ -1,72 +1,95 @@
-# PRD - EduNet School Management Platform
+# EduNet - School Management Platform PRD
 
 ## Original Problem Statement
-Build a comprehensive school management platform (React + FastAPI + MongoDB) for Peruvian schools with multi-tenant subdomain routing, role-based access control, academic management, accounting, messaging, schedules, and more.
+Full-stack React + FastAPI + MongoDB school management platform for Peruvian schools. Features include academic structure management, attendance, grading, teacher assignments, accounting, messaging, and more.
 
-## Tech Stack
-- Frontend: React + Tailwind + Shadcn/UI
-- Backend: FastAPI + Motor (async MongoDB)
-- Database: MongoDB
-- 3rd Party: Cloudinary (images), ChatterPal (video avatar), YouTube/Vimeo oEmbed
-
-## Credentials
-- School Owner: `admin@elroble.edu` / `1234abc8` (subdomain: `elroble`)
-- Support: `spencer3009@gmail.com` (system_admin_global)
-
----
+## Architecture
+- **Frontend**: React + Tailwind + Shadcn/UI
+- **Backend**: FastAPI + Motor (async MongoDB)
+- **Database**: MongoDB
+- **Hosting**: Emergent Platform (preview) / Production at edunet.pe
 
 ## What's Been Implemented
 
-### Latest Session (March 27, 2026)
-- **Login Background Image**: Upload/delete custom background for each school's login page via Settings. Cloudinary WebP conversion, max 1500px. Dark overlay on login page.
-- **WhatsApp Contact on Login**: Support profile WhatsApp field. Public endpoint includes `support_whatsapp`. Login page "Contacta al administrador" opens wa.me link. Hidden if no WhatsApp set.
-- **Morosos Tab Redesign**: Collapsible pending months, merged Alumno+Grado columns, avatar initials, 6 columns
-- **Morosos Tab Fix**: Changed from separate page navigation to inline tab
-- **Synthetic Data**: S/8,000 expenses + S/34,000 income for March 2026
-- **Logo Size**: Increased login logo from w-24 to w-32
+### Core Academic Structure
+- Levels (INICIAL, PRIMARIA, SECUNDARIA), Grades, Sections, Section Types
+- Academic Years with status management
+- Subjects CRUD with section-level granularity
+- Teacher Assignments to subjects/sections
 
-### Previous Sessions
-- Student Password Visibility, Support Panel School Names fix
-- Academia Category Management, Reordering (Drag & Drop)
-- ChatPal Integration (isolated to AcademiaPortalPage)
-- Floating Help Avatar (8 core pages)
-- Teacher Assignment Architecture refactor
-- Load Time Optimization (Promise.all), Premium Loading Screens
-- Modal Scroll Fixes
+### Authentication & Users
+- JWT-based auth with school subdomains
+- Roles: owner, admin, director, teacher, parent, student
+- Custom login page with backgrounds (Cloudinary), WhatsApp support link
+- Public registration blocked
 
----
+### Attendance Module
+- Flexible ID filtering (handles String + ObjectId mismatches)
+- Production-ready with normalized IDs
 
-## Key Endpoints Added
-- `PUT /api/settings/login-background` - Upload login background image
-- `DELETE /api/settings/login-background` - Delete login background image
-- `GET /api/settings/login-background` - Get current background URL
-- `GET /api/schools/public/{subdomain}` - Includes login_background_url + support_whatsapp
-- `PUT /api/support/me` - Now accepts whatsapp field
+### Accounting Module
+- Income/Expenses tracking
+- Morosos (debtors) inline tab with redesigned UI
+- Financial settings with ON_CREATE student activation
 
-## Key DB Fields Added
-- `schools.login_background_url` (String, optional)
-- `schools.login_background_public_id` (String, optional)
-- `users.whatsapp` (String, optional - on support user)
+### Teacher Assignments
+- Full CRUD for teacher-subject-section assignments
+- Cascade filter modal (Level > Grade > Section > Subject)
+- Teachers summary sidebar
 
----
+## Recently Completed (March 2026)
 
-## Prioritized Backlog
+### Bug Fix: Subject level_id Inconsistency (P0)
+- **Root Cause**: Subjects had `level_id` pointing to wrong level (e.g., INICIAL instead of PRIMARIA)
+- **Migration Script**: `POST /api/academic/subjects/fix-level-ids` - corrects all mismatched level_ids by deriving from grade's nivel_id
+- **Preventive Fix**: `create_subject`, `update_subject`, `replicate_subjects` now auto-derive `level_id` from grade
+- **Debug console.log removed** from TeacherAssignmentsPage.jsx
 
-### P1
-- Refactor Message Pages (consolidate duplicated components)
+### Previous Session Completed
+- Data injection (accounting income/expenses)
+- Morosos tab redesign (inline, collapsible months)
+- Login logo resize, custom background (Cloudinary)
+- WhatsApp support link on login
+- Public registration blocked
+- Flexible ID filter for attendance
+- ON_CREATE student activation mode
 
-### P2
-- Visual indicator of `sync_status` in Exams/Tasks List
-- Gradebook Enhancements (Export PDF/Excel, Lock/Close Period)
-- Double Scrollbar fix in "Registro Auxiliar"
+## Pending Issues
 
-### P3 (Future)
-- Vinculacion Masiva Inteligente (Phase 2 parent import)
-- Dashboard Owner con datos reales
-- Build "Matriculas" (Enrollments) module
-- Replace all window.confirm/alert with custom modals
-- UsersPage.jsx refactoring (>5000 lines)
+### P1: Deploy to Production
+- Attendance flexible_id_filter needs production deploy
+- Subject level_id migration needs to run in production
 
-## Known Issues
-- Production deployment timeouts/520 errors (external constraint)
-- MorososPage.jsx still exists as separate page (deprecated, can be removed)
+### P2: Orphan Collection Cleanup
+- DELETE school leaves ~15 collections orphaned
+- Awaiting user approval to implement
+
+## Upcoming Tasks
+- P1: Refactor Message Pages (consolidate duplicates)
+- P2: Visual indicator of sync_status in Exams/Tasks
+- P2: Gradebook: Export PDF/Excel, Lock/Close Period
+- P2: Double scrollbar fix in "Registro Auxiliar"
+
+## Future/Backlog
+- Vinculacion Masiva Inteligente (Phase 2 Parent Import)
+- Dashboard Owner with real data
+- Matriculas (Enrollments) module
+- Replace window.confirm/alert with custom modals
+
+## Refactoring Needed
+- UsersPage.jsx (>5000 lines) - split into sub-components
+- TeacherAssignmentsPage.jsx - move filtering to backend
+
+## Key Endpoints
+- `POST /api/academic/subjects/fix-level-ids` - Migration script
+- `PUT /api/settings/login-background` - Custom login bg
+- `DELETE /api/settings/login-background` - Remove login bg
+- `PUT /api/support/me` - Update support profile (whatsapp)
+
+## 3rd Party Integrations
+- Cloudinary (image hosting) - Emergent managed keys
+
+## Test Credentials
+- School: elroble
+- Email: admin@elroble.edu
+- Password: 1234abc8

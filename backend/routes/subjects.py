@@ -383,6 +383,12 @@ async def create_subject(data: SubjectCreate, current_user = Depends(get_current
                     "detail": f"El grado con id '{safe_grade_id}' no existe en este colegio",
                     "value": safe_grade_id
                 })
+            # FIX PREVENTIVO: derivar level_id del grado para evitar inconsistencias
+            if grade.get("nivel_id"):
+                derived_level = str(grade["nivel_id"])
+                if derived_level != safe_level_id:
+                    logger.warning(f"[CREATE_SUBJECT] level_id mismatch: frontend sent {safe_level_id}, grade belongs to {derived_level}. Using grade's level.")
+                    safe_level_id = derived_level
             logger.info(f"[CREATE_SUBJECT] Grade OK: {grade.get('nombre', '?')}")
 
         # ── 5. VERIFY SECTION ────────────────────────────────────────────
@@ -617,7 +623,7 @@ async def replicate_subjects(data: ReplicateSubjectsRequest, current_user = Depe
             "name": src["name"],
             "code": new_code,
             "description": src.get("description", ""),
-            "level_id": target_section.get("nivel_id") or src.get("level_id"),
+            "level_id": None,  # Will be derived from grade below
             "grade_id": target_section.get("grado_id") or src.get("grade_id"),
             "section_id": data.target_section_id,
             "weekly_hours": src.get("weekly_hours", 1),
@@ -627,6 +633,14 @@ async def replicate_subjects(data: ReplicateSubjectsRequest, current_user = Depe
             "created_at": now,
             "updated_at": now,
         }
+        # FIX PREVENTIVO: derivar level_id del grado de la sección destino
+        target_grade_id = new_subject["grade_id"]
+        if target_grade_id:
+            tg = await db.grades.find_one({"id": target_grade_id, "school_id": school_id}, {"_id": 0, "nivel_id": 1})
+            if tg and tg.get("nivel_id"):
+                new_subject["level_id"] = str(tg["nivel_id"])
+        if not new_subject["level_id"]:
+            new_subject["level_id"] = target_section.get("nivel_id") or src.get("level_id")
         await db.subjects.insert_one(new_subject)
         new_subject.pop("_id", None)
         created.append(new_subject)
@@ -706,6 +720,9 @@ async def update_subject(subject_id: str, data: SubjectUpdate, current_user = De
             if not grade:
                 raise HTTPException(status_code=400, detail="El grado seleccionado no existe")
             update_data["grade_id"] = data.grade_id
+            # FIX PREVENTIVO: derivar level_id del grado
+            if grade.get("nivel_id"):
+                update_data["level_id"] = str(grade["nivel_id"])
     
     if data.section_id is not None:
         if data.section_id == "":
@@ -808,6 +825,67 @@ async def migrate_subjects_to_sections(current_user = Depends(get_current_user))
                     created += 1
     
     return {"message": f"Migración completada: {updated} actualizados, {created} nuevos creados", "updated": updated, "created": created}
+
+@router.post("/academic/subjects/fix-level-ids")
+async def fix_subject_level_ids(current_user = Depends(get_current_user)):
+    """Migration: fix level_id on subjects whose grade belongs to a different level.
+    For each subject with a grade_id, look up the grade's nivel_id and correct
+    the subject's level_id if they don't match.  DRY-RUN by default (pass ?apply=true to write)."""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if user.get("role") not in ["owner", "admin", "support"]:
+        raise HTTPException(status_code=403, detail="Solo administradores pueden ejecutar esta migración")
+
+    school_id = user["school_id"]
+
+    # Build grade_id → nivel_id map from both collections
+    grade_level_map = {}
+    for col in [db.grades, db.grados]:
+        try:
+            docs = await col.find({"school_id": school_id}, {"_id": 0, "id": 1, "nivel_id": 1}).to_list(500)
+            for g in docs:
+                if g.get("id") and g.get("nivel_id"):
+                    grade_level_map[str(g["id"])] = str(g["nivel_id"])
+        except Exception:
+            pass
+
+    # Fetch all subjects for this school
+    subjects = await db.subjects.find({"school_id": school_id}, {"_id": 0, "id": 1, "name": 1, "grade_id": 1, "level_id": 1}).to_list(5000)
+
+    mismatches = []
+    fixed = 0
+    for s in subjects:
+        gid = s.get("grade_id")
+        if not gid:
+            continue
+        correct_level = grade_level_map.get(str(gid))
+        if not correct_level:
+            continue
+        if s.get("level_id") != correct_level:
+            mismatches.append({
+                "subject_id": s["id"],
+                "name": s.get("name"),
+                "grade_id": gid,
+                "old_level_id": s.get("level_id"),
+                "correct_level_id": correct_level
+            })
+            # Apply the fix
+            await db.subjects.update_one(
+                {"id": s["id"]},
+                {"$set": {"level_id": correct_level, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            fixed += 1
+
+    logger.info(f"[FIX_LEVEL_IDS] school={school_id} total_subjects={len(subjects)} mismatches={len(mismatches)} fixed={fixed}")
+
+    return {
+        "message": f"Migración completada: {fixed} asignaturas corregidas de {len(subjects)} totales",
+        "total_subjects": len(subjects),
+        "mismatches_found": len(mismatches),
+        "fixed": fixed,
+        "details": mismatches
+    }
 
 @router.delete("/academic/subjects/{subject_id}")
 async def delete_subject(subject_id: str, current_user = Depends(get_current_user)):
