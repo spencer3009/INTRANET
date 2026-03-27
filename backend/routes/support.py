@@ -803,16 +803,19 @@ async def update_support_profile(data: SupportProfileUpdate, user=Depends(requir
     if data.last_name is not None:
         update_fields["last_name"] = data.last_name.strip()
     if data.email is not None:
-        # Check email not taken by another user
-        existing = await db.users.find_one(
-            {"email": data.email.lower().strip(), "id": {"$ne": user["id"]}},
-            {"_id": 0, "id": 1}
-        )
-        if existing:
-            raise HTTPException(status_code=400, detail="Este correo ya esta en uso")
-        update_fields["email"] = data.email.lower().strip()
+        # Only validate if email actually changed
+        if data.email.lower().strip() != user.get("email", "").lower().strip():
+            existing = await db.users.find_one(
+                {"email": data.email.lower().strip(), "id": {"$ne": user["id"]}},
+                {"_id": 0, "id": 1}
+            )
+            if existing:
+                raise HTTPException(status_code=400, detail="Este correo ya esta en uso")
+            update_fields["email"] = data.email.lower().strip()
     if data.photo_url is not None:
         update_fields["photo_url"] = data.photo_url
+    if data.whatsapp is not None:
+        update_fields["whatsapp"] = data.whatsapp.strip()
     
     if not update_fields:
         raise HTTPException(status_code=400, detail="No hay campos para actualizar")
@@ -829,6 +832,7 @@ async def update_support_profile(data: SupportProfileUpdate, user=Depends(requir
         "last_name": updated.get("last_name", ""),
         "email": updated.get("email", ""),
         "phone": updated.get("phone", ""),
+        "whatsapp": updated.get("whatsapp", ""),
         "photo_url": updated.get("photo_url"),
         "role": updated.get("role"),
         "created_at": updated.get("created_at")
