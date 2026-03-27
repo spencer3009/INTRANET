@@ -39,6 +39,22 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api")
 
+# ══════════════════════════════════════════════════════════════════════════════
+# HELPER: Normalize ID for flexible MongoDB queries (String or ObjectId)
+# ══════════════════════════════════════════════════════════════════════════════
+
+from bson import ObjectId
+
+def flexible_id_filter(field: str, value: str) -> dict:
+    """Build a MongoDB filter that matches both String and ObjectId versions of an ID."""
+    if not value:
+        return {}
+    try:
+        oid = ObjectId(value)
+        return {field: {"$in": [value, oid]}}
+    except Exception:
+        return {field: value}
+
 # ATTENDANCE MODULE
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -80,30 +96,36 @@ async def get_students_for_attendance(
     
     school_id = user["school_id"]
     
+    logger.info(f"Attendance Query: grade_id={grade_id}, section_id={section_id}, school_id={school_id}, date={date}")
+    
+    # Build flexible query that handles both String and ObjectId types
+    student_query = {
+        "role": "student",
+        **ACADEMIC_STUDENT_FILTER
+    }
+    student_query.update(flexible_id_filter("school_id", school_id))
+    student_query.update(flexible_id_filter("grado_id", grade_id))
+    student_query.update(flexible_id_filter("seccion_id", section_id))
+    
     # Get students for this grade/section (exclude pending)
     students_cursor = db.users.find(
-        {
-            "school_id": school_id,
-            "role": "student",
-            "grado_id": grade_id,
-            "seccion_id": section_id,
-            **ACADEMIC_STUDENT_FILTER
-        },
+        student_query,
         {"_id": 0, "password": 0, "verification_code": 0}
     )
     students = await students_cursor.to_list(length=500)
     
-    # Get existing attendance records for this date
-    attendance_cursor = db.attendances.find(
-        {
-            "school_id": school_id,
-            "type": "student",
-            "grade_id": grade_id,
-            "section_id": section_id,
-            "date": date
-        },
-        {"_id": 0}
-    )
+    logger.info(f"Attendance Students found: {len(students)}")
+    
+    # Get existing attendance records for this date (also flexible)
+    att_query = {
+        "type": "student",
+        "date": date
+    }
+    att_query.update(flexible_id_filter("school_id", school_id))
+    att_query.update(flexible_id_filter("grade_id", grade_id))
+    att_query.update(flexible_id_filter("section_id", section_id))
+    
+    attendance_cursor = db.attendances.find(att_query, {"_id": 0})
     attendance_records = await attendance_cursor.to_list(length=500)
     
     # Build attendance map
@@ -478,12 +500,13 @@ async def get_student_attendance_report(
     school_id = user["school_id"]
     
     # Build query
-    query = {"school_id": school_id, "type": "student"}
+    query = {"type": "student"}
+    query.update(flexible_id_filter("school_id", school_id))
     
     if grade_id:
-        query["grade_id"] = grade_id
+        query.update(flexible_id_filter("grade_id", grade_id))
     if section_id:
-        query["section_id"] = section_id
+        query.update(flexible_id_filter("section_id", section_id))
     
     if start_date and end_date:
         query["date"] = {"$gte": start_date, "$lte": end_date}
