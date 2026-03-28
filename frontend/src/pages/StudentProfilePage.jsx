@@ -5,6 +5,7 @@ import StudentSidebar from "../components/StudentSidebar";
 import StudentHeader from "../components/StudentHeader";
 import MessageCenter from "../components/MessageCenter";
 import MobileBottomNav from "../components/MobileBottomNav";
+import PhotoUploadModal from "@/components/PhotoUploadModal";
 import {
   User,
   Menu,
@@ -18,6 +19,7 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Camera,
   Save,
   CheckCircle,
   AlertCircle
@@ -44,6 +46,7 @@ export default function StudentProfilePage({ user, token, onLogout }) {
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -176,6 +179,7 @@ export default function StudentProfilePage({ user, token, onLogout }) {
                 <div className="px-6 pb-6">
                   {/* Avatar */}
                   <div className="-mt-12 mb-4">
+                    <div className="relative inline-block">
                     {profile?.user?.photo_url ? (
                       <img 
                         src={profile.user.photo_url} 
@@ -187,6 +191,14 @@ export default function StudentProfilePage({ user, token, onLogout }) {
                         <User className="w-10 h-10 text-white" />
                       </div>
                     )}
+                    <button
+                      onClick={() => setShowPhotoModal(true)}
+                      data-testid="student-profile-change-photo-btn"
+                      className="absolute bottom-0 right-0 w-8 h-8 bg-cyan-500 rounded-full flex items-center justify-center text-white shadow-md hover:bg-cyan-600 transition-colors"
+                    >
+                      <Camera className="w-4 h-4" />
+                    </button>
+                    </div>
                   </div>
                   
                   {/* Name & Role */}
@@ -401,6 +413,16 @@ export default function StudentProfilePage({ user, token, onLogout }) {
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
       <MobileBottomNav role="student" />
+
+      <PhotoUploadModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        user={user}
+        token={token}
+        onPhotoUpdated={(userId, photoUrl) => {
+          setProfile(prev => ({ ...prev, user: { ...prev.user, photo_url: photoUrl } }));
+        }}
+      />
     </div>
   );
 }

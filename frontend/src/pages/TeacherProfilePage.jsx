@@ -5,6 +5,7 @@ import TeacherSidebar from "../components/TeacherSidebar";
 import MobileBottomNav from "../components/MobileBottomNav";
 import MessageCenter from "../components/MessageCenter";
 import StudentHeader from "../components/StudentHeader";
+import PhotoUploadModal from "@/components/PhotoUploadModal";
 import {
   User,
   Mail,
@@ -52,6 +53,7 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
     confirm: false
   });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -214,7 +216,10 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
                         <User className="w-10 h-10 text-slate-400" />
                       </div>
                     )}
-                    <button className="absolute bottom-0 right-0 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-md hover:bg-emerald-600 transition-colors">
+                    <button 
+                      onClick={() => setShowPhotoModal(true)}
+                      data-testid="teacher-profile-change-photo-btn"
+                      className="absolute bottom-0 right-0 w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-md hover:bg-emerald-600 transition-colors">
                       <Camera className="w-4 h-4" />
                     </button>
                   </div>
@@ -502,6 +507,16 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
       {/* Message Center */}
       <MessageCenter token={token} user={user} />
       <MobileBottomNav role="teacher" />
+
+      <PhotoUploadModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        user={user}
+        token={token}
+        onPhotoUpdated={(userId, photoUrl) => {
+          setProfile(prev => ({ ...prev, user: { ...prev.user, photo_url: photoUrl } }));
+        }}
+      />
     </div>
   );
 }
