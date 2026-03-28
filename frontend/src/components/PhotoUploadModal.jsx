@@ -5,7 +5,7 @@ import axios from "axios";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
-export default function PhotoUploadModal({ isOpen, onClose, user, token, onPhotoUpdated }) {
+export default function PhotoUploadModal({ isOpen, onClose, user, token, onPhotoUpdated, selfUpdate = false }) {
   const fileInputRef = useRef(null);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -151,7 +151,11 @@ export default function PhotoUploadModal({ isOpen, onClose, user, token, onPhoto
       const upData = await upRes.json();
       if (!upData.secure_url) throw new Error("Error al subir imagen");
 
-      await axios.put(`${API}/users/${user.id}`, { photo_url: upData.secure_url }, { headers });
+      await axios.put(
+        selfUpdate ? `${API}/auth/profile` : `${API}/users/${user.id}`,
+        { photo_url: upData.secure_url },
+        { headers }
+      );
       onPhotoUpdated(user.id, upData.secure_url);
       handleClose();
     } catch (err) {

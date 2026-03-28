@@ -642,6 +642,7 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
         onClose={() => setShowPhotoModal(false)}
         user={user}
         token={token}
+        selfUpdate={true}
         onPhotoUpdated={(userId, photoUrl) => {
           setProfile(prev => ({ ...prev, photo_url: photoUrl }));
           if (onUserUpdate) onUserUpdate({ ...user, photo_url: photoUrl });

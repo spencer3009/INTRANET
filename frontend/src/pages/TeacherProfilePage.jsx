@@ -513,6 +513,7 @@ export default function TeacherProfilePage({ user, token, onLogout }) {
         onClose={() => setShowPhotoModal(false)}
         user={user}
         token={token}
+        selfUpdate={true}
         onPhotoUpdated={(userId, photoUrl) => {
           setProfile(prev => ({ ...prev, user: { ...prev.user, photo_url: photoUrl } }));
         }}
