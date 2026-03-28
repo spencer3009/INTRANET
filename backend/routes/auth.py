@@ -501,12 +501,16 @@ async def update_profile(data: ProfileUpdate, current_user=Depends(get_current_u
 @router.put("/auth/password")
 async def change_password(data: PasswordChange, current_user=Depends(get_current_user)):
     """Change current user's password"""
-    user = await db.users.find_one({"id": current_user["sub"]})
+    # Need full user doc WITH password hash for verification
+    resolved = await resolve_user_from_token(current_user)
+    if not resolved:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    user = await db.users.find_one({"id": resolved["id"]}, {"_id": 0})
     if not user:
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     # Verify current password
-    if not verify_password(data.current_password, user["password"]):
+    if not verify_password(data.current_password, user.get("password", "")):
         raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
     
     # Hash new password
