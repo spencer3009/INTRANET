@@ -43,6 +43,7 @@ export default function ParentProfilePage({ user, token, onLogout }) {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [localPhotoUrl, setLocalPhotoUrl] = useState(user?.photo_url);
 
   const headers = { Authorization: `Bearer ${token}` };
 
@@ -156,8 +157,8 @@ export default function ParentProfilePage({ user, token, onLogout }) {
                 <div className="px-6 pb-6">
                   <div className="-mt-12 mb-4">
                     <div className="relative inline-block">
-                      {user?.photo_url ? (
-                        <img src={user.photo_url} alt="" className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg" />
+                      {localPhotoUrl ? (
+                        <img src={localPhotoUrl} alt="" className="w-24 h-24 rounded-2xl object-cover border-4 border-white shadow-lg" />
                       ) : (
                         <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-violet-400 to-purple-500 border-4 border-white shadow-lg flex items-center justify-center">
                           <User className="w-10 h-10 text-white" />
@@ -341,6 +342,7 @@ export default function ParentProfilePage({ user, token, onLogout }) {
         token={token}
         selfUpdate={true}
         onPhotoUpdated={(userId, photoUrl) => {
+          setLocalPhotoUrl(photoUrl);
           setProfile(prev => prev ? { ...prev, photo_url: photoUrl } : prev);
         }}
       />
