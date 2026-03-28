@@ -9,6 +9,7 @@ import {
   BookOpen, GraduationCap, Users, Calendar
 } from "lucide-react";
 import { processProfilePhoto, validateImageFile } from "@/utils/imageUtils";
+import PhotoUploadModal from "@/components/PhotoUploadModal";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -45,6 +46,7 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
   });
   
   const [uploading, setUploading] = useState(false);
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
   
   // Teacher assignments (only for teachers)
   const [assignments, setAssignments] = useState([]);
@@ -273,20 +275,14 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
                       <User className="w-14 h-14 text-white/80" />
                     </div>
                   )}
-                  <label className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handlePhotoUpload}
-                      className="hidden"
-                      disabled={uploading}
-                    />
-                    {uploading ? (
-                      <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
-                    ) : (
-                      <Camera className="w-5 h-5 text-indigo-600" />
-                    )}
-                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowPhotoModal(true)}
+                    data-testid="profile-change-photo-btn"
+                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-xl shadow-lg flex items-center justify-center cursor-pointer hover:bg-gray-50 transition-colors"
+                  >
+                    <Camera className="w-5 h-5 text-indigo-600" />
+                  </button>
                 </div>
                 
                 {/* Info */}
@@ -640,6 +636,17 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
         </main>
       </div>
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
+
+      <PhotoUploadModal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        user={user}
+        token={token}
+        onPhotoUpdated={(userId, photoUrl) => {
+          setProfile(prev => ({ ...prev, photo_url: photoUrl }));
+          if (onUserUpdate) onUserUpdate({ ...user, photo_url: photoUrl });
+        }}
+      />
     </div>
   );
 }
