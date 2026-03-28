@@ -27,7 +27,7 @@ import {
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function StudentProfilePage({ user, token, onLogout }) {
+export default function StudentProfilePage({ user, token, onLogout, onUserUpdate }) {
   const { subdomain } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -422,6 +422,7 @@ export default function StudentProfilePage({ user, token, onLogout }) {
         selfUpdate={true}
         onPhotoUpdated={(userId, photoUrl) => {
           setProfile(prev => ({ ...prev, user: { ...prev.user, photo_url: photoUrl } }));
+          if (onUserUpdate) onUserUpdate({ ...user, photo_url: photoUrl });
         }}
       />
     </div>

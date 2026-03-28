@@ -23,7 +23,7 @@ import {
 
 const API = process.env.REACT_APP_BACKEND_URL;
 
-export default function ParentProfilePage({ user, token, onLogout }) {
+export default function ParentProfilePage({ user, token, onLogout, onUserUpdate }) {
   const { subdomain } = useParams();
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -344,6 +344,7 @@ export default function ParentProfilePage({ user, token, onLogout }) {
         onPhotoUpdated={(userId, photoUrl) => {
           setLocalPhotoUrl(photoUrl);
           setProfile(prev => prev ? { ...prev, photo_url: photoUrl } : prev);
+          if (onUserUpdate) onUserUpdate({ ...user, photo_url: photoUrl });
         }}
       />
     </div>

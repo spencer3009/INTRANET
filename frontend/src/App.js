@@ -739,7 +739,7 @@ function App() {
                 ) : isAdminOnly(user) ? (
                   <Navigate to="/dashboard" replace />
                 ) : (
-                  <StudentProfilePage user={user} token={token} onLogout={handleLogout} />
+                  <StudentProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
                 )}
               </ProtectedRoute>
             }
@@ -824,7 +824,7 @@ function App() {
             path="/teacher/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <TeacherProfilePage user={user} token={token} onLogout={handleLogout} />
+                <TeacherProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
               </ProtectedRoute>
             }
           />
@@ -916,7 +916,7 @@ function App() {
             path="/parent/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ParentProfilePage user={user} token={token} onLogout={handleLogout} />
+                <ParentProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
               </ProtectedRoute>
             }
           />
@@ -1283,7 +1283,7 @@ function App() {
                 ) : isAdminOnly(user) ? (
                   <Navigate to={`/${user?.subdomain}/dashboard`} replace />
                 ) : (
-                  <StudentProfilePage user={user} token={token} onLogout={handleLogout} />
+                  <StudentProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
                 )}
               </ProtectedRoute>
             }
@@ -1384,7 +1384,7 @@ function App() {
             path="/:subdomain/teacher/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <TeacherProfilePage user={user} token={token} onLogout={handleLogout} />
+                <TeacherProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
               </ProtectedRoute>
             }
           />
@@ -1474,7 +1474,7 @@ function App() {
             path="/:subdomain/parent/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ParentProfilePage user={user} token={token} onLogout={handleLogout} />
+                <ParentProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
               </ProtectedRoute>
             }
           />
