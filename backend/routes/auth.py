@@ -506,11 +506,11 @@ async def change_password(data: PasswordChange, current_user=Depends(get_current
         raise HTTPException(status_code=404, detail="Usuario no encontrado")
     
     # Verify current password
-    if not bcrypt.checkpw(data.current_password.encode(), user["password"].encode()):
+    if not verify_password(data.current_password, user["password"]):
         raise HTTPException(status_code=400, detail="La contraseña actual es incorrecta")
     
     # Hash new password
-    new_hashed = bcrypt.hashpw(data.new_password.encode(), bcrypt.gensalt()).decode()
+    new_hashed = hash_password(data.new_password)
     
     await db.users.update_one(
         {"id": user["id"]},
