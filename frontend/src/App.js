@@ -67,6 +67,7 @@ import TeacherLiveClassesPage from "@/pages/TeacherLiveClassesPage";
 import StudentLiveClassesPage from "@/pages/StudentLiveClassesPage";
 // Parent Portal imports
 import ParentDashboardPage from "@/pages/ParentDashboardPage";
+import ParentProfilePage from "@/pages/ParentProfilePage";
 import ParentTasksPage from "@/pages/ParentTasksPage";
 import ParentGradesPage from "@/pages/ParentGradesPage";
 import ParentAttendancePage from "@/pages/ParentAttendancePage";
@@ -915,7 +916,7 @@ function App() {
             path="/parent/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                <ParentProfilePage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1473,7 +1474,7 @@ function App() {
             path="/:subdomain/parent/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <ParentDashboardPage user={user} token={token} onLogout={handleLogout} />
+                <ParentProfilePage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
