@@ -91,7 +91,7 @@ export default function StudentProfilePage({ user, token, onLogout }) {
     
     setSaving(true);
     try {
-      await axios.post(`${API}/api/auth/change-password`, {
+      await axios.put(`${API}/api/auth/password`, {
         current_password: passwordData.currentPassword,
         new_password: passwordData.newPassword
       }, { headers });
