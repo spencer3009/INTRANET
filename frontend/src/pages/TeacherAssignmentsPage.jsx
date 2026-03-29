@@ -1177,7 +1177,7 @@ export default function TeacherAssignmentsPage({ user, onLogout }) {
         confirmColor="red"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
-      <FloatingHelpAvatar subdomain={user?.subdomain} />
+      
     </div>
   );
 }

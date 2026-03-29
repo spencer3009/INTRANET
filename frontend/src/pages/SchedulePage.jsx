@@ -682,7 +682,7 @@ export default function SchedulePage({ user, token, onLogout }) {
         type="danger"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
-      <FloatingHelpAvatar subdomain={user?.subdomain} />
+      
     </div>
   );
 }

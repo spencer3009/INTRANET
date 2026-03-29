@@ -2649,7 +2649,7 @@ export default function AccountingPage({ user, token, subdomain, onLogout }) {
         icon="delete"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
-      <FloatingHelpAvatar subdomain={subdomain} />
+      
     </div>
   );
 }
