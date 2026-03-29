@@ -1668,7 +1668,7 @@ export default function AcademicSettingsPage({ user, token, subdomain, onLogout 
         showCancel={false} 
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
-      
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

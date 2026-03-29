@@ -1581,7 +1581,7 @@ export default function AcademicYearsPage({ token, user, subdomain, onLogout }) 
         icon="power"
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
-      
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

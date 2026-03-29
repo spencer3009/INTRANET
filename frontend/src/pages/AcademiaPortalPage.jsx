@@ -640,7 +640,6 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
           <AcademiaContent token={token} />
         </main>
       </div>
-      <FloatingHelpAvatar subdomain={user?.subdomain} />
     </div>
   );
 }

@@ -5225,7 +5225,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       )}
 
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
-      
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

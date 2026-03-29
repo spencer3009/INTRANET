@@ -1943,7 +1943,7 @@ export default function AttendancePage({ user, token, subdomain, onLogout }) {
         </main>
       </div>
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
-      
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }

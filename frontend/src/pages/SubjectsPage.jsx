@@ -1456,7 +1456,7 @@ export default function SubjectsPage({ user, token, subdomain, onLogout }) {
         onSuccess={loadSubjects}
       />
       <MobileBottomNav role={user?.role === "admin" ? "admin" : "owner"} />
-      
+      <FloatingHelpAvatar subdomain={subdomain} />
     </div>
   );
 }
