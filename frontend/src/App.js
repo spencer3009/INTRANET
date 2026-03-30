@@ -222,6 +222,34 @@ function ChatPalRouteGuard() {
           display: block !important;
           visibility: visible !important;
         }
+
+        /* Center ChatPal play button over avatar */
+        body.chatpal-active div[style*="position: fixed"] > div:not(:has(iframe)),
+        body.chatpal-landing-active div[style*="position: fixed"] > div:not(:has(iframe)),
+        body.chatpal-active div[style*="position:fixed"] > div:not(:has(iframe)),
+        body.chatpal-landing-active div[style*="position:fixed"] > div:not(:has(iframe)) {
+          position: relative !important;
+        }
+
+        body.chatpal-active div[style*="position: fixed"],
+        body.chatpal-landing-active div[style*="position: fixed"],
+        body.chatpal-active div[style*="position:fixed"],
+        body.chatpal-landing-active div[style*="position:fixed"] {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+
+        /* Ensure the play button iframe is centered over the avatar */
+        body.chatpal-active div[style*="position: fixed"] iframe[style*="border-radius: 50%"],
+        body.chatpal-landing-active div[style*="position: fixed"] iframe[style*="border-radius: 50%"],
+        body.chatpal-active div[style*="position:fixed"] iframe[style*="border-radius: 50%"],
+        body.chatpal-landing-active div[style*="position:fixed"] iframe[style*="border-radius: 50%"] {
+          position: absolute !important;
+          top: 50% !important;
+          left: 50% !important;
+          transform: translate(-50%, -50%) !important;
+        }
       `;
       document.head.appendChild(style);
     }

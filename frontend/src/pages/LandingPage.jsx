@@ -111,9 +111,33 @@ export default function LandingPage() {
       } catch (e) { /* silence */ }
     }
 
+    // Center ChatPal play button over avatar via DOM manipulation
+    const centerPlayBtn = setInterval(() => {
+      document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(container => {
+        if (!container.querySelector('iframe[src*="chatterpal"]') && !container.querySelector('iframe[src*="chatpal"]')) return;
+        const iframes = container.querySelectorAll('iframe');
+        if (iframes.length < 2) return;
+        // The container has multiple iframes: avatar + play button
+        // Make container position relative for absolute positioning of children
+        container.style.setProperty('position', 'fixed');
+        const avatarIframe = iframes[0];
+        // Find the play button iframe (usually smaller, circular)
+        for (let i = 1; i < iframes.length; i++) {
+          const playIframe = iframes[i];
+          const style = window.getComputedStyle(playIframe);
+          if (style.borderRadius && style.borderRadius.includes('50%') || parseInt(style.width) < 80) {
+            playIframe.style.setProperty('position', 'absolute', 'important');
+            playIframe.style.setProperty('top', '50%', 'important');
+            playIframe.style.setProperty('left', '50%', 'important');
+            playIframe.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
+          }
+        }
+      });
+    }, 800);
+
     return () => {
       document.body.classList.remove("chatpal-landing-active");
-      // Ocultar iframes al salir de landing
+      clearInterval(centerPlayBtn);
       document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
         if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
           el.style.setProperty('display', 'none', 'important');
