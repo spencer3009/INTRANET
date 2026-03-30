@@ -2887,7 +2887,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                                             {/* Section Content - Student Cards */}
                                             {isSectionOpen && (
                                               <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pl-6 pb-2">
-                                                {sectionStudents.map(student => renderStudentCard(student, roleConfig, levelColor, gradeName, sectionName))}
+                                                {sectionStudents.map(student => renderStudentCard(student, roleConfig, levelColor, levelName, gradeName, sectionName))}
                                               </div>
                                             )}
                                           </div>
