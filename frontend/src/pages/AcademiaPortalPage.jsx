@@ -3,6 +3,7 @@ import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import FloatingHelpAvatar from "@/components/FloatingHelpAvatar";
+import FloatingVideoAvatar from "@/components/FloatingVideoAvatar";
 import {
   Video, FolderOpen, Search, X, Loader2, Play, Clock,
   ChevronDown, ArrowLeft, GraduationCap, BookOpen, BarChart3,
@@ -573,6 +574,7 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
           <AcademiaContent token={token} />
         </main>
       </div>
+      <FloatingVideoAvatar />
     </div>
   );
 }
