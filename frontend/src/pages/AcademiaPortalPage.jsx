@@ -544,64 +544,61 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
       .catch(() => {});
   }, [token]);
 
-  // ChatPal widget - SPA compatible (v8.5)
+  // ChatPal widget - SPA compatible (v8.5) - Full destroy/recreate cycle
   useEffect(() => {
-    document.body.classList.add("chatpal-active");
+    let isMounted = true;
 
-    // Restore visibility on any existing ChatPal elements
-    const showChatPal = () => {
-      document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
-        if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
-          el.style.removeProperty('display');
-          el.style.removeProperty('visibility');
+    const cleanupChatterPal = () => {
+      const chatterPalElements = document.querySelectorAll(
+        'iframe[src*="chatterpal"], [id*="chatpal"], [id*="chatterpal"], [class*="chatpal"], [class*="chatterpal"], .cp-widget, .cp-container'
+      );
+      chatterPalElements.forEach(el => el.remove());
+
+      if (window.chatPalInstance) {
+        if (typeof window.chatPalInstance.destroy === 'function') {
+          try { window.chatPalInstance.destroy(); } catch (e) { /* silence */ }
         }
-      });
-      document.querySelectorAll('iframe[src*="chatterpal"], iframe[src*="chatpal"]').forEach(el => {
-        el.style.removeProperty('display');
-        el.style.removeProperty('visibility');
-      });
+        window.chatPalInstance = null;
+      }
+
+      delete window.chatPalLoaded;
+      delete window.ChatPal;
+
+      const oldScripts = document.querySelectorAll('script[src*="chatpal.js"]');
+      oldScripts.forEach(s => s.remove());
+
+      document.body.classList.remove('chatpal-active');
     };
 
-    showChatPal();
+    const initChatterPal = () => {
+      cleanupChatterPal();
 
-    const initChatPal = () => {
-      if (!window.ChatPal) return;
-      // Only create if no iframe exists yet (avoid duplicates)
-      if (document.querySelector('iframe[src*="chatterpal"]')) {
-        showChatPal();
-        return;
-      }
-      try {
-        new window.ChatPal({
-          embedId: "rtg8Y2d7NE7C",
-          remoteBaseUrl: "https://chatterpal.me/",
-          version: "8.5"
-        });
-      } catch (e) {
-        console.log("ChatPal init error:", e);
-      }
+      setTimeout(() => {
+        if (!isMounted) return;
+
+        const script = document.createElement('script');
+        script.src = 'https://chatterpal.me/build/js/chatpal.js?8.5';
+        script.async = true;
+        script.onload = () => {
+          if (!isMounted) return;
+          if (typeof window.ChatPal === 'function') {
+            window.chatPalInstance = new window.ChatPal({
+              embedId: 'rtg8Y2d7NE7C',
+              remoteBaseUrl: 'https://chatterpal.me/',
+              version: '8.5'
+            });
+            document.body.classList.add('chatpal-active');
+          }
+        };
+        document.body.appendChild(script);
+      }, 150);
     };
 
-    if (!window.chatPalLoaded) {
-      // First load: inject script dynamically
-      const script = document.createElement("script");
-      script.src = "https://chatterpal.me/build/js/chatpal.js?8.5";
-      script.onload = () => {
-        window.chatPalLoaded = true;
-        initChatPal();
-      };
-      document.body.appendChild(script);
-    } else {
-      // Script already loaded (SPA navigation back to this page)
-      initChatPal();
-    }
-
-    // Keep ChatPal visible while on this page
-    const showInterval = setInterval(showChatPal, 500);
+    initChatterPal();
 
     return () => {
-      document.body.classList.remove("chatpal-active");
-      clearInterval(showInterval);
+      isMounted = false;
+      cleanupChatterPal();
     };
   }, []);
 
