@@ -194,64 +194,6 @@ function ShopifyRedirect({ user, environment }) {
   return null;
 }
 
-// Global CSS: Hide ChatPal widget elements when not on Academia page
-function ChatPalRouteGuard() {
-  const location = useLocation();
-
-  useEffect(() => {
-    const STYLE_ID = "chatpal-visibility-css";
-    if (!document.getElementById(STYLE_ID)) {
-      const style = document.createElement("style");
-      style.id = STYLE_ID;
-      style.textContent = `
-        /* Hide ALL ChatPal elements by default */
-        iframe[src*="chatterpal.me"],
-        iframe[src*="chatpal.me"],
-        div:has(> iframe[src*="chatterpal.me"]),
-        div:has(> iframe[src*="chatpal.me"]) {
-          display: none !important;
-          visibility: hidden !important;
-        }
-        /* Show them ONLY when chatpal-active class is on body */
-        body.chatpal-active iframe[src*="chatterpal.me"],
-        body.chatpal-active iframe[src*="chatpal.me"],
-        body.chatpal-active div:has(> iframe[src*="chatterpal.me"]),
-        body.chatpal-active div:has(> iframe[src*="chatpal.me"]) {
-          display: block !important;
-          visibility: visible !important;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }, []);
-
-  // Hide ChatPal floating elements when NOT on academia
-  useEffect(() => {
-    const isAcademia = location.pathname.includes('/academia');
-    if (isAcademia) return;
-
-    const hideElements = () => {
-      document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
-        if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
-          el.style.setProperty('display', 'none', 'important');
-          el.style.setProperty('visibility', 'hidden', 'important');
-        }
-      });
-      document.querySelectorAll('iframe[src*="chatterpal"], iframe[src*="chatpal"]').forEach(el => {
-        el.style.setProperty('display', 'none', 'important');
-        el.style.setProperty('visibility', 'hidden', 'important');
-      });
-    };
-
-    hideElements();
-    const interval = setInterval(hideElements, 500);
-
-    return () => clearInterval(interval);
-  }, [location.pathname]);
-
-  return null;
-}
-
 // ══════════════════════════════════════════════════════════════════════════════
 // Protected Route Component
 // ══════════════════════════════════════════════════════════════════════════════
@@ -488,7 +430,6 @@ function App() {
         <BrowserRouter>
           <SubscriptionProvider token={token}>
           <ShopifyRedirect user={user} environment={environment} />
-          <ChatPalRouteGuard />
           <GlobalSubscriptionOverlay token={token} user={user} />
         
         <Routes>
