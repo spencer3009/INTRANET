@@ -600,29 +600,9 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
       });
     }, 500);
 
-    // Center ChatPal play button over avatar
-    const centerPlayBtn = setInterval(() => {
-      document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(container => {
-        if (!container.querySelector('iframe[src*="chatterpal"]') && !container.querySelector('iframe[src*="chatpal"]')) return;
-        const iframes = container.querySelectorAll('iframe');
-        if (iframes.length < 2) return;
-        for (let i = 1; i < iframes.length; i++) {
-          const playIframe = iframes[i];
-          const style = window.getComputedStyle(playIframe);
-          if (style.borderRadius && style.borderRadius.includes('50%') || parseInt(style.width) < 80) {
-            playIframe.style.setProperty('position', 'absolute', 'important');
-            playIframe.style.setProperty('top', '50%', 'important');
-            playIframe.style.setProperty('left', '50%', 'important');
-            playIframe.style.setProperty('transform', 'translate(-50%, -50%)', 'important');
-          }
-        }
-      });
-    }, 800);
-
     return () => {
       document.body.classList.remove("chatpal-active");
       clearInterval(showInterval);
-      clearInterval(centerPlayBtn);
     };
   }, []);
 
