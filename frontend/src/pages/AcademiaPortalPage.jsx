@@ -3,7 +3,6 @@ import axios from "axios";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
 import FloatingHelpAvatar from "@/components/FloatingHelpAvatar";
-import FloatingVideoAvatar from "@/components/FloatingVideoAvatar";
 import {
   Video, FolderOpen, Search, X, Loader2, Play, Clock,
   ChevronDown, ArrowLeft, GraduationCap, BookOpen, BarChart3,
@@ -545,6 +544,68 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
       .catch(() => {});
   }, [token]);
 
+  // ChatPal widget - CSS visibility approach
+  useEffect(() => {
+    document.body.classList.add("chatpal-active");
+
+    document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
+      if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
+        el.style.removeProperty('display');
+        el.style.removeProperty('visibility');
+      }
+    });
+    document.querySelectorAll('iframe[src*="chatterpal"], iframe[src*="chatpal"]').forEach(el => {
+      el.style.removeProperty('display');
+      el.style.removeProperty('visibility');
+    });
+
+    const SCRIPT_ID = "chatpal-script";
+    if (!document.getElementById(SCRIPT_ID)) {
+      const script = document.createElement("script");
+      script.id = SCRIPT_ID;
+      script.src = "https://chatterpal.me/build/js/chatpal.js?8.3";
+      script.integrity = "sha384-+YIWcPZjPZYuhrEm13vJJg76TIO/g7y5B14VE35zhQdrojfD9dPemo7q6vnH44FR";
+      script.crossOrigin = "anonymous";
+      script.setAttribute("data-cfasync", "false");
+      script.onload = () => {
+        if (window.ChatPal) {
+          new window.ChatPal({
+            embedId: "rtg8Y2d7NE7C",
+            remoteBaseUrl: "https://chatterpal.me/",
+            version: "8.3"
+          });
+        }
+      };
+      document.body.appendChild(script);
+    } else {
+      if (window.ChatPal && !document.querySelector('iframe[src*="chatterpal"]')) {
+        try {
+          new window.ChatPal({
+            embedId: "rtg8Y2d7NE7C",
+            remoteBaseUrl: "https://chatterpal.me/",
+            version: "8.3"
+          });
+        } catch (e) {
+          console.log("ChatPal re-init:", e);
+        }
+      }
+    }
+
+    const showInterval = setInterval(() => {
+      document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
+        if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
+          el.style.removeProperty('display');
+          el.style.removeProperty('visibility');
+        }
+      });
+    }, 500);
+
+    return () => {
+      document.body.classList.remove("chatpal-active");
+      clearInterval(showInterval);
+    };
+  }, []);
+
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="academia-portal-container">
       <Sidebar
@@ -574,7 +635,6 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
           <AcademiaContent token={token} />
         </main>
       </div>
-      <FloatingVideoAvatar />
     </div>
   );
 }
