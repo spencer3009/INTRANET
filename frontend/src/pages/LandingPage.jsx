@@ -188,7 +188,7 @@ export default function LandingPage() {
                     loading="lazy"
                     data-testid="hero-dashboard-image"
                     src="https://customer-assets.emergentagent.com/job_d0ea565a-5ab8-49d6-8b8e-5c0e85764ea0/artifacts/3qb8ccoe_image%20%282%29.webp"
-                    style={{ maskImage: "radial-gradient(80% 80% at 40% 50%, rgb(0, 0, 0) 40%, rgba(0, 0, 0, 0) 100%)" }}
+                    style={{ maskImage: "linear-gradient(to right, transparent 0%, black 15%, black 75%, transparent 100%), linear-gradient(to bottom, transparent 0%, black 15%, black 80%, transparent 100%)", maskComposite: "intersect", WebkitMaskComposite: "source-in" }}
                   />
 
                   {/* Panel en vivo badge */}
