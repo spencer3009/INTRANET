@@ -1,49 +1,45 @@
-<analysis>**original_problem_statement**: The user requested a series of data injections (accounting income/expenses), UI redesigns (Morosos tab, login logo), new features (Custom Login Background via Cloudinary, WhatsApp support contact, ON_CREATE automatic student activation), security restrictions (blocking public ), and critical bug fixes in production (Attendance module showing 0 students, Teacher assignments showing Sin resultados). PRODUCT REQUIREMENTS include ensuring backwards compatibility with existing MongoDB data (String vs ObjectId mismatches) and strictly avoiding modifications to unaffected features.
+<analysis>**original_problem_statement**: The user requested a series of data injections, UI redesigns, new features (Custom Login Background, WhatsApp support, ON_CREATE automatic student activation), security restrictions, and critical bug fixes (Attendance module showing 0 students, Teacher assignments showing Sin resultados). In the latest session, requests expanded to fixing global password change endpoints, unifying profile photo uploads across all user portals (Admin, Teacher, Student, Parent), creating a missing Parent Profile page, configuring ChatterPal video widgets, and styling the Landing Page. PRODUCT REQUIREMENTS include ensuring backwards compatibility with existing MongoDB data and ensuring 3rd-party integrations (ChatterPal) degrade gracefully in preview environments.
 
-**User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only).
+**User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only)
 
 **what currently exists?** 
-A robust React + FastAPI + MongoDB school management platform. The system now features a highly customizable login page (custom backgrounds, dynamic WhatsApp support links), a redesigned inline Morosos (debtors) accounting tab, flexible ID handling for attendance tracking to prevent production crashes, and a new  automatic student activation flow that works both for individual creations and bulk Excel imports. 
+A robust React + FastAPI + MongoDB school management platform. The system features customized login pages, attendance tracking, hierarchical academic structures, and role-based portals (Admin, Teacher, Student, Parent). The platform now includes unified profile photo management with instant UI updates, fixed password change flows, and dynamic integrations with ChatterPal for virtual video assistants on the Landing Page and Help Center.
 
 **Last working item**:
-    - **Last item agent was working**: Debugging the Teacher Assignments (Asignación docente) modal. The user reported that when trying to assign teachers to SECUNDARIA A, the modal shows Sin resultados (No results) despite there being 20 subjects. The agent added a  in  (line 352) and took a screenshot of the console to see why the frontend filter is excluding the subjects.
-    - **Status**: IN PROGRESS
-    - **Agent Testing Done**: N (Only gathered debug data, fix not yet implemented).
-    - **Which testing method agent to use?**: Frontend screenshot tool to verify the modal populates subjects correctly.
+    - **Last item agent was working**: UI Fix for ChatterPal widget play button. The agent implemented a JavaScript-based overlay in  and  to dynamically inject a perfectly centered Play button over the cross-origin ChatterPal iframe without altering the iframe's internal contents or breaking the SPA routing.
+    - **Status**: USER VERIFICATION PENDING
+    - **Agent Testing Done**: Y (Code logic verified, but the actual widget cannot be visually tested in preview due to ChatterPal domain whitelisting).
+    - **Which testing method agent to use?**: NA (User must verify in production).
     - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: Modal Nueva Asignación Docente no muestra asignaturas (Sin resultados) (P0)
-     - Attempted fixes: Agent added console logs to  to diagnose the frontend filter variables (, ,  vs ).
-     - Next debug checklist: Read the console logs generated in the last step. Analyze the filtering logic in  (lines 351-375). The issue is likely that  contains assignments from *other* sections or grades, and the strict ID checking () is either causing false positives or failing due to String vs ObjectId mismatch in production. Implement the fix based on the console output.
-     - Why fix this issue and what will be achieved with the fix?: Unblocks school administrators from assigning teachers to subjects.
-     - Status: IN PROGRESS
+  Issue 1: Validar UI de ChatterPal en Producción (P0)
+     - Attempted fixes: Implemented JS overlay to center the play button over the ChatterPal widget in  and . 
+     - Next debug checklist: Ask user to confirm if the play button overlay works correctly and if the ChatterPal video plays when clicked in the *production* environment ().
+     - Why fix this issue and what will be achieved with the fix?: Ensures the 3rd-party widget has a polished UX aligned with the user's design requirements.
+     - Status: USER VERIFICATION PENDING
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend
+     - Should Test frontend/backend/both after fix?: Frontend (by user in prod)
+     - Blocked on other issue: Requires user deployment.
 
   Issue 2: Despliegue a Producción para validar fixes de Asistencia (P1)
-     - Attempted fixes: Agent implemented  (handles both String and ObjectId) in  and normalized IDs in  ( and ). Added extensive production debug logs.
-     - Next debug checklist: These fixes are currently sitting in the preview environment. Remind the user that a **deployment to production** is required for the Attendance fix to take effect. If it still fails after deploy, the user needs to provide the output of the newly added debug logs.
-     - Why fix this issue and what will be achieved with the fix?: Fixes a critical bug where attendance cannot be taken in production because MongoDB returns 0 students due to ID type mismatches.
-     - Status: USER VERIFICATION PENDING (Awaiting deploy)
-     - Is recurring issue? Y (Production environment data inconsistency)
+     - Attempted fixes: Agent previously implemented  in  and .
+     - Next debug checklist: Remind the user that a deployment to production is required for the Attendance fix to take effect. 
+     - Why fix this issue and what will be achieved with the fix?: Fixes a critical bug where attendance cannot be taken in production due to ID type mismatches (String vs ObjectId).
+     - Status: USER VERIFICATION PENDING
+     - Is recurring issue? Y (Data inconsistency)
      - Should Test frontend/backend/both after fix?: Both (by user in prod)
 
   Issue 3: Limpieza de colecciones huérfanas al eliminar colegio (P2)
-     - Attempted fixes: Agent diagnosed . Found it does a physical delete of 19 collections, but leaves ~15 collections (expenses, settings, assignments, etc.) orphaned. 
-     - Next debug checklist: Update  in  to delete the remaining collections. *Note: User explicitly said No implementes nada todavía (Don't implement yet), so ask for permission before doing this.*
-     - Why fix this issue and what will be achieved with the fix?: Prevents database bloat and orphan data.
+     - Attempted fixes: Diagnosed  leaving ~15 orphaned collections.
+     - Next debug checklist: Update  in  to delete the remaining collections. *Note: User previously said No implementes nada todavía, ask for permission first.*
+     - Why fix this issue and what will be achieved with the fix?: Prevents database bloat.
      - Status: BLOCKED (Awaiting user greenlight)
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Backend
 
 **In progress Task List**:
-  Task 1: Fix Teacher Assignments Filtering (P0)
-     - Where to resume: Review the output of the console log injected into  to find out why subjects are being filtered out, then apply the fix to the component.
-     - What will be achieved with this?: Teachers can be assigned properly.
-     - Status: IN PROGRESS
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on something: None.
+  None. All immediate tasks requested by the user in this session have been implemented.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
@@ -59,95 +55,89 @@ A robust React + FastAPI + MongoDB school management platform. The system now fe
     - Replace all remaining / calls with custom modals.
 
 **Completed work in this session**
-- Generación de Data Contable: Inserted 8 expenses (S/8,000) and 51 income payments (S/34,000) in MongoDB (DONE).
-- Rediseño Tabla Morosos: Refactored  to be inline (not a separate page), added collapsible months pill, merged student/grade columns, and added avatar initials (DONE).
-- Agrandar Logo Login: Changed login logo size to  in  (DONE).
-- Fondo de Login Personalizable: Created endpoints to upload/delete Cloudinary WebP images for login backgrounds. Added UI to  and updated  (DONE).
-- WhatsApp de Soporte en Login: Replaced the generic contact form link on the login page with a direct WhatsApp  link pulled from the global support user profile (DONE).
-- Bloqueo de Registro Público: Disabled the Continuar button on  and added a restricted access modal to prevent unauthorized school creation (DONE).
-- Fix ID Asistencia: Added  to handle both String and ObjectId queries in , and normalized IDs in  to prevent 0 students bug in production (DONE - Pending Deploy).
-- Activación de Alumnos ON_CREATE: Added a 3rd activation mode. New students activate instantly. Changing settings to this mode retroactively activates all pending students via  (DONE).
+- Teacher Assignments filtering fix: Created migration script () and fixed backend assignment logic to auto-derive  (DONE).
+- Fixed  returning 500: Replaced raw bcrypt calls with core helper methods and fixed  salt exclusion (DONE).
+- Unified Profile Photo Uploads: Implemented  with  in Admin, Teacher, Student, and Parent portals (DONE).
+- Instant UI Update on Photo Upload: Propagated  from  to all profile pages to avoid needing a re-login (DONE).
+- Created  and mapped routing, as it previously incorrectly routed to Dashboard (DONE).
+- Fixed Student Password Change endpoint ( -> ) (DONE).
+- Removed redundant  analytics script from  (DONE).
+- ChatterPal Integration: Added v8.5 widget to Landing Page and Academia Portal with specific SPA constraints and dynamically injected play-button overlays (DONE).
+- Landing Page SEO/UI: Blurred dashboard image edges, replaced GDrive video with Vimeo, added 33 SEO meta keywords and descriptions (DONE).
+-  mapping: Removed from Dashboard/Help Center, mapped strictly to 9 specific internal views (DONE).
 
 **Earlier issues found/mentioned but not fixed**
-- None missed.
+None.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Production vs Preview data structure mismatches (UUID strings in preview vs ObjectIds in production).
-  - Recurrence count: 2
-  - Status: IN PROGRESS (Mitigated via , waiting on deploy).
+  - Issue recurrence in previous fork: Production vs Preview environment discrepancies. ChatterPal widget strictly blocks preview domains and only renders in production.
+  - Recurrence count: 3
+  - Status: BLOCKED (Requires user to test in prod)
+  - Note: Next agent MUST remind the user that ChatterPal issues and Attendance ID mismatches cannot be fully tested in the preview environment.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **Flexible ID Filtering:** Due to historical data generation, some MongoDB docs have UUID Strings and some have ObjectIds.  in backend routes generates an  query with both forms to ensure matches regardless of type.
-- **Login Background:** Uses existing Cloudinary setup. Enforces  format and  width limit. Saved to the  collection as .
+- **ChatterPal SPA Integration**: Injected via  with dynamic script loading and a JavaScript DOM-manipulation fallback to inject a centered overlay play button above cross-origin iframes.
+- **Global State Update**: Profile updates now bubble up to  via  to immediately refresh header/sidebar avatars without re-authentication.
 
 **key DB schema**
-  - : Added  and .
-  -  (support role): Added .
-  - :  now defaults to .
+  - : Ensures  natively matches the  of the parent .
 
 **changes in tech stack**
-  - No changes.
+  - None.
 
 **All files of reference** 
-  -  (CURRENT FOCUS - Buggy filtering logic)
-  -  (Endpoints fetching assignments)
-  -  (Flexible ID implementations)
-  - 
+  -  (ChatterPal overlay logic)
+  -  (ChatterPal overlay logic)
+  -  (Routing and ChatPalRouteGuard)
+  -  (Password and profile endpoints)
 
 **Areas that need refactoring**: 
-  -  (>5000 lines). Modals and tabs desperately need sub-components.
-  -  (The filtering logic is highly complex and reliant on frontend comparisons. Needs backend query optimization).
+  -  DOM manipulation logic is robust but slightly hacky due to cross-origin iframe limitations. Keep an eye on it if the layout changes.
+  -  (>5000 lines).
 
 **key api endpoints**
-  -  (New)
-  -  (New)
-  -  (Updated with whatsapp)
+  -  (Updated to use correct bcrypt helpers)
+  -  (Used globally for self-updates)
+  -  (Migration script)
 
 **Critical Info for New Agent**
   - **LANGUAGE:** Respond strictly in **Spanish**.
-  - **PRODUCTION VS PREVIEW:** The user is testing the Attendance feature on the live production site (), while you are coding in the preview environment. You must remind the user to DEPLOY the code changes for the Attendance fixes to work.
-  - **TEACHER ASSIGNMENTS BUG:** You are exactly at the step of analyzing the frontend  for the Teacher Assignments bug. Read the logs from the last  command, figure out why the subjects are being excluded in , and fix the filtering logic.
+  - **ENVIRONMENT LIMITATIONS:** Do not attempt to debug ChatterPal visual rendering in the preview environment. ChatterPal enforces domain whitelisting (), so the iframes will silently fail to inject in the preview URL. Rely on DOM inspection logs and user verification in production.
+  - **ROUTING:**  was successfully created to stop parents from being routed to the dashboard when clicking their profile.
 
 **documents and test reports created in this job**
-  -  (Updated heavily)
-  -  (Login Background feature test - 100% pass)
+  -  (Updated)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-  - User requested  student activation. (Done)
-  - User asked if existing pending students activate. Agent said no.
-  - User updated request: ON_CREATE must retroactively activate pending students. (Done)
-  - User requested a save button inside the settings section. (Done)
-  - User reported Activar al registrar alumno not saving. (Fixed bug)
-  - User asked for path to accounting settings. (Provided)
-  - User reported ON_CREATE not working in production. (Agent confirmed backend logic is correct, just needs deployment).
-  - User requested changing default activation to on_create. (Done)
-  - User requested path to Teacher Assignments and Subjects. (Provided)
-  - User asked questions about  structure. (Answered)
-  - User asked to check production DB for assignment counts. (Explained lack of prod access)
-  - User reported bug: Teacher assignments modal shows Sin resultados for SECUNDARIA > 1ROSEC > Sección A. (Debug started)
-  - **(PENDING) User requested:** Add console.log to  and check why it's filtering out subjects. (Agent added the log and ran it, but the session ended before analyzing and fixing).
+  - User requested removing  and reverting to the native ChatterPal iframe. (Done)
+  - User asked to blur the edges of the dashboard image in the Landing Page. (Done)
+  - User asked to remove the drop shadow/opacity on the mobile mockup image. (Done)
+  - User provided ChatterPal embed script for the Landing Page. (Done)
+  - User requested Vimeo video replacement and comprehensive SEO meta tags in . (Done)
+  - User reported the ChatterPal play button was misaligned inside the iframe and requested a strict UI fix without altering the widget or iframe. (Done via JS overlay)
+  - User reported Landing page crashed (Instala la App screen). Agent identified a CSS collision and fixed it. (Done)
+  - **(PENDING) User requested:** UI FIX — Botón de play centrado usando overlay. Agent implemented this via JavaScript to track the ChatPal container and inject a centered overlay button. The session ended right after the fix was applied. User needs to verify this in production.
 
 **Project Health Check:**
-  - Broken: Teacher Assignments modal filtering (Frontend bug).
+  - Broken: None known.
   - Mocked: Accounting financial data (synthetic).
 
 **3rd Party Integrations** 
-  - Cloudinary (Image Hosting) - Uses emergent managed keys.
+  - Cloudinary (Image Hosting) - Emergent managed
+  - Vimeo (Video Hosting) - External URL
+  - ChatterPal (Video Avatar) - External Script (Requires User Domain Whitelist)
 
 **Testing status**
-  - Testing agent used after significant changes: YES
+  - Testing agent used after significant changes: NO (Screenshot tool heavily relied upon; next agent should consider running full suite if further routing changes occur).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: 
+  - Test files created: None this session.
   - Known regressions: None currently known.
 
 **Credentials to test flow:**
-  - **School Owner / Admin:**
-    - **Subdomain:** 
-    - **Email:** 
-    - **Password:** 
+  - **School Owner / Admin:**  /  / 
 
 **What agent forgot to execute**
-The agent added the requested  to  and captured the output in the bash terminal, but the session ended before the agent could analyze the log output and actually implement the fix for the filtering bug. Start by reading the  output in the history, diagnose the filter issue, and fix the component. Ensure you explain to the user what was wrong and fix it.</analysis>
+The agent did not run the  after making global changes to  routing and authentication endpoints. While manual testing was thorough, running the testing subagent is recommended if further global UI/routing changes are planned.</analysis>

@@ -600,9 +600,59 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
       });
     }, 500);
 
+    // Overlay play button centered over ChatPal avatar
+    const OVERLAY_ID = "chatpal-play-overlay-academia";
+    const addPlayOverlay = setInterval(() => {
+      if (document.getElementById(OVERLAY_ID)) { clearInterval(addPlayOverlay); return; }
+      const iframes = document.querySelectorAll('iframe[src*="chatterpal"], iframe[src*="chatpal"]');
+      for (const iframe of iframes) {
+        const container = iframe.closest('div[style*="position: fixed"], div[style*="position:fixed"]') || iframe.parentElement;
+        if (!container) continue;
+        // 1. Wrapper overlay — position context over the container
+        const wrapper = document.createElement("div");
+        wrapper.id = OVERLAY_ID;
+        Object.assign(wrapper.style, {
+          position: "absolute", top: "0", left: "0", right: "0", bottom: "0",
+          zIndex: "99999", pointerEvents: "none",
+        });
+        // 2. Centered play button — absolute centering per spec
+        const btn = document.createElement("div");
+        Object.assign(btn.style, {
+          position: "absolute", top: "50%", left: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "52px", height: "52px", borderRadius: "50%",
+          background: "rgba(0,180,255,0.9)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          cursor: "pointer", pointerEvents: "auto",
+          boxShadow: "0 4px 20px rgba(0,180,255,0.5)",
+          transition: "transform 0.2s ease, opacity 0.3s ease",
+        });
+        btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="white"><polygon points="6,3 20,12 6,21"/></svg>';
+        btn.onmouseenter = () => { btn.style.transform = "translate(-50%, -50%) scale(1.15)"; };
+        btn.onmouseleave = () => { btn.style.transform = "translate(-50%, -50%) scale(1)"; };
+        btn.onclick = () => {
+          iframe.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+          iframe.click();
+          wrapper.style.opacity = "0";
+          wrapper.style.transition = "opacity 0.3s ease";
+          setTimeout(() => wrapper.remove(), 350);
+        };
+        wrapper.appendChild(btn);
+        // Ensure container establishes positioning context
+        const pos = window.getComputedStyle(container).position;
+        if (pos === "static") container.style.position = "relative";
+        container.appendChild(wrapper);
+        clearInterval(addPlayOverlay);
+        break;
+      }
+    }, 800);
+
     return () => {
       document.body.classList.remove("chatpal-active");
       clearInterval(showInterval);
+      clearInterval(addPlayOverlay);
+      const overlay = document.getElementById(OVERLAY_ID);
+      if (overlay) overlay.remove();
     };
   }, []);
 

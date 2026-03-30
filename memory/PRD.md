@@ -39,20 +39,25 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ## Recently Completed (March 2026)
 
-### Bug Fix: Subject level_id Inconsistency (P0)
-- **Root Cause**: Subjects had `level_id` pointing to wrong level (e.g., INICIAL instead of PRIMARIA)
-- **Migration Script**: `POST /api/academic/subjects/fix-level-ids` - corrects all mismatched level_ids by deriving from grade's nivel_id
-- **Preventive Fix**: `create_subject`, `update_subject`, `replicate_subjects` now auto-derive `level_id` from grade
-- **Debug console.log removed** from TeacherAssignmentsPage.jsx
+### ChatterPal Play Button Overlay Fix (March 30)
+- **Improved** overlay implementation in `LandingPage.jsx` and `AcademiaPortalPage.jsx`
+- Uses wrapper div (`position: absolute; inset: 0`) over the ChatPal container
+- Play button centered via `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)`
+- `pointerEvents: none` on wrapper, `pointerEvents: auto` on button for proper click-through
+- Uses `getComputedStyle` instead of inline style checks for reliable positioning
+- Click dispatches events to the iframe and fades out the overlay
+- **Note**: Only testable in production (`edunet.pe`) due to ChatterPal domain whitelisting
 
-### Previous Session Completed
-- Data injection (accounting income/expenses)
-- Morosos tab redesign (inline, collapsible months)
-- Login logo resize, custom background (Cloudinary)
-- WhatsApp support link on login
-- Public registration blocked
-- Flexible ID filter for attendance
-- ON_CREATE student activation mode
+### Previous Sessions Completed
+- Subject level_id migration script + auto-derivation fix
+- Password change endpoint fix (`PUT /api/auth/password`)
+- Unified profile photo uploads across all portals
+- Parent Profile page created (`ParentProfilePage.jsx`)
+- ChatterPal integration (Landing + Academia Portal)
+- Landing Page SEO/UI improvements (Vimeo video, meta tags)
+- FloatingHelpAvatar remapped to 9 specific views
+- Data injection, Morosos redesign, login customization
+- Flexible ID filter for attendance, ON_CREATE student activation
 
 ## Pending Issues
 
@@ -88,6 +93,8 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ## 3rd Party Integrations
 - Cloudinary (image hosting) - Emergent managed keys
+- ChatterPal v8.5 (video avatar widget) - External script, requires domain whitelisting (edunet.pe)
+- Vimeo (video hosting) - External URL embed
 
 ## Test Credentials
 - School: elroble
