@@ -727,9 +727,9 @@ function BenefitsVideoSection() {
               <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
                 <iframe
                   className="absolute inset-0 w-full h-full"
-                  src="https://drive.google.com/file/d/1B002NcX26jWP6OGVL1--034r-IOTLVr9/preview"
+                  src="https://player.vimeo.com/video/1178330929?badge=0&autopause=0&player_id=0&app_id=58479"
                   title="Presentación EduNet"
-                  allow="autoplay; encrypted-media"
+                  allow="autoplay; fullscreen; picture-in-picture"
                   allowFullScreen
                   frameBorder="0"
                   data-testid="benefits-video"
