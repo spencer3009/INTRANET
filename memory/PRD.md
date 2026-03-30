@@ -64,6 +64,7 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 ### P1: Deploy to Production
 - Attendance flexible_id_filter needs production deploy
 - Subject level_id migration needs to run in production
+- Student card level name bug fix (was showing "SECUNDARIA" for all levels due to color-based inference)
 
 ### P2: Orphan Collection Cleanup
 - DELETE school leaves ~15 collections orphaned

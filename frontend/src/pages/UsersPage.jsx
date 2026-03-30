@@ -46,7 +46,12 @@ const LEVEL_COLORS = {
 
 const getLevelColor = (levelName) => {
   const upperName = levelName?.toUpperCase() || '';
-  return LEVEL_COLORS[upperName] || LEVEL_COLORS.default;
+  // Direct match first, then check if the name contains the key (e.g. "NIVEL INICIAL" contains "INICIAL")
+  if (LEVEL_COLORS[upperName]) return LEVEL_COLORS[upperName];
+  for (const key of Object.keys(LEVEL_COLORS)) {
+    if (key !== 'default' && upperName.includes(key)) return LEVEL_COLORS[key];
+  }
+  return LEVEL_COLORS.default;
 };
 
 // Role configurations with colors and icons
@@ -2909,11 +2914,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   };
 
   // Helper function to render student card for grouped view
-  const renderStudentCard = (student, roleConfig, levelColor, gradeName, sectionName) => {
+  const renderStudentCard = (student, roleConfig, levelColor, levelName, gradeName, sectionName) => {
     const st = student.student_status || "active";
     const statusCfg = { pending: "bg-amber-100 text-amber-700", enrolled: "bg-blue-100 text-blue-700", active: "bg-emerald-100 text-emerald-700", withdrawn: "bg-red-100 text-red-700" };
     const statusLbl = { pending: "Pendiente", enrolled: "Matriculado", active: "Activo", withdrawn: "Retirado" };
-    const levelName = levelColor?.text?.includes('emerald') ? 'INICIAL' : levelColor?.text?.includes('blue') ? 'PRIMARIA' : 'SECUNDARIA';
 
     return (
     <div 
