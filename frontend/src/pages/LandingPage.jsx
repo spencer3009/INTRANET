@@ -208,7 +208,7 @@ export default function LandingPage() {
                   className="hidden lg:block absolute z-10"
                   style={{ right: 310, bottom: -100, animation: "heroFloat 6s ease-in-out infinite", filter: "drop-shadow(0 20px 40px rgba(0,0,0,0))" }}
                 >
-                  <div className="relative" style={{ boxShadow: "0 0 60px rgba(59,130,246,0.25)", borderRadius: "2rem" }}>
+                  <div className="relative" style={{ boxShadow: "0 0 60px rgba(59,130,246,0)", borderRadius: "2rem" }}>
                     <img
                       alt="Asistencia QR desde celular"
                       className="h-[400px] w-auto"
