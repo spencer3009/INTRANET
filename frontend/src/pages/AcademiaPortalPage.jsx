@@ -568,26 +568,30 @@ export default function AcademiaPortalPage({ user, token, subdomain, onLogout })
       script.crossOrigin = "anonymous";
       script.setAttribute("data-cfasync", "false");
       script.onload = () => {
-        if (window.ChatPal) {
-          new window.ChatPal({
-            embedId: "rtg8Y2d7NE7C",
-            remoteBaseUrl: "https://chatterpal.me/",
-            version: "8.3"
-          });
+        // Retry for mobile where ChatPal may not be ready immediately
+        const tryInit = () => {
+          if (!window.ChatPal) return false;
+          try {
+            new window.ChatPal({ embedId: "rtg8Y2d7NE7C", remoteBaseUrl: "https://chatterpal.me/", version: "8.3" });
+            return true;
+          } catch (e) { return false; }
+        };
+        if (!tryInit()) {
+          let retries = 0;
+          const r = setInterval(() => { if (tryInit() || ++retries >= 10) clearInterval(r); }, 500);
         }
       };
       document.body.appendChild(script);
     } else {
-      if (window.ChatPal && !document.querySelector('iframe[src*="chatterpal"]')) {
+      // Script already loaded — unhide hidden containers + re-init if needed
+      const existingIframe = document.querySelector('iframe[src*="chatterpal"], iframe[src*="chatpal"]');
+      if (existingIframe) {
+        const container = existingIframe.closest('div[style*="position: fixed"], div[style*="position:fixed"]') || existingIframe.parentElement;
+        if (container) { container.style.removeProperty('display'); container.style.removeProperty('visibility'); }
+      } else if (window.ChatPal) {
         try {
-          new window.ChatPal({
-            embedId: "rtg8Y2d7NE7C",
-            remoteBaseUrl: "https://chatterpal.me/",
-            version: "8.3"
-          });
-        } catch (e) {
-          console.log("ChatPal re-init:", e);
-        }
+          new window.ChatPal({ embedId: "rtg8Y2d7NE7C", remoteBaseUrl: "https://chatterpal.me/", version: "8.3" });
+        } catch (e) { /* silence */ }
       }
     }
 

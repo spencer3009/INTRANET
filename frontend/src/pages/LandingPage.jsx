@@ -83,7 +83,36 @@ export default function LandingPage() {
   useEffect(() => {
     document.body.classList.add("chatpal-landing-active");
 
+    // 1. Unhide any previously hidden ChatPal containers (SPA navigation back)
+    document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
+      if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
+        el.style.removeProperty('display');
+        el.style.removeProperty('visibility');
+      }
+    });
+
     const SCRIPT_ID = "chatpal-landing-script";
+
+    // Helper: initialize or re-show ChatPal widget
+    const ensureChatPalVisible = () => {
+      if (!window.ChatPal) return false;
+      // If iframe already exists, just make sure container is visible
+      const existingIframe = document.querySelector('iframe[src*="chatterpal"], iframe[src*="chatpal"]');
+      if (existingIframe) {
+        const container = existingIframe.closest('div[style*="position: fixed"], div[style*="position:fixed"]') || existingIframe.parentElement;
+        if (container) {
+          container.style.removeProperty('display');
+          container.style.removeProperty('visibility');
+        }
+        return true;
+      }
+      // No iframe yet — create widget
+      try {
+        new window.ChatPal({ embedId: "AuGQNfpZmDFa", remoteBaseUrl: "https://chatterpal.me/", version: "8.5" });
+        return true;
+      } catch (e) { return false; }
+    };
+
     if (!document.getElementById(SCRIPT_ID)) {
       const script = document.createElement("script");
       script.id = SCRIPT_ID;
@@ -92,23 +121,23 @@ export default function LandingPage() {
       script.crossOrigin = "anonymous";
       script.setAttribute("data-cfasync", "false");
       script.onload = () => {
-        if (window.ChatPal) {
-          new window.ChatPal({
-            embedId: "AuGQNfpZmDFa",
-            remoteBaseUrl: "https://chatterpal.me/",
-            version: "8.5"
-          });
+        // Retry for mobile where ChatPal may not be ready immediately after script load
+        if (!ensureChatPalVisible()) {
+          let retries = 0;
+          const retryInit = setInterval(() => {
+            if (ensureChatPalVisible() || ++retries >= 10) clearInterval(retryInit);
+          }, 500);
         }
       };
       document.body.appendChild(script);
-    } else if (window.ChatPal && !document.querySelector('iframe[src*="chatterpal"]')) {
-      try {
-        new window.ChatPal({
-          embedId: "AuGQNfpZmDFa",
-          remoteBaseUrl: "https://chatterpal.me/",
-          version: "8.5"
-        });
-      } catch (e) { /* silence */ }
+    } else {
+      // Script already in DOM — ensure widget is visible (handles SPA return + mobile)
+      if (!ensureChatPalVisible()) {
+        let retries = 0;
+        const retryInit = setInterval(() => {
+          if (ensureChatPalVisible() || ++retries >= 10) clearInterval(retryInit);
+        }, 500);
+      }
     }
 
     // Overlay play button centered over ChatPal avatar
