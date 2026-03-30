@@ -79,6 +79,49 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // ChatterPal widget - solo en Landing page
+  useEffect(() => {
+    document.body.classList.add("chatpal-landing-active");
+
+    const SCRIPT_ID = "chatpal-landing-script";
+    if (!document.getElementById(SCRIPT_ID)) {
+      const script = document.createElement("script");
+      script.id = SCRIPT_ID;
+      script.src = "https://chatterpal.me/build/js/chatpal.js?8.5";
+      script.integrity = "sha384-+YIWcPZjPZYuhrEm13vJJg76TIO/g7y5B14VE35zhQdrojfD9dPemo7q6vnH44FR";
+      script.crossOrigin = "anonymous";
+      script.setAttribute("data-cfasync", "false");
+      script.onload = () => {
+        if (window.ChatPal) {
+          new window.ChatPal({
+            embedId: "AuGQNfpZmDFa",
+            remoteBaseUrl: "https://chatterpal.me/",
+            version: "8.5"
+          });
+        }
+      };
+      document.body.appendChild(script);
+    } else if (window.ChatPal && !document.querySelector('iframe[src*="chatterpal"]')) {
+      try {
+        new window.ChatPal({
+          embedId: "AuGQNfpZmDFa",
+          remoteBaseUrl: "https://chatterpal.me/",
+          version: "8.5"
+        });
+      } catch (e) { /* silence */ }
+    }
+
+    return () => {
+      document.body.classList.remove("chatpal-landing-active");
+      // Ocultar iframes al salir de landing
+      document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
+        if (el.querySelector('iframe[src*="chatterpal"]') || el.querySelector('iframe[src*="chatpal"]')) {
+          el.style.setProperty('display', 'none', 'important');
+        }
+      });
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#0a0f1a] overflow-x-hidden" data-testid="landing-page">
 

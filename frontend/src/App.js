@@ -194,7 +194,7 @@ function ShopifyRedirect({ user, environment }) {
   return null;
 }
 
-// Global CSS: Hide ChatPal widget elements when not on Academia page
+// Global CSS: Hide ChatPal widget elements when not on allowed pages
 function ChatPalRouteGuard() {
   const location = useLocation();
 
@@ -214,7 +214,11 @@ function ChatPalRouteGuard() {
         body.chatpal-active iframe[src*="chatterpal.me"],
         body.chatpal-active iframe[src*="chatpal.me"],
         body.chatpal-active div:has(> iframe[src*="chatterpal.me"]),
-        body.chatpal-active div:has(> iframe[src*="chatpal.me"]) {
+        body.chatpal-active div:has(> iframe[src*="chatpal.me"]),
+        body.chatpal-landing-active iframe[src*="chatterpal.me"],
+        body.chatpal-landing-active iframe[src*="chatpal.me"],
+        body.chatpal-landing-active div:has(> iframe[src*="chatterpal.me"]),
+        body.chatpal-landing-active div:has(> iframe[src*="chatpal.me"]) {
           display: block !important;
           visibility: visible !important;
         }
@@ -225,7 +229,8 @@ function ChatPalRouteGuard() {
 
   useEffect(() => {
     const isAcademia = location.pathname.includes('/academia');
-    if (isAcademia) return;
+    const isLanding = location.pathname === '/';
+    if (isAcademia || isLanding) return;
 
     const hideElements = () => {
       document.querySelectorAll('div[style*="position: fixed"], div[style*="position:fixed"]').forEach(el => {
