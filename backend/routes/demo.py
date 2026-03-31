@@ -667,7 +667,7 @@ async def upload_profile_photo(access_id: str, file: UploadFile = File(...), use
         logger.error(f"[DEMO] Cloudinary upload error (profile): {e}")
         raise HTTPException(status_code=400, detail=f"Error al subir imagen: {str(e)}")
 
-    await db.users.update_one({"id": access_id}, {"$set": {"profile_photo_url": secure_url}})
+    await db.users.update_one({"id": access_id}, {"$set": {"profile_photo_url": secure_url, "photo_url": secure_url}})
     logger.info(f"[DEMO] Profile photo uploaded for access {access_id}")
     return {"profile_photo_url": secure_url}
 
