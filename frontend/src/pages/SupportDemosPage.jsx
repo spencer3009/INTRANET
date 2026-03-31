@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Trash2, Copy, UserPlus, ExternalLink, CheckCircle,
   AlertTriangle, Clock, Send, ChevronDown, School, Database,
-  Users, ShieldCheck, Layers, FileText, X, Search
+  Users, ShieldCheck, Layers, FileText, X, Search, Camera, Building2
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -181,7 +181,7 @@ export default function SupportDemosPage({ token }) {
             ) : (
               <div className="space-y-2">
                 {accesses.map((a) => (
-                  <AccessRow key={a.id} access={a} onRevoke={() => handleRevokeAccess(a.id)} />
+                  <AccessRow key={a.id} access={a} onRevoke={() => handleRevokeAccess(a.id)} token={token} onUpdate={fetchData} />
                 ))}
               </div>
             )}
@@ -447,22 +447,122 @@ function CredentialField({ label, value, id, copyText, copied }) {
   );
 }
 
-function AccessRow({ access: a, onRevoke }) {
+function AccessRow({ access: a, onRevoke, token, onUpdate }) {
+  const profileInputRef = useRef(null);
+  const logoInputRef = useRef(null);
+  const [uploadingProfile, setUploadingProfile] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [profileUrl, setProfileUrl] = useState(a.profile_photo_url || null);
+  const [logoUrl, setLogoUrl] = useState(a.logo_url || null);
+
+  const handleUpload = async (file, type) => {
+    const isProfile = type === "profile";
+    const setUploading = isProfile ? setUploadingProfile : setUploadingLogo;
+    const endpoint = isProfile
+      ? `${API}/api/support/demo/access/${a.id}/profile-photo`
+      : `${API}/api/support/demo/access/${a.id}/logo`;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        if (isProfile) setProfileUrl(data.profile_photo_url);
+        else setLogoUrl(data.logo_url);
+      } else {
+        alert(data.detail || "Error al subir imagen");
+      }
+    } catch {
+      alert("Error de conexión al subir imagen");
+    }
+    setUploading(false);
+  };
+
   return (
     <div className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${a.is_expired ? "bg-red-50/50 border-red-200" : "bg-slate-50/50 border-slate-200 hover:border-slate-300"}`}
       data-testid={`access-row-${a.id}`}>
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${a.is_expired ? "bg-red-100" : "bg-indigo-100"}`}>
-          <span className={`text-sm font-bold ${a.is_expired ? "text-red-600" : "text-indigo-600"}`}>
-            {(a.prospect_name || "?")[0].toUpperCase()}
-          </span>
+        {/* Profile Photo Avatar */}
+        <div
+          className="relative w-10 h-10 rounded-full shrink-0 cursor-pointer group"
+          title="Cambiar foto de perfil"
+          onClick={() => profileInputRef.current?.click()}
+          data-testid={`profile-photo-trigger-${a.id}`}
+        >
+          {uploadingProfile ? (
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${a.is_expired ? "bg-red-100" : "bg-indigo-100"}`}>
+              <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
+            </div>
+          ) : profileUrl ? (
+            <img src={profileUrl} alt={a.prospect_name} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
+          ) : (
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${a.is_expired ? "bg-red-100" : "bg-indigo-100"}`}>
+              <span className={`text-sm font-bold ${a.is_expired ? "text-red-600" : "text-indigo-600"}`}>
+                {(a.prospect_name || "?")[0].toUpperCase()}
+              </span>
+            </div>
+          )}
+          {/* Hover overlay */}
+          {!uploadingProfile && (
+            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="w-4 h-4 text-white" />
+            </div>
+          )}
+          <input
+            ref={profileInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { if (e.target.files?.[0]) handleUpload(e.target.files[0], "profile"); e.target.value = ""; }}
+          />
         </div>
-        <div className="min-w-0">
+
+        <div className="min-w-0 flex-1">
           <p className="font-medium text-slate-800 text-sm">{a.prospect_name}</p>
           <p className="text-xs text-slate-500 font-mono truncate">{a.email}</p>
           {a.prospect_phone && <p className="text-xs text-slate-400">Tel: {a.prospect_phone}</p>}
         </div>
+
+        {/* Logo */}
+        <div
+          className="relative w-9 h-9 rounded-lg shrink-0 cursor-pointer group border border-dashed border-slate-300 hover:border-indigo-400 transition-colors"
+          title="Cambiar logo"
+          onClick={() => logoInputRef.current?.click()}
+          data-testid={`logo-trigger-${a.id}`}
+        >
+          {uploadingLogo ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+            </div>
+          ) : logoUrl ? (
+            <img src={logoUrl} alt="Logo" className="w-full h-full rounded-lg object-contain p-0.5" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Building2 className="w-4 h-4 text-slate-300" />
+            </div>
+          )}
+          {/* Hover overlay */}
+          {!uploadingLogo && (
+            <div className="absolute inset-0 rounded-lg bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <Camera className="w-3.5 h-3.5 text-white" />
+            </div>
+          )}
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => { if (e.target.files?.[0]) handleUpload(e.target.files[0], "logo"); e.target.value = ""; }}
+          />
+        </div>
       </div>
+
       <div className="flex items-center gap-3 ml-3">
         {a.is_expired ? (
           <span className="flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">

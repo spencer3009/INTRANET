@@ -39,6 +39,11 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ## Recently Completed (March 2026)
 
+### Demo Access Photo/Logo Upload (March 31)
+- 2 new endpoints: profile-photo and logo upload to Cloudinary (WebP, validated)
+- Frontend AccessRow: clickable avatar/logo with hover overlay, loading state, immediate UI update
+- GET accesses response includes profile_photo_url and logo_url
+
 ### Demo User 403 Fix + Debug Logging (March 31)
 - Added explicit bypass in `require_section_access` and `require_role` for demo users with role=owner
 - Added DEMO_DEBUG logging for production diagnostics

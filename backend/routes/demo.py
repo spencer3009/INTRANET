@@ -4,7 +4,7 @@ Handles: School cloning with ID remapping, demo access management, auto-cleanup
 Only accessible by users with role 'system_admin_global'
 """
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime, timezone, timedelta
@@ -12,6 +12,7 @@ import uuid
 import random
 import logging
 from urllib.parse import quote
+import cloudinary.uploader
 
 from .core import db, get_current_user, hash_password
 from .support import require_support_admin
@@ -582,9 +583,87 @@ async def list_demo_accesses(user=Depends(require_support_admin)):
             "expires_at": expires_at,
             "days_remaining": days_remaining,
             "is_expired": is_expired,
+            "profile_photo_url": u.get("profile_photo_url"),
+            "logo_url": u.get("logo_url"),
         })
 
     return {"accesses": accesses}
+
+
+ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
+MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
+
+
+@router.post("/access/{access_id}/profile-photo")
+async def upload_profile_photo(access_id: str, file: UploadFile = File(...), user=Depends(require_support_admin)):
+    """Upload a profile photo for a demo access user."""
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido: {file.content_type}. Use JPEG, PNG, WebP o GIF.")
+
+    contents = await file.read()
+    if len(contents) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="El archivo excede el límite de 5 MB.")
+
+    demo_user = await db.users.find_one({"id": access_id, "is_demo_user": True}, {"_id": 0, "id": 1})
+    if not demo_user:
+        raise HTTPException(status_code=404, detail="Acceso demo no encontrado.")
+
+    try:
+        import io
+        result = cloudinary.uploader.upload(
+            io.BytesIO(contents),
+            folder="edunet/demo-access/profile",
+            public_id=f"profile_{access_id}",
+            format="webp",
+            overwrite=True,
+            transformation=[
+                {"width": 400, "height": 400, "crop": "fill", "gravity": "face"}
+            ]
+        )
+        secure_url = result["secure_url"]
+    except Exception as e:
+        logger.error(f"[DEMO] Cloudinary upload error (profile): {e}")
+        raise HTTPException(status_code=400, detail=f"Error al subir imagen: {str(e)}")
+
+    await db.users.update_one({"id": access_id}, {"$set": {"profile_photo_url": secure_url}})
+    logger.info(f"[DEMO] Profile photo uploaded for access {access_id}")
+    return {"profile_photo_url": secure_url}
+
+
+@router.post("/access/{access_id}/logo")
+async def upload_logo(access_id: str, file: UploadFile = File(...), user=Depends(require_support_admin)):
+    """Upload an institution logo for a demo access user."""
+    if file.content_type not in ALLOWED_IMAGE_TYPES:
+        raise HTTPException(status_code=400, detail=f"Tipo de archivo no permitido: {file.content_type}. Use JPEG, PNG, WebP o GIF.")
+
+    contents = await file.read()
+    if len(contents) > MAX_IMAGE_SIZE:
+        raise HTTPException(status_code=400, detail="El archivo excede el límite de 5 MB.")
+
+    demo_user = await db.users.find_one({"id": access_id, "is_demo_user": True}, {"_id": 0, "id": 1})
+    if not demo_user:
+        raise HTTPException(status_code=404, detail="Acceso demo no encontrado.")
+
+    try:
+        import io
+        result = cloudinary.uploader.upload(
+            io.BytesIO(contents),
+            folder="edunet/demo-access/logo",
+            public_id=f"logo_{access_id}",
+            format="webp",
+            overwrite=True,
+            transformation=[
+                {"width": 600, "height": 600, "crop": "limit"}
+            ]
+        )
+        secure_url = result["secure_url"]
+    except Exception as e:
+        logger.error(f"[DEMO] Cloudinary upload error (logo): {e}")
+        raise HTTPException(status_code=400, detail=f"Error al subir imagen: {str(e)}")
+
+    await db.users.update_one({"id": access_id}, {"$set": {"logo_url": secure_url}})
+    logger.info(f"[DEMO] Logo uploaded for access {access_id}")
+    return {"logo_url": secure_url}
 
 
 @router.delete("/access/{user_id}")
