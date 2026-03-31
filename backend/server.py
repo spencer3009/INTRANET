@@ -384,6 +384,19 @@ async def create_indexes():
         logging.info("Exam auto-close cron job started")
         asyncio.create_task(cleanup_expired_demo_accesses())
         logging.info("Demo cleanup cron job started")
+
+        # Sync profile_photo_url -> photo_url for demo users (one-time migration)
+        demo_users_to_sync = await db.users.find(
+            {"is_demo_user": True, "profile_photo_url": {"$exists": True}},
+            {"_id": 0, "id": 1, "profile_photo_url": 1, "photo_url": 1}
+        ).to_list(None)
+        synced = 0
+        for du in demo_users_to_sync:
+            if du.get("profile_photo_url") and du.get("photo_url") != du.get("profile_photo_url"):
+                await db.users.update_one({"id": du["id"]}, {"$set": {"photo_url": du["profile_photo_url"]}})
+                synced += 1
+        if synced:
+            logging.info(f"Synced photo_url for {synced} demo users")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
 
