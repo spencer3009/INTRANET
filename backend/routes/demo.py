@@ -594,6 +594,48 @@ ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp", "image/gif"}
 MAX_IMAGE_SIZE = 5 * 1024 * 1024  # 5 MB
 
 
+@router.post("/access/{access_id}/reset-password")
+async def reset_demo_password(access_id: str, user=Depends(require_support_admin)):
+    """Regenerate password for a demo access and return credentials + WhatsApp link."""
+    demo_user = await db.users.find_one(
+        {"id": access_id, "is_demo_user": True},
+        {"_id": 0, "id": 1, "email": 1, "name": 1, "prospect_phone": 1, "expires_at": 1}
+    )
+    if not demo_user:
+        raise HTTPException(status_code=404, detail="Acceso demo no encontrado.")
+
+    demo_school = await db.schools.find_one({"is_demo": True}, {"_id": 0, "subdomain": 1})
+    subdomain = demo_school.get("subdomain", "demo-edunet") if demo_school else "demo-edunet"
+
+    # Generate new password
+    new_suffix = str(uuid.uuid4())[:6]
+    password_plain = f"Demo{new_suffix}!"
+    password_hash = hash_password(password_plain)
+    await db.users.update_one({"id": access_id}, {"$set": {"password": password_hash}})
+
+    # Build WhatsApp link
+    email = demo_user["email"]
+    name = demo_user.get("name", "")
+    phone = (demo_user.get("prospect_phone") or "").replace("+", "").replace(" ", "")
+    message = (
+        f"Hola {name}!\n\n"
+        f"Aquí tienes tus credenciales actualizadas de EduNet:\n\n"
+        f"Link: https://edunet.pe/{subdomain}/login\n"
+        f"Usuario: {email}\n"
+        f"Contraseña: {password_plain}\n\n"
+        f"Explora todo el sistema! Si tienes preguntas, escríbenos."
+    )
+    whatsapp_link = f"https://wa.me/{phone}?text={quote(message)}" if phone else None
+
+    logger.info(f"[DEMO] Password reset for access {access_id}")
+    return {
+        "email": email,
+        "password": password_plain,
+        "login_url": f"https://edunet.pe/{subdomain}/login",
+        "whatsapp_link": whatsapp_link,
+    }
+
+
 @router.post("/access/{access_id}/profile-photo")
 async def upload_profile_photo(access_id: str, file: UploadFile = File(...), user=Depends(require_support_admin)):
     """Upload a profile photo for a demo access user."""

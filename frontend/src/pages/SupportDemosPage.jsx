@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import {
   RefreshCw, Trash2, Copy, UserPlus, ExternalLink, CheckCircle,
   AlertTriangle, Clock, Send, ChevronDown, School, Database,
-  Users, ShieldCheck, Layers, FileText, X, Search, Camera, Building2
+  Users, ShieldCheck, Layers, FileText, X, Search, Camera, Building2, Key
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -454,6 +454,29 @@ function AccessRow({ access: a, onRevoke, token, onUpdate }) {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [profileUrl, setProfileUrl] = useState(a.profile_photo_url || null);
   const [logoUrl, setLogoUrl] = useState(a.logo_url || null);
+  const [creds, setCreds] = useState(null);
+  const [loadingCreds, setLoadingCreds] = useState(false);
+  const [copied, setCopied] = useState(null);
+
+  const copyText = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleResetPassword = async () => {
+    setLoadingCreds(true);
+    try {
+      const res = await fetch(`${API}/api/support/demo/access/${a.id}/reset-password`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok) setCreds(data);
+      else alert(data.detail || "Error");
+    } catch { alert("Error de conexión"); }
+    setLoadingCreds(false);
+  };
 
   const handleUpload = async (file, type) => {
     const isProfile = type === "profile";
@@ -485,100 +508,155 @@ function AccessRow({ access: a, onRevoke, token, onUpdate }) {
   };
 
   return (
-    <div className={`flex items-center justify-between p-4 rounded-xl border transition-colors ${a.is_expired ? "bg-red-50/50 border-red-200" : "bg-slate-50/50 border-slate-200 hover:border-slate-300"}`}
+    <div className={`rounded-xl border transition-colors ${a.is_expired ? "bg-red-50/50 border-red-200" : "bg-slate-50/50 border-slate-200 hover:border-slate-300"}`}
       data-testid={`access-row-${a.id}`}>
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {/* Profile Photo Avatar */}
-        <div
-          className="relative w-10 h-10 rounded-full shrink-0 cursor-pointer group"
-          title="Cambiar foto de perfil"
-          onClick={() => profileInputRef.current?.click()}
-          data-testid={`profile-photo-trigger-${a.id}`}
-        >
-          {uploadingProfile ? (
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${a.is_expired ? "bg-red-100" : "bg-indigo-100"}`}>
-              <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
-            </div>
-          ) : profileUrl ? (
-            <img src={profileUrl} alt={a.prospect_name} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
-          ) : (
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${a.is_expired ? "bg-red-100" : "bg-indigo-100"}`}>
-              <span className={`text-sm font-bold ${a.is_expired ? "text-red-600" : "text-indigo-600"}`}>
-                {(a.prospect_name || "?")[0].toUpperCase()}
-              </span>
-            </div>
-          )}
-          {/* Hover overlay */}
-          {!uploadingProfile && (
-            <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera className="w-4 h-4 text-white" />
-            </div>
-          )}
-          <input
-            ref={profileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => { if (e.target.files?.[0]) handleUpload(e.target.files[0], "profile"); e.target.value = ""; }}
-          />
+      <div className="flex items-center justify-between p-4">
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          {/* Profile Photo Avatar */}
+          <div
+            className="relative w-10 h-10 rounded-full shrink-0 cursor-pointer group"
+            title="Cambiar foto de perfil"
+            onClick={() => profileInputRef.current?.click()}
+            data-testid={`profile-photo-trigger-${a.id}`}
+          >
+            {uploadingProfile ? (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${a.is_expired ? "bg-red-100" : "bg-indigo-100"}`}>
+                <RefreshCw className="w-4 h-4 animate-spin text-indigo-500" />
+              </div>
+            ) : profileUrl ? (
+              <img src={profileUrl} alt={a.prospect_name} className="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm" />
+            ) : (
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${a.is_expired ? "bg-red-100" : "bg-indigo-100"}`}>
+                <span className={`text-sm font-bold ${a.is_expired ? "text-red-600" : "text-indigo-600"}`}>
+                  {(a.prospect_name || "?")[0].toUpperCase()}
+                </span>
+              </div>
+            )}
+            {!uploadingProfile && (
+              <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-4 h-4 text-white" />
+              </div>
+            )}
+            <input
+              ref={profileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { if (e.target.files?.[0]) handleUpload(e.target.files[0], "profile"); e.target.value = ""; }}
+            />
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <p className="font-medium text-slate-800 text-sm">{a.prospect_name}</p>
+            <p className="text-xs text-slate-500 font-mono truncate">{a.email}</p>
+            {a.prospect_phone && <p className="text-xs text-slate-400">Tel: {a.prospect_phone}</p>}
+          </div>
+
+          {/* Logo */}
+          <div
+            className="relative w-9 h-9 rounded-lg shrink-0 cursor-pointer group border border-dashed border-slate-300 hover:border-indigo-400 transition-colors"
+            title="Cambiar logo"
+            onClick={() => logoInputRef.current?.click()}
+            data-testid={`logo-trigger-${a.id}`}
+          >
+            {uploadingLogo ? (
+              <div className="w-full h-full flex items-center justify-center">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
+              </div>
+            ) : logoUrl ? (
+              <img src={logoUrl} alt="Logo" className="w-full h-full rounded-lg object-contain p-0.5" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center">
+                <Building2 className="w-4 h-4 text-slate-300" />
+              </div>
+            )}
+            {!uploadingLogo && (
+              <div className="absolute inset-0 rounded-lg bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera className="w-3.5 h-3.5 text-white" />
+              </div>
+            )}
+            <input
+              ref={logoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { if (e.target.files?.[0]) handleUpload(e.target.files[0], "logo"); e.target.value = ""; }}
+            />
+          </div>
         </div>
 
-        <div className="min-w-0 flex-1">
-          <p className="font-medium text-slate-800 text-sm">{a.prospect_name}</p>
-          <p className="text-xs text-slate-500 font-mono truncate">{a.email}</p>
-          {a.prospect_phone && <p className="text-xs text-slate-400">Tel: {a.prospect_phone}</p>}
-        </div>
-
-        {/* Logo */}
-        <div
-          className="relative w-9 h-9 rounded-lg shrink-0 cursor-pointer group border border-dashed border-slate-300 hover:border-indigo-400 transition-colors"
-          title="Cambiar logo"
-          onClick={() => logoInputRef.current?.click()}
-          data-testid={`logo-trigger-${a.id}`}
-        >
-          {uploadingLogo ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-500" />
-            </div>
-          ) : logoUrl ? (
-            <img src={logoUrl} alt="Logo" className="w-full h-full rounded-lg object-contain p-0.5" />
+        <div className="flex items-center gap-2 ml-3">
+          <Button variant="outline" size="sm" onClick={handleResetPassword} disabled={loadingCreds}
+            className="text-indigo-600 border-indigo-200 hover:bg-indigo-50 h-8 text-xs px-2.5"
+            title="Ver credenciales (regenera contraseña)"
+            data-testid={`creds-btn-${a.id}`}>
+            {loadingCreds ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Key className="w-3.5 h-3.5" />}
+          </Button>
+          {a.is_expired ? (
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
+              <AlertTriangle className="w-3 h-3" /> Expirado
+            </span>
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <Building2 className="w-4 h-4 text-slate-300" />
-            </div>
+            <span className="flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
+              <Clock className="w-3 h-3" /> {a.days_remaining}d restantes
+            </span>
           )}
-          {/* Hover overlay */}
-          {!uploadingLogo && (
-            <div className="absolute inset-0 rounded-lg bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              <Camera className="w-3.5 h-3.5 text-white" />
-            </div>
-          )}
-          <input
-            ref={logoInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => { if (e.target.files?.[0]) handleUpload(e.target.files[0], "logo"); e.target.value = ""; }}
-          />
+          <Button variant="ghost" size="sm" onClick={onRevoke}
+            className="text-red-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0 rounded-lg"
+            data-testid={`revoke-btn-${a.id}`}>
+            <Trash2 className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-3 ml-3">
-        {a.is_expired ? (
-          <span className="flex items-center gap-1 px-2.5 py-1 bg-red-100 text-red-700 text-xs font-semibold rounded-full">
-            <AlertTriangle className="w-3 h-3" /> Expirado
-          </span>
-        ) : (
-          <span className="flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
-            <Clock className="w-3 h-3" /> {a.days_remaining}d restantes
-          </span>
-        )}
-        <Button variant="ghost" size="sm" onClick={onRevoke}
-          className="text-red-400 hover:text-red-600 hover:bg-red-50 h-8 w-8 p-0 rounded-lg"
-          data-testid={`revoke-btn-${a.id}`}>
-          <Trash2 className="w-4 h-4" />
-        </Button>
-      </div>
+      {/* Credentials panel */}
+      {creds && (
+        <div className="px-4 pb-4">
+          <div className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Key className="w-4 h-4 text-indigo-600" />
+                <span className="text-sm font-semibold text-indigo-800">Credenciales actualizadas</span>
+              </div>
+              <button onClick={() => setCreds(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="bg-white/70 rounded-lg px-3 py-2 border border-indigo-100">
+                <p className="text-xs text-slate-500 mb-0.5">Email</p>
+                <div className="flex items-center justify-between gap-2">
+                  <code className="text-sm font-semibold text-slate-800 truncate">{creds.email}</code>
+                  <button onClick={() => copyText(creds.email, `e-${a.id}`)} className="shrink-0 p-1 rounded hover:bg-indigo-100">
+                    {copied === `e-${a.id}` ? <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                  </button>
+                </div>
+              </div>
+              <div className="bg-white/70 rounded-lg px-3 py-2 border border-indigo-100">
+                <p className="text-xs text-slate-500 mb-0.5">Contraseña</p>
+                <div className="flex items-center justify-between gap-2">
+                  <code className="text-sm font-semibold text-slate-800">{creds.password}</code>
+                  <button onClick={() => copyText(creds.password, `p-${a.id}`)} className="shrink-0 p-1 rounded hover:bg-indigo-100">
+                    {copied === `p-${a.id}` ? <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {creds.whatsapp_link && (
+                <a href={creds.whatsapp_link} target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-medium rounded-lg hover:bg-emerald-700 transition-colors">
+                  <Send className="w-3.5 h-3.5" /> Enviar por WhatsApp
+                </a>
+              )}
+              <a href={creds.login_url} target="_blank" rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 text-xs font-medium rounded-lg hover:bg-slate-50 border border-slate-200">
+                <ExternalLink className="w-3.5 h-3.5" /> Abrir Login
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
