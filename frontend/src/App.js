@@ -167,6 +167,15 @@ function ShopifyRedirect({ user, environment }) {
   useEffect(() => {
     if (!user?.subdomain) return;
     
+    // Demo users: always use route-based approach (no wildcard subdomain)
+    if (user.is_demo_user) {
+      const schoolPrefix = `/${user.subdomain}`;
+      if (!location.pathname.startsWith(schoolPrefix)) {
+        navigate(`${schoolPrefix}/dashboard`, { replace: true });
+      }
+      return;
+    }
+
     // Already on correct subdomain
     if (environment.mode === 'subdomain' && environment.subdomain === user.subdomain) {
       return;
