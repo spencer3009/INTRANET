@@ -48,6 +48,7 @@ from routes.grades import router as grades_router
 from routes.membership import router as membership_router
 from routes.subscription import router as subscription_router, daily_subscription_cron
 from routes.exams import close_expired_exams_cron, close_expired_tasks_cron
+from routes.demo import router as demo_router, cleanup_expired_demo_accesses
 from routes.academia import router as academia_router, seed_academia_categories
 from routes.parents import router as parents_router
 try:
@@ -194,6 +195,7 @@ app.include_router(grades_router)
 app.include_router(membership_router)
 app.include_router(subscription_router)
 app.include_router(notifications_router)
+app.include_router(demo_router)
 app.include_router(support_router)
 app.include_router(academia_router)
 app.include_router(parents_router)
@@ -380,6 +382,8 @@ async def create_indexes():
         asyncio.create_task(close_expired_exams_cron())
         asyncio.create_task(close_expired_tasks_cron())
         logging.info("Exam auto-close cron job started")
+        asyncio.create_task(cleanup_expired_demo_accesses())
+        logging.info("Demo cleanup cron job started")
     except Exception as e:
         logging.error(f"Error creating indexes: {e}")
 

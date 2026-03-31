@@ -114,7 +114,7 @@ async def support_schools(user=Depends(require_support_admin)):
         # Global admin sees ALL schools
         schools_cursor = db.schools.find(
             {},
-            {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1}
+            {"_id": 0, "id": 1, "name": 1, "school_name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1, "is_demo": 1}
         )
         schools = await schools_cursor.to_list(length=500)
         assignment_map = {}
@@ -133,7 +133,7 @@ async def support_schools(user=Depends(require_support_admin)):
         
         schools_cursor = db.schools.find(
             {"id": {"$in": school_ids}},
-            {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1}
+            {"_id": 0, "id": 1, "name": 1, "school_name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1, "is_demo": 1}
         )
         schools = await schools_cursor.to_list(length=500)
     

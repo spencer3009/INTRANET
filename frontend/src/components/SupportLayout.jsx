@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useNavigate, Outlet } from "react-router-dom";
 import { 
   LayoutDashboard, School, User, LogOut, Menu, X, 
-  Headset, ChevronRight, Shield, DollarSign, BarChart3, Video
+  Headset, ChevronRight, Shield, DollarSign, BarChart3, Video, Users
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: "/support/pricing", icon: DollarSign, label: "Precios" },
   { type: "divider" },
   { to: "/support/academia", icon: Video, label: "Academia" },
+  { to: "/support/demos", icon: Users, label: "Demos" },
   { type: "divider" },
   { to: "/support/profile", icon: User, label: "Mi Perfil" },
 ];

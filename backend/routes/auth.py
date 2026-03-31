@@ -267,6 +267,21 @@ async def login(creds: UserLogin):
             logger.info(f"[LOGIN] Invalid password for: {identifier}")
             raise HTTPException(status_code=401, detail="Credenciales inválidas")
         
+        # Check if demo user is expired
+        if user.get("is_demo_user") and user.get("expires_at"):
+            try:
+                exp_dt = datetime.fromisoformat(user["expires_at"].replace("Z", "+00:00"))
+                if datetime.now(timezone.utc) > exp_dt:
+                    logger.info(f"[LOGIN] Demo user expired: {identifier}")
+                    raise HTTPException(
+                        status_code=403,
+                        detail="Tu acceso demo ha expirado. Contacta a ventas para más información."
+                    )
+            except HTTPException:
+                raise
+            except Exception:
+                pass
+
         logger.info(f"[LOGIN] Password OK for: {identifier}, role: {user.get('role')}")
         
         # Get school info if user has one
