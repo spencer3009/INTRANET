@@ -1017,8 +1017,12 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
             }
         }
         if not is_teacher_qr:
-            entry_update["$setOnInsert"]["grade_id"] = scanned_user.get("grado_id")
-            entry_update["$setOnInsert"]["section_id"] = scanned_user.get("seccion_id")
+            student_grade = scanned_user.get("grado_id") or scanned_user.get("grade_id")
+            student_section = scanned_user.get("seccion_id") or scanned_user.get("section_id")
+            entry_update["$set"]["grade_id"] = student_grade
+            entry_update["$set"]["section_id"] = student_section
+            entry_update["$setOnInsert"]["grade_id"] = student_grade
+            entry_update["$setOnInsert"]["section_id"] = student_section
         
         # Save to attendances - only update active records, else create new
         active_filter = {
@@ -1088,12 +1092,16 @@ async def scan_qr_attendance(data: QRScanRequest, current_user = Depends(get_cur
         except Exception:
             pass
         
-        await db.attendances.update_one(
-            {"_id": existing["_id"]},
-            {"$set": {
+        exit_update_fields = {
                 "exit_time": now_iso, "exit_method": "qr",
                 "total_minutes": total_minutes, "updated_at": now_iso
-            }}
+        }
+        if not is_teacher_qr:
+            exit_update_fields["grade_id"] = scanned_user.get("grado_id") or scanned_user.get("grade_id")
+            exit_update_fields["section_id"] = scanned_user.get("seccion_id") or scanned_user.get("section_id")
+        await db.attendances.update_one(
+            {"_id": existing["_id"]},
+            {"$set": exit_update_fields}
         )
         
         entry_time_str = to_peru_hhmm(existing.get("entry_time")) or existing.get("check_in_time", "")
