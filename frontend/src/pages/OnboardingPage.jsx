@@ -290,15 +290,14 @@ export default function OnboardingPage({ token, user, onLogin, onLogout }) {
             </ul>
           </div>
 
-          {/* Submit Button */}
+          {/* Submit Button - BLOCKED */}
           <button
             data-testid="onboarding-create-btn"
-            type="submit"
-            disabled={!available || subdomain.length < 3}
-            className="w-full py-4 bg-gradient-to-r from-[#e1b82c] to-amber-500 text-[#001f4b] font-bold rounded-xl hover:shadow-lg hover:shadow-[#e1b82c]/30 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none flex items-center justify-center gap-2"
+            type="button"
+            disabled
+            className="w-full py-4 bg-slate-600/50 text-slate-400 font-bold rounded-xl cursor-not-allowed flex items-center justify-center gap-2 opacity-50"
           >
-            Crear mi intranet
-            <ArrowRight className="w-5 h-5" />
+            Creación de colegios deshabilitada
           </button>
         </form>
 
