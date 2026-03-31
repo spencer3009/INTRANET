@@ -421,6 +421,23 @@ function App() {
     }
   };
 
+  // Refresh user data from backend on mount (picks up photo changes, etc.)
+  useEffect(() => {
+    if (!token) return;
+    const API = process.env.REACT_APP_BACKEND_URL;
+    fetch(`${API}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : null)
+      .then(freshUser => {
+        if (freshUser && freshUser.id) {
+          const merged = { ...user, ...freshUser };
+          localStorage.setItem("user", JSON.stringify(merged));
+          setUser(merged);
+        }
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
+
   // User state
   const isLoggedIn = !!token;
   const emailVerified = user?.email_verified || false;
