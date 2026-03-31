@@ -562,7 +562,7 @@ async def get_school_by_subdomain(subdomain: str):
     if not subdomain:
         return None
     return await db.schools.find_one(
-        {"subdomain": subdomain, "status": "active"}, 
+        {"subdomain": subdomain, "status": {"$in": ["active", "demo"]}}, 
         {"_id": 0, "password": 0}
     )
 

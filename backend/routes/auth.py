@@ -929,7 +929,7 @@ async def get_school_public_info(subdomain: str):
     subdomain = subdomain.lower().strip()
     
     school = await db.schools.find_one(
-        {"subdomain": subdomain, "status": "active"},
+        {"subdomain": subdomain, "status": {"$in": ["active", "demo"]}},
         {"_id": 0, "password": 0, "owner_user_id": 0}
     )
     

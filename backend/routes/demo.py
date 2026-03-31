@@ -303,7 +303,7 @@ async def clone_demo_school(req: CloneDemoRequest, user=Depends(require_support_
         "school_name": "Demo EduNet",
         "subdomain": "demo-edunet",
         "full_domain": "demo.edunet.pe",
-        "status": "active",
+        "status": "demo",
         "is_demo": True,
         "source_school_id": req.source_school_id,
         "owner_user_id": user["id"],

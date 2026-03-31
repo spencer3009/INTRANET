@@ -276,7 +276,7 @@ async def get_public_settings(subdomain: str):
     subdomain = subdomain.lower().strip()
     
     school = await db.schools.find_one(
-        {"subdomain": subdomain, "status": "active"},
+        {"subdomain": subdomain, "status": {"$in": ["active", "demo"]}},
         {"_id": 0}
     )
     
