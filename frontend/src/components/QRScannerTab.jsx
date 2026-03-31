@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import axios from "axios";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { 
@@ -9,6 +9,7 @@ import {
 import { toast } from "sonner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
+const SCAN_COOLDOWN = 30000; // 30 seconds cooldown per QR
 
 // Camera error types and messages
 const CAMERA_ERROR_TYPES = {
@@ -51,9 +52,7 @@ const CAMERA_ERROR_TYPES = {
 
 export default function QRScannerTab({ token, roleFilter, user }) {
   const [scanning, setScanning] = useState(false);
-  const [paused, setPaused] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [history, setHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
@@ -68,6 +67,10 @@ export default function QRScannerTab({ token, roleFilter, user }) {
   const [annulType, setAnnulType] = useState("both");
   const [annulReason, setAnnulReason] = useState("");
   const [annulling, setAnnulling] = useState(false);
+  const [scanToasts, setScanToasts] = useState([]);
+
+  const scannedCacheRef = useRef(new Map());
+  const processingRef = useRef(false);
 
   const isAdmin = user?.is_owner || user?.role === "owner" || user?.role === "admin" || user?.role === "director";
   
@@ -79,12 +82,21 @@ export default function QRScannerTab({ token, roleFilter, user }) {
     try {
       setIsInIframe(window.self !== window.top);
     } catch (e) {
-      // Cross-origin iframe, definitely blocked
       setIsInIframe(true);
     }
-    
-    // Try to enumerate cameras (won't work without permission but worth trying)
     enumerateCameras();
+  }, []);
+
+  // Clean expired cache entries every 60s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const now = Date.now();
+      const cache = scannedCacheRef.current;
+      for (const [key, ts] of cache) {
+        if (now - ts > SCAN_COOLDOWN) cache.delete(key);
+      }
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   // Try to enumerate available cameras
@@ -308,51 +320,66 @@ export default function QRScannerTab({ token, roleFilter, user }) {
     }
   };
 
-  // Handle QR scan
+  // Add a scan toast (max 3 visible, auto-dismiss after 3s)
+  const addScanToast = (type, data) => {
+    const id = Date.now() + Math.random();
+    setScanToasts(prev => {
+      const next = [{ id, type, data, timestamp: Date.now() }, ...prev];
+      return next.slice(0, 3);
+    });
+    setTimeout(() => {
+      setScanToasts(prev => prev.filter(t => t.id !== id));
+    }, 3000);
+  };
+
+  // Handle QR scan - continuous mode
   const handleScan = async (detectedCodes) => {
-    if (loading || paused || !detectedCodes || detectedCodes.length === 0) return;
+    if (processingRef.current || !detectedCodes || detectedCodes.length === 0) return;
     
     const qrToken = detectedCodes[0].rawValue;
     if (!qrToken) return;
-    
-    setPaused(true);
+
+    // Anti-duplicate cache check
+    const now = Date.now();
+    const lastScan = scannedCacheRef.current.get(qrToken);
+    if (lastScan && (now - lastScan) < SCAN_COOLDOWN) return;
+
+    processingRef.current = true;
     setLoading(true);
-    setError(null);
-    setResult(null);
     
     try {
       const res = await axios.post(`${API}/attendance/qr/scan`, { qr_token: qrToken, mode: scanMode }, { headers });
-      setResult(res.data);
+      const data = res.data;
       
-      if (res.data.status === "success") {
+      // Add to cache
+      scannedCacheRef.current.set(qrToken, Date.now());
+
+      if (data.status === "success") {
         playSound("success");
-      } else if (res.data.status === "already_marked") {
+        addScanToast("success", data);
+      } else if (data.status === "already_marked") {
         playSound("warning");
-      } else if (res.data.status === "error") {
+        addScanToast("warning", data);
+      } else if (data.status === "error") {
         playSound("error");
+        addScanToast("error", data);
       }
       
-      // Refresh history
       loadHistory();
-      
     } catch (err) {
       const errorData = err.response?.data?.detail;
-      if (typeof errorData === 'object') {
-        setError(errorData.message || "Error al escanear");
-      } else {
-        setError(errorData || "Error al escanear el QR");
-      }
+      const msg = typeof errorData === 'object' ? (errorData.message || "Error al escanear") : (errorData || "Error al escanear el QR");
       playSound("error");
+      addScanToast("error", { message: msg });
     } finally {
       setLoading(false);
+      processingRef.current = false;
     }
   };
 
-  // Reset scanner to scan another QR
+  // Reset scanner (used only for error dismissal now)
   const handleScanAnother = () => {
-    setResult(null);
     setError(null);
-    setPaused(false);
   };
 
   // Annul attendance
@@ -594,7 +621,7 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                   <div className="flex flex-col items-center">
                     {/* Instructions */}
                     <p className="text-slate-600 text-center mb-4">
-                      Centra el código QR dentro del recuadro
+                      Escaneo continuo activo — los alumnos pueden pasar uno tras otro
                     </p>
                     
                     {/* Camera view */}
@@ -611,11 +638,11 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                             width: { ideal: 1280 },
                             height: { ideal: 720 }
                           }}
-                          scanDelay={paused ? 999999 : 100}
+                          scanDelay={500}
                           components={{
                             audio: false,
                             torch: true,
-                            finder: !paused
+                            finder: true
                           }}
                           styles={{
                             container: { width: '100%', height: '100%' },
@@ -623,18 +650,51 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                           }}
                         />
                         
-                        {/* Processing overlay */}
+                        {/* Processing overlay - brief flash */}
                         {loading && (
-                          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-10">
-                            <div className="bg-white rounded-xl p-4 flex items-center gap-3 shadow-xl">
-                              <Loader2 className="w-6 h-6 text-violet-600 animate-spin" />
-                              <span className="font-medium">Procesando QR...</span>
-                            </div>
+                          <div className="absolute inset-0 bg-black/30 flex items-center justify-center z-10 pointer-events-none">
+                            <Loader2 className="w-10 h-10 text-white animate-spin" />
                           </div>
                         )}
+
+                        {/* Floating toasts over camera */}
+                        <div className="absolute top-2 left-2 right-2 z-20 flex flex-col gap-2 pointer-events-none">
+                          {scanToasts.map((t) => (
+                            <div
+                              key={t.id}
+                              className={`rounded-xl px-3 py-2.5 shadow-xl backdrop-blur-sm flex items-center gap-3 animate-in slide-in-from-top-2 duration-300 ${
+                                t.type === "success" ? "bg-emerald-600/90 text-white" :
+                                t.type === "warning" ? "bg-amber-500/90 text-white" :
+                                "bg-red-600/90 text-white"
+                              }`}
+                              data-testid={`scan-toast-${t.type}`}
+                            >
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                                t.type === "success" ? "bg-white/20" :
+                                t.type === "warning" ? "bg-white/20" : "bg-white/20"
+                              }`}>
+                                {t.type === "success" ? <Check className="w-4 h-4" /> :
+                                 t.type === "warning" ? <AlertTriangle className="w-4 h-4" /> :
+                                 <X className="w-4 h-4" />}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-sm truncate">
+                                  {t.data?.student?.full_name || t.data?.message || "Error"}
+                                </p>
+                                <p className="text-xs opacity-80">
+                                  {t.type === "success"
+                                    ? (t.data?.action === "exit" ? "Salida registrada" : "Entrada registrada")
+                                    : t.type === "warning" ? "Ya registrado"
+                                    : "Error"}
+                                  {t.data?.attendance?.entry_time && ` · ${t.data.attendance.entry_time}`}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                       
-                      {/* Corner guides - outside scanner to not interfere */}
+                      {/* Corner guides */}
                       <div className="absolute inset-0 pointer-events-none p-1">
                         <div className="relative w-full h-full">
                           <div className="absolute top-0 left-0 w-10 h-10 border-t-4 border-l-4 border-white/80 rounded-tl-xl"></div>
@@ -648,7 +708,6 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                   
                   {/* Control buttons */}
                   <div className="flex justify-center gap-3">
-                    {/* Toggle Camera Button (only show if multiple cameras) */}
                     {availableCameras.length > 1 && (
                       <button
                         onClick={toggleCamera}
@@ -676,154 +735,26 @@ export default function QRScannerTab({ token, roleFilter, user }) {
 
         {/* Result & Status */}
         <div className="space-y-6">
-          {/* Current Result */}
-          <div className={`rounded-2xl shadow-lg overflow-hidden transition-all ${
-            result?.status === "success" ? "bg-emerald-50 border-2 border-emerald-500" :
-            result?.status === "already_marked" ? "bg-amber-50 border-2 border-amber-500" :
-            result?.status === "error" ? "bg-red-50 border-2 border-red-500" :
-            error ? "bg-red-50 border-2 border-red-500" :
-            "bg-white"
-          }`}>
+          {/* Status Panel */}
+          <div className="rounded-2xl shadow-lg overflow-hidden bg-white">
             <div className="p-6">
-              {result ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    {result.status === "success" ? (
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                        result.action === "exit" ? "bg-blue-500" : "bg-emerald-500"
-                      }`}>
-                        <Check className="w-6 h-6 text-white" />
-                      </div>
-                    ) : result.status === "error" ? (
-                      <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-                        <X className="w-6 h-6 text-white" />
-                      </div>
-                    ) : (
-                      <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center">
-                        <AlertTriangle className="w-6 h-6 text-white" />
-                      </div>
-                    )}
-                    <div className="flex-1">
-                      {result.status === "success" && (
-                        <p className={`text-[11px] font-bold uppercase tracking-wider mb-0.5 ${
-                          result.action === "exit" ? "text-blue-500" : "text-emerald-500"
-                        }`}>
-                          {result.action === "exit" ? "Salida registrada" : "Entrada registrada"}
-                        </p>
-                      )}
-                      {result.status === "already_marked" && (
-                        <p className="text-[11px] font-bold uppercase tracking-wider mb-0.5 text-amber-500">
-                          Asistencia ya registrada
-                        </p>
-                      )}
-                      <p className={`text-lg font-bold ${
-                        result.status === "success" ? (result.action === "exit" ? "text-blue-700" : "text-emerald-700") :
-                        result.status === "error" ? "text-red-700" : "text-amber-700"
-                      }`} data-testid="scan-result-message">
-                        {result.student?.full_name || result.message}
-                      </p>
+              {scanning ? (
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <QrCode className="w-8 h-8 text-emerald-600" />
+                  </div>
+                  <p className="text-lg font-bold text-slate-800">Modo continuo activo</p>
+                  <p className="text-slate-500 text-sm mt-1">Los resultados aparecen sobre la cámara</p>
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    <div className="bg-emerald-50 rounded-xl p-3 text-center">
+                      <p className="text-2xl font-bold text-emerald-600">{history.filter(h => !h.status?.includes("anulad")).length}</p>
+                      <p className="text-xs text-emerald-700">Registrados hoy</p>
+                    </div>
+                    <div className="bg-violet-50 rounded-xl p-3 text-center">
+                      <p className="text-2xl font-bold text-violet-600">{scannedCacheRef.current.size}</p>
+                      <p className="text-xs text-violet-700">En cache (30s)</p>
                     </div>
                   </div>
-                  
-                  {/* User Info */}
-                  <div className="p-4 bg-white rounded-xl" data-testid="scan-result-card">
-                    <div className="flex items-center gap-4 mb-3">
-                      {result.student?.photo_url ? (
-                        <img src={result.student.photo_url} alt="" className="w-16 h-16 rounded-full object-cover border-2 border-slate-200" />
-                      ) : (
-                        <div className={`w-16 h-16 rounded-full flex items-center justify-center text-white text-xl font-bold ${
-                          result.student?.role === "teacher" 
-                            ? "bg-gradient-to-br from-indigo-400 to-purple-500" 
-                            : "bg-gradient-to-br from-violet-400 to-purple-500"
-                        }`}>
-                          {result.student?.name?.charAt(0) || "E"}
-                        </div>
-                      )}
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${
-                            result.student?.role === "teacher"
-                              ? "bg-indigo-100 text-indigo-700"
-                              : "bg-blue-100 text-blue-700"
-                          }`} data-testid="scan-result-role">
-                            {result.student?.role === "teacher" ? "Profesor" : "Estudiante"}
-                          </span>
-                        </div>
-                        <p className="text-xl font-bold text-slate-800">{result.student?.full_name}</p>
-                        {result.student?.grade_name && (
-                          <p className="text-slate-500">
-                            {result.student?.grade_name} - Sección {result.student?.section_name}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    {/* Entry/Exit times */}
-                    <div className="flex gap-4 mt-3 pt-3 border-t border-slate-100">
-                      <div className="flex-1 text-center">
-                        <p className="text-xs text-slate-400 uppercase tracking-wide">Entrada</p>
-                        <p className={`text-lg font-bold ${result.attendance?.entry_time ? "text-emerald-600" : "text-slate-300"}`} data-testid="scan-entry-time">
-                          {result.attendance?.entry_time || "—"}
-                        </p>
-                      </div>
-                      <div className="w-px bg-slate-200" />
-                      <div className="flex-1 text-center">
-                        <p className="text-xs text-slate-400 uppercase tracking-wide">Salida</p>
-                        <p className={`text-lg font-bold ${result.attendance?.exit_time ? "text-blue-600" : "text-slate-300"}`} data-testid="scan-exit-time">
-                          {result.attendance?.exit_time || "—"}
-                        </p>
-                      </div>
-                      <div className="w-px bg-slate-200" />
-                      <div className="flex-1 text-center">
-                        <p className="text-xs text-slate-400 uppercase tracking-wide">
-                          {result.attendance?.total_minutes != null ? "Total trabajado" : "Estado"}
-                        </p>
-                        {result.attendance?.total_minutes != null ? (
-                          <p className="text-lg font-bold text-indigo-600" data-testid="scan-total-time">
-                            {Math.floor(result.attendance.total_minutes / 60)}h {result.attendance.total_minutes % 60}m
-                          </p>
-                        ) : (
-                          <p className={`text-lg font-bold ${
-                            result.attendance?.status === "present" ? "text-emerald-600" :
-                            result.attendance?.status === "late" ? "text-amber-600" : "text-slate-400"
-                          }`} data-testid="scan-status">
-                            {result.attendance?.status === "present" ? "Presente" :
-                             result.attendance?.status === "late" ? "Tardanza" :
-                             result.attendance?.status === "absent" ? "Ausente" : "—"}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Scan Another Button */}
-                  <button
-                    onClick={handleScanAnother}
-                    className="w-full mt-4 px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
-                    data-testid="scan-another-btn"
-                  >
-                    <RefreshCw className="w-5 h-5" />
-                    Escanear otro
-                  </button>
-                </div>
-              ) : error ? (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-red-500 rounded-full flex items-center justify-center">
-                      <X className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-lg font-bold text-red-700">Error</p>
-                      <p className="text-red-600">{error}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleScanAnother}
-                    className="w-full px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white rounded-xl font-semibold hover:from-violet-600 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
-                    data-testid="scan-another-error-btn"
-                  >
-                    <RefreshCw className="w-5 h-5" />
-                    Escanear otro
-                  </button>
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -831,7 +762,7 @@ export default function QRScannerTab({ token, roleFilter, user }) {
                     <User className="w-8 h-8 text-slate-400" />
                   </div>
                   <p className="text-slate-500">Esperando escaneo...</p>
-                  <p className="text-sm text-slate-400 mt-1">El resultado aparecerá aquí</p>
+                  <p className="text-sm text-slate-400 mt-1">Activa la cámara para iniciar</p>
                 </div>
               )}
             </div>
