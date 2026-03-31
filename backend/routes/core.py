@@ -356,8 +356,16 @@ def require_role(allowed_roles: list):
             raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta funcion")
         user = await resolve_user_from_token(current_user)
         if not user:
+            logger.error(f"DEMO_DEBUG require_role: user NOT FOUND sub={current_user.get('sub')}")
             raise HTTPException(status_code=403, detail="Usuario no encontrado")
-        if user.get("role") not in allowed_roles:
+        is_demo = user.get("is_demo_user", False)
+        role = user.get("role")
+        # Demo users with owner role get access to any owner-allowed endpoint
+        if is_demo and role == "owner" and "owner" in allowed_roles:
+            logger.info(f"DEMO_DEBUG require_role: GRANTED (demo owner bypass) roles={allowed_roles}")
+            return user
+        if role not in allowed_roles:
+            logger.error(f"DEMO_DEBUG require_role: DENIED role={role}, is_demo={is_demo}, allowed={allowed_roles}")
             raise HTTPException(status_code=403, detail="No tienes permisos para acceder a esta funcion")
         return user
     return check_role
@@ -444,6 +452,7 @@ def require_section_access(section: str):
     async def check_access(current_user = Depends(get_current_user)):
         if current_user.get("scope") == "support_switch":
             school_id = current_user.get("active_school_id") or current_user.get("school_id")
+            logger.info(f"DEMO_DEBUG: support_switch access granted for section={section}, school_id={school_id}")
             return {
                 "id": current_user["sub"],
                 "email": current_user.get("email"),
@@ -456,13 +465,24 @@ def require_section_access(section: str):
             }
         user = await resolve_user_from_token(current_user)
         if not user:
+            logger.error(f"DEMO_DEBUG: user NOT FOUND for sub={current_user.get('sub')}, section={section}")
             raise HTTPException(status_code=403, detail="Usuario no encontrado")
+        role = user.get("role")
+        is_demo = user.get("is_demo_user", False)
+        is_owner_flag = user.get("is_owner", False)
+        logger.info(f"DEMO_DEBUG: section={section}, role={role}, is_demo={is_demo}, is_owner={is_owner_flag}, email={user.get('email')}, school_id={user.get('school_id')}")
+        # Demo users with owner role get immediate access
+        if is_demo and role == "owner":
+            logger.info(f"DEMO_DEBUG: GRANTED (demo owner bypass) section={section}")
+            return user
         has_access = await can_access_section(user, section, user.get("school_id"))
         if not has_access:
+            logger.error(f"DEMO_DEBUG: DENIED section={section}, role={role}, is_demo={is_demo}, is_owner={is_owner_flag}")
             raise HTTPException(
                 status_code=403, 
                 detail=f"No tienes permisos para acceder a esta seccion. Contacta al propietario del colegio."
             )
+        logger.info(f"DEMO_DEBUG: GRANTED (normal) section={section}, role={role}")
         return user
     return check_access
 
