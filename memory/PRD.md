@@ -39,14 +39,24 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ## Recently Completed (March 2026)
 
-### ChatterPal Play Button Overlay Fix (March 30)
-- **Improved** overlay implementation in `LandingPage.jsx` and `AcademiaPortalPage.jsx`
-- Uses wrapper div (`position: absolute; inset: 0`) over the ChatPal container
-- Play button centered via `position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%)`
-- `pointerEvents: none` on wrapper, `pointerEvents: auto` on button for proper click-through
-- Uses `getComputedStyle` instead of inline style checks for reliable positioning
-- Click dispatches events to the iframe and fades out the overlay
-- **Note**: Only testable in production (`edunet.pe`) due to ChatterPal domain whitelisting
+### Demo Management System (March 31)
+- **Backend** (`routes/demo.py`): 7 endpoints — clone, delete, reclone, status, create access, list accesses, revoke access
+- Clones 40 colecciones en orden de dependencia con remapeo de IDs (old_id → new_id)
+- Anonimización de alumnos y padres (nombres ficticios, emails demo)
+- Accesos temporales con credenciales + link WhatsApp
+- Validación de expiración en login (`auth.py`)
+- Cron job cada 24h para limpieza de demos expirados
+- **Frontend** (`SupportDemosPage.jsx`): Sección Demos en Panel de Soporte con UI completa
+- **Testing**: 100% (13/13 backend, todos los flujos frontend)
+
+### Student Card Level Name Fix (March 30)
+- Corregido bug donde tarjetas de estudiantes en vista agrupada mostraban nivel incorrecto
+- `renderStudentCard` ahora recibe `levelName` como parámetro directo
+- `getLevelColor` soporta match parcial ("NIVEL INICIAL" → "INICIAL")
+
+### ChatterPal Mobile Fix (March 30)
+- Fix para avatar no visible en móvil al navegar vía SPA
+- Unhide inmediato al montar + reintentos para mobile (10x cada 500ms)
 
 ### Previous Sessions Completed
 - Subject level_id migration script + auto-derivation fix
