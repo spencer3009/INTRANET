@@ -39,46 +39,50 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ## Recently Completed (March 2026)
 
+### Demo User 403 Fix + Debug Logging (March 31)
+- Added explicit bypass in `require_section_access` and `require_role` for demo users with role=owner
+- Added DEMO_DEBUG logging for production diagnostics
+- Full frontend investigation: URLs correct, SW doesn't cache API, token flow OK
+- DemoModeContext.jsx intercepts all 403s for demo users (masks real errors)
+
 ### Categories Menu Scroll Fix (March 31)
 - Removed `max-h-[60vh] overflow-y-auto` from categories panel in AcademiaPortalPage.jsx
 - Menu now grows dynamically based on category count without scrollbar
 
 ### Demo Management System (March 31)
-- **Backend** (`routes/demo.py`): 7 endpoints — clone, delete, reclone, status, create access, list accesses, revoke access
-- Clones 40 colecciones en orden de dependencia con remapeo de IDs (old_id → new_id)
-- Anonimización de alumnos y padres (nombres ficticios, emails demo)
-- Accesos temporales con credenciales + link WhatsApp
-- Validación de expiración en login (`auth.py`)
-- Cron job cada 24h para limpieza de demos expirados
-- **Frontend** (`SupportDemosPage.jsx`): Sección Demos en Panel de Soporte con UI completa
-- **Testing**: 100% (13/13 backend, todos los flujos frontend)
+- **Backend** (`routes/demo.py`): 7 endpoints - clone, delete, reclone, status, create access, list accesses, revoke access
+- Clones 40 collections in dependency order with ID remapping (old_id -> new_id)
+- Anonymization of students and parents (fictional names, demo emails)
+- Temporary access with credentials + WhatsApp link
+- Expiration validation in login (`auth.py`)
+- Cron job every 24h for expired demo cleanup
+- **Frontend** (`SupportDemosPage.jsx`): Demos section in Support Panel with full UI
 
 ### Student Card Level Name Fix (March 30)
-- Corregido bug donde tarjetas de estudiantes en vista agrupada mostraban nivel incorrecto
-- `renderStudentCard` ahora recibe `levelName` como parámetro directo
-- `getLevelColor` soporta match parcial ("NIVEL INICIAL" → "INICIAL")
+- Fixed bug where student cards in grouped view showed wrong level name
+- `renderStudentCard` now receives `levelName` as direct parameter
 
 ### ChatterPal Mobile Fix (March 30)
-- Fix para avatar no visible en móvil al navegar vía SPA
-- Unhide inmediato al montar + reintentos para mobile (10x cada 500ms)
+- Fix for avatar not visible on mobile when navigating via SPA
+- Immediate unhide on mount + retries for mobile (10x every 500ms)
 
-### Previous Sessions Completed
+### Previous Sessions
 - Subject level_id migration script + auto-derivation fix
-- Password change endpoint fix (`PUT /api/auth/password`)
+- Password change endpoint fix
 - Unified profile photo uploads across all portals
-- Parent Profile page created (`ParentProfilePage.jsx`)
-- ChatterPal integration (Landing + Academia Portal)
-- Landing Page SEO/UI improvements (Vimeo video, meta tags)
-- FloatingHelpAvatar remapped to 9 specific views
-- Data injection, Morosos redesign, login customization
-- Flexible ID filter for attendance, ON_CREATE student activation
+- Parent Profile page, ChatterPal integration, Landing Page SEO/UI
+- FloatingHelpAvatar, Data injection, Morosos redesign, login customization
 
 ## Pending Issues
 
-### P1: Deploy to Production
-- Attendance flexible_id_filter needs production deploy
-- Subject level_id migration needs to run in production
-- Student card level name bug fix (was showing "SECUNDARIA" for all levels due to color-based inference)
+### P0: Demo User 403 in Production
+- Backend returns 200 via curl, 403 only in browser
+- Bypass added in core.py, debug logging added
+- Needs production deploy + log verification
+- Possible causes: old token in localStorage, manually created demo users missing is_owner
+
+### P1: ChatterPal Mobile Verification
+- Awaiting user confirmation in production environment
 
 ### P2: Orphan Collection Cleanup
 - DELETE school leaves ~15 collections orphaned
@@ -98,13 +102,13 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ## Refactoring Needed
 - UsersPage.jsx (>5000 lines) - split into sub-components
-- TeacherAssignmentsPage.jsx - move filtering to backend
+- core.py monolith - separate auth, RBAC, websockets
 
 ## Key Endpoints
-- `POST /api/academic/subjects/fix-level-ids` - Migration script
-- `PUT /api/settings/login-background` - Custom login bg
-- `DELETE /api/settings/login-background` - Remove login bg
-- `PUT /api/support/me` - Update support profile (whatsapp)
+- `POST /api/support/demo/clone` - Clone school for demo
+- `POST /api/support/demo/access` - Create 5-day demo credentials
+- `GET /api/settings` - Tenant settings (RBAC: owner)
+- `POST /api/auth/login` - Login with email+password
 
 ## 3rd Party Integrations
 - Cloudinary (image hosting) - Emergent managed keys
@@ -115,3 +119,4 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - School: elroble
 - Email: admin@elroble.edu
 - Password: 1234abc8
+- Support: spencer3009@gmail.com / Socios3009
