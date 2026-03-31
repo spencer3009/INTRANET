@@ -39,6 +39,10 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ## Recently Completed (March 2026)
 
+### Categories Menu Scroll Fix (March 31)
+- Removed `max-h-[60vh] overflow-y-auto` from categories panel in AcademiaPortalPage.jsx
+- Menu now grows dynamically based on category count without scrollbar
+
 ### Demo Management System (March 31)
 - **Backend** (`routes/demo.py`): 7 endpoints — clone, delete, reclone, status, create access, list accesses, revoke access
 - Clones 40 colecciones en orden de dependencia con remapeo de IDs (old_id → new_id)

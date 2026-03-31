@@ -298,7 +298,7 @@ function AcademiaContent({ token }) {
                   {stats.total_categories} categorias &middot; {stats.total_videos} videos
                 </p>
               </div>
-              <div className="max-h-[60vh] overflow-y-auto">
+              <div>
                 {categories.map((cat, idx) => {
                   const isActive = !searchActive && selectedCat?.id === cat.id;
                   const hasSubs = cat.subcategories?.length > 0;
