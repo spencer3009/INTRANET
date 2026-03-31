@@ -1,49 +1,51 @@
-<analysis>**original_problem_statement**: The user requested a series of data injections, UI redesigns, new features (Custom Login Background, WhatsApp support, ON_CREATE automatic student activation), security restrictions, and critical bug fixes (Attendance module showing 0 students, Teacher assignments showing Sin resultados). In the latest session, requests expanded to fixing global password change endpoints, unifying profile photo uploads across all user portals (Admin, Teacher, Student, Parent), creating a missing Parent Profile page, configuring ChatterPal video widgets, and styling the Landing Page. PRODUCT REQUIREMENTS include ensuring backwards compatibility with existing MongoDB data and ensuring 3rd-party integrations (ChatterPal) degrade gracefully in preview environments.
+<analysis>**original_problem_statement**: The user requested a series of UI redesigns, bug fixes, and a massive new feature: a System of Demos for Prospects. This system requires cloning a production school's database (40 collections, replacing ObjectIds mapping, anonymizing student/parent data), generating temporary admin credentials that expire in 5 days, and a full UI in the Global Support Panel to manage these demos. PRODUCT REQUIREMENTS include ensuring the Demo users can access the intranet without 403 errors, and ensuring existing modules (ChatterPal widget, Attendance, Users list) render correctly across devices and grouped views. 
 
 **User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only)
 
-**what currently exists?** 
-A robust React + FastAPI + MongoDB school management platform. The system features customized login pages, attendance tracking, hierarchical academic structures, and role-based portals (Admin, Teacher, Student, Parent). The platform now includes unified profile photo management with instant UI updates, fixed password change flows, and dynamic integrations with ChatterPal for virtual video assistants on the Landing Page and Help Center.
+**what currently exists?**
+A robust React + FastAPI + MongoDB school management platform. Features role-based portals, unified profile photos, dynamic ChatterPal video widget integration, and a newly built System of Demos accessible by the Global Support Admin that clones real schools into functional, temporary 5-day demo instances.
 
 **Last working item**:
-    - **Last item agent was working**: UI Fix for ChatterPal widget play button. The agent implemented a JavaScript-based overlay in  and  to dynamically inject a perfectly centered Play button over the cross-origin ChatterPal iframe without altering the iframe's internal contents or breaking the SPA routing.
-    - **Status**: USER VERIFICATION PENDING
-    - **Agent Testing Done**: Y (Code logic verified, but the actual widget cannot be visually tested in preview due to ChatterPal domain whitelisting).
-    - **Which testing method agent to use?**: NA (User must verify in production).
+    - **Last item agent was working**: Reverting sweeping changes in  that caused a massive 520 Server Error regression across multiple endpoints, and surgically applying a fix to  to resolve a 403 Forbidden error for Demo Users.
+    - **Status**: IN PROGRESS
+    - **Agent Testing Done**: N
+    - **Which testing method agent to use?**: backend testing agent or manual testing by  to verify that  compiles without syntax/import errors, and that endpoints like  return 200 for a demo user.
     - **User Testing Done**: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: Validar UI de ChatterPal en Producción (P0)
-     - Attempted fixes: Implemented JS overlay to center the play button over the ChatterPal widget in  and . 
-     - Next debug checklist: Ask user to confirm if the play button overlay works correctly and if the ChatterPal video plays when clicked in the *production* environment ().
-     - Why fix this issue and what will be achieved with the fix?: Ensures the 3rd-party widget has a polished UX aligned with the user's design requirements.
+  Issue 1: (P0) Regresión 520 Server Error y 403 en Demo Users
+     - Attempted fixes: Agent tried to fix a 403 error for Demo Users by changing how , , and subdomains were resolved in , , and . This broke imports/syntax in , causing 520 errors on , , , etc.
+     - Next debug checklist: 
+        1. Revert the last set of changes made to  to stabilize the app.
+        2. Check logs for the exact traceback causing the 520.
+        3. *Surgically* modify ONLY the  function in  so that if  is True and  is owner, it immediately grants access without further validation.
+     - Why fix this issue and what will be achieved with the fix?: Production is currently broken for multiple API endpoints. Fixing this restores production and allows prospects to use the Demo accounts.
+     - Status: IN PROGRESS
+     - Is recurring issue? Y (Auth/RBAC logic is fragile)
+     - Should Test frontend/backend/both after fix?: Both (use  for backend endpoints, curl for specific 520 endpoints)
+
+  Issue 2: (P1) Validar UI de ChatterPal en Producción
+     - Attempted fixes: Implemented JS overlay and visibility re-hydration for SPA/Mobile.
+     - Next debug checklist: Ask user to confirm if ChatterPal works smoothly on mobile in the *production* environment ().
+     - Why fix this issue and what will be achieved with the fix?: Ensures 3rd-party widget UX is polished.
      - Status: USER VERIFICATION PENDING
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Frontend (by user in prod)
-     - Blocked on other issue: Requires user deployment.
 
-  Issue 2: Despliegue a Producción para validar fixes de Asistencia (P1)
-     - Attempted fixes: Agent previously implemented  in  and .
-     - Next debug checklist: Remind the user that a deployment to production is required for the Attendance fix to take effect. 
-     - Why fix this issue and what will be achieved with the fix?: Fixes a critical bug where attendance cannot be taken in production due to ID type mismatches (String vs ObjectId).
-     - Status: USER VERIFICATION PENDING
-     - Is recurring issue? Y (Data inconsistency)
-     - Should Test frontend/backend/both after fix?: Both (by user in prod)
-
-  Issue 3: Limpieza de colecciones huérfanas al eliminar colegio (P2)
-     - Attempted fixes: Diagnosed  leaving ~15 orphaned collections.
-     - Next debug checklist: Update  in  to delete the remaining collections. *Note: User previously said No implementes nada todavía, ask for permission first.*
+  Issue 3: (P2) Limpieza de colecciones huérfanas al eliminar colegio
+     - Attempted fixes: Identified collections left behind during deletion.
+     - Next debug checklist: Await user approval to implement the cleanup in .
      - Why fix this issue and what will be achieved with the fix?: Prevents database bloat.
      - Status: BLOCKED (Awaiting user greenlight)
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Backend
 
 **In progress Task List**:
-  None. All immediate tasks requested by the user in this session have been implemented.
+  None. (The Demo System feature was finished, but the subsequent bug fix caused the P0 issue above).
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Refactor Message Pages: Consolidate duplicated message pages into a single, robust component.
+    - P1: Refactor Message Pages: Consolidate duplicated message pages.
     - P2: Visual indicator of  in Exams/Tasks List.
     - P2: Gradebook Enhancements: Implement Export to PDF/Excel and a Lock/Close Period feature.
     - P2: Double Scrollbar in Registro Auxiliar UI fix.
@@ -55,89 +57,93 @@ A robust React + FastAPI + MongoDB school management platform. The system featur
     - Replace all remaining / calls with custom modals.
 
 **Completed work in this session**
-- Teacher Assignments filtering fix: Created migration script () and fixed backend assignment logic to auto-derive  (DONE).
-- Fixed  returning 500: Replaced raw bcrypt calls with core helper methods and fixed  salt exclusion (DONE).
-- Unified Profile Photo Uploads: Implemented  with  in Admin, Teacher, Student, and Parent portals (DONE).
-- Instant UI Update on Photo Upload: Propagated  from  to all profile pages to avoid needing a re-login (DONE).
-- Created  and mapped routing, as it previously incorrectly routed to Dashboard (DONE).
-- Fixed Student Password Change endpoint ( -> ) (DONE).
-- Removed redundant  analytics script from  (DONE).
-- ChatterPal Integration: Added v8.5 widget to Landing Page and Academia Portal with specific SPA constraints and dynamically injected play-button overlays (DONE).
-- Landing Page SEO/UI: Blurred dashboard image edges, replaced GDrive video with Vimeo, added 33 SEO meta keywords and descriptions (DONE).
--  mapping: Removed from Dashboard/Help Center, mapped strictly to 9 specific internal views (DONE).
+- ChatterPal UI Fix: Injected wrapper overlay for a perfectly centered play button on cross-origin iframe (DONE).
+- ChatterPal Mobile Bug: Fixed SPA re-hydration and  timing issues causing the avatar to not appear on mobile without a refresh (DONE).
+-  Nivel Fix: Fixed a bug where student cards showed SECUNDARIA for INICIAL students because the level name was being incorrectly inferred from CSS colors. Passed  directly (DONE).
+-  Missing Label Fix: Fixed a bug where  was missing from arguments, causing the UI to show 3 - UNICA - instead of NIVEL INICIAL - 3 - UNICA (DONE).
+- Demo Prospect System (Backend): Created . Implemented endpoints to clone a school (40 nested collections mapped via UUIDs), anonymize student/parent data, and create 5-day temporary admin access. Added a daily cron job for cleanup (DONE).
+- Demo Prospect System (Frontend): Created  with a highly professional UI (gradients, cards, school logos, stats) and added it to the Support Panel routing (DONE).
+- Demo UI Bug Fix: Removed  to prevent the school selector dropdown from being cut off (DONE).
 
 **Earlier issues found/mentioned but not fixed**
 None.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Production vs Preview environment discrepancies. ChatterPal widget strictly blocks preview domains and only renders in production.
-  - Recurrence count: 3
-  - Status: BLOCKED (Requires user to test in prod)
-  - Note: Next agent MUST remind the user that ChatterPal issues and Attendance ID mismatches cannot be fully tested in the preview environment.
+  - Issue recurrence in previous fork: Production vs Preview environment discrepancies. ChatterPal widget strictly blocks preview domains. Subdomain redirection works differently in local/preview vs production wildcard DNS.
+  - Recurrence count: 4
+  - Status: BLOCKED/ONGOING
+  - Note: Always remind the user that DNS/Domain-dependent features must be verified in production.
 
 **Code Architecture**
 
 
 **Key Technical Concepts**
-- **ChatterPal SPA Integration**: Injected via  with dynamic script loading and a JavaScript DOM-manipulation fallback to inject a centered overlay play button above cross-origin iframes.
-- **Global State Update**: Profile updates now bubble up to  via  to immediately refresh header/sidebar avatars without re-authentication.
+- **Deep Database Cloning**: The demo system creates a complete copy of a school by iterating through 40 collections in dependency order, generating new UUIDs, and updating a massive dictionary of foreign key mappings to preserve data relationships.
+- **RBAC (Role Based Access Control)**: Handled in . The demo user operates as an owner, but specific feature toggles and  checks were failing for temporary demo accounts.
 
 **key DB schema**
-  - : Ensures  natively matches the  of the parent .
+  - : Added  (bool),  (str).
+  - : Added  (bool),  (str),  (datetime).
 
 **changes in tech stack**
   - None.
 
 **All files of reference** 
-  -  (ChatterPal overlay logic)
-  -  (ChatterPal overlay logic)
-  -  (Routing and ChatPalRouteGuard)
-  -  (Password and profile endpoints)
+  -  (CRITICAL: Contains the 520 regression. Revert recent changes here).
+  -  (New demo cloning logic).
+  -  (New frontend).
+  -  (Grouped view card fixes).
 
 **Areas that need refactoring**: 
-  -  DOM manipulation logic is robust but slightly hacky due to cross-origin iframe limitations. Keep an eye on it if the layout changes.
   -  (>5000 lines).
+  -  is becoming a monolith for auth, database matching, websocket connections, and RBAC. Modifications here easily cause widespread application breakage.
 
 **key api endpoints**
-  -  (Updated to use correct bcrypt helpers)
-  -  (Used globally for self-updates)
-  -  (Migration script)
+  -  (Clones a school).
+  -  (Creates 5-day demo credentials).
+  -  (Currently returning 403 for Demo users).
+  - Multiple endpoints returning 520 due to  breakage.
 
 **Critical Info for New Agent**
   - **LANGUAGE:** Respond strictly in **Spanish**.
-  - **ENVIRONMENT LIMITATIONS:** Do not attempt to debug ChatterPal visual rendering in the preview environment. ChatterPal enforces domain whitelisting (), so the iframes will silently fail to inject in the preview URL. Rely on DOM inspection logs and user verification in production.
-  - **ROUTING:**  was successfully created to stop parents from being routed to the dashboard when clicking their profile.
+  - **URGENT REGRESSION (P0):** The previous agent modified  extensively to fix a 403 error for Demo users. This caused syntax/import errors, breaking global imports and resulting in 520 Server Errors for endpoints like  and . 
+  - **THE DIRECTIVE:** You MUST revert the recent changes in . Once stabilized, apply a *surgical* fix: strictly modify the  function in  to immediately return and allow access if  is True AND  is . Do not touch other validation logic in .
 
 **documents and test reports created in this job**
-  -  (Updated)
+  - 
+  -  (Created)
+  -  (Demo system backend testing)
 
 **Last 10 User Messages and any pending HUMAN messages** 
-  - User requested removing  and reverting to the native ChatterPal iframe. (Done)
-  - User asked to blur the edges of the dashboard image in the Landing Page. (Done)
-  - User asked to remove the drop shadow/opacity on the mobile mockup image. (Done)
-  - User provided ChatterPal embed script for the Landing Page. (Done)
-  - User requested Vimeo video replacement and comprehensive SEO meta tags in . (Done)
-  - User reported the ChatterPal play button was misaligned inside the iframe and requested a strict UI fix without altering the widget or iframe. (Done via JS overlay)
-  - User reported Landing page crashed (Instala la App screen). Agent identified a CSS collision and fixed it. (Done)
-  - **(PENDING) User requested:** UI FIX — Botón de play centrado usando overlay. Agent implemented this via JavaScript to track the ChatPal container and inject a centered overlay button. The session ended right after the fix was applied. User needs to verify this in production.
+  - User asked to fix student card displaying wrong level (SECUNDARIA instead of INICIAL) in . (Done)
+  - User pointed out  was completely missing from the card (3 - UNICA -). (Done)
+  - User provided deployment logs; Agent confirmed successful deploy. Platform replacement issue explained. (Resolved)
+  - User reported ChatterPal avatar not showing on Mobile without refreshing. (Done)
+  - User provided massive spec for Sistema de Demos para Prospectos. (Done)
+  - User requested a more professional UI redesign for  with school logos. (Done)
+  - User reported the dropdown in the new Demo UI was cut off. (Done)
+  - User reported a Bug: Demo Users get 403 Forbidden on all intranet endpoints. Agent made sweeping changes to . (Done, but caused next issue).
+  - User pointed out  was the specific cause of the 403.
+  - **(PENDING) URGENT:** User reported the previous fix to  broke multiple unrelated endpoints (520 errors). Instructed to revert , check logs, and apply a surgical fix *only* to .
 
 **Project Health Check:**
-  - Broken: None known.
-  - Mocked: Accounting financial data (synthetic).
+  - Broken:  (Syntax/import error breaking multiple routers).
+  - Mocked: Synthetic Accounting Data.
 
 **3rd Party Integrations** 
   - Cloudinary (Image Hosting) - Emergent managed
   - Vimeo (Video Hosting) - External URL
-  - ChatterPal (Video Avatar) - External Script (Requires User Domain Whitelist)
+  - ChatterPal (Video Avatar) - External Script
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Screenshot tool heavily relied upon; next agent should consider running full suite if further routing changes occur).
+  - Testing agent used after significant changes: YES ( for Demo System).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: None this session.
-  - Known regressions: None currently known.
+  - Test files created: 
+  - Known regressions:  syntax/logic error causing widespread 520 server errors.
 
 **Credentials to test flow:**
   - **School Owner / Admin:**  /  / 
+  - **Global Support Admin:**  / 
 
 **What agent forgot to execute**
-The agent did not run the  after making global changes to  routing and authentication endpoints. While manual testing was thorough, running the testing subagent is recommended if further global UI/routing changes are planned.</analysis>
+The agent failed to run standard backend linting or basic curl tests on unrelated endpoints after making core authentication/RBAC changes in . Changing a foundational file without running  on the *entire* app led to the massive 520 regression. The next agent must verify the backend compiles cleanly.</analysis>

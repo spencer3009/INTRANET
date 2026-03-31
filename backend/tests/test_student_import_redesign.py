@@ -6,7 +6,7 @@ import pytest
 import requests
 import os
 
-BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://attendance-patch.preview.emergentagent.com').rstrip('/')
+BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', 'https://school-clone-5.preview.emergentagent.com').rstrip('/')
 
 class TestStudentImportBackend:
     """Backend API tests for student import feature"""
