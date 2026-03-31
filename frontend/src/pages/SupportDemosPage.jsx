@@ -120,8 +120,8 @@ export default function SupportDemosPage({ token }) {
       </div>
 
       {/* Demo School Card */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden" data-testid="demo-school-section">
-        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm" data-testid="demo-school-section">
+        <div className="px-6 py-4 bg-gradient-to-r from-slate-50 to-white border-b border-slate-100 rounded-t-xl">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-indigo-100 flex items-center justify-center">
               <Database className="w-4 h-4 text-indigo-600" />
