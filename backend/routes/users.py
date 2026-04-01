@@ -892,7 +892,14 @@ async def import_students(
                     continue
                 d = {}
                 for j, h in enumerate(headers_raw):
-                    d[h] = str(row[j]).strip() if j < len(row) and row[j] is not None else ""
+                    if j < len(row) and row[j] is not None:
+                        val = row[j]
+                        if isinstance(val, datetime):
+                            d[h] = val.strftime("%d/%m/%Y")
+                        else:
+                            d[h] = str(val).strip()
+                    else:
+                        d[h] = ""
                 rows.append(d)
             wb.close()
         elif ext == "xls":
@@ -984,6 +991,9 @@ async def import_students(
         birthday = ""
         if birthday_raw:
             birthday_str = str(birthday_raw).strip()
+            # Handle "2010-03-15 00:00:00" format from Excel datetime stringification
+            if " " in birthday_str:
+                birthday_str = birthday_str.split(" ")[0]
             for fmt in ("%d/%m/%Y", "%Y-%m-%d", "%m/%d/%Y", "%d-%m-%Y"):
                 try:
                     birthday = datetime.strptime(birthday_str, fmt).strftime("%Y-%m-%d")
