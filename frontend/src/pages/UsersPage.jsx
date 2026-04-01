@@ -2126,11 +2126,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     const userToEdit = users.find(u => u.id === userId);
     if (userToEdit) {
       setEditingUser(userToEdit);
-      // Normalize gender value (old values used M/F, new uses male/female)
+      // Normalize gender value (old values used M/F, new uses male/female, import uses Masculino/Femenino)
       const normalizeGender = (g) => {
         if (!g) return "";
-        if (g === "M" || g === "male") return "male";
-        if (g === "F" || g === "female") return "female";
+        const gl = g.toLowerCase();
+        if (gl === "m" || gl === "male" || gl === "masculino" || gl === "hombre") return "male";
+        if (gl === "f" || gl === "female" || gl === "femenino" || gl === "mujer") return "female";
         return g;
       };
       

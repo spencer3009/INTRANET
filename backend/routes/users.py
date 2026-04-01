@@ -1008,9 +1008,9 @@ async def import_students(
         gender = ""
         if gender_raw:
             if gender_raw in ("masculino", "male", "m", "hombre"):
-                gender = "Masculino"
+                gender = "male"
             elif gender_raw in ("femenino", "female", "f", "mujer"):
-                gender = "Femenino"
+                gender = "female"
             else:
                 gender = ""
                 errors.append("Genero no valido")
