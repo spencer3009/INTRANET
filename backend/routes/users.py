@@ -188,14 +188,7 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
     if existing:
         raise HTTPException(status_code=400, detail="El usuario ya existe")
     
-    # Check if email already exists (if provided)
-    if data.email:
-        existing_email = await db.users.find_one({
-            "email": data.email.lower(),
-            "school_id": school_id
-        })
-        if existing_email:
-            raise HTTPException(status_code=400, detail="El correo ya está registrado")
+    # Email duplicates allowed (siblings may share parent's email)
     
     # Create user
     new_user = {
@@ -361,14 +354,6 @@ async def update_user(user_id: str, data: UpdateUserRequest, current_user = Depe
             raise HTTPException(status_code=400, detail="Este nombre de usuario ya está en uso")
         update_data["username"] = data.username.lower()
     if data.email is not None:
-        # Check if email is already used by another user
-        existing = await db.users.find_one({
-            "email": data.email.lower(),
-            "school_id": user["school_id"],
-            "id": {"$ne": user_id}
-        })
-        if existing:
-            raise HTTPException(status_code=400, detail="Este correo ya está registrado")
         update_data["email"] = data.email.lower()
     if data.phone is not None:
         update_data["phone"] = data.phone
