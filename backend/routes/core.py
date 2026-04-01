@@ -385,6 +385,7 @@ SECTION_PERMISSIONS = {
     "accounting": {"allowed_roles": ["owner", "admin"], "feature_flag": "allow_admin_accounting"},
     "users": {"allowed_roles": ["owner", "admin", "director"], "feature_flag": None},
     "grades": {"allowed_roles": ["owner", "admin", "director", "coordinator"], "feature_flag": None},
+    "settings": {"allowed_roles": ["owner", "admin", "director"], "feature_flag": None},
     "courses": {"allowed_roles": ["owner", "admin", "director", "coordinator", "teacher"], "feature_flag": None},
     "attendance": {"allowed_roles": ["owner", "admin", "director", "coordinator", "teacher", "auxiliar"], "feature_flag": None},
     "reports": {"allowed_roles": ["owner", "admin", "director", "coordinator"], "feature_flag": None},
