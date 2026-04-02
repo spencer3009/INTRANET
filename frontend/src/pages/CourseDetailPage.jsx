@@ -9229,7 +9229,7 @@ function MaterialTableContent({ subjectId, token, user }) {
       {showCreateModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => { setShowCreateModal(false); resetForm(); }} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
             {/* Modal Header */}
             <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-4 flex items-center justify-between">
               <h3 className="text-xl font-bold text-white flex items-center gap-2">
@@ -9245,7 +9245,7 @@ function MaterialTableContent({ subjectId, token, user }) {
             </div>
             
             {/* Modal Body */}
-            <div className="p-6 space-y-5">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
               {/* Google Drive Status Banner */}
               {driveChecked && !driveStatus.connected && (
                 <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-start gap-2">
@@ -9404,7 +9404,7 @@ function MaterialTableContent({ subjectId, token, user }) {
                     <iframe
                       src={`https://www.youtube.com/embed/${extractYouTubeId(youtubeUrl)}`}
                       title="Vista previa YouTube"
-                      className="w-full aspect-video"
+                      className="w-full h-40"
                       allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                       allowFullScreen
                     />
@@ -9415,7 +9415,7 @@ function MaterialTableContent({ subjectId, token, user }) {
             </div>
             
             {/* Modal Footer */}
-            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+            <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3 flex-shrink-0">
               <button
                 onClick={() => { setShowCreateModal(false); resetForm(); }}
                 className="px-5 py-2.5 text-slate-600 font-medium hover:bg-slate-100 rounded-xl transition-colors"
