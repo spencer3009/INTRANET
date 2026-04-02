@@ -30,17 +30,8 @@ export default function TeacherHealthPage({ user, token, onLogout }) {
   const [hasAccess, setHasAccess] = useState(null);
 
   useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await axios.get(`${API}/api/settings/health-permissions`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setHasAccess(res.data.teacher_can_manage === true);
-      } catch {
-        setHasAccess(false);
-      }
-    };
-    check();
+    // Teacher always has access (read). We only check if they can write.
+    setHasAccess(true);
   }, [token]);
 
   const base = subdomain ? `/${subdomain}` : "";

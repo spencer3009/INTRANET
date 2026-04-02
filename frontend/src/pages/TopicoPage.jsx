@@ -54,7 +54,7 @@ function getIncidentLabel(type) {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function TopicoPage({ user, token, onLogout, renderSidebar, renderHeader, backPath }) {
+export default function TopicoPage({ user, token, onLogout, renderSidebar, renderHeader, backPath, canWrite = true }) {
   const navigate = useNavigate();
   const { subdomain: routeSubdomain } = useParams();
   const subdomain = routeSubdomain || user?.subdomain;
@@ -269,6 +269,14 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
             </div>
           </div>
 
+          {/* Read-only banner */}
+          {!canWrite && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-center gap-2" data-testid="read-only-banner">
+              <Eye className="w-4 h-4 text-amber-600 flex-shrink-0" />
+              <p className="text-sm text-amber-700">Modo lectura — contacta al propietario para obtener permisos de edicion</p>
+            </div>
+          )}
+
           {/* Filters */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6" data-testid="topico-filters">
             <h3 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
@@ -373,6 +381,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                               {studentRecordCounts[s.student_id]} registro{studentRecordCounts[s.student_id] > 1 ? "s" : ""}
                             </span>
                           )}
+                          {canWrite && (
                           <button
                             onClick={() => openNewRecord(s)}
                             className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5"
@@ -381,6 +390,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                             <Plus className="w-4 h-4" />
                             Registrar Atencion
                           </button>
+                          )}
                         </div>
                       ))
                     )}
@@ -431,6 +441,8 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
+                              {canWrite && (
+                              <>
                               <button
                                 onClick={() => openEditRecord(r)}
                                 className="w-8 h-8 rounded-lg bg-blue-50 hover:bg-blue-100 flex items-center justify-center text-blue-500 transition-colors"
@@ -445,6 +457,8 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>
+                              </>
+                              )}
                             </div>
                           </div>
                         );

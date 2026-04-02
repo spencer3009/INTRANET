@@ -30,20 +30,8 @@ export default function AdminHealthPage({ user, token, onLogout }) {
   const [hasAccess, setHasAccess] = useState(null);
 
   useEffect(() => {
-    const check = async () => {
-      try {
-        const res = await axios.get(`${API}/api/settings/health-permissions`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        // Admin needs admin_can_manage OR user is owner
-        const isOwner = user?.is_owner || user?.role === "owner";
-        setHasAccess(isOwner || res.data.admin_can_manage === true);
-      } catch {
-        // If endpoint fails (non-owner), check via health endpoint
-        setHasAccess(true); // Optimistic - backend will block if no access
-      }
-    };
-    check();
+    // Admin always has access (read). Access check is at page level for write permissions.
+    setHasAccess(true);
   }, [token, user]);
 
   const base = subdomain ? `/${subdomain}` : "";

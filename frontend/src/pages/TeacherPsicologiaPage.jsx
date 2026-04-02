@@ -1,20 +1,37 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import axios from "axios";
 import PsicologiaPage from "./PsicologiaPage";
 import TeacherSidebar from "../components/TeacherSidebar";
 import StudentHeader from "../components/StudentHeader";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function TeacherPsicologiaPage({ user, token, onLogout }) {
   const { subdomain: routeSubdomain } = useParams();
   const subdomain = routeSubdomain || user?.subdomain;
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [canWrite, setCanWrite] = useState(false);
   const base = subdomain ? `/${subdomain}` : "";
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await axios.get(`${API}/api/settings/health-permissions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCanWrite(res.data.teacher_can_manage === true);
+      } catch { setCanWrite(false); }
+    };
+    check();
+  }, [token]);
 
   return (
     <PsicologiaPage
       user={user}
       token={token}
       onLogout={onLogout}
+      canWrite={canWrite}
       backPath={`${base}/teacher/salud-bienestar`}
       renderSidebar={() => (
         <TeacherSidebar

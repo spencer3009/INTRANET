@@ -1034,7 +1034,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     </div>
                     <div>
                       <h2 className="text-lg font-bold text-slate-800">Permisos de Salud y Bienestar</h2>
-                      <p className="text-sm text-slate-500">Controla quién puede acceder al módulo de Tópico y Psicología</p>
+                      <p className="text-sm text-slate-500">Controla quién puede crear, editar y eliminar registros de Tópico y Psicología. Todos pueden ver los registros.</p>
                     </div>
                   </div>
                   
@@ -1048,7 +1048,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                         <div>
                           <h3 className="font-semibold text-slate-800">Permitir a Administradores gestionar Salud y Bienestar</h3>
                           <p className="text-sm text-slate-500">
-                            Los administradores podrán crear, editar y eliminar registros de Tópico y Psicología
+                            Los administradores podrán crear, editar y eliminar registros. Sin este permiso, solo podrán ver los registros.
                           </p>
                         </div>
                       </div>
@@ -1081,7 +1081,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                         <div>
                           <h3 className="font-semibold text-slate-800">Permitir a Profesores gestionar Salud y Bienestar</h3>
                           <p className="text-sm text-slate-500">
-                            Los profesores podrán crear, editar y eliminar registros de Tópico y Psicología
+                            Los profesores podrán crear, editar y eliminar registros. Sin este permiso, solo podrán ver los registros.
                           </p>
                         </div>
                       </div>
@@ -1106,7 +1106,7 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                     </div>
 
                     <p className="text-xs text-slate-400 pl-2">
-                      El propietario siempre tiene acceso completo al módulo de Salud y Bienestar. Los padres tienen acceso de solo lectura al historial de sus hijos.
+                      El propietario siempre tiene acceso completo. Administradores y profesores siempre pueden ver los registros. Los switches controlan si pueden crear, editar y eliminar. Los padres tienen acceso de solo lectura al historial de sus hijos.
                     </p>
                   </div>
                 </div>

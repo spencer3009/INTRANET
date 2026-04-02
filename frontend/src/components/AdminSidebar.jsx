@@ -1,6 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState } from "react";
 import {
   Home,
   Users,
@@ -29,8 +28,6 @@ import {
   Video,
   HeartPulse
 } from "lucide-react";
-
-const API = process.env.REACT_APP_BACKEND_URL;
 
 // Admin Navigation Structure - Organized by logical sections
 const NAV_SECTIONS = [
@@ -62,6 +59,7 @@ const NAV_SECTIONS = [
       { id: "examenes", label: "Exámenes Online", icon: FileEdit, route: "/admin/exams" },
       { id: "examenes-programados", label: "Exámenes Programados", icon: Calendar, route: "/admin/exam-schedule" },
       { id: "clases-en-vivo", label: "Clases en Vivo", icon: Video, route: "/admin/live-classes" },
+      { id: "salud-bienestar", label: "Salud y Bienestar", icon: HeartPulse, route: "/admin/salud-bienestar" },
     ]
   },
   {
@@ -97,38 +95,9 @@ export default function AdminSidebar({
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
   const [expandedSections, setExpandedSections] = useState(["operacion", "estructura"]);
-  const [navSections, setNavSections] = useState(NAV_SECTIONS);
   
   // Sidebar is expanded if hovered (desktop) or manually expanded (mobile)
   const isExpanded = isHovered || expanded;
-
-  // Check health permissions and add item dynamically
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    const check = async () => {
-      try {
-        const res = await axios.get(`${API}/api/settings/health-permissions`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const isOwner = user?.is_owner || user?.role === "owner";
-        if (isOwner || res.data.admin_can_manage) {
-          setNavSections((prev) => {
-            // Check if already added
-            const gestion = prev.find((s) => s.id === "gestion");
-            if (gestion?.items.find((i) => i.id === "salud-bienestar")) return prev;
-            return prev.map((section) => {
-              if (section.id !== "gestion") return section;
-              const items = [...section.items];
-              items.push({ id: "salud-bienestar", label: "Salud y Bienestar", icon: HeartPulse, route: "/admin/salud-bienestar" });
-              return { ...section, items };
-            });
-          });
-        }
-      } catch {}
-    };
-    check();
-  }, [user]);
   
   const handleNavClick = (item) => {
     if (item.route) {
@@ -211,7 +180,7 @@ export default function AdminSidebar({
 
       {/* Nav sections */}
       <nav className="flex-1 py-4 px-2 overflow-y-auto custom-scroll">
-        {navSections.map((section) => (
+        {NAV_SECTIONS.map((section) => (
           <div key={section.id} className="mb-4">
             {/* Section Header - Only show when expanded */}
             {isExpanded && (

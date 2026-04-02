@@ -1,21 +1,18 @@
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import axios from "axios";
+import { useState } from "react";
 import {
   Home, BookOpen, Users, ClipboardList, BarChart3,
   CalendarCheck, MessageSquare, User, LogOut, PenTool, X, Video, HeartPulse
 } from "lucide-react";
 
-const API = process.env.REACT_APP_BACKEND_URL;
-
-const baseNavItems = [
+const teacherNavItems = [
   { id: "inicio", label: "Dashboard", icon: Home, route: "/teacher" },
   { id: "cursos", label: "Mis Cursos", icon: BookOpen, route: "/teacher/courses" },
   { id: "alumnos", label: "Mis Alumnos", icon: Users, route: "/teacher/students" },
   { id: "tareas", label: "Tareas", icon: ClipboardList, route: "/teacher/tasks" },
   { id: "notas", label: "Notas", icon: BarChart3, route: "/teacher/grades" },
   { id: "asistencia", label: "Asistencia", icon: CalendarCheck, route: "/teacher/attendance" },
-  // salud-bienestar inserted dynamically here
+  { id: "salud-bienestar", label: "Salud y Bienestar", icon: HeartPulse, route: "/teacher/salud-bienestar" },
   { id: "clases-en-vivo", label: "Clases en Vivo", icon: Video, route: "/teacher/live-classes" },
   { id: "mensajes", label: "Mensajes", icon: MessageSquare, route: "/teacher/messages" },
 ];
@@ -26,31 +23,7 @@ export default function TeacherSidebar({
 }) {
   const navigate = useNavigate();
   const [isHovered, setIsHovered] = useState(false);
-  const [teacherNavItems, setTeacherNavItems] = useState(baseNavItems);
   const isExpanded = isHovered || expanded;
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-    const check = async () => {
-      try {
-        const res = await axios.get(`${API}/api/settings/health-permissions`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.data.teacher_can_manage) {
-          setTeacherNavItems((prev) => {
-            if (prev.find((i) => i.id === "salud-bienestar")) return prev;
-            const idx = prev.findIndex((i) => i.id === "clases-en-vivo");
-            const item = { id: "salud-bienestar", label: "Salud y Bienestar", icon: HeartPulse, route: "/teacher/salud-bienestar" };
-            const copy = [...prev];
-            copy.splice(idx >= 0 ? idx : prev.length, 0, item);
-            return copy;
-          });
-        }
-      } catch {}
-    };
-    check();
-  }, []);
   
   const handleNavClick = (item) => {
     if (item.route) {

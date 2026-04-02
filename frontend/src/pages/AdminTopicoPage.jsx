@@ -1,20 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
+import axios from "axios";
 import TopicoPage from "./TopicoPage";
 import AdminSidebar from "../components/AdminSidebar";
 import DashboardHeader from "../components/DashboardHeader";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 export default function AdminTopicoPage({ user, token, onLogout }) {
   const { subdomain: routeSubdomain } = useParams();
   const subdomain = routeSubdomain || user?.subdomain;
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [canWrite, setCanWrite] = useState(true);
   const base = subdomain ? `/${subdomain}` : "";
+
+  useEffect(() => {
+    const isOwner = user?.is_owner || user?.role === "owner";
+    if (isOwner) { setCanWrite(true); return; }
+    const check = async () => {
+      try {
+        const res = await axios.get(`${API}/api/settings/health-permissions`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setCanWrite(res.data.admin_can_manage === true);
+      } catch { setCanWrite(false); }
+    };
+    check();
+  }, [token, user]);
 
   return (
     <TopicoPage
       user={user}
       token={token}
       onLogout={onLogout}
+      canWrite={canWrite}
       backPath={`${base}/admin/salud-bienestar`}
       renderSidebar={() => (
         <AdminSidebar

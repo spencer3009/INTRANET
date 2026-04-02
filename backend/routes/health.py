@@ -79,10 +79,10 @@ async def _get_health_permissions(school_id: str) -> dict:
 async def _require_health_access(current_user, write=False):
     """
     Check health module access based on dynamic permissions.
-    - owner: always full access
-    - admin/director: read+write if admin_can_manage is True
-    - teacher: read+write if teacher_can_manage is True
-    - parent: read-only (handled separately)
+    - owner: always full access (read + write)
+    - admin/director: always READ. Write only if admin_can_manage is True
+    - teacher: always READ. Write only if teacher_can_manage is True
+    - parent: handled separately via _require_parent
     """
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
@@ -94,17 +94,21 @@ async def _require_health_access(current_user, write=False):
     if is_owner:
         return user
 
-    perms = await _get_health_permissions(user["school_id"])
-
     if role in ["admin", "director"]:
+        if not write:
+            return user
+        perms = await _get_health_permissions(user["school_id"])
         if perms.get("admin_can_manage", True):
             return user
-        raise HTTPException(status_code=403, detail="Los administradores no tienen acceso al módulo de Salud y Bienestar")
+        raise HTTPException(status_code=403, detail="No tienes permisos para crear registros. Contacta al propietario.")
 
     if role == "teacher":
+        if not write:
+            return user
+        perms = await _get_health_permissions(user["school_id"])
         if perms.get("teacher_can_manage", False):
             return user
-        raise HTTPException(status_code=403, detail="Los profesores no tienen acceso al módulo de Salud y Bienestar")
+        raise HTTPException(status_code=403, detail="No tienes permisos para crear registros. Contacta al propietario.")
 
     raise HTTPException(status_code=403, detail="Acceso restringido")
 
