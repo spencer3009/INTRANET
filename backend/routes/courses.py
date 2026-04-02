@@ -63,6 +63,10 @@ class CoursePostCreate(BaseModel):
     cloudinary_data: Optional[dict] = None
     # Register linkage for tasks
     register_column: Optional[str] = None  # "P1"|"P2"|"P3"|null (tasks only)
+    # YouTube material fields
+    tipo_material: Optional[str] = None  # "archivo" or "youtube"
+    url: Optional[str] = None  # YouTube URL
+    video_id: Optional[str] = None  # Extracted YouTube video ID
 
 class CoursePostUpdate(BaseModel):
     title: Optional[str] = None
@@ -216,9 +220,20 @@ async def create_course_post(
     
     school_id = user["school_id"]
     
-    # Validate: must have content or attachment (file_url or drive_file_id)
-    if not data.content.strip() and not data.image_url and not data.file_url and not data.drive_file_id:
-        raise HTTPException(status_code=400, detail="La publicación debe tener texto, imagen o archivo")
+    # Validate: must have content or attachment (file_url or drive_file_id) or YouTube link
+    is_youtube_material = data.post_type == "material" and data.tipo_material == "youtube"
+    if not is_youtube_material:
+        if not data.content.strip() and not data.image_url and not data.file_url and not data.drive_file_id:
+            raise HTTPException(status_code=400, detail="La publicación debe tener texto, imagen o archivo")
+    else:
+        if not data.url or not data.url.strip():
+            raise HTTPException(status_code=400, detail="La URL de YouTube es obligatoria")
+        # Extract video_id from YouTube URL
+        import re
+        yt_match = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})', data.url)
+        if not yt_match:
+            raise HTTPException(status_code=400, detail="URL de YouTube no válida")
+        data.video_id = yt_match.group(1)
     
     # For task, material, forum - title is required
     if data.post_type in ["task", "material", "forum"]:
@@ -252,6 +267,9 @@ async def create_course_post(
         "file_size": data.file_size,
         "drive_file_id": data.drive_file_id,
         "storage_type": data.storage_type,
+        "tipo_material": data.tipo_material or "archivo",
+        "url": data.url,
+        "video_id": data.video_id,
         "status": "active",
         "created_at": now,
         "updated_at": now
