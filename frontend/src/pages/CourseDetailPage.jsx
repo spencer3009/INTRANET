@@ -2231,6 +2231,8 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
   const fileInputRef = useRef(null);
+  const [taskAttachType, setTaskAttachType] = useState("archivo");
+  const [taskYoutubeUrl, setTaskYoutubeUrl] = useState("");
   
   // Register linkage state for tasks (P1/P2/P3 only)
   const [taskActivePeriod, setTaskActivePeriod] = useState(null);
@@ -2362,6 +2364,13 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
     return uploadRes.data.secure_url;
   };
   
+  const extractTaskYouTubeId = (url) => {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  };
+  const isValidTaskYouTubeUrl = (url) => !!extractTaskYouTubeId(url);
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       setError("El título es requerido");
@@ -2373,8 +2382,16 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
       return;
     }
     
+    // YouTube validation
+    if (taskAttachType === "youtube") {
+      if (taskYoutubeUrl.trim() && !isValidTaskYouTubeUrl(taskYoutubeUrl)) {
+        setError("URL de YouTube no válida. Usa: youtube.com/watch?v=... o youtu.be/...");
+        return;
+      }
+    }
+    
     // Check if file needs Google Drive but Drive is not connected
-    if (file && shouldUseGoogleDrive(file) && !driveStatus.connected) {
+    if (taskAttachType === "archivo" && file && shouldUseGoogleDrive(file) && !driveStatus.connected) {
       setError("Para adjuntar documentos (PDF, Word, Excel, etc.) debes conectar Google Drive desde Ajustes.");
       return;
     }
@@ -2388,11 +2405,17 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
       let fileType = null;
       let driveFileId = null;
       let storageType = null;
+      let tipoMaterial = "archivo";
+      let youtubeUrl = null;
+      let videoId = null;
       
-      if (file) {
+      if (taskAttachType === "youtube" && taskYoutubeUrl.trim()) {
+        tipoMaterial = "youtube";
+        youtubeUrl = taskYoutubeUrl.trim();
+        videoId = extractTaskYouTubeId(taskYoutubeUrl);
+      } else if (taskAttachType === "archivo" && file) {
         // Determine if file should go to Google Drive or Cloudinary
         if (shouldUseGoogleDrive(file)) {
-          // Upload to Google Drive (file-only, no database record)
           const formData = new FormData();
           formData.append('file', file);
           formData.append('subject_id', subjectId);
@@ -2413,7 +2436,6 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
           fileType = file.type || 'application/octet-stream';
           storageType = 'google_drive';
         } else {
-          // Upload images to Cloudinary
           const isRawFile = !file.type.startsWith('image/');
           fileUrl = await uploadToCloudinary(file, 'edunet/posts', isRawFile);
           fileName = file.name;
@@ -2422,9 +2444,6 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
         }
       }
       
-      // Combine date and time - store in ISO format with Peru timezone offset
-      // Peru is UTC-5, so we append that offset to ensure consistent parsing
-      // Handle both "HH:MM" and "HH:MM:SS" formats
       const timeParts = dueTime.split(':');
       const timeWithSeconds = timeParts.length === 2 ? `${dueTime}:00` : dueTime;
       const dueDateTime = `${dueDate}T${timeWithSeconds}-05:00`;
@@ -2439,6 +2458,9 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
         file_type: fileType,
         drive_file_id: driveFileId,
         storage_type: storageType,
+        tipo_material: tipoMaterial,
+        url: youtubeUrl,
+        video_id: videoId,
         register_column: taskRegisterColumn,
         metadata: {
           delivery_type: deliveryType,
@@ -2745,12 +2767,44 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
             />
           </div>
           
-          {/* File Attachment */}
+          {/* File/YouTube Attachment */}
           <div className="mb-2">
             <label className="block text-sm font-semibold text-slate-700 mb-2">
               Adjuntar material <span className="text-slate-400 font-normal">(opcional)</span>
             </label>
             
+            {/* Toggle: Archivo / YouTube */}
+            <div className="flex gap-2 mb-3">
+              <button
+                type="button"
+                onClick={() => { setTaskAttachType("archivo"); setTaskYoutubeUrl(""); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all border ${
+                  taskAttachType === "archivo"
+                    ? "bg-amber-50 border-amber-400 text-amber-700"
+                    : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                }`}
+                data-testid="task-tipo-archivo-btn"
+              >
+                <Paperclip className="w-4 h-4" />
+                Archivo
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTaskAttachType("youtube"); setFile(null); }}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-medium transition-all border ${
+                  taskAttachType === "youtube"
+                    ? "bg-red-50 border-red-400 text-red-700"
+                    : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                }`}
+                data-testid="task-tipo-youtube-btn"
+              >
+                <Youtube className="w-4 h-4" />
+                YouTube
+              </button>
+            </div>
+            
+            {taskAttachType === "archivo" ? (
+            <>
             {/* Google Drive Status Banner */}
             {file && shouldUseGoogleDrive(file) && !driveStatus.connected && (
               <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 text-sm flex items-start gap-2">
@@ -2800,6 +2854,33 @@ function PremiumTaskModal({ isOpen, onClose, subjectId, token, user, onPostCreat
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
                 />
               </label>
+            )}
+            </>
+            ) : (
+            <div>
+              <div className="relative">
+                <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={taskYoutubeUrl}
+                  onChange={(e) => setTaskYoutubeUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/watch?v=..."
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400 focus:bg-white transition-all"
+                  data-testid="task-youtube-url-input"
+                />
+              </div>
+              {taskYoutubeUrl && isValidTaskYouTubeUrl(taskYoutubeUrl) && (
+                <div className="mt-3 rounded-xl overflow-hidden border border-slate-200">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${extractTaskYouTubeId(taskYoutubeUrl)}`}
+                    title="Vista previa YouTube"
+                    className="w-full h-40"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              )}
+            </div>
             )}
           </div>
           
@@ -8235,6 +8316,19 @@ function TasksTableContent({ subjectId, token, user, students, subject, levelNam
                     ) : (
                       <p className="whitespace-pre-wrap">{selectedTask.content.split('\n\n')[0]}</p>
                     )}
+                  </div>
+                )}
+                
+                {/* YouTube Video */}
+                {selectedTask.tipo_material === "youtube" && selectedTask.video_id && (
+                  <div className="mb-6 rounded-xl overflow-hidden border border-slate-200" data-testid="task-youtube-video">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${selectedTask.video_id}`}
+                      title={selectedTask.title}
+                      className="w-full aspect-video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
                   </div>
                 )}
                 

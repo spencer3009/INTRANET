@@ -222,19 +222,18 @@ async def create_course_post(
     school_id = user["school_id"]
     
     # Validate: must have content or attachment (file_url or drive_file_id) or YouTube link
-    is_youtube_material = data.post_type == "material" and data.tipo_material == "youtube"
-    if not is_youtube_material:
+    is_youtube = data.tipo_material == "youtube" and data.post_type in ("material", "task")
+    if not is_youtube:
         if not data.content.strip() and not data.image_url and not data.file_url and not data.drive_file_id:
             raise HTTPException(status_code=400, detail="La publicación debe tener texto, imagen o archivo")
     else:
-        if not data.url or not data.url.strip():
-            raise HTTPException(status_code=400, detail="La URL de YouTube es obligatoria")
-        # Extract video_id from YouTube URL
-        import re
-        yt_match = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})', data.url)
-        if not yt_match:
-            raise HTTPException(status_code=400, detail="URL de YouTube no válida")
-        data.video_id = yt_match.group(1)
+        if data.url and data.url.strip():
+            # Extract video_id from YouTube URL
+            import re
+            yt_match = re.search(r'(?:youtube\.com/watch\?v=|youtu\.be/|youtube\.com/embed/)([a-zA-Z0-9_-]{11})', data.url)
+            if not yt_match:
+                raise HTTPException(status_code=400, detail="URL de YouTube no válida")
+            data.video_id = yt_match.group(1)
     
     # For task, material, forum - title is required
     if data.post_type in ["task", "material", "forum"]:

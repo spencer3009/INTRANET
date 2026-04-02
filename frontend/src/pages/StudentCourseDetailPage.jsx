@@ -25,7 +25,7 @@ import {
   Quote, Code, Link as LinkIcon, Highlighter,
   Heading1, Heading2, Heading3, HardDrive, Cloud,
   ClipboardList, MessagesSquare, Mail, Inbox, SendHorizontal,
-  Reply, Trash2, Star, Archive, Phone, Video
+  Reply, Trash2, Star, Archive, Phone, Video, Youtube
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL;
@@ -2050,6 +2050,19 @@ function TasksContent({ tasks, studentId, onSubmitTask, students, subject, token
                   token={token}
                 />
               )}
+              
+              {/* YouTube Video if exists */}
+              {selectedTask.tipo_material === "youtube" && selectedTask.video_id && (
+                <div className="mt-4 rounded-xl overflow-hidden border border-slate-200" data-testid="student-task-youtube-video">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${selectedTask.video_id}`}
+                    title={selectedTask.title}
+                    className="w-full aspect-video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              )}
             </div>
 
             {/* Submit Task Section */}
@@ -2410,6 +2423,7 @@ function TaskFileDownload({ task, token }) {
 function MaterialContent({ materials, token, highlightedPostId, onClearHighlight }) {
   const [downloading, setDownloading] = useState(null);
   const [highlightedMaterialId, setHighlightedMaterialId] = useState(null);
+  const [videoModal, setVideoModal] = useState(null);
   const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
   const headers = { Authorization: `Bearer ${token}` };
   
@@ -2503,16 +2517,61 @@ function MaterialContent({ materials, token, highlightedPostId, onClearHighlight
 
   const isGoogleDrive = (material) => material.storage_type === 'google_drive' || material.drive_file_id;
 
+  const extractYouTubeId = (url) => {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  };
+
   return (
+    <>
     <div className="space-y-6 pt-6 pb-48">
       {/* Card container */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="divide-y divide-slate-100">
           {materials.map((material) => {
+            const isYoutube = material.tipo_material === "youtube" || material.video_id;
+            const vid = isYoutube ? (material.video_id || extractYouTubeId(material.url)) : null;
             const fileName = material.file_name || material.drive_file_name || material.title;
             const fileSize = formatFileSize(material.file_size);
             const isDrive = isGoogleDrive(material);
             const isHighlighted = highlightedMaterialId === material.id;
+            
+            if (isYoutube && vid) {
+              return (
+                <div 
+                  key={material.id}
+                  id={`material-${material.id}`}
+                  className={`flex items-center px-6 py-4 transition-all duration-300 ${
+                    isHighlighted ? 'bg-cyan-50 ring-2 ring-cyan-400' : 'hover:bg-slate-50'
+                  }`}
+                  data-testid={`student-material-youtube-${material.id}`}
+                >
+                  <div className="flex items-center gap-4 flex-1 min-w-0">
+                    <button
+                      onClick={() => setVideoModal({ vid, title: material.title })}
+                      className="w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors flex-shrink-0"
+                      title="Reproducir video"
+                    >
+                      <Play className="w-4 h-4 ml-0.5" />
+                    </button>
+                    <p className="font-semibold text-slate-800">{material.title}</p>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
+                      YouTube
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                    <button
+                      onClick={() => setVideoModal({ vid, title: material.title })}
+                      className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                      title="Ver video"
+                    >
+                      <Play className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            }
             
             return (
               <div 
@@ -2569,6 +2628,33 @@ function MaterialContent({ materials, token, highlightedPostId, onClearHighlight
         </div>
       </div>
     </div>
+    
+    {/* YouTube Video Popup */}
+    {videoModal && (
+      <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" data-testid="student-video-modal">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setVideoModal(null)} />
+        <div className="relative w-full max-w-3xl">
+          <button
+            onClick={() => setVideoModal(null)}
+            className="absolute -top-10 right-0 text-white/80 hover:text-white transition-colors flex items-center gap-2 text-sm"
+          >
+            <X className="w-5 h-5" />
+            Cerrar
+          </button>
+          <div className="rounded-2xl overflow-hidden shadow-2xl bg-black">
+            <iframe
+              src={`https://www.youtube.com/embed/${videoModal.vid}?autoplay=1`}
+              title={videoModal.title}
+              className="w-full aspect-video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+          <p className="text-white text-center mt-3 font-medium">{videoModal.title}</p>
+        </div>
+      </div>
+    )}
+  </>
   );
 }
 

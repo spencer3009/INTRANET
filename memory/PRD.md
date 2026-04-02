@@ -25,6 +25,7 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ### Attendance Module
 - Flexible ID filtering (handles String + ObjectId mismatches)
+- QR Continuous Scanner (turnstile-mode) with anti-duplicate cache (30s cooldown)
 - Production-ready with normalized IDs
 
 ### Accounting Module
@@ -37,57 +38,45 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Cascade filter modal (Level > Grade > Section > Subject)
 - Teachers summary sidebar
 
-## Recently Completed (March 2026)
+### YouTube Support for Study Materials (April 2026)
+- Toggle "Archivo / YouTube" in material upload modal (`CourseDetailPage.jsx`)
+- YouTube URL input with real-time preview iframe
+- Backend stores `tipo_material`, `url`, `video_id` fields in `course_posts`
+- Material list shows compact row with play button for YouTube items
+- Popup modal for video playback (no external YouTube redirect)
+- Students can view YouTube materials in their portal with popup player
+
+### YouTube Support for Tasks (April 2026)
+- Toggle "Archivo / YouTube" in task creation modal (`PremiumTaskModal`)
+- Backend accepts YouTube fields for `post_type=task`
+- Task detail view (professor) shows embedded YouTube iframe
+- Student task detail view shows embedded YouTube iframe
+- Student material list shows YouTube items with play button + popup
+
+## Recently Completed (March-April 2026)
 
 ### Demo Access Photo/Logo Upload (March 31)
-- 2 new endpoints: profile-photo and logo upload to Cloudinary (WebP, validated)
-- Frontend AccessRow: clickable avatar/logo with hover overlay, loading state, immediate UI update
-- GET accesses response includes profile_photo_url and logo_url
+- 2 new endpoints: profile-photo and logo upload to Cloudinary
+- Frontend AccessRow: clickable avatar/logo with hover overlay
 
 ### Demo User 403 Fix + Debug Logging (March 31)
-- Added explicit bypass in `require_section_access` and `require_role` for demo users with role=owner
-- Added DEMO_DEBUG logging for production diagnostics
-- Full frontend investigation: URLs correct, SW doesn't cache API, token flow OK
-- DemoModeContext.jsx intercepts all 403s for demo users (masks real errors)
+- Added explicit bypass in `require_section_access` and `require_role` for demo users
 
-### Categories Menu Scroll Fix (March 31)
-- Removed `max-h-[60vh] overflow-y-auto` from categories panel in AcademiaPortalPage.jsx
-- Menu now grows dynamically based on category count without scrollbar
+### QR Continuous Scanner (March 31)
+- Refactored QRScannerTab.jsx to eliminate pause, added anti-duplicate cache (30s)
+
+### Mass Excel Import Fixes (March 31)
+- Handle openpyxl datetime objects and gender normalization
+- Duplicate emails allowed for students (siblings use parent email)
 
 ### Demo Management System (March 31)
-- **Backend** (`routes/demo.py`): 7 endpoints - clone, delete, reclone, status, create access, list accesses, revoke access
-- Clones 40 collections in dependency order with ID remapping (old_id -> new_id)
-- Anonymization of students and parents (fictional names, demo emails)
-- Temporary access with credentials + WhatsApp link
-- Expiration validation in login (`auth.py`)
-- Cron job every 24h for expired demo cleanup
-- **Frontend** (`SupportDemosPage.jsx`): Demos section in Support Panel with full UI
-
-### Student Card Level Name Fix (March 30)
-- Fixed bug where student cards in grouped view showed wrong level name
-- `renderStudentCard` now receives `levelName` as direct parameter
-
-### ChatterPal Mobile Fix (March 30)
-- Fix for avatar not visible on mobile when navigating via SPA
-- Immediate unhide on mount + retries for mobile (10x every 500ms)
-
-### Previous Sessions
-- Subject level_id migration script + auto-derivation fix
-- Password change endpoint fix
-- Unified profile photo uploads across all portals
-- Parent Profile page, ChatterPal integration, Landing Page SEO/UI
-- FloatingHelpAvatar, Data injection, Morosos redesign, login customization
+- Backend: 7 endpoints for clone, delete, access management
+- Frontend: SupportDemosPage.jsx with full UI
 
 ## Pending Issues
 
-### P0: Demo User 403 in Production
-- Backend returns 200 via curl, 403 only in browser
-- Bypass added in core.py, debug logging added
-- Needs production deploy + log verification
-- Possible causes: old token in localStorage, manually created demo users missing is_owner
-
-### P1: ChatterPal Mobile Verification
-- Awaiting user confirmation in production environment
+### P1: Production Verification
+- Multiple fixes deployed awaiting user verification in edunet.pe
 
 ### P2: Orphan Collection Cleanup
 - DELETE school leaves ~15 collections orphaned
@@ -106,19 +95,25 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Replace window.confirm/alert with custom modals
 
 ## Refactoring Needed
+- CourseDetailPage.jsx (>10,000 lines) - split into sub-components
 - UsersPage.jsx (>5000 lines) - split into sub-components
-- core.py monolith - separate auth, RBAC, websockets
 
 ## Key Endpoints
+- `POST /api/course/{subject_id}/posts` - Create post (task/material/forum) with YouTube support
+- `GET /api/course/{subject_id}/posts?post_type=material` - List materials (includes tipo_material, url, video_id)
 - `POST /api/support/demo/clone` - Clone school for demo
-- `POST /api/support/demo/access` - Create 5-day demo credentials
-- `GET /api/settings` - Tenant settings (RBAC: owner)
 - `POST /api/auth/login` - Login with email+password
+
+## Key DB Schema
+- `course_posts`: {tipo_material (archivo/youtube), url, video_id, post_type (task/material/forum)}
+- `attendances`: {method, grade_id, section_id}
+- `users`: {birthday, gender (male/female), photo_url, profile_photo_url}
 
 ## 3rd Party Integrations
 - Cloudinary (image hosting) - Emergent managed keys
-- ChatterPal v8.5 (video avatar widget) - External script, requires domain whitelisting (edunet.pe)
+- ChatterPal v8.5 (video avatar widget) - External script
 - Vimeo (video hosting) - External URL embed
+- @yudiel/react-qr-scanner (QR Reader)
 
 ## Test Credentials
 - School: elroble
