@@ -22,7 +22,7 @@ import MobileBottomNav from "@/components/MobileBottomNav";
 import SubscriptionCard from "@/components/SubscriptionCard";
 // Subscription handled globally by App.js GlobalSubscriptionOverlay
 import PaymentBlockModal from "@/components/PaymentBlockModal";
-import { AlertTriangle, RefreshCw, CheckCircle, XCircle, Newspaper, CalendarDays, ClipboardList, ArrowRight, Video, HelpCircle } from "lucide-react";
+import { AlertTriangle, RefreshCw, CheckCircle, XCircle, Newspaper, CalendarDays, ClipboardList, ArrowRight, Video, HelpCircle, HeartPulse } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -298,18 +298,18 @@ function DashboardInner({
             </button>
 
             <button
-              onClick={() => navigate(subdomain ? `/${subdomain}/encuestas` : '/encuestas')}
+              onClick={() => navigate(subdomain ? `/${subdomain}/salud-bienestar` : '/salud-bienestar')}
               className="group relative bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 hover:border-emerald-300 hover:shadow-md transition-all text-left overflow-hidden"
-              data-testid="quick-action-encuestas"
+              data-testid="quick-action-salud-bienestar"
             >
               <div className="absolute top-0 left-0 w-full h-1 bg-emerald-500 scale-x-0 group-hover:scale-x-100 transition-transform origin-left" />
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500 transition-colors">
-                  <ClipboardList className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
+                  <HeartPulse className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800 text-sm sm:text-base">Encuestas</p>
-                  <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Crear y gestionar</p>
+                  <p className="font-semibold text-slate-800 text-sm sm:text-base">Salud y Bienestar</p>
+                  <p className="text-[11px] sm:text-xs text-slate-400 hidden sm:block">Seguimiento integral</p>
                 </div>
                 <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-emerald-500 transition-colors flex-shrink-0" />
               </div>
