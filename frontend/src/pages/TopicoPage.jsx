@@ -429,7 +429,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                               {s.name || s.first_name || ""} {s.last_name || ""}
                             </p>
                             <p className="text-xs text-slate-400 truncate">
-                              {grades.find(g => g.id === selectedGrade)?.nombre || grades.find(g => g.id === selectedGrade)?.name || ""} — {sections.find(sec => sec.id === selectedSection)?.nombre || sections.find(sec => sec.id === selectedSection)?.name || ""}
+                              {(() => { const g = grades.find(g => g.id === selectedGrade); return g?.nivel_nombre ? `${g.nivel_nombre} ${g.nombre || g.name || ""}` : (g?.nombre || g?.name || ""); })()} — {sections.find(sec => sec.id === selectedSection)?.nombre || sections.find(sec => sec.id === selectedSection)?.name || ""}
                             </p>
                           </div>
                           {studentRecordCounts[s.student_id] > 0 && (
