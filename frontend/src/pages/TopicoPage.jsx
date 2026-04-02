@@ -104,6 +104,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
 
   // Active tab
   const [activeTab, setActiveTab] = useState("alumnos"); // "alumnos" | "historial"
+  const [studentSearch, setStudentSearch] = useState("");
 
   // ─── Load grades on mount ─────────────────────────────────────────────────
   useEffect(() => {
@@ -382,11 +383,39 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
               {/* Tab: Alumnos */}
               {activeTab === "alumnos" && (
                 <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden" data-testid="students-list">
+                  {/* Search */}
+                  {students.length > 0 && (
+                    <div className="px-5 pt-4 pb-2" data-testid="student-search">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                        <input
+                          type="text"
+                          value={studentSearch}
+                          onChange={(e) => setStudentSearch(e.target.value)}
+                          placeholder="Buscar alumno por nombre..."
+                          className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:bg-white transition-all"
+                          data-testid="student-search-input"
+                        />
+                        {studentSearch && (
+                          <button onClick={() => setStudentSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="divide-y divide-slate-100">
                     {students.length === 0 ? (
                       <div className="p-10 text-center text-slate-400">No se encontraron alumnos</div>
-                    ) : (
-                      students.map((s, idx) => (
+                    ) : (() => {
+                      const filtered = students.filter(s => {
+                        if (!studentSearch.trim()) return true;
+                        const name = (s.name || `${s.first_name || ""} ${s.last_name || ""}`.trim()).toLowerCase();
+                        return name.includes(studentSearch.toLowerCase().trim());
+                      });
+                      return filtered.length === 0 ? (
+                        <div className="p-10 text-center text-slate-400">No se encontraron alumnos con "{studentSearch}"</div>
+                      ) : filtered.map((s, idx) => (
                         <div key={s.student_id || idx} className="flex items-center px-5 py-3.5 hover:bg-slate-50 transition-colors">
                           {s.photo_url ? (
                             <img src={s.photo_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
@@ -416,8 +445,8 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                           </button>
                           )}
                         </div>
-                      ))
-                    )}
+                      ));
+                    })()}
                   </div>
                 </div>
               )}
