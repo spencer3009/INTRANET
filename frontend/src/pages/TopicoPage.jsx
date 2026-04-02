@@ -54,12 +54,31 @@ function getIncidentLabel(type) {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function TopicoPage({ user, token, onLogout, renderSidebar, renderHeader, backPath, canWrite = true }) {
+export default function TopicoPage({ user, token, onLogout, renderSidebar, renderHeader, backPath, canWrite: canWriteProp }) {
   const navigate = useNavigate();
   const { subdomain: routeSubdomain } = useParams();
   const subdomain = routeSubdomain || user?.subdomain;
   const headers = { Authorization: `Bearer ${token}` };
   const resolvedBackPath = backPath || (subdomain ? `/${subdomain}/salud-bienestar` : "/salud-bienestar");
+
+  // Auto-detect write permission if not explicitly passed
+  const [autoCanWrite, setAutoCanWrite] = useState(canWriteProp !== undefined ? canWriteProp : true);
+  useEffect(() => {
+    if (canWriteProp !== undefined) { setAutoCanWrite(canWriteProp); return; }
+    const isOwner = user?.is_owner || user?.role === "owner";
+    if (isOwner) { setAutoCanWrite(true); return; }
+    const detect = async () => {
+      try {
+        const res = await axios.get(`${API}/settings/health-permissions`, { headers });
+        const role = user?.role;
+        if (role === "teacher") setAutoCanWrite(res.data.teacher_can_manage === true);
+        else if (role === "admin" || role === "director") setAutoCanWrite(res.data.admin_can_manage === true);
+        else setAutoCanWrite(false);
+      } catch { setAutoCanWrite(false); }
+    };
+    detect();
+  }, [canWriteProp, user]);
+  const canWrite = autoCanWrite;
 
   // Filters
   const [grades, setGrades] = useState([]);
