@@ -472,10 +472,20 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                       {records.map((r) => {
                         const statusBadge = getStatusBadge(r.status);
                         const incidentColor = INCIDENT_COLORS[r.incident_type] || INCIDENT_COLORS.otro;
+                        const matched = students.find(s => s.student_id === r.student_id);
+                        const displayName = matched ? `${matched.name || matched.first_name || ""} ${matched.last_name || ""}`.trim() : r.student_name;
+                        const displayPhoto = matched?.photo_url || r.student_photo_url || null;
                         return (
                           <div key={r.id} className="flex items-center px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                            {displayPhoto ? (
+                              <img src={displayPhoto} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0 mr-3" />
+                            ) : (
+                              <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-sm flex-shrink-0 mr-3">
+                                {(displayName || "?")[0].toUpperCase()}
+                              </div>
+                            )}
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-slate-800 text-sm">{r.student_name}</p>
+                              <p className="font-semibold text-slate-800 text-sm">{displayName}</p>
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <span className="text-xs text-slate-400 flex items-center gap-1">
                                   <Calendar className="w-3 h-3" />
@@ -549,7 +559,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
 
       {/* Detail Modal */}
       {detailRecord && (
-        <DetailModal record={detailRecord} onClose={() => setDetailRecord(null)} />
+        <DetailModal record={detailRecord} students={students} onClose={() => setDetailRecord(null)} />
       )}
     </div>
   );
@@ -599,6 +609,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
         await axios.post(`${API}/health/topico`, {
           student_id: studentId,
           student_name: studentName,
+          student_photo_url: studentPhoto,
           grade_id: gradeId,
           grade_name: gradeLabel,
           section_id: sectionId,
@@ -723,9 +734,12 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
 // DETAIL MODAL
 // ═══════════════════════════════════════════════════════════════════════════════
 
-function DetailModal({ record, onClose }) {
+function DetailModal({ record, students, onClose }) {
   const statusBadge = getStatusBadge(record.status);
   const incidentColor = INCIDENT_COLORS[record.incident_type] || INCIDENT_COLORS.otro;
+  const matchedStudent = (students || []).find(s => s.student_id === record.student_id);
+  const fullName = matchedStudent ? `${matchedStudent.name || matchedStudent.first_name || ""} ${matchedStudent.last_name || ""}`.trim() : record.student_name;
+  const photoUrl = matchedStudent?.photo_url || record.student_photo_url || null;
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" data-testid="detail-modal">
@@ -738,9 +752,18 @@ function DetailModal({ record, onClose }) {
           </button>
         </div>
         <div className="p-6 space-y-4">
-          <div>
-            <p className="text-xs font-semibold text-slate-400 uppercase">Alumno</p>
-            <p className="text-base font-bold text-slate-800">{record.student_name}</p>
+          <div className="flex items-center gap-3">
+            {photoUrl ? (
+              <img src={photoUrl} alt="" className="w-11 h-11 rounded-full object-cover flex-shrink-0" data-testid="detail-student-photo" />
+            ) : (
+              <div className="w-11 h-11 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-sm flex-shrink-0">
+                {(fullName || "?")[0].toUpperCase()}
+              </div>
+            )}
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase">Alumno</p>
+              <p className="text-base font-bold text-slate-800">{fullName}</p>
+            </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
