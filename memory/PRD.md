@@ -60,6 +60,13 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Intermediate page: `/app/frontend/src/pages/HealthWellnessPage.jsx` with cards for Topico and Psicologia
 - Routes: `/:subdomain/salud-bienestar`, `/:subdomain/salud-bienestar/topico`
 
+### Psicologia Module — Health & Wellness (April 2026)
+- Backend: Added to `/app/backend/routes/health.py` — full CRUD with soft delete for `psicologia_records`
+- Endpoints: GET/POST `/api/health/psicologia`, GET/PUT/DELETE `/api/health/psicologia/{id}`, GET `/api/health/psicologia/student/{student_id}`
+- Soft delete: `is_deleted` flag, excluded from all queries
+- Frontend: `/app/frontend/src/pages/PsicologiaPage.jsx` — cascade filters, student list with alert/followup badges, record modal, detail modal, history tab with color-coded alert levels
+- Routes: `/:subdomain/salud-bienestar/psicologia`
+
 ## Recently Completed (March-April 2026)
 
 ### Demo Access Photo/Logo Upload (March 31)

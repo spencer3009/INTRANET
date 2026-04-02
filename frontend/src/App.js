@@ -79,6 +79,7 @@ import ParentCourseDetailPage from "@/pages/ParentCourseDetailPage";
 import ParentPaymentsPage from "@/pages/ParentPaymentsPage";
 import HealthWellnessPage from "@/pages/HealthWellnessPage";
 import TopicoPage from "@/pages/TopicoPage";
+import PsicologiaPage from "@/pages/PsicologiaPage";
 import { Toaster } from "sonner";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import SubscriptionProvider, { useSubscription } from "@/contexts/SubscriptionContext";
@@ -1784,6 +1785,27 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TopicoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+
+          {/* Psicologia Page - URL path mode */}
+          <Route
+            path="/:subdomain/salud-bienestar/psicologia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Psicologia Page - Direct path */}
+          <Route
+            path="/salud-bienestar/psicologia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
