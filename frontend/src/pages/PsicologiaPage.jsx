@@ -443,8 +443,9 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
   const [responsible, setResponsible] = useState(record?.responsible || "");
   const [saving, setSaving] = useState(false);
 
-  const studentName = student ? (student.name || `${student.first_name || ""} ${student.last_name || ""}`.trim()) : record?.student_name || "";
+  const studentName = student ? `${student.name || student.first_name || ""} ${student.last_name || ""}`.trim() : record?.student_name || "";
   const studentId = student?.student_id || record?.student_id || "";
+  const studentPhoto = student?.photo_url || null;
 
   const handleSave = async () => {
     if (!reason.trim()) { toast.error("El motivo es obligatorio"); return; }
@@ -475,9 +476,18 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between flex-shrink-0">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800">{isEdit ? "Editar Registro" : "Registrar Sesion"}</h3>
-            <p className="text-sm text-slate-400">{studentName}</p>
+          <div className="flex items-center gap-3">
+            {studentPhoto ? (
+              <img src={studentPhoto} alt="" className="w-10 h-10 rounded-full object-cover flex-shrink-0" data-testid="modal-student-photo" />
+            ) : (
+              <div className="w-10 h-10 rounded-full bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm flex-shrink-0">
+                {(studentName || "?")[0].toUpperCase()}
+              </div>
+            )}
+            <div>
+              <h3 className="text-lg font-bold text-slate-800">{isEdit ? "Editar Registro" : "Registrar Sesion"}</h3>
+              <p className="text-sm text-slate-500 font-medium">{studentName}</p>
+            </div>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center"><X className="w-4 h-4 text-slate-500" /></button>
         </div>

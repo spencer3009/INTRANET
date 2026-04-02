@@ -88,6 +88,10 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Logo displayed in DashboardHeader/StudentHeader across all portals: Owner, Admin, Teacher, Parent
 - Fixed pages: HealthWellnessPage (missing imports), AdminHealthPage (missing logoUrl prop), AdminTopicoPage & AdminPsicologiaPage (early return blocking settings load)
 
+### Health & Wellness — Modal: Full Name + Student Photo (April 2026)
+- RecordModal in Tópico and Psicología now shows student's full name (first + last name) and photo
+- Photo shown as circular avatar in modal header; falls back to initial letter if no photo
+
 ## Pending Issues
 
 ### P2: Double scrollbar in "Registro Auxiliar"
