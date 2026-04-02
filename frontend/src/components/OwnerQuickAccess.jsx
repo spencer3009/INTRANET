@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Users, UserCheck, BarChart3, Building2, ChevronRight } from "lucide-react";
+import { Users, UserCheck, BarChart3, Building2, ChevronRight, ClipboardList } from "lucide-react";
 
 const items = [
   {
@@ -27,11 +27,11 @@ const items = [
     variant: "primary",
   },
   {
-    id: "colegio",
-    label: "Colegio",
-    desc: "Configuracion general",
-    icon: Building2,
-    path: "settings",
+    id: "encuestas",
+    label: "Encuestas",
+    desc: "Encuestas institucionales",
+    icon: ClipboardList,
+    path: "encuestas",
     variant: "outline",
   },
 ];
