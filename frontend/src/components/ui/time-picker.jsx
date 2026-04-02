@@ -91,7 +91,7 @@ export function TimePicker({ value, onChange, label, className = "" }) {
 
       {/* Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100]">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]">
           <div className="bg-white rounded-2xl shadow-2xl w-[320px] overflow-hidden">
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4">

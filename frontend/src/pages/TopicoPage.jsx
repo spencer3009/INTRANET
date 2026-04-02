@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+import { TimePicker } from "@/components/ui/time-picker";
 import { toast } from "sonner";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -603,9 +604,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Hora</label>
-              <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
-                className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-rose-500"
-                data-testid="modal-time" />
+              <TimePicker value={time} onChange={(val) => setTime(val)} data-testid="modal-time" />
             </div>
           </div>
 
