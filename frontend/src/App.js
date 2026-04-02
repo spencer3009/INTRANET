@@ -77,6 +77,7 @@ import ParentExamsPage from "@/pages/ParentExamsPage";
 import ParentMessagesPage from "@/pages/ParentMessagesPage";
 import ParentCourseDetailPage from "@/pages/ParentCourseDetailPage";
 import ParentPaymentsPage from "@/pages/ParentPaymentsPage";
+import HealthWellnessPage from "@/pages/HealthWellnessPage";
 import { Toaster } from "sonner";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import SubscriptionProvider, { useSubscription } from "@/contexts/SubscriptionContext";
@@ -1744,6 +1745,27 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* Health & Wellness Page - URL path mode */}
+          <Route
+            path="/:subdomain/salud-bienestar"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <HealthWellnessPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Health & Wellness Page - Direct path */}
+          <Route
+            path="/salud-bienestar"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <HealthWellnessPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
 
           {/* Discipline Page - URL path mode (Spanish) */}
           <Route

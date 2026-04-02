@@ -1,0 +1,112 @@
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Cross, Brain, HeartPulse } from "lucide-react";
+import Sidebar from "@/components/Sidebar";
+import DashboardHeader from "@/components/DashboardHeader";
+
+const modules = [
+  {
+    id: "topico",
+    label: "Topico",
+    description: "Registro de atencion medica, incidencias y seguimiento fisico",
+    icon: Cross,
+    path: "topico",
+    color: "rose",
+    bgIcon: "bg-rose-100",
+    hoverBorder: "hover:border-rose-300",
+    hoverBg: "group-hover:bg-rose-500",
+    textIcon: "text-rose-600",
+    arrow: "group-hover:text-rose-500",
+    bar: "bg-rose-500",
+  },
+  {
+    id: "psicologia",
+    label: "Psicologia",
+    description: "Seguimiento emocional, conductual y acompanamiento psicologico",
+    icon: Brain,
+    path: "psicologia",
+    color: "violet",
+    bgIcon: "bg-violet-100",
+    hoverBorder: "hover:border-violet-300",
+    hoverBg: "group-hover:bg-violet-500",
+    textIcon: "text-violet-600",
+    arrow: "group-hover:text-violet-500",
+    bar: "bg-violet-500",
+  },
+];
+
+export default function HealthWellnessPage({ user, token, onLogout }) {
+  const navigate = useNavigate();
+  const { subdomain: routeSubdomain } = useParams();
+  const subdomain = routeSubdomain || user?.subdomain;
+
+  return (
+    <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="health-wellness-page">
+      <Sidebar
+        active="salud-bienestar"
+        onNavigate={() => {}}
+        expanded={false}
+        onToggle={() => {}}
+        onLogout={onLogout}
+        schoolName={user?.name || "EduNet"}
+        subdomain={subdomain}
+        token={token}
+        user={user}
+      />
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <DashboardHeader
+          user={user}
+          onMenuClick={() => {}}
+          onLogout={onLogout}
+          schoolName={user?.name || "EduNet"}
+          subdomain={subdomain}
+          token={token}
+        />
+
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
+          {/* Back + Title */}
+          <div className="flex items-center gap-3 mb-8">
+            <button
+              onClick={() => navigate(subdomain ? `/${subdomain}/dashboard` : "/dashboard")}
+              className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
+              data-testid="back-to-dashboard-btn"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-600" />
+            </button>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <HeartPulse className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-800">Salud y Bienestar</h1>
+                <p className="text-sm text-slate-400">Selecciona un modulo</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Module Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-3xl">
+            {modules.map((mod) => {
+              const Icon = mod.icon;
+              return (
+                <button
+                  key={mod.id}
+                  onClick={() => navigate(subdomain ? `/${subdomain}/salud-bienestar/${mod.path}` : `/salud-bienestar/${mod.path}`)}
+                  className={`group relative bg-white rounded-2xl border border-slate-200 p-6 sm:p-8 ${mod.hoverBorder} hover:shadow-lg transition-all text-left overflow-hidden`}
+                  data-testid={`module-${mod.id}-btn`}
+                >
+                  <div className={`absolute top-0 left-0 w-full h-1 ${mod.bar} scale-x-0 group-hover:scale-x-100 transition-transform origin-left`} />
+                  <div className={`w-14 h-14 rounded-2xl ${mod.bgIcon} ${mod.hoverBg} flex items-center justify-center mb-4 transition-colors`}>
+                    <Icon className={`w-7 h-7 ${mod.textIcon} group-hover:text-white transition-colors`} />
+                  </div>
+                  <h2 className="text-lg font-bold text-slate-800 mb-1">{mod.label}</h2>
+                  <p className="text-sm text-slate-400 leading-relaxed">{mod.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
