@@ -454,7 +454,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
             </div>
             <div>
               <label className="block text-sm font-semibold text-slate-700 mb-1">Hora</label>
-              <TimePicker value={time} onChange={(val) => setTime(val)} label="Hora" data-testid="modal-time" />
+              <TimePicker value={time} onChange={(val) => setTime(val)} data-testid="modal-time" />
             </div>
           </div>
 
