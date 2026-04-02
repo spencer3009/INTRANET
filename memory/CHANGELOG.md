@@ -2,6 +2,14 @@
 
 ## April 2, 2026 - Fork 9
 
+### Feature: Health & Wellness — Conditional Access for Teachers & Admins - COMPLETED
+- **TeacherSidebar**: Dynamic "Salud y Bienestar" nav item based on `teacher_can_manage` permission
+- **AdminSidebar**: Dynamic item in GESTIÓN ACADÉMICA section based on `admin_can_manage`
+- **New pages**: TeacherHealthPage, AdminHealthPage, TeacherTopicoPage, TeacherPsicologiaPage, AdminTopicoPage, AdminPsicologiaPage
+- **TopicoPage/PsicologiaPage refactored**: Accept `renderSidebar`, `renderHeader`, `backPath` props for reusability
+- **GET /api/settings/health-permissions**: Now accessible to any authenticated user (PUT remains owner-only)
+- Testing: 100% (Backend 12/12, Frontend 100%) - iteration_98.json
+
 ### Feature: Health & Wellness — Permissions, Parent Alerts & Parent View (P0) - COMPLETED
 - **PARTE A — Permisos**: GET/PUT `/api/settings/health-permissions` para controlar acceso de admin/teacher al módulo. Owner siempre tiene acceso. Toggles en SettingsPage.jsx
 - **PARTE B — Alertas**: campo `parent_notified` en topico_records y psicologia_records. `HealthAlertPopup.jsx` modal fullscreen en ParentDashboardPage. Endpoints GET/POST para alerts/acknowledge

@@ -44,6 +44,13 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Backend stores tipo_material, url, video_id fields
 - Popup modal for video playback (no external YouTube redirect)
 
+### Health & Wellness — Conditional Access for Teachers & Admins (April 2026)
+- Dynamic sidebar items in TeacherSidebar and AdminSidebar (appear only when permission enabled)
+- Wrapper pages: TeacherTopicoPage, TeacherPsicologiaPage, AdminTopicoPage, AdminPsicologiaPage
+- Intermediate pages: TeacherHealthPage, AdminHealthPage with access verification
+- TopicoPage/PsicologiaPage refactored to accept renderSidebar, renderHeader, backPath props
+- GET /api/settings/health-permissions now accessible to any authenticated user
+
 ### Health & Wellness Module — Tópico & Psicología (April 2026)
 - Backend: `/app/backend/routes/health.py` with full CRUD for both collections
 - Endpoints: GET/POST/PUT/DELETE for topico_records and psicologia_records

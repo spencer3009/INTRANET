@@ -10,6 +10,12 @@
 - Email: admin@elroble.edu
 - Password: 1234abc8
 
+## Teacher (El Roble)
+- Subdomain: elroble
+- Email: sonia3009@gmail.com
+- Password: Test1234!
+- Role: teacher
+
 ## Parent (El Roble)
 - Subdomain: elroble
 - Email: maria.peres@gmail.com
