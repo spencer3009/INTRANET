@@ -31,7 +31,7 @@ import {
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
   Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy,
-  Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3, Link2, Youtube
+  Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3, Link2, Youtube, RefreshCw
 } from "lucide-react";
 import CourseLoadingScreen from "../components/CourseLoadingScreen";
 
@@ -8824,18 +8824,20 @@ function MaterialTableContent({ subjectId, token, user }) {
   }, [token]);
   
   // Fetch materials
+  const refreshMaterials = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=material&limit=100`, { headers });
+      setMaterials(res.data.posts || []);
+    } catch (err) {
+      console.error('Error fetching materials:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchMaterials = async () => {
-      try {
-        const res = await axios.get(`${API}/course/${subjectId}/posts?post_type=material&limit=100`, { headers });
-        setMaterials(res.data.posts || []);
-      } catch (err) {
-        console.error('Error fetching materials:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMaterials();
+    refreshMaterials();
   }, [subjectId, token]);
   
   const handleFileSelect = (e) => {
@@ -9180,13 +9182,23 @@ function MaterialTableContent({ subjectId, token, user }) {
           <h2 className="text-2xl font-bold text-slate-800">Material de estudio</h2>
           <div className="w-8 h-1 bg-orange-500 rounded-full mt-2"></div>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-semibold transition-all flex items-center justify-center shadow-lg shadow-orange-500/25"
-          data-testid="upload-material-btn"
-        >
-          <Upload className="w-6 h-6" />
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={refreshMaterials}
+            className="w-14 h-14 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-2xl font-semibold transition-all flex items-center justify-center"
+            data-testid="refresh-materials-btn"
+            title="Refrescar materiales"
+          >
+            <RefreshCw className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="w-14 h-14 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-semibold transition-all flex items-center justify-center shadow-lg shadow-orange-500/25"
+            data-testid="upload-material-btn"
+          >
+            <Upload className="w-6 h-6" />
+          </button>
+        </div>
       </div>
       
       {/* Materials List */}
