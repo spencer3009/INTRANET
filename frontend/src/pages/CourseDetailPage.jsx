@@ -9151,15 +9151,6 @@ function MaterialTableContent({ subjectId, token, user }) {
                       >
                         <Play className="w-4 h-4" />
                       </button>
-                      <a
-                        href={material.url || `https://www.youtube.com/watch?v=${vid}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
-                        title="Abrir en YouTube"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
                       <button
                         onClick={() => handleDeleteClick(material)}
                         className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
