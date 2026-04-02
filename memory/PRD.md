@@ -53,6 +53,13 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Student task detail view shows embedded YouTube iframe
 - Student material list shows YouTube items with play button + popup
 
+### Topico Module — Health & Wellness (April 2026)
+- Backend: `/app/backend/routes/health.py` with full CRUD for `topico_records` collection
+- Endpoints: GET/POST `/api/health/topico`, GET/PUT/DELETE `/api/health/topico/{id}`, GET `/api/health/topico/student/{student_id}`
+- Frontend: `/app/frontend/src/pages/TopicoPage.jsx` with cascade filters (Grade → Section), student list, record modal (create/edit), detail modal, history tab
+- Intermediate page: `/app/frontend/src/pages/HealthWellnessPage.jsx` with cards for Topico and Psicologia
+- Routes: `/:subdomain/salud-bienestar`, `/:subdomain/salud-bienestar/topico`
+
 ## Recently Completed (March-April 2026)
 
 ### Demo Access Photo/Logo Upload (March 31)

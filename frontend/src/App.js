@@ -78,6 +78,7 @@ import ParentMessagesPage from "@/pages/ParentMessagesPage";
 import ParentCourseDetailPage from "@/pages/ParentCourseDetailPage";
 import ParentPaymentsPage from "@/pages/ParentPaymentsPage";
 import HealthWellnessPage from "@/pages/HealthWellnessPage";
+import TopicoPage from "@/pages/TopicoPage";
 import { Toaster } from "sonner";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import SubscriptionProvider, { useSubscription } from "@/contexts/SubscriptionContext";
@@ -1762,6 +1763,27 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <HealthWellnessPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+
+          {/* Topico Page - URL path mode */}
+          <Route
+            path="/:subdomain/salud-bienestar/topico"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TopicoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Topico Page - Direct path */}
+          <Route
+            path="/salud-bienestar/topico"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TopicoPage user={user} token={token} subdomain={user?.subdomain} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
