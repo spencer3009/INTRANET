@@ -13,7 +13,7 @@
 ## Teacher (El Roble)
 - Subdomain: elroble
 - Email: sonia3009@gmail.com
-- Password: Test1234!
+- Password: teacher123
 - Role: teacher
 
 ## Parent (El Roble)
