@@ -54,11 +54,12 @@ function getIncidentLabel(type) {
 // MAIN PAGE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-export default function TopicoPage({ user, token, onLogout }) {
+export default function TopicoPage({ user, token, onLogout, renderSidebar, renderHeader, backPath }) {
   const navigate = useNavigate();
   const { subdomain: routeSubdomain } = useParams();
   const subdomain = routeSubdomain || user?.subdomain;
   const headers = { Authorization: `Bearer ${token}` };
+  const resolvedBackPath = backPath || (subdomain ? `/${subdomain}/salud-bienestar` : "/salud-bienestar");
 
   // Filters
   const [grades, setGrades] = useState([]);
@@ -221,33 +222,37 @@ export default function TopicoPage({ user, token, onLogout }) {
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="topico-page">
-      <Sidebar
-        active="salud-bienestar"
-        onNavigate={() => {}}
-        expanded={false}
-        onToggle={() => {}}
-        onLogout={onLogout}
-        schoolName={user?.name || "EduNet"}
-        subdomain={subdomain}
-        token={token}
-        user={user}
-      />
-
-      <div className="flex-1 flex flex-col min-w-0">
-        <DashboardHeader
-          user={user}
-          onMenuClick={() => {}}
+      {renderSidebar ? renderSidebar() : (
+        <Sidebar
+          active="salud-bienestar"
+          onNavigate={() => {}}
+          expanded={false}
+          onToggle={() => {}}
           onLogout={onLogout}
           schoolName={user?.name || "EduNet"}
           subdomain={subdomain}
           token={token}
+          user={user}
         />
+      )}
+
+      <div className="flex-1 flex flex-col min-w-0">
+        {renderHeader ? renderHeader() : (
+          <DashboardHeader
+            user={user}
+            onMenuClick={() => {}}
+            onLogout={onLogout}
+            schoolName={user?.name || "EduNet"}
+            subdomain={subdomain}
+            token={token}
+          />
+        )}
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
           {/* Header */}
           <div className="flex items-center gap-3 mb-6">
             <button
-              onClick={() => navigate(subdomain ? `/${subdomain}/salud-bienestar` : "/salud-bienestar")}
+              onClick={() => navigate(resolvedBackPath)}
               className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-colors"
               data-testid="back-btn"
             >

@@ -515,13 +515,10 @@ async def get_parent_psicologia_history(
 
 @router.get("/settings/health-permissions")
 async def get_health_permissions(current_user=Depends(get_current_user)):
-    """Get health wellness permissions. Only owner."""
+    """Get health wellness permissions. Any authenticated user with a school can read."""
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
-    role = user.get("role", "")
-    if not (user.get("is_owner") or role == "owner"):
-        raise HTTPException(status_code=403, detail="Solo el propietario puede ver esta configuración")
 
     perms = await _get_health_permissions(user["school_id"])
     return perms

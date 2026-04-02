@@ -81,6 +81,12 @@ import HealthWellnessPage from "@/pages/HealthWellnessPage";
 import ParentHealthPage from "@/pages/ParentHealthPage";
 import TopicoPage from "@/pages/TopicoPage";
 import PsicologiaPage from "@/pages/PsicologiaPage";
+import TeacherHealthPage from "@/pages/TeacherHealthPage";
+import TeacherTopicoPage from "@/pages/TeacherTopicoPage";
+import TeacherPsicologiaPage from "@/pages/TeacherPsicologiaPage";
+import AdminHealthPage from "@/pages/AdminHealthPage";
+import AdminTopicoPage from "@/pages/AdminTopicoPage";
+import AdminPsicologiaPage from "@/pages/AdminPsicologiaPage";
 import { Toaster } from "sonner";
 import { DemoModeProvider } from "@/contexts/DemoModeContext";
 import SubscriptionProvider, { useSubscription } from "@/contexts/SubscriptionContext";
@@ -860,6 +866,30 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/teacher/salud-bienestar"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherHealthPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/salud-bienestar/topico"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherTopicoPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/teacher/salud-bienestar/psicologia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherPsicologiaPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* ════════════════════════════════════════════════════════════════════
               PARENT PORTAL - Direct path (for subdomain mode)
@@ -1096,6 +1126,30 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <AdminLiveClassesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/admin/salud-bienestar"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AdminHealthPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/admin/salud-bienestar/topico"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AdminTopicoPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/admin/salud-bienestar/psicologia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <AdminPsicologiaPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1425,6 +1479,30 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <TeacherProfilePage user={user} token={token} onLogout={handleLogout} onUserUpdate={handleUserUpdate} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/teacher/salud-bienestar"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherHealthPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/teacher/salud-bienestar/topico"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherTopicoPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/teacher/salud-bienestar/psicologia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <TeacherPsicologiaPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
