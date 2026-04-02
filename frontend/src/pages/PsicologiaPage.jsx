@@ -304,8 +304,8 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                     ) : (() => {
                       const filtered = students.filter(s => {
                         if (!studentSearch.trim()) return true;
-                        const name = (s.name || `${s.first_name || ""} ${s.last_name || ""}`.trim()).toLowerCase();
-                        return name.includes(studentSearch.toLowerCase().trim());
+                        const fullName = `${s.name || s.first_name || ""} ${s.last_name || ""}`.toLowerCase();
+                        return fullName.includes(studentSearch.toLowerCase().trim());
                       });
                       return filtered.length === 0 ? (
                         <div className="p-10 text-center text-slate-400">No se encontraron alumnos con "{studentSearch}"</div>
@@ -322,7 +322,10 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                           )}
                           <div className="ml-3 flex-1 min-w-0">
                             <p className="font-semibold text-slate-800 text-sm truncate">
-                              {s.name || `${s.first_name || ""} ${s.last_name || ""}`.trim()}
+                              {s.name || s.first_name || ""} {s.last_name || ""}
+                            </p>
+                            <p className="text-xs text-slate-400 truncate">
+                              {grades.find(g => g.id === selectedGrade)?.name || ""} — {sections.find(sec => sec.id === selectedSection)?.name || ""}
                             </p>
                             {stats && (
                               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
