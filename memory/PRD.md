@@ -38,69 +38,54 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Cascade filter modal (Level > Grade > Section > Subject)
 - Teachers summary sidebar
 
-### YouTube Support for Study Materials (April 2026)
-- Toggle "Archivo / YouTube" in material upload modal (`CourseDetailPage.jsx`)
+### YouTube Support for Study Materials & Tasks (April 2026)
+- Toggle "Archivo / YouTube" in material/task upload modals
 - YouTube URL input with real-time preview iframe
-- Backend stores `tipo_material`, `url`, `video_id` fields in `course_posts`
-- Material list shows compact row with play button for YouTube items
+- Backend stores tipo_material, url, video_id fields
 - Popup modal for video playback (no external YouTube redirect)
-- Students can view YouTube materials in their portal with popup player
 
-### YouTube Support for Tasks (April 2026)
-- Toggle "Archivo / YouTube" in task creation modal (`PremiumTaskModal`)
-- Backend accepts YouTube fields for `post_type=task`
-- Task detail view (professor) shows embedded YouTube iframe
-- Student task detail view shows embedded YouTube iframe
-- Student material list shows YouTube items with play button + popup
+### Health & Wellness Module — Tópico & Psicología (April 2026)
+- Backend: `/app/backend/routes/health.py` with full CRUD for both collections
+- Endpoints: GET/POST/PUT/DELETE for topico_records and psicologia_records
+- Soft delete for psicologia_records (is_deleted flag)
+- Intermediate page: HealthWellnessPage with cards for Tópico and Psicología
+- Frontend pages: TopicoPage.jsx, PsicologiaPage.jsx with cascade filters
 
-### Topico Module — Health & Wellness (April 2026)
-- Backend: `/app/backend/routes/health.py` with full CRUD for `topico_records` collection
-- Endpoints: GET/POST `/api/health/topico`, GET/PUT/DELETE `/api/health/topico/{id}`, GET `/api/health/topico/student/{student_id}`
-- Frontend: `/app/frontend/src/pages/TopicoPage.jsx` with cascade filters (Grade → Section), student list, record modal (create/edit), detail modal, history tab
-- Intermediate page: `/app/frontend/src/pages/HealthWellnessPage.jsx` with cards for Topico and Psicologia
-- Routes: `/:subdomain/salud-bienestar`, `/:subdomain/salud-bienestar/topico`
+### Health & Wellness — Permissions System (April 2026)
+- Dynamic permissions stored in schools collection: health_wellness_permissions
+- Owner always has full access
+- Admin/Director access controlled by admin_can_manage toggle
+- Teacher access controlled by teacher_can_manage toggle
+- Settings UI: 2 toggles in SettingsPage.jsx under "Permisos de Salud y Bienestar"
+- Endpoints: GET/PUT /api/settings/health-permissions
 
-### Psicologia Module — Health & Wellness (April 2026)
-- Backend: Added to `/app/backend/routes/health.py` — full CRUD with soft delete for `psicologia_records`
-- Endpoints: GET/POST `/api/health/psicologia`, GET/PUT/DELETE `/api/health/psicologia/{id}`, GET `/api/health/psicologia/student/{student_id}`
-- Soft delete: `is_deleted` flag, excluded from all queries
-- Frontend: `/app/frontend/src/pages/PsicologiaPage.jsx` — cascade filters, student list with alert/followup badges, record modal, detail modal, history tab with color-coded alert levels
-- Routes: `/:subdomain/salud-bienestar/psicologia`
+### Health & Wellness — Parent Alerts (April 2026)
+- parent_notified field (Boolean) added to topico_records and psicologia_records
+- New records created with parent_notified=false
+- HealthAlertPopup component on ParentDashboardPage
+- Shows fullscreen modal for unacknowledged health records
+- Two actions: "Enterado" (acknowledge) and "Ver información completa" (navigate)
+- Alerts shown BEFORE BroadcastPopup (health is more urgent)
+- Endpoints: GET /api/health/parent/alerts, POST /api/health/parent/alerts/{id}/acknowledge
 
-## Recently Completed (March-April 2026)
-
-### Demo Access Photo/Logo Upload (March 31)
-- 2 new endpoints: profile-photo and logo upload to Cloudinary
-- Frontend AccessRow: clickable avatar/logo with hover overlay
-
-### Demo User 403 Fix + Debug Logging (March 31)
-- Added explicit bypass in `require_section_access` and `require_role` for demo users
-
-### QR Continuous Scanner (March 31)
-- Refactored QRScannerTab.jsx to eliminate pause, added anti-duplicate cache (30s)
-
-### Mass Excel Import Fixes (March 31)
-- Handle openpyxl datetime objects and gender normalization
-- Duplicate emails allowed for students (siblings use parent email)
-
-### Demo Management System (March 31)
-- Backend: 7 endpoints for clone, delete, access management
-- Frontend: SupportDemosPage.jsx with full UI
+### Health & Wellness — Parent Read-Only View (April 2026)
+- ParentHealthPage at /parent/salud-bienestar
+- Two tabs: Tópico and Psicología
+- Read-only record list with detail modal
+- ParentSidebar updated with HeartPulse icon menu item
+- Endpoints: GET /api/health/parent/topico, GET /api/health/parent/psicologia
+- Parent can only see their own children's records
 
 ## Pending Issues
 
-### P1: Production Verification
-- Multiple fixes deployed awaiting user verification in edunet.pe
-
-### P2: Orphan Collection Cleanup
-- DELETE school leaves ~15 collections orphaned
-- Awaiting user approval to implement
+### P2: Double scrollbar in "Registro Auxiliar"
+### P2: Orphan Collection Cleanup (DELETE school leaves ~15 collections orphaned)
 
 ## Upcoming Tasks
 - P1: Refactor Message Pages (consolidate duplicates)
 - P2: Visual indicator of sync_status in Exams/Tasks
 - P2: Gradebook: Export PDF/Excel, Lock/Close Period
-- P2: Double scrollbar fix in "Registro Auxiliar"
+- P2: Create "Encuestas" page/module
 
 ## Future/Backlog
 - Vinculacion Masiva Inteligente (Phase 2 Parent Import)
@@ -113,15 +98,18 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - UsersPage.jsx (>5000 lines) - split into sub-components
 
 ## Key Endpoints
-- `POST /api/course/{subject_id}/posts` - Create post (task/material/forum) with YouTube support
-- `GET /api/course/{subject_id}/posts?post_type=material` - List materials (includes tipo_material, url, video_id)
-- `POST /api/support/demo/clone` - Clone school for demo
-- `POST /api/auth/login` - Login with email+password
+- GET/PUT /api/settings/health-permissions - Health module permissions
+- GET /api/health/parent/alerts?student_id={id} - Unacknowledged health alerts
+- POST /api/health/parent/alerts/{id}/acknowledge - Mark alert as notified
+- GET /api/health/parent/topico?student_id={id} - Parent topico history
+- GET /api/health/parent/psicologia?student_id={id} - Parent psicologia history
+- GET/POST/PUT/DELETE /api/health/topico - Topico CRUD
+- GET/POST/PUT/DELETE /api/health/psicologia - Psicologia CRUD
 
 ## Key DB Schema
-- `course_posts`: {tipo_material (archivo/youtube), url, video_id, post_type (task/material/forum)}
-- `attendances`: {method, grade_id, section_id}
-- `users`: {birthday, gender (male/female), photo_url, profile_photo_url}
+- `topico_records`: {institution_id, student_id, student_name, grade_id, section_id, date, time, incident_type, description, action_taken, status, responsible, parent_notified}
+- `psicologia_records`: {institution_id, student_id, student_name, grade_id, section_id, date, time, record_type, reason, professional_observation, alert_level, requires_followup, status, responsible, is_deleted, parent_notified}
+- `schools.health_wellness_permissions`: {admin_can_manage: Boolean, teacher_can_manage: Boolean}
 
 ## 3rd Party Integrations
 - Cloudinary (image hosting) - Emergent managed keys
@@ -131,6 +119,6 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 
 ## Test Credentials
 - School: elroble
-- Email: admin@elroble.edu
-- Password: 1234abc8
+- Owner: admin@elroble.edu / 1234abc8
+- Parent: maria.peres@gmail.com / Test1234!
 - Support: spencer3009@gmail.com / Socios3009

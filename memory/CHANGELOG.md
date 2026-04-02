@@ -1,5 +1,14 @@
 # EduNet - Changelog
 
+## April 2, 2026 - Fork 9
+
+### Feature: Health & Wellness — Permissions, Parent Alerts & Parent View (P0) - COMPLETED
+- **PARTE A — Permisos**: GET/PUT `/api/settings/health-permissions` para controlar acceso de admin/teacher al módulo. Owner siempre tiene acceso. Toggles en SettingsPage.jsx
+- **PARTE B — Alertas**: campo `parent_notified` en topico_records y psicologia_records. `HealthAlertPopup.jsx` modal fullscreen en ParentDashboardPage. Endpoints GET/POST para alerts/acknowledge
+- **PARTE C — Vista Padres**: `ParentHealthPage.jsx` con tabs Tópico/Psicología (solo lectura). Endpoints GET `/api/health/parent/topico` y `/api/health/parent/psicologia`. Sidebar actualizado con HeartPulse icon
+- **Backend**: `health.py` reescrito con `_require_health_access()` dinámico basado en permisos del colegio
+- Testing: 100% (Backend 13/13, Frontend 100%) - iteration_97.json
+
 ## March 21, 2026 - Fork 7
 
 ### Feature: Unified Register Linkage System (Exams + Tasks) - P0 COMPLETED

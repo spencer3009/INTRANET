@@ -10,6 +10,13 @@
 - Email: admin@elroble.edu
 - Password: 1234abc8
 
+## Parent (El Roble)
+- Subdomain: elroble
+- Email: maria.peres@gmail.com
+- Password: Test1234!
+- Role: parent
+- Child: Roberto (student_id: e303b1de-f1df-4aad-b480-e17319891bba)
+
 ## Demo System
 - Source School ID: b9f27249-6568-49ae-94d3-e1f16750d7d9 (Colegio El Roble)
 - Demo school subdomain: demo-edunet
