@@ -387,9 +387,13 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                     ) : (
                       students.map((s, idx) => (
                         <div key={s.student_id || idx} className="flex items-center px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                          {s.photo_url ? (
+                            <img src={s.photo_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                          ) : (
                           <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center text-rose-600 font-bold text-sm flex-shrink-0">
                             {(s.name || s.first_name || "?")[0].toUpperCase()}
                           </div>
+                          )}
                           <div className="ml-3 flex-1 min-w-0">
                             <p className="font-semibold text-slate-800 text-sm truncate">
                               {s.name || `${s.first_name || ""} ${s.last_name || ""}`.trim()}
@@ -574,7 +578,7 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="record-modal">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" data-testid="record-modal">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header */}
@@ -679,7 +683,7 @@ function DetailModal({ record, onClose }) {
   const incidentColor = INCIDENT_COLORS[record.incident_type] || INCIDENT_COLORS.otro;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" data-testid="detail-modal">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" data-testid="detail-modal">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">

@@ -28,10 +28,17 @@ export default function TeacherHealthPage({ user, token, onLogout }) {
   const subdomain = routeSubdomain || user?.subdomain;
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [hasAccess, setHasAccess] = useState(null);
+  const [schoolSettings, setSchoolSettings] = useState(null);
 
   useEffect(() => {
-    // Teacher always has access (read). We only check if they can write.
     setHasAccess(true);
+    const loadSettings = async () => {
+      try {
+        const res = await axios.get(`${API}/api/settings/public/${subdomain || user?.subdomain}`);
+        setSchoolSettings(res.data);
+      } catch {}
+    };
+    loadSettings();
   }, [token]);
 
   const base = subdomain ? `/${subdomain}` : "";
@@ -61,7 +68,8 @@ export default function TeacherHealthPage({ user, token, onLogout }) {
           user={user}
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
           onLogout={onLogout}
-          schoolName={user?.school_name || "Portal Docente"}
+          logoUrl={schoolSettings?.logo_url}
+          schoolName={schoolSettings?.system_name || user?.school_name || "Portal Docente"}
           subdomain={subdomain}
           token={token}
           roleLabel="Docente"
