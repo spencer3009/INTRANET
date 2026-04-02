@@ -312,9 +312,9 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                       return filtered.length === 0 ? (
                         <div className="p-10 text-center text-slate-400">No se encontraron alumnos con "{studentSearch}"</div>
                       ) : filtered.map((s, idx) => {
-                      const stats = studentStats[s.student_id];
+                      const stats = studentStats[s.id || s.student_id];
                       return (
-                        <div key={s.student_id || idx} className="flex items-center px-5 py-3.5 hover:bg-slate-50 transition-colors">
+                        <div key={s.id || s.student_id || idx} className="flex items-center px-5 py-3.5 hover:bg-slate-50 transition-colors">
                           {s.photo_url ? (
                             <img src={s.photo_url} alt="" className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
                           ) : (
@@ -350,7 +350,7 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                             </span>
                           )}
                           {canWrite && (
-                          <button onClick={() => openNewRecord(s)} className="px-4 py-2 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5" data-testid={`register-btn-${s.student_id}`}>
+                          <button onClick={() => openNewRecord(s)} className="px-4 py-2 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5" data-testid={`register-btn-${s.id || s.student_id}`}>
                             <Plus className="w-4 h-4" />Registrar Sesion
                           </button>
                           )}
@@ -375,8 +375,8 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
                         const alertBadge = getAlertBadge(r.alert_level);
                         const statusBadge = getStatusBadge(r.status);
                         const typeColor = RECORD_TYPE_COLORS[r.record_type] || RECORD_TYPE_COLORS.otro;
-                        const matched = students.find(s => s.student_id === r.student_id);
-                        const displayName = matched ? `${matched.name || matched.first_name || ""} ${matched.last_name || ""}`.trim() : r.student_name;
+                        const matched = students.find(s => (s.id || s.student_id) === r.student_id);
+                        const displayName = matched ? (matched.full_name || `${matched.name || matched.first_name || ""} ${matched.last_name || ""}`.trim()) : r.student_name;
                         const displayPhoto = matched?.photo_url || r.student_photo_url || null;
                         return (
                           <div key={r.id} className={`flex items-center px-5 py-3.5 hover:bg-slate-50 transition-colors ${r.alert_level === "alto" ? "border-l-4 border-l-red-400" : ""}`}>
@@ -453,8 +453,8 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
   const [responsible, setResponsible] = useState(record?.responsible || "");
   const [saving, setSaving] = useState(false);
 
-  const studentName = student ? `${student.name || student.first_name || ""} ${student.last_name || ""}`.trim() : record?.student_name || "";
-  const studentId = student?.student_id || record?.student_id || "";
+  const studentName = student ? (student.full_name || `${student.name || student.first_name || ""} ${student.last_name || ""}`.trim()) : record?.student_name || "";
+  const studentId = student?.id || student?.student_id || record?.student_id || "";
   const studentPhoto = student?.photo_url || null;
 
   const handleSave = async () => {
@@ -577,8 +577,8 @@ function DetailModal({ record, students, onClose }) {
   const alertBadge = getAlertBadge(record.alert_level);
   const statusBadge = getStatusBadge(record.status);
   const typeColor = RECORD_TYPE_COLORS[record.record_type] || RECORD_TYPE_COLORS.otro;
-  const matchedStudent = (students || []).find(s => s.student_id === record.student_id);
-  const fullName = matchedStudent ? `${matchedStudent.name || matchedStudent.first_name || ""} ${matchedStudent.last_name || ""}`.trim() : record.student_name;
+  const matchedStudent = (students || []).find(s => (s.id || s.student_id) === record.student_id);
+  const fullName = matchedStudent ? (matchedStudent.full_name || `${matchedStudent.name || matchedStudent.first_name || ""} ${matchedStudent.last_name || ""}`.trim()) : record.student_name;
   const photoUrl = matchedStudent?.photo_url || record.student_photo_url || null;
 
   return (

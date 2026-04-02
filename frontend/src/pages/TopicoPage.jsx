@@ -436,16 +436,16 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                               {(() => { const g = grades.find(g => g.id === selectedGrade); return g?.nivel_nombre ? `${g.nivel_nombre} ${g.nombre || g.name || ""}` : (g?.nombre || g?.name || ""); })()} — {sections.find(sec => sec.id === selectedSection)?.nombre || sections.find(sec => sec.id === selectedSection)?.name || ""}
                             </p>
                           </div>
-                          {studentRecordCounts[s.student_id] > 0 && (
+                          {studentRecordCounts[s.id || s.student_id] > 0 && (
                             <span className="text-xs bg-rose-100 text-rose-600 px-2 py-0.5 rounded-full mr-3">
-                              {studentRecordCounts[s.student_id]} registro{studentRecordCounts[s.student_id] > 1 ? "s" : ""}
+                              {studentRecordCounts[s.id || s.student_id]} registro{studentRecordCounts[s.id || s.student_id] > 1 ? "s" : ""}
                             </span>
                           )}
                           {canWrite && (
                           <button
                             onClick={() => openNewRecord(s)}
                             className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-xl text-sm font-semibold transition-colors flex items-center gap-1.5"
-                            data-testid={`register-btn-${s.student_id}`}
+                            data-testid={`register-btn-${s.id || s.student_id}`}
                           >
                             <Plus className="w-4 h-4" />
                             Registrar Atencion
@@ -472,8 +472,8 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
                       {records.map((r) => {
                         const statusBadge = getStatusBadge(r.status);
                         const incidentColor = INCIDENT_COLORS[r.incident_type] || INCIDENT_COLORS.otro;
-                        const matched = students.find(s => s.student_id === r.student_id);
-                        const displayName = matched ? `${matched.name || matched.first_name || ""} ${matched.last_name || ""}`.trim() : r.student_name;
+                        const matched = students.find(s => (s.id || s.student_id) === r.student_id);
+                        const displayName = matched ? (matched.full_name || `${matched.name || matched.first_name || ""} ${matched.last_name || ""}`.trim()) : r.student_name;
                         const displayPhoto = matched?.photo_url || r.student_photo_url || null;
                         return (
                           <div key={r.id} className="flex items-center px-5 py-3.5 hover:bg-slate-50 transition-colors">
@@ -584,9 +584,9 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
   const [saving, setSaving] = useState(false);
 
   const studentName = student
-    ? `${student.name || student.first_name || ""} ${student.last_name || ""}`.trim()
+    ? student.full_name || `${student.name || student.first_name || ""} ${student.last_name || ""}`.trim()
     : record?.student_name || "";
-  const studentId = student?.student_id || record?.student_id || "";
+  const studentId = student?.id || student?.student_id || record?.student_id || "";
   const studentPhoto = student?.photo_url || null;
 
   const handleSave = async () => {
@@ -737,8 +737,8 @@ function RecordModal({ token, student, record, gradeId, gradeLabel, sectionId, s
 function DetailModal({ record, students, onClose }) {
   const statusBadge = getStatusBadge(record.status);
   const incidentColor = INCIDENT_COLORS[record.incident_type] || INCIDENT_COLORS.otro;
-  const matchedStudent = (students || []).find(s => s.student_id === record.student_id);
-  const fullName = matchedStudent ? `${matchedStudent.name || matchedStudent.first_name || ""} ${matchedStudent.last_name || ""}`.trim() : record.student_name;
+  const matchedStudent = (students || []).find(s => (s.id || s.student_id) === record.student_id);
+  const fullName = matchedStudent ? (matchedStudent.full_name || `${matchedStudent.name || matchedStudent.first_name || ""} ${matchedStudent.last_name || ""}`.trim()) : record.student_name;
   const photoUrl = matchedStudent?.photo_url || record.student_photo_url || null;
 
   return (
