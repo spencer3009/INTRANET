@@ -69,9 +69,11 @@ class PsicologiaRecordUpdate(BaseModel):
 async def _get_health_permissions(school_id: str) -> dict:
     """Get health wellness permissions from school settings."""
     school = await db.schools.find_one({"id": school_id}, {"_id": 0, "health_wellness_permissions": 1})
-    if not school or not school.get("health_wellness_permissions"):
-        return {"admin_can_manage": True, "teacher_can_manage": False}
-    return school["health_wellness_permissions"]
+    raw = (school or {}).get("health_wellness_permissions") or {}
+    return {
+        "admin_can_manage": raw.get("admin_can_manage", True),
+        "teacher_can_manage": raw.get("teacher_can_manage", False),
+    }
 
 
 async def _require_health_access(current_user, write=False):
@@ -540,14 +542,15 @@ async def update_health_permissions(
 
     perms = {}
     if "admin_can_manage" in data:
-        perms["admin_can_manage"] = bool(data["admin_can_manage"])
+        perms["health_wellness_permissions.admin_can_manage"] = bool(data["admin_can_manage"])
     if "teacher_can_manage" in data:
-        perms["teacher_can_manage"] = bool(data["teacher_can_manage"])
+        perms["health_wellness_permissions.teacher_can_manage"] = bool(data["teacher_can_manage"])
 
     if perms:
+        perms["updated_at"] = datetime.now(timezone.utc).isoformat()
         await db.schools.update_one(
             {"id": user["school_id"]},
-            {"$set": {"health_wellness_permissions": perms, "updated_at": datetime.now(timezone.utc).isoformat()}}
+            {"$set": perms}
         )
 
     updated = await _get_health_permissions(user["school_id"])
