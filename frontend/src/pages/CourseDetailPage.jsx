@@ -8964,7 +8964,7 @@ function MaterialTableContent({ subjectId, token, user }) {
           url: youtubeUrl.trim(),
           video_id: extractYouTubeId(youtubeUrl),
         }, { headers });
-        setMaterials([res.data, ...materials]);
+        setMaterials([res.data.post, ...materials]);
         setShowCreateModal(false);
         resetForm();
       } catch (err) {
@@ -9032,7 +9032,7 @@ function MaterialTableContent({ subjectId, token, user }) {
           }
         }, { headers });
         
-        setMaterials([res.data, ...materials]);
+        setMaterials([res.data.post, ...materials]);
       }
       
       setShowCreateModal(false);
