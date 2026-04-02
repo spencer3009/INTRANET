@@ -1,5 +1,14 @@
 # EduNet - Changelog
 
+## April 2, 2026 - Fork 10
+
+### Fix: School Logo Visible in All Health & Wellness Portals - COMPLETED
+- **HealthWellnessPage.jsx**: Added missing imports (useState, useEffect, axios, API) that prevented settings load
+- **AdminHealthPage.jsx**: Added `logoUrl` prop to DashboardHeader
+- **AdminTopicoPage.jsx / AdminPsicologiaPage.jsx**: Moved settings API call BEFORE early return for owners, added `logoUrl` and `schoolName` from settings to DashboardHeader
+- All 10 Health & Wellness pages now display the school logo correctly (Owner, Admin, Teacher, Parent portals)
+- Testing: Manual screenshots verified for Owner HealthWellnessPage, AdminHealthPage, AdminTopicoPage
+
 ## April 2, 2026 - Fork 9
 
 ### Fix: Health & Wellness Permission Logic v2 (April 2, 2026) - COMPLETED

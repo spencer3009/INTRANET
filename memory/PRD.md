@@ -83,6 +83,11 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Endpoints: GET /api/health/parent/topico, GET /api/health/parent/psicologia
 - Parent can only see their own children's records
 
+### Health & Wellness — School Logo in All Portals (April 2026)
+- All Health & Wellness pages now load school settings via `/api/settings/public/{subdomain}`
+- Logo displayed in DashboardHeader/StudentHeader across all portals: Owner, Admin, Teacher, Parent
+- Fixed pages: HealthWellnessPage (missing imports), AdminHealthPage (missing logoUrl prop), AdminTopicoPage & AdminPsicologiaPage (early return blocking settings load)
+
 ## Pending Issues
 
 ### P2: Double scrollbar in "Registro Auxiliar"

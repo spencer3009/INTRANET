@@ -105,6 +105,7 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
   // Active tab
   const [activeTab, setActiveTab] = useState("alumnos"); // "alumnos" | "historial"
   const [studentSearch, setStudentSearch] = useState("");
+  const [schoolSettings, setSchoolSettings] = useState(null);
 
   // ─── Load grades on mount ─────────────────────────────────────────────────
   useEffect(() => {
@@ -113,6 +114,8 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
     const lastSection = localStorage.getItem(STORAGE_KEYS.SECTION);
     if (lastGrade) setSelectedGrade(lastGrade);
     if (lastSection) setSelectedSection(lastSection);
+    // Load school settings for logo
+    axios.get(`${API}/settings/public/${subdomain || user?.subdomain}`).then(r => setSchoolSettings(r.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -263,7 +266,8 @@ export default function TopicoPage({ user, token, onLogout, renderSidebar, rende
             user={user}
             onMenuClick={() => {}}
             onLogout={onLogout}
-            schoolName={user?.name || "EduNet"}
+            logoUrl={schoolSettings?.logo_url}
+            schoolName={schoolSettings?.system_name || user?.name || "EduNet"}
             subdomain={subdomain}
             token={token}
           />

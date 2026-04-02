@@ -98,6 +98,7 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
   const [detailRecord, setDetailRecord] = useState(null);
   const [activeTab, setActiveTab] = useState("alumnos");
   const [studentSearch, setStudentSearch] = useState("");
+  const [schoolSettings, setSchoolSettings] = useState(null);
 
   // ─── Load grades ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -106,6 +107,7 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
     const ls = localStorage.getItem(STORAGE_KEYS.SECTION);
     if (lg) setSelectedGrade(lg);
     if (ls) setSelectedSection(ls);
+    axios.get(`${API}/settings/public/${subdomain || user?.subdomain}`).then(r => setSchoolSettings(r.data)).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -204,7 +206,7 @@ export default function PsicologiaPage({ user, token, onLogout, renderSidebar, r
       )}
       <div className="flex-1 flex flex-col min-w-0">
         {renderHeader ? renderHeader() : (
-          <DashboardHeader user={user} onMenuClick={() => {}} onLogout={onLogout} schoolName={user?.name || "EduNet"} subdomain={subdomain} token={token} />
+          <DashboardHeader user={user} onMenuClick={() => {}} onLogout={onLogout} logoUrl={schoolSettings?.logo_url} schoolName={schoolSettings?.system_name || user?.name || "EduNet"} subdomain={subdomain} token={token} />
         )}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 overflow-y-auto">
 

@@ -1,7 +1,11 @@
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 import { ArrowLeft, Cross, Brain, HeartPulse } from "lucide-react";
 import Sidebar from "@/components/Sidebar";
 import DashboardHeader from "@/components/DashboardHeader";
+
+const API = process.env.REACT_APP_BACKEND_URL;
 
 const modules = [
   {
@@ -38,6 +42,14 @@ export default function HealthWellnessPage({ user, token, onLogout }) {
   const navigate = useNavigate();
   const { subdomain: routeSubdomain } = useParams();
   const subdomain = routeSubdomain || user?.subdomain;
+  const [schoolSettings, setSchoolSettings] = useState(null);
+
+  useEffect(() => {
+    axios.get(`${API}/api/settings/public/${subdomain || user?.subdomain}`).then(r => setSchoolSettings(r.data)).catch(() => {});
+  }, []);
+
+  const schoolName = schoolSettings?.system_name || user?.name || "EduNet";
+  const logoUrl = schoolSettings?.logo_url;
 
   return (
     <div className="flex min-h-screen bg-[#F8FAFC]" data-testid="health-wellness-page">
@@ -47,7 +59,7 @@ export default function HealthWellnessPage({ user, token, onLogout }) {
         expanded={false}
         onToggle={() => {}}
         onLogout={onLogout}
-        schoolName={user?.name || "EduNet"}
+        schoolName={schoolName}
         subdomain={subdomain}
         token={token}
         user={user}
@@ -58,7 +70,8 @@ export default function HealthWellnessPage({ user, token, onLogout }) {
           user={user}
           onMenuClick={() => {}}
           onLogout={onLogout}
-          schoolName={user?.name || "EduNet"}
+          logoUrl={logoUrl}
+          schoolName={schoolName}
           subdomain={subdomain}
           token={token}
         />

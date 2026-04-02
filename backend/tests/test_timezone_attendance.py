@@ -19,7 +19,7 @@ import requests
 import os
 from datetime import datetime, timezone, timedelta
 
-BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://edunet-health.preview.emergentagent.com")
+BASE_URL = os.environ.get("REACT_APP_BACKEND_URL", "https://wellness-portal-180.preview.emergentagent.com")
 PERU_TZ = timezone(timedelta(hours=-5))
 
 # Test credentials

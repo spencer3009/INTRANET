@@ -12,9 +12,11 @@ export default function AdminPsicologiaPage({ user, token, onLogout }) {
   const subdomain = routeSubdomain || user?.subdomain;
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [canWrite, setCanWrite] = useState(true);
+  const [schoolSettings, setSchoolSettings] = useState(null);
   const base = subdomain ? `/${subdomain}` : "";
 
   useEffect(() => {
+    axios.get(`${API}/api/settings/public/${subdomain || user?.subdomain}`).then(r => setSchoolSettings(r.data)).catch(() => {});
     const isOwner = user?.is_owner || user?.role === "owner";
     if (isOwner) { setCanWrite(true); return; }
     const check = async () => {
@@ -27,6 +29,9 @@ export default function AdminPsicologiaPage({ user, token, onLogout }) {
     };
     check();
   }, [token, user]);
+
+  const schoolName = schoolSettings?.system_name || user?.school_name || "EduNet";
+  const logoUrl = schoolSettings?.logo_url;
 
   return (
     <PsicologiaPage
@@ -52,7 +57,8 @@ export default function AdminPsicologiaPage({ user, token, onLogout }) {
           user={user}
           onMenuClick={() => setSidebarExpanded(!sidebarExpanded)}
           onLogout={onLogout}
-          schoolName={user?.school_name || "EduNet"}
+          logoUrl={logoUrl}
+          schoolName={schoolName}
           subdomain={subdomain}
         />
       )}
