@@ -8,6 +8,7 @@ import MessageCenter from "../components/MessageCenter";
 import HeroCarousel from "../components/HeroCarousel";
 import MiniCalendar from "../components/MiniCalendar";
 import BroadcastPopup from "../components/BroadcastPopup";
+import HealthAlertPopup from "../components/HealthAlertPopup";
 import {
   BookOpen,
   ClipboardList,
@@ -292,6 +293,11 @@ export default function ParentDashboardPage({ user, token, onLogout }) {
           profilePath="/parent/profile"
         />
 
+        <HealthAlertPopup
+          token={token}
+          selectedChildId={selectedChild?.id}
+          childName={selectedChild ? `${selectedChild.name} ${selectedChild.last_name || ""}`.trim() : ""}
+        />
         <BroadcastPopup token={token} />
 
         <main className="flex-1 p-3 sm:p-4 lg:p-6 pb-20 lg:pb-6 overflow-y-auto">

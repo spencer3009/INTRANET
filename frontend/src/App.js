@@ -78,6 +78,7 @@ import ParentMessagesPage from "@/pages/ParentMessagesPage";
 import ParentCourseDetailPage from "@/pages/ParentCourseDetailPage";
 import ParentPaymentsPage from "@/pages/ParentPaymentsPage";
 import HealthWellnessPage from "@/pages/HealthWellnessPage";
+import ParentHealthPage from "@/pages/ParentHealthPage";
 import TopicoPage from "@/pages/TopicoPage";
 import PsicologiaPage from "@/pages/PsicologiaPage";
 import { Toaster } from "sonner";
@@ -944,6 +945,14 @@ function App() {
             }
           />
           <Route
+            path="/parent/salud-bienestar"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentHealthPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/parent/profile"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
@@ -1498,6 +1507,14 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <ParentMessagesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/parent/salud-bienestar"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <ParentHealthPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />

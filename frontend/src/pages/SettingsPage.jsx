@@ -11,7 +11,7 @@ import {
   Settings, Save, Upload, Image, Building2, Mail, Globe, 
   Phone, DollarSign, Loader2, Check, AlertCircle, ArrowLeft,
   GraduationCap, Palette, Camera, Images, HardDrive, Link2,
-  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown
+  Unlink, RefreshCw, CheckCircle2, XCircle, Clock, Users, Shield, UserCheck, Megaphone, ChevronDown, HeartPulse
 } from "lucide-react";
 import { TimePicker } from "@/components/ui/time-picker";
 
@@ -47,6 +47,11 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
   const [allowPendingStudents, setAllowPendingStudents] = useState(false);
   const [allowAdminBroadcast, setAllowAdminBroadcast] = useState(false);
   const [savingRoles, setSavingRoles] = useState(false);
+  
+  // Health & Wellness permissions state
+  const [healthAdminCanManage, setHealthAdminCanManage] = useState(true);
+  const [healthTeacherCanManage, setHealthTeacherCanManage] = useState(false);
+  const [savingHealthPerms, setSavingHealthPerms] = useState(false);
   
   // Login background state
   const [loginBgUrl, setLoginBgUrl] = useState(null);
@@ -87,6 +92,12 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
         setAllowAdminAccounting(res.data.allow_admin_accounting || false);
         setAllowPendingStudents(res.data.permitir_acceso_estudiantes_pendientes || false);
         setAllowAdminBroadcast(res.data.allow_admin_broadcast || false);
+        // Load health permissions
+        try {
+          const hpRes = await axios.get(`${API}/settings/health-permissions`, { headers });
+          setHealthAdminCanManage(hpRes.data.admin_can_manage ?? true);
+          setHealthTeacherCanManage(hpRes.data.teacher_can_manage ?? false);
+        } catch (_) {}
         if (res.data.attendance_config) {
           setAttendanceConfig(prev => ({
             ...prev,
@@ -366,6 +377,22 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
       setError(err.response?.data?.detail || "Error al actualizar configuración");
     } finally {
       setSavingRoles(false);
+    }
+  };
+
+  const handleToggleHealthPermission = async (field, currentValue, setter) => {
+    setSavingHealthPerms(true);
+    try {
+      const newValue = !currentValue;
+      await axios.put(`${API}/settings/health-permissions`, { [field]: newValue }, { headers });
+      setter(newValue);
+      const label = field === "admin_can_manage" ? "Administradores" : "Profesores";
+      setSuccess(newValue ? `${label} ahora pueden gestionar Salud y Bienestar` : `Acceso de ${label} a Salud y Bienestar deshabilitado`);
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al actualizar permisos de salud");
+    } finally {
+      setSavingHealthPerms(false);
     }
   };
 
@@ -994,6 +1021,93 @@ export default function SettingsPage({ user, token, subdomain, onLogout, onSetti
                         <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
                       )}
                     </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* Health & Wellness Permissions Section */}
+              <section className="mt-8" data-testid="health-permissions-section">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-500 rounded-xl flex items-center justify-center">
+                      <HeartPulse className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-800">Permisos de Salud y Bienestar</h2>
+                      <p className="text-sm text-slate-500">Controla quién puede acceder al módulo de Tópico y Psicología</p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    {/* Admin Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-slate-200">
+                          <Shield className="w-5 h-5 text-blue-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-slate-800">Permitir a Administradores gestionar Salud y Bienestar</h3>
+                          <p className="text-sm text-slate-500">
+                            Los administradores podrán crear, editar y eliminar registros de Tópico y Psicología
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleHealthPermission("admin_can_manage", healthAdminCanManage, setHealthAdminCanManage)}
+                        disabled={savingHealthPerms}
+                        className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 ${
+                          healthAdminCanManage ? 'bg-red-500' : 'bg-slate-300'
+                        } ${savingHealthPerms ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        data-testid="toggle-health-admin"
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                            healthAdminCanManage ? 'translate-x-8' : 'translate-x-1'
+                          }`}
+                        />
+                        {savingHealthPerms && (
+                          <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Teacher Toggle */}
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-slate-200">
+                          <Users className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-slate-800">Permitir a Profesores gestionar Salud y Bienestar</h3>
+                          <p className="text-sm text-slate-500">
+                            Los profesores podrán crear, editar y eliminar registros de Tópico y Psicología
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleHealthPermission("teacher_can_manage", healthTeacherCanManage, setHealthTeacherCanManage)}
+                        disabled={savingHealthPerms}
+                        className={`relative inline-flex h-7 w-14 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 ${
+                          healthTeacherCanManage ? 'bg-emerald-500' : 'bg-slate-300'
+                        } ${savingHealthPerms ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        data-testid="toggle-health-teacher"
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                            healthTeacherCanManage ? 'translate-x-8' : 'translate-x-1'
+                          }`}
+                        />
+                        {savingHealthPerms && (
+                          <Loader2 className="absolute inset-0 m-auto w-4 h-4 text-white animate-spin" />
+                        )}
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-slate-400 pl-2">
+                      El propietario siempre tiene acceso completo al módulo de Salud y Bienestar. Los padres tienen acceso de solo lectura al historial de sus hijos.
+                    </p>
                   </div>
                 </div>
               </section>
