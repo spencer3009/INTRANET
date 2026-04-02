@@ -1,149 +1,152 @@
-<analysis>**original_problem_statement**: The user requested a series of UI redesigns, bug fixes, and a massive new feature: a System of Demos for Prospects. This system requires cloning a production school's database (40 collections, replacing ObjectIds mapping, anonymizing student/parent data), generating temporary admin credentials that expire in 5 days, and a full UI in the Global Support Panel to manage these demos. PRODUCT REQUIREMENTS include ensuring the Demo users can access the intranet without 403 errors, and ensuring existing modules (ChatterPal widget, Attendance, Users list) render correctly across devices and grouped views. 
+<analysis>**original_problem_statement**: Continuar el desarrollo y refinamiento de la plataforma de gestión escolar EduNet. El objetivo principal es terminar la implementación de videos de YouTube en Materiales y Tareas (tanto para profesores como estudiantes), refinar los modales de la interfaz, actualizar los accesos del Dashboard y construir desde cero el nuevo módulo de Salud y Bienestar con sus submódulos Tópico y Psicología (Backend y Frontend).
 
 **User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only)
 
-**what currently exists?**
-A robust React + FastAPI + MongoDB school management platform. Features role-based portals, unified profile photos, dynamic ChatterPal video widget integration, and a newly built System of Demos accessible by the Global Support Admin that clones real schools into functional, temporary 5-day demo instances.
+**what currently exists?**: 
+Plataforma Full-stack React + FastAPI + MongoDB. Se ha completado la integración de videos incrustados de YouTube tanto en Materiales de Estudio como en Tareas (visibles por profesores y estudiantes mediante popups de video). Los Dashboards han sido actualizados y el nuevo módulo de Salud y Bienestar (Tópico y Psicología) está 100% operativo con su propio backend CRUD, manejo de soft-deletes y vistas frontend con filtros en cascada (Grado → Sección).
 
 **Last working item**:
-    - **Last item agent was working**: Reverting sweeping changes in  that caused a massive 520 Server Error regression across multiple endpoints, and surgically applying a fix to  to resolve a 403 Forbidden error for Demo Users.
-    - **Status**: IN PROGRESS
-    - **Agent Testing Done**: N
-    - **Which testing method agent to use?**: backend testing agent or manual testing by  to verify that  compiles without syntax/import errors, and that endpoints like  return 200 for a demo user.
-    - **User Testing Done**: N
+    - Last item agent was working: Recopilación de información sobre el Portal de Padres (, , ). El usuario solicitó ver cómo funciona el dashboard y si existen modales/popups al inicio de sesión para planificar una nueva funcionalidad.
+    - Status: WAITING FOR USER INPUT (El agente mostró los archivos solicitados y está esperando las instrucciones del usuario para la nueva funcionalidad del Portal de Padres).
+    - Agent Testing Done: N/A
+    - Which testing method agent to use?: Frontend testing agent/screenshot tool una vez que el usuario dé los requerimientos de la nueva UI.
+    - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: (P0) Regresión 520 Server Error y 403 en Demo Users
-     - Attempted fixes: Agent tried to fix a 403 error for Demo Users by changing how , , and subdomains were resolved in , , and . This broke imports/syntax in , causing 520 errors on , , , etc.
-     - Next debug checklist: 
-        1. Revert the last set of changes made to  to stabilize the app.
-        2. Check logs for the exact traceback causing the 520.
-        3. *Surgically* modify ONLY the  function in  so that if  is True and  is owner, it immediately grants access without further validation.
-     - Why fix this issue and what will be achieved with the fix?: Production is currently broken for multiple API endpoints. Fixing this restores production and allows prospects to use the Demo accounts.
-     - Status: IN PROGRESS
-     - Is recurring issue? Y (Auth/RBAC logic is fragile)
-     - Should Test frontend/backend/both after fix?: Both (use  for backend endpoints, curl for specific 520 endpoints)
-
-  Issue 2: (P1) Validar UI de ChatterPal en Producción
-     - Attempted fixes: Implemented JS overlay and visibility re-hydration for SPA/Mobile.
-     - Next debug checklist: Ask user to confirm if ChatterPal works smoothly on mobile in the *production* environment ().
-     - Why fix this issue and what will be achieved with the fix?: Ensures 3rd-party widget UX is polished.
-     - Status: USER VERIFICATION PENDING
+  Issue 1: (P2) Arreglar Doble Scrollbar en la UI del Registro Auxiliar
+     - Attempted fixes: Ninguno en esta sesión.
+     - Next debug checklist: Revisar contenedores con  redundante en el componente de Registro Auxiliar.
+     - Why fix this issue and what will be achieved with the fix?: Mejorar la experiencia de usuario y la estética de la tabla de calificaciones.
+     - Status: NOT STARTED
      - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend (by user in prod)
-
-  Issue 3: (P2) Limpieza de colecciones huérfanas al eliminar colegio
-     - Attempted fixes: Identified collections left behind during deletion.
-     - Next debug checklist: Await user approval to implement the cleanup in .
-     - Why fix this issue and what will be achieved with the fix?: Prevents database bloat.
-     - Status: BLOCKED (Awaiting user greenlight)
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Backend
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: N/A
 
 **In progress Task List**:
-  None. (The Demo System feature was finished, but the subsequent bug fix caused the P0 issue above).
+  Task 1: (P0) Implementación de nueva funcionalidad en el Portal de Padres
+     - Where to resume: Esperar la confirmación/prompt del usuario sobre qué popup o modal desea agregar al inicio de sesión del portal de padres ().
+     - What will be achieved with this?: Cumplir con la solicitud pendiente del usuario.
+     - Status: NOT STARTED (Esperando requerimientos).
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on something: Esperando instrucciones del usuario tras la lectura del código base.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
-    - P1: Refactor Message Pages: Consolidate duplicated message pages.
-    - P2: Visual indicator of  in Exams/Tasks List.
-    - P2: Gradebook Enhancements: Implement Export to PDF/Excel and a Lock/Close Period feature.
-    - P2: Double Scrollbar in Registro Auxiliar UI fix.
-    
+    - P1: Refactorizar páginas de Mensajes: Consolidar páginas duplicadas.
+    - P2: Indicador visual de  en lista de Exámenes/Tareas.
+    - P2: Mejoras en Gradebook: Implementar Exportar a PDF/Excel y Bloquear/Cerrar Periodo.
+    - P2: Crear la página/módulo de Encuestas en  (Actualmente el botón Encuestas redirige ahí, pero falta el componente principal).
+
     Future Tasks:
-    - Vinculación Masiva Inteligente (Phase 2 of Parent Mass Import).
-    - Dashboard Owner con datos reales (currently hardcoded metrics).
-    - Build a Matrículas (Enrollments) module.
-    - Replace all remaining / calls with custom modals.
+    - Vinculación Masiva Inteligente (Fase 2 de importación de padres).
+    - Dashboard Owner con métricas reales.
+    - Construir módulo de Matrículas (Enrollments).
+    - Reemplazar / con modales customizados.
+    - Refactorización crítica:  (Actualmente tiene más de 10,000 líneas).
 
 **Completed work in this session**
-- ChatterPal UI Fix: Injected wrapper overlay for a perfectly centered play button on cross-origin iframe (DONE).
-- ChatterPal Mobile Bug: Fixed SPA re-hydration and  timing issues causing the avatar to not appear on mobile without a refresh (DONE).
--  Nivel Fix: Fixed a bug where student cards showed SECUNDARIA for INICIAL students because the level name was being incorrectly inferred from CSS colors. Passed  directly (DONE).
--  Missing Label Fix: Fixed a bug where  was missing from arguments, causing the UI to show 3 - UNICA - instead of NIVEL INICIAL - 3 - UNICA (DONE).
-- Demo Prospect System (Backend): Created . Implemented endpoints to clone a school (40 nested collections mapped via UUIDs), anonymize student/parent data, and create 5-day temporary admin access. Added a daily cron job for cleanup (DONE).
-- Demo Prospect System (Frontend): Created  with a highly professional UI (gradients, cards, school logos, stats) and added it to the Support Panel routing (DONE).
-- Demo UI Bug Fix: Removed  to prevent the school selector dropdown from being cut off (DONE).
+- Fix de sintaxis JSX ( sin cerrar) en el modal de Material de Estudio que bloqueaba la renderización () (DONE).
+- Ajuste de diseño en Modal de Materiales: Altura máxima con scroll interno y previsualización compacta de YouTube (DONE).
+- Nueva vista de YouTube en lista de materiales: Botón de Play que abre un popup de video, eliminando el iframe estático gigante (DONE).
+- Soporte de YouTube en Tareas (), visible en detalle del profesor y vista de estudiante () (DONE).
+- Botón de refresco () en lista de materiales (DONE).
+- Fix de actualización de estado local tras hacer POST de Material YouTube ( en lugar de ) (DONE).
+- Dashboard: Botón Colegio cambiado a Encuestas (). Tarjeta Encuestas cambiada a Salud y Bienestar con ruta  (, ) (DONE).
+- Creación de página intermedia  con tarjetas para Tópico y Psicología (DONE).
+- Módulo **Tópico**: Creado  (filtros en cascada y modal de registro) y  (Backend CRUD) (DONE).
+- Módulo **Psicología**: Creado  y endpoints en  con lógica de *soft delete* () (DONE).
 
 **Earlier issues found/mentioned but not fixed**
-None.
+- Ninguno nuevo.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Production vs Preview environment discrepancies. ChatterPal widget strictly blocks preview domains. Subdomain redirection works differently in local/preview vs production wildcard DNS.
-  - Recurrence count: 4
-  - Status: BLOCKED/ONGOING
-  - Note: Always remind the user that DNS/Domain-dependent features must be verified in production.
+  - Issue recurrence in previous fork: Discrepancias entre Producción vs Preview environment (El widget ChatterPal bloquea el preview).
+  - Recurrence count: 6
+  - Status: ONGOING
+  - Note: Recordar que widgets externos deben probarse en producción.
 
 **Code Architecture**
-
+/app
+├── backend/
+│   └── routes/
+│       ├── health.py                 # (NUEVO) Endpoints CRUD para Tópico y Psicología
+│       └── courses.py                # Fix proyecciones para retornar campos de YouTube
+└── frontend/
+    └── src/
+        ├── App.js                    # (ACTUALIZADO) Nuevas rutas de /salud-bienestar
+        └── pages/
+            ├── CourseDetailPage.jsx        # Fixes extensos modales y render de YouTube
+            ├── StudentCourseDetailPage.jsx # Soporte YouTube Tareas/Materiales
+            ├── HealthWellnessPage.jsx      # (NUEVO) Dashboard intermedio Salud
+            ├── TopicoPage.jsx              # (NUEVO) Gestión médica
+            └── PsicologiaPage.jsx          # (NUEVO) Gestión conductual
 
 **Key Technical Concepts**
-- **Deep Database Cloning**: The demo system creates a complete copy of a school by iterating through 40 collections in dependency order, generating new UUIDs, and updating a massive dictionary of foreign key mappings to preserve data relationships.
-- **RBAC (Role Based Access Control)**: Handled in . The demo user operates as an owner, but specific feature toggles and  checks were failing for temporary demo accounts.
+- **Soft Deletes en MongoDB**: Implementado en la colección  mediante la bandera . Los endpoints GET excluyen activamente estos registros.
+- **Filtros en Cascada (Frontend)**: Replicados en Tópico y Psicología. Grados se traen con niveles incluidos. Las Secciones se traen todas de un golpe y se filtran localmente por .
+- **Renderizado de Video Seguro**: Uso de Modales superpuestos () con iframes incrustados generados limpiamente extrayendo el ID de YouTube con Regex en el frontend.
 
 **key DB schema**
-  - : Added  (bool),  (str).
-  - : Added  (bool),  (str),  (datetime).
+  - : {institution_id, student_id, student_name, grade_id, section_id, date, time, incident_type, description, action_taken, status, responsible}
+  - : {institution_id, student_id, student_name, grade_id, section_id, date, time, record_type, reason, professional_observation, alert_level, requires_followup, status, responsible, is_deleted}
 
 **changes in tech stack**
-  - None.
+  - Ninguno.
 
 **All files of reference** 
-  -  (CRITICAL: Contains the 520 regression. Revert recent changes here).
-  -  (New demo cloning logic).
-  -  (New frontend).
-  -  (Grouped view card fixes).
+  -  (Nuevo backend CRUD).
+  -  (Modificado extensamente, manejar con cuidado por su gran tamaño).
+  -  (Modificado para UX de estudiante).
+  -  (Rutas actualizadas).
+  -  y  (Últimos archivos leídos por el agente para planificar la siguiente tarea).
 
 **Areas that need refactoring**: 
-  -  (>5000 lines).
-  -  is becoming a monolith for auth, database matching, websocket connections, and RBAC. Modifications here easily cause widespread application breakage.
+  -  ha crecido aún más (casi 10,500 líneas). Es imperativo no agregar más funciones monolíticas ahí si es posible; idealmente debe desglosarse en la próxima fase de refactorización.
 
 **key api endpoints**
-  -  (Clones a school).
-  -  (Creates 5-day demo credentials).
-  -  (Currently returning 403 for Demo users).
-  - Multiple endpoints returning 520 due to  breakage.
-
-**Critical Info for New Agent**
-  - **LANGUAGE:** Respond strictly in **Spanish**.
-  - **URGENT REGRESSION (P0):** The previous agent modified  extensively to fix a 403 error for Demo users. This caused syntax/import errors, breaking global imports and resulting in 520 Server Errors for endpoints like  and . 
-  - **THE DIRECTIVE:** You MUST revert the recent changes in . Once stabilized, apply a *surgical* fix: strictly modify the  function in  to immediately return and allow access if  is True AND  is . Do not touch other validation logic in .
-
-**documents and test reports created in this job**
   - 
-  -  (Created)
-  -  (Demo system backend testing)
+  - 
+  -  (Ahora retorna data completa de YouTube)
+
+**Critical Info for New Agent** 
+  - **Próximo Paso Inmediato**: El usuario acaba de solicitar información sobre cómo funciona la UI del portal de Padres (), específicamente si hay popups/modales al hacer login. Esta exploración fue un paso de *lectura*. En su próximo mensaje, el usuario enviará los requerimientos exactos para una nueva función basada en esto.
+  - Al trabajar con , asegúrate de mantener el prefijo  en la declaración del router para que coincida con el entorno K8s de Ingress.
+  - El backend maneja el Soft Delete para , no uses un borrado físico en base de datos si te piden modificar funciones de este módulo.
+  - RESPONDE ESTRICTAMENTE EN ESPAÑOL.
+
+**documents and test reports created in this job** 
+  -  (Actualizado con módulos de Salud/Bienestar y funcionalidades de YouTube).
 
 **Last 10 User Messages and any pending HUMAN messages** 
-  - User asked to fix student card displaying wrong level (SECUNDARIA instead of INICIAL) in . (Done)
-  - User pointed out  was completely missing from the card (3 - UNICA -). (Done)
-  - User provided deployment logs; Agent confirmed successful deploy. Platform replacement issue explained. (Resolved)
-  - User reported ChatterPal avatar not showing on Mobile without refreshing. (Done)
-  - User provided massive spec for Sistema de Demos para Prospectos. (Done)
-  - User requested a more professional UI redesign for  with school logos. (Done)
-  - User reported the dropdown in the new Demo UI was cut off. (Done)
-  - User reported a Bug: Demo Users get 403 Forbidden on all intranet endpoints. Agent made sweeping changes to . (Done, but caused next issue).
-  - User pointed out  was the specific cause of the 403.
-  - **(PENDING) URGENT:** User reported the previous fix to  broke multiple unrelated endpoints (520 errors). Instructed to revert , check logs, and apply a surgical fix *only* to .
+  - User: Solicitó eliminar botón Abrir en YouTube de la lista de materiales. (Completado)
+  - User: Solicitó agregar la misma lógica de YouTube al modal de Tareas y a las vistas del Estudiante. (Completado)
+  - User: Solicitó agregar un botón de Refresh en Materiales. (Completado)
+  - User: Reportó bug donde un nuevo material YouTube no se renderizaba bien al momento del submit sin refrescar. (Solucionado)
+  - User: Pidió cambiar botón Colegio a Encuestas. (Completado)
+  - User: Pidió renombrar la tarjeta Encuestas en Dashboard a Salud y Bienestar. (Completado)
+  - User: Pidió ver el código de App.js y DashboardPage.jsx para planificar el módulo Salud y Bienestar. (Mostrado)
+  - User: Dio los requerimientos para crear la página intermedia . (Completado)
+  - User: Solicitó ver patrón de Asistencia, y luego dio requerimientos masivos para submódulos Tópico y Psicología (backend y frontend). (Completado)
+  - **(Último Mensaje)** User: Solicitó información (solo lectura) sobre si existen popups/modales de login en el portal de padres, y cómo está estructurado el dashboard del portal de padres, para planificar una nueva funcionalidad. El agente le proveyó la vista de los archivos. (PENDING: Esperando la respuesta/prompt del usuario con las instrucciones de la nueva feature).
 
 **Project Health Check:**
-  - Broken:  (Syntax/import error breaking multiple routers).
-  - Mocked: Synthetic Accounting Data.
+  - Broken: Ninguno detectado.
+  - Mocked: Ninguno.
 
 **3rd Party Integrations** 
-  - Cloudinary (Image Hosting) - Emergent managed
-  - Vimeo (Video Hosting) - External URL
-  - ChatterPal (Video Avatar) - External Script
+  - Cloudinary (Image Hosting) - Emergent managed.
+  - Vimeo / YouTube (Video Hosting) - Embedded External URLs.
+  - ChatterPal (Video Avatar) - External Script (Rompe preview ocasionalmente).
 
 **Testing status**
-  - Testing agent used after significant changes: YES ( for Demo System).
-  - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: 
-  - Known regressions:  syntax/logic error causing widespread 520 server errors.
+  - Testing agent used after significant changes: NO (Pruebas manuales exhaustivas con Screenshot Tool y CLI demostraron alta confiabilidad en los cambios UI/CRUD recientes).
+  - Troubleshoot agent used after agent stuck in loop: NO.
+  - Test files created: []
+  - Known regressions: Ninguna.
 
 **Credentials to test flow:**
   - **School Owner / Admin:**  /  / 
   - **Global Support Admin:**  / 
 
 **What agent forgot to execute**
-The agent failed to run standard backend linting or basic curl tests on unrelated endpoints after making core authentication/RBAC changes in . Changing a foundational file without running  on the *entire* app led to the massive 520 regression. The next agent must verify the backend compiles cleanly.</analysis>
+El agente gestionó exitosamente las iteraciones y correcciones del usuario, pero por limitaciones de tiempo/recursos no corrió el *testing agent v3* tras los masivos cambios al monolítico . Sería prudente utilizar el Testing Agent en una futura sesión donde los requerimientos no sean tan dinámicos y continuos como lo fueron en esta, para validar que nada secundario se haya roto en la vista del profesor.</analysis>

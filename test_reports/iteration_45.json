@@ -107,7 +107,7 @@
     "normal_user_password": "1234abc8",
     "school_el_roble_id": "b9f27249-6568-49ae-94d3-e1f16750d7d9",
     "school_el_roble_subdomain": "elroble",
-    "base_url": "https://plataforma-edunet.preview.emergentagent.com"
+    "base_url": "https://edunet-health.preview.emergentagent.com"
   },
 
   "seed_data_creation": "None - Global support user created automatically on backend startup (ensure_global_support_user). School El Roble already assigned to support user.",
