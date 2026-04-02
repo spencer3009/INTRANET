@@ -121,7 +121,8 @@ async def get_course_posts(
         "drive_file_id": 1, "drive_file_name": 1, "file_extension": 1,
         "file_type": 1, "file_size": 1, "storage_type": 1,
         "mime_type": 1, "due_date": 1, "metadata": 1,
-        "cloudinary_data": 1
+        "cloudinary_data": 1,
+        "tipo_material": 1, "url": 1, "video_id": 1
     }
 
     # 1. Get posts + total count in parallel

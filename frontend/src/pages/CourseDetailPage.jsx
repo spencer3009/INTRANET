@@ -31,7 +31,7 @@ import {
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
   Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy,
-  Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3
+  Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3, Link2, Youtube
 } from "lucide-react";
 import CourseLoadingScreen from "../components/CourseLoadingScreen";
 
@@ -9119,8 +9119,57 @@ function MaterialTableContent({ subjectId, token, user }) {
             </div>
           ) : (
             materials.map((material) => {
+              const isYoutube = material.tipo_material === "youtube" || material.video_id;
+              const vid = isYoutube ? (material.video_id || extractYouTubeId(material.url)) : null;
               const fileInfo = extractFileInfo(material);
               const isGoogleDrive = material.storage_type === 'google_drive' || material.drive_file_id;
+              
+              if (isYoutube && vid) {
+                return (
+                  <div key={material.id} className="bg-white border-b border-slate-100 overflow-hidden" data-testid={`material-youtube-${material.id}`}>
+                    <div className="flex items-center justify-between px-6 py-3">
+                      <div className="flex items-center gap-3">
+                        <Youtube className="w-5 h-5 text-red-500" />
+                        <p className="font-semibold text-slate-800">{material.title}</p>
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
+                          <Play className="w-3 h-3" />
+                          YouTube
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={material.url || `https://www.youtube.com/watch?v=${vid}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
+                          title="Abrir en YouTube"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                        <button
+                          onClick={() => handleDeleteClick(material)}
+                          className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="px-6 pb-4">
+                      <div className="rounded-xl overflow-hidden border border-slate-200">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${vid}`}
+                          title={material.title}
+                          className="w-full aspect-video"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
               return (
                 <div key={material.id} className="flex items-center px-6 py-4 hover:bg-slate-50 transition-colors">
                   {/* Title and File info together */}
@@ -9333,6 +9382,36 @@ function MaterialTableContent({ subjectId, token, user }) {
                   />
                 </div>
               )}
+              </>
+              ) : (
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Link de YouTube *
+                </label>
+                <div className="relative">
+                  <Link2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={youtubeUrl}
+                    onChange={(e) => setYoutubeUrl(e.target.value)}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 placeholder:text-slate-400 focus:outline-none focus:border-red-400 focus:bg-white transition-all"
+                    data-testid="youtube-url-input"
+                  />
+                </div>
+                {youtubeUrl && isValidYouTubeUrl(youtubeUrl) && (
+                  <div className="mt-3 rounded-xl overflow-hidden border border-slate-200">
+                    <iframe
+                      src={`https://www.youtube.com/embed/${extractYouTubeId(youtubeUrl)}`}
+                      title="Vista previa YouTube"
+                      className="w-full aspect-video"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                )}
+              </div>
+              )}
             </div>
             
             {/* Modal Footer */}
@@ -9345,13 +9424,14 @@ function MaterialTableContent({ subjectId, token, user }) {
               </button>
               <button
                 onClick={handleSubmit}
-                disabled={submitting || !description.trim() || !file}
+                disabled={submitting || !description.trim() || (tipoMaterial === "youtube" ? !youtubeUrl.trim() || !isValidYouTubeUrl(youtubeUrl) : !file)}
                 className="px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 disabled:from-slate-300 disabled:to-slate-400 text-white rounded-xl font-semibold transition-all flex items-center gap-2"
+                data-testid="material-submit-btn"
               >
                 {submitting ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Subiendo...
+                    {tipoMaterial === "youtube" ? "Guardando..." : "Subiendo..."}
                   </>
                 ) : (
                   <>
