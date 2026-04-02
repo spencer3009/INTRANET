@@ -8710,6 +8710,7 @@ function MaterialTableContent({ subjectId, token, user }) {
   const fileInputRef = useRef(null);
   const [tipoMaterial, setTipoMaterial] = useState("archivo");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [videoModal, setVideoModal] = useState(null);
   
   const headers = { Authorization: `Bearer ${token}` };
   
@@ -9126,45 +9127,46 @@ function MaterialTableContent({ subjectId, token, user }) {
               
               if (isYoutube && vid) {
                 return (
-                  <div key={material.id} className="bg-white border-b border-slate-100 overflow-hidden" data-testid={`material-youtube-${material.id}`}>
-                    <div className="flex items-center justify-between px-6 py-3">
-                      <div className="flex items-center gap-3">
-                        <Youtube className="w-5 h-5 text-red-500" />
-                        <p className="font-semibold text-slate-800">{material.title}</p>
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
-                          <Play className="w-3 h-3" />
-                          YouTube
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={material.url || `https://www.youtube.com/watch?v=${vid}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
-                          title="Abrir en YouTube"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                        <button
-                          onClick={() => handleDeleteClick(material)}
-                          className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
-                          title="Eliminar"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                  <div key={material.id} className="flex items-center px-6 py-4 hover:bg-slate-50 transition-colors" data-testid={`material-youtube-${material.id}`}>
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
+                      <button
+                        onClick={() => setVideoModal({ vid, title: material.title })}
+                        className="w-10 h-10 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors flex-shrink-0"
+                        title="Reproducir video"
+                        data-testid={`play-video-${material.id}`}
+                      >
+                        <Play className="w-4 h-4 ml-0.5" />
+                      </button>
+                      <p className="font-semibold text-slate-800">{material.title}</p>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full">
+                        <Youtube className="w-3 h-3" />
+                        YouTube
+                      </span>
                     </div>
-                    <div className="px-6 pb-4">
-                      <div className="rounded-xl overflow-hidden border border-slate-200">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${vid}`}
-                          title={material.title}
-                          className="w-full aspect-video"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      </div>
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                      <button
+                        onClick={() => setVideoModal({ vid, title: material.title })}
+                        className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                        title="Ver video"
+                      >
+                        <Play className="w-4 h-4" />
+                      </button>
+                      <a
+                        href={material.url || `https://www.youtube.com/watch?v=${vid}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-9 h-9 bg-blue-100 hover:bg-blue-200 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
+                        title="Abrir en YouTube"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                      <button
+                        onClick={() => handleDeleteClick(material)}
+                        className="w-9 h-9 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg flex items-center justify-center transition-colors"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
                 );
@@ -9445,6 +9447,32 @@ function MaterialTableContent({ subjectId, token, user }) {
         </div>
       )}
       
+      {/* YouTube Video Popup */}
+      {videoModal && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" data-testid="video-modal">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setVideoModal(null)} />
+          <div className="relative w-full max-w-3xl">
+            <button
+              onClick={() => setVideoModal(null)}
+              className="absolute -top-10 right-0 text-white/80 hover:text-white transition-colors flex items-center gap-2 text-sm"
+            >
+              <X className="w-5 h-5" />
+              Cerrar
+            </button>
+            <div className="rounded-2xl overflow-hidden shadow-2xl bg-black">
+              <iframe
+                src={`https://www.youtube.com/embed/${videoModal.vid}?autoplay=1`}
+                title={videoModal.title}
+                className="w-full aspect-video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+            <p className="text-white text-center mt-3 font-medium">{videoModal.title}</p>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
