@@ -8708,6 +8708,8 @@ function MaterialTableContent({ subjectId, token, user }) {
   const [error, setError] = useState("");
   const [downloading, setDownloading] = useState(null);
   const fileInputRef = useRef(null);
+  const [tipoMaterial, setTipoMaterial] = useState("archivo");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   
   const headers = { Authorization: `Bearer ${token}` };
   
@@ -8844,6 +8846,39 @@ function MaterialTableContent({ subjectId, token, user }) {
       return;
     }
     
+    if (tipoMaterial === "youtube") {
+      if (!youtubeUrl.trim()) {
+        setError("La URL de YouTube es obligatoria");
+        return;
+      }
+      if (!isValidYouTubeUrl(youtubeUrl)) {
+        setError("URL de YouTube no válida. Usa: youtube.com/watch?v=... o youtu.be/...");
+        return;
+      }
+      setSubmitting(true);
+      setError("");
+      try {
+        const res = await axios.post(`${API}/course/${subjectId}/posts`, {
+          subject_id: subjectId,
+          title: description.trim(),
+          content: description.trim(),
+          post_type: "material",
+          tipo_material: "youtube",
+          url: youtubeUrl.trim(),
+          video_id: extractYouTubeId(youtubeUrl),
+        }, { headers });
+        setMaterials([res.data, ...materials]);
+        setShowCreateModal(false);
+        resetForm();
+      } catch (err) {
+        const detail = err.response?.data?.detail;
+        setError(typeof detail === "string" ? detail : "Error al guardar el video");
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+    
     if (!file) {
       setError("Debes seleccionar un archivo");
       return;
@@ -8887,6 +8922,7 @@ function MaterialTableContent({ subjectId, token, user }) {
           title: description.trim(),
           content: `Archivo: ${file.name} (${(file.size / 1024).toFixed(2)}KB)`,
           post_type: "material",
+          tipo_material: "archivo",
           file_url: uploadResult.secure_url,
           file_name: file.name,
           file_type: file.type || 'application/octet-stream',
@@ -8930,8 +8966,18 @@ function MaterialTableContent({ subjectId, token, user }) {
     setFileType("pdf");
     setError("");
     setUploadProgress(0);
+    setTipoMaterial("archivo");
+    setYoutubeUrl("");
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
+
+  const extractYouTubeId = (url) => {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+  };
+
+  const isValidYouTubeUrl = (url) => !!extractYouTubeId(url);
   
   const handleDeleteClick = (material) => {
     setMaterialToDelete(material);
@@ -9191,6 +9237,43 @@ function MaterialTableContent({ subjectId, token, user }) {
                 />
               </div>
               
+              {/* Tipo de material */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  Tipo de material
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setTipoMaterial("archivo")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all border ${
+                      tipoMaterial === "archivo"
+                        ? "bg-orange-50 border-orange-400 text-orange-700"
+                        : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                    }`}
+                    data-testid="tipo-archivo-btn"
+                  >
+                    <Paperclip className="w-4 h-4" />
+                    Archivo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTipoMaterial("youtube")}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-medium transition-all border ${
+                      tipoMaterial === "youtube"
+                        ? "bg-red-50 border-red-400 text-red-700"
+                        : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                    }`}
+                    data-testid="tipo-youtube-btn"
+                  >
+                    <Youtube className="w-4 h-4" />
+                    YouTube
+                  </button>
+                </div>
+              </div>
+              
+              {tipoMaterial === "archivo" ? (
+              <>
               {/* File Upload */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">
