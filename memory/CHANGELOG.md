@@ -2,6 +2,14 @@
 
 ## April 2, 2026 - Fork 9
 
+### Fix: Health & Wellness Permission Logic v2 (April 2, 2026) - COMPLETED
+- **NUEVA REGLA**: Admin/Teacher SIEMPRE pueden VER registros (lectura). Solo pueden crear/editar/eliminar si su switch está activado
+- Backend: `_require_health_access(write=True)` bloquea POST/PUT/DELETE cuando switch OFF; `write=False` (GET) siempre permite
+- Frontend: `canWrite` prop en TopicoPage/PsicologiaPage oculta botones de crear/editar/eliminar y muestra banner "Modo lectura"
+- Sidebars: "Salud y Bienestar" siempre visible (removida lógica condicional)
+- Settings: Textos actualizados para reflejar nueva lógica
+- Testing: 100% (Backend 13/13, Frontend 100%) - iteration_99.json
+
 ### Feature: Health & Wellness — Conditional Access for Teachers & Admins - COMPLETED
 - **TeacherSidebar**: Dynamic "Salud y Bienestar" nav item based on `teacher_can_manage` permission
 - **AdminSidebar**: Dynamic item in GESTIÓN ACADÉMICA section based on `admin_can_manage`
