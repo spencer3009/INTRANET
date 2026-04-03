@@ -847,8 +847,11 @@ async def import_students(
                 "year_mismatch": year_mismatch,
             }
 
-    # If use_file_config is true, override filters with file metadata
-    if use_file_config == "true" and file_metadata:
+    # Use file metadata to fill missing filters (either explicit use_file_config or empty form params)
+    should_use_file_metadata = file_metadata and (
+        use_file_config == "true" or not nivel_id or not grado_id or not seccion_id or not turno_id
+    )
+    if should_use_file_metadata:
         # Resolve IDs by NAME in the current school (file might come from a different school)
         meta_nivel_name = file_metadata.get("nivel_name", "").strip()
         meta_grado_name = file_metadata.get("grado_name", "").strip()
