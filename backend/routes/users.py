@@ -1037,7 +1037,10 @@ async def import_students(
             errors.append("Apellido vacio")
 
         if dni:
-            existing_dni = await db.users.find_one({"school_id": school_id, "dni": dni}, {"_id": 0, "id": 1})
+            existing_dni = await db.users.find_one(
+                {"school_id": school_id, "dni": dni},
+                {"_id": 0, "id": 1}
+            )
             if existing_dni:
                 errors.append(f"DNI {dni} ya existe")
 

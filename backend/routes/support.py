@@ -621,7 +621,7 @@ async def delete_orphan_students(school_id: str, user=Depends(require_support_ad
     # Get all students and filter orphans
     all_students = await db.users.find(
         {"school_id": school_id, "role": "student"},
-        {"_id": 0, "id": 1, "import_status": 1, "nivel_id": 1}
+        {"_id": 0, "id": 1, "import_status": 1, "student_status": 1, "nivel_id": 1}
     ).to_list(5000)
 
     orphan_ids = []
