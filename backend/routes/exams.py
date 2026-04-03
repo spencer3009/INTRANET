@@ -64,13 +64,20 @@ class ExamStatus(str, Enum):
 class ExamCreate(BaseModel):
     title: str
     description: Optional[str] = None
-    start_datetime: str  # ISO format datetime
-    end_datetime: str    # ISO format datetime
-    duration_minutes: int = 60  # Default 60 minutes, required
+    start_datetime: Optional[str] = None  # ISO format datetime (required for digital)
+    end_datetime: Optional[str] = None    # ISO format datetime (required for digital)
+    duration_minutes: Optional[int] = 60  # Default 60 minutes (required for digital)
     min_score_percentage: Optional[float] = 60.0
     # Register linkage — mutually exclusive, ONE column only
     period_id: Optional[str] = None          # Bimester period ID
     register_column: Optional[str] = None    # "EM" | "EB" | "P1" | "P2" | "P3" | null
+    # Exam type
+    type: Optional[str] = "digital"          # "digital" | "omr"
+    # OMR-specific fields
+    num_questions: Optional[int] = 20        # 5-100
+    options_per_question: Optional[int] = 5  # 2-5 (A-E)
+    answer_key: Optional[list] = None        # ["A", "C", "D", ...] length == num_questions
+    points_per_question: Optional[float] = 1.0
 
 
 class ExamUpdate(BaseModel):
@@ -84,6 +91,11 @@ class ExamUpdate(BaseModel):
     # Register linkage
     period_id: Optional[str] = None
     register_column: Optional[str] = None
+    # OMR-specific fields
+    num_questions: Optional[int] = None
+    options_per_question: Optional[int] = None
+    answer_key: Optional[list] = None
+    points_per_question: Optional[float] = None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -399,23 +411,49 @@ async def create_exam(
     subject = await db.subjects.find_one({"id": subject_id, "school_id": user["school_id"]}, {"_id": 0})
     if not subject:
         raise HTTPException(status_code=404, detail="Asignatura no encontrada")
-    
-    # Validate dates
-    try:
-        start_dt = datetime.fromisoformat(data.start_datetime.replace("Z", "+00:00"))
-        end_dt = datetime.fromisoformat(data.end_datetime.replace("Z", "+00:00"))
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Formato de fecha inválido")
-    
-    if end_dt <= start_dt:
-        raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser posterior a la de inicio")
-    
-    # Validate duration
-    if not data.duration_minutes or data.duration_minutes < 1:
-        raise HTTPException(status_code=400, detail="La duración del examen debe ser al menos 1 minuto")
 
     school_id = user["school_id"]
     section_id = subject.get("section_id")
+    exam_type = data.type or "digital"
+
+    # Validate exam type
+    if exam_type not in ("digital", "omr"):
+        raise HTTPException(status_code=400, detail="Tipo de examen invalido. Debe ser 'digital' o 'omr'")
+
+    # ── Type-specific validation ──
+    if exam_type == "digital":
+        # Digital exams require dates and duration
+        if not data.start_datetime or not data.end_datetime:
+            raise HTTPException(status_code=400, detail="Las fechas de inicio y fin son requeridas para exámenes digitales")
+        try:
+            start_dt = datetime.fromisoformat(data.start_datetime.replace("Z", "+00:00"))
+            end_dt = datetime.fromisoformat(data.end_datetime.replace("Z", "+00:00"))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+        if end_dt <= start_dt:
+            raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser posterior a la de inicio")
+        if not data.duration_minutes or data.duration_minutes < 1:
+            raise HTTPException(status_code=400, detail="La duración del examen debe ser al menos 1 minuto")
+
+    elif exam_type == "omr":
+        # OMR exams require num_questions and options_per_question
+        num_q = data.num_questions or 20
+        opts = data.options_per_question or 5
+        ppq = data.points_per_question or 1.0
+        if not (5 <= num_q <= 100):
+            raise HTTPException(status_code=400, detail="num_questions debe ser entre 5 y 100")
+        if not (2 <= opts <= 5):
+            raise HTTPException(status_code=400, detail="options_per_question debe ser entre 2 y 5")
+        if ppq <= 0:
+            raise HTTPException(status_code=400, detail="points_per_question debe ser positivo")
+        # Validate answer_key if provided
+        if data.answer_key is not None:
+            if len(data.answer_key) != num_q:
+                raise HTTPException(status_code=400, detail=f"answer_key debe tener exactamente {num_q} elementos")
+            valid_letters = [chr(65 + i) for i in range(opts)]  # A, B, C, D, E
+            for i, ans in enumerate(data.answer_key):
+                if ans is not None and ans not in valid_letters:
+                    raise HTTPException(status_code=400, detail=f"Pregunta {i+1}: respuesta '{ans}' invalida. Opciones validas: {', '.join(valid_letters)}")
 
     # Auto-resolve period_id from active academic period
     active_period = await db.academic_periods.find_one(
@@ -447,10 +485,7 @@ async def create_exam(
         "section_id": section_id,
         "title": data.title,
         "description": data.description or "",
-        "start_datetime": data.start_datetime,
-        "end_datetime": data.end_datetime,
-        "duration_minutes": data.duration_minutes,
-        "min_score_percentage": data.min_score_percentage or 60.0,
+        "type": exam_type,
         "status": ExamStatus.draft.value,
         "created_by": user["id"],
         "created_at": now,
@@ -460,6 +495,24 @@ async def create_exam(
         "register_column": data.register_column,
         "sync_status": "not_linked" if not data.register_column else "pending",
     }
+
+    if exam_type == "digital":
+        exam.update({
+            "start_datetime": data.start_datetime,
+            "end_datetime": data.end_datetime,
+            "duration_minutes": data.duration_minutes,
+            "min_score_percentage": data.min_score_percentage or 60.0,
+        })
+    elif exam_type == "omr":
+        num_q = data.num_questions or 20
+        ppq = data.points_per_question or 1.0
+        exam.update({
+            "num_questions": num_q,
+            "options_per_question": data.options_per_question or 5,
+            "answer_key": data.answer_key,
+            "points_per_question": ppq,
+            "total_points": num_q * ppq,
+        })
     
     await db.online_exams.insert_one(exam)
 
@@ -578,10 +631,13 @@ async def get_exam_detail(
     
     # For students, check availability
     if is_student:
-        now = datetime.now(timezone.utc)
-        start = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
-        end = datetime.fromisoformat(exam["end_datetime"].replace("Z", "+00:00"))
-        exam["is_available"] = start <= now <= end
+        if exam.get("type", "digital") == "digital" and exam.get("start_datetime") and exam.get("end_datetime"):
+            now = datetime.now(timezone.utc)
+            start = datetime.fromisoformat(exam["start_datetime"].replace("Z", "+00:00"))
+            end = datetime.fromisoformat(exam["end_datetime"].replace("Z", "+00:00"))
+            exam["is_available"] = start <= now <= end
+        else:
+            exam["is_available"] = False
     
     return exam
 
@@ -621,6 +677,44 @@ async def update_exam(
         update_data["duration_minutes"] = data.duration_minutes
     if data.min_score_percentage is not None:
         update_data["min_score_percentage"] = data.min_score_percentage
+
+    # ── OMR-specific fields ──
+    exam_type = exam.get("type", "digital")
+    if exam_type == "omr":
+        eff_num_q = exam.get("num_questions", 20)
+        eff_opts = exam.get("options_per_question", 5)
+        eff_ppq = exam.get("points_per_question", 1.0)
+
+        if data.num_questions is not None:
+            if not (5 <= data.num_questions <= 100):
+                raise HTTPException(status_code=400, detail="num_questions debe ser entre 5 y 100")
+            update_data["num_questions"] = data.num_questions
+            eff_num_q = data.num_questions
+        if data.options_per_question is not None:
+            if not (2 <= data.options_per_question <= 5):
+                raise HTTPException(status_code=400, detail="options_per_question debe ser entre 2 y 5")
+            update_data["options_per_question"] = data.options_per_question
+            eff_opts = data.options_per_question
+        if data.points_per_question is not None:
+            if data.points_per_question <= 0:
+                raise HTTPException(status_code=400, detail="points_per_question debe ser positivo")
+            update_data["points_per_question"] = data.points_per_question
+            eff_ppq = data.points_per_question
+
+        # Validate answer_key
+        if data.answer_key is not None:
+            if len(data.answer_key) != eff_num_q:
+                raise HTTPException(status_code=400, detail=f"answer_key debe tener exactamente {eff_num_q} elementos (indice 0 = pregunta 1)")
+            valid_letters = [chr(65 + i) for i in range(eff_opts)]
+            for i, ans in enumerate(data.answer_key):
+                if ans is not None and ans not in valid_letters:
+                    raise HTTPException(status_code=400, detail=f"Pregunta {i+1}: respuesta '{ans}' invalida. Opciones: {', '.join(valid_letters)}")
+            update_data["answer_key"] = data.answer_key
+
+        # Recalculate total_points if changed
+        if "num_questions" in update_data or "points_per_question" in update_data:
+            update_data["total_points"] = eff_num_q * eff_ppq
+
     if data.status is not None:
         # Validate status transitions
         current_status = exam["status"]
@@ -634,24 +728,25 @@ async def update_exam(
         
         update_data["status"] = new_status
     
-    # Validate dates if being updated
-    start_dt = data.start_datetime or exam["start_datetime"]
-    end_dt = data.end_datetime or exam["end_datetime"]
-    
-    if data.start_datetime is not None or data.end_datetime is not None:
-        try:
-            start = datetime.fromisoformat(start_dt.replace("Z", "+00:00"))
-            end = datetime.fromisoformat(end_dt.replace("Z", "+00:00"))
-        except ValueError:
-            raise HTTPException(status_code=400, detail="Formato de fecha inválido")
-        
-        if end <= start:
-            raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser posterior a la de inicio")
-        
-        if data.start_datetime is not None:
-            update_data["start_datetime"] = data.start_datetime
-        if data.end_datetime is not None:
-            update_data["end_datetime"] = data.end_datetime
+    # Validate dates if being updated (only for digital exams)
+    if exam_type == "digital":
+        start_dt = data.start_datetime or exam.get("start_datetime", "")
+        end_dt = data.end_datetime or exam.get("end_datetime", "")
+
+        if data.start_datetime is not None or data.end_datetime is not None:
+            try:
+                start = datetime.fromisoformat(start_dt.replace("Z", "+00:00"))
+                end = datetime.fromisoformat(end_dt.replace("Z", "+00:00"))
+            except ValueError:
+                raise HTTPException(status_code=400, detail="Formato de fecha inválido")
+            
+            if end <= start:
+                raise HTTPException(status_code=400, detail="La fecha/hora de fin debe ser posterior a la de inicio")
+            
+            if data.start_datetime is not None:
+                update_data["start_datetime"] = data.start_datetime
+            if data.end_datetime is not None:
+                update_data["end_datetime"] = data.end_datetime
     
     # Handle register linkage updates
     old_column = exam.get("register_column")

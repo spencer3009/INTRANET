@@ -3,8 +3,10 @@ import axios from "axios";
 import {
   Plus, Edit3, Trash2, Loader2, X, FileText,
   ChevronUp, ChevronDown, CheckCircle, FlaskConical,
-  ClipboardCheck, Clock
+  ClipboardCheck, Clock, Monitor, Grid3X3, Key
 } from "lucide-react";
+import { toast } from "sonner";
+import AnswerKeyEditor from './AnswerKeyEditor';
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
 
@@ -74,6 +76,7 @@ function ConfirmExamModal({ isOpen, onClose, onConfirm, title, message, confirmT
 
 // Exam Modal for Create/Edit
 function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
+  const [examType, setExamType] = useState('digital');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -81,64 +84,69 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
   const [endDate, setEndDate] = useState('');
   const [endTime, setEndTime] = useState('10:00');
   const [minScore, setMinScore] = useState(60);
+  const [numQuestions, setNumQuestions] = useState(20);
+  const [optionsPerQuestion, setOptionsPerQuestion] = useState(5);
+  const [pointsPerQuestion, setPointsPerQuestion] = useState(1.0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const isEditing = !!exam;
 
   useEffect(() => {
     if (isOpen) {
       if (exam) {
+        setExamType(exam.type || 'digital');
         setTitle(exam.title || '');
         setDescription(exam.description || '');
-        const start = new Date(exam.start_datetime);
-        const end = new Date(exam.end_datetime);
-        setStartDate(start.toISOString().split('T')[0]);
-        setStartTime(start.toTimeString().slice(0, 5));
-        setEndDate(end.toISOString().split('T')[0]);
-        setEndTime(end.toTimeString().slice(0, 5));
+        if (exam.type !== 'omr' && exam.start_datetime && exam.end_datetime) {
+          const start = new Date(exam.start_datetime);
+          const end = new Date(exam.end_datetime);
+          setStartDate(start.toISOString().split('T')[0]);
+          setStartTime(start.toTimeString().slice(0, 5));
+          setEndDate(end.toISOString().split('T')[0]);
+          setEndTime(end.toTimeString().slice(0, 5));
+        }
         setMinScore(exam.min_score_percentage || 60);
+        setNumQuestions(exam.num_questions || 20);
+        setOptionsPerQuestion(exam.options_per_question || 5);
+        setPointsPerQuestion(exam.points_per_question || 1.0);
       } else {
         const today = new Date().toISOString().split('T')[0];
-        setTitle('');
-        setDescription('');
-        setStartDate(today);
-        setStartTime('09:00');
-        setEndDate(today);
-        setEndTime('10:00');
+        setExamType('digital');
+        setTitle(''); setDescription('');
+        setStartDate(today); setStartTime('09:00');
+        setEndDate(today); setEndTime('10:00');
         setMinScore(60);
+        setNumQuestions(20); setOptionsPerQuestion(5); setPointsPerQuestion(1.0);
       }
       setError('');
     }
   }, [isOpen, exam]);
 
   const handleSubmit = async () => {
-    if (!title.trim()) {
-      setError('El título es requerido');
-      return;
+    if (!title.trim()) { setError('El titulo es requerido'); return; }
+    if (examType === 'digital' && (!startDate || !endDate)) { setError('Las fechas son requeridas'); return; }
+    if (examType === 'omr') {
+      if (numQuestions < 5 || numQuestions > 100) { setError('Preguntas: entre 5 y 100'); return; }
+      if (pointsPerQuestion <= 0) { setError('Puntaje debe ser positivo'); return; }
     }
-    if (!startDate || !endDate) {
-      setError('Las fechas son requeridas');
-      return;
-    }
-
-    setSubmitting(true);
-    setError('');
-
+    setSubmitting(true); setError('');
     try {
-      const data = {
-        title: title.trim(),
-        description: description.trim(),
-        start_datetime: `${startDate}T${startTime}:00`,
-        end_datetime: `${endDate}T${endTime}:00`,
-        min_score_percentage: minScore
-      };
-      
+      const data = { title: title.trim(), description: description.trim(), type: examType };
+      if (examType === 'digital') {
+        data.start_datetime = `${startDate}T${startTime}:00`;
+        data.end_datetime = `${endDate}T${endTime}:00`;
+        data.min_score_percentage = minScore;
+      } else {
+        data.num_questions = numQuestions;
+        data.options_per_question = optionsPerQuestion;
+        data.points_per_question = pointsPerQuestion;
+      }
       await onSave(data, exam?.id);
       onClose();
     } catch (err) {
       setError(err.response?.data?.detail || 'Error al guardar');
-    } finally {
-      setSubmitting(false);
-    }
+    } finally { setSubmitting(false); }
   };
 
   if (!isOpen) return null;
@@ -149,125 +157,137 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId }) {
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
         <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4 flex items-center justify-between">
           <h3 className="text-xl font-bold text-white">
-            {exam ? 'Editar Examen' : 'Nuevo Examen'}
+            {isEditing ? 'Editar Examen' : 'Nuevo Examen'}
           </h3>
-          <button onClick={onClose} className="text-white/80 hover:text-white">
-            <X className="w-6 h-6" />
-          </button>
+          <button onClick={onClose} className="text-white/80 hover:text-white"><X className="w-6 h-6" /></button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
           {error && (
-            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
-              {error}
+            <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">{error}</div>
+          )}
+
+          {/* Type selector — only when creating */}
+          {!isEditing && (
+            <div className="grid grid-cols-2 gap-3" data-testid="exam-type-selector">
+              <button type="button" onClick={() => setExamType('digital')}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  examType === 'digital' ? 'border-emerald-500 bg-emerald-50 shadow-md' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}>
+                <Monitor className={`w-7 h-7 ${examType === 'digital' ? 'text-emerald-600' : 'text-gray-400'}`} />
+                <span className={`text-sm font-semibold ${examType === 'digital' ? 'text-emerald-700' : 'text-gray-500'}`}>Examen en linea</span>
+              </button>
+              <button type="button" onClick={() => setExamType('omr')}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  examType === 'omr' ? 'border-emerald-500 bg-emerald-50 shadow-md' : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}>
+                <Grid3X3 className={`w-7 h-7 ${examType === 'omr' ? 'text-emerald-600' : 'text-gray-400'}`} />
+                <span className={`text-sm font-semibold ${examType === 'omr' ? 'text-emerald-700' : 'text-gray-500'}`}>Examen fisico OMR</span>
+              </button>
+            </div>
+          )}
+          {isEditing && (
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+              examType === 'omr' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+            }`}>
+              {examType === 'omr' ? <Grid3X3 className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
+              {examType === 'omr' ? 'OMR' : 'Digital'}
             </div>
           )}
 
+          {/* Common fields */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Título del examen *
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Titulo del examen *</label>
+            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
-              placeholder="Ej: Examen parcial"
-            />
+              placeholder="Ej: Examen parcial" data-testid="exam-title-input" />
           </div>
-
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Descripción
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={3}
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Descripcion</label>
+            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
               className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400 resize-none"
-              placeholder="Instrucciones o descripción del examen..."
-            />
+              placeholder="Instrucciones o descripcion del examen..." data-testid="exam-description-input" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Fecha inicio
-              </label>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Hora inicio
-              </label>
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
-              />
-            </div>
-          </div>
+          {/* Digital-specific */}
+          {examType === 'digital' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha inicio</label>
+                  <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Hora inicio</label>
+                  <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Fecha fin</label>
+                  <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Hora fin</label>
+                  <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Nota minima aprobatoria (%)</label>
+                <input type="number" value={minScore} onChange={(e) => setMinScore(parseInt(e.target.value) || 0)}
+                  min={0} max={100}
+                  className="w-32 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400" />
+              </div>
+            </>
+          )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Fecha fin
-              </label>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Hora fin
-              </label>
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Nota mínima aprobatoria (%)
-            </label>
-            <input
-              type="number"
-              value={minScore}
-              onChange={(e) => setMinScore(parseInt(e.target.value) || 0)}
-              min={0}
-              max={100}
-              className="w-32 px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
-            />
-          </div>
+          {/* OMR-specific */}
+          {examType === 'omr' && (
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">N. de preguntas</label>
+                  <input type="number" value={numQuestions} min={5} max={100}
+                    onChange={(e) => setNumQuestions(Math.max(5, Math.min(100, Number(e.target.value) || 5)))}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
+                    data-testid="omr-num-questions" />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Opciones por pregunta</label>
+                  <select value={optionsPerQuestion} onChange={(e) => setOptionsPerQuestion(Number(e.target.value))}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
+                    data-testid="omr-options-per-question">
+                    <option value={2}>2 (A-B)</option>
+                    <option value={3}>3 (A-C)</option>
+                    <option value={4}>4 (A-D)</option>
+                    <option value={5}>5 (A-E)</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Puntaje por pregunta</label>
+                <input type="number" value={pointsPerQuestion} min={0.1} step={0.1}
+                  onChange={(e) => setPointsPerQuestion(Math.max(0.1, Number(e.target.value) || 0.1))}
+                  className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-purple-400"
+                  data-testid="omr-points-per-question" />
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-600">
+                Total: <strong>{numQuestions * pointsPerQuestion} puntos</strong> ({numQuestions} preguntas x {pointsPerQuestion} pts)
+              </div>
+            </>
+          )}
         </div>
 
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
-          <button
-            onClick={onClose}
-            className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 flex items-center gap-2"
-          >
+          <button onClick={onClose} className="px-5 py-2.5 text-gray-600 font-medium hover:bg-gray-100 rounded-xl">Cancelar</button>
+          <button onClick={handleSubmit} disabled={submitting}
+            className="px-5 py-2.5 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50 flex items-center gap-2">
             {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
-            {exam ? 'Guardar cambios' : 'Crear examen'}
+            {isEditing ? 'Guardar cambios' : 'Crear examen'}
           </button>
         </div>
       </div>
@@ -342,19 +362,55 @@ export function ExamDetailView({ examId, token, userRole, onBack }) {
             <p className="font-semibold text-gray-800">{exam?.status}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500 uppercase">Preguntas</p>
-            <p className="font-semibold text-gray-800">{exam?.questions?.length || 0}</p>
+            <p className="text-xs text-gray-500 uppercase">Tipo</p>
+            <p className="font-semibold text-gray-800">{exam?.type === 'omr' ? 'OMR' : 'Digital'}</p>
           </div>
+          {exam?.type === 'omr' ? (
+            <>
+              <div>
+                <p className="text-xs text-gray-500 uppercase">Preguntas</p>
+                <p className="font-semibold text-gray-800">{exam?.num_questions || 0}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase">Total puntos</p>
+                <p className="font-semibold text-gray-800">{exam?.total_points || 0}</p>
+              </div>
+            </>
+          ) : (
+            <>
+              <div>
+                <p className="text-xs text-gray-500 uppercase">Preguntas</p>
+                <p className="font-semibold text-gray-800">{exam?.questions?.length || 0}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 uppercase">Nota minima</p>
+                <p className="font-semibold text-gray-800">{exam?.min_score_percentage}%</p>
+              </div>
+            </>
+          )}
           <div>
             <p className="text-xs text-gray-500 uppercase">Intentos</p>
             <p className="font-semibold text-gray-800">{exam?.attempts_count || 0}</p>
           </div>
-          <div>
-            <p className="text-xs text-gray-500 uppercase">Nota mínima</p>
-            <p className="font-semibold text-gray-800">{exam?.min_score_percentage}%</p>
-          </div>
         </div>
         
+        {/* OMR → AnswerKeyEditor, Digital → Questions list */}
+        {exam?.type === 'omr' ? (
+          <div className="mt-6">
+            <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Key className="w-5 h-5 text-emerald-500" />
+              Clave de respuestas
+            </h3>
+            <AnswerKeyEditor
+              examId={exam.id}
+              numQuestions={exam.num_questions || 20}
+              optionsPerQuestion={exam.options_per_question || 5}
+              initialAnswerKey={exam.answer_key}
+              token={token}
+              onSave={(newKey) => setExam(prev => ({ ...prev, answer_key: newKey }))}
+            />
+          </div>
+        ) : (
         <div className="mt-6">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
             <ClipboardCheck className="w-5 h-5 text-purple-500" />
@@ -380,6 +436,7 @@ export function ExamDetailView({ examId, token, userRole, onBack }) {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
@@ -521,8 +578,8 @@ export default function ExamsContent({ subjectId, token, userRole }) {
           {exams.map((exam) => {
             const statusConfig = EXAM_STATUS_CONFIG[exam.status] || EXAM_STATUS_CONFIG.draft;
             const StatusIcon = statusConfig.icon;
-            const start = formatDateTime(exam.start_datetime);
-            const end = formatDateTime(exam.end_datetime);
+            const start = exam.type === 'omr' ? { date: '', time: '' } : formatDateTime(exam.start_datetime);
+            const end = exam.type === 'omr' ? { date: '', time: '' } : formatDateTime(exam.end_datetime);
             const isExpanded = expandedExam === exam.id;
             
             return (
@@ -550,17 +607,32 @@ export default function ExamsContent({ subjectId, token, userRole }) {
                               </span>
                             )}
                           </div>
-                          <h3 className="text-lg font-bold text-gray-800">{exam.title}</h3>
+                          <h3 className="text-lg font-bold text-gray-800">
+                            {exam.title}
+                            <span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold align-middle ${
+                              exam.type === 'omr' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {exam.type === 'omr' ? <Grid3X3 className="w-3 h-3" /> : <Monitor className="w-3 h-3" />}
+                              {exam.type === 'omr' ? 'OMR' : 'Digital'}
+                            </span>
+                          </h3>
                           {exam.description && (
                             <p className="text-sm text-gray-500 mt-1 line-clamp-1">{exam.description}</p>
                           )}
                         </div>
                         
                         <div className="text-right flex-shrink-0">
-                          <div className="px-3 py-2 bg-gray-50 rounded-xl">
-                            <p className="text-sm font-semibold text-gray-700">{start.date}</p>
-                            <p className="text-xs text-gray-500">{start.time} - {end.time}</p>
-                          </div>
+                          {exam.type === 'omr' ? (
+                            <div className="px-3 py-2 bg-emerald-50 rounded-xl">
+                              <p className="text-sm font-semibold text-emerald-700">{exam.num_questions || 0} preguntas</p>
+                              <p className="text-xs text-emerald-500">{exam.total_points || 0} pts</p>
+                            </div>
+                          ) : (
+                            <div className="px-3 py-2 bg-gray-50 rounded-xl">
+                              <p className="text-sm font-semibold text-gray-700">{start.date}</p>
+                              <p className="text-xs text-gray-500">{start.time} - {end.time}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -568,10 +640,17 @@ export default function ExamsContent({ subjectId, token, userRole }) {
                         <div className="flex items-center gap-2 mt-4 flex-wrap">
                           <button
                             onClick={() => setSelectedExamId(exam.id)}
-                            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-1.5"
+                            className={`px-4 py-2 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-1.5 ${
+                              exam.type === 'omr'
+                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                                : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                            }`}
                           >
-                            <Edit3 className="w-4 h-4" />
-                            GESTIONAR
+                            {exam.type === 'omr' ? (
+                              <><Key className="w-4 h-4" /> CONFIGURAR CLAVE</>
+                            ) : (
+                              <><Edit3 className="w-4 h-4" /> GESTIONAR</>
+                            )}
                           </button>
                           
                           <button
