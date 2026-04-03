@@ -1975,7 +1975,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         `${u.name} ${u.last_name}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
         u.username?.toLowerCase().includes(studentSearch.toLowerCase()) ||
         u.email?.toLowerCase().includes(studentSearch.toLowerCase()) ||
-        u.phone?.includes(studentSearch);
+        u.phone?.includes(studentSearch) ||
+        u.dni?.includes(studentSearch);
+      
+      // Si hay búsqueda activa, ignorar filtros de nivel/grado/sección
+      if (studentSearch) return matchesSearch;
+      
       const matchesLevel = !studentFilterLevel || u.nivel_id === studentFilterLevel;
       const matchesGrade = !studentFilterGrade || u.grado_id === studentFilterGrade;
       const matchesSection = !studentFilterSection || u.seccion_id === studentFilterSection;
@@ -4529,7 +4534,12 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {pendingImports.map(student => (
+                  {pendingImports.map(student => {
+                    const nivelName = levels.find(l => l.id === student.nivel_id)?.nombre || "";
+                    const gradeName = grades.find(g => g.id === student.grado_id)?.nombre || "";
+                    const sectionName = sections.find(s => s.id === student.seccion_id)?.nombre || "";
+                    const ubicacion = [nivelName, gradeName, sectionName].filter(Boolean).join(" — ");
+                    return (
                     <div key={student.id} className="border border-amber-200 rounded-xl overflow-hidden bg-amber-50/50" data-testid={`pending-student-${student.id}`}>
                       {/* Student header */}
                       <div className="flex items-center justify-between p-4">
@@ -4540,6 +4550,9 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                             {student.email && <span className="text-xs text-slate-500">{student.email}</span>}
                             {student.student_code && <span className="text-xs text-slate-400">{student.student_code}</span>}
                           </div>
+                          {ubicacion && (
+                            <p className="text-xs text-blue-600 font-medium mt-1">{ubicacion}</p>
+                          )}
                           {student.import_errors && student.import_errors.length > 0 && (
                             <div className="flex flex-wrap gap-1.5 mt-2">
                               {student.import_errors.map((err, i) => (
@@ -4657,7 +4670,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                         </div>
                       )}
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
