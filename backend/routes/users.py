@@ -1389,21 +1389,15 @@ async def bulk_safe_delete_students(data: BulkSafeDeleteRequest, current_user=De
             "blocked": blocked,
         }
 
-    # Execute soft delete
+    # Execute PERMANENT delete (remove from database completely)
     if not deletable:
         raise HTTPException(status_code=400, detail="No hay alumnos eliminables. Todos tienen actividad academica.")
 
     now_iso = datetime.now(timezone.utc).isoformat()
     deletable_ids = [d["id"] for d in deletable]
 
-    await db.users.update_many(
-        {"id": {"$in": deletable_ids}, "school_id": school_id},
-        {"$set": {
-            "student_status": "deleted",
-            "deleted_at": now_iso,
-            "deleted_by": user["id"],
-            "delete_reason": data.delete_reason,
-        }}
+    await db.users.delete_many(
+        {"id": {"$in": deletable_ids}, "school_id": school_id}
     )
 
     # Audit log
