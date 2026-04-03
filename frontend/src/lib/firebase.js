@@ -36,7 +36,7 @@ export async function requestNotificationPermission() {
   try {
     const registration = await navigator.serviceWorker.register("/firebase-messaging-sw.js");
     const token = await getToken(messaging, {
-      vapidKey: undefined,
+      vapidKey: process.env.REACT_APP_FIREBASE_VAPID_KEY,
       serviceWorkerRegistration: registration,
     });
     return token;
