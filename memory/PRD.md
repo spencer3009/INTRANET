@@ -44,61 +44,27 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Backend stores tipo_material, url, video_id fields
 - Popup modal for video playback (no external YouTube redirect)
 
-### Health & Wellness — Conditional Access for Teachers & Admins (April 2026)
-- Dynamic sidebar items in TeacherSidebar and AdminSidebar (appear only when permission enabled)
-- Wrapper pages: TeacherTopicoPage, TeacherPsicologiaPage, AdminTopicoPage, AdminPsicologiaPage
-- Intermediate pages: TeacherHealthPage, AdminHealthPage with access verification
-- TopicoPage/PsicologiaPage refactored to accept renderSidebar, renderHeader, backPath props
-- GET /api/settings/health-permissions now accessible to any authenticated user
+### Health & Wellness Module (April 2026)
+- Topico & Psicologia CRUD with soft delete
+- Dynamic permissions (owner/admin/teacher toggles)
+- Parent alerts with fullscreen modal (HealthAlertPopup)
+- Parent read-only view at /parent/salud-bienestar
+- School logo in all portals
+- Student photo + full name in modals
 
-### Health & Wellness Module — Tópico & Psicología (April 2026)
-- Backend: `/app/backend/routes/health.py` with full CRUD for both collections
-- Endpoints: GET/POST/PUT/DELETE for topico_records and psicologia_records
-- Soft delete for psicologia_records (is_deleted flag)
-- Intermediate page: HealthWellnessPage with cards for Tópico and Psicología
-- Frontend pages: TopicoPage.jsx, PsicologiaPage.jsx with cascade filters
+### Attendance Notification System (April 2026)
+- WebSocket real-time push notifications
+- NotificationBell attendance tab
+- AttendanceToast component
+- MongoDB indices with TTL 30 days
 
-### Health & Wellness — Permissions System (April 2026)
-- Dynamic permissions stored in schools collection: health_wellness_permissions
-- Owner always has full access
-- Admin/Director access controlled by admin_can_manage toggle
-- Teacher access controlled by teacher_can_manage toggle
-- Settings UI: 2 toggles in SettingsPage.jsx under "Permisos de Salud y Bienestar"
-- Endpoints: GET/PUT /api/settings/health-permissions
-
-### Health & Wellness — Parent Alerts (April 2026)
-- parent_notified field (Boolean) added to topico_records and psicologia_records
-- New records created with parent_notified=false
-- HealthAlertPopup component on ParentDashboardPage
-- Shows fullscreen modal for unacknowledged health records
-- Two actions: "Enterado" (acknowledge) and "Ver información completa" (navigate)
-- Alerts shown BEFORE BroadcastPopup (health is more urgent)
-- Endpoints: GET /api/health/parent/alerts, POST /api/health/parent/alerts/{id}/acknowledge
-
-### Health & Wellness — Parent Read-Only View (April 2026)
-- ParentHealthPage at /parent/salud-bienestar
-- Two tabs: Tópico and Psicología
-- Read-only record list with detail modal
-- ParentSidebar updated with HeartPulse icon menu item
-- Endpoints: GET /api/health/parent/topico, GET /api/health/parent/psicologia
-- Parent can only see their own children's records
-
-### Health & Wellness — School Logo in All Portals (April 2026)
-- All Health & Wellness pages now load school settings via `/api/settings/public/{subdomain}`
-- Logo displayed in DashboardHeader/StudentHeader across all portals: Owner, Admin, Teacher, Parent
-- Fixed pages: HealthWellnessPage (missing imports), AdminHealthPage (missing logoUrl prop), AdminTopicoPage & AdminPsicologiaPage (early return blocking settings load)
-
-### Attendance Notification System (April 2026) - COMPLETED
-- WebSocket real-time push from `send_attendance_notification()` via `ws_manager.send_to_user()`
-- `NotificationBell` attendance tab fixed (roleLabel matching for "Padre/Apoderado")
-- `AttendanceToast` component created for prominent in-app notifications (auto-managed via window events)
-- MongoDB indices added for `parent_notifications` (parent_id+read, TTL 30 days)
-- Parent-student linking verified (parent_id, parent_email, linked_students)
-- Full e2e flow tested: QR scan → notification created → WebSocket push → parent sees in bell
-
-### Health & Wellness — Modal: Full Name + Student Photo (April 2026)
-- RecordModal in Tópico and Psicología now shows student's full name (first + last name) and photo
-- Photo shown as circular avatar in modal header; falls back to initial letter if no photo
+### OMR Exam Integration — Phase 1 (April 2026) - COMPLETED
+- **Backend**: Extended `online_exams` collection with `type` field (`digital`/`omr`), `num_questions`, `options_per_question`, `answer_key`, `points_per_question` fields
+- **Backend**: Validation logic for OMR (skip date validation, require answer_key format)
+- **Frontend (Teacher portal)**: ExamsContent.jsx updated with type selector, OMR fields, AnswerKeyEditor component
+- **Frontend (Owner portal)**: CourseDetailPage.jsx ExamModal updated with type selector (Digital/OMR), OMR-specific fields, conditional buttons (CONFIGURAR CLAVE vs GESTIONAR PREGUNTAS), AnswerKeyEditor integration in ExamDetailView
+- **AnswerKeyEditor.jsx**: Interactive bubble grid for configuring answer keys with progress bar, save/clear functionality
+- Tested 100% on both backend (pytest) and frontend (automated browser testing)
 
 ## Pending Issues
 
@@ -106,12 +72,14 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 ### P2: Orphan Collection Cleanup (DELETE school leaves ~15 collections orphaned)
 
 ## Recently Completed (April 2026)
-- Buscador en pestaña Padres (UsersPage): filtrado por nombre, apellidos, DNI y email
-- Sistema de Papelera para Colegios: soft delete, restaurar, eliminación definitiva con cascade + transacción MongoDB
-- **Fix Importación Excel - Turno no se guardaba**: El endpoint `POST /api/students/import` ahora resuelve el turno_id desde las celdas visibles del Excel (fila 3, columna "Turno") cuando el parámetro de turno del formulario está vacío. Antes solo usaba el filtro de página, ignorando el turno del Excel
-- **Fix Bug P0 - Eliminación Masiva (BulkDeleteModal)**: El endpoint `POST /api/students/bulk-safe-delete` ahora busca ambos roles (`student` y `estudiante`), incluye estudiantes con `turno_id=null` cuando se aplica filtro de turno, y muestra mensajes de error diagnósticos detallados (turno diferente, otra sección, estudiantes sin asignación académica/huérfanos)
-- **Fix creación de usuario**: El endpoint `POST /api/users` ahora asigna campos académicos (`nivel_id`, `grado_id`, `seccion_id`, `turno_id`) para ambos roles (`student` y `estudiante`)
-- **Fix conteo de estudiantes en frontend**: `UsersPage.jsx` ahora cuenta y filtra estudiantes con ambos roles (`student` y `estudiante`)
+- OMR Exam UI integration in Owner portal (CourseDetailPage.jsx)
+- OMR Exam backend support in exams.py
+- AnswerKeyEditor bubble grid component
+- Buscador en pestaña Padres (UsersPage)
+- Sistema de Papelera para Colegios
+- Fix Importacion Excel - Turno, Metadata, Validation
+- Fix Bulk Delete
+- Fix Dashboard Orphan count
 
 ## Upcoming Tasks
 - P1: Refactor Message Pages (consolidate duplicates)
@@ -130,28 +98,23 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - UsersPage.jsx (>5000 lines) - split into sub-components
 
 ## Key Endpoints
-- POST /api/students/bulk-safe-delete - Eliminación masiva inteligente (análisis + confirmación)
-- PATCH /api/support/schools/{id}/archive - Soft delete (mover a papelera)
-- PATCH /api/support/schools/{id}/restore - Restaurar desde papelera
-- DELETE /api/support/schools/{id}/permanent - Eliminación definitiva con cascade transaccional
-- GET /api/support/schools/trash - Listar colegios en papelera
-- GET/PUT /api/settings/health-permissions - Health module permissions
-- GET /api/health/parent/alerts?student_id={id} - Unacknowledged health alerts
-- POST /api/health/parent/alerts/{id}/acknowledge - Mark alert as notified
-- GET /api/health/parent/topico?student_id={id} - Parent topico history
-- GET /api/health/parent/psicologia?student_id={id} - Parent psicologia history
-- GET/POST/PUT/DELETE /api/health/topico - Topico CRUD
-- GET/POST/PUT/DELETE /api/health/psicologia - Psicologia CRUD
+- POST /api/course/{subject_id}/exams (supports type: "digital" and "omr")
+- PUT /api/exams/{exam_id} (supports answer_key update for OMR)
+- POST /api/students/bulk-safe-delete
+- PATCH /api/support/schools/{id}/archive
+- GET/PUT /api/settings/health-permissions
+- GET/POST/PUT/DELETE /api/health/topico
+- GET/POST/PUT/DELETE /api/health/psicologia
 
 ## Key DB Schema
-- `topico_records`: {institution_id, student_id, student_name, grade_id, section_id, date, time, incident_type, description, action_taken, status, responsible, parent_notified}
-- `psicologia_records`: {institution_id, student_id, student_name, grade_id, section_id, date, time, record_type, reason, professional_observation, alert_level, requires_followup, status, responsible, is_deleted, parent_notified}
-- `schools.health_wellness_permissions`: {admin_can_manage: Boolean, teacher_can_manage: Boolean}
+- `online_exams`: Extended with optional `type`, `num_questions`, `options_per_question`, `answer_key`, `points_per_question`
+- `topico_records`: health records with parent_notified
+- `psicologia_records`: health records with soft delete
 
 ## 3rd Party Integrations
-- Cloudinary (image hosting) - Emergent managed keys
-- ChatterPal v8.5 (video avatar widget) - External script
-- Vimeo (video hosting) - External URL embed
+- Cloudinary (image hosting)
+- ChatterPal v8.5 (video avatar widget)
+- Vimeo (video hosting)
 - @yudiel/react-qr-scanner (QR Reader)
 
 ## Test Credentials
@@ -159,3 +122,4 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Owner: admin@elroble.edu / 1234abc8
 - Parent: maria.peres@gmail.com / Test1234!
 - Support: spencer3009@gmail.com / Socios3009
+- Teacher: sonia3009@gmail.com / teacher123
