@@ -1176,17 +1176,70 @@ async def delete_pending_student(student_id: str, current_user = Depends(get_cur
 
 @router.delete("/students/pending")
 async def delete_all_pending_students(current_user = Depends(get_current_user)):
-    """Delete ALL pending students for the school"""
+    """Delete only DUPLICATE pending students (where a non-pending original exists).
+    Preserves pending students that are the only copy (first import with errors)."""
     user = await resolve_user_from_token(current_user)
     if not user or not user.get("school_id"):
         raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
     if not is_admin_user(user):
         raise HTTPException(status_code=403, detail="Solo administradores pueden limpiar pendientes")
 
-    result = await db.users.delete_many(
-        {"school_id": user["school_id"], "role": "student", "import_status": "pending"}
-    )
-    return {"message": f"{result.deleted_count} registros pendientes eliminados", "deleted_count": result.deleted_count}
+    school_id = user["school_id"]
+
+    # Get all pending students
+    pending_students = await db.users.find(
+        {"school_id": school_id, "role": "student", "import_status": "pending"},
+        {"_id": 0, "id": 1, "dni": 1, "email": 1, "import_errors": 1}
+    ).to_list(1000)
+
+    if not pending_students:
+        return {"message": "No hay registros pendientes", "deleted_count": 0, "preserved_count": 0}
+
+    ids_to_delete = []
+    preserved_count = 0
+
+    for student in pending_students:
+        is_safe_to_delete = False
+        dni = student.get("dni")
+        email = student.get("email")
+
+        # Check if a non-pending copy with the same DNI exists
+        if dni:
+            original = await db.users.find_one(
+                {"school_id": school_id, "role": "student", "dni": dni,
+                 "id": {"$ne": student["id"]}, "import_status": {"$ne": "pending"}},
+                {"_id": 0, "id": 1}
+            )
+            if original:
+                is_safe_to_delete = True
+
+        # If DNI didn't match, check by email
+        if not is_safe_to_delete and email:
+            original = await db.users.find_one(
+                {"school_id": school_id, "role": "student", "email": email,
+                 "id": {"$ne": student["id"]}, "import_status": {"$ne": "pending"}},
+                {"_id": 0, "id": 1}
+            )
+            if original:
+                is_safe_to_delete = True
+
+        if is_safe_to_delete:
+            ids_to_delete.append(student["id"])
+        else:
+            preserved_count += 1
+
+    deleted_count = 0
+    if ids_to_delete:
+        result = await db.users.delete_many(
+            {"id": {"$in": ids_to_delete}, "school_id": school_id}
+        )
+        deleted_count = result.deleted_count
+
+    return {
+        "message": f"{deleted_count} duplicados eliminados" + (f", {preserved_count} registros preservados (sin duplicado original)" if preserved_count > 0 else ""),
+        "deleted_count": deleted_count,
+        "preserved_count": preserved_count
+    }
 
 # ══════════════════════════════════════════════════════════════════════════════
 

@@ -4571,10 +4571,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <div className="px-5 pt-3 pb-0">
                 <button
                   onClick={async () => {
-                    if (!window.confirm(`Eliminar los ${pendingImports.length} registros pendientes? Esto NO afecta a los estudiantes ya registrados.`)) return;
+                    if (!window.confirm(`Limpiar los registros duplicados? Solo se eliminarán los que ya tienen un original registrado. Los registros únicos con errores se preservarán.`)) return;
                     try {
-                      await axios.delete(`${API}/students/pending`, { headers });
-                      toast.success("Lista de pendientes limpiada");
+                      const res = await axios.delete(`${API}/students/pending`, { headers });
+                      const data = res.data;
+                      if (data.preserved_count > 0) {
+                        toast.success(`${data.deleted_count} duplicados eliminados, ${data.preserved_count} registros preservados`);
+                      } else {
+                        toast.success(data.message || "Lista de pendientes limpiada");
+                      }
                       loadPendingImports();
                     } catch { toast.error("Error al limpiar pendientes"); }
                   }}
@@ -4582,7 +4587,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   data-testid="clear-all-pending-btn"
                 >
                   <Trash2 className="w-4 h-4" />
-                  Limpiar todos los pendientes ({pendingImports.length})
+                  Limpiar duplicados ({pendingImports.length})
                 </button>
               </div>
             )}
