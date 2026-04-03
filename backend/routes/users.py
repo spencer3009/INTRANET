@@ -1009,10 +1009,7 @@ async def import_students(
             if existing_dni:
                 errors.append(f"DNI {dni} ya existe")
 
-        if email:
-            existing_email = await db.users.find_one({"school_id": school_id, "email": email}, {"_id": 0, "id": 1})
-            if existing_email:
-                errors.append(f"Correo {email} ya existe")
+        # Email duplicado permitido para estudiantes (hermanos comparten correo de padres)
 
         student_code = f"STU-{code_counter:06d}"
         code_counter += 1
