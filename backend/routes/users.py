@@ -1053,24 +1053,31 @@ async def import_students(
             "updated_at": now,
         }
 
-        # Generate short QR (centralized service)
-        qr_id, qr_token = await generate_user_qr(db)
-        new_student["qr_id"] = qr_id
-        new_student["qr_token"] = qr_token
-        new_student["qr_version"] = 2
+        # Determine if this is a duplicate error (DNI/email already exists)
+        has_duplicate_error = any("ya existe" in e for e in errors)
 
-        if errors:
-            pending.append({"row": idx + 1, "name": f"{name} {last_name}", "errors": errors, "student_code": student_code})
-            new_student["student_status"] = "pending"
+        if has_duplicate_error:
+            # DO NOT insert — just report the error. The original record already exists.
+            pending.append({"row": idx + 1, "name": f"{name} {last_name}", "errors": errors, "student_code": student_code, "skipped": True})
         else:
-            new_student["student_status"] = "active"
+            # Generate short QR (centralized service)
+            qr_id, qr_token = await generate_user_qr(db)
+            new_student["qr_id"] = qr_id
+            new_student["qr_token"] = qr_token
+            new_student["qr_version"] = 2
 
-        await db.users.insert_one(new_student)
-        new_student.pop("_id", None)
-        new_student.pop("password", None)
+            if errors:
+                pending.append({"row": idx + 1, "name": f"{name} {last_name}", "errors": errors, "student_code": student_code})
+                new_student["student_status"] = "pending"
+            else:
+                new_student["student_status"] = "active"
 
-        if not errors:
-            created.append({"name": f"{name} {last_name}", "student_code": student_code})
+            await db.users.insert_one(new_student)
+            new_student.pop("_id", None)
+            new_student.pop("password", None)
+
+            if not errors:
+                created.append({"name": f"{name} {last_name}", "student_code": student_code})
 
     logger.info(f"Student import: {len(created)} created, {len(pending)} pending by {user['id']}")
 
