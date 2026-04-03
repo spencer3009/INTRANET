@@ -538,16 +538,27 @@ async def get_orphan_students(school_id: str, user=Depends(require_support_admin
 
     # Get all valid level IDs for this school (from academic_levels collection)
     valid_levels = await db.academic_levels.find(
-        {"school_id": school_id}, {"_id": 0, "id": 1}
+        {"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}
     ).to_list(100)
     valid_level_ids = {l["id"] for l in valid_levels}
+    level_names = {l["id"]: l.get("nombre", "") for l in valid_levels}
+
+    # Load grades, sections, turnos for name resolution
+    all_grades = await db.grades.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(500)
+    grade_names = {g["id"]: g.get("nombre", "") for g in all_grades}
+
+    all_sections = await db.sections.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(500)
+    section_names = {s["id"]: s.get("nombre", "") for s in all_sections}
+
+    all_turnos = await db.shifts.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)
+    turno_names = {t["id"]: t.get("nombre", "") for t in all_turnos}
 
     # Get ALL students for this school
     all_students = await db.users.find(
         {"school_id": school_id, "role": "student"},
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1, "email": 1,
          "import_errors": 1, "import_status": 1, "student_status": 1, "created_at": 1,
-         "nivel_id": 1, "grado_id": 1, "seccion_id": 1}
+         "nivel_id": 1, "grado_id": 1, "seccion_id": 1, "turno_id": 1}
     ).to_list(5000)
 
     orphans = []
@@ -584,6 +595,15 @@ async def get_orphan_students(school_id: str, user=Depends(require_support_admin
             s["orphan_type"] = "sin_asignar"
 
         orphans.append(s)
+
+    # Enrich with resolved names and visibility flag
+    for s in orphans:
+        s["nivel_name"] = level_names.get(s.get("nivel_id", ""), "")
+        s["grado_name"] = grade_names.get(s.get("grado_id", ""), "")
+        s["seccion_name"] = section_names.get(s.get("seccion_id", ""), "")
+        s["turno_name"] = turno_names.get(s.get("turno_id", ""), "")
+        # Visible = active student that would show in the normal list
+        s["visible_in_system"] = s.get("student_status") not in ("deleted", "pending", None) and s.get("import_status") != "pending"
 
     return {"count": len(orphans), "students": orphans}
 

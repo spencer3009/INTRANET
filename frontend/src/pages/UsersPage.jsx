@@ -4644,18 +4644,30 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <div className="space-y-2">
                   {orphanStudents.map(s => (
                     <div key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${s.orphan_type === "duplicado" || s.orphan_type === "eliminado" ? "bg-red-50/50 border-red-200" : s.orphan_type === "pendiente" ? "bg-amber-50/50 border-amber-200" : "bg-slate-50/50 border-slate-200"}`} data-testid={`orphan-row-${s.id}`}>
-                      <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm flex-shrink-0">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 ${s.visible_in_system ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-500"}`}>
                         {(s.name || "?")[0]}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-slate-800 text-sm truncate">{s.name} {s.last_name}</p>
-                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-slate-800 text-sm truncate">{s.name} {s.last_name}</p>
+                          {s.visible_in_system
+                            ? <span className="text-[10px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold flex-shrink-0">VISIBLE</span>
+                            : <span className="text-[10px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded-full font-semibold flex-shrink-0">OCULTO</span>
+                          }
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
                           <span className="text-xs text-slate-500">DNI: {s.dni || "—"}</span>
                           <span className="text-xs text-slate-400">{s.email || ""}</span>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-1.5 mt-1">
                           {s.orphan_type === "duplicado" && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full font-semibold">DUPLICADO</span>}
                           {s.orphan_type === "pendiente" && <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold">PENDIENTE</span>}
                           {s.orphan_type === "eliminado" && <span className="text-[10px] px-1.5 py-0.5 bg-red-200 text-red-800 rounded-full font-semibold">ELIMINADO</span>}
                           {s.orphan_type === "sin_asignar" && <span className="text-[10px] px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded-full font-semibold">SIN NIVEL</span>}
+                          <span className="text-[10px] text-slate-400">
+                            {[s.nivel_name, s.grado_name, s.seccion_name].filter(Boolean).join(" — ") || "Sin asignación"}
+                            {s.turno_name ? ` | ${s.turno_name}` : ""}
+                          </span>
                         </div>
                         {s.import_errors?.length > 0 && (
                           <p className="text-[11px] text-slate-400 mt-0.5 truncate">{s.import_errors.join(", ")}</p>
