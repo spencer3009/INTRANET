@@ -716,9 +716,9 @@ async def get_orphan_students(school_id: str, user=Depends(require_support_admin
     all_turnos = await db.shifts.find({"school_id": school_id}, {"_id": 0, "id": 1, "nombre": 1}).to_list(50)
     turno_names = {t["id"]: t.get("nombre", "") for t in all_turnos}
 
-    # Get ALL students for this school
+    # Get ALL students for this school (both role variants)
     all_students = await db.users.find(
-        {"school_id": school_id, "role": "student"},
+        {"school_id": school_id, "role": {"$in": ["student", "estudiante"]}},
         {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1, "email": 1,
          "import_errors": 1, "import_status": 1, "student_status": 1, "created_at": 1,
          "nivel_id": 1, "grado_id": 1, "seccion_id": 1, "turno_id": 1}
@@ -783,7 +783,7 @@ async def delete_orphan_students(school_id: str, user=Depends(require_support_ad
 
     # Get all students and filter orphans
     all_students = await db.users.find(
-        {"school_id": school_id, "role": "student"},
+        {"school_id": school_id, "role": {"$in": ["student", "estudiante"]}},
         {"_id": 0, "id": 1, "import_status": 1, "student_status": 1, "nivel_id": 1}
     ).to_list(5000)
 

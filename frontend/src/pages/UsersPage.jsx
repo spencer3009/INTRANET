@@ -2037,6 +2037,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const filteredStudents = useMemo(() => {
     return users.filter(u => {
       if (u.role !== 'student' && u.role !== 'estudiante') return false;
+      // Exclude orphans without nivel (only visible in support orphan panel)
+      if (!u.nivel_id) return false;
       
       const matchesSearch = !studentSearch || 
         `${u.name} ${u.last_name}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
@@ -2150,13 +2152,13 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   // Count students without QR
   const studentsWithoutQR = useMemo(() => {
-    return users.filter(u => (u.role === 'student' || u.role === 'estudiante') && !u.qr_token).length;
+    return users.filter(u => (u.role === 'student' || u.role === 'estudiante') && u.nivel_id && !u.qr_token).length;
   }, [users]);
 
-  // Count users by role (for 'student' card, count both 'student' and 'estudiante' roles)
+  // Count users by role (for 'student' card, exclude orphans without nivel_id)
   const getUserCount = (roleId) => {
     if (roleId === 'student') {
-      return users.filter(u => u.role === 'student' || u.role === 'estudiante').length;
+      return users.filter(u => (u.role === 'student' || u.role === 'estudiante') && u.nivel_id).length;
     }
     return users.filter(u => u.role === roleId).length;
   };
@@ -2411,8 +2413,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
           })
         : users.filter(u => u.role === selectedRole);
     
-    // Get total students count (unfiltered)
-    const totalStudents = users.filter(u => u.role === 'student').length;
+    // Get total students count (unfiltered, exclude orphans without nivel)
+    const totalStudents = users.filter(u => (u.role === 'student' || u.role === 'estudiante') && u.nivel_id).length;
 
     return (
       <div className="p-6 lg:p-8" data-testid="users-list-content">
