@@ -1046,7 +1046,7 @@ async def import_students(
 
         if dni:
             existing_dni = await db.users.find_one(
-                {"school_id": school_id, "dni": dni},
+                {"school_id": school_id, "dni": dni, "student_status": {"$ne": "deleted"}},
                 {"_id": 0, "id": 1}
             )
             if existing_dni:
