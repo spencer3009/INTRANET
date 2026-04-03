@@ -31,8 +31,10 @@ import {
   PenTool, Search, Send, X, Loader2, Trash2, Edit2, Paperclip,
   Activity, Megaphone, CheckCircle, Check, Lock, Play, Camera, ZoomIn, ZoomOut,
   Type, Layers, Eye, EyeOff, Archive, RotateCcw, HardDrive, Cloud, Minus, Copy,
-  Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3, Link2, Youtube, RefreshCw
+  Video, Link as LinkIcon, ExternalLink, ClipboardList, BarChart3, Link2, Youtube, RefreshCw,
+  Grid3X3, Monitor, Key
 } from "lucide-react";
+import AnswerKeyEditor from "../components/course/AnswerKeyEditor";
 import CourseLoadingScreen from "../components/CourseLoadingScreen";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -5057,6 +5059,7 @@ function TimePicker({ value, onChange, label }) {
 
 // Exam Modal for Create/Edit
 function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token }) {
+  const [examType, setExamType] = useState("digital");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -5064,6 +5067,9 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
   const [endTime, setEndTime] = useState("11:00:00");
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [minScore, setMinScore] = useState(55);
+  const [numQuestions, setNumQuestions] = useState(20);
+  const [optionsPerQuestion, setOptionsPerQuestion] = useState(5);
+  const [pointsPerQuestion, setPointsPerQuestion] = useState(1.0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -5124,24 +5130,31 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
   // Initialize form when opening
   useEffect(() => {
     if (exam) {
+      setExamType(exam.type || "digital");
       setTitle(exam.title || "");
       setDescription(exam.description || "");
-      if (exam.start_datetime) {
-        const startDt = new Date(exam.start_datetime);
-        const year = startDt.getFullYear();
-        const month = String(startDt.getMonth() + 1).padStart(2, '0');
-        const day = String(startDt.getDate()).padStart(2, '0');
-        setDate(`${year}-${month}-${day}`);
-        setStartTime(`${startDt.getHours().toString().padStart(2, '0')}:${startDt.getMinutes().toString().padStart(2, '0')}`);
-      }
-      if (exam.end_datetime) {
-        const endDt = new Date(exam.end_datetime);
-        setEndTime(`${endDt.getHours().toString().padStart(2, '0')}:${endDt.getMinutes().toString().padStart(2, '0')}`);
+      if (exam.type !== "omr") {
+        if (exam.start_datetime) {
+          const startDt = new Date(exam.start_datetime);
+          const year = startDt.getFullYear();
+          const month = String(startDt.getMonth() + 1).padStart(2, '0');
+          const day = String(startDt.getDate()).padStart(2, '0');
+          setDate(`${year}-${month}-${day}`);
+          setStartTime(`${startDt.getHours().toString().padStart(2, '0')}:${startDt.getMinutes().toString().padStart(2, '0')}`);
+        }
+        if (exam.end_datetime) {
+          const endDt = new Date(exam.end_datetime);
+          setEndTime(`${endDt.getHours().toString().padStart(2, '0')}:${endDt.getMinutes().toString().padStart(2, '0')}`);
+        }
       }
       setDurationMinutes(exam.duration_minutes || 60);
       setMinScore(exam.min_score_percentage || 60);
+      setNumQuestions(exam.num_questions || 20);
+      setOptionsPerQuestion(exam.options_per_question || 5);
+      setPointsPerQuestion(exam.points_per_question || 1.0);
       setRegisterColumn(exam.register_column || null);
     } else {
+      setExamType("digital");
       setTitle("");
       setDescription("");
       setDate("");
@@ -5149,6 +5162,9 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
       setEndTime("11:00:00");
       setDurationMinutes(60);
       setMinScore(55);
+      setNumQuestions(20);
+      setOptionsPerQuestion(5);
+      setPointsPerQuestion(1.0);
       setRegisterColumn(null);
     }
     setError("");
@@ -5159,34 +5175,59 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
     setError("");
 
     if (!title.trim()) { setError("El titulo es requerido"); return; }
-    if (!date) { setError("La fecha es requerida"); return; }
-    if (!startTime || !endTime) { setError("Las horas de inicio y fin son requeridas"); return; }
-    if (!durationMinutes || durationMinutes < 1) { setError("La duracion debe ser al menos 1 minuto"); return; }
 
-    const startDatetime = new Date(`${date}T${startTime}`).toISOString();
-    const endDatetime = new Date(`${date}T${endTime}`).toISOString();
+    if (examType === "digital") {
+      if (!date) { setError("La fecha es requerida"); return; }
+      if (!startTime || !endTime) { setError("Las horas de inicio y fin son requeridas"); return; }
+      if (!durationMinutes || durationMinutes < 1) { setError("La duracion debe ser al menos 1 minuto"); return; }
 
-    if (new Date(endDatetime) <= new Date(startDatetime)) {
-      setError("La hora de fin debe ser posterior a la hora de inicio");
-      return;
-    }
+      const startDatetime = new Date(`${date}T${startTime}`).toISOString();
+      const endDatetime = new Date(`${date}T${endTime}`).toISOString();
 
-    setSaving(true);
-    try {
-      await onSave({
-        title: title.trim(),
-        description: description.trim(),
-        start_datetime: startDatetime,
-        end_datetime: endDatetime,
-        duration_minutes: parseInt(durationMinutes),
-        min_score_percentage: minScore,
-        register_column: registerColumn,
-      }, exam?.id);
-      onClose();
-    } catch (err) {
-      setError(err.response?.data?.detail || "Error al guardar");
-    } finally {
-      setSaving(false);
+      if (new Date(endDatetime) <= new Date(startDatetime)) {
+        setError("La hora de fin debe ser posterior a la hora de inicio");
+        return;
+      }
+
+      setSaving(true);
+      try {
+        await onSave({
+          title: title.trim(),
+          description: description.trim(),
+          type: "digital",
+          start_datetime: startDatetime,
+          end_datetime: endDatetime,
+          duration_minutes: parseInt(durationMinutes),
+          min_score_percentage: minScore,
+          register_column: registerColumn,
+        }, exam?.id);
+        onClose();
+      } catch (err) {
+        setError(err.response?.data?.detail || "Error al guardar");
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      // OMR
+      if (numQuestions < 5 || numQuestions > 100) { setError("Preguntas: entre 5 y 100"); return; }
+      if (pointsPerQuestion <= 0) { setError("Puntaje debe ser positivo"); return; }
+
+      setSaving(true);
+      try {
+        await onSave({
+          title: title.trim(),
+          description: description.trim(),
+          type: "omr",
+          num_questions: numQuestions,
+          options_per_question: optionsPerQuestion,
+          points_per_question: pointsPerQuestion,
+        }, exam?.id);
+        onClose();
+      } catch (err) {
+        setError(err.response?.data?.detail || "Error al guardar");
+      } finally {
+        setSaving(false);
+      }
     }
   };
 
@@ -5269,7 +5310,36 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
             </div>
           )}
 
-          {/* ═══════ REGISTER LINKAGE BLOCK ═══════ */}
+          {/* ═══════ EXAM TYPE SELECTOR ═══════ */}
+          {!exam && (
+            <div className="grid grid-cols-2 gap-3" data-testid="exam-type-selector">
+              <button type="button" onClick={() => setExamType("digital")}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  examType === "digital" ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 bg-white hover:border-gray-300"
+                }`}>
+                <Monitor className={`w-7 h-7 ${examType === "digital" ? "text-emerald-600" : "text-gray-400"}`} />
+                <span className={`text-sm font-semibold ${examType === "digital" ? "text-emerald-700" : "text-gray-500"}`}>Examen en linea</span>
+              </button>
+              <button type="button" onClick={() => setExamType("omr")}
+                className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${
+                  examType === "omr" ? "border-emerald-500 bg-emerald-50 shadow-md" : "border-gray-200 bg-white hover:border-gray-300"
+                }`}>
+                <Grid3X3 className={`w-7 h-7 ${examType === "omr" ? "text-emerald-600" : "text-gray-400"}`} />
+                <span className={`text-sm font-semibold ${examType === "omr" ? "text-emerald-700" : "text-gray-500"}`}>Examen fisico OMR</span>
+              </button>
+            </div>
+          )}
+          {exam && (
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold ${
+              examType === "omr" ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"
+            }`}>
+              {examType === "omr" ? <Grid3X3 className="w-3.5 h-3.5" /> : <Monitor className="w-3.5 h-3.5" />}
+              {examType === "omr" ? "OMR" : "Digital"}
+            </div>
+          )}
+
+          {/* ═══════ REGISTER LINKAGE BLOCK (solo digital) ═══════ */}
+          {examType === "digital" && (
           <div data-testid="register-linkage-block" className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-4">
             <p className="text-sm font-semibold text-amber-800 flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -5408,7 +5478,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
               </>
             )}
           </div>
-          {/* ═══════ END REGISTER LINKAGE BLOCK ═══════ */}
+          )}
 
           {/* Title */}
           <div>
@@ -5426,6 +5496,9 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
             />
           </div>
           
+          {/* ═══════ DIGITAL-SPECIFIC FIELDS ═══════ */}
+          {examType === "digital" && (
+          <>
           {/* Date */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -5442,7 +5515,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
           
           {/* Availability window explanation */}
           <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-            <p className="text-sm font-semibold text-blue-800 mb-1">📅 Ventana de disponibilidad</p>
+            <p className="text-sm font-semibold text-blue-800 mb-1">Ventana de disponibilidad</p>
             <p className="text-xs text-blue-600">
               Define cuándo los estudiantes pueden <strong>iniciar</strong> el examen. 
               Una vez iniciado, tendrán el tiempo de "duración" para completarlo.
@@ -5465,7 +5538,6 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
           
           {/* Duration */}
           {(() => {
-            // Calculate max duration based on availability window
             const parseTime = (timeStr) => {
               const [hours, minutes] = timeStr.split(':').map(Number);
               return hours * 60 + minutes;
@@ -5479,7 +5551,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
             return (
               <div className={`rounded-xl p-4 ${isOverWindow ? 'bg-red-50 border border-red-300' : 'bg-amber-50 border border-amber-200'}`}>
                 <label className={`block text-sm font-semibold mb-2 ${isOverWindow ? 'text-red-800' : 'text-amber-800'}`}>
-                  ⏱️ Duración del examen (minutos) *
+                  Duración del examen (minutos) *
                   {windowMinutes > 0 && (
                     <span className="font-normal text-xs ml-2">
                       (máx. {windowMinutes} min según ventana)
@@ -5519,7 +5591,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
                 </div>
                 {isOverWindow ? (
                   <p className="text-xs text-red-600 mt-2 font-medium">
-                    ⚠️ La duración ({currentDuration} min) excede la ventana de disponibilidad ({windowMinutes} min). 
+                    La duración ({currentDuration} min) excede la ventana de disponibilidad ({windowMinutes} min). 
                     El estudiante solo tendrá {windowMinutes} minutos reales.
                   </p>
                 ) : (
@@ -5554,6 +5626,44 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
               En Perú: 0-10 desaprobado, 11-20 aprobado. Valor por defecto: 11
             </p>
           </div>
+          </>
+          )}
+
+          {/* ═══════ OMR-SPECIFIC FIELDS ═══════ */}
+          {examType === "omr" && (
+          <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">N. de preguntas</label>
+              <input type="number" value={numQuestions} min={5} max={100}
+                onChange={(e) => setNumQuestions(Math.max(5, Math.min(100, Number(e.target.value) || 5)))}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+                data-testid="omr-num-questions" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Opciones por pregunta</label>
+              <select value={optionsPerQuestion} onChange={(e) => setOptionsPerQuestion(Number(e.target.value))}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+                data-testid="omr-options-per-question">
+                <option value={2}>2 (A-B)</option>
+                <option value={3}>3 (A-C)</option>
+                <option value={4}>4 (A-D)</option>
+                <option value={5}>5 (A-E)</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Puntaje por pregunta</label>
+            <input type="number" value={pointsPerQuestion} min={0.1} step={0.1}
+              onChange={(e) => setPointsPerQuestion(Math.max(0.1, Number(e.target.value) || 0.1))}
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white transition-all"
+              data-testid="omr-points-per-question" />
+          </div>
+          <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-600">
+            Total: <strong>{numQuestions * pointsPerQuestion} puntos</strong> ({numQuestions} preguntas x {pointsPerQuestion} pts)
+          </div>
+          </>
+          )}
           
           {/* Description */}
           <div>
@@ -6308,12 +6418,13 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
   const loadExamData = async () => {
     setLoading(true);
     try {
-      const [examRes, questionsRes] = await Promise.all([
-        axios.get(`${API}/exams/${examId}/full`, { headers }),
-        axios.get(`${API}/exams/${examId}/questions`, { headers })
-      ]);
+      const examRes = await axios.get(`${API}/exams/${examId}/full`, { headers });
       setExam(examRes.data);
-      setQuestions(questionsRes.data);
+      // Only load questions for digital exams
+      if (examRes.data.type !== "omr") {
+        const questionsRes = await axios.get(`${API}/exams/${examId}/questions`, { headers });
+        setQuestions(questionsRes.data);
+      }
     } catch (err) {
       console.error("Error loading exam:", err);
     } finally {
@@ -6369,8 +6480,9 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
     );
   }
   
-  const start = formatDateTime(exam.start_datetime);
-  const end = formatDateTime(exam.end_datetime);
+  const isOmr = exam?.type === "omr";
+  const start = isOmr ? { date: '', time: '' } : formatDateTime(exam.start_datetime);
+  const end = isOmr ? { date: '', time: '' } : formatDateTime(exam.end_datetime);
   const statusConfig = EXAM_STATUS_CONFIG[exam.status] || EXAM_STATUS_CONFIG.draft;
   const StatusIcon = statusConfig.icon;
   
@@ -6386,7 +6498,7 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
         </button>
         <div className="flex-1">
           <h2 className="text-xl font-bold text-gray-800">{exam.title}</h2>
-          <p className="text-sm text-gray-500">Gestión de preguntas del examen</p>
+          <p className="text-sm text-gray-500">{isOmr ? 'Configuración de clave de respuestas' : 'Gestión de preguntas del examen'}</p>
         </div>
         <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-bold ${statusConfig.color}`}>
           <StatusIcon className="w-4 h-4" />
@@ -6409,25 +6521,40 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
               <p className="font-semibold text-gray-800">{exam.subject_name || "—"}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Grado</p>
-              <p className="font-semibold text-gray-800">{exam.grade_name || "—"}</p>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Tipo</p>
+              <p className="font-semibold text-gray-800">{isOmr ? 'OMR' : 'Digital'}</p>
             </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Fecha</p>
-              <p className="font-semibold text-gray-800">{start.date}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Horario</p>
-              <p className="font-semibold text-gray-800">{start.time} - {end.time}</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Nota mínima</p>
-              <p className="font-semibold text-gray-800">{exam.min_score_percentage}%</p>
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Total preguntas</p>
-              <p className="font-semibold text-gray-800">{questions.length}</p>
-            </div>
+            {isOmr ? (
+              <>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Preguntas</p>
+                  <p className="font-semibold text-gray-800">{exam.num_questions || 0}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Total puntos</p>
+                  <p className="font-semibold text-gray-800">{exam.total_points || 0} pts</p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Fecha</p>
+                  <p className="font-semibold text-gray-800">{start.date}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Horario</p>
+                  <p className="font-semibold text-gray-800">{start.time} - {end.time}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Nota mínima</p>
+                  <p className="font-semibold text-gray-800">{exam.min_score_percentage}%</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Total preguntas</p>
+                  <p className="font-semibold text-gray-800">{questions.length}</p>
+                </div>
+              </>
+            )}
             <div>
               <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Puntaje total</p>
               <p className="font-semibold text-gray-800">{exam.total_points || 0} pts</p>
@@ -6448,7 +6575,31 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
         </div>
       </div>
       
-      {/* Questions Management */}
+      {/* OMR Answer Key Editor */}
+      {isOmr && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4">
+            <h3 className="text-white font-semibold flex items-center gap-2">
+              <Key className="w-5 h-5" />
+              Clave de respuestas
+            </h3>
+          </div>
+          <div className="p-6">
+            <AnswerKeyEditor
+              examId={exam.id}
+              numQuestions={exam.num_questions || 20}
+              optionsPerQuestion={exam.options_per_question || 5}
+              initialAnswerKey={exam.answer_key}
+              token={token}
+              onSave={(newKey) => setExam(prev => ({ ...prev, answer_key: newKey }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Questions Management (Digital only) */}
+      {!isOmr && (
+      <>
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
         <div className="bg-gradient-to-r from-indigo-600 to-blue-600 px-6 py-4 flex items-center justify-between">
           <h3 className="text-white font-semibold flex items-center gap-2">
@@ -6611,6 +6762,8 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
         </div>,
         document.body
       )}
+      </>
+      )}
     </div>
   );
 }
@@ -6754,8 +6907,9 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
           {exams.map((exam) => {
             const statusConfig = EXAM_STATUS_CONFIG[exam.status] || EXAM_STATUS_CONFIG.draft;
             const StatusIcon = statusConfig.icon;
-            const start = formatDateTime(exam.start_datetime);
-            const end = formatDateTime(exam.end_datetime);
+            const isOmr = exam.type === "omr";
+            const start = isOmr ? { date: '', time: '' } : formatDateTime(exam.start_datetime);
+            const end = isOmr ? { date: '', time: '' } : formatDateTime(exam.end_datetime);
             const isExpanded = expandedExam === exam.id;
             
             return (
@@ -6786,7 +6940,15 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                               </span>
                             )}
                           </div>
-                          <h3 className="text-lg font-bold text-gray-800">{exam.title}</h3>
+                          <h3 className="text-lg font-bold text-gray-800">
+                            {exam.title}
+                            <span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold align-middle ${
+                              isOmr ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {isOmr ? <Grid3X3 className="w-3 h-3" /> : <Monitor className="w-3 h-3" />}
+                              {isOmr ? 'OMR' : 'Digital'}
+                            </span>
+                          </h3>
                           {exam.description && (
                             <p className="text-sm text-gray-500 mt-1 line-clamp-1">{exam.description}</p>
                           )}
@@ -6794,10 +6956,17 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                         
                         {/* Date/Time Badge */}
                         <div className="text-right flex-shrink-0">
-                          <div className="px-3 py-2 bg-gray-50 rounded-xl">
-                            <p className="text-sm font-semibold text-gray-700">{start.date}</p>
-                            <p className="text-xs text-gray-500">{start.time} - {end.time}</p>
-                          </div>
+                          {isOmr ? (
+                            <div className="px-3 py-2 bg-emerald-50 rounded-xl">
+                              <p className="text-sm font-semibold text-emerald-700">{exam.num_questions || 0} preguntas</p>
+                              <p className="text-xs text-emerald-500">{exam.total_points || 0} pts</p>
+                            </div>
+                          ) : (
+                            <div className="px-3 py-2 bg-gray-50 rounded-xl">
+                              <p className="text-sm font-semibold text-gray-700">{start.date}</p>
+                              <p className="text-xs text-gray-500">{start.time} - {end.time}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                       
@@ -6806,10 +6975,17 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                         <div className="flex items-center gap-2 mt-4 flex-wrap">
                           <button
                             onClick={() => setSelectedExamId(exam.id)}
-                            className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-1.5"
+                            className={`px-4 py-2 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-1.5 ${
+                              isOmr
+                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
+                                : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                            }`}
                           >
-                            <Edit3 className="w-4 h-4" />
-                            GESTIONAR PREGUNTAS
+                            {isOmr ? (
+                              <><Key className="w-4 h-4" /> CONFIGURAR CLAVE</>
+                            ) : (
+                              <><Edit3 className="w-4 h-4" /> GESTIONAR PREGUNTAS</>
+                            )}
                           </button>
                           
                           <button
@@ -6890,17 +7066,32 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                           <p className="font-semibold text-gray-800">{statusConfig.label}</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider">Fecha</p>
-                          <p className="font-semibold text-gray-800">{start.date}</p>
+                          <p className="text-xs text-gray-500 uppercase tracking-wider">Tipo</p>
+                          <p className="font-semibold text-gray-800">{isOmr ? 'OMR' : 'Digital'}</p>
                         </div>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider">Horario</p>
-                          <p className="font-semibold text-gray-800">{start.time} - {end.time}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider">Nota mínima</p>
-                          <p className="font-semibold text-gray-800">{exam.min_score_percentage}%</p>
-                        </div>
+                        {isOmr ? (
+                          <>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">Preguntas</p>
+                              <p className="font-semibold text-gray-800">{exam.num_questions || 0}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">Total puntos</p>
+                              <p className="font-semibold text-gray-800">{exam.total_points || 0}</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">Fecha</p>
+                              <p className="font-semibold text-gray-800">{start.date}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500 uppercase tracking-wider">Horario</p>
+                              <p className="font-semibold text-gray-800">{start.time} - {end.time}</p>
+                            </div>
+                          </>
+                        )}
                       </div>
                       {exam.description && (
                         <div>
