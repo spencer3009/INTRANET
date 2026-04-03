@@ -1079,14 +1079,19 @@ async def import_students(
             if not errors:
                 created.append({"name": f"{name} {last_name}", "student_code": student_code})
 
-    logger.info(f"Student import: {len(created)} created, {len(pending)} pending by {user['id']}")
+    skipped = [p for p in pending if p.get("skipped")]
+    real_pending = [p for p in pending if not p.get("skipped")]
+
+    logger.info(f"Student import: {len(created)} created, {len(real_pending)} pending, {len(skipped)} skipped by {user['id']}")
 
     return {
         "message": f"Importacion completada",
         "created_count": len(created),
-        "pending_count": len(pending),
+        "pending_count": len(real_pending),
+        "skipped_count": len(skipped),
         "created": created,
-        "pending": pending,
+        "pending": real_pending,
+        "skipped": skipped,
     }
 
 @router.get("/students/pending")

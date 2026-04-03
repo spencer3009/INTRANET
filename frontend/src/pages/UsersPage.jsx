@@ -5004,16 +5004,40 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                     <div className="text-center">
                       <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4"><CheckCircle2 className="w-8 h-8 text-green-600" /></div>
                       <p className="text-green-700 font-bold text-xl mb-4">Importacion Completada</p>
-                      <div className="grid grid-cols-2 gap-3 mb-4">
+                      <div className={`grid ${importResult.skipped_count > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-3 mb-4`}>
                         <div className="bg-green-50 border border-green-200 rounded-xl p-4">
                           <p className="text-3xl font-bold text-green-600" data-testid="import-created-count">{importResult.created_count}</p>
                           <p className="text-sm text-green-700 font-medium">importados correctamente</p>
                         </div>
-                        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                          <p className="text-3xl font-bold text-amber-600" data-testid="import-pending-count">{importResult.pending_count}</p>
-                          <p className="text-sm text-amber-700 font-medium">con errores en Pendientes</p>
-                        </div>
+                        {importResult.pending_count > 0 && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                            <p className="text-3xl font-bold text-amber-600" data-testid="import-pending-count">{importResult.pending_count}</p>
+                            <p className="text-sm text-amber-700 font-medium">con errores (pendientes)</p>
+                          </div>
+                        )}
+                        {importResult.skipped_count > 0 && (
+                          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4">
+                            <p className="text-3xl font-bold text-slate-500" data-testid="import-skipped-count">{importResult.skipped_count}</p>
+                            <p className="text-sm text-slate-600 font-medium">omitidos (ya existen)</p>
+                          </div>
+                        )}
+                        {importResult.pending_count === 0 && !importResult.skipped_count && (
+                          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                            <p className="text-3xl font-bold text-amber-600" data-testid="import-pending-count">0</p>
+                            <p className="text-sm text-amber-700 font-medium">con errores</p>
+                          </div>
+                        )}
                       </div>
+                      {importResult.skipped_count > 0 && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 text-left mb-4">
+                          <p className="text-sm font-semibold text-slate-600 mb-2">Omitidos (ya registrados):</p>
+                          <div className="space-y-1 max-h-40 overflow-y-auto">
+                            {importResult.skipped?.map((p, i) => (
+                              <div key={i} className="text-xs text-slate-500 flex gap-1"><span className="font-bold flex-shrink-0">Fila {p.row}:</span><span>{p.name} — {p.errors?.join(", ")}</span></div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       {importResult.pending_count > 0 && (
                         <>
                           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-left mb-4">
