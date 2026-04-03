@@ -108,6 +108,9 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 ## Recently Completed (April 2026)
 - Buscador en pestaña Padres (UsersPage): filtrado por nombre, apellidos, DNI y email
 - Sistema de Papelera para Colegios: soft delete, restaurar, eliminación definitiva con cascade + transacción MongoDB
+- **Fix Bug P0 - Eliminación Masiva (BulkDeleteModal)**: El endpoint `POST /api/students/bulk-safe-delete` ahora busca ambos roles (`student` y `estudiante`), incluye estudiantes con `turno_id=null` cuando se aplica filtro de turno, y muestra mensajes de error diagnósticos detallados (turno diferente, otra sección, estudiantes sin asignación académica/huérfanos)
+- **Fix creación de usuario**: El endpoint `POST /api/users` ahora asigna campos académicos (`nivel_id`, `grado_id`, `seccion_id`, `turno_id`) para ambos roles (`student` y `estudiante`)
+- **Fix conteo de estudiantes en frontend**: `UsersPage.jsx` ahora cuenta y filtra estudiantes con ambos roles (`student` y `estudiante`)
 
 ## Upcoming Tasks
 - P1: Refactor Message Pages (consolidate duplicates)
@@ -126,6 +129,7 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - UsersPage.jsx (>5000 lines) - split into sub-components
 
 ## Key Endpoints
+- POST /api/students/bulk-safe-delete - Eliminación masiva inteligente (análisis + confirmación)
 - PATCH /api/support/schools/{id}/archive - Soft delete (mover a papelera)
 - PATCH /api/support/schools/{id}/restore - Restaurar desde papelera
 - DELETE /api/support/schools/{id}/permanent - Eliminación definitiva con cascade transaccional
