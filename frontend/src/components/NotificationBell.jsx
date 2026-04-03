@@ -238,13 +238,11 @@ export default function NotificationBell({ token, userRole }) {
   const handleWebSocketMessage = useCallback((data) => {
     if (data.type === "new_notification") {
       const notif = data.notification;
-      // Add to the top of the general notifications list
       setGeneralNotifications(prev => ({
         ...prev,
         unread_count: prev.unread_count + 1,
         notifications: [{ ...notif, is_read: false }, ...prev.notifications]
       }));
-      // Show toast
       const config = REMINDER_TYPE_CONFIG[notif.notification_type] || REMINDER_TYPE_CONFIG.notice;
       toast(notif.title, {
         description: notif.message,
@@ -258,6 +256,16 @@ export default function NotificationBell({ token, userRole }) {
           }
         } : undefined
       });
+    } else if (data.type === "attendance_notification") {
+      const notif = data.notification;
+      setAttendanceNotifs(prev => [{
+        id: notif.id, body: notif.body, type: notif.event_type,
+        student_id: notif.student_id, student_name: notif.student_name,
+        created_at: notif.created_at, read_at: null,
+      }, ...prev]);
+      setAttendanceUnread(prev => prev + 1);
+      // Dispatch event for AttendanceToast component
+      window.dispatchEvent(new CustomEvent("attendance-notification", { detail: notif }));
     } else if (data.type === "new_message") {
       setUnreadMessages(prev => prev + 1);
       toast(`Nuevo mensaje de ${data.sender_name}`, {

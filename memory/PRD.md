@@ -88,6 +88,14 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Logo displayed in DashboardHeader/StudentHeader across all portals: Owner, Admin, Teacher, Parent
 - Fixed pages: HealthWellnessPage (missing imports), AdminHealthPage (missing logoUrl prop), AdminTopicoPage & AdminPsicologiaPage (early return blocking settings load)
 
+### Attendance Notification System (April 2026) - COMPLETED
+- WebSocket real-time push from `send_attendance_notification()` via `ws_manager.send_to_user()`
+- `NotificationBell` attendance tab fixed (roleLabel matching for "Padre/Apoderado")
+- `AttendanceToast` component created for prominent in-app notifications (auto-managed via window events)
+- MongoDB indices added for `parent_notifications` (parent_id+read, TTL 30 days)
+- Parent-student linking verified (parent_id, parent_email, linked_students)
+- Full e2e flow tested: QR scan → notification created → WebSocket push → parent sees in bell
+
 ### Health & Wellness — Modal: Full Name + Student Photo (April 2026)
 - RecordModal in Tópico and Psicología now shows student's full name (first + last name) and photo
 - Photo shown as circular avatar in modal header; falls back to initial letter if no photo

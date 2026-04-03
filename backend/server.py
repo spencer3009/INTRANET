@@ -293,6 +293,9 @@ async def create_indexes():
         await db.student_attendance.create_index([("school_id", 1), ("student_id", 1), ("date", 1)])
         await db.academic_threads.create_index([("school_id", 1), ("participant_ids", 1)])
         await db.internal_messages.create_index([("school_id", 1), ("recipient_id", 1), ("is_deleted", 1)])
+        await db.parent_notifications.create_index([("parent_id", 1), ("read_at", 1), ("created_at", -1)])
+        await db.parent_notifications.create_index([("parent_id", 1), ("student_id", 1), ("type", 1), ("created_at", -1)])
+        await db.parent_notifications.create_index([("created_at", 1)], expireAfterSeconds=2592000)
         await db.user_school_roles.create_index(
             [("user_id", 1), ("school_id", 1)],
             unique=True

@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 import uuid
 import logging
 
-from .core import db, get_current_user
+from .core import db, get_current_user, ws_manager
 from utils.firebase_admin_sdk import send_push_notification
 
 router = APIRouter()
@@ -227,6 +227,25 @@ async def send_attendance_notification(student_id: str, school_id: str, entry_ti
         }
         await db.parent_notifications.insert_one(notification)
         logger.info(f"[NOTIF] Created notification {notif_id} for parent {parent_id}")
+
+        # Push via WebSocket to connected parent (real-time in-app)
+        try:
+            await ws_manager.send_to_user(parent_id, {
+                "type": "attendance_notification",
+                "notification": {
+                    "id": notif_id,
+                    "title": title,
+                    "body": body,
+                    "event_type": event_type,
+                    "student_id": student_id,
+                    "student_name": student_name,
+                    "school_name": school_name,
+                    "created_at": now,
+                }
+            })
+            logger.info(f"[NOTIF] WebSocket push sent to parent {parent_id}")
+        except Exception as ws_err:
+            logger.error(f"[NOTIF] WebSocket push error: {ws_err}")
 
         # Send push to all parent's devices
         tokens_cursor = db.push_tokens.find(
