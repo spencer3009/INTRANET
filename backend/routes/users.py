@@ -956,6 +956,41 @@ async def import_students(
     if not rows:
         raise HTTPException(status_code=400, detail="El archivo no contiene datos de estudiantes")
 
+    # ── Fallback: resolve turno from visible Excel metadata (row 2-3) or hidden sheet ──
+    if not turno_id:
+        # Try 1: resolve from hidden sheet metadata (turno_name)
+        meta_turno_name = file_metadata.get("turno_name", "").strip() if file_metadata else ""
+        if meta_turno_name:
+            real_turno = await db.shifts.find_one(
+                {"school_id": school_id, "nombre": {"$regex": f"^{meta_turno_name}$", "$options": "i"}},
+                {"_id": 0, "id": 1}
+            )
+            if real_turno:
+                turno_id = real_turno["id"]
+
+        # Try 2: read from visible cells in xlsx (row 2=headers, row 3=values)
+        if not turno_id and ext == "xlsx":
+            try:
+                wb_meta = load_workbook(io.BytesIO(content), read_only=True)
+                ws_meta = wb_meta.active
+                meta_rows = list(ws_meta.iter_rows(min_row=2, max_row=3, values_only=True))
+                if len(meta_rows) >= 2:
+                    meta_headers = [str(c or "").strip().lower() for c in meta_rows[0]]
+                    meta_values = [str(c or "").strip() for c in meta_rows[1]]
+                    for hi, hv in enumerate(meta_headers):
+                        if hv == "turno" and hi < len(meta_values) and meta_values[hi]:
+                            visible_turno_name = meta_values[hi]
+                            real_turno = await db.shifts.find_one(
+                                {"school_id": school_id, "nombre": {"$regex": f"^{visible_turno_name}$", "$options": "i"}},
+                                {"_id": 0, "id": 1}
+                            )
+                            if real_turno:
+                                turno_id = real_turno["id"]
+                            break
+                wb_meta.close()
+            except Exception:
+                pass
+
     COL_MAP = {
         "nombre": "name", "name": "name",
         "apellido": "last_name", "apellidos": "last_name", "last_name": "last_name",

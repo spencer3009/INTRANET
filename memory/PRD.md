@@ -108,6 +108,7 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 ## Recently Completed (April 2026)
 - Buscador en pestaña Padres (UsersPage): filtrado por nombre, apellidos, DNI y email
 - Sistema de Papelera para Colegios: soft delete, restaurar, eliminación definitiva con cascade + transacción MongoDB
+- **Fix Importación Excel - Turno no se guardaba**: El endpoint `POST /api/students/import` ahora resuelve el turno_id desde las celdas visibles del Excel (fila 3, columna "Turno") cuando el parámetro de turno del formulario está vacío. Antes solo usaba el filtro de página, ignorando el turno del Excel
 - **Fix Bug P0 - Eliminación Masiva (BulkDeleteModal)**: El endpoint `POST /api/students/bulk-safe-delete` ahora busca ambos roles (`student` y `estudiante`), incluye estudiantes con `turno_id=null` cuando se aplica filtro de turno, y muestra mensajes de error diagnósticos detallados (turno diferente, otra sección, estudiantes sin asignación académica/huérfanos)
 - **Fix creación de usuario**: El endpoint `POST /api/users` ahora asigna campos académicos (`nivel_id`, `grado_id`, `seccion_id`, `turno_id`) para ambos roles (`student` y `estudiante`)
 - **Fix conteo de estudiantes en frontend**: `UsersPage.jsx` ahora cuenta y filtra estudiantes con ambos roles (`student` y `estudiante`)
