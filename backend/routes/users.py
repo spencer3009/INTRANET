@@ -897,6 +897,18 @@ async def import_students(
             if real_turno:
                 turno_id = real_turno["id"]
 
+    # ── Validate: all 4 academic fields are required ──
+    missing_fields = []
+    if not nivel_id: missing_fields.append("Nivel")
+    if not grado_id: missing_fields.append("Grado")
+    if not seccion_id: missing_fields.append("Sección")
+    if not turno_id: missing_fields.append("Turno")
+    if missing_fields:
+        raise HTTPException(
+            status_code=400,
+            detail=f"El archivo no contiene los datos académicos requeridos: {', '.join(missing_fields)}. Descargue una plantilla nueva con todos los filtros seleccionados (Nivel, Grado, Sección y Turno)."
+        )
+
     try:
         if ext == "csv":
             text = content.decode("utf-8-sig")
