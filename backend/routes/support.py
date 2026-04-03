@@ -553,11 +553,12 @@ async def get_orphan_students(school_id: str, user=Depends(require_support_admin
     orphans = []
     for s in all_students:
         is_pending = s.get("import_status") == "pending"
+        is_deleted = s.get("student_status") == "deleted"
         nivel_id = s.get("nivel_id")
         has_no_nivel = not nivel_id
         has_invalid_nivel = bool(nivel_id) and nivel_id not in valid_level_ids
 
-        if not (is_pending or has_no_nivel or has_invalid_nivel):
+        if not (is_pending or is_deleted or has_no_nivel or has_invalid_nivel):
             continue
 
         # Check if a non-pending copy with the same DNI exists
@@ -577,6 +578,8 @@ async def get_orphan_students(school_id: str, user=Depends(require_support_admin
             s["orphan_type"] = "duplicado"
         elif is_pending:
             s["orphan_type"] = "pendiente"
+        elif is_deleted:
+            s["orphan_type"] = "eliminado"
         elif has_no_nivel or has_invalid_nivel:
             s["orphan_type"] = "sin_asignar"
 
@@ -604,10 +607,11 @@ async def delete_orphan_students(school_id: str, user=Depends(require_support_ad
     orphan_ids = []
     for s in all_students:
         is_pending = s.get("import_status") == "pending"
+        is_deleted = s.get("student_status") == "deleted"
         nivel_id = s.get("nivel_id")
         has_no_nivel = not nivel_id
         has_invalid_nivel = bool(nivel_id) and nivel_id not in valid_level_ids
-        if is_pending or has_no_nivel or has_invalid_nivel:
+        if is_pending or is_deleted or has_no_nivel or has_invalid_nivel:
             orphan_ids.append(s["id"])
 
     if not orphan_ids:
