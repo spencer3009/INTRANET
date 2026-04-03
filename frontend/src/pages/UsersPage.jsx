@@ -1612,6 +1612,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   const [parentImportFile, setParentImportFile] = useState(null);
   const [parentImporting, setParentImporting] = useState(false);
   const [parentImportResult, setParentImportResult] = useState(null);
+  const [parentsTabSearch, setParentsTabSearch] = useState("");
   const [parentDragOver, setParentDragOver] = useState(false);
   const [parentImportProgress, setParentImportProgress] = useState(0);
   const [showParentPending, setShowParentPending] = useState(false);
@@ -2327,10 +2328,19 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     // Check if any student filter is active
     const hasActiveStudentFilters = studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch;
     
-    // For students, use the filtered list; for others, use normal filter
+    // For students, use the filtered list; for parents, apply search; for others, use normal filter
     const usersToDisplay = selectedRole === 'student'
       ? filteredStudents
-      : users.filter(u => u.role === selectedRole);
+      : selectedRole === 'parent' && parentsTabSearch.trim()
+        ? users.filter(u => {
+            if (u.role !== 'parent') return false;
+            const q = parentsTabSearch.trim().toLowerCase();
+            const fullName = `${u.name || ''} ${u.last_name || ''}`.toLowerCase();
+            const dni = (u.dni || '').toLowerCase();
+            const email = (u.email || '').toLowerCase();
+            return fullName.includes(q) || dni.includes(q) || email.includes(q);
+          })
+        : users.filter(u => u.role === selectedRole);
     
     // Get total students count (unfiltered)
     const totalStudents = users.filter(u => u.role === 'student').length;
@@ -2697,6 +2707,39 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════════════════
+            PARENT SEARCH BAR - Only for parent role
+            ═══════════════════════════════════════════════════════════════════════════════ */}
+        {selectedRole === 'parent' && (
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 mb-6 shadow-sm" data-testid="parent-search-bar">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Buscar apoderado por nombre, apellidos o DNI..."
+                value={parentsTabSearch}
+                onChange={(e) => setParentsTabSearch(e.target.value)}
+                className="w-full pl-12 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                data-testid="parent-search-input"
+              />
+              {parentsTabSearch && (
+                <button
+                  onClick={() => setParentsTabSearch("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-slate-200 hover:bg-slate-300 flex items-center justify-center transition-colors"
+                  data-testid="parent-search-clear"
+                >
+                  <X className="w-3.5 h-3.5 text-slate-500" />
+                </button>
+              )}
+            </div>
+            {parentsTabSearch.trim() && (
+              <p className="text-xs text-slate-500 mt-2 ml-1">
+                {usersToDisplay.length} {usersToDisplay.length === 1 ? 'resultado' : 'resultados'} encontrados
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════════════════
             CONTENT AREA - Initial state, Empty state, Grouped view or Cards grid
             ═══════════════════════════════════════════════════════════════════════════════ */}
         {selectedRole === 'student' && !hasActiveStudentFilters ? (
@@ -2743,7 +2786,8 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 <img src={roleConfig.image} alt="" className="w-full h-full object-contain opacity-50" />
               </div>
               <h3 className={`text-2xl font-bold ${roleConfig.textColor} mb-2`} style={{ fontFamily: 'Manrope, sans-serif' }}>
-                {selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)
+                {(selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch))
+                  || (selectedRole === 'parent' && parentsTabSearch.trim())
                   ? "Sin resultados"
                   : `Sin ${roleConfig.label.toLowerCase()}`
                 }
@@ -2751,12 +2795,15 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               <p className="text-slate-500 mb-6 max-w-md mx-auto">
                 {selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)
                   ? "No se encontraron estudiantes con los filtros aplicados. Intenta ajustar los filtros."
-                  : roleConfig.hideAddButton
-                    ? `Usuario de ${roleConfig.labelSingular} del sistema.`
-                    : `Aún no tienes ${roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!`
+                  : selectedRole === 'parent' && parentsTabSearch.trim()
+                    ? `No se encontraron apoderados con "${parentsTabSearch}". Intenta con otro nombre, apellido o DNI.`
+                    : roleConfig.hideAddButton
+                      ? `Usuario de ${roleConfig.labelSingular} del sistema.`
+                      : `Aún no tienes ${roleConfig.label.toLowerCase()} registrados en el sistema. ¡Agrega el primero ahora!`
                 }
               </p>
-              {!(selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch)) && !roleConfig.hideAddButton && (
+              {!((selectedRole === 'student' && (studentFilterLevel || studentFilterGrade || studentFilterSection || studentSearch))
+                || (selectedRole === 'parent' && parentsTabSearch.trim())) && !roleConfig.hideAddButton && (
                 <button
                   onClick={() => handleAddUser(selectedRole)}
                   className={`inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r ${roleConfig.gradientBg} text-white rounded-xl font-semibold hover:shadow-xl transition-all hover:-translate-y-0.5`}

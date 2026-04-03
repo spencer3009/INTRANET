@@ -62,12 +62,12 @@
     "owner": {
       "email": "admin@elroble.edu",
       "password": "1234abc8",
-      "login_url": "https://wellness-portal-180.preview.emergentagent.com/elroble/login"
+      "login_url": "https://bienestar-module.preview.emergentagent.com/elroble/login"
     },
     "support": {
       "email": "spencer3009@gmail.com",
       "password": "Socios3009",
-      "login_url": "https://wellness-portal-180.preview.emergentagent.com/login",
+      "login_url": "https://bienestar-module.preview.emergentagent.com/login",
       "user_id": "0be3cb77-0fb2-4e7b-bbf1-5429a81f2d81",
       "role": "system_admin_global"
     }

@@ -1,152 +1,186 @@
-<analysis>**original_problem_statement**: Continuar el desarrollo y refinamiento de la plataforma de gestión escolar EduNet. El objetivo principal es terminar la implementación de videos de YouTube en Materiales y Tareas (tanto para profesores como estudiantes), refinar los modales de la interfaz, actualizar los accesos del Dashboard y construir desde cero el nuevo módulo de Salud y Bienestar con sus submódulos Tópico y Psicología (Backend y Frontend).
+<analysis>**original_problem_statement**: Continuar el desarrollo de la plataforma EduNet. Específicamente, realizar mejoras en la UI/UX del módulo de Salud y Bienestar (logos, nombres completos, fotos), implementar un sistema de notificaciones en tiempo real para padres (Asistencia) con WebSockets y Firebase Push Notifications, y optimizar la gestión de usuarios (buscador global en estudiantes, manejo de importaciones pendientes y un nuevo buscador para la sección de padres).
 
 **User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only)
 
 **what currently exists?**: 
-Plataforma Full-stack React + FastAPI + MongoDB. Se ha completado la integración de videos incrustados de YouTube tanto en Materiales de Estudio como en Tareas (visibles por profesores y estudiantes mediante popups de video). Los Dashboards han sido actualizados y el nuevo módulo de Salud y Bienestar (Tópico y Psicología) está 100% operativo con su propio backend CRUD, manejo de soft-deletes y vistas frontend con filtros en cascada (Grado → Sección).
+EduNet es una plataforma Full-stack React + FastAPI + MongoDB. Cuenta con módulos de Salud (Tópico y Psicología) con historial de alumnos e integración de componentes UI. Se ha implementado un sistema robusto de notificaciones en tiempo real usando WebSockets ( nativo) y Firebase Cloud Messaging (FCM) con Service Workers para Push Notifications y PWA badges. Además, el módulo de gestión de usuarios () permite gestionar importaciones masivas y listas de estudiantes/padres.
 
 **Last working item**:
-    - Last item agent was working: Recopilación de información sobre el Portal de Padres (, , ). El usuario solicitó ver cómo funciona el dashboard y si existen modales/popups al inicio de sesión para planificar una nueva funcionalidad.
-    - Status: WAITING FOR USER INPUT (El agente mostró los archivos solicitados y está esperando las instrucciones del usuario para la nueva funcionalidad del Portal de Padres).
-    - Agent Testing Done: N/A
-    - Which testing method agent to use?: Frontend testing agent/screenshot tool una vez que el usuario dé los requerimientos de la nueva UI.
+    - Last item agent was working: El agente comenzó a implementar un buscador global en la pestaña Padres (dentro de ), que permita buscar apoderados por nombre, apellido o DNI. El agente estaba revisando  para inyectar la lógica cuando la sesión finalizó.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use?: Frontend testing agent/screenshot tool
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: (P2) Arreglar Doble Scrollbar en la UI del Registro Auxiliar
+  Issue 1: (P0) Buscador en la pestaña de Padres ()
+     - Attempted fixes: El agente identificó que el estado actual  solo se usaba para el dropdown de vinculación de alumnos. Abrió el archivo para implementar un buscador real en el grid de padres, pero no aplicó los cambios.
+     - Next debug checklist: Buscar el grid/tabla de padres en , crear un estado de búsqueda dedicado para esta pestaña, añadir el input UI correspondiente en el encabezado de la sección y filtrar la lista  mostrada.
+     - Why fix this issue and what will be achieved with the fix?: Mejorar la accesibilidad y UX para los administradores que necesitan encontrar rápidamente a un apoderado en una lista potencialmente grande.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Frontend
+     - Blocked on other issue: N/A
+
+  Issue 2: (P2) Arreglar Doble Scrollbar en la UI del Registro Auxiliar
      - Attempted fixes: Ninguno en esta sesión.
      - Next debug checklist: Revisar contenedores con  redundante en el componente de Registro Auxiliar.
-     - Why fix this issue and what will be achieved with the fix?: Mejorar la experiencia de usuario y la estética de la tabla de calificaciones.
+     - Why fix this issue and what will be achieved with the fix?: Mejorar la experiencia de usuario general.
      - Status: NOT STARTED
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Frontend
      - Blocked on other issue: N/A
 
 **In progress Task List**:
-  Task 1: (P0) Implementación de nueva funcionalidad en el Portal de Padres
-     - Where to resume: Esperar la confirmación/prompt del usuario sobre qué popup o modal desea agregar al inicio de sesión del portal de padres ().
-     - What will be achieved with this?: Cumplir con la solicitud pendiente del usuario.
-     - Status: NOT STARTED (Esperando requerimientos).
+  Task 1: Validar el flujo de notificaciones Push PWA en entorno de producción
+     - Where to resume: Una vez finalizados los ajustes locales, comprobar (si es posible) que al aceptar los permisos del navegador, el badge numérico y las notificaciones en background de Firebase lleguen correctamente a un dispositivo.
+     - What will be achieved with this?: Garantizar que el Service Worker y el Payload de FCM funcionen end-to-end.
+     - Status: TESTING PENDING
      - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on something: Esperando instrucciones del usuario tras la lectura del código base.
+     - Blocked on something: N/A
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
     - P1: Refactorizar páginas de Mensajes: Consolidar páginas duplicadas.
     - P2: Indicador visual de  en lista de Exámenes/Tareas.
     - P2: Mejoras en Gradebook: Implementar Exportar a PDF/Excel y Bloquear/Cerrar Periodo.
-    - P2: Crear la página/módulo de Encuestas en  (Actualmente el botón Encuestas redirige ahí, pero falta el componente principal).
+    - P2: Crear la página/módulo de Encuestas en .
 
     Future Tasks:
     - Vinculación Masiva Inteligente (Fase 2 de importación de padres).
     - Dashboard Owner con métricas reales.
     - Construir módulo de Matrículas (Enrollments).
     - Reemplazar / con modales customizados.
-    - Refactorización crítica:  (Actualmente tiene más de 10,000 líneas).
+    - Refactorización crítica:  (> 10,000 líneas).
+    - Refactorización crítica:  (> 5,000 líneas).
+    - Refactorización crítica:  (> 2,000 líneas).
 
 **Completed work in this session**
-- Fix de sintaxis JSX ( sin cerrar) en el modal de Material de Estudio que bloqueaba la renderización () (DONE).
-- Ajuste de diseño en Modal de Materiales: Altura máxima con scroll interno y previsualización compacta de YouTube (DONE).
-- Nueva vista de YouTube en lista de materiales: Botón de Play que abre un popup de video, eliminando el iframe estático gigante (DONE).
-- Soporte de YouTube en Tareas (), visible en detalle del profesor y vista de estudiante () (DONE).
-- Botón de refresco () en lista de materiales (DONE).
-- Fix de actualización de estado local tras hacer POST de Material YouTube ( en lugar de ) (DONE).
-- Dashboard: Botón Colegio cambiado a Encuestas (). Tarjeta Encuestas cambiada a Salud y Bienestar con ruta  (, ) (DONE).
-- Creación de página intermedia  con tarjetas para Tópico y Psicología (DONE).
-- Módulo **Tópico**: Creado  (filtros en cascada y modal de registro) y  (Backend CRUD) (DONE).
-- Módulo **Psicología**: Creado  y endpoints en  con lógica de *soft delete* () (DONE).
+- **Logo de la institución**: Se arregló la visualización del logo en los wrappers , ,  y  (DONE).
+- **Nombre y foto de estudiantes**: Añadido nombre completo y foto en modales (Registrar Atención, DetailModal y lista del historial) de Tópico y Psicología (DONE).
+- **Corrección de guardado (Health)**: El backend guardaba  vacío porque se referenciaba erróneamente. Fix aplicado para asociar las atenciones al alumno correcto (DONE).
+- **Notificaciones Tiempo Real**: Añadido WebSocket push vía  para que los padres reciban notificaciones instantáneas de asistencia. Creado  (DONE).
+- **Mejoras UX en Notificaciones**: Implementado Singleton AudioContext para sonido,  y animación Bounce (animación key) en  (DONE).
+- **Pendientes de Importación ()**: 
+  - Se agregó mapeo para mostrar el texto real de Nivel, Grado y Sección (INICIAL — 3 años — A) (DONE).
+  - Creado botón y endpoint  para limpiar toda la lista de duplicados sin afectar a los usuarios activos (DONE).
+  - Arreglado el buscador global para que ignore los filtros si se escribe un texto de búsqueda (DONE).
+- **Integración Firebase FCM**: 
+  - Configurada  en  y asignada en  (DONE).
+  - Sincronización del badge de PWA () con el  en backend y  (DONE).
 
 **Earlier issues found/mentioned but not fixed**
-- Ninguno nuevo.
+- Issue 1: Doble Scrollbar en Registro Auxiliar (P2)
+   - Debug checklist: Revisar estilos CSS  en el componente tabla de notas.
+   - Why to solve this issue and what will be achieved with this?: UI pulida.
+   - Should Test frontend/backend/both after fix: Frontend
+   - Is recurring issue? N
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Discrepancias entre Producción vs Preview environment (El widget ChatterPal bloquea el preview).
+  - Issue recurrence in previous fork: Discrepancias entre Producción vs Preview environment (El widget ChatterPal bloquea el preview ocasionalmente).
   - Recurrence count: 6
   - Status: ONGOING
-  - Note: Recordar que widgets externos deben probarse en producción.
+  - Note: Recordar que widgets externos como ChatterPal pueden dar errores en el entorno de desarrollo. Ignorarlos si no afectan la feature principal.
 
 **Code Architecture**
 /app
 ├── backend/
-│   └── routes/
-│       ├── health.py                 # (NUEVO) Endpoints CRUD para Tópico y Psicología
-│       └── courses.py                # Fix proyecciones para retornar campos de YouTube
+│   ├── routes/
+│   │   ├── notifications.py         # Endpoint FCM Push + registro de tokens
+│   │   ├── attendance.py            # Lógica de registro QR
+│   │   └── users.py                 # Contiene el endpoint para pendientes
+│   ├── utils/
+│   │   └── firebase_admin_sdk.py    # Singleton Firebase Admin
 └── frontend/
+    ├── public/
+    │   ├── firebase-messaging-sw.js # Service Worker con onBackgroundMessage y PWA Badges
+    │   └── service-worker.js
     └── src/
-        ├── App.js                    # (ACTUALIZADO) Nuevas rutas de /salud-bienestar
+        ├── lib/
+        │   └── firebase.js          # Configuración Web de Firebase y VAPID key
+        ├── utils/
+        │   └── notificationSound.js # (NUEVO) Singleton AudioContext para sonidos
+        ├── hooks/
+        │   └── useNotificationSocket.js
+        ├── components/
+        │   ├── NotificationBell.jsx # (MODIFICADO) Sincronización de badges y websockets
+        │   └── AttendanceToast.jsx  # (NUEVO)
         └── pages/
-            ├── CourseDetailPage.jsx        # Fixes extensos modales y render de YouTube
-            ├── StudentCourseDetailPage.jsx # Soporte YouTube Tareas/Materiales
-            ├── HealthWellnessPage.jsx      # (NUEVO) Dashboard intermedio Salud
-            ├── TopicoPage.jsx              # (NUEVO) Gestión médica
-            └── PsicologiaPage.jsx          # (NUEVO) Gestión conductual
+            └── UsersPage.jsx        # Gestión de padres, estudiantes y pendientes
 
 **Key Technical Concepts**
-- **Soft Deletes en MongoDB**: Implementado en la colección  mediante la bandera . Los endpoints GET excluyen activamente estos registros.
-- **Filtros en Cascada (Frontend)**: Replicados en Tópico y Psicología. Grados se traen con niveles incluidos. Las Secciones se traen todas de un golpe y se filtran localmente por .
-- **Renderizado de Video Seguro**: Uso de Modales superpuestos () con iframes incrustados generados limpiamente extrayendo el ID de YouTube con Regex en el frontend.
+- **PWA Badges**: Integración completa con  y Service Workers .
+- **AudioContext Singleton**: Un workaround implementado para permitir reproducir el sonido de notificación ( oscilador) de forma confiable sin violar las políticas de *autoplay* de los navegadores.
+- **WebSockets FastApi**: En lugar de , se utiliza un  nativo en  () para el envío de eventos en tiempo real al frontend.
 
 **key DB schema**
-  - : {institution_id, student_id, student_name, grade_id, section_id, date, time, incident_type, description, action_taken, status, responsible}
-  - : {institution_id, student_id, student_name, grade_id, section_id, date, time, record_type, reason, professional_observation, alert_level, requires_followup, status, responsible, is_deleted}
+  - : Colección MongoDB para tokens FCM (, , ).
+  - : Colección con mensajes, , y campo .
 
 **changes in tech stack**
-  - Ninguno.
+  - Ninguno. La app sigue en Create React App (CRA). Las variables de entorno son  y no .
 
 **All files of reference** 
-  -  (Nuevo backend CRUD).
-  -  (Modificado extensamente, manejar con cuidado por su gran tamaño).
-  -  (Modificado para UX de estudiante).
-  -  (Rutas actualizadas).
-  -  y  (Últimos archivos leídos por el agente para planificar la siguiente tarea).
+  -  (Actualmente requiriendo edición para el buscador de padres).
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
 
 **Areas that need refactoring**: 
-  -  ha crecido aún más (casi 10,500 líneas). Es imperativo no agregar más funciones monolíticas ahí si es posible; idealmente debe desglosarse en la próxima fase de refactorización.
+  -  (> 5,200 líneas).
+  -  (> 10,000 líneas).
+  -  (> 2,000 líneas).
 
 **key api endpoints**
-  - 
-  - 
-  -  (Ahora retorna data completa de YouTube)
+  -  (Elimina todos los duplicados).
+  -  (Conexión TR).
+  - .
 
 **Critical Info for New Agent** 
-  - **Próximo Paso Inmediato**: El usuario acaba de solicitar información sobre cómo funciona la UI del portal de Padres (), específicamente si hay popups/modales al hacer login. Esta exploración fue un paso de *lectura*. En su próximo mensaje, el usuario enviará los requerimientos exactos para una nueva función basada en esto.
-  - Al trabajar con , asegúrate de mantener el prefijo  en la declaración del router para que coincida con el entorno K8s de Ingress.
-  - El backend maneja el Soft Delete para , no uses un borrado físico en base de datos si te piden modificar funciones de este módulo.
-  - RESPONDE ESTRICTAMENTE EN ESPAÑOL.
+  - La aplicación de React usa Webpack/Create React App. Si necesitas variables de entorno, asegúrate de usar  (como se hizo con ).
+  - En la pestaña de Estudiantes,  se refiere al buscador en el modal de vinculación de un padre existente a un alumno. No utilices ese estado para la barra de búsqueda que vas a implementar en la pestaña raíz de Padres. Necesitas crear un estado distinto, por ejemplo, .
+  - Firebase ya se encuentra implementado con Service Workers. No alterar  ya que el payload badge y el click handler ya operan bien.
 
 **documents and test reports created in this job** 
-  -  (Actualizado con módulos de Salud/Bienestar y funcionalidades de YouTube).
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
-  - User: Solicitó eliminar botón Abrir en YouTube de la lista de materiales. (Completado)
-  - User: Solicitó agregar la misma lógica de YouTube al modal de Tareas y a las vistas del Estudiante. (Completado)
-  - User: Solicitó agregar un botón de Refresh en Materiales. (Completado)
-  - User: Reportó bug donde un nuevo material YouTube no se renderizaba bien al momento del submit sin refrescar. (Solucionado)
-  - User: Pidió cambiar botón Colegio a Encuestas. (Completado)
-  - User: Pidió renombrar la tarjeta Encuestas en Dashboard a Salud y Bienestar. (Completado)
-  - User: Pidió ver el código de App.js y DashboardPage.jsx para planificar el módulo Salud y Bienestar. (Mostrado)
-  - User: Dio los requerimientos para crear la página intermedia . (Completado)
-  - User: Solicitó ver patrón de Asistencia, y luego dio requerimientos masivos para submódulos Tópico y Psicología (backend y frontend). (Completado)
-  - **(Último Mensaje)** User: Solicitó información (solo lectura) sobre si existen popups/modales de login en el portal de padres, y cómo está estructurado el dashboard del portal de padres, para planificar una nueva funcionalidad. El agente le proveyó la vista de los archivos. (PENDING: Esperando la respuesta/prompt del usuario con las instrucciones de la nueva feature).
+ - User: cuando se registre en salud y bienestar... debe salir en el portal del padre un popup grande (Agente demostró que ya estaba implementado).
+ - User: FEATURE: Sistema de Notificaciones de Asistencia a Padres... (Implementado WebSocket push + Notification Toast + Bell sync).
+ - User: MEJORA UX: Sonido, vibración y badge animado en notificaciones (Implementado con AudioContext, vibrate y CSS Bounce key).
+ - User: 1.- Quiero que allí tambien se muestre el nivel, grado y sección del alumno. 2.- el buscado debe buscar todo... (Corregido mapeo y lógica del buscador en UsersPage).
+ - User: si yo le doy clic al tacho de basura o lo elimino, se eliminha el registro que duplicado? (Agente clarificó que no borra el alumno real).
+ - User: crea un botonm para limpiar esta lista de pendientes, sin tocar los alumnos registrados... (Botón Limpiar y endpoint DELETE creados).
+ - User: DIAGNÓSTICO: Estado actual de integración Firebase... (Agente entregó un diagnóstico completo).
+ - User: FIX: Configurar VAPID Key para activar Push Notifications (VAPID key configurada en entorno y lib).
+ - User: FEATURE: Badge numérico en ícono de PWA... (Payload backend actualizado y setAppBadge integrado en Front y SW).
+ - **(PENDING HUMAN)** User: estoy en usuarios / padres y creo que debería haber un buscador que me permita buscar por nombre, nombre y apellidos, apellidos, dni (Agente empezó a explorar UsersPage pero no aplicó los cambios).
 
 **Project Health Check:**
-  - Broken: Ninguno detectado.
-  - Mocked: Ninguno.
+  - Broken: Ninguno
+  - Mocked: Ninguno
 
 **3rd Party Integrations** 
-  - Cloudinary (Image Hosting) - Emergent managed.
-  - Vimeo / YouTube (Video Hosting) - Embedded External URLs.
-  - ChatterPal (Video Avatar) - External Script (Rompe preview ocasionalmente).
+  - Firebase Cloud Messaging / Web Push Notifications (Requires User Firebase Key - Ya configurado mediante service account e inyectado con VAPID).
+  - Cloudinary (Image Hosting)
+  - Vimeo / YouTube (Video Hosting)
+  - ChatterPal (Video Avatar)
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Pruebas manuales exhaustivas con Screenshot Tool y CLI demostraron alta confiabilidad en los cambios UI/CRUD recientes).
-  - Troubleshoot agent used after agent stuck in loop: NO.
+  - Testing agent used after significant changes: NO (Pruebas manuales exitosas vía screenshots).
+  - Troubleshoot agent used after agent stuck in loop: NO
   - Test files created: []
-  - Known regressions: Ninguna.
+  - Known regressions: Ninguna
 
 **Credentials to test flow:**
-  - **School Owner / Admin:**  /  / 
+  - **School Owner / Admin:**  /  (subdomain: )
+  - **Teacher:**  / 
+  - **Parent:**  / 
   - **Global Support Admin:**  / 
 
 **What agent forgot to execute**
-El agente gestionó exitosamente las iteraciones y correcciones del usuario, pero por limitaciones de tiempo/recursos no corrió el *testing agent v3* tras los masivos cambios al monolítico . Sería prudente utilizar el Testing Agent en una futura sesión donde los requerimientos no sean tan dinámicos y continuos como lo fueron en esta, para validar que nada secundario se haya roto en la vista del profesor.</analysis>
+El agente analizó la necesidad de implementar el buscador dentro de  para la visualización de Padres, localizando los estados correspondientes ( y ), pero la sesión finalizó antes de poder editar el archivo y proveer el UI (barra de búsqueda) dentro de esa pestaña. Implementar esto debe ser tu prioridad absoluta antes de confirmar con el humano.</analysis>

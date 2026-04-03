@@ -105,6 +105,9 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 ### P2: Double scrollbar in "Registro Auxiliar"
 ### P2: Orphan Collection Cleanup (DELETE school leaves ~15 collections orphaned)
 
+## Recently Completed (April 2026)
+- Buscador en pestaña Padres (UsersPage): filtrado por nombre, apellidos, DNI y email con indicador de resultados y estado vacío mejorado
+
 ## Upcoming Tasks
 - P1: Refactor Message Pages (consolidate duplicates)
 - P2: Visual indicator of sync_status in Exams/Tasks

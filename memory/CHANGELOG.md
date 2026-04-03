@@ -75,6 +75,14 @@
 - Frontend: Fixed presence map bug
 - Testing: 100% (Backend 22/22, Frontend verified) - iteration_84.json
 
+## April 3, 2026 - Fork (Parents Search)
+
+### Feature: Buscador en pestaña Padres (UsersPage) - COMPLETED
+- Added `parentsTabSearch` state and search input UI in Parents tab
+- Filters parents by name, last_name, DNI or email in real-time
+- Includes clear button (X), result count indicator, and improved empty-state message when search yields no results
+- File modified: `/app/frontend/src/pages/UsersPage.jsx`
+
 ## March 11, 2026 - Fork 5
 
 ### Major Feature: Registro Auxiliar Excel-Format Rebuild - COMPLETED

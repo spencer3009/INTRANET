@@ -76,7 +76,7 @@
       "password": "1234abc8"
     },
     "test_subject_id": "97ef0442-551b-413f-8bf8-b5c2e31aee41",
-    "api_base": "https://wellness-portal-180.preview.emergentagent.com"
+    "api_base": "https://bienestar-module.preview.emergentagent.com"
   },
 
   "seed_data_creation": "None - used existing course 'Ciencias Naturales' and existing exam 'Examen Mensual - Test Auto Zero' which occupies EM column",
