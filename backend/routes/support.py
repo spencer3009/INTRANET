@@ -526,6 +526,169 @@ async def delete_school(school_id: str, user=Depends(require_support_admin)):
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SUPPORT: Student Backup Export (Excel)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/schools/{school_id}/backup-students")
+async def backup_students(
+    school_id: str,
+    nivel_id: str = "",
+    grado_id: str = "",
+    seccion_id: str = "",
+    turno_id: str = "",
+    user=Depends(require_support_admin)
+):
+    """Export students as Excel backup in import-template format (support only)"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+    from io import BytesIO
+
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo soporte puede exportar backups")
+
+    if not nivel_id or not grado_id or not seccion_id:
+        raise HTTPException(status_code=400, detail="Debe seleccionar nivel, grado y sección")
+
+    # Resolve names
+    nivel_doc = await db.academic_levels.find_one({"id": nivel_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+    grado_doc = await db.grades.find_one({"id": grado_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+    seccion_doc = await db.sections.find_one({"id": seccion_id, "school_id": school_id}, {"_id": 0, "nombre": 1})
+    turno_doc = await db.shifts.find_one({"id": turno_id, "school_id": school_id}, {"_id": 0, "nombre": 1}) if turno_id else None
+
+    nivel_name = nivel_doc["nombre"] if nivel_doc else "Sin Nivel"
+    grado_name = grado_doc["nombre"] if grado_doc else "Sin Grado"
+    seccion_name = seccion_doc["nombre"] if seccion_doc else "Sin Seccion"
+    turno_name = turno_doc["nombre"] if turno_doc else ""
+
+    # Query students
+    query = {"school_id": school_id, "role": "student", "nivel_id": nivel_id, "grado_id": grado_id, "seccion_id": seccion_id, "student_status": {"$ne": "deleted"}}
+    if turno_id:
+        query["turno_id"] = turno_id
+
+    students = await db.users.find(
+        query,
+        {"_id": 0, "name": 1, "last_name": 1, "dni": 1, "birthdate": 1, "gender": 1,
+         "phone": 1, "email": 1, "address": 1, "observations": 1}
+    ).sort("last_name", 1).to_list(5000)
+
+    # Build Excel
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Estudiantes"
+
+    # Styles
+    title_font = Font(name="Calibri", size=14, bold=True)
+    header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+    header_fill = PatternFill(start_color="2E5A1E", end_color="2E5A1E", fill_type="solid")
+    meta_header_fill = PatternFill(start_color="4A7A32", end_color="4A7A32", fill_type="solid")
+    meta_value_fill = PatternFill(start_color="E8F5E9", end_color="E8F5E9", fill_type="solid")
+    meta_value_font = Font(name="Calibri", size=11, bold=True)
+    thin_border = Border(
+        left=Side(style="thin"), right=Side(style="thin"),
+        top=Side(style="thin"), bottom=Side(style="thin")
+    )
+    instruction_font = Font(name="Calibri", size=10, italic=True, color="333333")
+    note_font = Font(name="Calibri", size=10, italic=True, color="CC0000")
+
+    # Row 1: Title
+    ws.merge_cells("A1:I1")
+    ws["A1"] = "Plantilla de Importacion de Estudiantes"
+    ws["A1"].font = title_font
+
+    # Row 2: Metadata headers
+    meta_headers = ["Nivel", "Grado", "Seccion", "Turno"]
+    for i, h in enumerate(meta_headers, 1):
+        cell = ws.cell(row=2, column=i, value=h)
+        cell.font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
+        cell.fill = meta_header_fill
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal="center")
+
+    # Row 3: Metadata values
+    meta_values = [nivel_name, grado_name, seccion_name, turno_name]
+    for i, v in enumerate(meta_values, 1):
+        cell = ws.cell(row=3, column=i, value=v)
+        cell.font = meta_value_font
+        cell.fill = meta_value_fill
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal="center")
+
+    # Row 5: Instructions
+    ws.merge_cells("A5:I5")
+    ws["A5"] = "Instrucciones: Complete los datos de los estudiantes en las filas inferiores y luego vuelva a subir este archivo en el sistema para importarlos automaticamente."
+    ws["A5"].font = instruction_font
+
+    # Row 6: Note
+    ws.merge_cells("A6:I6")
+    ws["A6"] = "Nota: El usuario y contrasena del estudiante seran generados automaticamente por el sistema."
+    ws["A6"].font = note_font
+
+    # Row 8: Data headers
+    data_headers = ["Nombre", "Apellido", "DNI", "Cumpleanos", "Genero", "Celular", "Correo", "Direccion", "Observaciones"]
+    for i, h in enumerate(data_headers, 1):
+        cell = ws.cell(row=8, column=i, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.border = thin_border
+        cell.alignment = Alignment(horizontal="center")
+
+    # Data rows (starting row 9)
+    for row_idx, s in enumerate(students, 9):
+        ws.cell(row=row_idx, column=1, value=s.get("name", "")).border = thin_border
+        ws.cell(row=row_idx, column=2, value=s.get("last_name", "")).border = thin_border
+        ws.cell(row=row_idx, column=3, value=s.get("dni", "")).border = thin_border
+        ws.cell(row=row_idx, column=4, value=s.get("birthdate", "")).border = thin_border
+        ws.cell(row=row_idx, column=5, value=s.get("gender", "")).border = thin_border
+        ws.cell(row=row_idx, column=6, value=s.get("phone", "")).border = thin_border
+        ws.cell(row=row_idx, column=7, value=s.get("email", "")).border = thin_border
+        ws.cell(row=row_idx, column=8, value=s.get("address", "")).border = thin_border
+        ws.cell(row=row_idx, column=9, value=s.get("observations", "")).border = thin_border
+
+    # Column widths
+    col_widths = [18, 18, 12, 14, 12, 16, 30, 40, 30]
+    for i, w in enumerate(col_widths, 1):
+        ws.column_dimensions[chr(64 + i)].width = w
+
+    # Hidden metadata for re-import (row 100+ won't interfere)
+    ws["K1"] = "school_id"
+    ws["L1"] = school_id
+    ws["K2"] = "nivel_id"
+    ws["L2"] = nivel_id
+    ws["K3"] = "grado_id"
+    ws["L3"] = grado_id
+    ws["K4"] = "seccion_id"
+    ws["L4"] = seccion_id
+    ws["K5"] = "turno_id"
+    ws["L5"] = turno_id or ""
+    ws["K6"] = "nivel_name"
+    ws["L6"] = nivel_name
+    ws["K7"] = "grado_name"
+    ws["L7"] = grado_name
+    ws["K8"] = "seccion_name"
+    ws["L8"] = seccion_name
+    ws["K9"] = "turno_name"
+    ws["L9"] = turno_name
+    # Hide metadata columns
+    ws.column_dimensions["K"].hidden = True
+    ws.column_dimensions["L"].hidden = True
+
+    # Save to bytes
+    buffer = BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    filename = f"Backup_Estudiantes_{nivel_name}_{grado_name}_{seccion_name}.xlsx"
+
+    from fastapi.responses import StreamingResponse
+    return StreamingResponse(
+        buffer,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
 # SUPPORT: Orphan/Pending Students Management
 # ══════════════════════════════════════════════════════════════════════════════
 

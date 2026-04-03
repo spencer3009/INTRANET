@@ -1664,6 +1664,33 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     } catch { toast.error("Error al eliminar huérfanos"); }
   };
 
+  const [backupLoading, setBackupLoading] = useState(false);
+  const handleBackupExport = async () => {
+    if (!studentFilterLevel || !studentFilterGrade || !studentFilterSection) {
+      toast.error("Selecciona Nivel, Grado y Sección para exportar");
+      return;
+    }
+    setBackupLoading(true);
+    try {
+      const params = new URLSearchParams({ nivel_id: studentFilterLevel, grado_id: studentFilterGrade, seccion_id: studentFilterSection });
+      if (studentFilterShift) params.append("turno_id", studentFilterShift);
+      const res = await axios.get(`${API}/support/schools/${user.school_id}/backup-students?${params}`, { headers, responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement("a");
+      a.href = url;
+      const nivel = levels.find(l => l.id === studentFilterLevel)?.nombre || "Nivel";
+      const grado = grades.find(g => g.id === studentFilterGrade)?.nombre || "Grado";
+      const seccion = sections.find(s => s.id === studentFilterSection)?.nombre || "Seccion";
+      a.download = `Backup_Estudiantes_${nivel}_${grado}_${seccion}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Backup exportado correctamente");
+    } catch { toast.error("Error al exportar backup"); }
+    finally { setBackupLoading(false); }
+  };
+
   const handlePhotoUpdated = (userId, newUrl) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, photo_url: newUrl } : u));
     toast.success("Foto actualizada correctamente");
@@ -2713,6 +2740,17 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   >
                     <AlertTriangle className="w-4 h-4" />
                     Huérfanos
+                  </button>
+                )}
+                {isSupportSession && (
+                  <button
+                    onClick={handleBackupExport}
+                    disabled={backupLoading}
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg disabled:opacity-60"
+                    data-testid="support-backup-btn"
+                  >
+                    {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                    {backupLoading ? "Exportando..." : "Backup Excel"}
                   </button>
                 )}
               </div>
