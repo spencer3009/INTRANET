@@ -565,7 +565,7 @@ async def backup_students(
     # Query students
     query = {"school_id": school_id, "role": "student", "nivel_id": nivel_id, "grado_id": grado_id, "seccion_id": seccion_id, "student_status": {"$ne": "deleted"}}
     if turno_id:
-        query["turno_id"] = turno_id
+        query["$or"] = [{"turno_id": turno_id}, {"turno_id": None}, {"turno_id": {"$exists": False}}, {"turno_id": ""}]
 
     students = await db.users.find(
         query,
