@@ -2750,9 +2750,10 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                 {isSupportSession && (
                   <button
                     onClick={handleBackupExport}
-                    disabled={backupLoading}
-                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg disabled:opacity-60"
+                    disabled={backupLoading || !studentFilterLevel || !studentFilterGrade || !studentFilterSection || !studentFilterShift}
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                     data-testid="support-backup-btn"
+                    title={(!studentFilterLevel || !studentFilterGrade || !studentFilterSection || !studentFilterShift) ? "Selecciona Nivel, Grado, Sección y Turno para exportar" : ""}
                   >
                     {backupLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                     {backupLoading ? "Exportando..." : "Backup Excel"}
