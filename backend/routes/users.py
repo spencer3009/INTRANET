@@ -212,8 +212,8 @@ async def create_user(data: CreateUserRequest, current_user = Depends(get_curren
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
-    # Add academic fields for students
-    if data.role == "student":
+    # Add academic fields for students (support both 'student' and 'estudiante' roles)
+    if data.role in ["student", "estudiante"]:
         new_user["nivel_id"] = data.nivel_id
         new_user["grado_id"] = data.grado_id
         new_user["seccion_id"] = data.seccion_id
@@ -1320,29 +1320,73 @@ async def bulk_safe_delete_students(data: BulkSafeDeleteRequest, current_user=De
     if not school_id:
         raise HTTPException(status_code=403, detail="No autorizado")
 
+    student_roles = {"$in": ["student", "estudiante"]}
+
     # Find students - filter by grado_id + seccion_id (nivel is implicit in grado)
     student_filter = {
         "school_id": school_id,
-        "role": "student",
+        "role": student_roles,
         "grado_id": data.grado_id,
         "seccion_id": data.seccion_id,
         "student_status": {"$ne": "deleted"},
     }
     if data.turno_id:
-        student_filter["turno_id"] = data.turno_id
+        # Also match students without turno assigned
+        student_filter["$or"] = [
+            {"turno_id": data.turno_id},
+            {"turno_id": None},
+            {"turno_id": {"$exists": False}},
+        ]
 
     students = await db.users.find(student_filter, {"_id": 0, "id": 1, "name": 1, "last_name": 1}).to_list(2000)
+
+    # If no results, try progressively relaxed filters to diagnose
     if not students:
-        # Fallback: try without seccion_id filter in case field name differs
-        student_filter2 = {
+        # Try without turno filter
+        relaxed_filter = {
             "school_id": school_id,
-            "role": "student",
+            "role": student_roles,
+            "grado_id": data.grado_id,
+            "seccion_id": data.seccion_id,
+            "student_status": {"$ne": "deleted"},
+        }
+        found_without_turno = await db.users.count_documents(relaxed_filter)
+        if found_without_turno > 0:
+            raise HTTPException(status_code=404, detail=f"Hay {found_without_turno} estudiantes en esa seccion pero con un turno diferente al seleccionado.")
+
+        # Try without seccion filter
+        relaxed_filter2 = {
+            "school_id": school_id,
+            "role": student_roles,
             "grado_id": data.grado_id,
             "student_status": {"$ne": "deleted"},
         }
-        all_in_grade = await db.users.find(student_filter2, {"_id": 0, "id": 1, "seccion_id": 1}).to_list(5)
-        if all_in_grade:
-            raise HTTPException(status_code=404, detail=f"No se encontraron estudiantes en esa seccion. Hay {len(all_in_grade)} en el grado pero con otra seccion.")
+        found_in_grade = await db.users.count_documents(relaxed_filter2)
+        if found_in_grade > 0:
+            raise HTTPException(status_code=404, detail=f"No se encontraron estudiantes en esa seccion. Hay {found_in_grade} en el grado pero con otra seccion.")
+
+        # Try by nivel only
+        relaxed_filter3 = {
+            "school_id": school_id,
+            "role": student_roles,
+            "nivel_id": data.nivel_id,
+            "student_status": {"$ne": "deleted"},
+        }
+        found_in_nivel = await db.users.count_documents(relaxed_filter3)
+        if found_in_nivel > 0:
+            raise HTTPException(status_code=404, detail=f"No se encontraron estudiantes con ese grado/seccion. Hay {found_in_nivel} en el nivel pero en otros grados.")
+
+        # Check if there are students without academic assignment
+        orphan_filter = {
+            "school_id": school_id,
+            "role": student_roles,
+            "student_status": {"$ne": "deleted"},
+            "$or": [{"grado_id": None}, {"grado_id": {"$exists": False}}, {"grado_id": ""}],
+        }
+        orphan_count = await db.users.count_documents(orphan_filter)
+        if orphan_count > 0:
+            raise HTTPException(status_code=404, detail=f"No se encontraron estudiantes con esos filtros academicos. Hay {orphan_count} estudiantes sin nivel/grado asignado en el colegio. Usa la herramienta de Huerfanos para gestionarlos.")
+
         raise HTTPException(status_code=404, detail="No se encontraron estudiantes con esos filtros")
 
     student_ids = [s["id"] for s in students]
@@ -1447,7 +1491,7 @@ async def export_student_credentials(
         raise HTTPException(status_code=400, detail="Todos los filtros son requeridos: nivel, grado, seccion y turno")
 
     school_id = user["school_id"]
-    query = {"role": "student", "school_id": school_id, "student_status": {"$ne": "deleted"}}
+    query = {"role": {"$in": ["student", "estudiante"]}, "school_id": school_id, "student_status": {"$ne": "deleted"}}
     query["nivel_id"] = nivel_id
     query["grado_id"] = grado_id
     query["seccion_id"] = seccion_id

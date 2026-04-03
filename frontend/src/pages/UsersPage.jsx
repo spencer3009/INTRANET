@@ -2036,7 +2036,7 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
   // Get all students with applied filters
   const filteredStudents = useMemo(() => {
     return users.filter(u => {
-      if (u.role !== 'student') return false;
+      if (u.role !== 'student' && u.role !== 'estudiante') return false;
       
       const matchesSearch = !studentSearch || 
         `${u.name} ${u.last_name}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
@@ -2150,11 +2150,14 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
 
   // Count students without QR
   const studentsWithoutQR = useMemo(() => {
-    return users.filter(u => u.role === 'student' && !u.qr_token).length;
+    return users.filter(u => (u.role === 'student' || u.role === 'estudiante') && !u.qr_token).length;
   }, [users]);
 
-  // Count users by role
+  // Count users by role (for 'student' card, count both 'student' and 'estudiante' roles)
   const getUserCount = (roleId) => {
+    if (roleId === 'student') {
+      return users.filter(u => u.role === 'student' || u.role === 'estudiante').length;
+    }
     return users.filter(u => u.role === roleId).length;
   };
 
