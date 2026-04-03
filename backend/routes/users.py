@@ -849,9 +849,41 @@ async def import_students(
 
     # If use_file_config is true, override filters with file metadata
     if use_file_config == "true" and file_metadata:
-        nivel_id = file_metadata.get("nivel_id", nivel_id)
-        grado_id = file_metadata.get("grado_id", grado_id)
-        seccion_id = file_metadata.get("seccion_id", seccion_id)
+        # Resolve IDs by NAME in the current school (file might come from a different school)
+        meta_nivel_name = file_metadata.get("nivel_name", "").strip()
+        meta_grado_name = file_metadata.get("grado_name", "").strip()
+        meta_seccion_name = file_metadata.get("seccion_name", "").strip()
+
+        if meta_nivel_name:
+            real_nivel = await db.academic_levels.find_one(
+                {"school_id": school_id, "nombre": {"$regex": f"^{meta_nivel_name}$", "$options": "i"}},
+                {"_id": 0, "id": 1}
+            )
+            if real_nivel:
+                nivel_id = real_nivel["id"]
+            else:
+                nivel_id = file_metadata.get("nivel_id", nivel_id)
+
+        if meta_grado_name and nivel_id:
+            real_grado = await db.grades.find_one(
+                {"school_id": school_id, "nivel_id": nivel_id, "nombre": {"$regex": f"^{meta_grado_name}$", "$options": "i"}},
+                {"_id": 0, "id": 1}
+            )
+            if real_grado:
+                grado_id = real_grado["id"]
+            else:
+                grado_id = file_metadata.get("grado_id", grado_id)
+
+        if meta_seccion_name and grado_id:
+            real_seccion = await db.sections.find_one(
+                {"school_id": school_id, "grado_id": grado_id, "nombre": {"$regex": f"^{meta_seccion_name}$", "$options": "i"}},
+                {"_id": 0, "id": 1}
+            )
+            if real_seccion:
+                seccion_id = real_seccion["id"]
+            else:
+                seccion_id = file_metadata.get("seccion_id", seccion_id)
+
         turno_id = file_metadata.get("turno_id", turno_id)
 
     try:

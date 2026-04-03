@@ -536,8 +536,8 @@ async def get_orphan_students(school_id: str, user=Depends(require_support_admin
     if user.get("role") != "system_admin_global":
         raise HTTPException(status_code=403, detail="Solo soporte puede ver huérfanos")
 
-    # Get all valid level IDs for this school
-    valid_levels = await db.levels.find(
+    # Get all valid level IDs for this school (from academic_levels collection)
+    valid_levels = await db.academic_levels.find(
         {"school_id": school_id}, {"_id": 0, "id": 1}
     ).to_list(100)
     valid_level_ids = {l["id"] for l in valid_levels}
@@ -592,7 +592,7 @@ async def delete_orphan_students(school_id: str, user=Depends(require_support_ad
         raise HTTPException(status_code=403, detail="Solo soporte puede eliminar huérfanos")
 
     # Get valid level IDs
-    valid_levels = await db.levels.find({"school_id": school_id}, {"_id": 0, "id": 1}).to_list(100)
+    valid_levels = await db.academic_levels.find({"school_id": school_id}, {"_id": 0, "id": 1}).to_list(100)
     valid_level_ids = {l["id"] for l in valid_levels}
 
     # Get all students and filter orphans
