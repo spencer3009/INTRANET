@@ -4519,6 +4519,27 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
               </button>
             </div>
 
+            {/* Clear all button */}
+            {!loadingPendingImports && pendingImports.length > 0 && (
+              <div className="px-5 pt-3 pb-0">
+                <button
+                  onClick={async () => {
+                    if (!window.confirm(`Eliminar los ${pendingImports.length} registros pendientes? Esto NO afecta a los estudiantes ya registrados.`)) return;
+                    try {
+                      await axios.delete(`${API}/students/pending`, { headers });
+                      toast.success("Lista de pendientes limpiada");
+                      loadPendingImports();
+                    } catch { toast.error("Error al limpiar pendientes"); }
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-sm rounded-xl border border-red-200 transition-colors"
+                  data-testid="clear-all-pending-btn"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Limpiar todos los pendientes ({pendingImports.length})
+                </button>
+              </div>
+            )}
+
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-5">
               {loadingPendingImports ? (

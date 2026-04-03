@@ -1174,6 +1174,20 @@ async def delete_pending_student(student_id: str, current_user = Depends(get_cur
         raise HTTPException(status_code=404, detail="Estudiante pendiente no encontrado")
     return {"message": "Estudiante eliminado"}
 
+@router.delete("/students/pending")
+async def delete_all_pending_students(current_user = Depends(get_current_user)):
+    """Delete ALL pending students for the school"""
+    user = await resolve_user_from_token(current_user)
+    if not user or not user.get("school_id"):
+        raise HTTPException(status_code=403, detail="No tienes un colegio asociado")
+    if not is_admin_user(user):
+        raise HTTPException(status_code=403, detail="Solo administradores pueden limpiar pendientes")
+
+    result = await db.users.delete_many(
+        {"school_id": user["school_id"], "role": "student", "import_status": "pending"}
+    )
+    return {"message": f"{result.deleted_count} registros pendientes eliminados", "deleted_count": result.deleted_count}
+
 # ══════════════════════════════════════════════════════════════════════════════
 
 
