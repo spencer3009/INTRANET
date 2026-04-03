@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
+import { playNotificationSound } from "@/utils/notificationSound";
 import {
   Bell, X, Calendar, FileText, BookOpen, AlertCircle,
   Clock, ChevronRight, Eye, Loader2, Sparkles, PenTool,
@@ -264,6 +265,8 @@ export default function NotificationBell({ token, userRole }) {
         created_at: notif.created_at, read_at: null,
       }, ...prev]);
       setAttendanceUnread(prev => prev + 1);
+      playNotificationSound();
+      if (navigator.vibrate) { navigator.vibrate(200); }
       // Dispatch event for AttendanceToast component
       window.dispatchEvent(new CustomEvent("attendance-notification", { detail: notif }));
     } else if (data.type === "new_message") {
@@ -439,9 +442,20 @@ export default function NotificationBell({ token, userRole }) {
 
   const totalCount = (notifications.total_count || 0) + (generalNotifications.unread_count || 0) + unreadMessages + unreadBroadcasts + attendanceUnread;
   const hasNotifications = totalCount > 0;
+  const [animationKey, setAnimationKey] = useState(0);
+  useEffect(() => { if (totalCount > 0) setAnimationKey(prev => prev + 1); }, [totalCount]);
 
   return (
     <div className="relative" ref={dropdownRef}>
+      <style>{`
+        @keyframes notification-bounce {
+          0% { transform: scale(1); }
+          30% { transform: scale(1.4); }
+          50% { transform: scale(0.9); }
+          70% { transform: scale(1.2); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
       {/* Bell button */}
       <button
         onClick={() => { setIsOpen(!isOpen); if (!isOpen) loadNotifications(); }}
@@ -451,7 +465,9 @@ export default function NotificationBell({ token, userRole }) {
         <Bell className={`w-5 h-5 ${hasNotifications ? "text-[#001f4b]" : ""}`} />
         {hasNotifications && (
           <span
+            key={animationKey}
             className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-gradient-to-r from-rose-500 to-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center shadow-lg shadow-red-500/30"
+            style={{ animation: "notification-bounce 0.6s ease-in-out" }}
             data-testid="notification-badge"
           >
             {totalCount > 99 ? "99+" : totalCount}
