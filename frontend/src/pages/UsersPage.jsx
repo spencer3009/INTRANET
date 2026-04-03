@@ -1625,6 +1625,45 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
     setPhotoModalUser(user);
   };
 
+  // ── Support-only: Orphan students panel ──
+  const isSupportSession = user?.is_support_session || user?.original_role === 'system_admin_global';
+  const [showOrphanPanel, setShowOrphanPanel] = useState(false);
+  const [orphanStudents, setOrphanStudents] = useState([]);
+  const [loadingOrphans, setLoadingOrphans] = useState(false);
+  const [deletingOrphanId, setDeletingOrphanId] = useState(null);
+
+  const loadOrphans = async () => {
+    if (!user?.school_id) return;
+    setLoadingOrphans(true);
+    try {
+      const res = await axios.get(`${API}/support/schools/${user.school_id}/orphan-students`, { headers });
+      setOrphanStudents(res.data.students || []);
+    } catch (err) {
+      toast.error("Error al cargar huérfanos");
+    } finally {
+      setLoadingOrphans(false);
+    }
+  };
+
+  const deleteOrphan = async (studentId) => {
+    setDeletingOrphanId(studentId);
+    try {
+      await axios.delete(`${API}/support/schools/${user.school_id}/orphan-students/${studentId}`, { headers });
+      setOrphanStudents(prev => prev.filter(s => s.id !== studentId));
+      toast.success("Registro eliminado");
+    } catch { toast.error("Error al eliminar"); }
+    finally { setDeletingOrphanId(null); }
+  };
+
+  const deleteAllOrphans = async () => {
+    if (!window.confirm(`Eliminar TODOS los ${orphanStudents.length} registros huérfanos? Esta acción no se puede deshacer.`)) return;
+    try {
+      const res = await axios.delete(`${API}/support/schools/${user.school_id}/orphan-students`, { headers });
+      toast.success(res.data.message);
+      setOrphanStudents([]);
+    } catch { toast.error("Error al eliminar huérfanos"); }
+  };
+
   const handlePhotoUpdated = (userId, newUrl) => {
     setUsers(prev => prev.map(u => u.id === userId ? { ...u, photo_url: newUrl } : u));
     toast.success("Foto actualizada correctamente");
@@ -2666,6 +2705,16 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
                   {exportingCredentials ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
                   {exportingCredentials ? "Exportando..." : "Exportar credenciales"}
                 </button>
+                {isSupportSession && (
+                  <button
+                    onClick={() => { setShowOrphanPanel(true); loadOrphans(); }}
+                    className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 rounded-xl font-semibold transition-all hover:shadow-lg"
+                    data-testid="support-orphans-btn"
+                  >
+                    <AlertTriangle className="w-4 h-4" />
+                    Huérfanos
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -4543,6 +4592,90 @@ export default function UsersPage({ user, token, subdomain, onLogout }) {
       {/* Bulk QR Download Modal */}
       <BulkQRModal open={showBulkQR} onClose={() => setShowBulkQR(false)} token={token} />
       <BulkDeleteModal open={showBulkDelete} onClose={() => setShowBulkDelete(false)} token={token} onDone={loadUsers} />
+
+
+      {/* ═══════════════ SUPPORT: ORPHAN STUDENTS PANEL ═══════════════ */}
+      {showOrphanPanel && isSupportSession && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4" onClick={() => setShowOrphanPanel(false)}>
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()} data-testid="orphan-panel">
+            {/* Header */}
+            <div className="flex items-center justify-between p-5 border-b border-slate-100 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-700 rounded-xl flex items-center justify-center">
+                  <AlertTriangle className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-slate-800">Registros Huérfanos</h3>
+                  <p className="text-xs text-slate-500">Solo visible para soporte técnico — {orphanStudents.length} registro{orphanStudents.length !== 1 ? "s" : ""}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {orphanStudents.length > 0 && (
+                  <button
+                    onClick={deleteAllOrphans}
+                    className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-100 transition-colors"
+                    data-testid="delete-all-orphans-btn"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Eliminar todos ({orphanStudents.length})
+                  </button>
+                )}
+                <button onClick={() => setShowOrphanPanel(false)} className="p-2 hover:bg-slate-100 rounded-xl transition-colors" data-testid="close-orphan-panel">
+                  <X className="w-5 h-5 text-slate-400" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-5">
+              {loadingOrphans ? (
+                <div className="text-center py-12">
+                  <Loader2 className="w-8 h-8 text-slate-400 animate-spin mx-auto mb-3" />
+                  <p className="text-slate-500">Cargando huérfanos...</p>
+                </div>
+              ) : orphanStudents.length === 0 ? (
+                <div className="text-center py-12" data-testid="no-orphans">
+                  <CheckCircle2 className="w-14 h-14 text-emerald-300 mx-auto mb-3" />
+                  <p className="text-slate-600 font-semibold text-lg">Sin registros huérfanos</p>
+                  <p className="text-sm text-slate-400 mt-1">No hay estudiantes pendientes de importación en este colegio.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {orphanStudents.map(s => (
+                    <div key={s.id} className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${s.orphan_type === "duplicado" ? "bg-red-50/50 border-red-200" : s.orphan_type === "pendiente" ? "bg-amber-50/50 border-amber-200" : "bg-slate-50/50 border-slate-200"}`} data-testid={`orphan-row-${s.id}`}>
+                      <div className="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm flex-shrink-0">
+                        {(s.name || "?")[0]}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-800 text-sm truncate">{s.name} {s.last_name}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-0.5">
+                          <span className="text-xs text-slate-500">DNI: {s.dni || "—"}</span>
+                          <span className="text-xs text-slate-400">{s.email || ""}</span>
+                          {s.orphan_type === "duplicado" && <span className="text-[10px] px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full font-semibold">DUPLICADO</span>}
+                          {s.orphan_type === "pendiente" && <span className="text-[10px] px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full font-semibold">PENDIENTE</span>}
+                          {s.orphan_type === "sin_asignar" && <span className="text-[10px] px-1.5 py-0.5 bg-slate-200 text-slate-600 rounded-full font-semibold">SIN NIVEL</span>}
+                        </div>
+                        {s.import_errors?.length > 0 && (
+                          <p className="text-[11px] text-slate-400 mt-0.5 truncate">{s.import_errors.join(", ")}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteOrphan(s.id)}
+                        disabled={deletingOrphanId === s.id}
+                        className="p-2 text-red-500 hover:bg-red-100 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
+                        data-testid={`delete-orphan-${s.id}`}
+                      >
+                        {deletingOrphanId === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
 
       {/* ═══════════════ PENDING IMPORTS MODAL ═══════════════ */}

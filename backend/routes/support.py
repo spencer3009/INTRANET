@@ -525,6 +525,112 @@ async def delete_school(school_id: str, user=Depends(require_support_admin)):
     return {"message": f"Colegio '{school.get('name', school_id)}' movido a la papelera."}
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# SUPPORT: Orphan/Pending Students Management
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/schools/{school_id}/orphan-students")
+async def get_orphan_students(school_id: str, user=Depends(require_support_admin)):
+    """Get all orphan students for a school (support only).
+    Orphans include: pending imports, students without nivel, AND students whose nivel_id doesn't resolve."""
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo soporte puede ver huérfanos")
+
+    # Get all valid level IDs for this school
+    valid_levels = await db.levels.find(
+        {"school_id": school_id}, {"_id": 0, "id": 1}
+    ).to_list(100)
+    valid_level_ids = {l["id"] for l in valid_levels}
+
+    # Get ALL students for this school
+    all_students = await db.users.find(
+        {"school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1, "email": 1,
+         "import_errors": 1, "import_status": 1, "student_status": 1, "created_at": 1,
+         "nivel_id": 1, "grado_id": 1, "seccion_id": 1}
+    ).to_list(5000)
+
+    orphans = []
+    for s in all_students:
+        is_pending = s.get("import_status") == "pending"
+        nivel_id = s.get("nivel_id")
+        has_no_nivel = not nivel_id
+        has_invalid_nivel = bool(nivel_id) and nivel_id not in valid_level_ids
+
+        if not (is_pending or has_no_nivel or has_invalid_nivel):
+            continue
+
+        # Check if a non-pending copy with the same DNI exists
+        has_original = False
+        if is_pending and s.get("dni"):
+            orig = await db.users.find_one(
+                {"school_id": school_id, "role": "student", "dni": s["dni"],
+                 "id": {"$ne": s["id"]}, "import_status": {"$ne": "pending"}},
+                {"_id": 0, "id": 1}
+            )
+            if orig:
+                has_original = True
+        s["has_original"] = has_original
+
+        # Determine orphan type
+        if is_pending and has_original:
+            s["orphan_type"] = "duplicado"
+        elif is_pending:
+            s["orphan_type"] = "pendiente"
+        elif has_no_nivel or has_invalid_nivel:
+            s["orphan_type"] = "sin_asignar"
+
+        orphans.append(s)
+
+    return {"count": len(orphans), "students": orphans}
+
+
+@router.delete("/schools/{school_id}/orphan-students")
+async def delete_orphan_students(school_id: str, user=Depends(require_support_admin)):
+    """Force-delete ALL orphan students for a school (support only)."""
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo soporte puede eliminar huérfanos")
+
+    # Get valid level IDs
+    valid_levels = await db.levels.find({"school_id": school_id}, {"_id": 0, "id": 1}).to_list(100)
+    valid_level_ids = {l["id"] for l in valid_levels}
+
+    # Get all students and filter orphans
+    all_students = await db.users.find(
+        {"school_id": school_id, "role": "student"},
+        {"_id": 0, "id": 1, "import_status": 1, "nivel_id": 1}
+    ).to_list(5000)
+
+    orphan_ids = []
+    for s in all_students:
+        is_pending = s.get("import_status") == "pending"
+        nivel_id = s.get("nivel_id")
+        has_no_nivel = not nivel_id
+        has_invalid_nivel = bool(nivel_id) and nivel_id not in valid_level_ids
+        if is_pending or has_no_nivel or has_invalid_nivel:
+            orphan_ids.append(s["id"])
+
+    if not orphan_ids:
+        return {"message": "No hay huérfanos para eliminar", "deleted_count": 0}
+
+    result = await db.users.delete_many({"id": {"$in": orphan_ids}, "school_id": school_id})
+    return {"message": f"{result.deleted_count} registros huérfanos eliminados", "deleted_count": result.deleted_count}
+
+
+@router.delete("/schools/{school_id}/orphan-students/{student_id}")
+async def delete_single_orphan(school_id: str, student_id: str, user=Depends(require_support_admin)):
+    """Delete a single orphan student (support only)"""
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo soporte puede eliminar huérfanos")
+
+    result = await db.users.delete_one(
+        {"id": student_id, "school_id": school_id, "role": "student"}
+    )
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    return {"message": "Registro huérfano eliminado"}
+
+
 
 class UpdateExpirationRequest(BaseModel):
     school_id: str
