@@ -75,13 +75,24 @@
 - Frontend: Fixed presence map bug
 - Testing: 100% (Backend 22/22, Frontend verified) - iteration_84.json
 
-## April 3, 2026 - Fork (Parents Search)
+## April 3, 2026 - Fork (Parents Search + Trash System)
 
 ### Feature: Buscador en pestaña Padres (UsersPage) - COMPLETED
 - Added `parentsTabSearch` state and search input UI in Parents tab
 - Filters parents by name, last_name, DNI or email in real-time
 - Includes clear button (X), result count indicator, and improved empty-state message when search yields no results
 - File modified: `/app/frontend/src/pages/UsersPage.jsx`
+
+### Feature: Sistema de Papelera para Colegios (Soft Delete + Restore + Permanent Delete) - COMPLETED
+- Backend: 4 new endpoints in `/api/support/` (archive, restore, permanent, trash)
+- `PATCH /api/support/schools/{id}/archive` - Soft delete with status/previous_status/deleted_at
+- `PATCH /api/support/schools/{id}/restore` - Restore from trash to previous status
+- `DELETE /api/support/schools/{id}/permanent` - Cascade delete with MongoDB transaction + audit log in deletion_logs
+- `GET /api/support/schools/trash` - List trashed schools sorted by deleted_at desc
+- Global filter `NOT_IN_TRASH` applied to overview, schools-paginated, schools, all-schools endpoints
+- Frontend: Archive modal, Trash view overlay, Restore modal, Permanent delete modal (requires typing school name)
+- Papelera button with badge count in header. Archive icon replaces old delete button on cards
+- Testing: 100% (Backend 11/11, Frontend all UI verified) - iteration_100.json
 
 ## March 11, 2026 - Fork 5
 

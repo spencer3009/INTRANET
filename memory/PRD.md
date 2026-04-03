@@ -106,7 +106,8 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 ### P2: Orphan Collection Cleanup (DELETE school leaves ~15 collections orphaned)
 
 ## Recently Completed (April 2026)
-- Buscador en pestaña Padres (UsersPage): filtrado por nombre, apellidos, DNI y email con indicador de resultados y estado vacío mejorado
+- Buscador en pestaña Padres (UsersPage): filtrado por nombre, apellidos, DNI y email
+- Sistema de Papelera para Colegios: soft delete, restaurar, eliminación definitiva con cascade + transacción MongoDB
 
 ## Upcoming Tasks
 - P1: Refactor Message Pages (consolidate duplicates)
@@ -125,6 +126,10 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - UsersPage.jsx (>5000 lines) - split into sub-components
 
 ## Key Endpoints
+- PATCH /api/support/schools/{id}/archive - Soft delete (mover a papelera)
+- PATCH /api/support/schools/{id}/restore - Restaurar desde papelera
+- DELETE /api/support/schools/{id}/permanent - Eliminación definitiva con cascade transaccional
+- GET /api/support/schools/trash - Listar colegios en papelera
 - GET/PUT /api/settings/health-permissions - Health module permissions
 - GET /api/health/parent/alerts?student_id={id} - Unacknowledged health alerts
 - POST /api/health/parent/alerts/{id}/acknowledge - Mark alert as notified
