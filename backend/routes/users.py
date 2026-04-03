@@ -885,6 +885,14 @@ async def import_students(
                 seccion_id = file_metadata.get("seccion_id", seccion_id)
 
         turno_id = file_metadata.get("turno_id", turno_id)
+        meta_turno_name = file_metadata.get("turno_name", "").strip()
+        if meta_turno_name:
+            real_turno = await db.shifts.find_one(
+                {"school_id": school_id, "nombre": {"$regex": f"^{meta_turno_name}$", "$options": "i"}},
+                {"_id": 0, "id": 1}
+            )
+            if real_turno:
+                turno_id = real_turno["id"]
 
     try:
         if ext == "csv":
