@@ -6,7 +6,8 @@ import {
   School, Users, GraduationCap, BookOpen, LogIn, 
   Plus, Search, X, Check, AlertCircle, Building2,
   ArrowLeft, Loader2, Calendar, CalendarClock, Pencil, DollarSign, Tag, RefreshCw, Trash2,
-  Eye, EyeOff, UserCircle, Save, Phone, Mail, Bell, CreditCard, Clock, Share2
+  Eye, EyeOff, UserCircle, Save, Phone, Mail, Bell, CreditCard, Clock, Share2,
+  Archive, RotateCcw, AlertTriangle, ShieldAlert
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -143,6 +144,18 @@ export default function SupportSchoolsPage({ token, onLogin }) {
   const [ownerLoading, setOwnerLoading] = useState(false);
   const [ownerShowPwd, setOwnerShowPwd] = useState(false);
 
+  // ── Trash system states ──
+  const [showTrash, setShowTrash] = useState(false);
+  const [trashSchools, setTrashSchools] = useState([]);
+  const [trashLoading, setTrashLoading] = useState(false);
+  const [archiveModal, setArchiveModal] = useState(null); // { id, name }
+  const [archiving, setArchiving] = useState(false);
+  const [restoreModal, setRestoreModal] = useState(null); // { id, name, previous_status }
+  const [restoring, setRestoring] = useState(false);
+  const [permanentModal, setPermanentModal] = useState(null); // { id, name }
+  const [permanentConfirmText, setPermanentConfirmText] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
   const getPasswordStrength = (pwd) => {
     if (!pwd) return null;
     let score = 0;
@@ -243,18 +256,63 @@ export default function SupportSchoolsPage({ token, onLogin }) {
     }
   };
 
-  const handleDeleteSchool = async (schoolId, schoolName) => {
-    const confirmed = window.prompt(`Para eliminar "${schoolName}" permanentemente, escribe ELIMINAR:`);
-    if (confirmed !== "ELIMINAR") {
-      if (confirmed !== null) toast.error("Debes escribir ELIMINAR exactamente");
-      return;
-    }
+  // ── Trash System Functions ──
+  const fetchTrash = async () => {
+    setTrashLoading(true);
     try {
-      const res = await axios.delete(`${API}/support/delete-school/${schoolId}`, { headers });
-      toast.success(res.data.message);
+      const res = await axios.get(`${API}/support/schools/trash`, { headers });
+      setTrashSchools(res.data);
+    } catch (err) {
+      toast.error("Error al cargar la papelera");
+    } finally {
+      setTrashLoading(false);
+    }
+  };
+
+  const handleArchiveSchool = async () => {
+    if (!archiveModal) return;
+    setArchiving(true);
+    try {
+      await axios.patch(`${API}/support/schools/${archiveModal.id}/archive`, {}, { headers });
+      toast.success("Colegio movido a papelera.");
+      setArchiveModal(null);
       fetchData();
     } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al archivar colegio");
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleRestoreSchool = async () => {
+    if (!restoreModal) return;
+    setRestoring(true);
+    try {
+      await axios.patch(`${API}/support/schools/${restoreModal.id}/restore`, {}, { headers });
+      toast.success("Colegio restaurado correctamente.");
+      setRestoreModal(null);
+      fetchTrash();
+      fetchData();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Error al restaurar colegio");
+    } finally {
+      setRestoring(false);
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!permanentModal) return;
+    setDeleting(true);
+    try {
+      const res = await axios.delete(`${API}/support/schools/${permanentModal.id}/permanent`, { headers });
+      toast.success("Colegio y todos sus datos eliminados permanentemente.");
+      setPermanentModal(null);
+      setPermanentConfirmText("");
+      fetchTrash();
+    } catch (err) {
       toast.error(err.response?.data?.detail || "Error al eliminar colegio");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -496,6 +554,17 @@ export default function SupportSchoolsPage({ token, onLogin }) {
           </p>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => { setShowTrash(true); fetchTrash(); }}
+            data-testid="trash-btn"
+            className="flex items-center gap-2 px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Papelera
+            {trashSchools.length > 0 && (
+              <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-600 rounded-full text-xs font-bold">{trashSchools.length}</span>
+            )}
+          </button>
           <button
             onClick={() => openCreateModal()}
             data-testid="create-school-btn"
@@ -868,12 +937,12 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                     </button>
                   )}
                   <button
-                    onClick={() => handleDeleteSchool(school.id, school.name || school.subdomain)}
-                    className="px-3 py-2.5 border border-red-300 text-red-600 rounded-xl text-sm font-medium hover:bg-red-100 transition-colors"
-                    data-testid={`delete-school-${school.subdomain}`}
-                    title="Eliminar colegio permanentemente"
+                    onClick={() => setArchiveModal({ id: school.id, name: school.name || school.subdomain })}
+                    className="px-3 py-2.5 border border-amber-300 text-amber-600 rounded-xl text-sm font-medium hover:bg-amber-50 transition-colors"
+                    data-testid={`archive-school-${school.subdomain}`}
+                    title="Mover a papelera"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Archive className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -1481,6 +1550,215 @@ export default function SupportSchoolsPage({ token, onLogin }) {
                   )}
                 </>
               ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════════
+          ARCHIVE CONFIRMATION MODAL
+          ══════════════════════════════════════════════════════════════════════════════ */}
+      {archiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="archive-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="archive-modal">
+            <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center gap-3">
+              <Archive className="w-6 h-6 text-white" />
+              <h3 className="text-white font-bold text-base">Mover a Papelera</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-600 text-sm">
+                ¿Estás seguro de mover <span className="font-bold text-slate-800">"{archiveModal.name}"</span> a la papelera? Podrás restaurarlo después.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setArchiveModal(null)}
+                  className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+                  data-testid="archive-cancel-btn"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleArchiveSchool}
+                  disabled={archiving}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-amber-500 text-white rounded-xl text-sm font-semibold hover:bg-amber-600 transition-colors disabled:opacity-50"
+                  data-testid="archive-confirm-btn"
+                >
+                  {archiving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Archive className="w-4 h-4" />}
+                  Mover a Papelera
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════════
+          TRASH VIEW MODAL (Full screen overlay)
+          ══════════════════════════════════════════════════════════════════════════════ */}
+      {showTrash && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" data-testid="trash-view-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 max-h-[85vh] flex flex-col overflow-hidden" data-testid="trash-view">
+            <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Trash2 className="w-6 h-6 text-slate-300" />
+                <div>
+                  <h3 className="text-white font-bold text-base">Papelera</h3>
+                  <p className="text-slate-400 text-xs">{trashSchools.length} colegio{trashSchools.length !== 1 ? "s" : ""} en papelera</p>
+                </div>
+              </div>
+              <button onClick={() => setShowTrash(false)} className="p-1.5 text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors" data-testid="trash-close-btn">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              {trashLoading ? (
+                <div className="flex items-center justify-center py-16">
+                  <Loader2 className="w-8 h-8 animate-spin text-slate-400" />
+                </div>
+              ) : trashSchools.length === 0 ? (
+                <div className="text-center py-16" data-testid="trash-empty">
+                  <Trash2 className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-slate-500 mb-1">No hay colegios en la papelera</h3>
+                  <p className="text-sm text-slate-400">Los colegios que muevas a la papelera aparecerán aquí.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {trashSchools.map(school => (
+                    <div key={school.id} className="bg-white border border-slate-200 rounded-xl p-4 hover:shadow-sm transition-all" data-testid={`trash-card-${school.subdomain}`}>
+                      <div className="flex items-center gap-4">
+                        <div className="w-11 h-11 rounded-xl bg-slate-100 flex items-center justify-center flex-shrink-0">
+                          {school.logo_url ? (
+                            <img src={school.logo_url} alt="" className="w-8 h-8 rounded-lg object-cover" />
+                          ) : (
+                            <School className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-slate-800 truncate">{school.name || school.subdomain}</h4>
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                            <span className="text-xs text-slate-400">{school.subdomain}.edunet.pe</span>
+                            <span className="text-xs text-slate-400">
+                              Archivado: {school.deleted_at ? new Date(school.deleted_at).toLocaleDateString("es-PE", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"}
+                            </span>
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-600">
+                              Estado anterior: {school.previous_status || "activo"}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <button
+                            onClick={() => setRestoreModal({ id: school.id, name: school.name || school.subdomain, previous_status: school.previous_status || "activo" })}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-semibold hover:bg-emerald-100 transition-colors"
+                            data-testid={`restore-school-${school.subdomain}`}
+                          >
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            Restaurar
+                          </button>
+                          <button
+                            onClick={() => { setPermanentModal({ id: school.id, name: school.name || school.subdomain }); setPermanentConfirmText(""); }}
+                            className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-red-700 border border-red-200 rounded-xl text-xs font-semibold hover:bg-red-100 transition-colors"
+                            data-testid={`permanent-delete-${school.subdomain}`}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Eliminar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════════
+          RESTORE CONFIRMATION MODAL
+          ══════════════════════════════════════════════════════════════════════════════ */}
+      {restoreModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" data-testid="restore-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="restore-modal">
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-500 px-6 py-4 flex items-center gap-3">
+              <RotateCcw className="w-6 h-6 text-white" />
+              <h3 className="text-white font-bold text-base">Restaurar Colegio</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-slate-600 text-sm">
+                ¿Restaurar <span className="font-bold text-slate-800">"{restoreModal.name}"</span>? Volverá a su estado anterior: <span className="font-semibold text-emerald-600">{restoreModal.previous_status}</span>.
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setRestoreModal(null)}
+                  className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+                  data-testid="restore-cancel-btn"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleRestoreSchool}
+                  disabled={restoring}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                  data-testid="restore-confirm-btn"
+                >
+                  {restoring ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+                  Restaurar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════════════════════
+          PERMANENT DELETE MODAL (Danger zone)
+          ══════════════════════════════════════════════════════════════════════════════ */}
+      {permanentModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50" data-testid="permanent-modal-overlay">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden" data-testid="permanent-modal">
+            <div className="bg-gradient-to-r from-red-600 to-red-700 px-6 py-4 flex items-center gap-3">
+              <ShieldAlert className="w-6 h-6 text-white" />
+              <h3 className="text-white font-bold text-base">Eliminación Definitiva</h3>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+                <p className="text-red-700 text-sm font-semibold flex items-start gap-2">
+                  <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <span>ACCIÓN IRREVERSIBLE. Esto eliminará permanentemente el colegio y TODOS sus datos (alumnos, docentes, notas, asistencia, pagos, etc.). Esta acción NO se puede deshacer.</span>
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                  Escribe <span className="text-red-600 font-bold">"{permanentModal.name}"</span> para confirmar:
+                </label>
+                <input
+                  type="text"
+                  value={permanentConfirmText}
+                  onChange={(e) => setPermanentConfirmText(e.target.value)}
+                  placeholder={permanentModal.name}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-red-500/30 focus:border-red-400"
+                  data-testid="permanent-confirm-input"
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => { setPermanentModal(null); setPermanentConfirmText(""); }}
+                  className="px-4 py-2.5 border border-slate-200 text-slate-600 rounded-xl text-sm font-medium hover:bg-slate-50 transition-colors"
+                  data-testid="permanent-cancel-btn"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handlePermanentDelete}
+                  disabled={permanentConfirmText !== permanentModal.name || deleting}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  data-testid="permanent-confirm-btn"
+                >
+                  {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  Eliminar Definitivamente
+                </button>
+              </div>
             </div>
           </div>
         </div>

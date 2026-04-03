@@ -12,12 +12,18 @@ import uuid
 import bcrypt
 
 from .core import (
-    db, get_current_user, hash_password, verify_password,
+    db, client, get_current_user, hash_password, verify_password,
     JWT_SECRET, JWT_ALGORITHM, now_iso
 )
 import jwt
 
 router = APIRouter(prefix="/api/support", tags=["support"])
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FILTER - Exclude trashed schools from normal queries
+# ══════════════════════════════════════════════════════════════════════════════
+
+NOT_IN_TRASH = {"$or": [{"status": {"$ne": "papelera"}}, {"status": {"$exists": False}}]}
 
 # ══════════════════════════════════════════════════════════════════════════════
 # AUTH HELPER - Require system_admin_global role
@@ -57,7 +63,7 @@ class SupportPasswordChange(BaseModel):
 @router.get("/overview")
 async def support_overview(user=Depends(require_support_admin)):
     """Dashboard overview: global metrics for support admin"""
-    total_schools = await db.schools.count_documents({})
+    total_schools = await db.schools.count_documents(NOT_IN_TRASH)
     
     # Global admin sees all schools (minus unassigned)
     if user.get("role") == "system_admin_global":
@@ -73,7 +79,7 @@ async def support_overview(user=Depends(require_support_admin)):
     
     # Last 5 schools created (page 1 default)
     last_schools_cursor = db.schools.find(
-        {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1}
+        NOT_IN_TRASH, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1}
     ).sort("created_at", -1).limit(5)
     last_schools = await last_schools_cursor.to_list(length=5)
     
@@ -89,9 +95,9 @@ async def support_overview(user=Depends(require_support_admin)):
 async def support_schools_paginated(page: int = 1, per_page: int = 5, user=Depends(require_support_admin)):
     """Paginated list of all schools for dashboard"""
     skip = (page - 1) * per_page
-    total = await db.schools.count_documents({})
+    total = await db.schools.count_documents(NOT_IN_TRASH)
     schools_cursor = db.schools.find(
-        {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1}
+        NOT_IN_TRASH, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1}
     ).sort("created_at", -1).skip(skip).limit(per_page)
     schools = await schools_cursor.to_list(length=per_page)
     total_pages = max(1, (total + per_page - 1) // per_page)
@@ -111,9 +117,9 @@ async def support_schools(user=Depends(require_support_admin)):
     is_global = user.get("role") == "system_admin_global"
     
     if is_global:
-        # Global admin sees ALL schools
+        # Global admin sees ALL schools (excluding trash)
         schools_cursor = db.schools.find(
-            {},
+            NOT_IN_TRASH,
             {"_id": 0, "id": 1, "name": 1, "school_name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "fecha_vencimiento": 1, "plan_estado": 1, "dias_vencido": 1, "logo_url": 1, "pricing_override": 1, "is_demo": 1}
         )
         schools = await schools_cursor.to_list(length=500)
@@ -246,7 +252,7 @@ async def support_schools(user=Depends(require_support_admin)):
 async def support_all_schools(user=Depends(require_support_admin)):
     """List ALL schools in the system (for assignment management)"""
     schools_cursor = db.schools.find(
-        {}, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "pricing_override": 1}
+        NOT_IN_TRASH, {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "created_at": 1, "expiration_date": 1, "pricing_override": 1}
     )
     schools = await schools_cursor.to_list(length=1000)
     
@@ -326,54 +332,198 @@ async def unassign_school(school_id: str, user=Depends(require_support_admin)):
         return {"message": "Acceso removido"}
 
 
-@router.delete("/delete-school/{school_id}")
-async def delete_school(school_id: str, user=Depends(require_support_admin)):
-    """Permanently delete a school and all its related data"""
+# ══════════════════════════════════════════════════════════════════════════════
+# TRASH SYSTEM - Archive, Restore, Permanent Delete, List Trash
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/schools/trash")
+async def list_trash_schools(user=Depends(require_support_admin)):
+    """List all schools currently in trash"""
     if user.get("role") != "system_admin_global":
-        raise HTTPException(status_code=403, detail="Solo administradores globales pueden eliminar colegios")
+        raise HTTPException(status_code=403, detail="Solo administradores globales pueden ver la papelera")
     
-    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "name": 1})
+    schools_cursor = db.schools.find(
+        {"status": "papelera"},
+        {"_id": 0, "id": 1, "name": 1, "subdomain": 1, "logo_url": 1, "deleted_at": 1, "previous_status": 1, "created_at": 1}
+    ).sort("deleted_at", -1)
+    schools = await schools_cursor.to_list(length=500)
+
+    # Enrich with owner display name
+    school_ids = [s["id"] for s in schools]
+    if school_ids:
+        owners_cursor = db.users.find(
+            {"school_id": {"$in": school_ids}, "role": "owner"},
+            {"_id": 0, "school_id": 1, "school_display_name": 1}
+        )
+        owners = await owners_cursor.to_list(length=500)
+        display_map = {o["school_id"]: o.get("school_display_name", "") for o in owners if o.get("school_display_name")}
+        for s in schools:
+            dn = display_map.get(s["id"])
+            if dn:
+                s["name"] = dn
+
+    return schools
+
+
+@router.patch("/schools/{school_id}/archive")
+async def archive_school(school_id: str, user=Depends(require_support_admin)):
+    """Soft delete — move school to trash"""
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo administradores globales pueden archivar colegios")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "name": 1, "status": 1})
     if not school:
         raise HTTPException(status_code=404, detail="Colegio no encontrado")
     
-    # Delete all related data
-    deleted_counts = {}
-    collections_to_clean = [
-        ("users", {"school_id": school_id}),
-        ("subjects", {"school_id": school_id}),
-        ("sections", {"school_id": school_id}),
-        ("grades", {"school_id": school_id}),
-        ("attendance", {"school_id": school_id}),
-        ("payments", {"school_id": school_id}),
-        ("course_posts", {"school_id": school_id}),
-        ("course_activities", {"school_id": school_id}),
-        ("internal_mail", {"school_id": school_id}),
-        ("user_school_roles", {"school_id": school_id}),
-        ("academic_years", {"school_id": school_id}),
-        ("payment_requests", {"school_id": school_id}),
-        ("finance_entries", {"school_id": school_id}),
-        ("renewal_logs", {"school_id": school_id}),
-        ("news", {"school_id": school_id}),
-        ("events", {"school_id": school_id}),
-        ("surveys", {"school_id": school_id}),
+    current_status = school.get("status", "activo")
+    if current_status == "papelera":
+        raise HTTPException(status_code=409, detail="El colegio ya está en la papelera.")
+    
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {
+            "previous_status": current_status,
+            "status": "papelera",
+            "deleted_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": f"Colegio '{school.get('name', school_id)}' movido a la papelera."}
+
+
+@router.patch("/schools/{school_id}/restore")
+async def restore_school(school_id: str, user=Depends(require_support_admin)):
+    """Restore school from trash"""
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo administradores globales pueden restaurar colegios")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "name": 1, "status": 1, "previous_status": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    if school.get("status") != "papelera":
+        raise HTTPException(status_code=409, detail="El colegio no está en la papelera.")
+    
+    restore_status = school.get("previous_status") or "activo"
+    
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {"status": restore_status}, "$unset": {"previous_status": "", "deleted_at": ""}}
+    )
+    
+    return {"message": f"Colegio '{school.get('name', school_id)}' restaurado correctamente.", "restored_status": restore_status}
+
+
+@router.delete("/schools/{school_id}/permanent")
+async def permanent_delete_school(school_id: str, user=Depends(require_support_admin)):
+    """Permanently delete a school and ALL related data using a MongoDB transaction"""
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo administradores globales pueden eliminar colegios")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "name": 1, "status": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    if school.get("status") != "papelera":
+        raise HTTPException(status_code=409, detail="El colegio no está en papelera. Solo se pueden eliminar definitivamente colegios que estén en la papelera.")
+    
+    # Collections to cascade-delete (using institution_id as FK)
+    collections_with_institution_id = [
+        "students", "teachers", "users", "courses", "subjects",
+        "attendance", "attendance_logs", "grades", "exams",
+        "notifications", "payments", "subscriptions", "psychology_records"
     ]
     
-    for collection_name, query in collections_to_clean:
-        try:
-            result = await db[collection_name].delete_many(query)
-            if result.deleted_count > 0:
-                deleted_counts[collection_name] = result.deleted_count
-        except Exception:
-            pass
+    # Also delete from collections that use school_id as FK
+    collections_with_school_id = [
+        "sections", "course_posts", "course_activities", "internal_mail",
+        "user_school_roles", "academic_years", "payment_requests",
+        "finance_entries", "renewal_logs", "news", "events", "surveys",
+        "topico_records", "psicologia_records", "push_tokens",
+        "levels", "shifts", "schedules", "calendar_events",
+        "discipline_records", "broadcast_messages"
+    ]
     
-    # Delete the school itself
-    await db.schools.delete_one({"id": school_id})
-    deleted_counts["schools"] = 1
+    deleted_counts = {}
+    
+    try:
+        async with await client.start_session() as session:
+            async with session.start_transaction():
+                # Delete from institution_id-based collections
+                for col_name in collections_with_institution_id:
+                    try:
+                        result = await db[col_name].delete_many({"institution_id": school_id}, session=session)
+                        deleted_counts[col_name] = result.deleted_count
+                    except Exception:
+                        deleted_counts[col_name] = 0
+                
+                # Delete from school_id-based collections
+                for col_name in collections_with_school_id:
+                    try:
+                        result = await db[col_name].delete_many({"school_id": school_id}, session=session)
+                        prev = deleted_counts.get(col_name, 0)
+                        deleted_counts[col_name] = prev + result.deleted_count
+                    except Exception:
+                        if col_name not in deleted_counts:
+                            deleted_counts[col_name] = 0
+                
+                # Also delete users by school_id (covers both FK patterns)
+                try:
+                    result = await db.users.delete_many({"school_id": school_id}, session=session)
+                    deleted_counts["users"] = deleted_counts.get("users", 0) + result.deleted_count
+                except Exception:
+                    pass
+                
+                # Delete the school document itself
+                await db.schools.delete_one({"id": school_id}, session=session)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error en la transacción de eliminación: {str(e)}")
+    
+    # Audit log — OUTSIDE transaction, after successful commit
+    try:
+        await db.deletion_logs.insert_one({
+            "school_id": school_id,
+            "school_name": school.get("name", school_id),
+            "deleted_by": user.get("id"),
+            "deleted_at": datetime.now(timezone.utc).isoformat(),
+            "collections_affected": {k: v for k, v in deleted_counts.items() if v > 0}
+        })
+    except Exception:
+        pass  # Non-critical: don't fail if audit log insert fails
     
     return {
-        "message": f"Colegio '{school.get('name', school_id)}' eliminado permanentemente",
+        "success": True,
+        "school_name": school.get("name", school_id),
         "deleted": deleted_counts
     }
+
+
+# Legacy endpoint kept for backwards compatibility — now redirects to archive
+@router.delete("/delete-school/{school_id}")
+async def delete_school(school_id: str, user=Depends(require_support_admin)):
+    """Legacy endpoint - now performs soft delete (archive) instead of permanent deletion"""
+    if user.get("role") != "system_admin_global":
+        raise HTTPException(status_code=403, detail="Solo administradores globales pueden eliminar colegios")
+    
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "id": 1, "name": 1, "status": 1})
+    if not school:
+        raise HTTPException(status_code=404, detail="Colegio no encontrado")
+    
+    current_status = school.get("status", "activo")
+    if current_status == "papelera":
+        raise HTTPException(status_code=409, detail="El colegio ya está en la papelera.")
+    
+    await db.schools.update_one(
+        {"id": school_id},
+        {"$set": {
+            "previous_status": current_status,
+            "status": "papelera",
+            "deleted_at": datetime.now(timezone.utc).isoformat()
+        }}
+    )
+    
+    return {"message": f"Colegio '{school.get('name', school_id)}' movido a la papelera."}
+
 
 
 class UpdateExpirationRequest(BaseModel):

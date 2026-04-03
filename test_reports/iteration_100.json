@@ -1,0 +1,67 @@
+{
+  "summary": "Trash System (Papelera) for Schools - All backend tests passed (11/11). Frontend UI verified with screenshots showing archive modal, trash modal, and restore modal working correctly.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_trash_system.py",
+    "/app/test_reports/pytest/pytest_trash_system.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [],
+  "updated_files": [
+    "/app/backend/tests/test_trash_system.py"
+  ],
+  "success_rate": {
+    "backend": "100% (11/11 tests passed)",
+    "frontend": "100% - All UI elements verified"
+  },
+  "test_credentials": {
+    "support_admin": "spencer3009@gmail.com / Socios3009 (role: system_admin_global)",
+    "test_school": "los gatos (id: 29d3a52d-783a-4f05-bd01-4b1e1acf9f2e, subdomain: gatos)"
+  },
+  "seed_data_creation": "No seed data created - used existing test school 'los gatos'",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Trash system fully tested. Key features verified: 1) Archive (soft delete) moves school to papelera with status='papelera', previous_status saved, deleted_at timestamp set. 2) Restore brings school back with previous_status. 3) Permanent delete requires school to be in papelera first (409 if not). 4) GET /api/support/schools and /api/support/overview exclude trashed schools. 5) GET /api/support/schools/trash lists trashed schools sorted by deleted_at desc.",
+  "features_verified": {
+    "Backend_API_Tests": {
+      "GET_schools_excludes_trash": "PASS - Main schools list excludes status='papelera'",
+      "GET_overview_excludes_trash": "PASS - Overview counts exclude trashed schools",
+      "GET_schools_trash": "PASS - Returns schools in papelera sorted by deleted_at desc",
+      "PATCH_archive_school": "PASS - Moves school to papelera, sets status='papelera', previous_status, deleted_at",
+      "PATCH_archive_already_trashed_409": "PASS - Returns 409 if school already in papelera",
+      "PATCH_restore_school": "PASS - Restores school from papelera, restores previous_status",
+      "PATCH_restore_not_trashed_409": "PASS - Returns 409 if school not in papelera",
+      "DELETE_permanent_not_trashed_409": "PASS - Returns 409 if school not in papelera",
+      "DELETE_permanent_nonexistent_404": "PASS - Returns 404 for non-existent school",
+      "archive_restore_preserves_data": "PASS - School data preserved after archive/restore cycle",
+      "cleanup_restore_test_school": "PASS - Test school restored to active state"
+    },
+    "Frontend_UI_Tests": {
+      "papelera_button_in_header": "PASS - 'Papelera' button visible in header with badge count",
+      "archive_button_on_school_cards": "PASS - Archive icon button on each school card",
+      "archive_modal": "PASS - Shows school name, 'Cancelar' and 'Mover a Papelera' buttons",
+      "trash_modal": "PASS - Shows trashed schools with name, archived date, previous status",
+      "restore_button_in_trash": "PASS - Green 'Restaurar' button for each trashed school",
+      "delete_button_in_trash": "PASS - Red 'Eliminar' button for each trashed school",
+      "restore_confirmation_modal": "PASS - Green header, shows previous status, 'Restaurar' button",
+      "toast_notifications": "PASS - 'Colegio movido a papelera' toast shown after archive"
+    }
+  },
+  "api_endpoints_tested": {
+    "PATCH /api/support/schools/{id}/archive": "Soft delete - move to trash",
+    "PATCH /api/support/schools/{id}/restore": "Restore from trash",
+    "DELETE /api/support/schools/{id}/permanent": "Permanent delete with cascade (requires papelera status)",
+    "GET /api/support/schools/trash": "List trashed schools",
+    "GET /api/support/schools": "Verified excludes trashed schools",
+    "GET /api/support/overview": "Verified excludes trashed schools in counts"
+  },
+  "cleanup_status": "Test school 'los gatos' restored to active state after testing"
+}
