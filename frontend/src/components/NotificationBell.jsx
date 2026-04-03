@@ -264,7 +264,11 @@ export default function NotificationBell({ token, userRole }) {
         student_id: notif.student_id, student_name: notif.student_name,
         created_at: notif.created_at, read_at: null,
       }, ...prev]);
-      setAttendanceUnread(prev => prev + 1);
+      setAttendanceUnread(prev => {
+        const newCount = prev + 1;
+        if ("setAppBadge" in navigator) navigator.setAppBadge(newCount).catch(() => {});
+        return newCount;
+      });
       playNotificationSound();
       if (navigator.vibrate) { navigator.vibrate(200); }
       // Dispatch event for AttendanceToast component
@@ -324,6 +328,12 @@ export default function NotificationBell({ token, userRole }) {
       ]);
       setAttendanceNotifs(listRes.data);
       setAttendanceUnread(countRes.data.count || 0);
+      // Sync PWA badge with real count
+      const badgeCount = countRes.data.count || 0;
+      if ("setAppBadge" in navigator) {
+        if (badgeCount > 0) navigator.setAppBadge(badgeCount).catch(() => {});
+        else navigator.clearAppBadge?.().catch(() => {});
+      }
     } catch {}
   }, [token, isParent]);
 
@@ -417,6 +427,8 @@ export default function NotificationBell({ token, userRole }) {
         setAttendanceUnread(0);
         setAttendanceNotifs(prev => prev.map(n => ({ ...n, read_at: new Date().toISOString() })));
       }
+      // Clear PWA badge
+      if ("clearAppBadge" in navigator) navigator.clearAppBadge().catch(() => {});
     } catch (err) {
       console.error("Error:", err);
     }
@@ -428,7 +440,14 @@ export default function NotificationBell({ token, userRole }) {
       try {
         await axios.post(`${API}/push/mark-read`, { notification_id: notif.id }, { headers });
         setAttendanceNotifs(prev => prev.map(n => n.id === notif.id ? { ...n, read_at: new Date().toISOString() } : n));
-        setAttendanceUnread(prev => Math.max(0, prev - 1));
+        setAttendanceUnread(prev => {
+          const newCount = Math.max(0, prev - 1);
+          if ("setAppBadge" in navigator) {
+            if (newCount > 0) navigator.setAppBadge(newCount).catch(() => {});
+            else navigator.clearAppBadge?.().catch(() => {});
+          }
+          return newCount;
+        });
       } catch {}
     }
     if (notif.student_id) {

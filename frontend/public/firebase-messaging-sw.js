@@ -34,6 +34,14 @@ try {
         url: data.student_id ? `/parent/dashboard?student=${data.student_id}` : "/parent/dashboard",
       },
     });
+
+    // Update PWA icon badge with real unread count
+    const unreadCount = parseInt(data.unread_count || "0", 10);
+    if (unreadCount > 0 && "setAppBadge" in self.registration) {
+      self.registration.setAppBadge(unreadCount).catch(() => {});
+    } else if ("clearAppBadge" in self.registration) {
+      self.registration.clearAppBadge().catch(() => {});
+    }
   });
 } catch (e) {
   console.warn("[Firebase SW] Failed to initialize:", e.message);

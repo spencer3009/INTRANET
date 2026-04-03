@@ -254,6 +254,9 @@ async def send_attendance_notification(student_id: str, school_id: str, entry_ti
         )
         tokens = await tokens_cursor.to_list(10)
 
+        # Get real unread count for badge
+        unread_count = await db.parent_notifications.count_documents({"parent_id": parent_id, "read_at": None})
+
         for t in tokens:
             success = send_push_notification(
                 token=t["token"],
@@ -263,6 +266,7 @@ async def send_attendance_notification(student_id: str, school_id: str, entry_ti
                     "student_id": student_id,
                     "type": event_type,
                     "notification_id": notif_id,
+                    "unread_count": str(unread_count),
                 }
             )
             if not success:
