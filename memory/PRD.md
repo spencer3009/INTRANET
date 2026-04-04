@@ -1,72 +1,64 @@
 # EduNet - School Management Platform PRD
 
 ## Original Problem Statement
-Full-stack React + FastAPI + MongoDB school management platform for Peruvian schools. Features include academic structure management, attendance, grading, teacher assignments, accounting, messaging, and more.
+Full-stack React + FastAPI + MongoDB school management platform for Peruvian schools.
 
 ## Architecture
 - **Frontend**: React + Tailwind + Shadcn/UI
 - **Backend**: FastAPI + Motor (async MongoDB)
 - **Database**: MongoDB
-- **Hosting**: Emergent Platform (preview) / Production at edunet.pe
+- **Hosting**: Emergent Platform / edunet.pe
 
-## What's Been Implemented
+## OMR Exam System (Complete — Phases 1-3)
 
-### Core Academic Structure
-- Levels (INICIAL, PRIMARIA, SECUNDARIA), Grades, Sections, Section Types
-- Academic Years with status management
-- Subjects CRUD with section-level granularity
-- Teacher Assignments to subjects/sections
+### Phase 1: Data Model & UI (COMPLETED)
+- Extended `online_exams` collection with `type` (digital/omr), `num_questions`, `options_per_question`, `answer_key`, `points_per_question`
+- Type selector in exam creation modal (Owner + Teacher portals)
+- AnswerKeyEditor.jsx bubble grid component
 
-### Authentication & Users
-- JWT-based auth with school subdomains
-- Roles: owner, admin, director, teacher, parent, student
-- Custom login page with backgrounds (Cloudinary), WhatsApp support link
+### Phase 2: PDF Generation (COMPLETED)
+- `/app/backend/services/omr_pdf_generator.py` — ReportLab PDF with alignment markers, QR, bubble grid
+- `POST /api/exams/{exam_id}/generate-omr-pdf` — generates + uploads to Cloudinary
+- `GET /api/exams/{exam_id}/omr-pdf` — returns PDF URL
+- OmrSheetCard component with generate/download/regenerate
 
-### Attendance Module
-- QR Continuous Scanner with anti-duplicate cache (30s cooldown)
-- Production-ready with normalized IDs
+### Phase 3: OpenCV Scanning (COMPLETED)
+- `/app/backend/services/omr_scanner.py` — OpenCV pipeline:
+  - Marker detection (4 corner squares)
+  - Perspective correction via warp transform
+  - Bubble fill-ratio analysis (threshold 0.35)
+  - Multi-mark detection, blank detection
+  - Confidence scoring
+- **New Endpoints**:
+  - `POST /api/exams/{exam_id}/omr-scan` — processes image, creates scan record
+  - `PUT /api/exams/{exam_id}/omr-scan/{scan_id}` — overwrites existing scan
+  - `GET /api/exams/{exam_id}/omr-students` — student list with scan status
+  - `GET /api/exams/{exam_id}/omr-results` — all scan results with student data
+  - `POST /api/exams/{exam_id}/omr-register-grades` — syncs grades to Registro Auxiliar
+- **New Collection**: `omr_scans` (scan results per student per exam)
+- **Frontend**: OMRScanFlow (3-step: select student → capture photo → view result), OMRResultsCard (table + register button), OMRScanCard wrapper
+- Tested: Backend 12/12, Frontend 100%
 
-### Accounting Module
-- Income/Expenses tracking, Morosos inline tab
+## Other Features Implemented
+- Academic structure, Attendance (QR), Accounting, Teacher Assignments
+- YouTube materials, Health & Wellness, Attendance notifications
+- Excel import/export with validation, Orphan student management
 
-### Teacher Assignments
-- Full CRUD, cascade filter modal
+## Key Endpoints
+- POST /api/course/{subject_id}/exams (digital + omr)
+- POST /api/exams/{exam_id}/generate-omr-pdf
+- POST /api/exams/{exam_id}/omr-scan
+- PUT /api/exams/{exam_id}/omr-scan/{scan_id}
+- GET /api/exams/{exam_id}/omr-students
+- GET /api/exams/{exam_id}/omr-results
+- POST /api/exams/{exam_id}/omr-register-grades
 
-### YouTube Support for Study Materials & Tasks
-
-### Health & Wellness Module
-- Topico & Psicologia CRUD with parent alerts
-
-### Attendance Notification System
-- WebSocket real-time push notifications
-
-### OMR Exam Integration — Phase 1 (COMPLETED)
-- Backend: Extended `online_exams` with `type`, `num_questions`, `options_per_question`, `answer_key`, `points_per_question`
-- Frontend: ExamsContent.jsx + CourseDetailPage.jsx with type selector, AnswerKeyEditor
-
-### OMR Exam — Phase 2: PDF Generation (COMPLETED April 2026)
-- **Service**: `/app/backend/services/omr_pdf_generator.py` — ReportLab PDF generator with:
-  - 4 alignment markers (8mm black squares at exact positions for future OpenCV scanning)
-  - QR code with exam metadata (exam_id, num_questions, options)
-  - Header fields (Nombre, Fecha, Seccion)
-  - Exam title centered
-  - Dynamic bubble grid (2 or 3 columns depending on num_questions)
-  - Footer with EduNet branding
-  - Returns PDF bytes + bubble_map (coordinate dictionary for each bubble in mm)
-- **Endpoints**:
-  - `POST /api/exams/{exam_id}/generate-omr-pdf` — Generates PDF, uploads to Cloudinary, saves URL + bubble_map in exam document
-  - `GET /api/exams/{exam_id}/omr-pdf` — Returns PDF URL and generation date
-- **Frontend**: OmrSheetCard component in ExamDetailView with:
-  - "Generar Hoja de Respuestas" button (if no PDF)
-  - "Descargar PDF" + "Regenerar" buttons (if PDF exists)
-  - "DESCARGAR HOJA" button in exam listing for OMR exams with PDF
-- **Fix**: `total_points` in `/full` endpoint now uses stored value for OMR (not calculated from questions)
-- **Storage**: Cloudinary `edunet/omr-sheets` folder, `resource_type: raw`
-- Tested 100% (9/9 backend tests, all frontend features verified)
+## Key DB Collections
+- `online_exams`: type, num_questions, options_per_question, answer_key, points_per_question, total_points, omr_pdf_url, bubble_map, omr_pdf_generated_at
+- `omr_scans`: exam_id, student_id, detected_answers, score, total, percentage, grade_vigesimal, details, confidence, registered_to_gradebook
 
 ## Pending Issues
-
-### P2: Double scrollbar in "Registro Auxiliar"
+- P2: Double scrollbar in "Registro Auxiliar"
 
 ## Upcoming Tasks
 - P1: Refactor Message Pages (consolidate duplicates)
@@ -75,29 +67,18 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - P2: Create "Encuestas" page/module
 
 ## Future/Backlog
-- OMR Phase 3: OpenCV scanning + bubble reading + grade registration
-- Vinculacion Masiva Inteligente (Phase 2 Parent Import)
+- Vinculacion Masiva (Phase 2 Parent Import)
 - Dashboard Owner with real data
-- Matriculas (Enrollments) module
+- Matriculas module
 - Refactoring: CourseDetailPage.jsx (>10K lines), UsersPage.jsx (>5K lines)
 
-## Key Endpoints
-- POST /api/course/{subject_id}/exams (supports type: "digital" and "omr")
-- PUT /api/exams/{exam_id}
-- POST /api/exams/{exam_id}/generate-omr-pdf
-- GET /api/exams/{exam_id}/omr-pdf
-- GET /api/exams/{exam_id}/full (fixed total_points for OMR)
-
-## Key DB Schema
-- `online_exams`: type, num_questions, options_per_question, answer_key, points_per_question, total_points, omr_pdf_url, bubble_map, omr_pdf_generated_at
-
 ## 3rd Party Integrations
-- Cloudinary (image/file hosting, OMR PDF storage)
+- Cloudinary (files, OMR PDFs, OMR scans)
 - Firebase, ChatterPal, Vimeo
+- OpenCV (opencv-python-headless 4.13.0)
 
 ## Test Credentials
-- School: elroble
-- Owner: admin@elroble.edu / 1234abc8
+- Owner: admin@elroble.edu / 1234abc8 (subdomain: elroble)
 - Parent: maria.peres@gmail.com / Test1234!
 - Support: spencer3009@gmail.com / Socios3009
 - Teacher: sonia3009@gmail.com / teacher123
