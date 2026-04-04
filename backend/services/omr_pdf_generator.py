@@ -72,45 +72,62 @@ def _draw_qr(c, exam_data):
     y = PAGE_H - qr_y_from_top - qr_size
     c.drawImage(img_reader, x, y, width=qr_size, height=qr_size)
 
-    # Small ID text below QR
-    c.setFont("Helvetica", 6)
-    c.setFillColor(GRAY)
-    short_id = exam_data["id"][:8]
-    c.drawCentredString(PAGE_W / 2, y - 3 * mm, f"ID: {short_id}")
-    c.setFillColor(black)
 
-
-def _draw_header(c):
-    """Draw name/date/section fields at y=47mm from top."""
-    y_from_top = 47 * mm
+def _draw_header(c, short_id):
+    """Draw name/date/section fields starting at y=48mm from top."""
+    y_from_top = 48 * mm
     y = PAGE_H - y_from_top
     left = MARGIN
+    right = PAGE_W - MARGIN
 
     c.setFont("Helvetica", 11)
     c.setStrokeColor(black)
     c.setLineWidth(0.5)
 
-    # Nombre line
+    # Nombre line + ID short on the right
     c.drawString(left, y, "Nombre:")
     line_start = left + c.stringWidth("Nombre:  ", "Helvetica", 11)
-    c.line(line_start, y - 1, left + 140 * mm, y - 1)
+    c.line(line_start, y - 1, right - 30 * mm, y - 1)
 
-    # Fecha + Seccion
-    y2 = y - 14 * mm
+    c.setFont("Helvetica", 7)
+    c.setFillColor(GRAY)
+    c.drawRightString(right, y, f"ID: {short_id}")
+    c.setFillColor(black)
+
+    # Fecha + Seccion (10mm below Nombre)
+    y2 = y - 10 * mm
+    c.setFont("Helvetica", 11)
     c.drawString(left, y2, "Fecha:")
     line_start_f = left + c.stringWidth("Fecha:  ", "Helvetica", 11)
     c.line(line_start_f, y2 - 1, left + 60 * mm, y2 - 1)
 
     c.drawString(left + 70 * mm, y2, "Seccion:")
     line_start_s = left + 70 * mm + c.stringWidth("Seccion:  ", "Helvetica", 11)
-    c.line(line_start_s, y2 - 1, left + 140 * mm, y2 - 1)
+    c.line(line_start_s, y2 - 1, right, y2 - 1)
 
 
 def _draw_title(c, title):
-    """Draw exam title centered at y=62mm from top."""
-    y_from_top = 62 * mm
+    """Draw exam title centered at y=66mm from top (5mm+ below Fecha/Seccion)."""
+    y_from_top = 66 * mm
     y = PAGE_H - y_from_top
-    c.setFont("Helvetica-Bold", 13)
+    usable_w = PAGE_W - 2 * MARGIN
+
+    # Shrink font if title is too wide
+    font_size = 13
+    c.setFont("Helvetica-Bold", font_size)
+    title_w = c.stringWidth(title, "Helvetica-Bold", font_size)
+    if title_w > usable_w:
+        font_size = 11
+        c.setFont("Helvetica-Bold", font_size)
+        title_w = c.stringWidth(title, "Helvetica-Bold", font_size)
+        if title_w > usable_w:
+            # Truncate with ellipsis
+            while title_w > usable_w and len(title) > 10:
+                title = title[:-1]
+                title_w = c.stringWidth(title + "...", "Helvetica-Bold", font_size)
+            title = title + "..."
+            c.setFont("Helvetica-Bold", font_size)
+
     c.drawCentredString(PAGE_W / 2, y, title)
 
 
@@ -145,9 +162,9 @@ def _compute_layout(num_questions, options_per_question):
 def _draw_bubble_grid(c, num_questions, options_per_question):
     """
     Draw the bubble grid and return the bubble_map dict (coords in mm).
-    Grid starts at y=72mm from top.
+    Grid starts at y=76mm from top.
     """
-    grid_y_from_top = 72 * mm
+    grid_y_from_top = 76 * mm
     grid_top_y = PAGE_H - grid_y_from_top  # ReportLab y (bottom-up)
 
     num_cols, q_per_col, col_content_w = _compute_layout(num_questions, options_per_question)
@@ -239,7 +256,8 @@ def generate_omr_sheet(exam_data: dict) -> tuple:
     _draw_qr(c, exam_data)
 
     # 3. Header fields
-    _draw_header(c)
+    short_id = exam_data.get("id", "")[:8]
+    _draw_header(c, short_id)
 
     # 4. Title
     _draw_title(c, title)
