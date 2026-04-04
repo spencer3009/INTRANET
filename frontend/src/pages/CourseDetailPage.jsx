@@ -7451,7 +7451,7 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
 
       {/* AnswerKey Modal */}
       <Dialog open={!!answerKeyModal} onOpenChange={(open) => { if (!open) setAnswerKeyModal(null); }}>
-        <DialogContent className="max-w-[700px] w-[95vw] max-h-[90vh] overflow-y-auto sm:rounded-2xl p-0 max-sm:!w-screen max-sm:!max-w-none max-sm:!h-screen max-sm:!max-h-none max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!top-0 max-sm:!left-0" data-testid="answer-key-modal">
+        <DialogContent className="max-w-[700px] w-[95vw] max-h-[90vh] overflow-y-auto sm:rounded-2xl p-0 max-sm:!w-screen max-sm:!max-w-none max-sm:!h-screen max-sm:!max-h-none max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!top-0 max-sm:!left-0 [&>button:last-child]:hidden" data-testid="answer-key-modal">
           {answerKeyModal && (
             <>
               <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-3">
@@ -7462,6 +7462,9 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                 <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md text-[10px] font-bold flex items-center gap-1">
                   <Grid3X3 className="w-3 h-3" /> OMR
                 </span>
+                <button onClick={() => setAnswerKeyModal(null)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" data-testid="close-key-modal">
+                  <X className="w-5 h-5" />
+                </button>
               </div>
               <div className="p-4 sm:p-5">
                 <AnswerKeyEditor
@@ -7483,7 +7486,7 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
 
       {/* Scan Modal */}
       <Dialog open={!!scanModal} onOpenChange={(open) => { if (!open) { setScanModal(null); loadExams(); } }}>
-        <DialogContent className="max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto sm:rounded-2xl p-0 max-sm:!w-screen max-sm:!max-w-none max-sm:!h-screen max-sm:!max-h-none max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!top-0 max-sm:!left-0" data-testid="scan-modal">
+        <DialogContent className="max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto sm:rounded-2xl p-0 max-sm:!w-screen max-sm:!max-w-none max-sm:!h-screen max-sm:!max-h-none max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!top-0 max-sm:!left-0 [&>button:last-child]:hidden" data-testid="scan-modal">
           {scanModal && (
             <>
               <DialogHeader className="sr-only"><DialogTitle>Escanear</DialogTitle><DialogDescription>Escanear hojas OMR</DialogDescription></DialogHeader>
