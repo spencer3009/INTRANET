@@ -1647,19 +1647,8 @@ async def process_omr_scan_endpoint(
     if "error" in result:
         raise HTTPException(status_code=422, detail=result["error"])
 
-    # Upload image to Cloudinary
-    try:
-        upload_result = cloudinary.uploader.upload(
-            io.BytesIO(image_bytes),
-            folder="edunet/omr-scans",
-            public_id=f"scan_{exam_id}_{student_id}_{uuid.uuid4().hex[:8]}",
-            resource_type="image",
-            overwrite=True,
-        )
-        image_url = upload_result["secure_url"]
-    except Exception as e:
-        logger.warning(f"Cloudinary upload failed for scan: {e}")
-        image_url = ""
+    # Nota: Las imagenes no se almacenan. Solo se procesan en memoria con OpenCV
+    # y se guardan los datos extraidos (detected_answers, score, details)
 
     grade_vig = round(result["percentage"] * 20 / 100)
 
@@ -1676,7 +1665,6 @@ async def process_omr_scan_endpoint(
                 "new_result": {
                     **result,
                     "grade_vigesimal": grade_vig,
-                    "image_url": image_url,
                 },
             },
         )
@@ -1686,7 +1674,6 @@ async def process_omr_scan_endpoint(
         "exam_id": exam_id,
         "student_id": student_id,
         "school_id": user["school_id"],
-        "image_url": image_url,
         "detected_answers": result["detected_answers"],
         "score": result["score"],
         "total": result["total"],
@@ -1736,24 +1723,11 @@ async def overwrite_omr_scan(
     if "error" in result:
         raise HTTPException(status_code=422, detail=result["error"])
 
-    try:
-        upload_result = cloudinary.uploader.upload(
-            io.BytesIO(image_bytes),
-            folder="edunet/omr-scans",
-            public_id=f"scan_{exam_id}_{student_id}_{uuid.uuid4().hex[:8]}",
-            resource_type="image",
-            overwrite=True,
-        )
-        image_url = upload_result["secure_url"]
-    except Exception:
-        image_url = ""
-
     grade_vig = round(result["percentage"] * 20 / 100)
 
     await db.omr_scans.update_one(
         {"id": scan_id},
         {"$set": {
-            "image_url": image_url,
             "detected_answers": result["detected_answers"],
             "score": result["score"],
             "total": result["total"],
@@ -1895,7 +1869,7 @@ async def get_omr_scan_detail(
         raise HTTPException(status_code=404, detail="No se encontro resultado de escaneo para este alumno")
 
     exam = await db.online_exams.find_one(
-        {"id": exam_id}, {"_id": 0, "answer_key": 1, "title": 1}
+        {"id": exam_id}, {"_id": 0, "answer_key": 1, "title": 1, "options_per_question": 1}
     )
     student = await db.users.find_one(
         {"id": student_id}, {"_id": 0, "name": 1, "last_name": 1}
@@ -1903,6 +1877,8 @@ async def get_omr_scan_detail(
 
     scan["answer_key"] = exam.get("answer_key", []) if exam else []
     scan["exam_title"] = exam.get("title", "") if exam else ""
+    scan["options_per_question"] = exam.get("options_per_question", 5) if exam else 5
+    scan.pop("image_url", None)
     if student:
         scan["student_name"] = f"{student.get('last_name', '')} {student.get('name', '')}".strip()
     else:

@@ -3,7 +3,7 @@ import axios from "axios";
 import {
   Camera, Upload, ArrowLeft, Search, Check, X, AlertCircle,
   Loader2, RefreshCw, ChevronDown, ChevronUp, BookOpen,
-  ExternalLink, ChevronRight
+  ChevronRight
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
@@ -359,8 +359,11 @@ function StudentScanDetail({ examId, studentId, token, onBack }) {
   const incorrect = details.filter(d => d.status === "incorrect").length;
   const blank = details.filter(d => d.status === "blank").length;
   const multiple = details.filter(d => d.status === "multiple").length;
-  const useTwoCols = details.length > 20;
   const scanDate = data.created_at ? new Date(data.created_at).toLocaleString("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "";
+  const numOptions = data.options_per_question || 5;
+  const optionLetters = Array.from({ length: numOptions }, (_, i) => String.fromCharCode(65 + i));
+  const numQ = details.length;
+  const gridCols = numQ <= 25 ? 1 : numQ <= 50 ? 2 : 3;
 
   return (
     <div className="space-y-4" data-testid="student-scan-detail">
@@ -390,34 +393,58 @@ function StudentScanDetail({ examId, studentId, token, onBack }) {
         </div>
       </div>
 
-      {/* Answer Grid */}
+      {/* Bubble Answer Grid */}
       <div className="bg-white rounded-2xl border border-gray-100 p-4">
-        <h4 className="text-sm font-semibold text-gray-600 mb-3">Detalle por pregunta</h4>
-        <div className={useTwoCols ? "grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1" : "space-y-1"}>
+        <h4 className="text-sm font-semibold text-gray-600 mb-3">Respuestas del alumno</h4>
+        <div className={gridCols > 1 ? `grid grid-cols-1 sm:grid-cols-${gridCols} gap-x-6 gap-y-0` : ""}>
           {details.map((d) => {
-            const statusStyles = {
-              correct: "bg-emerald-50 border-emerald-200",
-              incorrect: "bg-red-50 border-red-200",
-              blank: "bg-gray-50 border-gray-200",
-              multiple: "bg-amber-50 border-amber-200",
-            };
-            const statusIcons = {
-              correct: <Check className="w-3.5 h-3.5 text-emerald-600" />,
-              incorrect: <X className="w-3.5 h-3.5 text-red-600" />,
-              blank: <span className="w-3.5 h-3.5 text-gray-400 text-center text-xs">-</span>,
-              multiple: <AlertCircle className="w-3.5 h-3.5 text-amber-600" />,
-            };
+            const detected = d.detected;
+            const correctAns = d.correct;
+            const isMultiple = d.status === "multiple";
+            const isBlank = d.status === "blank";
+            const markedLetters = isMultiple && typeof detected === "string" ? detected.split(",").map(s => s.trim()) : (detected ? [detected] : []);
+
             return (
-              <div key={d.question} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm ${statusStyles[d.status]}`}>
-                <span className="w-7 text-gray-500 font-mono text-xs text-right">{d.question}.</span>
-                <span className="w-5">{statusIcons[d.status]}</span>
-                <span className="font-semibold w-6 text-center">{d.detected || "-"}</span>
-                {d.status === "incorrect" && (
-                  <span className="text-xs text-gray-400 ml-1">(era {d.correct})</span>
-                )}
-                {d.status === "multiple" && (
-                  <span className="text-xs text-amber-600 ml-1">Multiple</span>
-                )}
+              <div key={d.question} className="flex items-center gap-2.5 py-1.5 border-b border-gray-50 last:border-0">
+                <span className="w-6 text-xs text-gray-400 font-mono text-right flex-shrink-0">{d.question}.</span>
+                <div className="flex items-center gap-1">
+                  {optionLetters.map((letter) => {
+                    const isMarked = markedLetters.includes(letter);
+                    const isCorrectOption = letter === correctAns;
+                    let bg = "bg-white border-gray-200";
+                    let textColor = "text-gray-300";
+
+                    if (isMarked && d.status === "correct") {
+                      bg = "bg-emerald-500 border-emerald-500";
+                      textColor = "text-white";
+                    } else if (isMarked && d.status === "incorrect") {
+                      bg = "bg-red-500 border-red-500";
+                      textColor = "text-white";
+                    } else if (isMarked && isMultiple) {
+                      bg = "bg-amber-400 border-amber-400";
+                      textColor = "text-white";
+                    } else if (!isMarked && isCorrectOption && (d.status === "incorrect" || isBlank || isMultiple)) {
+                      bg = "bg-white border-emerald-400 border-dashed";
+                      textColor = "text-emerald-600";
+                    }
+
+                    return (
+                      <span
+                        key={letter}
+                        className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-[10px] font-bold ${bg} ${textColor}`}
+                        title={isMarked ? `Marcada: ${letter}` : isCorrectOption ? `Correcta: ${letter}` : letter}
+                      >
+                        {letter}
+                      </span>
+                    );
+                  })}
+                </div>
+                <span className="flex-shrink-0 w-4">
+                  {d.status === "correct" && <Check className="w-3.5 h-3.5 text-emerald-600" />}
+                  {d.status === "incorrect" && <X className="w-3.5 h-3.5 text-red-600" />}
+                  {d.status === "blank" && <span className="text-gray-300 text-xs">-</span>}
+                  {d.status === "multiple" && <AlertCircle className="w-3.5 h-3.5 text-amber-600" />}
+                </span>
               </div>
             );
           })}
@@ -428,23 +455,13 @@ function StudentScanDetail({ examId, studentId, token, onBack }) {
           {blank > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-400" />{blank} en blanco</span>}
           {multiple > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-500" />{multiple} multiple{multiple !== 1 ? "s" : ""}</span>}
         </div>
-      </div>
-
-      {/* Scanned Sheet Image */}
-      {data.image_url && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h4 className="text-sm font-semibold text-gray-600 mb-3">Hoja escaneada</h4>
-          <a href={data.image_url} target="_blank" rel="noopener noreferrer"
-            className="block rounded-xl overflow-hidden border border-gray-200 hover:shadow-md transition-shadow cursor-pointer relative group">
-            <img src={data.image_url} alt="Hoja escaneada" className="w-full max-h-[400px] object-contain bg-gray-50" />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-              <span className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 flex items-center gap-1.5">
-                <ExternalLink className="w-4 h-4" /> Ver completa
-              </span>
-            </div>
-          </a>
+        {/* Legend */}
+        <div className="mt-2 flex flex-wrap gap-3 text-[10px] text-gray-400">
+          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded-full bg-emerald-500 border-2 border-emerald-500 inline-flex items-center justify-center text-white text-[8px] font-bold">A</span> Marcada correcta</span>
+          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded-full bg-red-500 border-2 border-red-500 inline-flex items-center justify-center text-white text-[8px] font-bold">B</span> Marcada incorrecta</span>
+          <span className="flex items-center gap-1"><span className="w-4 h-4 rounded-full bg-white border-2 border-dashed border-emerald-400 inline-flex items-center justify-center text-emerald-600 text-[8px] font-bold">C</span> Correcta (no marcada)</span>
         </div>
-      )}
+      </div>
     </div>
   );
 }

@@ -46,7 +46,13 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - Prerequisites messaging: "Configure clave y genere hoja" when scanning not ready
 - Empty state for Results tab when no scans exist
 
-### Student Detail View (COMPLETED - Feb 4, 2026)
+### Image Storage Optimization (COMPLETED - Feb 4, 2026)
+- Removed Cloudinary upload for OMR scans (images processed in-memory only)
+- Removed `image_url` field from scan responses
+- Replaced scanned sheet image with visual bubble grid showing all options (A-E)
+- Bubble colors: green filled = correct, red filled = incorrect, dashed green border = correct answer (not marked), gray = not marked, amber = multiple marks
+- Added `options_per_question` to student detail endpoint
+- Legend and summary at bottom of grid
 - `StudentScanDetail` component in OMRScanComponents.jsx (line 329)
 - Backend endpoint: `GET /api/exams/{exam_id}/omr-scan/{student_id}`
 - Inline panel replaces results table when student row is clicked
