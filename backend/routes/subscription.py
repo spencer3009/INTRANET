@@ -195,9 +195,10 @@ async def get_subscription_status(current_user=Depends(get_current_user)):
         if not user:
             return {"plan_estado": "ACTIVO", "dias_vencido": 0}
 
-        ADMIN_ROLES = ("owner", "admin", "system_admin_global")
+        ADMIN_ROLES = ("owner", "admin", "system_admin_global", "director")
         user_role = user.get("role", "")
-        if user_role not in ADMIN_ROLES:
+        is_owner = user.get("is_owner", False)
+        if user_role not in ADMIN_ROLES and not is_owner:
             return {"plan_estado": "ACTIVO", "dias_vencido": 0, "restricted_actions": []}
 
         school_id = user.get("school_id")
