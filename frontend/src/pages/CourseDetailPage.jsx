@@ -6399,6 +6399,120 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
   );
 }
 
+// OMR Sheet PDF Card
+function OmrSheetCard({ exam, token, onExamUpdate }) {
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState("");
+
+  const hasPdf = !!exam.omr_pdf_url;
+  const generatedAt = exam.omr_pdf_generated_at
+    ? new Date(exam.omr_pdf_generated_at).toLocaleString("es-PE", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  const handleGenerate = async () => {
+    setGenerating(true);
+    setError("");
+    try {
+      const res = await axios.post(`${API}/exams/${exam.id}/generate-omr-pdf`, {}, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      onExamUpdate({
+        omr_pdf_url: res.data.pdf_url,
+        omr_pdf_generated_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      setError(err.response?.data?.detail || "Error al generar la hoja OMR");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleRegenerate = () => {
+    if (window.confirm("Se reemplazara la hoja actual. ¿Desea continuar?")) {
+      handleGenerate();
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="omr-sheet-card">
+      <div className="bg-gradient-to-r from-slate-700 to-slate-800 px-6 py-4">
+        <h3 className="text-white font-semibold flex items-center gap-2">
+          <FileText className="w-5 h-5" />
+          Hoja de respuestas OMR
+        </h3>
+      </div>
+      <div className="p-6">
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            {error}
+          </div>
+        )}
+
+        {!hasPdf ? (
+          <div className="text-center py-6 space-y-4">
+            <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto">
+              <Grid3X3 className="w-8 h-8 text-gray-400" />
+            </div>
+            <div>
+              <p className="text-gray-700 font-medium">Aun no se ha generado la hoja de respuestas</p>
+              <p className="text-sm text-gray-500 mt-1">Se creara un PDF imprimible con {exam.num_questions} preguntas y {exam.options_per_question} opciones</p>
+            </div>
+            <button
+              onClick={handleGenerate}
+              disabled={generating}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-slate-700 to-slate-800 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-60"
+              data-testid="generate-omr-pdf-btn"
+            >
+              {generating ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Generando hoja OMR...</>
+              ) : (
+                <><FileText className="w-5 h-5" /> Generar Hoja de Respuestas</>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-emerald-50 rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-emerald-800">Hoja OMR generada</p>
+                  {generatedAt && <p className="text-xs text-emerald-600">{generatedAt}</p>}
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => window.open(exam.omr_pdf_url, "_blank")}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+                  data-testid="download-omr-pdf-btn"
+                >
+                  <Download className="w-4 h-4" /> Descargar PDF
+                </button>
+                <button
+                  onClick={handleRegenerate}
+                  disabled={generating}
+                  className="inline-flex items-center gap-2 px-3 py-2.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-60"
+                  data-testid="regenerate-omr-pdf-btn"
+                >
+                  {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                  Regenerar
+                </button>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Si modifica el numero de preguntas u opciones, debera regenerar la hoja.
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 // Main Exam Detail View Component
 function ExamDetailView({ examId, token, userRole, onBack }) {
   const [exam, setExam] = useState(null);
@@ -6575,6 +6689,11 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
         </div>
       </div>
       
+      {/* OMR Sheet PDF Card */}
+      {isOmr && (
+        <OmrSheetCard exam={exam} token={token} onExamUpdate={(updates) => setExam(prev => ({ ...prev, ...updates }))} />
+      )}
+
       {/* OMR Answer Key Editor */}
       {isOmr && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -6987,6 +7106,16 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                               <><Edit3 className="w-4 h-4" /> GESTIONAR PREGUNTAS</>
                             )}
                           </button>
+
+                          {isOmr && exam.omr_pdf_url && (
+                            <button
+                              onClick={() => window.open(exam.omr_pdf_url, "_blank")}
+                              className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors flex items-center gap-1.5"
+                              data-testid={`download-sheet-${exam.id}`}
+                            >
+                              <Download className="w-4 h-4" /> DESCARGAR HOJA
+                            </button>
+                          )}
                           
                           <button
                             onClick={() => setExpandedExam(isExpanded ? null : exam.id)}

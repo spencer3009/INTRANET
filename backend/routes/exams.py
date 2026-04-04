@@ -96,6 +96,10 @@ class ExamUpdate(BaseModel):
     options_per_question: Optional[int] = None
     answer_key: Optional[list] = None
     points_per_question: Optional[float] = None
+    # OMR PDF fields (written internally by generate endpoint)
+    omr_pdf_url: Optional[str] = None
+    bubble_map: Optional[dict] = None
+    omr_pdf_generated_at: Optional[str] = None
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1415,7 +1419,10 @@ async def get_exam_full_detail(
     # Get questions count and total points
     questions = await db.exam_questions.find({"exam_id": exam_id}, {"_id": 0}).to_list(200)
     exam["questions_count"] = len(questions)
-    exam["total_points"] = sum(q.get("points", 0) for q in questions)
+    if exam.get("type") == "omr":
+        exam["total_points"] = exam.get("total_points", 0)
+    else:
+        exam["total_points"] = sum(q.get("points", 0) for q in questions)
     
     # Get creator info
     if exam.get("created_by"):
@@ -1423,6 +1430,116 @@ async def get_exam_full_detail(
         exam["creator_name"] = f"{creator.get('name', '')} {creator.get('last_name', '')}".strip() if creator else ""
     
     return exam
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# OMR PDF GENERATION ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.post("/exams/{exam_id}/generate-omr-pdf")
+async def generate_omr_pdf(
+    exam_id: str,
+    current_user=Depends(get_current_user)
+):
+    """Generate the OMR answer sheet PDF and upload to Cloudinary."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    if exam.get("type") != "omr":
+        raise HTTPException(status_code=400, detail="Este examen no es de tipo OMR")
+
+    # Permission check
+    if not has_role(user, STAFF_ROLES):
+        raise HTTPException(status_code=403, detail="No tiene permisos")
+
+    num_q = exam.get("num_questions", 20)
+    opts = exam.get("options_per_question", 5)
+    if not (5 <= num_q <= 100):
+        raise HTTPException(status_code=400, detail="num_questions debe ser entre 5 y 100")
+    if not (2 <= opts <= 5):
+        raise HTTPException(status_code=400, detail="options_per_question debe ser entre 2 y 5")
+
+    from services.omr_pdf_generator import generate_omr_sheet
+
+    pdf_bytes, bubble_map = generate_omr_sheet({
+        "id": exam_id,
+        "title": exam.get("title", "Examen OMR"),
+        "num_questions": num_q,
+        "options_per_question": opts,
+    })
+
+    # Delete previous PDF from Cloudinary if exists
+    old_url = exam.get("omr_pdf_url")
+    if old_url and "cloudinary.com" in old_url:
+        try:
+            parts = old_url.split("/upload/")
+            if len(parts) > 1:
+                raw_path = parts[1]
+                if "/" in raw_path:
+                    raw_path = "/".join(raw_path.split("/")[1:])  # skip version
+                public_id = raw_path.rsplit(".", 1)[0] if "." in raw_path else raw_path
+                cloudinary.uploader.destroy(public_id, resource_type="raw")
+        except Exception as e:
+            logger.warning(f"Could not delete old OMR PDF: {e}")
+
+    # Upload new PDF to Cloudinary
+    result = cloudinary.uploader.upload(
+        io.BytesIO(pdf_bytes),
+        folder="edunet/omr-sheets",
+        public_id=f"omr_{exam_id}",
+        resource_type="raw",
+        overwrite=True,
+        format="pdf",
+    )
+    pdf_url = result["secure_url"]
+
+    # Save to exam document
+    now_str = datetime.now(timezone.utc).isoformat()
+    await db.online_exams.update_one(
+        {"id": exam_id},
+        {"$set": {
+            "omr_pdf_url": pdf_url,
+            "bubble_map": bubble_map,
+            "omr_pdf_generated_at": now_str,
+            "updated_at": now_str,
+        }}
+    )
+
+    return {"pdf_url": pdf_url, "message": "Hoja OMR generada exitosamente"}
+
+
+@router.get("/exams/{exam_id}/omr-pdf")
+async def get_omr_pdf(
+    exam_id: str,
+    current_user=Depends(get_current_user)
+):
+    """Get the OMR PDF URL for an exam."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]},
+        {"_id": 0, "omr_pdf_url": 1, "omr_pdf_generated_at": 1, "type": 1}
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    if exam.get("type") != "omr":
+        raise HTTPException(status_code=400, detail="Este examen no es de tipo OMR")
+
+    if not exam.get("omr_pdf_url"):
+        raise HTTPException(status_code=404, detail="La hoja OMR aun no ha sido generada")
+
+    return {
+        "pdf_url": exam["omr_pdf_url"],
+        "generated_at": exam.get("omr_pdf_generated_at"),
+    }
 
 
 # ══════════════════════════════════════════════════════════════════════════════
