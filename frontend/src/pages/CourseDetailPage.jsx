@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import AnswerKeyEditor from "../components/course/AnswerKeyEditor";
 import { OMRScanFlow, OMRResultsCard } from "../components/course/OMRScanComponents";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
 import CourseLoadingScreen from "../components/CourseLoadingScreen";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -6459,6 +6460,136 @@ function OMRScanCard({ exam, token, onScanComplete }) {
 }
 
 
+// OMR Detail Tabs — reorganizes OMR sections into tabbed UI
+function OmrDetailTabs({ exam, token, onExamUpdate, onScanComplete, onRegisterComplete, setExam }) {
+  const [scanCount, setScanCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("clave");
+
+  const keyComplete = exam.answer_key && exam.answer_key.length === (exam.num_questions || 0)
+    && exam.answer_key.every(k => k !== null && k !== undefined);
+  const hasSheet = !!exam.omr_pdf_url;
+  const canScan = keyComplete && !!exam.bubble_map;
+
+  useEffect(() => {
+    const loadCount = async () => {
+      try {
+        const res = await axios.get(`${API}/exams/${exam.id}/omr-results`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setScanCount(res.data.length);
+      } catch { setScanCount(0); }
+    };
+    loadCount();
+  }, [exam.id]);
+
+  const refreshScanCount = async () => {
+    try {
+      const res = await axios.get(`${API}/exams/${exam.id}/omr-results`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setScanCount(res.data.length);
+    } catch {}
+    onScanComplete();
+  };
+
+  return (
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full" data-testid="omr-detail-tabs">
+      <TabsList className="w-full h-auto p-1 bg-gray-100/80 rounded-xl grid grid-cols-4 gap-1">
+        <TabsTrigger value="clave"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium text-gray-500 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm"
+          data-testid="tab-clave"
+        >
+          <Key className="w-4 h-4" />
+          <span className="hidden sm:inline">Clave</span>
+          {keyComplete && <span className="w-4 h-4 bg-emerald-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold leading-none">&#10003;</span>}
+        </TabsTrigger>
+        <TabsTrigger value="hoja"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium text-gray-500 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm"
+          data-testid="tab-hoja"
+        >
+          <FileText className="w-4 h-4" />
+          <span className="hidden sm:inline">Hoja</span>
+          {hasSheet && <span className="w-4 h-4 bg-emerald-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold leading-none">&#10003;</span>}
+        </TabsTrigger>
+        <TabsTrigger value="escanear"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium text-gray-500 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm"
+          data-testid="tab-escanear"
+        >
+          <Camera className="w-4 h-4" />
+          <span className="hidden sm:inline">Escanear</span>
+          {scanCount > 0 && <span className="min-w-[18px] h-[18px] bg-purple-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold leading-none px-1">{scanCount}</span>}
+        </TabsTrigger>
+        <TabsTrigger value="resultados"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg text-xs sm:text-sm font-medium text-gray-500 transition-all data-[state=active]:bg-white data-[state=active]:text-emerald-700 data-[state=active]:shadow-sm"
+          data-testid="tab-resultados"
+        >
+          <BarChart3 className="w-4 h-4" />
+          <span className="hidden sm:inline">Resultados</span>
+          {scanCount > 0 && <span className="min-w-[18px] h-[18px] bg-indigo-500 text-white rounded-full text-[10px] flex items-center justify-center font-bold leading-none px-1">{scanCount}</span>}
+        </TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="clave" className="mt-3">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6" data-testid="tab-content-clave">
+          <AnswerKeyEditor
+            examId={exam.id}
+            numQuestions={exam.num_questions || 20}
+            optionsPerQuestion={exam.options_per_question || 5}
+            initialAnswerKey={exam.answer_key}
+            token={token}
+            onSave={(newKey) => setExam(prev => ({ ...prev, answer_key: newKey }))}
+          />
+        </div>
+      </TabsContent>
+
+      <TabsContent value="hoja" className="mt-3">
+        <OmrSheetCard exam={exam} token={token} onExamUpdate={onExamUpdate} />
+      </TabsContent>
+
+      <TabsContent value="escanear" className="mt-3">
+        {canScan ? (
+          <OMRScanCard exam={exam} token={token} onScanComplete={refreshScanCount} />
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center space-y-3" data-testid="scan-prerequisites">
+            <div className="w-14 h-14 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto">
+              <AlertCircle className="w-7 h-7 text-amber-500" />
+            </div>
+            <p className="text-gray-700 font-medium">Requisitos previos</p>
+            <p className="text-sm text-gray-500">Configure la clave de respuestas y genere la hoja antes de escanear.</p>
+            <div className="flex justify-center gap-2 pt-2">
+              {!keyComplete && (
+                <button onClick={() => setActiveTab("clave")} className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors">
+                  <Key className="w-4 h-4" /> Configurar clave
+                </button>
+              )}
+              {keyComplete && !hasSheet && (
+                <button onClick={() => setActiveTab("hoja")} className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-700 text-white rounded-xl text-sm font-medium hover:bg-slate-800 transition-colors">
+                  <FileText className="w-4 h-4" /> Generar hoja
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </TabsContent>
+
+      <TabsContent value="resultados" className="mt-3">
+        {scanCount > 0 ? (
+          <OMRResultsCard exam={exam} token={token} onRegisterComplete={onRegisterComplete} />
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center space-y-3" data-testid="results-empty">
+            <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto">
+              <BarChart3 className="w-7 h-7 text-gray-400" />
+            </div>
+            <p className="text-gray-700 font-medium">Sin resultados</p>
+            <p className="text-sm text-gray-500">Aun no se han escaneado hojas de respuestas.</p>
+          </div>
+        )}
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+
 // OMR Sheet PDF Card
 function OmrSheetCard({ exam, token, onExamUpdate }) {
   const [generating, setGenerating] = useState(false);
@@ -6749,38 +6880,17 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
         </div>
       </div>
       
-      {/* OMR Answer Key Editor */}
+      {/* OMR Tabs */}
       {isOmr && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-4">
-            <h3 className="text-white font-semibold flex items-center gap-2">
-              <Key className="w-5 h-5" />
-              Clave de respuestas
-            </h3>
-          </div>
-          <div className="p-6">
-            <AnswerKeyEditor
-              examId={exam.id}
-              numQuestions={exam.num_questions || 20}
-              optionsPerQuestion={exam.options_per_question || 5}
-              initialAnswerKey={exam.answer_key}
-              token={token}
-              onSave={(newKey) => setExam(prev => ({ ...prev, answer_key: newKey }))}
-            />
-          </div>
-        </div>
+        <OmrDetailTabs
+          exam={exam}
+          token={token}
+          onExamUpdate={(updates) => setExam(prev => ({ ...prev, ...updates }))}
+          onScanComplete={() => loadExamData()}
+          onRegisterComplete={() => loadExamData()}
+          setExam={setExam}
+        />
       )}
-
-      {/* OMR Sheet PDF Card */}
-      {isOmr && (
-        <OmrSheetCard exam={exam} token={token} onExamUpdate={(updates) => setExam(prev => ({ ...prev, ...updates }))} />
-      )}
-
-      {/* OMR Scan Section */}
-      {isOmr && <OMRScanCard exam={exam} token={token} onScanComplete={() => loadExamData()} />}
-
-      {/* OMR Results */}
-      {isOmr && <OMRResultsCard exam={exam} token={token} onRegisterComplete={() => loadExamData()} />}
 
       {/* Questions Management (Digital only) */}
       {!isOmr && (

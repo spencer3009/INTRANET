@@ -72,7 +72,7 @@
       "email": "admin@elroble.edu",
       "password": "1234abc8",
       "subdomain": "elroble",
-      "login_url": "https://omr-exam-integration.preview.emergentagent.com/elroble/login"
+      "login_url": "https://mark-reader-1.preview.emergentagent.com/elroble/login"
     }
   },
 

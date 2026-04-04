@@ -1876,6 +1876,41 @@ async def register_omr_grades(exam_id: str, current_user=Depends(get_current_use
     }
 
 
+@router.get("/exams/{exam_id}/omr-scan/{student_id}")
+async def get_omr_scan_detail(
+    exam_id: str,
+    student_id: str,
+    current_user=Depends(get_current_user),
+):
+    """Get full detail of a single OMR scan for a student."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    scan = await db.omr_scans.find_one(
+        {"exam_id": exam_id, "student_id": student_id, "school_id": user["school_id"]},
+        {"_id": 0},
+    )
+    if not scan:
+        raise HTTPException(status_code=404, detail="No se encontro resultado de escaneo para este alumno")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id}, {"_id": 0, "answer_key": 1, "title": 1}
+    )
+    student = await db.users.find_one(
+        {"id": student_id}, {"_id": 0, "name": 1, "last_name": 1}
+    )
+
+    scan["answer_key"] = exam.get("answer_key", []) if exam else []
+    scan["exam_title"] = exam.get("title", "") if exam else ""
+    if student:
+        scan["student_name"] = f"{student.get('last_name', '')} {student.get('name', '')}".strip()
+    else:
+        scan["student_name"] = ""
+
+    return scan
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 
 # GOOGLE DRIVE INTEGRATION

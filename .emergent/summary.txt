@@ -1,40 +1,31 @@
-<analysis>**original_problem_statement**: Continuar el desarrollo de la plataforma EduNet. Específicamente, realizar mejoras en la UI/UX del módulo de Salud y Bienestar (logos, nombres completos, fotos), implementar un sistema de notificaciones en tiempo real para padres (Asistencia) con WebSockets y Firebase Push Notifications, y optimizar la gestión de usuarios (buscador global en estudiantes, manejo de importaciones pendientes y un nuevo buscador para la sección de padres).
+<analysis>**original_problem_statement**: Continuar el desarrollo de EduNet con enfoque en el sistema de Exámenes OMR. Se solicitó implementar la Fase 1 (Integración de UI en portal Owner), Fase 2 (Generación de PDF de hoja de respuestas usando ReportLab), Fase 3 (Motor de escaneo OMR con OpenCV y calificación automática), y finalmente un rediseño de la vista OMR utilizando pestañas () y una vista de detalle por alumno para los resultados escaneados. PRODUCT REQUIREMENTS: Sistema de exámenes físicos completamente integrado, generación de PDF con marcadores precisos, lectura óptica robusta de burbujas, calificación automática sincronizada con el Registro Auxiliar, UI intuitiva y amigable para móviles.
 
 **User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only)
 
 **what currently exists?**: 
-EduNet es una plataforma Full-stack React + FastAPI + MongoDB. Cuenta con módulos de Salud (Tópico y Psicología) con historial de alumnos e integración de componentes UI. Se ha implementado un sistema robusto de notificaciones en tiempo real usando WebSockets ( nativo) y Firebase Cloud Messaging (FCM) con Service Workers para Push Notifications y PWA badges. Además, el módulo de gestión de usuarios () permite gestionar importaciones masivas y listas de estudiantes/padres.
+EduNet cuenta ahora con un sistema OMR (Reconocimiento Óptico de Marcas) funcional. Los profesores/owners pueden crear exámenes OMR, configurar la clave de respuestas interactiva, generar y descargar un PDF con la hoja de burbujas personalizada (vía ), y usar la cámara de su dispositivo para escanear hojas físicas completadas. El backend procesa las imágenes con OpenCV (), detecta las burbujas marcadas, califica automáticamente y permite sincronizar estas notas directamente con el Registro Auxiliar. La vista principal del Owner ha sido refactorizada para usar pestañas (Clave, Hoja OMR, Escanear, Resultados).
 
 **Last working item**:
-    - Last item agent was working: El agente comenzó a implementar un buscador global en la pestaña Padres (dentro de ), que permita buscar apoderados por nombre, apellido o DNI. El agente estaba revisando  para inyectar la lógica cuando la sesión finalizó.
-    - Status: IN PROGRESS
-    - Agent Testing Done: N
-    - Which testing method agent to use?: Frontend testing agent/screenshot tool
+    - Last item agent was working: Implementación de la Parte B: Vista de detalle por alumno dentro de la pestaña de Resultados OMR. El agente creó el endpoint backend  para proveer detalles del escaneo individual y sobrescribió el componente  para hacer que las filas de la tabla de resultados sean clickeables y muestren una vista inline detallada (nota, grilla de respuestas con colores y la imagen escaneada).
+    - Status: IN PROGRESS (El agente escribió el código pero la verificación en el Frontend está pendiente).
+    - Agent Testing Done: Y (Backend testeado parcialmente vía bash/curl).
+    - Which testing method agent to use?: Frontend testing agent/ screenshot tool
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: (P0) Buscador en la pestaña de Padres ()
-     - Attempted fixes: El agente identificó que el estado actual  solo se usaba para el dropdown de vinculación de alumnos. Abrió el archivo para implementar un buscador real en el grid de padres, pero no aplicó los cambios.
-     - Next debug checklist: Buscar el grid/tabla de padres en , crear un estado de búsqueda dedicado para esta pestaña, añadir el input UI correspondiente en el encabezado de la sección y filtrar la lista  mostrada.
-     - Why fix this issue and what will be achieved with the fix?: Mejorar la accesibilidad y UX para los administradores que necesitan encontrar rápidamente a un apoderado en una lista potencialmente grande.
-     - Status: IN PROGRESS
-     - Is recurring issue? N
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on other issue: N/A
-
-  Issue 2: (P2) Arreglar Doble Scrollbar en la UI del Registro Auxiliar
-     - Attempted fixes: Ninguno en esta sesión.
-     - Next debug checklist: Revisar contenedores con  redundante en el componente de Registro Auxiliar.
-     - Why fix this issue and what will be achieved with the fix?: Mejorar la experiencia de usuario general.
+  Issue 1: (P2) Arreglar Doble Scrollbar en la UI del Registro Auxiliar
+     - Attempted fixes: Ninguno.
+     - Next debug checklist: Revisar contenedores con overflow redundante en el componente de Registro Auxiliar.
+     - Why fix this issue and what will be achieved with the fix?: Mejorar UX en el manejo de notas.
      - Status: NOT STARTED
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Frontend
      - Blocked on other issue: N/A
 
 **In progress Task List**:
-  Task 1: Validar el flujo de notificaciones Push PWA en entorno de producción
-     - Where to resume: Una vez finalizados los ajustes locales, comprobar (si es posible) que al aceptar los permisos del navegador, el badge numérico y las notificaciones en background de Firebase lleguen correctamente a un dispositivo.
-     - What will be achieved with this?: Garantizar que el Service Worker y el Payload de FCM funcionen end-to-end.
+  Task 1: Rediseño OMR - Vista de detalle por alumno (Parte B)
+     - Where to resume: Verificar el archivo . El agente anterior acaba de sobrescribir el archivo para agregar el panel de detalle inline al hacer click en un alumno en la tabla . Se requiere verificar que la UI se renderiza correctamente, que el botón de volver funciona y testear el flujo.
+     - What will be achieved with this?: Los profesores podrán ver exactamente dónde se equivocó un alumno y revisar la foto original de la hoja directamente desde la pestaña de resultados.
      - Status: TESTING PENDING
      - Should Test frontend/backend/both after fix?: Frontend
      - Blocked on something: N/A
@@ -47,140 +38,120 @@ EduNet es una plataforma Full-stack React + FastAPI + MongoDB. Cuenta con módul
     - P2: Crear la página/módulo de Encuestas en .
 
     Future Tasks:
-    - Vinculación Masiva Inteligente (Fase 2 de importación de padres).
     - Dashboard Owner con métricas reales.
     - Construir módulo de Matrículas (Enrollments).
-    - Reemplazar / con modales customizados.
     - Refactorización crítica:  (> 10,000 líneas).
-    - Refactorización crítica:  (> 5,000 líneas).
-    - Refactorización crítica:  (> 2,000 líneas).
+    - Refactorización crítica: .
 
 **Completed work in this session**
-- **Logo de la institución**: Se arregló la visualización del logo en los wrappers , ,  y  (DONE).
-- **Nombre y foto de estudiantes**: Añadido nombre completo y foto en modales (Registrar Atención, DetailModal y lista del historial) de Tópico y Psicología (DONE).
-- **Corrección de guardado (Health)**: El backend guardaba  vacío porque se referenciaba erróneamente. Fix aplicado para asociar las atenciones al alumno correcto (DONE).
-- **Notificaciones Tiempo Real**: Añadido WebSocket push vía  para que los padres reciban notificaciones instantáneas de asistencia. Creado  (DONE).
-- **Mejoras UX en Notificaciones**: Implementado Singleton AudioContext para sonido,  y animación Bounce (animación key) en  (DONE).
-- **Pendientes de Importación ()**: 
-  - Se agregó mapeo para mostrar el texto real de Nivel, Grado y Sección (INICIAL — 3 años — A) (DONE).
-  - Creado botón y endpoint  para limpiar toda la lista de duplicados sin afectar a los usuarios activos (DONE).
-  - Arreglado el buscador global para que ignore los filtros si se escribe un texto de búsqueda (DONE).
-- **Integración Firebase FCM**: 
-  - Configurada  en  y asignada en  (DONE).
-  - Sincronización del badge de PWA () con el  en backend y  (DONE).
+- Fase 1 OMR: UI de Exámenes OMR integrada en el Portal del Owner dentro de  (DONE).
+- Fase 2 OMR: Servicio de generación de PDF de hojas OMR con ReportLab () con marcadores de OpenCV y QR (DONE).
+- Fase 2 Fix: Corregido solapamiento de título y sección en el PDF (DONE).
+- Fix UI: Reordenadas las secciones de la vista de detalle OMR (Detalles -> Clave -> Hoja) (DONE).
+- Fase 3 OMR: Motor de escaneo y calificación por OpenCV (), incluyendo endpoints para capturar, procesar y guardar la imagen en Cloudinary (DONE).
+- Fase 3 UI: Integrados  y  con soporte para cámara de dispositivo (DONE).
+- Rediseño UI OMR: Migración de apilamiento vertical a pestañas horizontales usando  (DONE).
 
 **Earlier issues found/mentioned but not fixed**
-- Issue 1: Doble Scrollbar en Registro Auxiliar (P2)
-   - Debug checklist: Revisar estilos CSS  en el componente tabla de notas.
-   - Why to solve this issue and what will be achieved with this?: UI pulida.
-   - Should Test frontend/backend/both after fix: Frontend
-   - Is recurring issue? N
+- Ninguno adicional a los listados.
 
 **Known issue recurrence from previous fork**
-  - Issue recurrence in previous fork: Discrepancias entre Producción vs Preview environment (El widget ChatterPal bloquea el preview ocasionalmente).
-  - Recurrence count: 6
-  - Status: ONGOING
-  - Note: Recordar que widgets externos como ChatterPal pueden dar errores en el entorno de desarrollo. Ignorarlos si no afectan la feature principal.
+  - Recurrence count: 0
 
 **Code Architecture**
 /app
 ├── backend/
 │   ├── routes/
-│   │   ├── notifications.py         # Endpoint FCM Push + registro de tokens
-│   │   ├── attendance.py            # Lógica de registro QR
-│   │   └── users.py                 # Contiene el endpoint para pendientes
-│   ├── utils/
-│   │   └── firebase_admin_sdk.py    # Singleton Firebase Admin
+│   │   └── exams.py                 # Orquestador principal de APIs de exámenes (OMR y Digitales)
+│   └── services/
+│       ├── omr_pdf_generator.py     # Generador de hojas con ReportLab
+│       └── omr_scanner.py           # Motor de procesamiento de imágenes con OpenCV
 └── frontend/
-    ├── public/
-    │   ├── firebase-messaging-sw.js # Service Worker con onBackgroundMessage y PWA Badges
-    │   └── service-worker.js
     └── src/
-        ├── lib/
-        │   └── firebase.js          # Configuración Web de Firebase y VAPID key
-        ├── utils/
-        │   └── notificationSound.js # (NUEVO) Singleton AudioContext para sonidos
-        ├── hooks/
-        │   └── useNotificationSocket.js
-        ├── components/
-        │   ├── NotificationBell.jsx # (MODIFICADO) Sincronización de badges y websockets
-        │   └── AttendanceToast.jsx  # (NUEVO)
-        └── pages/
-            └── UsersPage.jsx        # Gestión de padres, estudiantes y pendientes
+        ├── pages/
+        │   └── CourseDetailPage.jsx       # Componente principal que usa las pestañas OMR ()
+        └── components/
+            ├── course/AnswerKeyEditor.jsx 
+            └── course/OMRScanComponents.jsx # Contiene flujos de cámara y tabla de resultados (Modificado recientemente)
 
 **Key Technical Concepts**
-- **PWA Badges**: Integración completa con  y Service Workers .
-- **AudioContext Singleton**: Un workaround implementado para permitir reproducir el sonido de notificación ( oscilador) de forma confiable sin violar las políticas de *autoplay* de los navegadores.
-- **WebSockets FastApi**: En lugar de , se utiliza un  nativo en  () para el envío de eventos en tiempo real al frontend.
+- **ReportLab PDF Gen**: Genera hojas de burbujas en milímetros exactos, guardando un  en MongoDB como fuente de la verdad para las coordenadas espaciales.
+- **OpenCV OMR Engine**: Localiza 4 marcadores en esquinas, aplica transformación de perspectiva (), corta ROIs de las burbujas, evalúa el  (threshold > 0.35) para calificar la hoja fotografiada.
+- **Cloudinary Direct Upload**: El frontend pide firma () y sube la foto directamente a Cloudinary, pasando la URL segura al backend.
 
 **key DB schema**
-  - : Colección MongoDB para tokens FCM (, , ).
-  - : Colección con mensajes, , y campo .
+  - : Extendida con , , , .
+  -  (NUEVA): Colección para guardar escaneos. Almacena , , , , , , etc.
 
 **changes in tech stack**
-  - Ninguno. La app sigue en Create React App (CRA). Las variables de entorno son  y no .
+  - Se instaló la dependencia de Python  (OpenCV sin GUI) requerida para la Fase 3 de OMR. 
 
 **All files of reference** 
-  -  (Actualmente requiriendo edición para el buscador de padres).
   - 
   - 
   - 
   - 
-  - 
-  - 
-  - 
+  -  (Archivo Crítico - último en ser modificado)
 
 **Areas that need refactoring**: 
-  -  (> 5,200 líneas).
-  -  (> 10,000 líneas).
-  -  (> 2,000 líneas).
+  - : Sigue siendo un archivo masivo (>10,000 líneas) aunque partes de OMR se delegaron a .
 
 **key api endpoints**
-  -  (Elimina todos los duplicados).
-  -  (Conexión TR).
-  - .
+  - 
+  - 
+  - 
+  -  (Nuevo - para detalle individual)
 
 **Critical Info for New Agent** 
-  - La aplicación de React usa Webpack/Create React App. Si necesitas variables de entorno, asegúrate de usar  (como se hizo con ).
-  - En la pestaña de Estudiantes,  se refiere al buscador en el modal de vinculación de un padre existente a un alumno. No utilices ese estado para la barra de búsqueda que vas a implementar en la pestaña raíz de Padres. Necesitas crear un estado distinto, por ejemplo, .
-  - Firebase ya se encuentra implementado con Service Workers. No alterar  ya que el payload badge y el click handler ya operan bien.
+  - Antes de empezar nuevas tareas, debes verificar mediante testing exhaustivo (Testing Agent o Screenshot Tool) el último cambio realizado por el agente previo: la vista inline de detalle de alumno dentro de . El agente sobrescribió el archivo mediante el tool de  pero finalizó la ejecución sin verificar en el navegador.
+  - Asegúrate de no romper el flujo existente de Resultados OMR.
 
 **documents and test reports created in this job** 
-  - 
+  -  (Actualizado con finalización de Fases 1, 2, 3 y rediseño de pestañas)
+  -  (Fase 1)
+  -  (Fase 2)
+  -  (Fase 3)
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User: cuando se registre en salud y bienestar... debe salir en el portal del padre un popup grande (Agente demostró que ya estaba implementado).
- - User: FEATURE: Sistema de Notificaciones de Asistencia a Padres... (Implementado WebSocket push + Notification Toast + Bell sync).
- - User: MEJORA UX: Sonido, vibración y badge animado en notificaciones (Implementado con AudioContext, vibrate y CSS Bounce key).
- - User: 1.- Quiero que allí tambien se muestre el nivel, grado y sección del alumno. 2.- el buscado debe buscar todo... (Corregido mapeo y lógica del buscador en UsersPage).
- - User: si yo le doy clic al tacho de basura o lo elimino, se eliminha el registro que duplicado? (Agente clarificó que no borra el alumno real).
- - User: crea un botonm para limpiar esta lista de pendientes, sin tocar los alumnos registrados... (Botón Limpiar y endpoint DELETE creados).
- - User: DIAGNÓSTICO: Estado actual de integración Firebase... (Agente entregó un diagnóstico completo).
- - User: FIX: Configurar VAPID Key para activar Push Notifications (VAPID key configurada en entorno y lib).
- - User: FEATURE: Badge numérico en ícono de PWA... (Payload backend actualizado y setAppBadge integrado en Front y SW).
- - **(PENDING HUMAN)** User: estoy en usuarios / padres y creo que debería haber un buscador que me permita buscar por nombre, nombre y apellidos, apellidos, dni (Agente empezó a explorar UsersPage pero no aplicó los cambios).
+ - User: FASE 2 — GENERACIÓN DE PDF DE HOJA DE RESPUESTAS OMR...
+ - Agent: (Implementó la generación de PDFs y lo probó).
+ - User: FIX — PDF OMR: Título del examen se superpone con campo Sección
+ - Agent: (Arregló layout Y-axis de ReportLab).
+ - User: FIX ADICIONAL — Reordenar secciones en vista detalle de examen OMR
+ - Agent: (Intercambió JSX blocks).
+ - User: (Pidió información preparativa para OpenCV).
+ - Agent: (Recolectó estado actual y confirmó OpenCV faltante).
+ - User: FASE 3 — MOTOR DE ESCANEO OMR CON OPENCV...
+ - Agent: (Implementó y testeó pipeline de visión computacional, UI móvil, y tabla de resultados al 100%).
+ - User: REDISEÑO — Vista de detalle de examen OMR con pestañas
+ - Agent: (Migró de flujo vertical a ).
+ - User: REDISEÑO — Vista de detalle de examen OMR con pestañas + Vista de detalle por alumno... (Pedía añadir que las filas de la tabla de resultados fueran clickeables).
+ - Agent: (Modificó API backend e inyectó código en Frontend. *Fin de sesión, testing pendiente*).
 
 **Project Health Check:**
-  - Broken: Ninguno
-  - Mocked: Ninguno
+  - Broken: Ninguno crítico conocido, pendiente confirmar el último UI injection.
+  - Mocked: Ninguno.
 
 **3rd Party Integrations** 
-  - Firebase Cloud Messaging / Web Push Notifications (Requires User Firebase Key - Ya configurado mediante service account e inyectado con VAPID).
-  - Cloudinary (Image Hosting)
-  - Vimeo / YouTube (Video Hosting)
-  - ChatterPal (Video Avatar)
+  - Cloudinary (Maneja subida de archivos PDF crudos y escaneos JPEG/PNG, usando  y ).
 
 **Testing status**
-  - Testing agent used after significant changes: NO (Pruebas manuales exitosas vía screenshots).
+  - Testing agent used after significant changes: YES (usado en iteraciones 102, 103, 104 con 100% de éxito).
   - Troubleshoot agent used after agent stuck in loop: NO
-  - Test files created: []
-  - Known regressions: Ninguna
+  - Test files created: Ninguno en esta sesión.
+  - Known regressions: Ninguna.
 
 **Credentials to test flow:**
   - **School Owner / Admin:**  /  (subdomain: )
-  - **Teacher:**  / 
-  - **Parent:**  / 
-  - **Global Support Admin:**  / 
+  - **Support Admin:**  / 
 
 **What agent forgot to execute**
-El agente analizó la necesidad de implementar el buscador dentro de  para la visualización de Padres, localizando los estados correspondientes ( y ), pero la sesión finalizó antes de poder editar el archivo y proveer el UI (barra de búsqueda) dentro de esa pestaña. Implementar esto debe ser tu prioridad absoluta antes de confirmar con el humano.</analysis>
+El agente escribió la lógica del Frontend para la vista de detalle del alumno (Parte B) dentro de  pero su contexto o límite de tiempo se agotó antes de poder compilar y revisar visualmente su trabajo a través del subagente de testing o la herramienta de screenshots.
+
+**Debugging checklist for current issue**
+    Issue: Validar y finalizar la Vista de detalle por alumno dentro de la pestaña Resultados OMR.
+    Frontend files to check: 
+      - 
+    Backend files to check:
+      -  (Revisar endpoint )
+    Acción: Haz login como owner, navega a un examen OMR con escaneos (puedes buscar en MongoDB cuáles tienen ), entra a la pestaña Resultados, haz clic en un alumno y verifica que el panel inline se despliegue con todos los datos (nota, cuadro de preguntas con colores y la imagen escaneada). Usa el Testing Agent Frontend si requieres validación integral.</analysis>
