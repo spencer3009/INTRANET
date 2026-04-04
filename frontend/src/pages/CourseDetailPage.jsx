@@ -35,6 +35,7 @@ import {
   Grid3X3, Monitor, Key
 } from "lucide-react";
 import AnswerKeyEditor from "../components/course/AnswerKeyEditor";
+import { OMRScanFlow, OMRResultsCard } from "../components/course/OMRScanComponents";
 import CourseLoadingScreen from "../components/CourseLoadingScreen";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -6399,6 +6400,65 @@ function QuestionFormModal({ isOpen, onClose, onSave, question, token }) {
   );
 }
 
+// OMR Scan Card — wrapper that embeds OMRScanFlow in a card
+function OMRScanCard({ exam, token, onScanComplete }) {
+  const [scanning, setScanning] = useState(false);
+  const canScan = exam.answer_key && exam.answer_key.length > 0 && exam.bubble_map;
+
+  if (scanning) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="omr-scan-active-card">
+        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4">
+          <h3 className="text-white font-semibold flex items-center gap-2">
+            <Camera className="w-5 h-5" />
+            Escanear hoja OMR
+          </h3>
+        </div>
+        <div className="p-6">
+          <OMRScanFlow
+            exam={exam}
+            token={token}
+            onClose={() => setScanning(false)}
+            onScanComplete={() => { onScanComplete(); }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden" data-testid="omr-scan-card">
+      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 px-6 py-4">
+        <h3 className="text-white font-semibold flex items-center gap-2">
+          <Camera className="w-5 h-5" />
+          Escanear examenes
+        </h3>
+      </div>
+      <div className="p-6 text-center py-6 space-y-4">
+        {!canScan ? (
+          <div>
+            <p className="text-gray-500">Configure la clave de respuestas y genere la hoja antes de escanear.</p>
+          </div>
+        ) : (
+          <>
+            <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto">
+              <Camera className="w-8 h-8 text-purple-500" />
+            </div>
+            <p className="text-gray-600">Escanee las hojas de respuestas de cada alumno</p>
+            <button onClick={() => setScanning(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
+              data-testid="start-scan-btn"
+            >
+              <Camera className="w-5 h-5" /> Escanear hoja
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 // OMR Sheet PDF Card
 function OmrSheetCard({ exam, token, onExamUpdate }) {
   const [generating, setGenerating] = useState(false);
@@ -6715,6 +6775,12 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
       {isOmr && (
         <OmrSheetCard exam={exam} token={token} onExamUpdate={(updates) => setExam(prev => ({ ...prev, ...updates }))} />
       )}
+
+      {/* OMR Scan Section */}
+      {isOmr && <OMRScanCard exam={exam} token={token} onScanComplete={() => loadExamData()} />}
+
+      {/* OMR Results */}
+      {isOmr && <OMRResultsCard exam={exam} token={token} onRegisterComplete={() => loadExamData()} />}
 
       {/* Questions Management (Digital only) */}
       {!isOmr && (
@@ -7114,6 +7180,16 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                               data-testid={`download-sheet-${exam.id}`}
                             >
                               <Download className="w-4 h-4" /> DESCARGAR HOJA
+                            </button>
+                          )}
+
+                          {isOmr && exam.answer_key && exam.bubble_map && (
+                            <button
+                              onClick={() => setSelectedExamId(exam.id)}
+                              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-1.5"
+                              data-testid={`scan-btn-${exam.id}`}
+                            >
+                              <Camera className="w-4 h-4" /> ESCANEAR
                             </button>
                           )}
                           

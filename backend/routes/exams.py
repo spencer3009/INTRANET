@@ -35,7 +35,7 @@ import io
 import time
 import cloudinary
 import cloudinary.uploader
-from fastapi.responses import StreamingResponse, RedirectResponse
+from fastapi.responses import StreamingResponse, RedirectResponse, JSONResponse
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
@@ -1539,6 +1539,340 @@ async def get_omr_pdf(
     return {
         "pdf_url": exam["omr_pdf_url"],
         "generated_at": exam.get("omr_pdf_generated_at"),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# OMR SCANNING ENDPOINTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+@router.get("/exams/{exam_id}/omr-students")
+async def get_omr_students(exam_id: str, current_user=Depends(get_current_user)):
+    """Get students in the exam's section with scan status."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]},
+        {"_id": 0, "section_id": 1, "school_id": 1, "type": 1}
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    if exam.get("type") != "omr":
+        raise HTTPException(status_code=400, detail="No es un examen OMR")
+
+    section_id = exam.get("section_id")
+    school_id = exam["school_id"]
+
+    student_filter = {
+        "school_id": school_id,
+        "role": "student",
+        "student_status": {"$in": ["enrolled", "active"]},
+        "seccion_id": section_id,
+    }
+    students = await db.users.find(
+        student_filter,
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1}
+    ).sort([("last_name", 1), ("name", 1)]).to_list(200)
+
+    if not students:
+        student_filter["section_id"] = student_filter.pop("seccion_id")
+        students = await db.users.find(
+            student_filter,
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1, "dni": 1}
+        ).sort([("last_name", 1), ("name", 1)]).to_list(200)
+
+    scans = await db.omr_scans.find(
+        {"exam_id": exam_id}, {"_id": 0, "student_id": 1, "score": 1, "total": 1}
+    ).to_list(200)
+    scan_map = {s["student_id"]: s for s in scans}
+
+    result = []
+    for st in students:
+        scan = scan_map.get(st["id"])
+        result.append({
+            "id": st["id"],
+            "name": st.get("name", ""),
+            "last_name": st.get("last_name", ""),
+            "full_name": f"{st.get('last_name', '')} {st.get('name', '')}".strip(),
+            "has_scan": scan is not None,
+            "scan_score": scan["score"] if scan else None,
+            "scan_total": scan["total"] if scan else None,
+        })
+
+    return result
+
+
+@router.post("/exams/{exam_id}/omr-scan")
+async def process_omr_scan_endpoint(
+    exam_id: str,
+    image: UploadFile = File(...),
+    student_id: str = Form(...),
+    current_user=Depends(get_current_user),
+):
+    """Process an OMR sheet scan for a student."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+    if not has_role(user, STAFF_ROLES):
+        raise HTTPException(status_code=403, detail="No tiene permisos")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    )
+    if not exam:
+        raise HTTPException(status_code=404, detail="Examen no encontrado")
+    if exam.get("type") != "omr":
+        raise HTTPException(status_code=400, detail="No es un examen OMR")
+
+    answer_key = exam.get("answer_key")
+    if not answer_key:
+        raise HTTPException(status_code=400, detail="Debe configurar la clave de respuestas antes de escanear")
+    bubble_map = exam.get("bubble_map")
+    if not bubble_map:
+        raise HTTPException(status_code=400, detail="Debe generar la hoja de respuestas antes de escanear")
+
+    if image.content_type not in ("image/jpeg", "image/png", "image/jpg", "image/webp"):
+        raise HTTPException(status_code=400, detail="Formato de imagen no soportado. Use JPEG o PNG.")
+
+    image_bytes = await image.read()
+    if len(image_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="La imagen excede el limite de 10MB")
+
+    from services.omr_scanner import process_omr_scan as run_omr
+
+    result = run_omr(image_bytes, bubble_map, answer_key, exam.get("options_per_question", 5))
+
+    if "error" in result:
+        raise HTTPException(status_code=422, detail=result["error"])
+
+    # Upload image to Cloudinary
+    try:
+        upload_result = cloudinary.uploader.upload(
+            io.BytesIO(image_bytes),
+            folder="edunet/omr-scans",
+            public_id=f"scan_{exam_id}_{student_id}_{uuid.uuid4().hex[:8]}",
+            resource_type="image",
+            overwrite=True,
+        )
+        image_url = upload_result["secure_url"]
+    except Exception as e:
+        logger.warning(f"Cloudinary upload failed for scan: {e}")
+        image_url = ""
+
+    grade_vig = round(result["percentage"] * 20 / 100)
+
+    # Check for existing scan
+    existing = await db.omr_scans.find_one(
+        {"exam_id": exam_id, "student_id": student_id}, {"_id": 0, "id": 1}
+    )
+    if existing:
+        return JSONResponse(
+            status_code=409,
+            content={
+                "message": "Ya existe un resultado para este alumno",
+                "existing_scan_id": existing["id"],
+                "new_result": {
+                    **result,
+                    "grade_vigesimal": grade_vig,
+                    "image_url": image_url,
+                },
+            },
+        )
+
+    scan_doc = {
+        "id": str(uuid.uuid4()),
+        "exam_id": exam_id,
+        "student_id": student_id,
+        "school_id": user["school_id"],
+        "image_url": image_url,
+        "detected_answers": result["detected_answers"],
+        "score": result["score"],
+        "total": result["total"],
+        "percentage": result["percentage"],
+        "grade_vigesimal": grade_vig,
+        "details": result["details"],
+        "confidence": result["confidence"],
+        "status": "corrected",
+        "registered_to_gradebook": False,
+        "created_at": datetime.now(timezone.utc).isoformat(),
+        "created_by": user["id"],
+    }
+    await db.omr_scans.insert_one(scan_doc)
+    del scan_doc["_id"]
+
+    return scan_doc
+
+
+@router.put("/exams/{exam_id}/omr-scan/{scan_id}")
+async def overwrite_omr_scan(
+    exam_id: str,
+    scan_id: str,
+    image: UploadFile = File(...),
+    student_id: str = Form(...),
+    current_user=Depends(get_current_user),
+):
+    """Overwrite an existing OMR scan."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    )
+    if not exam or exam.get("type") != "omr":
+        raise HTTPException(status_code=404, detail="Examen OMR no encontrado")
+
+    answer_key = exam.get("answer_key")
+    bubble_map = exam.get("bubble_map")
+    if not answer_key or not bubble_map:
+        raise HTTPException(status_code=400, detail="Faltan clave o hoja generada")
+
+    image_bytes = await image.read()
+    from services.omr_scanner import process_omr_scan as run_omr
+
+    result = run_omr(image_bytes, bubble_map, answer_key, exam.get("options_per_question", 5))
+    if "error" in result:
+        raise HTTPException(status_code=422, detail=result["error"])
+
+    try:
+        upload_result = cloudinary.uploader.upload(
+            io.BytesIO(image_bytes),
+            folder="edunet/omr-scans",
+            public_id=f"scan_{exam_id}_{student_id}_{uuid.uuid4().hex[:8]}",
+            resource_type="image",
+            overwrite=True,
+        )
+        image_url = upload_result["secure_url"]
+    except Exception:
+        image_url = ""
+
+    grade_vig = round(result["percentage"] * 20 / 100)
+
+    await db.omr_scans.update_one(
+        {"id": scan_id},
+        {"$set": {
+            "image_url": image_url,
+            "detected_answers": result["detected_answers"],
+            "score": result["score"],
+            "total": result["total"],
+            "percentage": result["percentage"],
+            "grade_vigesimal": grade_vig,
+            "details": result["details"],
+            "confidence": result["confidence"],
+            "status": "corrected",
+            "registered_to_gradebook": False,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }},
+    )
+
+    updated = await db.omr_scans.find_one({"id": scan_id}, {"_id": 0})
+    return updated
+
+
+@router.get("/exams/{exam_id}/omr-results")
+async def get_omr_results(exam_id: str, current_user=Depends(get_current_user)):
+    """Get all OMR scan results for an exam."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    scans = await db.omr_scans.find(
+        {"exam_id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    ).to_list(200)
+
+    student_ids = list(set(s["student_id"] for s in scans))
+    students = {}
+    if student_ids:
+        docs = await db.users.find(
+            {"id": {"$in": student_ids}},
+            {"_id": 0, "id": 1, "name": 1, "last_name": 1}
+        ).to_list(200)
+        students = {d["id"]: d for d in docs}
+
+    results = []
+    for s in scans:
+        st = students.get(s["student_id"], {})
+        results.append({
+            "scan_id": s["id"],
+            "student_id": s["student_id"],
+            "student_name": f"{st.get('last_name', '')} {st.get('name', '')}".strip(),
+            "score": s["score"],
+            "total": s["total"],
+            "percentage": s["percentage"],
+            "grade_vigesimal": s.get("grade_vigesimal", 0),
+            "confidence": s.get("confidence", 0),
+            "registered_to_gradebook": s.get("registered_to_gradebook", False),
+            "created_at": s.get("created_at", ""),
+            "details": s.get("details", []),
+        })
+
+    results.sort(key=lambda x: x["student_name"])
+    return results
+
+
+@router.post("/exams/{exam_id}/omr-register-grades")
+async def register_omr_grades(exam_id: str, current_user=Depends(get_current_user)):
+    """Register all OMR scan grades to the Registro Auxiliar."""
+    user = await resolve_user_from_token(current_user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Usuario no encontrado")
+
+    exam = await db.online_exams.find_one(
+        {"id": exam_id, "school_id": user["school_id"]}, {"_id": 0}
+    )
+    if not exam or exam.get("type") != "omr":
+        raise HTTPException(status_code=404, detail="Examen OMR no encontrado")
+
+    register_column = exam.get("register_column")
+    if not register_column:
+        raise HTTPException(
+            status_code=400,
+            detail="Debe configurar el destino en el Registro Auxiliar (EM, EB, P1, P2, P3)",
+        )
+
+    scans = await db.omr_scans.find(
+        {"exam_id": exam_id, "status": "corrected"}, {"_id": 0}
+    ).to_list(200)
+
+    if not scans:
+        raise HTTPException(status_code=400, detail="No hay resultados de escaneo para registrar")
+
+    registered = 0
+    for scan in scans:
+        attempt_doc = {
+            "id": str(uuid.uuid4()),
+            "exam_id": exam_id,
+            "student_id": scan["student_id"],
+            "school_id": exam["school_id"],
+            "status": "completed",
+            "score": scan["score"],
+            "max_score": scan["total"],
+            "percentage": scan["percentage"],
+            "source": "omr_scan",
+            "scan_id": scan["id"],
+            "submitted_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+        await db.exam_attempts.update_one(
+            {"exam_id": exam_id, "student_id": scan["student_id"]},
+            {"$set": attempt_doc},
+            upsert=True,
+        )
+
+        await sync_single_student(db, exam_id, scan["student_id"], scan["percentage"])
+
+        await db.omr_scans.update_one(
+            {"id": scan["id"]},
+            {"$set": {"registered_to_gradebook": True}},
+        )
+        registered += 1
+
+    return {
+        "registered": registered,
+        "total": len(scans),
+        "message": f"Se registraron {registered} notas en el Registro Auxiliar",
     }
 
 
