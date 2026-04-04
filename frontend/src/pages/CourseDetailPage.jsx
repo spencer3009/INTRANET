@@ -7451,10 +7451,10 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
 
       {/* AnswerKey Modal */}
       <Dialog open={!!answerKeyModal} onOpenChange={(open) => { if (!open) setAnswerKeyModal(null); }}>
-        <DialogContent className="max-w-[700px] w-[95vw] max-h-[90vh] overflow-y-auto sm:rounded-2xl p-0 max-sm:!w-screen max-sm:!max-w-none max-sm:!h-screen max-sm:!max-h-none max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!top-0 max-sm:!left-0 [&>button:last-child]:hidden" data-testid="answer-key-modal">
+        <DialogContent className="max-w-[700px] w-[95vw] max-h-[90vh] flex flex-col overflow-hidden sm:rounded-2xl p-0 max-sm:!w-screen max-sm:!max-w-none max-sm:!h-screen max-sm:!max-h-none max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!top-0 max-sm:!left-0 [&>button:last-child]:hidden" data-testid="answer-key-modal">
           {answerKeyModal && (
             <>
-              <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-3">
+              <div className="flex-shrink-0 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <DialogTitle className="text-base font-bold text-gray-800 truncate">{answerKeyModal.title}</DialogTitle>
                   <DialogDescription className="text-xs text-gray-400 mt-0.5">Configurar clave de respuestas</DialogDescription>
@@ -7466,7 +7466,7 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <div className="p-4 sm:p-5">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-5">
                 <AnswerKeyEditor
                   examId={answerKeyModal.id}
                   numQuestions={answerKeyModal.num_questions || 10}
