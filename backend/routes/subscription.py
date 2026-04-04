@@ -209,6 +209,7 @@ async def get_subscription_status(current_user=Depends(get_current_user)):
             return {"plan_estado": "ACTIVO", "dias_vencido": 0}
 
         plan_estado, dias_vencido = await calculate_plan_state(school)
+        logger.warning(f"[DIAG] school_id={school_id}, fecha_venc={school.get('fecha_vencimiento')}, exp_date={school.get('expiration_date')}, plan_estado={plan_estado}, dias_vencido={dias_vencido}")
 
         try:
             pricing = await get_school_pricing(school)
