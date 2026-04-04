@@ -1,34 +1,36 @@
-<analysis>**original_problem_statement**: Continuar el desarrollo de EduNet con enfoque en el sistema de Exámenes OMR. Se solicitó implementar la Fase 1 (Integración de UI en portal Owner), Fase 2 (Generación de PDF de hoja de respuestas usando ReportLab), Fase 3 (Motor de escaneo OMR con OpenCV y calificación automática), y finalmente un rediseño de la vista OMR utilizando pestañas () y una vista de detalle por alumno para los resultados escaneados. PRODUCT REQUIREMENTS: Sistema de exámenes físicos completamente integrado, generación de PDF con marcadores precisos, lectura óptica robusta de burbujas, calificación automática sincronizada con el Registro Auxiliar, UI intuitiva y amigable para móviles.
+<analysis>**original_problem_statement**: Continuar el desarrollo de EduNet con enfoque en el sistema de Exámenes OMR y la gestión general de colegios. Se solicitó implementar un rediseño de la UI de exámenes OMR (pestañas y modales directos), optimizar el sistema eliminando el uso de Cloudinary para almacenar fotos de exámenes escaneados (procesando solo en memoria), y ajustar la lógica de vencimiento y bloqueo de suscripciones de colegios para que el bloqueo total ocurra al 3er día de deuda. PRODUCT REQUIREMENTS: Sistema de exámenes físicos rápido e intuitivo en móviles (modales fullscreen), optimización de costos en la nube, y control riguroso de accesos basado en el estado de la suscripción ().
 
 **User's preferred language**: Spanish (INSTRUCT NEXT AGENT: You MUST respond in Spanish only)
 
 **what currently exists?**: 
-EduNet cuenta ahora con un sistema OMR (Reconocimiento Óptico de Marcas) funcional. Los profesores/owners pueden crear exámenes OMR, configurar la clave de respuestas interactiva, generar y descargar un PDF con la hoja de burbujas personalizada (vía ), y usar la cámara de su dispositivo para escanear hojas físicas completadas. El backend procesa las imágenes con OpenCV (), detecta las burbujas marcadas, califica automáticamente y permite sincronizar estas notas directamente con el Registro Auxiliar. La vista principal del Owner ha sido refactorizada para usar pestañas (Clave, Hoja OMR, Escanear, Resultados).
+El sistema OMR fue exitosamente refactorizado: la vista principal usa un diseño de grilla para los exámenes y modales ultrarrápidos y responsivos (Fullscreen en mobile) para Clave de respuestas y Escanear. El escaneo con OpenCV procesa las imágenes en memoria y extrae las respuestas sin subir la imagen a Cloudinary, mostrando una grilla visual interactiva en el resultado del alumno. También se modificó la lógica de suscripciones ( y ) para que al 3er día de vencimiento el sistema marque , bloqueando el login a profesores/padres/alumnos y mostrando un popup ineludible al Owner. 
 
 **Last working item**:
-    - Last item agent was working: Implementación de la Parte B: Vista de detalle por alumno dentro de la pestaña de Resultados OMR. El agente creó el endpoint backend  para proveer detalles del escaneo individual y sobrescribió el componente  para hacer que las filas de la tabla de resultados sean clickeables y muestren una vista inline detallada (nota, grilla de respuestas con colores y la imagen escaneada).
-    - Status: IN PROGRESS (El agente escribió el código pero la verificación en el Frontend está pendiente).
-    - Agent Testing Done: Y (Backend testeado parcialmente vía bash/curl).
-    - Which testing method agent to use?: Frontend testing agent/ screenshot tool
+    - Last item agent was working: Depurando un bug crítico en la lógica de suscripción. El usuario reportó que a un colegio en producción con 5 días de vencimiento NO le aparece el banner ni el popup de bloqueo (el owner tiene acceso total sin restricciones). El usuario sospecha que esto se debe a que el colegio tiene un precio personalizado () o modelo de facturación base + alumno. El agente estaba analizando el flujo en ,  () y  para encontrar por qué se está evadiendo el bloqueo.
+    - Status: IN PROGRESS
+    - Agent Testing Done: N
+    - Which testing method agent to use?: Backend manual testing (code review) / Frontend testing agent
     - User Testing Done: N
 
 **All Pending/In progress Issue list**:
-  Issue 1: (P2) Arreglar Doble Scrollbar en la UI del Registro Auxiliar
+  Issue 1: (P0) Popup/Banner de bloqueo de suscripción evadido por colegios con precio personalizado.
+     - Attempted fixes: Se actualizó la lógica general en  para bloquear al día 3, pero no aplicó para este caso en producción. El agente intentó hacer una consulta a MongoDB pero falló porque no tiene acceso a la DB de producción.
+     - Next debug checklist: Revisar  en  (ver si  o  o el cálculo de  están retornando ACTIVO por error). Revisar  en  para asegurar que el  correcto dispare el .
+     - Why fix this issue and what will be achieved with the fix?: Evita que colegios morosos sigan usando la plataforma sin pagar.
+     - Status: IN PROGRESS
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix?: Both
+
+  Issue 2: (P2) Arreglar Doble Scrollbar en la UI del Registro Auxiliar
      - Attempted fixes: Ninguno.
      - Next debug checklist: Revisar contenedores con overflow redundante en el componente de Registro Auxiliar.
      - Why fix this issue and what will be achieved with the fix?: Mejorar UX en el manejo de notas.
      - Status: NOT STARTED
      - Is recurring issue? N
      - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on other issue: N/A
 
 **In progress Task List**:
-  Task 1: Rediseño OMR - Vista de detalle por alumno (Parte B)
-     - Where to resume: Verificar el archivo . El agente anterior acaba de sobrescribir el archivo para agregar el panel de detalle inline al hacer click en un alumno en la tabla . Se requiere verificar que la UI se renderiza correctamente, que el botón de volver funciona y testear el flujo.
-     - What will be achieved with this?: Los profesores podrán ver exactamente dónde se equivocó un alumno y revisar la foto original de la hoja directamente desde la pestaña de resultados.
-     - Status: TESTING PENDING
-     - Should Test frontend/backend/both after fix?: Frontend
-     - Blocked on something: N/A
+  No hay tareas de features en progreso (todas las de OMR fueron completadas). El enfoque actual es la corrección del Issue 1.
 
 **Upcoming and Future Tasks**
     Upcoming Tasks:
@@ -40,17 +42,18 @@ EduNet cuenta ahora con un sistema OMR (Reconocimiento Óptico de Marcas) funcio
     Future Tasks:
     - Dashboard Owner con métricas reales.
     - Construir módulo de Matrículas (Enrollments).
-    - Refactorización crítica:  (> 10,000 líneas).
+    - Refactorización crítica:  (> 11,000 líneas).
     - Refactorización crítica: .
 
 **Completed work in this session**
-- Fase 1 OMR: UI de Exámenes OMR integrada en el Portal del Owner dentro de  (DONE).
-- Fase 2 OMR: Servicio de generación de PDF de hojas OMR con ReportLab () con marcadores de OpenCV y QR (DONE).
-- Fase 2 Fix: Corregido solapamiento de título y sección en el PDF (DONE).
-- Fix UI: Reordenadas las secciones de la vista de detalle OMR (Detalles -> Clave -> Hoja) (DONE).
-- Fase 3 OMR: Motor de escaneo y calificación por OpenCV (), incluyendo endpoints para capturar, procesar y guardar la imagen en Cloudinary (DONE).
-- Fase 3 UI: Integrados  y  con soporte para cámara de dispositivo (DONE).
-- Rediseño UI OMR: Migración de apilamiento vertical a pestañas horizontales usando  (DONE).
+- Rediseño OMR: Vista de detalle de examen con pestañas y vista inline por alumno (DONE).
+- Rediseño de UI: Lista de exámenes transformada de filas apiladas a una grilla de tarjetas responsiva (DONE).
+- Optimización Backend: Eliminada la subida de imágenes a Cloudinary en escaneos OMR, reduciendo costos de almacenamiento. Procesamiento 100% en memoria (DONE).
+- UI/UX OMR: Reemplazo de imagen de escaneo por una grilla visual interactiva de burbujas con estado correcto/incorrecto/blanco (DONE).
+- Modales UI OMR: Flujos completos de Configurar Clave y Escanear renderizados en Dialogs fullscreen desde la grilla (DONE).
+- Bug fixes UI: Resuelto bug de z-index de modales (App.css), añadidos botones X, y corregido inicio de scrollbar en modales (DONE).
+- Feature: Habilitada la eliminación de exámenes en estado 'Cerrado' (DONE).
+- Backend Auth: Lógica de suscripción ajustada para bloquear sistema al 3er día de deuda (DONE).
 
 **Earlier issues found/mentioned but not fixed**
 - Ninguno adicional a los listados.
@@ -62,96 +65,89 @@ EduNet cuenta ahora con un sistema OMR (Reconocimiento Óptico de Marcas) funcio
 /app
 ├── backend/
 │   ├── routes/
-│   │   └── exams.py                 # Orquestador principal de APIs de exámenes (OMR y Digitales)
-│   └── services/
-│       ├── omr_pdf_generator.py     # Generador de hojas con ReportLab
-│       └── omr_scanner.py           # Motor de procesamiento de imágenes con OpenCV
+│   │   ├── exams.py                 # Flujo de exámenes OMR (sin Cloudinary logic)
+│   │   ├── subscription.py          # Lógica de estado de planes y vencimientos
+│   │   └── auth.py                  # Lógica de bloqueo de login por deuda
 └── frontend/
     └── src/
-        ├── pages/
-        │   └── CourseDetailPage.jsx       # Componente principal que usa las pestañas OMR ()
-        └── components/
-            ├── course/AnswerKeyEditor.jsx 
-            └── course/OMRScanComponents.jsx # Contiene flujos de cámara y tabla de resultados (Modificado recientemente)
+        ├── App.js                         # Contiene SubscriptionGuard y ruteo principal
+        ├── App.css                        # CSS global
+        ├── contexts/SubscriptionContext.jsx # Provee info de la deuda
+        ├── components/course/OMRScanComponents.jsx # UI de escaneo
+        └── pages/CourseDetailPage.jsx       # Componente masivo con grilla de exámenes y modales
 
 **Key Technical Concepts**
-- **ReportLab PDF Gen**: Genera hojas de burbujas en milímetros exactos, guardando un  en MongoDB como fuente de la verdad para las coordenadas espaciales.
-- **OpenCV OMR Engine**: Localiza 4 marcadores en esquinas, aplica transformación de perspectiva (), corta ROIs de las burbujas, evalúa el  (threshold > 0.35) para calificar la hoja fotografiada.
-- **Cloudinary Direct Upload**: El frontend pide firma () y sube la foto directamente a Cloudinary, pasando la URL segura al backend.
+- **In-Memory OMR Pipeline**: Las imágenes enviadas desde el frontend () se leen usando , se procesan en OpenCV devolviendo un JSON con la matriz de resultados, y se desechan sin hacer .
+- **Subscription Degradation**: El sistema de cobro bloquea gradualmente. El owner entra a un jail (solo ve modal de pago), los demás roles son rechazados a nivel API .
 
 **key DB schema**
-  - : Extendida con , , , .
-  -  (NUEVA): Colección para guardar escaneos. Almacena , , , , , , etc.
+  - : Documento base del Tenant. Campos clave: , , .
 
 **changes in tech stack**
-  - Se instaló la dependencia de Python  (OpenCV sin GUI) requerida para la Fase 3 de OMR. 
+  - Cloudinary ya NO SE USA para persistir resultados de los escaneos OMR ( ha sido removido).
 
 **All files of reference** 
+  -  (Crítico para el bug actual)
+  -  (Crítico para el bug actual)
   - 
   - 
-  - 
-  - 
-  -  (Archivo Crítico - último en ser modificado)
 
 **Areas that need refactoring**: 
-  - : Sigue siendo un archivo masivo (>10,000 líneas) aunque partes de OMR se delegaron a .
+  - : Supera las 11,000 líneas. Los nuevos modales se inyectaron directamente allí, lo que incrementó el tamaño.
 
 **key api endpoints**
   - 
-  - 
-  - 
-  -  (Nuevo - para detalle individual)
 
 **Critical Info for New Agent** 
-  - Antes de empezar nuevas tareas, debes verificar mediante testing exhaustivo (Testing Agent o Screenshot Tool) el último cambio realizado por el agente previo: la vista inline de detalle de alumno dentro de . El agente sobrescribió el archivo mediante el tool de  pero finalizó la ejecución sin verificar en el navegador.
-  - Asegúrate de no romper el flujo existente de Resultados OMR.
+  - **ESTÁS EN PRODUCCIÓN**: El usuario mencionó explícitamente recuerda que estoy en producción. NO ejecutes scripts de Python que consulten la base de datos con asunciones, y por favor NO modifiques, borres, ni insertes datos usando bash o scripts a menos que sea en un sandbox. Rastrea el problema lógicamente a través del código.
+  - La clave del issue actual parece estar en que la función  en  podría estar perdonando a los colegios con configuraciones custom como  y devolviendo estado ACTIVO en vez de PAGO_OBLIGATORIO.
 
 **documents and test reports created in this job** 
-  -  (Actualizado con finalización de Fases 1, 2, 3 y rediseño de pestañas)
-  -  (Fase 1)
-  -  (Fase 2)
-  -  (Fase 3)
+  - 
+  - 
+  - 
 
 **Last 10 User Messages and any pending HUMAN messages** 
- - User: FASE 2 — GENERACIÓN DE PDF DE HOJA DE RESPUESTAS OMR...
- - Agent: (Implementó la generación de PDFs y lo probó).
- - User: FIX — PDF OMR: Título del examen se superpone con campo Sección
- - Agent: (Arregló layout Y-axis de ReportLab).
- - User: FIX ADICIONAL — Reordenar secciones en vista detalle de examen OMR
- - Agent: (Intercambió JSX blocks).
- - User: (Pidió información preparativa para OpenCV).
- - Agent: (Recolectó estado actual y confirmó OpenCV faltante).
- - User: FASE 3 — MOTOR DE ESCANEO OMR CON OPENCV...
- - Agent: (Implementó y testeó pipeline de visión computacional, UI móvil, y tabla de resultados al 100%).
- - User: REDISEÑO — Vista de detalle de examen OMR con pestañas
- - Agent: (Migró de flujo vertical a ).
- - User: REDISEÑO — Vista de detalle de examen OMR con pestañas + Vista de detalle por alumno... (Pedía añadir que las filas de la tabla de resultados fueran clickeables).
- - Agent: (Modificó API backend e inyectó código en Frontend. *Fin de sesión, testing pendiente*).
+ - User: (Reports modal UI block from Dialog overlay).
+ - Agent: (Fixes z-index via App.css).
+ - User: no sale la x de cerrar (en modales).
+ - Agent: (Adds X button explicitly).
+ - User: al boton de escanear tambien le falta
+ - Agent: (Adds X to scan modal).
+ - User: el scroll debería copmenzar desde la imagen de las burburas, no desde arriba que se ve mal
+ - Agent: (Fixes sticky header/progress bar layout so bubbles scroll smoothly).
+ - User: debería poder también poder eliminarse un examen cerrado
+ - Agent: (Removes closure restrictions in frontend and backend APIs for delete).
+ - User: estoy en la plataforma de soporte y aca tengo 2 demos... ¿en que momento dejan de tener acceso las demos?
+ - Agent: (Explains demo expiration based on ).
+ - User: ¿en el caso de los colegios? cmo es allí el tema del vencimiento...
+ - Agent: (Explains school degradation states and day 4 blockage).
+ - User: en que estado debería estar este colegio, porque ya lleva 5 días vencido sin embargo se puede acceder a todo
+ - Agent: (Explains Owners have access to pay, non-admins are blocked. User requests non-admins to be blocked at Day 3 and Owners to be hard-blocked at Day 3).
+ - User: veo que aqui no aparece el banner y ya lleva 5 días que raro,. Derrepemnte tiene algo que ver el precio personalizado. Derrepente es porque use el mnodo de facturación : base + alumno... revisalo -> **Último mensaje, pendiente de solución.**
 
 **Project Health Check:**
-  - Broken: Ninguno crítico conocido, pendiente confirmar el último UI injection.
+  - Broken: Sistema de bloqueo de suscripciones evadido por configuraciones de precio personalizado.
   - Mocked: Ninguno.
 
 **3rd Party Integrations** 
-  - Cloudinary (Maneja subida de archivos PDF crudos y escaneos JPEG/PNG, usando  y ).
+  - Cloudinary (Maneja PDFs OMR subidos, pero los escaneos de las respuestas de los alumnos ya no se guardan aquí).
 
 **Testing status**
-  - Testing agent used after significant changes: YES (usado en iteraciones 102, 103, 104 con 100% de éxito).
-  - Troubleshoot agent used after agent stuck in loop: NO
+  - Testing agent used after significant changes: YES (iterations 105 and 106).
+  - Troubleshoot agent used after agent stuck in loop: NO.
   - Test files created: Ninguno en esta sesión.
-  - Known regressions: Ninguna.
+  - Known regressions: Ninguna conocida, excepto el comportamiento anómalo de las suscripciones (bug lógico).
 
 **Credentials to test flow:**
   - **School Owner / Admin:**  /  (subdomain: )
   - **Support Admin:**  / 
 
-**What agent forgot to execute**
-El agente escribió la lógica del Frontend para la vista de detalle del alumno (Parte B) dentro de  pero su contexto o límite de tiempo se agotó antes de poder compilar y revisar visualmente su trabajo a través del subagente de testing o la herramienta de screenshots.
-
 **Debugging checklist for current issue**
-    Issue: Validar y finalizar la Vista de detalle por alumno dentro de la pestaña Resultados OMR.
-    Frontend files to check: 
-      - 
-    Backend files to check:
-      -  (Revisar endpoint )
-    Acción: Haz login como owner, navega a un examen OMR con escaneos (puedes buscar en MongoDB cuáles tienen ), entra a la pestaña Resultados, haz clic en un alumno y verifica que el panel inline se despliegue con todos los datos (nota, cuadro de preguntas con colores y la imagen escaneada). Usa el Testing Agent Frontend si requieres validación integral.</analysis>
+    Issue: Bloqueo de suscripción al 3er día no funciona si el colegio tiene precio personalizado (pricing_override).
+    Backend files to check: 
+       -  (Revisar la función . Verifica si hay un bypass si  es evaluado a 0 o si el campo  interrumpe el cálculo de ).
+    Frontend files to check:
+       -  (Revisar el ).
+       - .
+    Acción: Revisa lógicamente el código. No hagas consultas directas a DB que muten o dependan de los datos de producción de los colegios de los usuarios. Provee una solución a la lógica del backend para asegurar que TODOS los colegios con  entren a  y desplieguen el popup de restricción, sin importar su esquema de precios.</analysis>
