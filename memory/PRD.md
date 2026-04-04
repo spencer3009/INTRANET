@@ -21,65 +21,52 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - JWT-based auth with school subdomains
 - Roles: owner, admin, director, teacher, parent, student
 - Custom login page with backgrounds (Cloudinary), WhatsApp support link
-- Public registration blocked
 
 ### Attendance Module
-- Flexible ID filtering (handles String + ObjectId mismatches)
-- QR Continuous Scanner (turnstile-mode) with anti-duplicate cache (30s cooldown)
+- QR Continuous Scanner with anti-duplicate cache (30s cooldown)
 - Production-ready with normalized IDs
 
 ### Accounting Module
-- Income/Expenses tracking
-- Morosos (debtors) inline tab with redesigned UI
-- Financial settings with ON_CREATE student activation
+- Income/Expenses tracking, Morosos inline tab
 
 ### Teacher Assignments
-- Full CRUD for teacher-subject-section assignments
-- Cascade filter modal (Level > Grade > Section > Subject)
-- Teachers summary sidebar
+- Full CRUD, cascade filter modal
 
-### YouTube Support for Study Materials & Tasks (April 2026)
-- Toggle "Archivo / YouTube" in material/task upload modals
-- YouTube URL input with real-time preview iframe
-- Backend stores tipo_material, url, video_id fields
-- Popup modal for video playback (no external YouTube redirect)
+### YouTube Support for Study Materials & Tasks
 
-### Health & Wellness Module (April 2026)
-- Topico & Psicologia CRUD with soft delete
-- Dynamic permissions (owner/admin/teacher toggles)
-- Parent alerts with fullscreen modal (HealthAlertPopup)
-- Parent read-only view at /parent/salud-bienestar
-- School logo in all portals
-- Student photo + full name in modals
+### Health & Wellness Module
+- Topico & Psicologia CRUD with parent alerts
 
-### Attendance Notification System (April 2026)
+### Attendance Notification System
 - WebSocket real-time push notifications
-- NotificationBell attendance tab
-- AttendanceToast component
-- MongoDB indices with TTL 30 days
 
-### OMR Exam Integration — Phase 1 (April 2026) - COMPLETED
-- **Backend**: Extended `online_exams` collection with `type` field (`digital`/`omr`), `num_questions`, `options_per_question`, `answer_key`, `points_per_question` fields
-- **Backend**: Validation logic for OMR (skip date validation, require answer_key format)
-- **Frontend (Teacher portal)**: ExamsContent.jsx updated with type selector, OMR fields, AnswerKeyEditor component
-- **Frontend (Owner portal)**: CourseDetailPage.jsx ExamModal updated with type selector (Digital/OMR), OMR-specific fields, conditional buttons (CONFIGURAR CLAVE vs GESTIONAR PREGUNTAS), AnswerKeyEditor integration in ExamDetailView
-- **AnswerKeyEditor.jsx**: Interactive bubble grid for configuring answer keys with progress bar, save/clear functionality
-- Tested 100% on both backend (pytest) and frontend (automated browser testing)
+### OMR Exam Integration — Phase 1 (COMPLETED)
+- Backend: Extended `online_exams` with `type`, `num_questions`, `options_per_question`, `answer_key`, `points_per_question`
+- Frontend: ExamsContent.jsx + CourseDetailPage.jsx with type selector, AnswerKeyEditor
+
+### OMR Exam — Phase 2: PDF Generation (COMPLETED April 2026)
+- **Service**: `/app/backend/services/omr_pdf_generator.py` — ReportLab PDF generator with:
+  - 4 alignment markers (8mm black squares at exact positions for future OpenCV scanning)
+  - QR code with exam metadata (exam_id, num_questions, options)
+  - Header fields (Nombre, Fecha, Seccion)
+  - Exam title centered
+  - Dynamic bubble grid (2 or 3 columns depending on num_questions)
+  - Footer with EduNet branding
+  - Returns PDF bytes + bubble_map (coordinate dictionary for each bubble in mm)
+- **Endpoints**:
+  - `POST /api/exams/{exam_id}/generate-omr-pdf` — Generates PDF, uploads to Cloudinary, saves URL + bubble_map in exam document
+  - `GET /api/exams/{exam_id}/omr-pdf` — Returns PDF URL and generation date
+- **Frontend**: OmrSheetCard component in ExamDetailView with:
+  - "Generar Hoja de Respuestas" button (if no PDF)
+  - "Descargar PDF" + "Regenerar" buttons (if PDF exists)
+  - "DESCARGAR HOJA" button in exam listing for OMR exams with PDF
+- **Fix**: `total_points` in `/full` endpoint now uses stored value for OMR (not calculated from questions)
+- **Storage**: Cloudinary `edunet/omr-sheets` folder, `resource_type: raw`
+- Tested 100% (9/9 backend tests, all frontend features verified)
 
 ## Pending Issues
 
 ### P2: Double scrollbar in "Registro Auxiliar"
-### P2: Orphan Collection Cleanup (DELETE school leaves ~15 collections orphaned)
-
-## Recently Completed (April 2026)
-- OMR Exam UI integration in Owner portal (CourseDetailPage.jsx)
-- OMR Exam backend support in exams.py
-- AnswerKeyEditor bubble grid component
-- Buscador en pestaña Padres (UsersPage)
-- Sistema de Papelera para Colegios
-- Fix Importacion Excel - Turno, Metadata, Validation
-- Fix Bulk Delete
-- Fix Dashboard Orphan count
 
 ## Upcoming Tasks
 - P1: Refactor Message Pages (consolidate duplicates)
@@ -88,34 +75,25 @@ Full-stack React + FastAPI + MongoDB school management platform for Peruvian sch
 - P2: Create "Encuestas" page/module
 
 ## Future/Backlog
+- OMR Phase 3: OpenCV scanning + bubble reading + grade registration
 - Vinculacion Masiva Inteligente (Phase 2 Parent Import)
 - Dashboard Owner with real data
 - Matriculas (Enrollments) module
-- Replace window.confirm/alert with custom modals
-
-## Refactoring Needed
-- CourseDetailPage.jsx (>10,000 lines) - split into sub-components
-- UsersPage.jsx (>5000 lines) - split into sub-components
+- Refactoring: CourseDetailPage.jsx (>10K lines), UsersPage.jsx (>5K lines)
 
 ## Key Endpoints
 - POST /api/course/{subject_id}/exams (supports type: "digital" and "omr")
-- PUT /api/exams/{exam_id} (supports answer_key update for OMR)
-- POST /api/students/bulk-safe-delete
-- PATCH /api/support/schools/{id}/archive
-- GET/PUT /api/settings/health-permissions
-- GET/POST/PUT/DELETE /api/health/topico
-- GET/POST/PUT/DELETE /api/health/psicologia
+- PUT /api/exams/{exam_id}
+- POST /api/exams/{exam_id}/generate-omr-pdf
+- GET /api/exams/{exam_id}/omr-pdf
+- GET /api/exams/{exam_id}/full (fixed total_points for OMR)
 
 ## Key DB Schema
-- `online_exams`: Extended with optional `type`, `num_questions`, `options_per_question`, `answer_key`, `points_per_question`
-- `topico_records`: health records with parent_notified
-- `psicologia_records`: health records with soft delete
+- `online_exams`: type, num_questions, options_per_question, answer_key, points_per_question, total_points, omr_pdf_url, bubble_map, omr_pdf_generated_at
 
 ## 3rd Party Integrations
-- Cloudinary (image hosting)
-- ChatterPal v8.5 (video avatar widget)
-- Vimeo (video hosting)
-- @yudiel/react-qr-scanner (QR Reader)
+- Cloudinary (image/file hosting, OMR PDF storage)
+- Firebase, ChatterPal, Vimeo
 
 ## Test Credentials
 - School: elroble
