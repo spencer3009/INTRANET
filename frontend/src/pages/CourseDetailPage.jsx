@@ -7071,7 +7071,6 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
   const [editingExam, setEditingExam] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [expandedExam, setExpandedExam] = useState(null);
   const [selectedExamId, setSelectedExamId] = useState(null); // For detail view
   
   const headers = { Authorization: `Bearer ${token}` };
@@ -7198,232 +7197,173 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
           onAction={() => { setEditingExam(null); setShowModal(true); }}
         />
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {exams.map((exam) => {
             const statusConfig = EXAM_STATUS_CONFIG[exam.status] || EXAM_STATUS_CONFIG.draft;
             const StatusIcon = statusConfig.icon;
             const isOmr = exam.type === "omr";
             const start = isOmr ? { date: '', time: '' } : formatDateTime(exam.start_datetime);
             const end = isOmr ? { date: '', time: '' } : formatDateTime(exam.end_datetime);
-            const isExpanded = expandedExam === exam.id;
             
             return (
               <div 
                 key={exam.id}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-all"
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg hover:border-gray-200 transition-all flex flex-col"
+                data-testid={`exam-card-${exam.id}`}
               >
-                {/* Main Row */}
-                <div className="p-5">
-                  <div className="flex items-start gap-4">
-                    {/* Icon */}
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg flex-shrink-0">
-                      <FlaskConical className="w-7 h-7 text-white" />
-                    </div>
-                    
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${statusConfig.color}`}>
-                              <StatusIcon className="w-3.5 h-3.5" />
-                              {statusConfig.label.toUpperCase()}
-                            </span>
-                            {exam.has_attempts && (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
-                                {exam.attempts_count} intentos
-                              </span>
-                            )}
-                          </div>
-                          <h3 className="text-lg font-bold text-gray-800">
-                            {exam.title}
-                            <span className={`ml-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold align-middle ${
-                              isOmr ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
-                            }`}>
-                              {isOmr ? <Grid3X3 className="w-3 h-3" /> : <Monitor className="w-3 h-3" />}
-                              {isOmr ? 'OMR' : 'Digital'}
-                            </span>
-                          </h3>
-                          {exam.description && (
-                            <p className="text-sm text-gray-500 mt-1 line-clamp-1">{exam.description}</p>
-                          )}
-                        </div>
-                        
-                        {/* Date/Time Badge */}
-                        <div className="text-right flex-shrink-0">
-                          {isOmr ? (
-                            <div className="px-3 py-2 bg-emerald-50 rounded-xl">
-                              <p className="text-sm font-semibold text-emerald-700">{exam.num_questions || 0} preguntas</p>
-                              <p className="text-xs text-emerald-500">{exam.total_points || 0} pts</p>
-                            </div>
-                          ) : (
-                            <div className="px-3 py-2 bg-gray-50 rounded-xl">
-                              <p className="text-sm font-semibold text-gray-700">{start.date}</p>
-                              <p className="text-xs text-gray-500">{start.time} - {end.time}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Actions */}
-                      {canEdit && (
-                        <div className="flex items-center gap-2 mt-4 flex-wrap">
-                          <button
-                            onClick={() => setSelectedExamId(exam.id)}
-                            className={`px-4 py-2 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-1.5 ${
-                              isOmr
-                                ? 'bg-gradient-to-r from-emerald-500 to-teal-500'
-                                : 'bg-gradient-to-r from-purple-500 to-pink-500'
-                            }`}
-                          >
-                            {isOmr ? (
-                              <><Key className="w-4 h-4" /> CONFIGURAR CLAVE</>
-                            ) : (
-                              <><Edit3 className="w-4 h-4" /> GESTIONAR PREGUNTAS</>
-                            )}
-                          </button>
-
-                          {isOmr && exam.omr_pdf_url && (
-                            <button
-                              onClick={() => window.open(exam.omr_pdf_url, "_blank")}
-                              className="px-4 py-2 bg-slate-700 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors flex items-center gap-1.5"
-                              data-testid={`download-sheet-${exam.id}`}
-                            >
-                              <Download className="w-4 h-4" /> DESCARGAR HOJA
-                            </button>
-                          )}
-
-                          {isOmr && exam.answer_key && exam.bubble_map && (
-                            <button
-                              onClick={() => setSelectedExamId(exam.id)}
-                              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-lg text-sm font-medium hover:shadow-lg transition-all flex items-center gap-1.5"
-                              data-testid={`scan-btn-${exam.id}`}
-                            >
-                              <Camera className="w-4 h-4" /> ESCANEAR
-                            </button>
-                          )}
-                          
-                          <button
-                            onClick={() => setExpandedExam(isExpanded ? null : exam.id)}
-                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors flex items-center gap-1.5"
-                          >
-                            <FileText className="w-4 h-4" />
-                            DETALLES
-                            {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                          </button>
-                          
-                          <button
-                            onClick={async () => {
-                              try {
-                                const res = await axios.post(`${API}/exams/${exam.id}/duplicate`, {}, { headers: { Authorization: `Bearer ${token}` } });
-                                alert(res.data.message || "Examen duplicado exitosamente");
-                                loadExams();
-                              } catch (err) {
-                                alert(err.response?.data?.detail || "Error al duplicar examen");
-                              }
-                            }}
-                            className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg text-sm font-medium hover:bg-sky-200 transition-colors flex items-center gap-1.5"
-                            title="Duplicar examen con todas sus preguntas"
-                            data-testid={`duplicate-exam-btn-${exam.id}`}
-                          >
-                            <Copy className="w-4 h-4" />
-                            DUPLICAR
-                          </button>
-                          
-                          {(exam.status === 'draft' || exam.status === 'scheduled') && (
-                            <button
-                              onClick={() => setConfirmAction({ type: 'publish', exam })}
-                              className="px-4 py-2 bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium hover:bg-emerald-200 transition-colors flex items-center gap-1.5"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              PUBLICAR EXAMEN
-                            </button>
-                          )}
-                          
-                          {exam.status === 'published' && (
-                            <button
-                              onClick={() => setConfirmAction({ type: 'close', exam })}
-                              className="px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200 transition-colors flex items-center gap-1.5"
-                            >
-                              <X className="w-4 h-4" />
-                              CERRAR EXAMEN
-                            </button>
-                          )}
-                          
-                          {!exam.has_attempts && exam.status !== 'closed' && (
-                            <button
-                              onClick={() => setConfirmAction({ type: 'delete', exam })}
-                              className="px-4 py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium hover:bg-red-200 transition-colors flex items-center gap-1.5"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              ELIMINAR
-                            </button>
-                          )}
-                          
-                          {(exam.has_attempts || exam.status === 'closed') && (
-                            <span className="px-3 py-2 text-gray-400 text-xs italic">
-                              {exam.status === 'closed' ? 'Examen cerrado - Solo lectura' : 'No se puede eliminar (tiene intentos)'}
-                            </span>
-                          )}
-                        </div>
+                {/* Top color strip */}
+                <div className={`h-1.5 ${isOmr ? 'bg-gradient-to-r from-emerald-400 to-teal-500' : 'bg-gradient-to-r from-purple-500 to-pink-500'}`} />
+                
+                {/* Clickable main area */}
+                <div
+                  className="p-4 flex-1 cursor-pointer"
+                  onClick={() => setSelectedExamId(exam.id)}
+                  data-testid={`exam-card-click-${exam.id}`}
+                >
+                  {/* Status + Type badges */}
+                  <div className="flex items-center justify-between mb-2.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold ${statusConfig.color}`}>
+                        <StatusIcon className="w-3 h-3" />
+                        {statusConfig.label.toUpperCase()}
+                      </span>
+                      {exam.has_attempts && (
+                        <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded-full text-[10px] font-medium">
+                          {exam.attempts_count} int.
+                        </span>
                       )}
                     </div>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                      isOmr ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {isOmr ? <Grid3X3 className="w-3 h-3" /> : <Monitor className="w-3 h-3" />}
+                      {isOmr ? 'OMR' : 'Digital'}
+                    </span>
+                  </div>
+                  
+                  {/* Title */}
+                  <h3 className="text-base font-bold text-gray-800 line-clamp-2 mb-1 leading-tight">{exam.title}</h3>
+                  {exam.description && (
+                    <p className="text-xs text-gray-400 line-clamp-1 mb-3">{exam.description}</p>
+                  )}
+                  
+                  {/* Metrics */}
+                  <div className="flex items-center gap-3 mt-auto">
+                    {isOmr ? (
+                      <>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <FileText className="w-3.5 h-3.5 text-emerald-500" />
+                          <span className="font-semibold text-gray-700">{exam.num_questions || 0}</span> preg.
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <BarChart3 className="w-3.5 h-3.5 text-emerald-500" />
+                          <span className="font-semibold text-gray-700">{exam.total_points || 0}</span> pts
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <Clock className="w-3.5 h-3.5 text-purple-500" />
+                          <span className="font-medium text-gray-700">{start.date}</span>
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {start.time} - {end.time}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
                 
-                {/* Expanded Details */}
-                {isExpanded && (
-                  <div className="px-5 pb-5 pt-0">
-                    <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider">Estado</p>
-                          <p className="font-semibold text-gray-800">{statusConfig.label}</p>
-                        </div>
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider">Tipo</p>
-                          <p className="font-semibold text-gray-800">{isOmr ? 'OMR' : 'Digital'}</p>
-                        </div>
-                        {isOmr ? (
-                          <>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wider">Preguntas</p>
-                              <p className="font-semibold text-gray-800">{exam.num_questions || 0}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wider">Total puntos</p>
-                              <p className="font-semibold text-gray-800">{exam.total_points || 0}</p>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wider">Fecha</p>
-                              <p className="font-semibold text-gray-800">{start.date}</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-gray-500 uppercase tracking-wider">Horario</p>
-                              <p className="font-semibold text-gray-800">{start.time} - {end.time}</p>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                      {exam.description && (
-                        <div>
-                          <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Descripción</p>
-                          <p className="text-gray-700">{exam.description}</p>
-                        </div>
-                      )}
-                      <div className="flex items-center gap-2 pt-2">
-                        <button
-                          onClick={() => { setEditingExam(exam); setShowModal(true); }}
-                          className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-1.5"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                          Editar
-                        </button>
-                      </div>
-                    </div>
+                {/* Action bar */}
+                {canEdit && (
+                  <div className="px-4 py-2.5 border-t border-gray-50 bg-gray-50/50 flex items-center gap-1 flex-wrap">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setSelectedExamId(exam.id); }}
+                      className={`px-2.5 py-1.5 text-white rounded-lg text-xs font-medium hover:shadow-md transition-all flex items-center gap-1 ${
+                        isOmr ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'
+                      }`}
+                      data-testid={`exam-open-${exam.id}`}
+                    >
+                      {isOmr ? <><Key className="w-3 h-3" /> Clave</> : <><Edit3 className="w-3 h-3" /> Preguntas</>}
+                    </button>
+
+                    {isOmr && exam.omr_pdf_url && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); window.open(exam.omr_pdf_url, "_blank"); }}
+                        className="px-2.5 py-1.5 bg-slate-600 text-white rounded-lg text-xs font-medium hover:bg-slate-700 transition-colors flex items-center gap-1"
+                        data-testid={`download-sheet-${exam.id}`}
+                        title="Descargar hoja OMR"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span className="hidden sm:inline">Hoja</span>
+                      </button>
+                    )}
+
+                    {isOmr && exam.answer_key && exam.bubble_map && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedExamId(exam.id); }}
+                        className="px-2.5 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors flex items-center gap-1"
+                        data-testid={`scan-btn-${exam.id}`}
+                        title="Escanear hoja"
+                      >
+                        <Camera className="w-3 h-3" />
+                        <span className="hidden sm:inline">Escanear</span>
+                      </button>
+                    )}
+                    
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        try {
+                          const res = await axios.post(`${API}/exams/${exam.id}/duplicate`, {}, { headers: { Authorization: `Bearer ${token}` } });
+                          alert(res.data.message || "Examen duplicado exitosamente");
+                          loadExams();
+                        } catch (err) {
+                          alert(err.response?.data?.detail || "Error al duplicar examen");
+                        }
+                      }}
+                      className="px-2.5 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors flex items-center gap-1"
+                      title="Duplicar examen"
+                      data-testid={`duplicate-exam-btn-${exam.id}`}
+                    >
+                      <Copy className="w-3 h-3" />
+                    </button>
+                    
+                    {(exam.status === 'draft' || exam.status === 'scheduled') && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: 'publish', exam }); }}
+                        className="px-2.5 py-1.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium hover:bg-emerald-200 transition-colors flex items-center gap-1"
+                        title="Publicar examen"
+                      >
+                        <CheckCircle className="w-3 h-3" />
+                        <span className="hidden sm:inline">Publicar</span>
+                      </button>
+                    )}
+                    
+                    {exam.status === 'published' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: 'close', exam }); }}
+                        className="px-2.5 py-1.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium hover:bg-amber-200 transition-colors flex items-center gap-1"
+                        title="Cerrar examen"
+                      >
+                        <X className="w-3 h-3" />
+                        <span className="hidden sm:inline">Cerrar</span>
+                      </button>
+                    )}
+                    
+                    {!exam.has_attempts && exam.status !== 'closed' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: 'delete', exam }); }}
+                        className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1 ml-auto"
+                        title="Eliminar examen"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                    
+                    {exam.status === 'closed' && (
+                      <span className="text-[10px] text-gray-400 italic ml-auto">Solo lectura</span>
+                    )}
                   </div>
                 )}
               </div>
