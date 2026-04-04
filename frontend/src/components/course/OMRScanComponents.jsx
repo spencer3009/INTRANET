@@ -219,8 +219,13 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
   const ProgressHeader = () => (
     <div className="mb-3">
       <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
-        <span className="font-semibold text-gray-700">{exam.title}</span>
-        <span className="font-medium">{scannedCount} / {totalCount} escaneados</span>
+        <span className="font-semibold text-gray-700 truncate">{exam.title}</span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="font-medium">{scannedCount} / {totalCount} escaneados</span>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors" data-testid="close-scan-x">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
       <div className="w-full bg-gray-100 rounded-full h-2">
         <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
