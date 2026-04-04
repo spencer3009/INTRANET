@@ -6689,11 +6689,6 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
         </div>
       </div>
       
-      {/* OMR Sheet PDF Card */}
-      {isOmr && (
-        <OmrSheetCard exam={exam} token={token} onExamUpdate={(updates) => setExam(prev => ({ ...prev, ...updates }))} />
-      )}
-
       {/* OMR Answer Key Editor */}
       {isOmr && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -6714,6 +6709,11 @@ function ExamDetailView({ examId, token, userRole, onBack }) {
             />
           </div>
         </div>
+      )}
+
+      {/* OMR Sheet PDF Card */}
+      {isOmr && (
+        <OmrSheetCard exam={exam} token={token} onExamUpdate={(updates) => setExam(prev => ({ ...prev, ...updates }))} />
       )}
 
       {/* Questions Management (Digital only) */}
