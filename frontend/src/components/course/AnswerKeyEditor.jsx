@@ -67,26 +67,28 @@ export default function AnswerKeyEditor({ examId, numQuestions, optionsPerQuesti
   const pct = numQuestions > 0 ? Math.round((answered / numQuestions) * 100) : 0;
 
   return (
-    <div className="space-y-5" data-testid="answer-key-editor">
-      {/* Progress */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm font-semibold text-gray-700">
-            {answered} de {numQuestions} respuestas configuradas
-          </span>
-          <span className="text-xs font-bold text-emerald-600">{pct}%</span>
-        </div>
-        <div className="w-full bg-gray-100 rounded-full h-2.5">
-          <div
-            className="bg-emerald-500 h-2.5 rounded-full transition-all duration-300"
-            style={{ width: `${pct}%` }}
-          />
+    <div className="space-y-0" data-testid="answer-key-editor">
+      {/* Progress - sticky at top of scroll area */}
+      <div className="sticky top-0 z-10 bg-white pb-3">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-semibold text-gray-600">
+              {answered} de {numQuestions} respuestas configuradas
+            </span>
+            <span className="text-xs font-bold text-emerald-600">{pct}%</span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2">
+            <div
+              className="bg-emerald-500 h-2 rounded-full transition-all duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
         </div>
       </div>
 
       {/* Bubble Grid */}
       <div
-        className="grid gap-4"
+        className="grid gap-4 pt-3"
         style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}
       >
         {columns.map((col, ci) => (
