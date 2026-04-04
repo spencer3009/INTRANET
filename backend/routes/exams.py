@@ -962,17 +962,11 @@ async def delete_exam(
     if not exam:
         raise HTTPException(status_code=404, detail="Examen no encontrado")
     
-    # Check if exam has any attempts
-    attempts_count = await db.exam_attempts.count_documents({"exam_id": exam_id})
-    if attempts_count > 0:
-        raise HTTPException(
-            status_code=400, 
-            detail=f"No se puede eliminar este examen porque {attempts_count} estudiante(s) ya lo han rendido. Solo puedes cerrarlo o archivarlo."
-        )
+    # Clean up attempts if any
+    await db.exam_attempts.delete_many({"exam_id": exam_id})
     
-    # Cannot delete closed exams
-    if exam["status"] == ExamStatus.closed.value:
-        raise HTTPException(status_code=400, detail="No se puede eliminar un examen cerrado. Solo puedes archivarlo.")
+    # Clean up OMR scans if any
+    await db.omr_scans.delete_many({"exam_id": exam_id})
 
     # Clean register linkage before deleting
     if exam.get("register_column"):

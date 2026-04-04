@@ -7386,19 +7386,13 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                       </button>
                     )}
                     
-                    {!exam.has_attempts && exam.status !== 'closed' && (
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: 'delete', exam }); }}
-                        className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1 ml-auto"
-                        title="Eliminar examen"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
-                    )}
-                    
-                    {exam.status === 'closed' && (
-                      <span className="text-[10px] text-gray-400 italic ml-auto">Solo lectura</span>
-                    )}
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setConfirmAction({ type: 'delete', exam }); }}
+                      className="px-2.5 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-1 ml-auto"
+                      title="Eliminar examen"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
                   </div>
                 )}
               </div>
