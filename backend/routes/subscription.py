@@ -101,7 +101,7 @@ async def calculate_plan_state(school):
             return "ACTIVO", 0
         elif dias_vencido == 0:
             return "AVISO_VENCIMIENTO", 0
-        elif dias_vencido <= 3:
+        elif dias_vencido <= 2:
             return "RESTRICCION_PARCIAL", dias_vencido
         elif dias_vencido <= 6:
             return "PAGO_OBLIGATORIO", dias_vencido
