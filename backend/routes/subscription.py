@@ -73,43 +73,57 @@ async def get_grace_days():
 
 
 async def calculate_plan_state(school):
-    """Calculate the current plan state based on expiration date."""
+    """Calculate the current plan state based on expiration date.
+    Priority: date-based state always wins when dias_vencido >= 3.
+    PAGO_EN_VERIFICACION only applies for schools with < 3 days overdue.
+    """
+    school_id = school.get("id", "unknown")
     try:
         exp_str = school.get("fecha_vencimiento") or school.get("expiration_date")
         if not exp_str:
+            logger.warning(f"[PLAN_STATE] school={school_id} sin fecha_vencimiento ni expiration_date -> ACTIVO")
             return "ACTIVO", 0
-
-        # Check if there's a pending payment verification
-        try:
-            pending = await db.payment_requests.find_one(
-                {"school_id": school.get("id", ""), "status": "processing"}, {"_id": 0, "id": 1}
-            )
-            if pending:
-                return "PAGO_EN_VERIFICACION", 0
-        except Exception:
-            pass
 
         try:
             exp = datetime.fromisoformat(str(exp_str).replace("Z", "+00:00"))
-        except Exception:
-            return "ACTIVO", 0
+        except Exception as parse_err:
+            logger.error(f"[PLAN_STATE] school={school_id} fecha invalida '{exp_str}': {parse_err} -> PAGO_OBLIGATORIO por seguridad")
+            return "PAGO_OBLIGATORIO", 0
 
         now = datetime.now(timezone.utc)
         dias_vencido = (now.date() - exp.date()).days
 
+        # Determine base state from days overdue
         if dias_vencido < 0:
-            return "ACTIVO", 0
+            base_state = "ACTIVO"
         elif dias_vencido == 0:
-            return "AVISO_VENCIMIENTO", 0
+            base_state = "AVISO_VENCIMIENTO"
         elif dias_vencido <= 2:
-            return "RESTRICCION_PARCIAL", dias_vencido
+            base_state = "RESTRICCION_PARCIAL"
         elif dias_vencido <= 6:
-            return "PAGO_OBLIGATORIO", dias_vencido
+            base_state = "PAGO_OBLIGATORIO"
         else:
-            return "SUSPENDIDO", dias_vencido
+            base_state = "SUSPENDIDO"
+
+        # PAGO_EN_VERIFICACION only overrides if school is NOT yet in hard-block territory (< 3 days)
+        if base_state in ("ACTIVO", "AVISO_VENCIMIENTO", "RESTRICCION_PARCIAL"):
+            try:
+                pending = await db.payment_requests.find_one(
+                    {"school_id": school_id, "status": "processing"}, {"_id": 0, "id": 1}
+                )
+                if pending:
+                    logger.info(f"[PLAN_STATE] school={school_id} dias_vencido={dias_vencido} tiene pago pendiente -> PAGO_EN_VERIFICACION")
+                    return "PAGO_EN_VERIFICACION", dias_vencido
+            except Exception as pmt_err:
+                logger.error(f"[PLAN_STATE] school={school_id} error checking payment_requests: {pmt_err}")
+
+        if dias_vencido >= 3:
+            logger.info(f"[PLAN_STATE] school={school_id} dias_vencido={dias_vencido} -> {base_state}")
+
+        return base_state, dias_vencido
     except Exception as e:
-        logger.error(f"calculate_plan_state error: {e}")
-        return "ACTIVO", 0
+        logger.error(f"[PLAN_STATE] school={school_id} error inesperado: {e} -> PAGO_OBLIGATORIO por seguridad")
+        return "PAGO_OBLIGATORIO", 0
 
 
 async def get_school_pricing(school):
