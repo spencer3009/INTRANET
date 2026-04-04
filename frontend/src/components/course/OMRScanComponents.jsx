@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import axios from "axios";
+import { toast } from "sonner";
 import {
   Camera, Upload, ArrowLeft, Search, Check, X, AlertCircle,
   Loader2, RefreshCw, ChevronDown, ChevronUp, BookOpen,
-  ChevronRight
+  ChevronRight, ArrowRight
 } from "lucide-react";
 
 const API = process.env.REACT_APP_BACKEND_URL + "/api";
@@ -19,6 +20,7 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [cameraActive, setCameraActive] = useState(false);
+  const [replaceConfirm, setReplaceConfirm] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
@@ -34,7 +36,12 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
     setLoading(true);
     try {
       const res = await axios.get(`${API}/exams/${exam.id}/omr-students`, { headers });
-      setStudents(res.data);
+      // Sort: unscanned first, then alphabetically
+      const sorted = res.data.sort((a, b) => {
+        if (a.has_scan !== b.has_scan) return a.has_scan ? 1 : -1;
+        return a.full_name.localeCompare(b.full_name);
+      });
+      setStudents(sorted);
     } catch (err) {
       setError("Error al cargar alumnos");
     } finally {
@@ -114,23 +121,24 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
       });
       setResult(res.data);
       setStep(3);
+      toast.success(`Escaneado: ${selectedStudent.full_name}`);
       if (onScanComplete) onScanComplete();
     } catch (err) {
       if (err.response?.status === 409) {
         const data = err.response.data;
-        if (window.confirm(`${selectedStudent.full_name} ya tiene resultado. ¿Reemplazar?`)) {
-          try {
-            const putRes = await axios.put(
-              `${API}/exams/${exam.id}/omr-scan/${data.existing_scan_id}`,
-              formData,
-              { headers: { ...headers, "Content-Type": "multipart/form-data" }, timeout: 30000 }
-            );
-            setResult(putRes.data);
-            setStep(3);
-            if (onScanComplete) onScanComplete();
-          } catch (putErr) {
-            setError(putErr.response?.data?.detail || "Error al reemplazar resultado");
-          }
+        // Auto-replace since user already confirmed
+        try {
+          const putRes = await axios.put(
+            `${API}/exams/${exam.id}/omr-scan/${data.existing_scan_id}`,
+            formData,
+            { headers: { ...headers, "Content-Type": "multipart/form-data" }, timeout: 30000 }
+          );
+          setResult(putRes.data);
+          setStep(3);
+          toast.success(`Resultado reemplazado: ${selectedStudent.full_name}`);
+          if (onScanComplete) onScanComplete();
+        } catch (putErr) {
+          setError(putErr.response?.data?.detail || "Error al reemplazar resultado");
         }
       } else if (err.response?.status === 422) {
         setError(err.response.data.detail);
@@ -142,60 +150,140 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
     }
   };
 
+  const goToNextStudent = async () => {
+    await loadStudents();
+    setImageData(null);
+    setResult(null);
+    setError("");
+    setReplaceConfirm(null);
+    // Find next unscanned student
+    // We need fresh data, so re-fetch
+    try {
+      const res = await axios.get(`${API}/exams/${exam.id}/omr-students`, { headers });
+      const sorted = res.data.sort((a, b) => {
+        if (a.has_scan !== b.has_scan) return a.has_scan ? 1 : -1;
+        return a.full_name.localeCompare(b.full_name);
+      });
+      setStudents(sorted);
+      const nextUnscanned = sorted.find(s => !s.has_scan);
+      if (nextUnscanned) {
+        setSelectedStudent(nextUnscanned);
+        setStep(2);
+      } else {
+        setSelectedStudent(null);
+        setStep(1);
+      }
+    } catch {
+      setStep(1);
+      setSelectedStudent(null);
+    }
+  };
+
   const scanAnother = () => {
     setStep(1);
     setSelectedStudent(null);
     setImageData(null);
     setResult(null);
     setError("");
+    setReplaceConfirm(null);
     loadStudents();
   };
 
   const selectStudent = (st) => {
-    if (st.has_scan && !window.confirm(`${st.full_name} ya tiene resultado (${st.scan_score}/${st.scan_total}). ¿Reemplazar?`)) return;
+    if (st.has_scan) {
+      setReplaceConfirm(st);
+      return;
+    }
+    setReplaceConfirm(null);
     setSelectedStudent(st);
     setStep(2);
+  };
+
+  const confirmReplace = () => {
+    if (replaceConfirm) {
+      setSelectedStudent(replaceConfirm);
+      setReplaceConfirm(null);
+      setStep(2);
+    }
   };
 
   const filtered = students.filter(s =>
     s.full_name.toLowerCase().includes(search.toLowerCase())
   );
 
+  const scannedCount = students.filter(s => s.has_scan).length;
+  const totalCount = students.length;
+  const progressPct = totalCount > 0 ? Math.round((scannedCount / totalCount) * 100) : 0;
+
+  // Progress bar header (shared across all steps)
+  const ProgressHeader = () => (
+    <div className="mb-3">
+      <div className="flex items-center justify-between text-xs text-gray-500 mb-1.5">
+        <span className="font-semibold text-gray-700">{exam.title}</span>
+        <span className="font-medium">{scannedCount} / {totalCount} escaneados</span>
+      </div>
+      <div className="w-full bg-gray-100 rounded-full h-2">
+        <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${progressPct}%` }} />
+      </div>
+    </div>
+  );
+
   if (step === 1) {
     return (
-      <div className="space-y-4" data-testid="omr-scan-step1">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="space-y-3" data-testid="omr-scan-step1">
+        <ProgressHeader />
+        <div className="flex items-center gap-3">
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h3 className="text-lg font-bold text-gray-800">Seleccionar alumno</h3>
+          <h3 className="text-base font-bold text-gray-800">Seleccionar alumno</h3>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input type="text" placeholder="Buscar alumno..." value={search} onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+            className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
             data-testid="omr-scan-search" />
         </div>
+
+        {/* Replace confirm inline */}
+        {replaceConfirm && (
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm" data-testid="replace-confirm">
+            <p className="text-amber-800 font-medium mb-2">{replaceConfirm.full_name} ya tiene resultado ({replaceConfirm.scan_score}/{replaceConfirm.scan_total}). ¿Reemplazar?</p>
+            <div className="flex gap-2">
+              <button onClick={confirmReplace} className="px-4 py-2 bg-amber-600 text-white rounded-lg text-xs font-medium hover:bg-amber-700">Sí, reemplazar</button>
+              <button onClick={() => setReplaceConfirm(null)} className="px-4 py-2 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50">Cancelar</button>
+            </div>
+          </div>
+        )}
+
+        {scannedCount === totalCount && totalCount > 0 && (
+          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-sm flex items-center gap-2">
+            <Check className="w-4 h-4" /> Todos los alumnos han sido escaneados
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center py-8"><Loader2 className="w-6 h-6 animate-spin mx-auto text-gray-400" /></div>
         ) : (
-          <div className="space-y-1 max-h-[400px] overflow-y-auto">
+          <div className="space-y-0.5 max-h-[50vh] overflow-y-auto">
             {filtered.map((st, idx) => (
               <button key={st.id} onClick={() => selectStudent(st)}
-                className="w-full flex items-center justify-between px-4 py-3 rounded-xl hover:bg-gray-50 transition-colors text-left group"
+                className="w-full flex items-center justify-between px-3 py-3 rounded-xl hover:bg-gray-50 transition-colors text-left group min-h-[48px]"
                 data-testid={`student-row-${idx}`}>
-                <div className="flex items-center gap-3">
-                  <span className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-sm font-semibold text-gray-500 group-hover:bg-purple-100 group-hover:text-purple-600">{idx + 1}</span>
-                  <span className="font-medium text-gray-700">{st.full_name}</span>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 ${
+                    st.has_scan ? 'bg-emerald-100 text-emerald-600' : 'bg-gray-100 text-gray-500 group-hover:bg-emerald-50 group-hover:text-emerald-600'
+                  }`}>{st.has_scan ? <Check className="w-3.5 h-3.5" /> : idx + 1}</span>
+                  <span className="font-medium text-gray-700 text-sm truncate">{st.full_name}</span>
                 </div>
                 {st.has_scan ? (
-                  <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg font-medium">{st.scan_score}/{st.scan_total}</span>
+                  <span className="text-xs px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-lg font-medium flex-shrink-0 ml-2">{st.scan_score}/{st.scan_total}</span>
                 ) : (
-                  <span className="text-xs text-gray-400">Sin escanear</span>
+                  <ChevronRight className="w-4 h-4 text-gray-300 flex-shrink-0 ml-2" />
                 )}
               </button>
             ))}
-            {filtered.length === 0 && <p className="text-center text-gray-400 py-4">No se encontraron alumnos</p>}
+            {filtered.length === 0 && <p className="text-center text-gray-400 py-4 text-sm">No se encontraron alumnos</p>}
           </div>
         )}
       </div>
@@ -204,14 +292,15 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
 
   if (step === 2) {
     return (
-      <div className="space-y-4" data-testid="omr-scan-step2">
-        <div className="flex items-center gap-3 mb-2">
-          <button onClick={() => { stopCamera(); setImageData(null); setStep(1); }} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
+      <div className="space-y-3" data-testid="omr-scan-step2">
+        <ProgressHeader />
+        <div className="flex items-center gap-3">
+          <button onClick={() => { stopCamera(); setImageData(null); setStep(1); setReplaceConfirm(null); }} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
             <ArrowLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <div>
-            <h3 className="text-lg font-bold text-gray-800">Capturar hoja</h3>
-            <p className="text-sm text-gray-500">{selectedStudent?.full_name}</p>
+          <div className="min-w-0">
+            <h3 className="text-base font-bold text-gray-800 truncate">Capturar hoja</h3>
+            <p className="text-xs text-gray-500 truncate">{selectedStudent?.full_name}</p>
           </div>
         </div>
         {error && (
@@ -220,27 +309,27 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
           </div>
         )}
         {!imageData ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {cameraActive ? (
               <div className="relative rounded-2xl overflow-hidden bg-black">
                 <video ref={videoRef} autoPlay playsInline className="w-full" />
                 <button onClick={capturePhoto}
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 w-16 h-16 bg-white rounded-full border-4 border-gray-300 shadow-lg hover:scale-105 transition-transform"
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 w-16 h-16 bg-white rounded-full border-4 border-gray-300 shadow-lg hover:scale-105 transition-transform active:scale-95"
                   data-testid="capture-btn" />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 <button onClick={startCamera}
-                  className="flex flex-col items-center gap-3 p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl hover:border-purple-400 hover:bg-purple-50 transition-all"
+                  className="flex flex-col items-center gap-2 p-5 sm:p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl hover:border-emerald-400 hover:bg-emerald-50 transition-all min-h-[100px]"
                   data-testid="open-camera-btn">
-                  <Camera className="w-10 h-10 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-600">Tomar foto</span>
+                  <Camera className="w-8 h-8 text-gray-400" />
+                  <span className="text-xs sm:text-sm font-medium text-gray-600">Tomar foto</span>
                 </button>
                 <button onClick={() => fileInputRef.current?.click()}
-                  className="flex flex-col items-center gap-3 p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl hover:border-purple-400 hover:bg-purple-50 transition-all"
+                  className="flex flex-col items-center gap-2 p-5 sm:p-6 bg-gray-50 border-2 border-dashed border-gray-300 rounded-2xl hover:border-emerald-400 hover:bg-emerald-50 transition-all min-h-[100px]"
                   data-testid="upload-image-btn">
-                  <Upload className="w-10 h-10 text-gray-400" />
-                  <span className="text-sm font-medium text-gray-600">Subir imagen</span>
+                  <Upload className="w-8 h-8 text-gray-400" />
+                  <span className="text-xs sm:text-sm font-medium text-gray-600">Subir imagen</span>
                 </button>
                 <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
               </div>
@@ -248,16 +337,16 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
             <canvas ref={canvasRef} className="hidden" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             <div className="rounded-2xl overflow-hidden border border-gray-200">
-              <img src={imageData} alt="Preview" className="w-full" />
+              <img src={imageData} alt="Preview" className="w-full max-h-[50vh] object-contain bg-gray-50" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <button onClick={() => { setImageData(null); setError(""); }}
-                className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+                className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors text-sm min-h-[48px]"
                 data-testid="retake-btn">Volver a tomar</button>
               <button onClick={processImage} disabled={processing}
-                className="px-4 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-2"
+                className="px-4 py-3 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 hover:shadow-lg transition-all disabled:opacity-60 flex items-center justify-center gap-2 text-sm min-h-[48px]"
                 data-testid="process-btn">
                 {processing ? <><Loader2 className="w-5 h-5 animate-spin" /> Procesando...</> : "Procesar"}
               </button>
@@ -272,36 +361,44 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
     const grade = result.grade_vigesimal;
     const confLevel = result.confidence > 0.3 ? "high" : result.confidence > 0.15 ? "medium" : "low";
     const confColors = { high: "bg-emerald-500", medium: "bg-amber-500", low: "bg-red-500" };
+    const correctCount = result.details?.filter(d => d.status === "correct").length || 0;
+    const incorrectCount = result.details?.filter(d => d.status === "incorrect").length || 0;
+    const blankCount = result.details?.filter(d => d.status === "blank").length || 0;
+    const hasNextUnscanned = students.some(s => !s.has_scan && s.id !== selectedStudent?.id);
+
     return (
-      <div className="space-y-4" data-testid="omr-scan-step3">
-        <h3 className="text-lg font-bold text-gray-800">Resultado</h3>
-        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white">
+      <div className="space-y-3" data-testid="omr-scan-step3">
+        <ProgressHeader />
+        <h3 className="text-base font-bold text-gray-800">Resultado</h3>
+        <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-5 text-white">
           <p className="text-sm opacity-70 mb-1">{selectedStudent?.full_name}</p>
           <div className="flex items-end gap-4">
-            <span className="text-5xl font-black">{result.score}/{result.total}</span>
-            <div className="pb-1">
-              <p className="text-2xl font-bold text-emerald-400">{grade}/20</p>
-              <p className="text-sm opacity-60">{result.percentage}%</p>
+            <span className="text-4xl font-black">{result.score}/{result.total}</span>
+            <div className="pb-0.5">
+              <p className="text-xl font-bold text-emerald-400">{grade}/20</p>
+              <p className="text-xs opacity-60">{result.percentage}%</p>
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-2 flex items-center gap-2">
             <span className="text-xs opacity-60">Confianza:</span>
-            <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
+            <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
               <div className={`h-full rounded-full ${confColors[confLevel]}`} style={{ width: `${Math.min(result.confidence * 100, 100)}%` }} />
             </div>
             <span className="text-xs font-mono">{(result.confidence * 100).toFixed(0)}%</span>
           </div>
-          {result.warnings?.length > 0 && (
-            <p className="mt-2 text-xs text-amber-300 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{result.warnings[0]}</p>
-          )}
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <h4 className="text-sm font-semibold text-gray-600 mb-3">Detalle por pregunta</h4>
-          <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+        {/* Compact answer grid - highlight errors only */}
+        <div className="bg-white rounded-xl border border-gray-100 p-3">
+          <div className="flex flex-wrap gap-1.5 text-xs text-gray-500 mb-2">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" />{correctCount} correctas</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500" />{incorrectCount} incorrectas</span>
+            {blankCount > 0 && <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-400" />{blankCount} en blanco</span>}
+          </div>
+          <div className="grid grid-cols-5 sm:grid-cols-10 gap-1.5">
             {result.details?.map((d) => {
-              const colors = { correct: "bg-emerald-100 text-emerald-700 border-emerald-200", incorrect: "bg-red-100 text-red-700 border-red-200", blank: "bg-gray-100 text-gray-400 border-gray-200", multiple: "bg-amber-100 text-amber-700 border-amber-200" };
+              const colors = { correct: "bg-emerald-50 text-emerald-600 border-emerald-200", incorrect: "bg-red-50 text-red-600 border-red-200", blank: "bg-gray-50 text-gray-400 border-gray-200", multiple: "bg-amber-50 text-amber-600 border-amber-200" };
               return (
-                <div key={d.question} className={`flex flex-col items-center p-1.5 rounded-lg border text-xs ${colors[d.status]}`}
+                <div key={d.question} className={`flex flex-col items-center p-1 rounded-lg border text-[10px] ${colors[d.status]}`}
                   title={`P${d.question}: ${d.detected || "-"} (Correcta: ${d.correct})`}>
                   <span className="font-bold">{d.question}</span>
                   <span className="font-mono">{d.detected || "-"}</span>
@@ -310,13 +407,25 @@ function OMRScanFlow({ exam, token, onClose, onScanComplete }) {
             })}
           </div>
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={scanAnother} className="px-4 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors flex items-center justify-center gap-2" data-testid="scan-another-btn">
-            <Camera className="w-4 h-4" /> Escanear otro
+        {/* Action buttons */}
+        <div className="space-y-2">
+          <button onClick={goToNextStudent}
+            className="w-full px-4 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 hover:shadow-lg transition-all flex items-center justify-center gap-2 text-sm min-h-[52px]"
+            data-testid="next-student-btn">
+            {hasNextUnscanned ? (
+              <><ArrowRight className="w-4 h-4" /> Siguiente alumno</>
+            ) : (
+              <><Check className="w-4 h-4" /> Todos escaneados - Volver a lista</>
+            )}
           </button>
-          <button onClick={onClose} className="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors" data-testid="close-scan-btn">
-            Cerrar
-          </button>
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={scanAnother} className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-xs font-medium hover:bg-gray-200 transition-colors flex items-center justify-center gap-1.5">
+              <Camera className="w-3.5 h-3.5" /> Otro alumno
+            </button>
+            <button onClick={onClose} className="px-3 py-2.5 bg-gray-100 text-gray-600 rounded-xl text-xs font-medium hover:bg-gray-200 transition-colors" data-testid="close-scan-btn">
+              Cerrar
+            </button>
+          </div>
         </div>
       </div>
     );

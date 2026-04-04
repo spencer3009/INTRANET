@@ -37,6 +37,8 @@ import {
 import AnswerKeyEditor from "../components/course/AnswerKeyEditor";
 import { OMRScanFlow, OMRResultsCard } from "../components/course/OMRScanComponents";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import { toast } from "sonner";
 import CourseLoadingScreen from "../components/CourseLoadingScreen";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -7072,6 +7074,8 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [selectedExamId, setSelectedExamId] = useState(null); // For detail view
+  const [answerKeyModal, setAnswerKeyModal] = useState(null); // exam obj for clave modal
+  const [scanModal, setScanModal] = useState(null); // exam obj for scan modal
   
   const headers = { Authorization: `Bearer ${token}` };
   const canEdit = ["teacher", "admin", "owner", "director", "coordinator"].includes(userRole);
@@ -7276,33 +7280,64 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                 
                 {/* Action bar */}
                 {canEdit && (
-                  <div className="px-4 py-2.5 border-t border-gray-50 bg-gray-50/50 flex items-center gap-1 flex-wrap">
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setSelectedExamId(exam.id); }}
-                      className={`px-2.5 py-1.5 text-white rounded-lg text-xs font-medium hover:shadow-md transition-all flex items-center gap-1 ${
-                        isOmr ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-purple-600 hover:bg-purple-700'
-                      }`}
-                      data-testid={`exam-open-${exam.id}`}
-                    >
-                      {isOmr ? <><Key className="w-3 h-3" /> Clave</> : <><Edit3 className="w-3 h-3" /> Preguntas</>}
-                    </button>
-
-                    {isOmr && exam.omr_pdf_url && (
+                  <div className="px-3 py-2 border-t border-gray-50 bg-gray-50/50 flex items-center gap-1 flex-wrap">
+                    {isOmr ? (
                       <button
-                        onClick={(e) => { e.stopPropagation(); window.open(exam.omr_pdf_url, "_blank"); }}
+                        onClick={(e) => { e.stopPropagation(); setAnswerKeyModal(exam); }}
+                        className="px-2.5 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 hover:shadow-md transition-all flex items-center gap-1"
+                        data-testid={`exam-key-${exam.id}`}
+                        title="Configurar clave de respuestas"
+                      >
+                        <Key className="w-3 h-3" />
+                        <span className="hidden sm:inline">Clave</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedExamId(exam.id); }}
+                        className="px-2.5 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 hover:shadow-md transition-all flex items-center gap-1"
+                        data-testid={`exam-open-${exam.id}`}
+                        title="Gestionar preguntas"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        <span className="hidden sm:inline">Preguntas</span>
+                      </button>
+                    )}
+
+                    {isOmr && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (exam.omr_pdf_url) {
+                            window.open(exam.omr_pdf_url, "_blank");
+                          } else {
+                            toast.info("Genere la hoja desde los detalles del examen");
+                            setSelectedExamId(exam.id);
+                          }
+                        }}
                         className="px-2.5 py-1.5 bg-slate-600 text-white rounded-lg text-xs font-medium hover:bg-slate-700 transition-colors flex items-center gap-1"
                         data-testid={`download-sheet-${exam.id}`}
-                        title="Descargar hoja OMR"
+                        title={exam.omr_pdf_url ? "Descargar hoja OMR" : "Genere la hoja primero"}
                       >
                         <Download className="w-3 h-3" />
                         <span className="hidden sm:inline">Hoja</span>
                       </button>
                     )}
 
-                    {isOmr && exam.answer_key && exam.bubble_map && (
+                    {isOmr && (
                       <button
-                        onClick={(e) => { e.stopPropagation(); setSelectedExamId(exam.id); }}
-                        className="px-2.5 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-medium hover:bg-purple-700 transition-colors flex items-center gap-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (!exam.answer_key || exam.answer_key.length === 0) {
+                            toast.error("Configure la clave de respuestas primero");
+                          } else if (!exam.bubble_map || !exam.omr_pdf_url) {
+                            toast.error("Genere la hoja de respuestas primero");
+                          } else {
+                            setScanModal(exam);
+                          }
+                        }}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 ${
+                          exam.answer_key && exam.bubble_map ? 'bg-purple-600 text-white hover:bg-purple-700' : 'bg-gray-200 text-gray-400'
+                        }`}
                         data-testid={`scan-btn-${exam.id}`}
                         title="Escanear hoja"
                       >
@@ -7316,10 +7351,10 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                         e.stopPropagation();
                         try {
                           const res = await axios.post(`${API}/exams/${exam.id}/duplicate`, {}, { headers: { Authorization: `Bearer ${token}` } });
-                          alert(res.data.message || "Examen duplicado exitosamente");
+                          toast.success(res.data.message || "Examen duplicado");
                           loadExams();
                         } catch (err) {
-                          alert(err.response?.data?.detail || "Error al duplicar examen");
+                          toast.error(err.response?.data?.detail || "Error al duplicar examen");
                         }
                       }}
                       className="px-2.5 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors flex items-center gap-1"
@@ -7413,6 +7448,57 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
         confirmText="Eliminar"
         confirmColor="red"
       />
+
+      {/* AnswerKey Modal */}
+      <Dialog open={!!answerKeyModal} onOpenChange={(open) => { if (!open) setAnswerKeyModal(null); }}>
+        <DialogContent className="max-w-[700px] w-[95vw] max-h-[90vh] overflow-y-auto sm:rounded-2xl p-0 max-sm:!w-screen max-sm:!max-w-none max-sm:!h-screen max-sm:!max-h-none max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!top-0 max-sm:!left-0" data-testid="answer-key-modal">
+          {answerKeyModal && (
+            <>
+              <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-5 py-4 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <DialogTitle className="text-base font-bold text-gray-800 truncate">{answerKeyModal.title}</DialogTitle>
+                  <DialogDescription className="text-xs text-gray-400 mt-0.5">Configurar clave de respuestas</DialogDescription>
+                </div>
+                <span className="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md text-[10px] font-bold flex items-center gap-1">
+                  <Grid3X3 className="w-3 h-3" /> OMR
+                </span>
+              </div>
+              <div className="p-4 sm:p-5">
+                <AnswerKeyEditor
+                  examId={answerKeyModal.id}
+                  numQuestions={answerKeyModal.num_questions || 10}
+                  optionsPerQuestion={answerKeyModal.options_per_question || 4}
+                  initialAnswerKey={answerKeyModal.answer_key}
+                  token={token}
+                  onSave={(answers) => {
+                    loadExams();
+                    setAnswerKeyModal(prev => prev ? { ...prev, answer_key: answers } : null);
+                  }}
+                />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Scan Modal */}
+      <Dialog open={!!scanModal} onOpenChange={(open) => { if (!open) { setScanModal(null); loadExams(); } }}>
+        <DialogContent className="max-w-[800px] w-[95vw] max-h-[90vh] overflow-y-auto sm:rounded-2xl p-0 max-sm:!w-screen max-sm:!max-w-none max-sm:!h-screen max-sm:!max-h-none max-sm:!rounded-none max-sm:!translate-x-0 max-sm:!translate-y-0 max-sm:!top-0 max-sm:!left-0" data-testid="scan-modal">
+          {scanModal && (
+            <>
+              <DialogHeader className="sr-only"><DialogTitle>Escanear</DialogTitle><DialogDescription>Escanear hojas OMR</DialogDescription></DialogHeader>
+              <div className="p-4 sm:p-5">
+                <OMRScanFlow
+                  exam={scanModal}
+                  token={token}
+                  onClose={() => { setScanModal(null); loadExams(); }}
+                  onScanComplete={() => loadExams()}
+                />
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
