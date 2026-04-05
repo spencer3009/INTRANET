@@ -150,7 +150,7 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
       const hasOverlap = (newStartMins < existEndMins && newEndMins > existStartMins);
       
       if (hasOverlap) {
-        if (form.profesor_id && schedule.profesor_id === form.profesor_id) {
+        if (form.profesor_id && schedule.profesor_id === form.profesor_id && !settings?.permitir_profesor_multiples_horarios) {
           foundConflicts.push({
             type: "teacher",
             message: `El profesor ya tiene clase de ${schedule.materia} a esta hora`,
