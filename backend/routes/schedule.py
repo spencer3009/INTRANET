@@ -42,6 +42,7 @@ class ScheduleSettingsCreate(BaseModel):
     view_mode: str = "horizontal"  # "horizontal" (time ranges in rows) or "vertical" (time in column)
     include_saturday: bool = False
     include_sunday: bool = False
+    permitir_profesor_multiples_horarios: bool = False
 
 class ScheduleCreate(BaseModel):
     tipo: str  # "clases", "profesores", "examenes"
@@ -94,8 +95,13 @@ async def get_schedule_settings(current_user = Depends(get_current_user)):
             "block_duration": 45,
             "view_mode": "horizontal",
             "include_saturday": False,
-            "include_sunday": False
+            "include_sunday": False,
+            "permitir_profesor_multiples_horarios": False
         }
+    
+    # Ensure new fields have defaults for existing settings
+    if "permitir_profesor_multiples_horarios" not in settings:
+        settings["permitir_profesor_multiples_horarios"] = False
     
     return settings
 
@@ -123,6 +129,7 @@ async def save_schedule_settings(
         "view_mode": data.view_mode,
         "include_saturday": data.include_saturday,
         "include_sunday": data.include_sunday,
+        "permitir_profesor_multiples_horarios": data.permitir_profesor_multiples_horarios,
         "updated_at": datetime.now(timezone.utc).isoformat()
     }
     
@@ -444,16 +451,28 @@ async def check_schedule_conflicts(
     
     # 1. Check teacher conflict (teacher busy at this time in ANY section)
     if profesor_id:
-        teacher_query = {**time_overlap, "profesor_id": profesor_id}
-        teacher_conflict = await db.schedules.find_one(teacher_query, {"_id": 0})
-        if teacher_conflict:
-            # Get section name for better message
-            section = await db.secciones.find_one({"id": teacher_conflict.get("seccion_id")}, {"_id": 0, "nombre": 1})
-            section_name = section.get("nombre") if section else "otra sección"
-            conflicts.append({
-                "type": "teacher",
-                "message": f"El profesor ya tiene clase de '{teacher_conflict['materia']}' en {section_name} ({teacher_conflict['hora_inicio']} - {teacher_conflict['hora_fin']})"
-            })
+        # Check if school allows teacher in multiple schedules
+        skip_teacher_check = False
+        try:
+            sched_settings = await db.schedule_settings.find_one(
+                {"school_id": school_id}, {"_id": 0, "permitir_profesor_multiples_horarios": 1}
+            )
+            if sched_settings and sched_settings.get("permitir_profesor_multiples_horarios", False):
+                skip_teacher_check = True
+        except Exception:
+            pass
+
+        if not skip_teacher_check:
+            teacher_query = {**time_overlap, "profesor_id": profesor_id}
+            teacher_conflict = await db.schedules.find_one(teacher_query, {"_id": 0})
+            if teacher_conflict:
+                # Get section name for better message
+                section = await db.secciones.find_one({"id": teacher_conflict.get("seccion_id")}, {"_id": 0, "nombre": 1})
+                section_name = section.get("nombre") if section else "otra sección"
+                conflicts.append({
+                    "type": "teacher",
+                    "message": f"El profesor ya tiene clase de '{teacher_conflict['materia']}' en {section_name} ({teacher_conflict['hora_inicio']} - {teacher_conflict['hora_fin']})"
+                })
     
     # 2. Check room conflict (room occupied at this time)
     if aula and aula.strip():

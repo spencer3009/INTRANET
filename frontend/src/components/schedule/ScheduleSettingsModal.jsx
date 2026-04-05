@@ -10,7 +10,8 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
     block_duration: 45,
     view_mode: "horizontal",
     include_saturday: false,
-    include_sunday: false
+    include_sunday: false,
+    permitir_profesor_multiples_horarios: false
   });
 
   useEffect(() => {
@@ -22,7 +23,8 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
         block_duration: settings.block_duration || 45,
         view_mode: settings.view_mode || "horizontal",
         include_saturday: settings.include_saturday || false,
-        include_sunday: settings.include_sunday || false
+        include_sunday: settings.include_sunday || false,
+        permitir_profesor_multiples_horarios: settings.permitir_profesor_multiples_horarios || false
       });
     }
   }, [isOpen, settings]);
@@ -197,6 +199,31 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
                 <span className="text-sm font-medium text-slate-700">Domingo</span>
               </label>
             </div>
+          </div>
+
+          {/* Teacher Multiple Schedules */}
+          <div className="p-4 rounded-xl border-2 border-slate-200 bg-slate-50/50">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <div className="relative mt-0.5 flex-shrink-0">
+                <input
+                  type="checkbox"
+                  data-testid="settings-permitir-multiples-horarios"
+                  checked={form.permitir_profesor_multiples_horarios}
+                  onChange={(e) => setForm(p => ({ ...p, permitir_profesor_multiples_horarios: e.target.checked }))}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-6 bg-slate-300 rounded-full peer-checked:bg-blue-600 transition-colors"></div>
+                <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full shadow-sm peer-checked:translate-x-4 transition-transform"></div>
+              </div>
+              <div>
+                <span className="text-sm font-semibold text-slate-700 block">
+                  Permitir profesor en múltiples horarios simultáneos
+                </span>
+                <span className="text-xs text-slate-500 mt-1 block">
+                  Permite que un mismo profesor sea asignado a clases en diferentes grados o secciones en el mismo día y horario. Útil para colegios que agrupan grados.
+                </span>
+              </div>
+            </label>
           </div>
 
           </div>
