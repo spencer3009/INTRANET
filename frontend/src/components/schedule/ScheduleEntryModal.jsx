@@ -243,7 +243,7 @@ export function ScheduleEntryModal({ isOpen, onClose, token, entry, onSuccess, g
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="schedule-entry-modal">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[300] p-4" data-testid="schedule-entry-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header - Fixed */}
         <div className="px-6 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 flex-shrink-0">
