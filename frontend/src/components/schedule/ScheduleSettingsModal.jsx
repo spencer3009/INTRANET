@@ -37,7 +37,7 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" data-testid="schedule-settings-modal">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[300] p-4" data-testid="schedule-settings-modal">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header - Fixed */}
         <div className="px-6 py-5 bg-gradient-to-r from-slate-700 to-slate-800 flex-shrink-0">
