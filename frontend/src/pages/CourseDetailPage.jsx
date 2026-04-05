@@ -5163,7 +5163,7 @@ function ExamModal({ isOpen, onClose, onSave, exam, subjectId, sectionId, token 
       setDescription("");
       setDate("");
       setStartTime("09:00:00");
-      setEndTime("11:00:00");
+      setEndTime("10:00:00");
       setDurationMinutes(60);
       setMinScore(55);
       setNumQuestions(20);
