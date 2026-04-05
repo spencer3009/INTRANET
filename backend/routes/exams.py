@@ -363,7 +363,7 @@ async def get_course_exams(
         now = datetime.now(timezone.utc)
         query["status"] = ExamStatus.published.value
     
-    exams = await db.online_exams.find(query, {"_id": 0}).sort("start_datetime", 1).to_list(100)
+    exams = await db.online_exams.find(query, {"_id": 0}).sort("created_at", -1).to_list(100)
     
     # For students, add availability info
     if is_student:
