@@ -7347,6 +7347,16 @@ function ExamsContent({ subjectId, token, userRole, subject }) {
                     )}
                     
                     <button
+                      onClick={(e) => { e.stopPropagation(); setEditingExam(exam); setShowModal(true); }}
+                      className="px-2.5 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-100 transition-colors flex items-center gap-1"
+                      title="Editar examen"
+                      data-testid={`edit-exam-btn-${exam.id}`}
+                    >
+                      <Edit3 className="w-3 h-3" />
+                      <span className="hidden sm:inline">Editar</span>
+                    </button>
+
+                    <button
                       onClick={async (e) => {
                         e.stopPropagation();
                         try {
