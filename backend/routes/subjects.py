@@ -260,16 +260,29 @@ async def get_teacher_subjects(
     
     school_id = user["school_id"]
     
+    # Check if school allows teacher in multiple schedules
+    allow_multi = False
+    try:
+        sched_settings = await db.schedule_settings.find_one(
+            {"school_id": school_id}, {"_id": 0, "permitir_profesor_multiples_horarios": 1}
+        )
+        if sched_settings and sched_settings.get("permitir_profesor_multiples_horarios", False):
+            allow_multi = True
+    except Exception:
+        pass
+    
     # Build query for academic_assignments
     query = {
         "school_id": school_id,
         "teacher_id": teacher_id
     }
     
-    if grade_id:
-        query["grade_id"] = grade_id
-    if section_id:
-        query["section_id"] = section_id
+    # If multi-schedule is allowed, skip grade/section filter to show ALL teacher subjects
+    if not allow_multi:
+        if grade_id:
+            query["grade_id"] = grade_id
+        if section_id:
+            query["section_id"] = section_id
     
     # Get assignments for this teacher
     assignments = await db.academic_assignments.find(query, {"_id": 0}).to_list(100)
