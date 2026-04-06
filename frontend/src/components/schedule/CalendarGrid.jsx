@@ -296,12 +296,13 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   const renderBlock = (item) => {
     const { teacherFullName } = getTeacherInfo(item);
     const duration = item._end - item._start;
-    const isShort = duration <= 30;
+    const sizeClass = duration >= 90 ? "tall" : duration >= 45 ? "medium" : "short";
     const topPx = ((item._start - gridStart) / totalMinutes) * gridHeightPx;
-    const heightPx = Math.max((duration / totalMinutes) * gridHeightPx, 24);
+    const heightPx = Math.max((duration / totalMinutes) * gridHeightPx, 22);
     const widthPct = 100 / item._totalCols;
     const leftPct = item._col * widthPct;
     const isHovered = hoveredId === item.id;
+    const showTooltip = isHovered && sizeClass !== "tall";
 
     return (
       <div key={item.id} data-testid={`schedule-block-${item.id}`}
@@ -320,19 +321,37 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
         onMouseEnter={() => setHoveredId(item.id)}
         onMouseLeave={() => setHoveredId(null)}
       >
-        <div className="h-full flex flex-col overflow-hidden" style={{ padding: "8px 10px" }}>
-          <p className="font-semibold text-xs sm:text-sm truncate leading-tight text-slate-800">{item.materia}</p>
-          {!isShort && teacherFullName && (
-            <p className="text-[12px] text-slate-500 truncate mt-0.5">{teacherFullName}</p>
-          )}
-          {!isShort && (
+        {/* Tall: materia + profesor + horario */}
+        {sizeClass === "tall" && (
+          <div className="h-full flex flex-col overflow-hidden" style={{ padding: "8px 10px" }}>
+            <p className="font-semibold text-sm truncate text-slate-800">{item.materia}</p>
+            {teacherFullName && <p className="text-[12px] text-slate-500 truncate mt-0.5">{teacherFullName}</p>}
             <p className="text-[13px] font-medium text-slate-600 mt-auto">
               {formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}
               {item.aula && <span className="ml-1.5">· {item.aula}</span>}
             </p>
-          )}
-        </div>
-        {isShort && isHovered && (
+          </div>
+        )}
+
+        {/* Medium: materia + horario (compact) */}
+        {sizeClass === "medium" && (
+          <div className="h-full flex flex-col justify-center overflow-hidden" style={{ padding: "4px 10px" }}>
+            <p className="font-semibold text-[13px] truncate text-slate-800 leading-tight">{item.materia}</p>
+            <p className="text-[12px] font-medium text-slate-500 truncate mt-0.5">
+              {formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}
+            </p>
+          </div>
+        )}
+
+        {/* Short: materia only */}
+        {sizeClass === "short" && (
+          <div className="h-full flex items-center overflow-hidden" style={{ padding: "2px 10px" }}>
+            <p className="font-semibold text-[12px] truncate text-slate-800">{item.materia}</p>
+          </div>
+        )}
+
+        {/* Tooltip on hover for medium/short */}
+        {showTooltip && (
           <div className="absolute left-0 top-full mt-1 z-50 bg-slate-800 text-white rounded-md shadow-xl p-2.5 min-w-[180px] text-xs pointer-events-none">
             <p className="font-semibold">{item.materia}</p>
             {teacherFullName && <p className="opacity-80 mt-0.5">{teacherFullName}</p>}
