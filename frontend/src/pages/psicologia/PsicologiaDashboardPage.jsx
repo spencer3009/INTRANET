@@ -4,7 +4,8 @@ import { useTenant } from "@/App";
 import {
   Brain, Users, ClipboardList, Calendar, LogOut, User,
   TrendingUp, FileText, Search, ChevronRight, Clock,
-  AlertTriangle, CheckCircle2, Activity, MessageSquare, BookOpen
+  AlertTriangle, CheckCircle2, Activity, MessageSquare, BookOpen,
+  CalendarClock, GraduationCap, MapPin
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -15,12 +16,16 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [todayAppts, setTodayAppts] = useState([]);
+  const [upcomingWorkshops, setUpcomingWorkshops] = useState([]);
 
   const headers = { Authorization: `Bearer ${token}` };
 
   useEffect(() => {
     fetchStats();
     fetchUnread();
+    fetchTodayAppointments();
+    fetchUpcomingWorkshops();
     const interval = setInterval(fetchUnread, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -29,6 +34,20 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
     try {
       const res = await fetch(`${API}/v1/psychology/messages/unread-count`, { headers });
       if (res.ok) { const d = await res.json(); setUnreadCount(d.unread_count || 0); }
+    } catch(e) {}
+  };
+
+  const fetchTodayAppointments = async () => {
+    try {
+      const res = await fetch(`${API}/v1/psychology/appointments/today`, { headers });
+      if (res.ok) { const d = await res.json(); setTodayAppts(d.appointments || []); }
+    } catch(e) {}
+  };
+
+  const fetchUpcomingWorkshops = async () => {
+    try {
+      const res = await fetch(`${API}/v1/psychology/workshops?status=planificado&limit=5`, { headers });
+      if (res.ok) { const d = await res.json(); setUpcomingWorkshops(d.workshops || []); }
     } catch(e) {}
   };
 
@@ -81,6 +100,23 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
       iconBg: "bg-sky-100",
       iconColor: "text-sky-600",
       badge: unreadCount
+    },
+    {
+      icon: CalendarClock,
+      label: "Agenda",
+      description: "Calendario de citas y sesiones",
+      path: getSchoolPath("/psicologia/agenda"),
+      iconBg: "bg-rose-100",
+      iconColor: "text-rose-600",
+      badge: todayAppts.length
+    },
+    {
+      icon: GraduationCap,
+      label: "Talleres Grupales",
+      description: "Talleres psicoeducativos",
+      path: getSchoolPath("/psicologia/talleres"),
+      iconBg: "bg-teal-100",
+      iconColor: "text-teal-600"
     },
     {
       icon: User,
@@ -206,6 +242,80 @@ export default function PsicologiaDashboardPage({ user, token, onLogout }) {
             </button>
           ))}
         </div>
+
+        {/* Today's Appointments */}
+        {todayAppts.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden" data-testid="today-appointments-card">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarClock className="w-5 h-5 text-rose-600" />
+                <h3 className="font-semibold text-slate-800">Citas de Hoy</h3>
+                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-rose-100 text-rose-700">{todayAppts.length}</span>
+              </div>
+              <button onClick={() => navigate(getSchoolPath("/psicologia/agenda"))}
+                className="text-xs text-violet-600 hover:text-violet-700 flex items-center gap-1" data-testid="go-to-agenda">
+                Ver agenda <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {todayAppts.slice(0, 5).map(appt => {
+                const dt = new Date(appt.date);
+                return (
+                  <div key={appt.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/50 transition-colors">
+                    <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-4 h-4 text-rose-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{appt.title}</p>
+                      <p className="text-xs text-slate-500">{appt.student_name || "Sin estudiante"}{appt.location ? ` - ${appt.location}` : ""}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-medium text-slate-700">{dt.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</p>
+                      <p className="text-[10px] text-slate-400">{appt.duration_minutes} min</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Upcoming Workshops */}
+        {upcomingWorkshops.length > 0 && (
+          <div className="bg-white rounded-2xl border border-slate-200/60 overflow-hidden" data-testid="upcoming-workshops-card">
+            <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-teal-600" />
+                <h3 className="font-semibold text-slate-800">Proximos Talleres</h3>
+                <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-teal-100 text-teal-700">{upcomingWorkshops.length}</span>
+              </div>
+              <button onClick={() => navigate(getSchoolPath("/psicologia/talleres"))}
+                className="text-xs text-violet-600 hover:text-violet-700 flex items-center gap-1" data-testid="go-to-talleres">
+                Ver talleres <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {upcomingWorkshops.slice(0, 4).map(ws => {
+                const dt = new Date(ws.date);
+                return (
+                  <div key={ws.id} className="px-5 py-3 flex items-center gap-3 hover:bg-slate-50/50 transition-colors">
+                    <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
+                      <BookOpen className="w-4 h-4 text-teal-600" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{ws.title}</p>
+                      <p className="text-xs text-slate-500">{ws.target_level || "Todos"}{ws.location ? ` - ${ws.location}` : ""}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-xs font-medium text-slate-700">{dt.toLocaleDateString("es-PE", { day: "numeric", month: "short" })}</p>
+                      <p className="text-[10px] text-slate-400">{dt.toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit" })}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Recent Sessions */}
         {!loading && stats?.recent_sessions?.length > 0 && (

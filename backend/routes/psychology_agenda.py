@@ -92,6 +92,7 @@ class WorkshopUpdate(BaseModel):
     objectives: Optional[List[str]] = None
     methodology: Optional[str] = None
     materials: Optional[List[dict]] = None
+    status: Optional[str] = None  # Allow status updates (planificado, en_curso, cancelado)
 
 class WorkshopAttendance(BaseModel):
     attendee_list: List[dict]  # [{student_id, attended}]
@@ -212,6 +213,33 @@ async def week_summary(user=Depends(require_role(["psicologo"]))):
                 days[day_key]["pendientes"] += 1
 
     return {"week_start": week_start.isoformat(), "days": days}
+
+
+@router.get("/psychology/appointments/check-conflict")
+async def check_conflict(
+    date: str,
+    duration_minutes: int = 45,
+    exclude_id: Optional[str] = None,
+    user=Depends(require_role(["psicologo"]))
+):
+    """Check for appointment conflicts - must be before {appointment_id} route"""
+    try:
+        dt = datetime.fromisoformat(date.replace("Z", "+00:00"))
+        end_dt = dt + timedelta(minutes=duration_minutes)
+    except Exception:
+        return {"has_conflict": False}
+
+    query = {
+        "psychologist_id": user["id"],
+        "status": {"$in": ["programada", "reprogramada"]},
+        "date": {"$lt": end_dt.isoformat()},
+        "end_time": {"$gt": date}
+    }
+    if exclude_id:
+        query["id"] = {"$ne": exclude_id}
+
+    conflict = await db.psychological_appointments.find_one(query, {"_id": 0, "id": 1, "title": 1, "date": 1})
+    return {"has_conflict": conflict is not None, "conflict": {"title": conflict["title"], "date": conflict["date"]} if conflict else None}
 
 
 @router.get("/psychology/appointments/{appointment_id}")
@@ -384,32 +412,6 @@ async def delete_appointment(
         await db.psychological_appointments.delete_one({"id": appointment_id})
 
     return {"message": "Cita eliminada"}
-
-
-@router.get("/psychology/appointments/check-conflict")
-async def check_conflict(
-    date: str,
-    duration_minutes: int = 45,
-    exclude_id: Optional[str] = None,
-    user=Depends(require_role(["psicologo"]))
-):
-    try:
-        dt = datetime.fromisoformat(date.replace("Z", "+00:00"))
-        end_dt = dt + timedelta(minutes=duration_minutes)
-    except Exception:
-        return {"has_conflict": False}
-
-    query = {
-        "psychologist_id": user["id"],
-        "status": {"$in": ["programada", "reprogramada"]},
-        "date": {"$lt": end_dt.isoformat()},
-        "end_time": {"$gt": date}
-    }
-    if exclude_id:
-        query["id"] = {"$ne": exclude_id}
-
-    conflict = await db.psychological_appointments.find_one(query, {"_id": 0, "id": 1, "title": 1, "date": 1})
-    return {"has_conflict": conflict is not None, "conflict": {"title": conflict["title"], "date": conflict["date"]} if conflict else None}
 
 
 # ══════════════════════════════════════════════════════════════════════════════

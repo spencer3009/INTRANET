@@ -111,6 +111,8 @@ import PsicologiaEstudiantesPage from "@/pages/psicologia/PsicologiaEstudiantesP
 import PsicologiaFichaPage from "@/pages/psicologia/PsicologiaFichaPage";
 import PsicologiaSesionesPage from "@/pages/psicologia/PsicologiaSesionesPage";
 import PsicologiaMensajesPage from "@/pages/psicologia/PsicologiaMensajesPage";
+import PsicologiaAgendaPage from "@/pages/psicologia/PsicologiaAgendaPage";
+import PsicologiaTalleresPage from "@/pages/psicologia/PsicologiaTalleresPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -1077,6 +1079,22 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/psicologia/agenda"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaAgendaPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/psicologia/talleres"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaTalleresPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
           
           {/* ════════════════════════════════════════════════════════════════════
               ADMIN PORTAL REDIRECT - Admin uses Owner's dashboard with RBAC
@@ -1650,6 +1668,22 @@ function App() {
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
                 <PsicologiaMensajesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/psicologia/agenda"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaAgendaPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/psicologia/talleres"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaTalleresPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
