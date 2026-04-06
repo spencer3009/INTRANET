@@ -25,12 +25,14 @@ export function canAccessSection(user, section) {
   
   // Fallback: Define base permissions
   const sectionPermissions = {
+    dashboard: ['owner', 'admin', 'director', 'coordinator', 'teacher', 'auxiliar'],
     settings: ['owner'],
     accounting: ['owner'], // Admin access is conditional via feature flag
     users: ['owner', 'admin', 'director'],
     grades: ['owner', 'admin', 'director', 'coordinator'],
     courses: ['owner', 'admin', 'director', 'coordinator', 'teacher'],
     attendance: ['owner', 'admin', 'director', 'coordinator', 'teacher', 'auxiliar'],
+    discipline: ['owner', 'admin', 'director', 'coordinator', 'teacher', 'auxiliar'],
     pae: ['owner', 'admin', 'auxiliar_alimentacion'],
     reports: ['owner', 'admin', 'director', 'coordinator'],
     schedule: ['owner', 'admin', 'director', 'coordinator'],

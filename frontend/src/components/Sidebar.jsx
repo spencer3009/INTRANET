@@ -17,6 +17,7 @@ import {
   UserCheck,
   Trophy,
   Video,
+  UtensilsCrossed,
 } from "lucide-react";
 import { canAccessSection, isOwner } from "../lib/permissions";
 
@@ -24,7 +25,7 @@ const API = process.env.REACT_APP_BACKEND_URL;
 
 // Navigation items with optional section for RBAC (only affects non-owner roles)
 const allNavItems = [
-  { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard" },
+  { id: "inicio", label: "Inicio", icon: Home, route: "/dashboard", section: "dashboard" },
   { id: "usuarios", label: "Usuarios", icon: UserCog, route: "/users", section: "users" },
   { id: "anos-academicos", label: "Años Académicos", icon: Calendar, route: "/anos-academicos", section: "grades" },
   { id: "ajustes-academicos", label: "Ajustes Académicos", icon: BookMarked, route: "/academic-settings", section: "grades" },
@@ -33,7 +34,8 @@ const allNavItems = [
   { id: "consolidado-notas", label: "Consolidado Notas", icon: Trophy, route: "/consolidado-notas", section: "grades" },
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios", section: "schedule" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
-  { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina" },
+  { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina", section: "discipline" },
+  { id: "pae", label: "Alimentación", icon: UtensilsCrossed, route: "/pae", section: "pae" },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad", section: "accounting" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
 ];
