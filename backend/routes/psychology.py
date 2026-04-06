@@ -330,6 +330,66 @@ async def list_psychology_students(
 # PSYCHOLOGICAL RECORDS
 # ══════════════════════════════════════════════════════════════════════════════
 
+
+@router.get("/psychology/records")
+async def list_records(
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    reason_category: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    limit: int = Query(50, ge=1, le=200),
+    user=Depends(require_role(["psicologo"]))
+):
+    school_id = user.get("school_id")
+    query = {"school_id": school_id}
+    if status:
+        query["status"] = status
+    if reason_category:
+        query["reason_category"] = reason_category
+
+    total = await db.psychological_records.count_documents(query)
+    skip = (page - 1) * limit
+    records = await db.psychological_records.find(query, {"_id": 0}).sort("updated_at", -1).skip(skip).limit(limit).to_list(limit)
+
+    student_ids = [r["student_id"] for r in records]
+    students = await db.users.find(
+        {"id": {"$in": student_ids}, "school_id": school_id},
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "grade": 1, "section": 1}
+    ).to_list(500)
+    student_map = {s["id"]: s for s in students}
+
+    session_pipeline = [
+        {"$match": {"student_id": {"$in": student_ids}, "school_id": school_id}},
+        {"$group": {"_id": "$student_id", "total_sessions": {"$sum": 1}, "last_session": {"$max": "$date"}}}
+    ]
+    session_stats = {s["_id"]: s for s in await db.psychological_sessions.aggregate(session_pipeline).to_list(500)}
+
+    if search:
+        search_lower = search.lower()
+
+    enriched = []
+    for r in records:
+        st = student_map.get(r["student_id"], {})
+        full_name = f"{st.get('name', '')} {st.get('last_name', '')}"
+        if search and search.lower() not in full_name.lower():
+            continue
+        stats = session_stats.get(r["student_id"], {})
+        enriched.append({
+            **r,
+            "student_name": full_name.strip(),
+            "student_photo": st.get("photo_url"),
+            "student_grade": st.get("grade", ""),
+            "student_section": st.get("section", ""),
+            "total_sessions": stats.get("total_sessions", 0),
+            "last_session": stats.get("last_session"),
+        })
+
+    if search:
+        total = len(enriched)
+
+    return {"records": enriched, "total": total, "page": page, "limit": limit}
+
+
 @router.get("/psychology/records/{student_id}")
 async def get_record(student_id: str, user=Depends(require_role(["psicologo"]))):
     school_id = user.get("school_id")

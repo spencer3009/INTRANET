@@ -109,6 +109,7 @@ import SupportDemosPage from "@/pages/SupportDemosPage";
 import PsicologiaDashboardPage from "@/pages/psicologia/PsicologiaDashboardPage";
 import PsicologiaEstudiantesPage from "@/pages/psicologia/PsicologiaEstudiantesPage";
 import PsicologiaFichaPage from "@/pages/psicologia/PsicologiaFichaPage";
+import PsicologiaFichasListPage from "@/pages/psicologia/PsicologiaFichasListPage";
 import PsicologiaSesionesPage from "@/pages/psicologia/PsicologiaSesionesPage";
 import PsicologiaMensajesPage from "@/pages/psicologia/PsicologiaMensajesPage";
 import PsicologiaAgendaPage from "@/pages/psicologia/PsicologiaAgendaPage";
@@ -1051,7 +1052,7 @@ function App() {
             path="/psicologia/fichas"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <PsicologiaEstudiantesPage user={user} token={token} onLogout={handleLogout} />
+                <PsicologiaFichasListPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
@@ -1643,7 +1644,7 @@ function App() {
             path="/:subdomain/psicologia/fichas"
             element={
               <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
-                <PsicologiaEstudiantesPage user={user} token={token} onLogout={handleLogout} />
+                <PsicologiaFichasListPage user={user} token={token} onLogout={handleLogout} />
               </ProtectedRoute>
             }
           />
