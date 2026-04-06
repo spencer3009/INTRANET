@@ -1923,31 +1923,31 @@ export default function AttendancePage({ user, token, subdomain, onLogout, initi
               {/* SECTION 4: Alimentación (PAE) - Solo owner/admin */}
               {(user?.role === "owner" || user?.role === "admin") && (
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow" data-testid="section-alimentacion">
-                <div className="bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-5">
+                <div className="bg-gradient-to-r from-emerald-600 to-green-500 px-6 py-5">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                       <UtensilsCrossed className="w-6 h-6 text-white" />
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-white">Alimentacion</h2>
-                      <p className="text-orange-200 text-sm">Control de comedor escolar</p>
+                      <p className="text-emerald-200 text-sm">Control de comedor escolar</p>
                     </div>
                   </div>
                 </div>
                 <div className="p-5 space-y-3">
                   <button
                     onClick={() => setActiveView("alimentacion")}
-                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-orange-50 border-2 border-slate-200 hover:border-orange-300 rounded-xl transition-all group"
+                    className="w-full flex items-center gap-4 px-4 py-4 bg-slate-50 hover:bg-emerald-50 border-2 border-slate-200 hover:border-emerald-300 rounded-xl transition-all group"
                     data-testid="btn-alimentacion-registros"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-orange-100 group-hover:bg-orange-500 flex items-center justify-center transition-colors">
-                      <ClipboardCheck className="w-5 h-5 text-orange-600 group-hover:text-white transition-colors" />
+                    <div className="w-10 h-10 rounded-lg bg-emerald-100 group-hover:bg-emerald-500 flex items-center justify-center transition-colors">
+                      <ClipboardCheck className="w-5 h-5 text-emerald-600 group-hover:text-white transition-colors" />
                     </div>
                     <div className="text-left flex-1">
                       <p className="font-semibold text-slate-800 text-sm">Registros del dia</p>
                       <p className="text-xs text-slate-400">Ver asistencias de alimentacion</p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-orange-500 transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-500 transition-colors" />
                   </button>
                   <button
                     disabled
