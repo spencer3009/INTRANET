@@ -214,7 +214,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
             {teacherFullName && (
               <p className="text-[12px] text-slate-500 truncate mt-0.5">{teacherFullName}</p>
             )}
-            <p className="text-[11px] text-slate-400 mt-auto">
+            <p className="text-[13px] font-medium text-slate-600 mt-auto">
               {formatTime(schedule.hora_inicio)} - {formatTime(schedule.hora_fin)}
               {schedule.aula && <span className="ml-1.5">· {schedule.aula}</span>}
             </p>
@@ -326,7 +326,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
             <p className="text-[12px] text-slate-500 truncate mt-0.5">{teacherFullName}</p>
           )}
           {!isShort && (
-            <p className="text-[11px] text-slate-400 mt-auto">
+            <p className="text-[13px] font-medium text-slate-600 mt-auto">
               {formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}
               {item.aula && <span className="ml-1.5">· {item.aula}</span>}
             </p>
