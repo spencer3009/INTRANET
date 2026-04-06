@@ -25,7 +25,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   const gridStart = useMemo(() => timeToMinutes(settings?.start_hour || "07:00"), [settings]);
   const gridEnd = useMemo(() => timeToMinutes(settings?.end_hour || "18:00"), [settings]);
   const totalMinutes = gridEnd - gridStart;
-  const totalHeightPx = (totalMinutes / 60) * HOUR_HEIGHT_PX;
+  const totalHeightPx = (totalMinutes / 60) * HOUR_HEIGHT_PX + 40; // +40px bottom padding
   const guideInterval = settings?.block_duration || 60;
 
   const formatTime = useCallback((time) => {
