@@ -19,8 +19,10 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
   const [searchTerm, setSearchTerm] = useState("");
 
   // Academic cascading filters
+  const [levels, setLevels] = useState([]);
   const [grades, setGrades] = useState([]);
   const [sections, setSections] = useState([]);
+  const [nivelId, setNivelId] = useState("");
   const [gradoId, setGradoId] = useState("");
   const [seccionId, setSeccionId] = useState("");
 
@@ -30,11 +32,13 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
   useEffect(() => {
     const loadFilters = async () => {
       try {
-        const [gR, sR, tR] = await Promise.all([
+        const [lR, gR, sR, tR] = await Promise.all([
+          fetch(`${API}/academic/levels`, { headers }),
           fetch(`${API}/academic/grades`, { headers }),
           fetch(`${API}/academic/sections`, { headers }),
           axios.get(`${API}/pae/turnos`, { headers }),
         ]);
+        if (lR.ok) setLevels(await lR.json());
         if (gR.ok) { const d = await gR.json(); setGrades(Array.isArray(d) ? d : d.grades || []); }
         if (sR.ok) { const d = await sR.json(); setSections(Array.isArray(d) ? d : d.sections || []); }
         setTurnos(tR.data || []);
@@ -50,6 +54,7 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
     try {
       const params = new URLSearchParams({ fecha });
       if (turnoFilter) params.append("turno_id", turnoFilter);
+      if (nivelId) params.append("nivel_id", nivelId);
       if (gradoId) params.append("grado_id", gradoId);
       if (seccionId) params.append("seccion_id", seccionId);
       const res = await axios.get(`${API}/pae/registros-dia?${params}`, { headers });
@@ -62,7 +67,8 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
     }
   };
 
-  // Cascading: sections filtered by selected grade
+  // Cascading: grades filtered by nivel, sections filtered by grade
+  const filteredGrades = nivelId ? grades.filter(g => g.nivel_id === nivelId) : grades;
   const filteredSections = gradoId ? sections.filter(s => s.grado_id === gradoId) : sections;
 
   const formatTime = (isoStr) => {
@@ -117,7 +123,19 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
           <Filter className="w-5 h-5 text-indigo-500" />
           <h2 className="text-base font-bold text-slate-800">Filtros de Asistencia</h2>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Nivel</label>
+            <select
+              value={nivelId}
+              onChange={e => { setNivelId(e.target.value); setGradoId(""); setSeccionId(""); }}
+              className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none appearance-none"
+              data-testid="pae-filter-nivel"
+            >
+              <option value="">Seleccionar nivel</option>
+              {levels.map(l => <option key={l.id} value={l.id}>{l.nombre}</option>)}
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Grado</label>
             <select
@@ -127,7 +145,7 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
               data-testid="pae-filter-grado"
             >
               <option value="">Seleccionar grado</option>
-              {grades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+              {filteredGrades.map(g => <option key={g.id} value={g.id}>{g.nombre}</option>)}
             </select>
           </div>
           <div>
@@ -143,16 +161,6 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha</label>
-            <input
-              type="date"
-              value={fecha}
-              onChange={e => setFecha(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
-              data-testid="pae-filter-fecha"
-            />
-          </div>
-          <div>
             <label className="block text-sm font-semibold text-slate-700 mb-2">Turno</label>
             <select
               value={turnoFilter}
@@ -165,6 +173,16 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
                 <option key={t.id} value={t.id}>{t.nombre}</option>
               ))}
             </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha</label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={e => setFecha(e.target.value)}
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none"
+              data-testid="pae-filter-fecha"
+            />
           </div>
           <div className="flex items-end">
             <button
