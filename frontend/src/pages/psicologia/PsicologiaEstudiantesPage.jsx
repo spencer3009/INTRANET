@@ -83,9 +83,9 @@ export default function PsicologiaEstudiantesPage({ user, token, onLogout }) {
   useEffect(() => { fetchStudents(); }, [fetchStudents]);
 
   // Cascading: filter grades by selected level
-  const filteredGrades = nivelId ? grades.filter(g => g.level_id === nivelId) : grades;
+  const filteredGrades = nivelId ? grades.filter(g => g.nivel_id === nivelId) : grades;
   // Cascading: filter sections by selected grade
-  const filteredSections = gradoId ? sections.filter(s => s.grade_id === gradoId) : sections;
+  const filteredSections = gradoId ? sections.filter(s => s.grado_id === gradoId) : sections;
 
   const totalPages = Math.ceil(total / limit);
 

@@ -90,8 +90,8 @@ export default function PsicologiaFichasListPage({ user, token, onLogout }) {
 
   useEffect(() => { fetchRecords(); }, [fetchRecords]);
 
-  const filteredGrades = nivelId ? grades.filter(g => g.level_id === nivelId) : grades;
-  const filteredSections = gradoId ? sections.filter(s => s.grade_id === gradoId) : sections;
+  const filteredGrades = nivelId ? grades.filter(g => g.nivel_id === nivelId) : grades;
+  const filteredSections = gradoId ? sections.filter(s => s.grado_id === gradoId) : sections;
   const totalPages = Math.ceil(total / limit);
 
   const levelMap = Object.fromEntries(levels.map(l => [l.id, l.nombre]));
