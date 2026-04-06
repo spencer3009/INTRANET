@@ -57,22 +57,6 @@ const getLevelColor = (levelName) => {
 // Role configurations with colors and icons
 const ROLE_CARDS = [
   { 
-    id: "system_admin", 
-    label: "Admin Sistema", 
-    labelSingular: "Admin Sistema",
-    color: "from-cyan-500 to-teal-600",
-    bgColor: "bg-cyan-50",
-    iconBg: "bg-cyan-100",
-    textColor: "text-cyan-700",
-    borderColor: "border-cyan-200",
-    gradientBg: "from-cyan-500 to-teal-600",
-    lightGradient: "from-cyan-50 to-teal-50",
-    image: "https://cdn-icons-png.flaticon.com/512/3953/3953226.png",
-    profileImage: "https://cdn-icons-png.flaticon.com/512/921/921071.png", // Male support agent with headset
-    isSystemRole: true,  // Flag to identify system roles
-    hideAddButton: true  // Don't show "Agregar" button - only 1 per school
-  },
-  { 
     id: "owner", 
     label: "Propietarios", 
     labelSingular: "Propietario",
