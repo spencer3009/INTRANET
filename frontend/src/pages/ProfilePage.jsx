@@ -79,12 +79,17 @@ export default function ProfilePage({ user, token, subdomain, onLogout, onUserUp
 
   const loadData = async () => {
     try {
-      const [settingsRes, meRes] = await Promise.all([
+      const [settingsRes, schoolInfoRes, meRes] = await Promise.all([
         axios.get(`${API}/settings`, { headers }).catch(() => ({ data: null })),
+        axios.get(`${API}/school/info`, { headers }).catch(() => ({ data: null })),
         axios.get(`${API}/auth/me`, { headers })
       ]);
       
-      if (settingsRes.data) setSettings(settingsRes.data);
+      if (settingsRes.data) {
+        setSettings(settingsRes.data);
+      } else if (schoolInfoRes.data) {
+        setSettings({ system_name: schoolInfoRes.data.school_name, logo_url: schoolInfoRes.data.logo_url });
+      }
       
       const userData = meRes.data;
       setProfile({

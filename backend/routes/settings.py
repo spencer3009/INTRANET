@@ -54,6 +54,22 @@ class TenantSettingsUpdate(BaseModel):
 # TENANT SETTINGS
 # ══════════════════════════════════════════════════════════════════════════════
 
+@router.get("/school/info")
+async def get_school_info(current_user=Depends(get_current_user)):
+    """Public school info (logo, name) for any authenticated user in the school."""
+    school_id = current_user.get("school_id")
+    if not school_id:
+        return {"logo_url": None, "school_name": None}
+
+    school = await db.schools.find_one({"id": school_id}, {"_id": 0, "school_name": 1, "logo_url": 1})
+    settings = await db.tenant_settings.find_one({"school_id": school_id}, {"_id": 0, "logo_url": 1, "system_name": 1})
+
+    logo = (settings or {}).get("logo_url") or (school or {}).get("logo_url")
+    name = (settings or {}).get("system_name") or (school or {}).get("school_name", "")
+
+    return {"logo_url": logo, "school_name": name}
+
+
 @router.get("/settings")
 async def get_tenant_settings(current_user = Depends(require_section_access("settings"))):
     """

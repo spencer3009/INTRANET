@@ -27,7 +27,7 @@ export default function PaeDashboard({ user, token, onLogout }) {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/school/settings`, { headers });
+        const res = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/api/school/info`, { headers });
         setSettings(res.data);
       } catch {}
     };
