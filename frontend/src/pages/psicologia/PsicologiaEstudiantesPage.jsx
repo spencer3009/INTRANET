@@ -199,7 +199,7 @@ export default function PsicologiaEstudiantesPage({ user, token, onLogout }) {
                     <div className="mx-4 border-t border-slate-100" />
 
                     {/* Info section */}
-                    <div className="px-4 py-3 space-y-1.5">
+                    <div className="px-4 py-3 pb-5 space-y-1.5">
                       <div className="flex items-start gap-2">
                         <MapPin className="w-3.5 h-3.5 text-teal-500 mt-0.5 flex-shrink-0" />
                         <span className="text-xs text-slate-600 leading-tight">{academicInfo || "Sin asignar"}</span>
