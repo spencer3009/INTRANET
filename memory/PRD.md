@@ -12,48 +12,47 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 
 ### Psychology Module (Phases 1, 2, 5) - Completed
 - Role psicologo, CRUD, records, sessions, audit log
-- Psychologist-parent bidirectional messaging
-- Calendar view + Workshop management
-- PsicologiaLayout.jsx + PsicologiaSidebar.jsx shared layout
-- Cascading filters (nivel_id, grado_id, seccion_id, turno_id)
-- Premium student cards (grid 4 columns, photos with fallback)
+- Bidirectional messaging, calendar, workshops
+- PsicologiaLayout + PsicologiaSidebar shared layout, cascading filters, premium cards
 
 ### PAE Module (Programa de Alimentacion Escolar)
 **Phase 1: Backend Base + Rol** - Completed April 6, 2026
 - Role `auxiliar_alimentacion` in ROLE_HIERARCHY, STAFF_ROLES, SECTION_PERMISSIONS
-- Collection `pae_turnos` with indexes (school_id + orden)
-- Collection `pae_registros` with unique compound index
-- CRUD endpoints: GET/POST/PUT/PATCH `/api/pae/turnos` (admin/owner only)
-- Validations: time format, hora_fin > hora_inicio, no overlapping turnos
+- Collections `pae_turnos` + `pae_registros` with indexes
+- CRUD: GET/POST/PUT/PATCH/DELETE `/api/pae/turnos`
 
 **Phase 2: Escaneo y Registro** - Completed April 6, 2026
-- POST /api/pae/registro: QR scan, anti-duplicate via DuplicateKeyError, metadata snapshot
-- GET /api/pae/registro/turno/{turno_id}: Records by turno and date
-- GET /api/pae/registro/dashboard: Counts per turno, last records
-- GET /api/pae/registros-dia: Admin read-only view with turno/date filters
-- PaeDashboard.jsx: Auxiliar portal with reduced sidebar, turno selector, scan button
-- PaeScanner.jsx: Dual mode (camera + USB), local cache, debounce, audio feedback
-- PaeRegistrosDia.jsx: Admin read-only registros with filters (date, turno, search)
-- 4th "Alimentacion" card in AttendancePage.jsx (owner/admin only)
-- Routes: /pae, /pae/scanner, /asistencias/alimentacion (static + tenant)
+- POST /api/pae/registro (QR scan, anti-duplicate via DuplicateKeyError, metadata snapshot)
+- GET /registro/turno/{id}, /registro/dashboard, /registros-dia (admin read-only)
+- PaeDashboard.jsx (standard Sidebar+Header, turno selector, scan button)
+- PaeScanner.jsx (camera/USB, local cache, debounce, audio, vibration, manual mode)
+- PaeRegistrosDia.jsx (admin read-only, filters: Grado/Seccion/Turno/Fecha + Cargar button)
+- 4th "Alimentacion" card in AttendancePage.jsx (green, owner/admin only)
+- Routes: /pae, /pae/scanner, /asistencias/alimentacion
+
+**Ajustes Post-Fase 2** - Completed April 6, 2026
+- Settings page: PAE Turnos section with full CRUD (create/edit/toggle/delete)
+- PaeDashboard: Gear icon -> PaeSettingsModal (scan prefs in localStorage, read-only turnos, logout)
+- PaeScanner: Respects localStorage preferences (mode, reading mode, sounds, vibration)
+- DELETE /api/pae/turnos/{id} with registros protection
+- GET /api/school/info: Public endpoint for logo+name (all authenticated users)
+- DashboardHeader: extraActions prop for custom header buttons
 
 **Phase 3: Reportes y Exportacion** - PENDING
-- Daily/range reports, Excel export
-- PaeReportes.jsx, PaeConfig.jsx (admin turno management UI)
 
 ## Key Files
-- `/app/backend/routes/pae.py` - PAE complete backend (turnos + registros)
-- `/app/backend/routes/core.py` - Role hierarchy with auxiliar_alimentacion
-- `/app/frontend/src/pages/pae/PaeDashboard.jsx` - Auxiliar main dashboard
-- `/app/frontend/src/pages/pae/PaeScanner.jsx` - QR scanner (camera + USB)
-- `/app/frontend/src/pages/pae/PaeRegistrosDia.jsx` - Admin read-only registros
+- `/app/backend/routes/pae.py` - PAE complete backend
+- `/app/backend/routes/settings.py` - GET /api/school/info
+- `/app/frontend/src/pages/pae/PaeDashboard.jsx` - Auxiliar portal
+- `/app/frontend/src/pages/pae/PaeScanner.jsx` - QR scanner
+- `/app/frontend/src/pages/pae/PaeRegistrosDia.jsx` - Admin registros view
+- `/app/frontend/src/components/PaeSettingsModal.jsx` - Auxiliar preferences
+- `/app/frontend/src/pages/SettingsPage.jsx` - PAE Turnos config section
 - `/app/frontend/src/pages/AttendancePage.jsx` - 4th Alimentacion card
-- `/app/frontend/src/App.js` - All PAE routes
-- `/app/frontend/src/lib/permissions.js` - PAE section permissions
 
 ## Prioritized Backlog
-### P0 (Current)
-- PAE Phase 3: Reportes y Exportacion (daily/range reports, Excel export, admin config UI)
+### P0
+- PAE Phase 3: Reportes y Exportacion
 
 ### P1
 - Psychology audit log UI
