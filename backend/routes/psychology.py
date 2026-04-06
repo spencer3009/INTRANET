@@ -50,6 +50,10 @@ class PsychologistUpdate(BaseModel):
 
 class PsychologicalRecordCreate(BaseModel):
     student_id: str
+    reason: Optional[str] = ""
+    reason_category: Optional[str] = "Otro"
+    observations: Optional[str] = ""
+    diagnosis: Optional[str] = ""
     family_structure: Optional[str] = ""
     family_members: Optional[List[dict]] = []
     home_environment: Optional[str] = ""
@@ -58,9 +62,13 @@ class PsychologicalRecordCreate(BaseModel):
     previous_interventions: Optional[str] = ""
     general_observations: Optional[str] = ""
     risk_level: Optional[str] = "bajo"
-    status: Optional[str] = "activo"
+    status: Optional[str] = "nuevo"
 
 class PsychologicalRecordUpdate(BaseModel):
+    reason: Optional[str] = None
+    reason_category: Optional[str] = None
+    observations: Optional[str] = None
+    diagnosis: Optional[str] = None
     family_structure: Optional[str] = None
     family_members: Optional[List[dict]] = None
     home_environment: Optional[str] = None
@@ -77,7 +85,9 @@ class SessionCreate(BaseModel):
     session_type: str
     reason_category: str
     reason_detail: Optional[str] = ""
-    observations: str
+    notes: Optional[str] = ""
+    observations: Optional[str] = ""
+    duration_minutes: Optional[int] = 45
     techniques_used: Optional[str] = ""
     agreements: Optional[str] = ""
     recommendations: Optional[str] = ""
@@ -92,7 +102,9 @@ class SessionUpdate(BaseModel):
     session_type: Optional[str] = None
     reason_category: Optional[str] = None
     reason_detail: Optional[str] = None
+    notes: Optional[str] = None
     observations: Optional[str] = None
+    duration_minutes: Optional[int] = None
     techniques_used: Optional[str] = None
     agreements: Optional[str] = None
     recommendations: Optional[str] = None
@@ -321,11 +333,18 @@ async def list_psychology_students(
 @router.get("/psychology/records/{student_id}")
 async def get_record(student_id: str, user=Depends(require_role(["psicologo"]))):
     school_id = user.get("school_id")
-    record = await db.psychological_records.find_one({"student_id": student_id, "school_id": school_id}, {"_id": 0})
-    if not record:
-        raise HTTPException(status_code=404, detail="No existe ficha psicológica para este estudiante")
-    await log_audit(user["id"], "view", "record", record.get("id"), student_id, school_id)
-    return record
+    student = await db.users.find_one(
+        {"id": student_id, "school_id": school_id, "role": "student"},
+        {"_id": 0, "password": 0}
+    )
+    if not student:
+        raise HTTPException(status_code=404, detail="Estudiante no encontrado")
+    record = await db.psychological_records.find_one(
+        {"student_id": student_id, "school_id": school_id}, {"_id": 0}
+    )
+    if record:
+        await log_audit(user["id"], "view", "record", record.get("id"), student_id, school_id)
+    return {"student": student, "record": record}
 
 @router.post("/psychology/records")
 async def create_record(data: PsychologicalRecordCreate, user=Depends(require_role(["psicologo"]))):
@@ -339,6 +358,10 @@ async def create_record(data: PsychologicalRecordCreate, user=Depends(require_ro
         "student_id": data.student_id,
         "school_id": school_id,
         "created_by": user["id"],
+        "reason": data.reason,
+        "reason_category": data.reason_category,
+        "observations": data.observations,
+        "diagnosis": data.diagnosis,
         "family_structure": data.family_structure,
         "family_members": data.family_members,
         "home_environment": data.home_environment,
@@ -414,7 +437,9 @@ async def create_session(data: SessionCreate, user=Depends(require_role(["psicol
         "session_type": data.session_type,
         "reason_category": data.reason_category,
         "reason_detail": data.reason_detail,
+        "notes": data.notes,
         "observations": data.observations,
+        "duration_minutes": data.duration_minutes,
         "techniques_used": data.techniques_used,
         "agreements": data.agreements,
         "recommendations": data.recommendations,
