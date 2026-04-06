@@ -16,6 +16,12 @@
 - Subdomain: elroble
 - Role: psicologo
 
+## Auxiliar de Alimentación Account
+- Email: carlos.comedor@elroble.edu
+- Password: Comedor123!
+- Subdomain: elroble
+- Role: auxiliar_alimentacion
+
 ## Parent Account
 - Name: Maria Peres Garcia
 - Email: maria.peres@gmail.com
