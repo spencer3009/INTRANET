@@ -386,7 +386,14 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
           </div>
         ))}
       </div>
-      <div className="flex">
+      <div className="flex relative">
+        {/* Break overlays — full width across all columns */}
+        {breaks?.filter(b => {
+          const s = timeToMinutes(b.start_time);
+          const e = timeToMinutes(b.end_time);
+          return e > gridStart && s < gridEnd;
+        }).map(b => renderBreakOverlay(b))}
+
         <div className="w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 relative" style={{ height: `${totalHeightPx}px` }}>
           {guideLines.map((gl, idx) => (
             <div key={gl.time} className="absolute w-full flex items-start justify-center cursor-pointer group"
@@ -409,7 +416,6 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
             {guideLines.map(gl => (
               <div key={gl.time} className="absolute w-full border-t border-slate-100" style={{ top: `${gl.topPx}px` }} />
             ))}
-            {breaks?.filter(b => { const s = timeToMinutes(b.start_time); const e = timeToMinutes(b.end_time); return e > gridStart && s < gridEnd; }).map(b => renderBreakOverlay(b))}
             {layoutByDay[day.id]?.map(item => renderBlock(item))}
           </div>
         ))}
