@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTenant } from "@/App";
+import PsicologiaLayout from "@/components/PsicologiaLayout";
 import {
-  Search, ArrowLeft, User, Filter, ChevronDown, ChevronRight,
+  Search, User, Filter, ChevronDown, ChevronRight,
   GraduationCap, BookOpen, Phone, Mail
 } from "lucide-react";
 
@@ -47,25 +48,14 @@ export default function PsicologiaEstudiantesPage({ user, token, onLogout }) {
   const totalPages = Math.ceil(total / limit);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-slate-50" data-testid="psicologia-estudiantes">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
-          <button
-            onClick={() => navigate(getSchoolPath("/psicologia"))}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
-            data-testid="back-to-dashboard"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-800">Listado de Estudiantes</h1>
-            <p className="text-xs text-slate-500">{total} estudiantes registrados</p>
-          </div>
-        </div>
-      </header>
+    <PsicologiaLayout user={user} token={token} onLogout={onLogout} activeSection="estudiantes">
+      <div data-testid="psicologia-estudiantes">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3">
+        <h1 className="text-lg font-bold text-slate-800">Listado de Estudiantes</h1>
+        <p className="text-xs text-slate-500">{total} estudiantes registrados</p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
@@ -200,7 +190,8 @@ export default function PsicologiaEstudiantesPage({ user, token, onLogout }) {
             </div>
           </div>
         )}
-      </main>
-    </div>
+      </div>
+      </div>
+    </PsicologiaLayout>
   );
 }

@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTenant } from "@/App";
+import PsicologiaLayout from "@/components/PsicologiaLayout";
 import {
-  ArrowLeft, Send, Search, MessageSquare, User, Paperclip,
+  Send, Search, MessageSquare, User, Paperclip,
   AlertTriangle, Check, CheckCheck, Clock, ChevronRight, Plus,
   X, FileText, Mail, AlertCircle, BookOpen, Filter
 } from "lucide-react";
@@ -121,27 +122,21 @@ export default function PsicologiaMensajesPage({ user, token, onLogout }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-slate-50" data-testid="psicologia-mensajes">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
-          <button onClick={() => mobileShowChat ? setMobileShowChat(false) : navigate(getSchoolPath("/psicologia"))}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-colors" data-testid="back-btn">
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-slate-800">Comunicacion con Padres</h1>
-            <p className="text-xs text-slate-500">{conversations.length} conversaciones</p>
-          </div>
-          <button onClick={() => setShowNewMsg(true)}
-            className="px-3 py-2 bg-violet-600 text-white text-xs font-medium rounded-xl hover:bg-violet-700 transition-colors flex items-center gap-1.5"
-            data-testid="new-message-btn">
-            <Plus className="w-3.5 h-3.5" /> Nuevo mensaje
-          </button>
+    <PsicologiaLayout user={user} token={token} onLogout={onLogout} activeSection="mensajes">
+      <div data-testid="psicologia-mensajes">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center gap-3">
+        <div className="flex-1">
+          <h1 className="text-lg font-bold text-slate-800">Comunicacion con Padres</h1>
+          <p className="text-xs text-slate-500">{conversations.length} conversaciones</p>
         </div>
-      </header>
+        <button onClick={() => setShowNewMsg(true)}
+          className="px-3 py-2 bg-violet-600 text-white text-xs font-medium rounded-xl hover:bg-violet-700 transition-colors flex items-center gap-1.5"
+          data-testid="new-message-btn">
+          <Plus className="w-3.5 h-3.5" /> Nuevo mensaje
+        </button>
+      </div>
 
-      <main className="max-w-7xl mx-auto h-[calc(100vh-57px)] flex">
+      <div className="max-w-7xl mx-auto h-[calc(100vh-120px)] flex">
         {/* Left Panel - Conversations */}
         <div className={`w-full sm:w-[340px] lg:w-[380px] border-r border-slate-200/60 bg-white flex flex-col flex-shrink-0 ${mobileShowChat ? "hidden sm:flex" : "flex"}`}>
           <div className="p-3 border-b border-slate-100">
@@ -284,11 +279,12 @@ export default function PsicologiaMensajesPage({ user, token, onLogout }) {
             </>
           )}
         </div>
-      </main>
+      </div>
 
       {showNewMsg && <NewMessageModal token={token} onSend={handleNewMessage} onClose={() => setShowNewMsg(false)} />}
       {showTemplates && <TemplatesModal token={token} onSelect={(tpl) => { setReply(tpl.body); setShowTemplates(false); }} onClose={() => setShowTemplates(false)} />}
     </div>
+    </PsicologiaLayout>
   );
 }
 

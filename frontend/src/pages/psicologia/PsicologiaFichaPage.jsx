@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTenant } from "@/App";
+import PsicologiaLayout from "@/components/PsicologiaLayout";
 import {
-  ArrowLeft, User, FileText, Plus, Calendar, Clock, Tag,
+  User, FileText, Plus, Calendar, Clock, Tag,
   AlertTriangle, CheckCircle2, Edit2, Trash2, Brain, X,
   ChevronDown, Save, MessageSquare
 } from "lucide-react";
@@ -134,39 +135,32 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-slate-50 flex items-center justify-center">
-        <div className="animate-spin w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full"></div>
-      </div>
+      <PsicologiaLayout user={user} token={token} onLogout={onLogout} activeSection="fichas">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full"></div>
+        </div>
+      </PsicologiaLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-slate-50" data-testid="psicologia-ficha">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
-          <button
-            onClick={() => navigate(getSchoolPath("/psicologia/estudiantes"))}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
-            data-testid="back-to-students"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-slate-800 truncate">
-              {student?.name} {student?.last_name}
-            </h1>
-            <p className="text-xs text-slate-500">Ficha Psicologica</p>
-          </div>
-          {record && (
-            <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusObj.color}`}>
-              {statusObj.label}
-            </span>
-          )}
+    <PsicologiaLayout user={user} token={token} onLogout={onLogout} activeSection="fichas">
+      <div data-testid="psicologia-ficha">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-lg font-bold text-slate-800 truncate">
+            {student?.name} {student?.last_name}
+          </h1>
+          <p className="text-xs text-slate-500">Ficha Psicologica</p>
         </div>
-      </header>
+        {record && (
+          <span className={`px-3 py-1 text-xs font-medium rounded-full ${statusObj.color}`}>
+            {statusObj.label}
+          </span>
+        )}
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
         {/* Student Info Card */}
         <div className="bg-white rounded-2xl border border-slate-200/60 p-5">
           <div className="flex items-start gap-4">
@@ -326,7 +320,6 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
             </div>
           )}
         </div>
-      </main>
 
       {/* Record Modal */}
       {showRecordModal && (
@@ -346,6 +339,8 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
         />
       )}
     </div>
+    </div>
+    </PsicologiaLayout>
   );
 }
 

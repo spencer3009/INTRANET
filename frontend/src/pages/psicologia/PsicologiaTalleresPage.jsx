@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTenant } from "@/App";
+import PsicologiaLayout from "@/components/PsicologiaLayout";
 import {
-  ArrowLeft, Plus, Search, Calendar, Clock, Users, MapPin,
+  Plus, Search, Calendar, Clock, Users, MapPin,
   ChevronRight, X, Check, Eye, Edit2, Trash2, Tag, Target,
   BookOpen, Save, Camera
 } from "lucide-react";
@@ -70,25 +71,21 @@ export default function PsicologiaTalleresPage({ user, token, onLogout }) {
   const onSaved = () => { setShowCreate(false); setEditingWs(null); fetchWorkshops(); };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-slate-50" data-testid="psicologia-talleres">
-      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
-          <button onClick={() => navigate(getSchoolPath("/psicologia"))} className="p-2 hover:bg-slate-100 rounded-xl" data-testid="back-btn">
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-bold text-slate-800">Talleres Grupales</h1>
-            <p className="text-xs text-slate-500">{total} talleres</p>
-          </div>
-          <button onClick={() => { setEditingWs(null); setShowCreate(true); }}
-            className="px-3 py-2 bg-violet-600 text-white text-xs font-medium rounded-xl hover:bg-violet-700 flex items-center gap-1.5"
-            data-testid="new-workshop-btn">
-            <Plus className="w-3.5 h-3.5" /> Nuevo taller
-          </button>
+    <PsicologiaLayout user={user} token={token} onLogout={onLogout} activeSection="talleres">
+      <div data-testid="psicologia-talleres">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 flex items-center gap-3">
+        <div className="flex-1">
+          <h1 className="text-lg font-bold text-slate-800">Talleres Grupales</h1>
+          <p className="text-xs text-slate-500">{total} talleres</p>
         </div>
-      </header>
+        <button onClick={() => { setEditingWs(null); setShowCreate(true); }}
+          className="px-3 py-2 bg-violet-600 text-white text-xs font-medium rounded-xl hover:bg-violet-700 flex items-center gap-1.5"
+          data-testid="new-workshop-btn">
+          <Plus className="w-3.5 h-3.5" /> Nuevo taller
+        </button>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
         {/* Tabs & Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex gap-1.5 bg-slate-100 rounded-xl p-0.5 flex-shrink-0">
@@ -146,7 +143,7 @@ export default function PsicologiaTalleresPage({ user, token, onLogout }) {
             })}
           </div>
         )}
-      </main>
+      </div>
 
       {selectedWs && (
         <WorkshopDetail
@@ -164,6 +161,7 @@ export default function PsicologiaTalleresPage({ user, token, onLogout }) {
         <WorkshopModal token={token} editing={editingWs} onSaved={onSaved} onClose={() => { setShowCreate(false); setEditingWs(null); }} />
       )}
     </div>
+    </PsicologiaLayout>
   );
 }
 

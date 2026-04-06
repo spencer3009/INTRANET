@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTenant } from "@/App";
+import PsicologiaLayout from "@/components/PsicologiaLayout";
 import {
-  ArrowLeft, Calendar, Filter, Search, User, ChevronRight, Clock, Tag
+  Calendar, Filter, Search, User, ChevronRight, Clock, Tag
 } from "lucide-react";
 
 const API = `${process.env.REACT_APP_BACKEND_URL}/api`;
@@ -47,25 +48,14 @@ export default function PsicologiaSesionesPage({ user, token, onLogout }) {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-violet-50/30 to-slate-50" data-testid="psicologia-sesiones">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-200/60 sticky top-0 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center gap-3">
-          <button
-            onClick={() => navigate(getSchoolPath("/psicologia"))}
-            className="p-2 hover:bg-slate-100 rounded-xl transition-colors"
-            data-testid="back-to-dashboard"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div>
-            <h1 className="text-lg font-bold text-slate-800">Historial de Sesiones</h1>
-            <p className="text-xs text-slate-500">{sessions.length} sesiones registradas</p>
-          </div>
-        </div>
-      </header>
+    <PsicologiaLayout user={user} token={token} onLogout={onLogout} activeSection="sesiones">
+      <div data-testid="psicologia-sesiones">
+      <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3">
+        <h1 className="text-lg font-bold text-slate-800">Historial de Sesiones</h1>
+        <p className="text-xs text-slate-500">{sessions.length} sesiones registradas</p>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -145,7 +135,8 @@ export default function PsicologiaSesionesPage({ user, token, onLogout }) {
             </div>
           )}
         </div>
-      </main>
-    </div>
+      </div>
+      </div>
+    </PsicologiaLayout>
   );
 }
