@@ -103,20 +103,6 @@ export default function PaeRegistrosDia({ user, token, subdomain, embedded = fal
         </button>
       )}
 
-      {/* Header - GREEN */}
-      <div className="relative overflow-hidden rounded-2xl">
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-green-500" />
-        <div className="relative px-8 py-8 flex items-center gap-5">
-          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg">
-            <UtensilsCrossed className="w-8 h-8 text-emerald-600" />
-          </div>
-          <div className="text-white">
-            <h1 className="text-2xl font-bold">Registros de Alimentacion</h1>
-            <p className="text-emerald-100">Control de comedor escolar</p>
-          </div>
-        </div>
-      </div>
-
       {/* Filters Card */}
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm" data-testid="pae-filters-card">
         <div className="flex items-center gap-2 mb-5">
