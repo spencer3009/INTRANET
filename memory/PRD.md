@@ -10,7 +10,7 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 
 ## Modules Implemented
 
-### Psychology Module (Phases 1, 2, 5) - Completed April 6, 2026
+### Psychology Module (Phases 1, 2, 5) - Completed
 - Role psicologo, CRUD, records, sessions, audit log
 - Psychologist-parent bidirectional messaging
 - Calendar view + Workshop management
@@ -18,42 +18,42 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 - Cascading filters (nivel_id, grado_id, seccion_id, turno_id)
 - Premium student cards (grid 4 columns, photos with fallback)
 
-### PAE Module (Programa de Alimentación Escolar) - In Progress
+### PAE Module (Programa de Alimentacion Escolar)
 **Phase 1: Backend Base + Rol** - Completed April 6, 2026
-- New role `auxiliar_alimentacion` added to ROLE_HIERARCHY, STAFF_ROLES, SECTION_PERMISSIONS
+- Role `auxiliar_alimentacion` in ROLE_HIERARCHY, STAFF_ROLES, SECTION_PERMISSIONS
 - Collection `pae_turnos` with indexes (school_id + orden)
-- Collection `pae_registros` with unique compound index (school_id + student_id + turno_id + fecha)
+- Collection `pae_registros` with unique compound index
 - CRUD endpoints: GET/POST/PUT/PATCH `/api/pae/turnos` (admin/owner only)
 - Validations: time format, hora_fin > hora_inicio, no overlapping turnos
-- Subscription middleware includes auxiliar_alimentacion role
-- Frontend: Role card + selector in UsersPage.jsx, route redirect in App.js
 
-**Phase 2: Escaneo y Registro** - PENDING
-- POST /api/pae/registro (scan QR, validate student, anti-duplicate)
-- GET /api/pae/registro/turno/{turno_id} and /api/pae/registro/dashboard
-- PaeDashboard.jsx (auxiliar main view)
-- PaeScanner.jsx (camera + USB dual mode)
+**Phase 2: Escaneo y Registro** - Completed April 6, 2026
+- POST /api/pae/registro: QR scan, anti-duplicate via DuplicateKeyError, metadata snapshot
+- GET /api/pae/registro/turno/{turno_id}: Records by turno and date
+- GET /api/pae/registro/dashboard: Counts per turno, last records
+- GET /api/pae/registros-dia: Admin read-only view with turno/date filters
+- PaeDashboard.jsx: Auxiliar portal with reduced sidebar, turno selector, scan button
+- PaeScanner.jsx: Dual mode (camera + USB), local cache, debounce, audio feedback
+- PaeRegistrosDia.jsx: Admin read-only registros with filters (date, turno, search)
+- 4th "Alimentacion" card in AttendancePage.jsx (owner/admin only)
+- Routes: /pae, /pae/scanner, /asistencias/alimentacion (static + tenant)
 
-**Phase 3: Reportes y Exportación** - PENDING
-- GET /api/pae/reportes/diario, /rango, /exportar (Excel)
-- PaeReportes.jsx (filters, table, export)
-- PaeConfig.jsx (admin turno management UI)
+**Phase 3: Reportes y Exportacion** - PENDING
+- Daily/range reports, Excel export
+- PaeReportes.jsx, PaeConfig.jsx (admin turno management UI)
 
 ## Key Files
-- `/app/backend/routes/pae.py` - PAE turno CRUD endpoints
-- `/app/backend/routes/core.py` - Role hierarchy, section permissions
-- `/app/frontend/src/pages/UsersPage.jsx` - Role cards with auxiliar_alimentacion
-- `/app/frontend/src/App.js` - Route redirects for auxiliar_alimentacion
-- `/app/frontend/src/components/PsicologiaLayout.jsx` - Psychology shared layout
-- `/app/frontend/src/pages/psicologia/` - All 9 psychology pages
-- `/app/backend/routes/psychology.py` - Psychology Phase 1
-- `/app/backend/routes/psychology_messages.py` - Phase 2
-- `/app/backend/routes/psychology_agenda.py` - Phase 5
+- `/app/backend/routes/pae.py` - PAE complete backend (turnos + registros)
+- `/app/backend/routes/core.py` - Role hierarchy with auxiliar_alimentacion
+- `/app/frontend/src/pages/pae/PaeDashboard.jsx` - Auxiliar main dashboard
+- `/app/frontend/src/pages/pae/PaeScanner.jsx` - QR scanner (camera + USB)
+- `/app/frontend/src/pages/pae/PaeRegistrosDia.jsx` - Admin read-only registros
+- `/app/frontend/src/pages/AttendancePage.jsx` - 4th Alimentacion card
+- `/app/frontend/src/App.js` - All PAE routes
+- `/app/frontend/src/lib/permissions.js` - PAE section permissions
 
 ## Prioritized Backlog
 ### P0 (Current)
-- PAE Phase 2: Escaneo y Registro (scanner, dashboard, anti-duplicate)
-- PAE Phase 3: Reportes y Exportación (daily/range reports, Excel export, admin config UI)
+- PAE Phase 3: Reportes y Exportacion (daily/range reports, Excel export, admin config UI)
 
 ### P1
 - Psychology audit log UI
