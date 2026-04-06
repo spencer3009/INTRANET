@@ -109,34 +109,6 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
             </div>
           </div>
 
-          {/* Block Duration */}
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1">
-              {form.view_mode === "vertical" ? "Intervalo de líneas guía (minutos)" : "Duración de bloque (minutos)"}
-            </label>
-            <p className="text-xs text-slate-500 mb-3">
-              {form.view_mode === "vertical"
-                ? "Define cada cuántos minutos se dibujan las líneas de referencia en la grilla"
-                : "Define la duración de cada fila de la grilla"}
-            </p>
-            <div className="flex gap-2">
-              {[30, 45, 60, 90].map(mins => (
-                <button
-                  key={mins}
-                  type="button"
-                  onClick={() => setForm(p => ({ ...p, block_duration: mins }))}
-                  className={`flex-1 px-3 py-2.5 rounded-xl border-2 font-medium transition-all ${
-                    form.block_duration === mins 
-                      ? "border-blue-500 bg-blue-50 text-blue-700" 
-                      : "border-slate-200 hover:border-slate-300 text-slate-600"
-                  }`}
-                >
-                  {mins} min
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* View Mode */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-3">
@@ -173,6 +145,34 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
                   <span className="block text-xs text-slate-500 mt-1">07:00, 08:00...</span>
                 </div>
               </button>
+            </div>
+          </div>
+
+          {/* Block Duration / Guide Interval */}
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-1">
+              {form.view_mode === "vertical" ? "Intervalo de líneas guía (minutos)" : "Duración de bloque (minutos)"}
+            </label>
+            <p className="text-xs text-slate-500 mb-3">
+              {form.view_mode === "vertical"
+                ? "Define cada cuántos minutos se dibujan las líneas de referencia en la grilla"
+                : "Define el tamaño de cada fila de horario en la grilla"}
+            </p>
+            <div className="flex gap-2">
+              {[30, 45, 60, 90].map(mins => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => setForm(p => ({ ...p, block_duration: mins }))}
+                  className={`flex-1 px-3 py-2.5 rounded-xl border-2 font-medium transition-all ${
+                    form.block_duration === mins 
+                      ? "border-blue-500 bg-blue-50 text-blue-700" 
+                      : "border-slate-200 hover:border-slate-300 text-slate-600"
+                  }`}
+                >
+                  {mins} min
+                </button>
+              ))}
             </div>
           </div>
 
