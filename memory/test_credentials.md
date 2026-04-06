@@ -30,5 +30,5 @@
 - Role: teacher
 
 ## App URL
-- https://citas-workshops.preview.emergentagent.com
-- Login: https://citas-workshops.preview.emergentagent.com/elroble/login
+- https://fichas-clinical.preview.emergentagent.com
+- Login: https://fichas-clinical.preview.emergentagent.com/elroble/login

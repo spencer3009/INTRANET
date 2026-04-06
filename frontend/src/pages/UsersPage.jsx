@@ -93,7 +93,7 @@ const ROLE_CARDS = [
     borderColor: "border-violet-200",
     gradientBg: "from-violet-500 to-purple-600",
     lightGradient: "from-violet-50 to-purple-50",
-    image: "https://customer-assets.emergentagent.com/job_e11b6c01-7891-4a7a-808e-beeba8fb0f07/artifacts/avk2mbzk_image.png"
+    image: "https://customer-assets.emergentagent.com/job_e11b6c01-7891-4a7a-808e-beeba8fb0f07/artifacts/zsn4kf8n_image.png"
   },
   { 
     id: "teacher", 
