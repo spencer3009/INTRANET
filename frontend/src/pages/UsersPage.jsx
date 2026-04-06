@@ -83,6 +83,19 @@ const ROLE_CARDS = [
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135768.png"
   },
   { 
+    id: "psicologo", 
+    label: "Psicologos", 
+    labelSingular: "Psicologo",
+    color: "from-violet-500 to-purple-600",
+    bgColor: "bg-violet-50",
+    iconBg: "bg-violet-100",
+    textColor: "text-violet-600",
+    borderColor: "border-violet-200",
+    gradientBg: "from-violet-500 to-purple-600",
+    lightGradient: "from-violet-50 to-purple-50",
+    image: "https://cdn-icons-png.flaticon.com/512/3135/3135789.png"
+  },
+  { 
     id: "teacher", 
     label: "Profesores", 
     labelSingular: "Profesor",
@@ -120,19 +133,6 @@ const ROLE_CARDS = [
     gradientBg: "from-rose-500 to-red-600",
     lightGradient: "from-rose-50 to-red-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135725.png"
-  },
-  { 
-    id: "psicologo", 
-    label: "Psicologos", 
-    labelSingular: "Psicologo",
-    color: "from-violet-500 to-purple-600",
-    bgColor: "bg-violet-50",
-    iconBg: "bg-violet-100",
-    textColor: "text-violet-600",
-    borderColor: "border-violet-200",
-    gradientBg: "from-violet-500 to-purple-600",
-    lightGradient: "from-violet-50 to-purple-50",
-    image: "https://cdn-icons-png.flaticon.com/512/3135/3135789.png"
   },
 ];
 
