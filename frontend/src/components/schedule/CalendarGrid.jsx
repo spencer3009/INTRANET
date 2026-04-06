@@ -98,18 +98,19 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     return result;
   }, [schedulesByDay]);
 
-  const getColorStyle = (color) => ({
-    backgroundColor: color || "#6366F1",
-    borderLeft: `4px solid ${color ? darkenColor(color, 20) : "#4338CA"}`,
-  });
-
-  function darkenColor(hex, percent) {
-    const num = parseInt(hex.replace("#", ""), 16);
-    const r = Math.max(0, (num >> 16) - Math.round(2.55 * percent));
-    const g = Math.max(0, ((num >> 8) & 0x00ff) - Math.round(2.55 * percent));
-    const b = Math.max(0, (num & 0x0000ff) - Math.round(2.55 * percent));
-    return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, "0")}`;
+  function hexToRgb(hex) {
+    const num = parseInt((hex || "#6366F1").replace("#", ""), 16);
+    return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
   }
+
+  const getPastelStyle = (color, hover = false) => {
+    const { r, g, b } = hexToRgb(color);
+    const alpha = hover ? 0.22 : 0.13;
+    return {
+      backgroundColor: `rgba(${r},${g},${b},${alpha})`,
+      borderLeft: `4px solid ${color || "#6366F1"}`,
+    };
+  };
 
   const getTeacherInfo = (schedule) => {
     const teacher = teachers?.find(t => t.id === schedule.profesor_id);
@@ -190,33 +191,33 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     };
 
     const renderHorizBlock = (schedule) => {
-      const { teacherFullName, teacherPhoto, studentCount } = getTeacherInfo(schedule);
+      const { teacherFullName } = getTeacherInfo(schedule);
       const [sH] = schedule.hora_inicio.split(":").map(Number);
       const [eH] = schedule.hora_fin.split(":").map(Number);
       const spanRows = Math.max(eH - sH, 1);
 
       return (
         <div key={schedule.id} data-testid={`schedule-block-${schedule.id}`}
-          className="rounded-xl shadow-sm overflow-hidden cursor-pointer group transition-all hover:shadow-lg relative"
-          style={{ ...getColorStyle(schedule.color), minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : "70px" }}
+          className="overflow-hidden cursor-pointer group relative"
+          style={{
+            ...getPastelStyle(schedule.color),
+            minHeight: spanRows > 1 ? `${spanRows * 64 - 8}px` : "56px",
+            borderRadius: 0,
+            transition: "all 0.15s ease",
+          }}
           onClick={(e) => { e.stopPropagation(); onEdit(schedule); }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = getPastelStyle(schedule.color, true).backgroundColor; e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = getPastelStyle(schedule.color).backgroundColor; e.currentTarget.style.boxShadow = "none"; }}
         >
-          <div className="h-full p-2.5 flex flex-col text-white">
-            <p className="font-bold text-sm truncate mb-1">{schedule.materia}</p>
+          <div className="h-full flex flex-col" style={{ padding: "8px 10px" }}>
+            <p className="font-semibold text-sm truncate text-slate-800">{schedule.materia}</p>
             {teacherFullName && (
-              <div className="flex items-center gap-2 mb-1">
-                {teacherPhoto ? (
-                  <img src={teacherPhoto} alt="" className="w-6 h-6 rounded-full object-cover border border-white/30 flex-shrink-0" onError={(e) => { e.target.style.display = "none"; }} />
-                ) : (
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0"><Users className="w-3 h-3 text-white/80" /></div>
-                )}
-                <span className="text-xs opacity-95 truncate">{teacherFullName}</span>
-              </div>
+              <p className="text-[12px] text-slate-500 truncate mt-0.5">{teacherFullName}</p>
             )}
-            <div className="flex items-center gap-2 text-[10px] opacity-80 mt-auto">
-              {studentCount > 0 && <span className="flex items-center gap-1 bg-white/15 px-1.5 py-0.5 rounded"><GraduationCap className="w-3 h-3" />{studentCount} alumnos</span>}
-              {schedule.aula && <span className="truncate">{schedule.aula}</span>}
-            </div>
+            <p className="text-[11px] text-slate-400 mt-auto">
+              {formatTime(schedule.hora_inicio)} - {formatTime(schedule.hora_fin)}
+              {schedule.aula && <span className="ml-1.5">· {schedule.aula}</span>}
+            </p>
           </div>
           <HoverActions id={schedule.id} />
         </div>
@@ -293,51 +294,50 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
   // VERTICAL MODE — Proportional absolute positioning
   // ═══════════════════════════════════════════════════════════════
   const renderBlock = (item) => {
-    const { teacherFullName, teacherPhoto, studentCount } = getTeacherInfo(item);
+    const { teacherFullName } = getTeacherInfo(item);
     const duration = item._end - item._start;
     const isShort = duration <= 30;
     const topPx = ((item._start - gridStart) / totalMinutes) * gridHeightPx;
     const heightPx = Math.max((duration / totalMinutes) * gridHeightPx, 24);
     const widthPct = 100 / item._totalCols;
     const leftPct = item._col * widthPct;
+    const isHovered = hoveredId === item.id;
 
     return (
       <div key={item.id} data-testid={`schedule-block-${item.id}`}
-        className="absolute rounded-lg shadow-sm overflow-hidden cursor-pointer group transition-all hover:shadow-lg hover:brightness-105 z-20"
-        style={{ ...getColorStyle(item.color), top: `${topPx}px`, height: `${heightPx}px`, left: `calc(${leftPct}% + 2px)`, width: `calc(${widthPct}% - 4px)` }}
+        className="absolute overflow-hidden cursor-pointer group z-20"
+        style={{
+          ...getPastelStyle(item.color, isHovered),
+          top: `${topPx + 1}px`,
+          height: `${heightPx - 2}px`,
+          left: `calc(${leftPct}% + 1px)`,
+          width: `calc(${widthPct}% - 2px)`,
+          borderRadius: 0,
+          transition: "all 0.15s ease",
+          boxShadow: isHovered ? "0 2px 8px rgba(0,0,0,0.08)" : "none",
+        }}
         onClick={(e) => { e.stopPropagation(); onEdit(item); }}
         onMouseEnter={() => setHoveredId(item.id)}
         onMouseLeave={() => setHoveredId(null)}
       >
-        <div className="h-full px-2 py-1 flex flex-col text-white relative overflow-hidden">
-          <p className="font-bold text-xs sm:text-sm truncate leading-tight">{item.materia}</p>
+        <div className="h-full flex flex-col overflow-hidden" style={{ padding: "8px 10px" }}>
+          <p className="font-semibold text-xs sm:text-sm truncate leading-tight text-slate-800">{item.materia}</p>
           {!isShort && teacherFullName && (
-            <div className="flex items-center gap-1 mt-0.5">
-              {teacherPhoto ? (
-                <img src={teacherPhoto} alt="" className="w-4 h-4 rounded-full object-cover border border-white/30 flex-shrink-0" onError={(e) => { e.target.style.display = "none"; }} />
-              ) : (
-                <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0"><Users className="w-2.5 h-2.5 text-white/80" /></div>
-              )}
-              <span className="text-[10px] opacity-90 truncate">{teacherFullName}</span>
-            </div>
+            <p className="text-[12px] text-slate-500 truncate mt-0.5">{teacherFullName}</p>
           )}
           {!isShort && (
-            <div className="flex items-center gap-1.5 text-[10px] opacity-80 mt-auto">
-              <span>{formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}</span>
-              {item.aula && <span className="bg-black/15 rounded px-1">{item.aula}</span>}
-            </div>
-          )}
-          {!isShort && studentCount > 0 && heightPx > 70 && (
-            <div className="flex items-center gap-1 text-[10px] opacity-75"><GraduationCap className="w-3 h-3" /><span>{studentCount}</span></div>
+            <p className="text-[11px] text-slate-400 mt-auto">
+              {formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}
+              {item.aula && <span className="ml-1.5">· {item.aula}</span>}
+            </p>
           )}
         </div>
-        {isShort && hoveredId === item.id && (
-          <div className="absolute left-0 top-full mt-1 z-50 bg-slate-900 text-white rounded-lg shadow-xl p-2.5 min-w-[180px] text-xs pointer-events-none">
-            <p className="font-bold">{item.materia}</p>
+        {isShort && isHovered && (
+          <div className="absolute left-0 top-full mt-1 z-50 bg-slate-800 text-white rounded-md shadow-xl p-2.5 min-w-[180px] text-xs pointer-events-none">
+            <p className="font-semibold">{item.materia}</p>
             {teacherFullName && <p className="opacity-80 mt-0.5">{teacherFullName}</p>}
             <p className="opacity-70 mt-0.5">{formatTime(item.hora_inicio)} - {formatTime(item.hora_fin)}</p>
             {item.aula && <p className="opacity-70">Aula: {item.aula}</p>}
-            {studentCount > 0 && <p className="opacity-70">{studentCount} alumnos</p>}
           </div>
         )}
         <HoverActions id={item.id} />
