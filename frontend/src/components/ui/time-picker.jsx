@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import { Clock, X, ChevronUp, ChevronDown } from "lucide-react";
 
 export function TimePicker({ value, onChange, label, className = "" }) {
@@ -10,15 +10,23 @@ export function TimePicker({ value, onChange, label, className = "" }) {
   const [minuteInput, setMinuteInput] = useState("00");
   const minuteRef = useRef(null);
 
-  useEffect(() => {
+  // Sync temp state from value ONLY when opening the picker
+  const openPicker = () => {
     if (value) {
       const [h, m] = value.split(":").map(Number);
       setTempHour(h > 12 ? h - 12 : h === 0 ? 12 : h);
       setTempMinute(m || 0);
       setMinuteInput((m || 0).toString().padStart(2, "0"));
       setPeriod(h >= 12 ? "PM" : "AM");
+    } else {
+      setTempHour(7);
+      setTempMinute(0);
+      setMinuteInput("00");
+      setPeriod("AM");
     }
-  }, [value]);
+    setMode("hours");
+    setIsOpen(true);
+  };
 
   const formatDisplayTime = () => {
     if (!value) return "Seleccionar...";
@@ -102,7 +110,7 @@ export function TimePicker({ value, onChange, label, className = "" }) {
 
       <button
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => openPicker()}
         className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 flex items-center justify-between text-left"
       >
         <span className={value ? "text-slate-800" : "text-slate-400"}>
