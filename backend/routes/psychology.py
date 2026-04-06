@@ -280,6 +280,7 @@ async def list_psychology_students(
     nivel_id: Optional[str] = None,
     grado_id: Optional[str] = None,
     seccion_id: Optional[str] = None,
+    turno_id: Optional[str] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
     user=Depends(require_role(["psicologo"]))
@@ -297,6 +298,7 @@ async def list_psychology_students(
     if nivel_id: query["nivel_id"] = nivel_id
     if grado_id: query["grado_id"] = grado_id
     if seccion_id: query["seccion_id"] = seccion_id
+    if turno_id: query["turno_id"] = turno_id
     if search:
         query["$or"] = [
             {"name": {"$regex": search, "$options": "i"}},
@@ -336,6 +338,10 @@ async def list_records(
     search: Optional[str] = None,
     status: Optional[str] = None,
     reason_category: Optional[str] = None,
+    nivel_id: Optional[str] = None,
+    grado_id: Optional[str] = None,
+    seccion_id: Optional[str] = None,
+    turno_id: Optional[str] = None,
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=200),
     user=Depends(require_role(["psicologo"]))
@@ -347,6 +353,18 @@ async def list_records(
     if reason_category:
         query["reason_category"] = reason_category
 
+    # If filtering by academic structure, first find matching student_ids
+    student_filter = {}
+    if nivel_id or grado_id or seccion_id or turno_id:
+        student_filter = {"school_id": school_id, "role": {"$in": ["student", "estudiante"]}}
+        if nivel_id: student_filter["nivel_id"] = nivel_id
+        if grado_id: student_filter["grado_id"] = grado_id
+        if seccion_id: student_filter["seccion_id"] = seccion_id
+        if turno_id: student_filter["turno_id"] = turno_id
+        matching_students = await db.users.find(student_filter, {"_id": 0, "id": 1}).to_list(5000)
+        matching_ids = [s["id"] for s in matching_students]
+        query["student_id"] = {"$in": matching_ids}
+
     total = await db.psychological_records.count_documents(query)
     skip = (page - 1) * limit
     records = await db.psychological_records.find(query, {"_id": 0}).sort("updated_at", -1).skip(skip).limit(limit).to_list(limit)
@@ -354,9 +372,17 @@ async def list_records(
     student_ids = [r["student_id"] for r in records]
     students = await db.users.find(
         {"id": {"$in": student_ids}, "school_id": school_id},
-        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "grade": 1, "section": 1}
+        {"_id": 0, "id": 1, "name": 1, "last_name": 1, "photo_url": 1, "nivel_id": 1, "grado_id": 1, "seccion_id": 1, "turno_id": 1}
     ).to_list(500)
     student_map = {s["id"]: s for s in students}
+
+    # Resolve academic names
+    all_nivel_ids = list({st.get("nivel_id") for st in students if st.get("nivel_id")})
+    all_grado_ids = list({st.get("grado_id") for st in students if st.get("grado_id")})
+    all_seccion_ids = list({st.get("seccion_id") for st in students if st.get("seccion_id")})
+    nivel_map = {n["id"]: n["nombre"] for n in await db.niveles.find({"id": {"$in": all_nivel_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(20)} if all_nivel_ids else {}
+    grado_map = {g["id"]: g["nombre"] for g in await db.grades.find({"id": {"$in": all_grado_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(100)} if all_grado_ids else {}
+    seccion_map = {s["id"]: s["nombre"] for s in await db.sections.find({"id": {"$in": all_seccion_ids}}, {"_id": 0, "id": 1, "nombre": 1}).to_list(200)} if all_seccion_ids else {}
 
     session_pipeline = [
         {"$match": {"student_id": {"$in": student_ids}, "school_id": school_id}},
@@ -378,8 +404,9 @@ async def list_records(
             **r,
             "student_name": full_name.strip(),
             "student_photo": st.get("photo_url"),
-            "student_grade": st.get("grade", ""),
-            "student_section": st.get("section", ""),
+            "student_nivel": nivel_map.get(st.get("nivel_id", ""), ""),
+            "student_grado": grado_map.get(st.get("grado_id", ""), ""),
+            "student_seccion": seccion_map.get(st.get("seccion_id", ""), ""),
             "total_sessions": stats.get("total_sessions", 0),
             "last_session": stats.get("last_session"),
         })
