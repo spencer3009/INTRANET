@@ -400,7 +400,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
               style={{ top: `${gl.topPx}px`, height: idx < guideLines.length - 1 ? `${guideLines[idx + 1].topPx - gl.topPx}px` : "auto" }}
               onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); }}
               onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); }}>
-              <span className="text-[11px] font-medium text-slate-500 pt-1 select-none">{formatTime(gl.time)}</span>
+              <span className="text-[13px] font-semibold text-slate-400 pt-1 select-none">{formatTime(gl.time)}</span>
               <button onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, time: gl.time }); }}
                 className="absolute right-0.5 top-0.5 opacity-0 group-hover:opacity-100 p-0.5 bg-white rounded shadow hover:bg-blue-50 transition-all" title="Bloquear franja">
                 <Plus className="w-3 h-3 text-slate-500" />
