@@ -122,12 +122,13 @@ const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 // ══════════════════════════════════════════════════════════════════════════════
 
 const ADMIN_ROLES = ["owner", "admin", "director", "coordinator"];
-const STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar"];
+const STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar", "auxiliar_alimentacion"];
 
 const isStudent = (user) => user?.role === "student";
 const isParent = (user) => user?.role === "parent";
 const isTeacher = (user) => user?.role === "teacher";
 const isPsicologo = (user) => user?.role === "psicologo";
+const isAuxiliarAlimentacion = (user) => user?.role === "auxiliar_alimentacion";
 const isStaff = (user) => STAFF_ROLES.includes(user?.role);
 const isAdmin = (user) => ADMIN_ROLES.includes(user?.role);
 // Specific check for role="admin" only (for Admin Portal)
@@ -525,6 +526,14 @@ function App() {
       return user?.subdomain ? `/${user.subdomain}/psicologia` : '/psicologia';
     }
     
+    // Auxiliar de Alimentación gets redirected to PAE dashboard
+    if (isAuxiliarAlimentacion(user)) {
+      if (environment.mode === 'subdomain' || environment.supportsWildcard) {
+        return '/pae';
+      }
+      return user?.subdomain ? `/${user.subdomain}/pae` : '/pae';
+    }
+    
     // Admin role uses the SAME Owner portal with RBAC restrictions
     if (isAdminOnly(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
@@ -645,6 +654,8 @@ function App() {
                   <Navigate to="/teacher" replace />
                 ) : isPsicologo(user) ? (
                   <Navigate to="/psicologia" replace />
+                ) : isAuxiliarAlimentacion(user) ? (
+                  <Navigate to="/pae" replace />
                 ) : (
                   <DashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -1334,6 +1345,8 @@ function App() {
                   <Navigate to={`/${user?.subdomain}/teacher`} replace />
                 ) : isPsicologo(user) ? (
                   <Navigate to={`/${user?.subdomain}/psicologia`} replace />
+                ) : isAuxiliarAlimentacion(user) ? (
+                  <Navigate to={`/${user?.subdomain}/pae`} replace />
                 ) : (
                   <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
                 )}

@@ -330,11 +330,12 @@ def is_admin_user(user: dict) -> bool:
 
 ROLE_HIERARCHY = {
     "owner": 100, "admin": 90, "director": 80, "coordinator": 70,
-    "teacher": 50, "psicologo": 45, "auxiliar": 40, "parent": 20, "student": 10
+    "teacher": 50, "psicologo": 45, "auxiliar": 40,
+    "auxiliar_alimentacion": 35, "parent": 20, "student": 10
 }
 
 ADMIN_ROLES = ["owner", "admin", "director", "coordinator"]
-STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar"]
+STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar", "auxiliar_alimentacion"]
 
 def has_role(user: dict, allowed_roles: list) -> bool:
     return user.get("role") in allowed_roles

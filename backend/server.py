@@ -55,6 +55,7 @@ from routes.parents import router as parents_router
 from routes.psychology import router as psychology_router
 from routes.psychology_messages import router as psychology_messages_router
 from routes.psychology_agenda import router as psychology_agenda_router
+from routes.pae import router as pae_router, ensure_pae_indexes
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -144,7 +145,7 @@ async def subscription_restriction_middleware(request: Request, call_next):
                     payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
                     role = payload.get("role", "")
                     school_id = payload.get("school_id")
-                    if role in ("owner", "admin") and school_id:
+                    if role in ("owner", "admin", "auxiliar_alimentacion") and school_id:
                         school = await db.schools.find_one(
                             {"id": school_id},
                             {"_id": 0, "id": 1, "fecha_vencimiento": 1, "expiration_date": 1}
@@ -207,6 +208,7 @@ app.include_router(parents_router)
 app.include_router(psychology_router)
 app.include_router(psychology_messages_router)
 app.include_router(psychology_agenda_router)
+app.include_router(pae_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
@@ -319,6 +321,7 @@ async def create_indexes():
         )
         await ensure_global_support_user()
         await seed_academia_categories()
+        await ensure_pae_indexes()
         schools_without_exp = db.schools.find({"expiration_date": {"$exists": False}}, {"_id": 0, "id": 1, "created_at": 1})
         async for school in schools_without_exp:
             created = school.get("created_at")

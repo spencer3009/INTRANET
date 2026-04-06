@@ -134,6 +134,19 @@ const ROLE_CARDS = [
     lightGradient: "from-rose-50 to-red-50",
     image: "https://cdn-icons-png.flaticon.com/512/3135/3135725.png"
   },
+  { 
+    id: "auxiliar_alimentacion", 
+    label: "Aux. Alimentación", 
+    labelSingular: "Auxiliar de Alimentación",
+    color: "from-orange-500 to-orange-600",
+    bgColor: "bg-orange-50",
+    iconBg: "bg-orange-100",
+    textColor: "text-orange-600",
+    borderColor: "border-orange-200",
+    gradientBg: "from-orange-500 to-amber-600",
+    lightGradient: "from-orange-50 to-amber-50",
+    image: "https://cdn-icons-png.flaticon.com/512/3480/3480823.png"
+  },
 ];
 
 // Add User Modal Component
@@ -975,7 +988,8 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                    roleId === 'teacher' ? 'Profesor' : 
                    roleId === 'student' ? 'Estudiante' : 
                    roleId === 'parent' ? 'Padre/Apoderado' : 
-                   roleId === 'psicologo' ? 'Psicologo' : roleId}
+                   roleId === 'psicologo' ? 'Psicologo' : 
+                   roleId === 'auxiliar_alimentacion' ? 'Auxiliar de Alimentación' : roleId}
                 </div>
               ) : (
                 // Selectable role
@@ -991,6 +1005,7 @@ function AddUserModal({ isOpen, onClose, token, roleId, onUserCreated, currentUs
                   <option value="student">Estudiante</option>
                   <option value="parent">Padre/Apoderado</option>
                   <option value="psicologo">Psicologo</option>
+                  <option value="auxiliar_alimentacion">Auxiliar de Alimentación</option>
                 </select>
               )}
             </div>
