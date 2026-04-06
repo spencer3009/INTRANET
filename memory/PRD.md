@@ -35,45 +35,51 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 14. Parent Portal
 15. **Psychology Module - Phase 1** (April 6, 2026)
 16. **Psychology Module - Phase 2: Messaging** (April 6, 2026)
+17. **Psychology Module - Phase 5: Agenda & Workshops** (April 6, 2026)
 
 ## What's Been Implemented
 
+### Psychology Phase 5: Agenda & Workshops (April 6, 2026)
+- **Backend** (`/app/backend/routes/psychology_agenda.py`):
+  - Collection `psychological_appointments` with full CRUD + recurrence support
+  - Collection `psychological_workshops` with CRUD, attendance tracking, completion flow
+  - Endpoints: appointments (list, today, week-summary, check-conflict, get, create, update, status, delete)
+  - Endpoints: workshops (list, upcoming, get, create, update, attendance, complete, delete)
+  - MongoDB indexes for psychologist_id, date, institution_id
+- **Frontend**:
+  - `PsicologiaAgendaPage.jsx` - Google Calendar-style weekly view with Day/Week/Month switcher
+    - Appointment blocks with color-coded types, click-to-view detail
+    - Create/Edit modal with conflict detection, student search, recurrence options
+    - Detail popup with Edit, Complete, Cancel, No-show, Delete actions
+    - Auto-navigate to student clinical record after completing appointment
+  - `PsicologiaTalleresPage.jsx` - Workshop management with card grid
+    - Filter tabs: Todos, Planificados, Completados, Cancelados + category filter
+    - Create/Edit modal with objectives list, methodology, target level/grades
+    - Detail view with attendance tracking (checkbox per student) and completion form
+  - `PsicologiaDashboardPage.jsx` updated with:
+    - "Agenda" nav card with today's appointment count badge
+    - "Talleres Grupales" nav card
+    - "Citas de Hoy" section with real-time appointment data
+    - "Proximos Talleres" section with upcoming workshops
+  - Routes registered in `App.js` for both direct and /:subdomain/ patterns
+- **Testing**: 20/20 backend tests passed, frontend 100% verified (iteration_108)
+
 ### Psychology Phase 2: Messaging (April 6, 2026)
-- **Backend**: New file `/app/backend/routes/psychology_messages.py`
-  - Collection `psychological_messages` with conversation grouping
-  - Collection `message_templates` with category-based filtering
-  - 10 endpoints for psychologist messaging (conversations, messages, templates CRUD)
-  - 4 endpoints for parent messaging (list, view, reply, unread count)
-  - Helper endpoint: GET student parents for "New Message" modal
-  - Validation: parent-student linkage, school scope, role-based access
-  - MongoDB indexes for conversation_id, to_user_id, institution_id
-- **Frontend Psychologist**:
-  - `PsicologiaMensajesPage.jsx` - Email inbox-style layout with left panel (conversations) and right panel (chat)
-  - "Nuevo Mensaje" modal with student autocomplete search + parent selector
-  - Templates modal with category filters, create inline, select/delete
-  - Reply box with "Requiere respuesta", "Urgente", and "Plantilla" options
-  - Read receipts (check/double-check icons)
-  - Dashboard card "Comunicacion con Padres" with unread badge (polling every 60s)
-- **Frontend Parent**:
-  - `ParentPsychologyMessages.jsx` - Component for parent messaging view
-  - `ParentPsychMessagesPage.jsx` - Page wrapper with parent layout
-  - New "Psicologia" item in `ParentSidebar.jsx` with Brain icon
-  - Routes: `/parent/psicologia-mensajes` and `/:subdomain/parent/psicologia-mensajes`
-- **Testing**: 24/24 backend tests passed, frontend 100% verified
+- Backend: 10 endpoints for psychologist + 4 for parent messaging
+- Frontend: Email inbox-style layout, templates, read receipts
+- Testing: 24/24 tests passed (iteration_107)
 
 ### Psychology Phase 1 (April 6, 2026)
 - Role `psicologo` with CRUD, dashboard, student list, records, sessions, audit log
-- 5 dedicated pages + routing
+- Testing: 100% passed (iteration_106)
 
-## DB Schema (Messaging)
-- `psychological_messages`: conversation_id (psych+parent+student), from/to roles, body, read, attachments
+## DB Schema
+- `psychological_appointments`: id, psychologist_id, institution_id, title, appointment_type, date, duration_minutes, student_id, parent_id, location, description, status, recurrence_type, recurrence_group_id, notes_post
+- `psychological_workshops`: id, psychologist_id, institution_id, title, topic_category, description, date, duration_minutes, target_level, target_grades, target_sections, location, objectives, methodology, expected_attendees, actual_attendees, attendee_list, status, observations, outcomes
+- `psychological_messages`: conversation_id, from/to roles, body, read, attachments
 - `message_templates`: name, subject, body with placeholders, category, is_shared
 
 ## Prioritized Backlog
-
-### P0 (In Progress)
-- Phase 5: Agenda/Calendario de sesiones (appointments collection + calendar UI)
-- Phase 5: Talleres grupales (workshops collection + attendance + CRUD)
 
 ### P1
 - Psychology audit log UI
