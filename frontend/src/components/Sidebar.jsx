@@ -35,7 +35,7 @@ const allNavItems = [
   { id: "horarios", label: "Horarios", icon: Clock, route: "/horarios", section: "schedule" },
   { id: "asistencias", label: "Asistencias", icon: ClipboardCheck, route: "/asistencias", section: "attendance" },
   { id: "disciplina", label: "Disciplina", icon: AlertTriangle, route: "/disciplina", section: "discipline" },
-  { id: "pae", label: "Alimentación", icon: UtensilsCrossed, route: "/pae", section: "pae" },
+  { id: "pae", label: "Alimentación", icon: UtensilsCrossed, route: "/pae", section: "pae", roles: ["auxiliar_alimentacion"] },
   { id: "contabilidad", label: "Contabilidad", icon: Landmark, route: "/contabilidad", section: "accounting" },
   { id: "mensajeria", label: "Mensajería", icon: MessageSquare, route: "/mensajes", section: "internal_mail", hasBadge: true },
 ];
@@ -53,8 +53,9 @@ export default function Sidebar({ active, onNavigate, expanded, onToggle, onLogo
   
   // Owner sees everything - Admin sees filtered items based on RBAC
   const navItems = isOwner(user) 
-    ? allNavItems 
+    ? allNavItems.filter(item => !item.roles || item.roles.includes(user?.role))
     : allNavItems.filter(item => {
+        if (item.roles && !item.roles.includes(user?.role)) return false;
         if (!item.section) return true;
         return canAccessSection(user, item.section);
       });
