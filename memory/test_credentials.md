@@ -16,6 +16,13 @@
 - Subdomain: elroble
 - Role: psicologo
 
+## Parent Account
+- Name: Maria Peres Garcia
+- Email: maria.peres@gmail.com
+- ID: a12969b9-711b-4cfb-8e12-9bbb0c20f390
+- Linked student: Magno Eduardo Calle Marquez (4d30c475-c1cf-42d1-9485-620b556ecf72)
+- Password: unknown (needs to be set for testing)
+
 ## Teacher Account
 - Email: sonia3009@gmail.com
 - Password: teacher123

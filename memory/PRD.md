@@ -18,71 +18,72 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 - **Auth**: JWT-based with role hierarchy
 - **File Storage**: Cloudinary
 
-## Key Modules
-1. Authentication & Authorization (complete)
-2. Dashboard (per-role, complete)
-3. Users Management (complete)
-4. Academic Years & Courses (complete)
-5. Schedules (complete - proportional grid + horizontal)
-6. Attendance (complete)
-7. Discipline (complete)
-8. Grades/Consolidado (complete)
-9. OMR Exams (complete)
-10. Subscriptions & Billing (complete)
-11. Internal Messaging (complete)
-12. Teacher Portal (complete)
-13. Student Portal (complete)
-14. Parent Portal (complete)
-15. **Psychology Module - Phase 1** (COMPLETE - April 6, 2026)
+## Key Modules Completed
+1. Authentication & Authorization
+2. Dashboard (per-role)
+3. Users Management
+4. Academic Years & Courses
+5. Schedules (proportional grid + horizontal)
+6. Attendance
+7. Discipline
+8. Grades/Consolidado
+9. OMR Exams
+10. Subscriptions & Billing
+11. Internal Messaging
+12. Teacher Portal
+13. Student Portal
+14. Parent Portal
+15. **Psychology Module - Phase 1** (April 6, 2026)
+16. **Psychology Module - Phase 2: Messaging** (April 6, 2026)
 
 ## What's Been Implemented
 
-### Psychology Module - Phase 1 (April 6, 2026)
-- **New Role**: `psicologo` added to ROLE_HIERARCHY, STAFF_ROLES, SECTION_PERMISSIONS
-- **Backend CRUD**: Full API at `/api/v1/psychologists/*` and `/api/v1/psychology/*`
-  - Psychologist management (create, list, update, deactivate)
-  - Self-profile management
-  - Student listing (read-only, no financial data)
-  - Psychological records (create, view, update per student)
-  - Clinical sessions (full CRUD with audit logging)
-  - Dashboard statistics
-- **Frontend Portal**: 5 dedicated pages
-  - `PsicologiaDashboardPage` - Stats + navigation cards
-  - `PsicologiaEstudiantesPage` - Student list with search/filters
-  - `PsicologiaFichaPage` - Individual student record + sessions with create/edit modals
-  - `PsicologiaSesionesPage` - All sessions history
-  - `PsicologiaPerfilPage` - Self-profile editing
-- **Routing**: Login redirects psicologo to `/psicologia`, routes for both subdomain and direct modes
-- **UsersPage**: "Psicologos" card added (violet theme) with role count
-- **Audit Log**: Automatic logging of record views, creates, and edits
+### Psychology Phase 2: Messaging (April 6, 2026)
+- **Backend**: New file `/app/backend/routes/psychology_messages.py`
+  - Collection `psychological_messages` with conversation grouping
+  - Collection `message_templates` with category-based filtering
+  - 10 endpoints for psychologist messaging (conversations, messages, templates CRUD)
+  - 4 endpoints for parent messaging (list, view, reply, unread count)
+  - Helper endpoint: GET student parents for "New Message" modal
+  - Validation: parent-student linkage, school scope, role-based access
+  - MongoDB indexes for conversation_id, to_user_id, institution_id
+- **Frontend Psychologist**:
+  - `PsicologiaMensajesPage.jsx` - Email inbox-style layout with left panel (conversations) and right panel (chat)
+  - "Nuevo Mensaje" modal with student autocomplete search + parent selector
+  - Templates modal with category filters, create inline, select/delete
+  - Reply box with "Requiere respuesta", "Urgente", and "Plantilla" options
+  - Read receipts (check/double-check icons)
+  - Dashboard card "Comunicacion con Padres" with unread badge (polling every 60s)
+- **Frontend Parent**:
+  - `ParentPsychologyMessages.jsx` - Component for parent messaging view
+  - `ParentPsychMessagesPage.jsx` - Page wrapper with parent layout
+  - New "Psicologia" item in `ParentSidebar.jsx` with Brain icon
+  - Routes: `/parent/psicologia-mensajes` and `/:subdomain/parent/psicologia-mensajes`
+- **Testing**: 24/24 backend tests passed, frontend 100% verified
 
-### Previous Implementations
-- Subscription blocking fix (day 3 enforcement + director role support)
-- OMR Exam UI improvements (edit button, date ordering, 1h default window)
-- Schedule multi-teacher toggle (allows professor overlap)
-- Calendar grid refactor (proportional Google Calendar style)
-- TimePicker bug fix (type="button" for form buttons)
+### Psychology Phase 1 (April 6, 2026)
+- Role `psicologo` with CRUD, dashboard, student list, records, sessions, audit log
+- 5 dedicated pages + routing
+
+## DB Schema (Messaging)
+- `psychological_messages`: conversation_id (psych+parent+student), from/to roles, body, read, attachments
+- `message_templates`: name, subject, body with placeholders, category, is_shared
 
 ## Prioritized Backlog
 
-### P0 (Next)
-- None currently blocking
+### P0 (In Progress)
+- Phase 5: Agenda/Calendario de sesiones (appointments collection + calendar UI)
+- Phase 5: Talleres grupales (workshops collection + attendance + CRUD)
 
 ### P1
-- Psychology audit log UI (view who accessed which clinical record)
+- Psychology audit log UI
 - Dashboard Owner with real metrics
 - Enrollment module ("Matriculas")
 
 ### P2
 - Refactor CourseDetailPage.jsx (>11,000 lines)
-- Survey module ("Encuestas") at /{subdomain}/encuestas
-- Performance optimization for mass exam loading (3000 students, DB indexes)
-
-## DB Schema (Psychology)
-- `users` collection: `role: "psicologo"` with `psychologist_profile` subdocument
-- `psychological_records`: One per student, contains reason, observations, diagnosis, status
-- `psychological_sessions`: Multiple per student, contains session_type, notes, agreements, etc.
-- `psychology_audit_log`: Tracks psychologist access to clinical records
+- Survey module ("Encuestas")
+- Performance optimization for mass exam loading
 
 ## Test Accounts
 See /app/memory/test_credentials.md
