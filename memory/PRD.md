@@ -3,14 +3,6 @@
 ## Original Problem Statement
 Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte multi-tenant con subdominios, roles diferenciados (owner, admin, director, coordinator, teacher, auxiliar, psicologo, parent, student), modulos academicos, financieros, de asistencia, disciplina, horarios, examenes OMR y comunicacion interna.
 
-## Core Requirements
-- Multi-tenant architecture with subdomain routing
-- Role-based access control (RBAC) with 9 roles
-- Academic management (courses, grades, schedules)
-- Financial management (billing, payments, subscriptions)
-- Communication (internal messaging, notifications)
-- Health & Wellness module (psychology)
-
 ## Architecture
 - **Frontend**: React + Tailwind CSS + Shadcn/UI
 - **Backend**: FastAPI + Motor (async MongoDB driver)
@@ -23,7 +15,7 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 2. Dashboard (per-role)
 3. Users Management
 4. Academic Years & Courses
-5. Schedules (proportional grid + horizontal)
+5. Schedules
 6. Attendance
 7. Discipline
 8. Grades/Consolidado
@@ -33,46 +25,41 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 12. Teacher Portal
 13. Student Portal
 14. Parent Portal
-15. **Psychology Module - Phase 1** (April 6, 2026)
-16. **Psychology Module - Phase 2: Messaging** (April 6, 2026)
-17. **Psychology Module - Phase 5: Agenda & Workshops** (April 6, 2026)
+15. Psychology Module - Phase 1 (CRUD, Fichas, Sesiones)
+16. Psychology Module - Phase 2 (Messaging)
+17. Psychology Module - Phase 5 (Agenda + Workshops)
 
-## What's Been Implemented
+## Recent Work
 
-### Psychology Dashboard Redesign (April 6, 2026)
-- **PsicologiaSidebar.jsx**: New sidebar component matching intranet style
-  - 8 navigation items: Inicio, Estudiantes, Fichas Clinicas, Sesiones, Mensajes Padres, Agenda, Talleres, Mi Perfil
-  - Hover expansion with full labels, unread messages badge
-  - Same CSS classes as main Sidebar.jsx (sidebar, sidebar-link, etc.)
-- **DashboardHeader integration**: Reused shared header component
-  - School logo from /api/settings/public/{subdomain}
-  - "Bienvenido, Colegio El Roble" with current date
-  - User profile with "Psicologo/a" role display + avatar
-  - Notification bell
-  - Added 'psicologo' to ROLE_DISPLAY_MAP
-- **4 Colored Metric Cards**: 
-  - Blue: En Seguimiento (active students)
-  - Green: Sesiones del Mes
-  - Purple: Nuevos Casos
-  - Orange: Citas de Hoy
-- **Quick Action Cards**: Estudiantes, Fichas Clinicas, Agenda, Talleres
-- **Two-column layout**: Citas de Hoy + Proximos Talleres
-- **Sesiones Recientes**: Recent sessions list
-- **Testing**: 20/20 features verified (iteration_109)
+### Layout Consistency Update (April 6, 2026)
+- Created `PsicologiaLayout.jsx` shared component (sidebar + DashboardHeader)
+- Created `PsicologiaSidebar.jsx` with 8 navigation items
+- Updated ALL 8 psychology pages to use PsicologiaLayout:
+  - Dashboard, Estudiantes, Sesiones, Mensajes, Perfil, Ficha Clinica, Agenda, Talleres
+- Added 'psicologo' to ROLE_DISPLAY_MAP in DashboardHeader
+- Each page shows: sidebar (collapsed/hover-expandable), school logo, user profile, page toolbar
+- Testing: 15/15 features verified (iteration_110)
 
 ### Psychology Phase 5: Agenda & Workshops (April 6, 2026)
 - Backend: Appointments CRUD + Workshops CRUD (psychology_agenda.py)
 - Frontend: Calendar view (day/week/month), Workshop cards with filters
-- Routes in App.js for both direct and /:subdomain/ patterns
-- Testing: 20/20 backend tests (iteration_108)
+- Testing: 20/20 backend (iteration_108), 20/20 dashboard (iteration_109)
 
 ### Psychology Phase 2: Messaging (April 6, 2026)
-- Backend + Frontend for psychologist-parent messaging
-- Testing: 24/24 tests (iteration_107)
+- Psychologist-parent bidirectional messaging
+- Testing: 24/24 (iteration_107)
 
 ### Psychology Phase 1 (April 6, 2026)
-- Role psicologo with CRUD, dashboard, student list, records, sessions
+- Role psicologo, CRUD, records, sessions, audit log
 - Testing: 100% (iteration_106)
+
+## Key Files
+- `/app/frontend/src/components/PsicologiaLayout.jsx` - Shared layout
+- `/app/frontend/src/components/PsicologiaSidebar.jsx` - Sidebar
+- `/app/frontend/src/pages/psicologia/` - All 8 psychology pages
+- `/app/backend/routes/psychology.py` - Phase 1 backend
+- `/app/backend/routes/psychology_messages.py` - Phase 2 backend
+- `/app/backend/routes/psychology_agenda.py` - Phase 5 backend
 
 ## Prioritized Backlog
 
