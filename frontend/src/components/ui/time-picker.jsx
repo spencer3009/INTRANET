@@ -10,7 +10,6 @@ export function TimePicker({ value, onChange, label, className = "" }) {
   const [minuteInput, setMinuteInput] = useState("00");
   const minuteRef = useRef(null);
 
-  // Sync temp state from value ONLY when opening the picker
   const openPicker = () => {
     if (value) {
       const [h, m] = value.split(":").map(Number);
@@ -34,7 +33,7 @@ export function TimePicker({ value, onChange, label, className = "" }) {
     const hour = parseInt(h);
     const ampm = hour >= 12 ? "PM" : "AM";
     const hour12 = hour % 12 || 12;
-    return `${hour12}:${m.padStart(2, "0")} ${ampm}`;
+    return `${hour12}:${(m || "00").padStart(2, "0")} ${ampm}`;
   };
 
   const get24HourFormat = (hour, minute, ampm) => {
@@ -120,40 +119,36 @@ export function TimePicker({ value, onChange, label, className = "" }) {
       </button>
 
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]" onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[10000]"
+          onClick={(e) => e.stopPropagation()} onMouseDown={(e) => e.stopPropagation()}>
           <div className="bg-white rounded-2xl shadow-2xl w-[320px] overflow-hidden" onClick={(e) => e.stopPropagation()}>
             {/* Header */}
             <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-white/70 text-sm font-medium">Seleccionar hora</span>
-                <button onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white">
+                <button type="button" onClick={() => setIsOpen(false)} className="text-white/70 hover:text-white">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Editable time display with nudge arrows */}
               <div className="flex items-center justify-center gap-1 text-white">
-                {/* Hour with arrows */}
                 <div className="flex flex-col items-center">
-                  <button onClick={() => nudgeHour(1)} className="text-white/50 hover:text-white p-0.5">
+                  <button type="button" onClick={() => nudgeHour(1)} className="text-white/50 hover:text-white p-0.5">
                     <ChevronUp className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => setMode("hours")}
-                    className={`text-5xl font-light transition-opacity ${mode === "hours" ? "opacity-100" : "opacity-50"}`}
-                  >
+                  <button type="button" onClick={() => setMode("hours")}
+                    className={`text-5xl font-light transition-opacity ${mode === "hours" ? "opacity-100" : "opacity-50"}`}>
                     {tempHour.toString().padStart(2, "0")}
                   </button>
-                  <button onClick={() => nudgeHour(-1)} className="text-white/50 hover:text-white p-0.5">
+                  <button type="button" onClick={() => nudgeHour(-1)} className="text-white/50 hover:text-white p-0.5">
                     <ChevronDown className="w-4 h-4" />
                   </button>
                 </div>
 
                 <span className="text-5xl font-light">:</span>
 
-                {/* Minute with arrows + editable input */}
                 <div className="flex flex-col items-center">
-                  <button onClick={() => nudgeMinute(1)} className="text-white/50 hover:text-white p-0.5">
+                  <button type="button" onClick={() => nudgeMinute(1)} className="text-white/50 hover:text-white p-0.5">
                     <ChevronUp className="w-4 h-4" />
                   </button>
                   <input
@@ -174,33 +169,26 @@ export function TimePicker({ value, onChange, label, className = "" }) {
                     }`}
                     maxLength={2}
                   />
-                  <button onClick={() => nudgeMinute(-1)} className="text-white/50 hover:text-white p-0.5">
+                  <button type="button" onClick={() => nudgeMinute(-1)} className="text-white/50 hover:text-white p-0.5">
                     <ChevronDown className="w-4 h-4" />
                   </button>
                 </div>
 
-                {/* AM/PM */}
                 <div className="flex flex-col ml-3 gap-1">
-                  <button
-                    onClick={() => setPeriod("AM")}
+                  <button type="button" onClick={() => setPeriod("AM")}
                     className={`text-sm font-semibold px-2 py-0.5 rounded transition-all ${
                       period === "AM" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"
-                    }`}
-                  >AM</button>
-                  <button
-                    onClick={() => setPeriod("PM")}
+                    }`}>AM</button>
+                  <button type="button" onClick={() => setPeriod("PM")}
                     className={`text-sm font-semibold px-2 py-0.5 rounded transition-all ${
                       period === "PM" ? "bg-white/20 text-white" : "text-white/50 hover:text-white/80"
-                    }`}
-                  >PM</button>
+                    }`}>PM</button>
                 </div>
               </div>
             </div>
 
-            {/* Clock / Minute grid */}
             <div className="p-4">
               {mode === "hours" ? (
-                /* Clock face for hours */
                 <div className="relative w-[220px] h-[220px] mx-auto">
                   <div className="absolute inset-0 rounded-full bg-slate-100" />
                   <div className="absolute left-1/2 top-1/2 w-3 h-3 -ml-1.5 -mt-1.5 rounded-full bg-blue-600" />
@@ -215,7 +203,7 @@ export function TimePicker({ value, onChange, label, className = "" }) {
                   {hours.map((hour, idx) => {
                     const pos = getPosition(idx, 12, 85);
                     return (
-                      <button key={hour} onClick={() => handleHourClick(hour)}
+                      <button type="button" key={hour} onClick={() => handleHourClick(hour)}
                         className={`absolute w-9 h-9 -ml-4 -mt-4 rounded-full flex items-center justify-center font-medium text-sm transition-all ${
                           tempHour === hour ? "bg-blue-600 text-white" : "hover:bg-slate-200 text-slate-700"
                         }`}
@@ -225,11 +213,10 @@ export function TimePicker({ value, onChange, label, className = "" }) {
                   })}
                 </div>
               ) : (
-                /* Minute grid - 5 min intervals + free input */
                 <div>
                   <div className="grid grid-cols-4 gap-1.5 mb-3">
                     {quickMinutes.map(m => (
-                      <button key={m} onClick={() => handleMinuteClick(m)}
+                      <button type="button" key={m} onClick={() => handleMinuteClick(m)}
                         className={`py-2 rounded-lg text-sm font-medium transition-all ${
                           tempMinute === m
                             ? "bg-blue-600 text-white shadow-sm"
@@ -244,20 +231,18 @@ export function TimePicker({ value, onChange, label, className = "" }) {
                 </div>
               )}
 
-              {/* Mode tabs */}
               <div className="flex justify-center gap-4 mt-4">
-                <button onClick={() => setMode("hours")}
+                <button type="button" onClick={() => setMode("hours")}
                   className={`px-3 py-1 text-sm font-medium rounded-lg transition-all ${
                     mode === "hours" ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100"
                   }`}>Horas</button>
-                <button onClick={() => setMode("minutes")}
+                <button type="button" onClick={() => setMode("minutes")}
                   className={`px-3 py-1 text-sm font-medium rounded-lg transition-all ${
                     mode === "minutes" ? "bg-blue-100 text-blue-700" : "text-slate-500 hover:bg-slate-100"
                   }`}>Minutos</button>
               </div>
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end gap-2 px-4 pb-4">
               <button type="button" onClick={() => setIsOpen(false)}
                 className="px-5 py-2 text-slate-600 hover:bg-slate-100 rounded-lg font-medium transition-colors">
