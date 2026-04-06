@@ -253,7 +253,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
             </div>
           ))}
         </div>
-        <div className="overflow-x-auto">
+        <div>
           {timeSlots.map((time) => {
             const brk = getBreakForSlot(time);
             if (brk) return renderBreakRow(time, brk);
@@ -274,7 +274,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
                   const slotSchedules = getSchedulesForSlot(day.id, time);
                   return (
                     <div key={`${day.id}-${time}`} data-testid={`schedule-cell-${day.id}-${time.replace(":", "")}`}
-                      className="flex-1 min-w-[180px] border-r last:border-r-0 border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors p-1"
+                      className="flex-1 min-w-[140px] border-r last:border-r-0 border-slate-100 hover:bg-blue-50/30 cursor-pointer transition-colors p-1"
                       onClick={() => onCellClick(day.id, time)}>
                       {slotSchedules.map(s => startsAtSlot(s, time) ? renderHorizBlock(s) : null)}
                     </div>
@@ -385,7 +385,7 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
           </div>
         ))}
       </div>
-      <div className="flex overflow-x-auto">
+      <div className="flex">
         <div className="w-20 flex-shrink-0 border-r border-slate-200 bg-slate-50 sticky left-0 z-10 relative" style={{ height: `${totalHeightPx}px` }}>
           {guideLines.map((gl, idx) => (
             <div key={gl.time} className="absolute w-full flex items-start justify-center cursor-pointer group"
