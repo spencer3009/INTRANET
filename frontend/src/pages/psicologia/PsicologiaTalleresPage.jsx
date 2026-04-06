@@ -85,7 +85,7 @@ export default function PsicologiaTalleresPage({ user, token, onLogout }) {
         </button>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 space-y-4">
+      <div className="px-4 sm:px-6 py-4 space-y-4">
         {/* Tabs & Filters */}
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex gap-1.5 bg-slate-100 rounded-xl p-0.5 flex-shrink-0">

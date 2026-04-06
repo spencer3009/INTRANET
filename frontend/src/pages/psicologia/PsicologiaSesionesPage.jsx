@@ -55,7 +55,7 @@ export default function PsicologiaSesionesPage({ user, token, onLogout }) {
         <p className="text-xs text-slate-500">{sessions.length} sesiones registradas</p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+      <div className="px-4 sm:px-6 py-6 space-y-4">
         {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />

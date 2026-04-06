@@ -160,7 +160,7 @@ export default function PsicologiaFichaPage({ user, token, onLogout }) {
         )}
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="px-4 sm:px-6 py-6 space-y-6">
         {/* Student Info Card */}
         <div className="bg-white rounded-2xl border border-slate-200/60 p-5">
           <div className="flex items-start gap-4">

@@ -83,7 +83,7 @@ export default function PsicologiaPerfilPage({ user, token, onLogout }) {
         <h1 className="text-lg font-bold text-slate-800">Mi Perfil</h1>
       </div>
 
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+      <div className="px-4 sm:px-6 py-6 space-y-6">
         {/* Profile Header */}
         <div className="bg-gradient-to-r from-violet-600 to-purple-700 rounded-2xl p-6 text-white">
           <div className="flex items-center gap-4">

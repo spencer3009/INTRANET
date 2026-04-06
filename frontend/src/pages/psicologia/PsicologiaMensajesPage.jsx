@@ -136,7 +136,7 @@ export default function PsicologiaMensajesPage({ user, token, onLogout }) {
         </button>
       </div>
 
-      <div className="max-w-7xl mx-auto h-[calc(100vh-120px)] flex">
+      <div className="h-[calc(100vh-120px)] flex">
         {/* Left Panel - Conversations */}
         <div className={`w-full sm:w-[340px] lg:w-[380px] border-r border-slate-200/60 bg-white flex flex-col flex-shrink-0 ${mobileShowChat ? "hidden sm:flex" : "flex"}`}>
           <div className="p-3 border-b border-slate-100">

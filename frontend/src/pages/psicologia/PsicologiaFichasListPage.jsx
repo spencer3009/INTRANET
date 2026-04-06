@@ -74,7 +74,7 @@ export default function PsicologiaFichasListPage({ user, token, onLogout }) {
           <p className="text-xs text-slate-500">{total} fichas registradas</p>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-4">
+        <div className="px-4 sm:px-6 py-6 space-y-4">
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
