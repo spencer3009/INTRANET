@@ -103,6 +103,11 @@ import SupportAcademiaPage from "@/pages/SupportAcademiaPage";
 import AcademiaPortalPage from "@/pages/AcademiaPortalPage";
 import SupportFinancesPage from "@/pages/SupportFinancesPage";
 import SupportDemosPage from "@/pages/SupportDemosPage";
+import PsicologiaDashboardPage from "@/pages/psicologia/PsicologiaDashboardPage";
+import PsicologiaEstudiantesPage from "@/pages/psicologia/PsicologiaEstudiantesPage";
+import PsicologiaFichaPage from "@/pages/psicologia/PsicologiaFichaPage";
+import PsicologiaSesionesPage from "@/pages/psicologia/PsicologiaSesionesPage";
+import PsicologiaPerfilPage from "@/pages/psicologia/PsicologiaPerfilPage";
 
 const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 
@@ -111,11 +116,12 @@ const BASE_DOMAIN = process.env.REACT_APP_BASE_DOMAIN || "edunet.pe";
 // ══════════════════════════════════════════════════════════════════════════════
 
 const ADMIN_ROLES = ["owner", "admin", "director", "coordinator"];
-const STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "auxiliar"];
+const STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar"];
 
 const isStudent = (user) => user?.role === "student";
 const isParent = (user) => user?.role === "parent";
 const isTeacher = (user) => user?.role === "teacher";
+const isPsicologo = (user) => user?.role === "psicologo";
 const isStaff = (user) => STAFF_ROLES.includes(user?.role);
 const isAdmin = (user) => ADMIN_ROLES.includes(user?.role);
 // Specific check for role="admin" only (for Admin Portal)
@@ -505,6 +511,14 @@ function App() {
       return user?.subdomain ? `/${user.subdomain}/teacher` : '/teacher';
     }
     
+    // Psychologists get redirected to psychology portal
+    if (isPsicologo(user)) {
+      if (environment.mode === 'subdomain' || environment.supportsWildcard) {
+        return '/psicologia';
+      }
+      return user?.subdomain ? `/${user.subdomain}/psicologia` : '/psicologia';
+    }
+    
     // Admin role uses the SAME Owner portal with RBAC restrictions
     if (isAdminOnly(user)) {
       if (environment.mode === 'subdomain' || environment.supportsWildcard) {
@@ -623,6 +637,8 @@ function App() {
                   <Navigate to="/student" replace />
                 ) : isTeacher(user) ? (
                   <Navigate to="/teacher" replace />
+                ) : isPsicologo(user) ? (
+                  <Navigate to="/psicologia" replace />
                 ) : (
                   <DashboardPage user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -992,6 +1008,58 @@ function App() {
           />
           
           {/* ════════════════════════════════════════════════════════════════════
+              PSYCHOLOGY PORTAL - Direct path (for subdomain mode)
+          ════════════════════════════════════════════════════════════════════ */}
+          <Route
+            path="/psicologia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaDashboardPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/psicologia/estudiantes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaEstudiantesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/psicologia/fichas/:studentId"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaFichaPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/psicologia/fichas"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaEstudiantesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/psicologia/sesiones"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaSesionesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/psicologia/perfil"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaPerfilPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* ════════════════════════════════════════════════════════════════════
               ADMIN PORTAL REDIRECT - Admin uses Owner's dashboard with RBAC
               All /admin routes redirect to /dashboard for unified experience
           ════════════════════════════════════════════════════════════════════ */}
@@ -1226,6 +1294,8 @@ function App() {
                   <Navigate to={`/${user?.subdomain}/student`} replace />
                 ) : isTeacher(user) ? (
                   <Navigate to={`/${user?.subdomain}/teacher`} replace />
+                ) : isPsicologo(user) ? (
+                  <Navigate to={`/${user?.subdomain}/psicologia`} replace />
                 ) : (
                   <SchoolDashboardRoute user={user} token={token} onLogout={handleLogout} />
                 )}
@@ -1507,6 +1577,56 @@ function App() {
             }
           />
           
+          {/* Psychology Portal - Route based */}
+          <Route
+            path="/:subdomain/psicologia"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaDashboardPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/psicologia/estudiantes"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaEstudiantesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/psicologia/fichas/:studentId"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaFichaPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/psicologia/fichas"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaEstudiantesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/psicologia/sesiones"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaSesionesPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:subdomain/psicologia/perfil"
+            element={
+              <ProtectedRoute token={token} user={user} requireSchool={true} requireEmailVerified={true}>
+                <PsicologiaPerfilPage user={user} token={token} onLogout={handleLogout} />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Parent Portal - Route based */}
           <Route
             path="/:subdomain/parent"

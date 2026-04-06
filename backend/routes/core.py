@@ -330,11 +330,11 @@ def is_admin_user(user: dict) -> bool:
 
 ROLE_HIERARCHY = {
     "owner": 100, "admin": 90, "director": 80, "coordinator": 70,
-    "teacher": 50, "auxiliar": 40, "parent": 20, "student": 10
+    "teacher": 50, "psicologo": 45, "auxiliar": 40, "parent": 20, "student": 10
 }
 
 ADMIN_ROLES = ["owner", "admin", "director", "coordinator"]
-STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "auxiliar"]
+STAFF_ROLES = ["owner", "admin", "director", "coordinator", "teacher", "psicologo", "auxiliar"]
 
 def has_role(user: dict, allowed_roles: list) -> bool:
     return user.get("role") in allowed_roles
@@ -391,7 +391,8 @@ SECTION_PERMISSIONS = {
     "reports": {"allowed_roles": ["owner", "admin", "director", "coordinator"], "feature_flag": None},
     "schedule": {"allowed_roles": ["owner", "admin", "director", "coordinator"], "feature_flag": None},
     "exams": {"allowed_roles": ["owner", "admin", "director", "coordinator", "teacher"], "feature_flag": None},
-    "internal_mail": {"allowed_roles": ["owner", "admin", "director", "coordinator", "teacher", "auxiliar", "student", "parent"], "feature_flag": None},
+    "internal_mail": {"allowed_roles": ["owner", "admin", "director", "coordinator", "teacher", "auxiliar", "psicologo", "student", "parent"], "feature_flag": None},
+    "psychology": {"allowed_roles": ["owner", "admin", "director", "coordinator", "psicologo"], "feature_flag": None},
 }
 
 async def can_access_section(user: dict, section: str, school_id: str = None) -> bool:

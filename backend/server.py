@@ -52,6 +52,7 @@ from routes.exams import close_expired_exams_cron, close_expired_tasks_cron
 from routes.demo import router as demo_router, cleanup_expired_demo_accesses
 from routes.academia import router as academia_router, seed_academia_categories
 from routes.parents import router as parents_router
+from routes.psychology import router as psychology_router
 try:
     from routes.notifications import router as notifications_router
 except Exception as _notif_err:
@@ -75,7 +76,7 @@ app.add_middleware(
         "https://edunet.pe",
         "http://localhost:3000",
         "http://localhost:8001",
-        "https://exam-payment-guard.preview.emergentagent.com",
+        "https://psychology-hub-6.preview.emergentagent.com",
     ],
     allow_origin_regex=r"https://.*\.edunet\.pe|https://.*\.preview\.emergentagent\.com|https://.*\.emergent\.host",
     allow_credentials=True,
@@ -201,6 +202,7 @@ app.include_router(demo_router)
 app.include_router(support_router)
 app.include_router(academia_router)
 app.include_router(parents_router)
+app.include_router(psychology_router)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # WEBSOCKET ENDPOINT
