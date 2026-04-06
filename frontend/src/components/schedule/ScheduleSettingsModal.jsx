@@ -112,9 +112,13 @@ export function ScheduleSettingsModal({ isOpen, onClose, settings, onSave, loadi
           {/* Block Duration */}
           <div>
             <label className="block text-sm font-semibold text-slate-700 mb-1">
-              Intervalo de líneas guía (minutos)
+              {form.view_mode === "vertical" ? "Intervalo de líneas guía (minutos)" : "Duración de bloque (minutos)"}
             </label>
-            <p className="text-xs text-slate-500 mb-3">Define cada cuántos minutos se dibujan las líneas de referencia en la grilla</p>
+            <p className="text-xs text-slate-500 mb-3">
+              {form.view_mode === "vertical"
+                ? "Define cada cuántos minutos se dibujan las líneas de referencia en la grilla"
+                : "Define la duración de cada fila de la grilla"}
+            </p>
             <div className="flex gap-2">
               {[30, 45, 60, 90].map(mins => (
                 <button
