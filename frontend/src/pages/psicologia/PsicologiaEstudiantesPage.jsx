@@ -146,8 +146,8 @@ export default function PsicologiaEstudiantesPage({ user, token, onLogout }) {
 
           {/* Student Cards Grid */}
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-              {Array.from({ length: 10 }).map((_, i) => (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-slate-200 h-64 animate-pulse" />
               ))}
             </div>
@@ -157,7 +157,7 @@ export default function PsicologiaEstudiantesPage({ user, token, onLogout }) {
               <p className="text-slate-500 text-sm">No se encontraron estudiantes</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" data-testid="students-grid">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" data-testid="students-grid">
               {students.map(s => {
                 const st = getStatus(s.student_status);
                 const nivel = levelMap[s.nivel_id] || "";

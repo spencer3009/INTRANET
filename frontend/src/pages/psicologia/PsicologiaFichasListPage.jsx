@@ -150,7 +150,7 @@ export default function PsicologiaFichasListPage({ user, token, onLogout }) {
 
           {/* Record Cards Grid */}
           {loading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-slate-200 h-72 animate-pulse" />
               ))}
@@ -162,7 +162,7 @@ export default function PsicologiaFichasListPage({ user, token, onLogout }) {
               <p className="text-xs text-slate-400 mt-1">Las fichas se crean desde el perfil de cada estudiante</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" data-testid="records-grid">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" data-testid="records-grid">
               {records.map(r => {
                 const st = getStatusStyle(r.status);
                 const academicInfo = [r.student_nivel, r.student_grado, r.student_seccion].filter(Boolean).join(" - ");
