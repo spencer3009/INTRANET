@@ -101,7 +101,7 @@ export default function PaeDashboard({ user, token, onLogout }) {
             <Loader2 className="w-10 h-10 text-orange-500 animate-spin" />
           </div>
         ) : (
-          <main className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6">
+          <main className="p-4 sm:p-6 lg:p-8 space-y-6">
             {/* Turno selector + scan button */}
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm" data-testid="pae-turno-selector">
               <h2 className="text-base font-bold text-slate-800 mb-4">Seleccionar Turno</h2>
