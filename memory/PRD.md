@@ -39,45 +39,40 @@ Sistema de gestion escolar integral (intranet) para colegios en Peru. Soporte mu
 
 ## What's Been Implemented
 
+### Psychology Dashboard Redesign (April 6, 2026)
+- **PsicologiaSidebar.jsx**: New sidebar component matching intranet style
+  - 8 navigation items: Inicio, Estudiantes, Fichas Clinicas, Sesiones, Mensajes Padres, Agenda, Talleres, Mi Perfil
+  - Hover expansion with full labels, unread messages badge
+  - Same CSS classes as main Sidebar.jsx (sidebar, sidebar-link, etc.)
+- **DashboardHeader integration**: Reused shared header component
+  - School logo from /api/settings/public/{subdomain}
+  - "Bienvenido, Colegio El Roble" with current date
+  - User profile with "Psicologo/a" role display + avatar
+  - Notification bell
+  - Added 'psicologo' to ROLE_DISPLAY_MAP
+- **4 Colored Metric Cards**: 
+  - Blue: En Seguimiento (active students)
+  - Green: Sesiones del Mes
+  - Purple: Nuevos Casos
+  - Orange: Citas de Hoy
+- **Quick Action Cards**: Estudiantes, Fichas Clinicas, Agenda, Talleres
+- **Two-column layout**: Citas de Hoy + Proximos Talleres
+- **Sesiones Recientes**: Recent sessions list
+- **Testing**: 20/20 features verified (iteration_109)
+
 ### Psychology Phase 5: Agenda & Workshops (April 6, 2026)
-- **Backend** (`/app/backend/routes/psychology_agenda.py`):
-  - Collection `psychological_appointments` with full CRUD + recurrence support
-  - Collection `psychological_workshops` with CRUD, attendance tracking, completion flow
-  - Endpoints: appointments (list, today, week-summary, check-conflict, get, create, update, status, delete)
-  - Endpoints: workshops (list, upcoming, get, create, update, attendance, complete, delete)
-  - MongoDB indexes for psychologist_id, date, institution_id
-- **Frontend**:
-  - `PsicologiaAgendaPage.jsx` - Google Calendar-style weekly view with Day/Week/Month switcher
-    - Appointment blocks with color-coded types, click-to-view detail
-    - Create/Edit modal with conflict detection, student search, recurrence options
-    - Detail popup with Edit, Complete, Cancel, No-show, Delete actions
-    - Auto-navigate to student clinical record after completing appointment
-  - `PsicologiaTalleresPage.jsx` - Workshop management with card grid
-    - Filter tabs: Todos, Planificados, Completados, Cancelados + category filter
-    - Create/Edit modal with objectives list, methodology, target level/grades
-    - Detail view with attendance tracking (checkbox per student) and completion form
-  - `PsicologiaDashboardPage.jsx` updated with:
-    - "Agenda" nav card with today's appointment count badge
-    - "Talleres Grupales" nav card
-    - "Citas de Hoy" section with real-time appointment data
-    - "Proximos Talleres" section with upcoming workshops
-  - Routes registered in `App.js` for both direct and /:subdomain/ patterns
-- **Testing**: 20/20 backend tests passed, frontend 100% verified (iteration_108)
+- Backend: Appointments CRUD + Workshops CRUD (psychology_agenda.py)
+- Frontend: Calendar view (day/week/month), Workshop cards with filters
+- Routes in App.js for both direct and /:subdomain/ patterns
+- Testing: 20/20 backend tests (iteration_108)
 
 ### Psychology Phase 2: Messaging (April 6, 2026)
-- Backend: 10 endpoints for psychologist + 4 for parent messaging
-- Frontend: Email inbox-style layout, templates, read receipts
-- Testing: 24/24 tests passed (iteration_107)
+- Backend + Frontend for psychologist-parent messaging
+- Testing: 24/24 tests (iteration_107)
 
 ### Psychology Phase 1 (April 6, 2026)
-- Role `psicologo` with CRUD, dashboard, student list, records, sessions, audit log
-- Testing: 100% passed (iteration_106)
-
-## DB Schema
-- `psychological_appointments`: id, psychologist_id, institution_id, title, appointment_type, date, duration_minutes, student_id, parent_id, location, description, status, recurrence_type, recurrence_group_id, notes_post
-- `psychological_workshops`: id, psychologist_id, institution_id, title, topic_category, description, date, duration_minutes, target_level, target_grades, target_sections, location, objectives, methodology, expected_attendees, actual_attendees, attendee_list, status, observations, outcomes
-- `psychological_messages`: conversation_id, from/to roles, body, read, attachments
-- `message_templates`: name, subject, body with placeholders, category, is_shared
+- Role psicologo with CRUD, dashboard, student list, records, sessions
+- Testing: 100% (iteration_106)
 
 ## Prioritized Backlog
 
