@@ -24,6 +24,7 @@ const ROLE_DISPLAY_MAP = {
   teacher: "Profesor",
   student: "Alumno",
   parent: "Padre de Familia",
+  psicologo: "Psicologo/a",
 };
 
 function getRoleDisplay(role, isOwner, isSuperAdmin) {
