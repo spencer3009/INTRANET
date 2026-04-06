@@ -149,10 +149,10 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
 
   // ── Break rendering helpers ──────────────────────────────────
   const breakConfig = (type) => ({
-    break: { bg: "bg-yellow-100", border: "border-yellow-300", text: "text-yellow-800", icon: "☕" },
-    lunch: { bg: "bg-orange-100", border: "border-orange-300", text: "text-orange-800", icon: "🍽️" },
-    event: { bg: "bg-blue-100", border: "border-blue-300", text: "text-blue-800", icon: "🎉" },
-  }[type] || { bg: "bg-slate-100", border: "border-slate-300", text: "text-slate-800", icon: "⏸️" });
+    break: { bg: "#FEF9C3", border: "border-yellow-400", text: "text-yellow-800", icon: "☕" },
+    lunch: { bg: "#FFEDD5", border: "border-orange-400", text: "text-orange-800", icon: "🍽️" },
+    event: { bg: "#DBEAFE", border: "border-blue-400", text: "text-blue-800", icon: "🎉" },
+  }[type] || { bg: "#F1F5F9", border: "border-slate-400", text: "text-slate-800", icon: "⏸️" });
 
   const isTimeBlocked = useCallback((timeSlot) => {
     const [slotHour] = timeSlot.split(":").map(Number);
@@ -226,8 +226,8 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     const renderBreakRow = (time, breakItem) => {
       const bc = breakConfig(breakItem.type);
       return (
-        <div key={time} className={`flex border-b ${bc.border} min-h-[64px] ${bc.bg}`}>
-          <div className={`w-36 flex-shrink-0 px-2 py-2 border-r ${bc.border} sticky left-0 z-10 flex items-center justify-center ${bc.bg}`}>
+        <div key={time} className={`flex border-b ${bc.border} min-h-[64px]`} style={{ backgroundColor: bc.bg }}>
+          <div className={`w-36 flex-shrink-0 px-2 py-2 border-r ${bc.border} sticky left-0 z-10 flex items-center justify-center`} style={{ backgroundColor: bc.bg }}>
             <span className={`text-xs font-medium ${bc.text}`}>{formatSlotRange(time)}</span>
           </div>
           <div className="flex-1 flex items-center justify-center gap-3 px-4 cursor-pointer group" onClick={() => onEditBreak(breakItem)}>
@@ -353,8 +353,8 @@ export function CalendarGrid({ schedules, settings, onEdit, onDelete, onCellClic
     const bc = breakConfig(breakItem.type);
     return (
       <div key={breakItem.id || breakItem.start_time}
-        className={`absolute left-0 right-0 ${bc.bg}/90 ${bc.border} border-y flex items-center justify-center gap-2 z-30 cursor-pointer group`}
-        style={{ top: `${topPx}px`, height: `${heightPx}px` }}
+        className={`absolute left-0 right-0 ${bc.border} border-y flex items-center justify-center gap-2 z-30 cursor-pointer group`}
+        style={{ top: `${topPx}px`, height: `${heightPx}px`, backgroundColor: bc.bg }}
         onClick={() => onEditBreak(breakItem)}>
         <span className="text-lg">{bc.icon}</span>
         <span className={`font-bold text-sm ${bc.text}`}>{breakItem.label}</span>
